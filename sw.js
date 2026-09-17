@@ -1,9 +1,9 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v4";
+var CACHE = "menu-semanal-v5";
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=4",
-  "./js/util.js?v=4", "./js/almacen.js?v=4", "./js/github.js?v=4", "./js/app.js?v=4",
-  "./datos/ingredientes.js?v=4", "./datos/recetas.js?v=4", "./datos/plantillas.js?v=4", "./datos/actividades.js?v=4",
+  "./", "./index.html", "./css/estilos.css?v=5",
+  "./js/util.js?v=5", "./js/almacen.js?v=5", "./js/github.js?v=5", "./js/app.js?v=5",
+  "./datos/ingredientes.js?v=5", "./datos/recetas.js?v=5", "./datos/plantillas.js?v=5", "./datos/actividades.js?v=5",
   "./manifest.webmanifest", "./iconos/icono.svg"
 ];
 

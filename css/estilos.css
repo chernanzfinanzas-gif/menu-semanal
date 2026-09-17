@@ -280,3 +280,11 @@ textarea.salida{min-height:180px; font-family:ui-monospace,SFMono-Regular,Menlo,
 .grafico-peso{width:100%; height:70px; display:block; margin-bottom:4px}
 .fila-clave{display:flex; gap:6px; align-items:center}
 .fila-clave input{flex:1; min-width:0}
+
+/* ---------- modo consulta (por aparato) ---------- */
+body.modo-consulta .solo-edicion{display:none !important}
+body.modo-consulta .anadir,
+body.modo-consulta .quitar{display:none !important}
+.aviso-consulta{display:none; font-size:.72rem; padding:3px 9px; border-radius:99px;
+  background:rgba(255,255,255,.18); white-space:nowrap}
+body.modo-consulta .aviso-consulta{display:inline-block}

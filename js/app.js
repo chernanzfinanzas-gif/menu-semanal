@@ -15,6 +15,20 @@
 
   function esMovil() { return window.matchMedia("(max-width:767px)").matches; }
 
+  /* Modo consulta: preferencia DE ESTE APARATO, no se sincroniza.
+     Vive en su propia clave para que no viaje al repositorio con el resto. */
+  var CLAVE_MODO = "asistente-alimentacion-modo";
+  function soloConsulta() {
+    try { return localStorage.getItem(CLAVE_MODO) === "consulta"; } catch (e) { return false; }
+  }
+  function ponerModo(consulta) {
+    try { localStorage.setItem(CLAVE_MODO, consulta ? "consulta" : "completo"); } catch (e) {}
+    aplicarModo();
+  }
+  function aplicarModo() {
+    document.body.classList.toggle("modo-consulta", soloConsulta());
+  }
+
   /* día que conviene mostrar al abrir: hoy si cae en la semana, si no el lunes */
   function diaPorDefecto() {
     var hoy = Util.hoyISO();
@@ -462,7 +476,7 @@
 
     if (r.nota) html += '<div class="aviso">' + esc(r.nota) + '</div>';
 
-    html += '<div class="fila" style="margin-top:14px">' +
+    html += '<div class="fila solo-edicion" style="margin-top:14px">' +
             '<button class="btn principal" data-editar="' + esc(r.id) + '">Editar</button>' +
             '<button class="btn" data-duplicar="' + esc(r.id) + '">Duplicar</button>' +
             '<button class="btn" data-borrar="' + esc(r.id) + '">Borrar</button>' +
@@ -759,7 +773,7 @@
               '<div class="datos"><div class="nombre">' + esc(i.n) + '</div>' +
               '<div class="detalle">' + Math.round(i.k || 0) + ' kcal · ' + (i.p || 0) + ' g prot. · ' +
               Util.sal(i.sal) + ' sal — por 100 ' + (i.u === "ml" ? "ml" : "g") + '</div></div>' +
-              '<button class="btn mini" data-editaring="' + esc(i.id) + '">Valores</button></div>';
+              '<button class="btn mini solo-edicion" data-editaring="' + esc(i.id) + '">Valores</button></div>';
     });
     if (catActual) html += '</div>';
     $("#rejilla-despensa").innerHTML = html || '<div class="vacio">Sin resultados.</div>';
@@ -838,6 +852,8 @@
   }
 
   function pintarAjustes() {
+    $("#cfg-consulta").checked = soloConsulta();
+    if (soloConsulta()) return;          // en consulta, lo demás ni se rellena
     pintarPerfil();
     var c = Almacen.estado.config;
     $("#cfg-personas").value = c.personas;
@@ -1126,6 +1142,14 @@
       Sync.cargar().then(function () { Sync.guardar(); });
       Util.toast("Conectando con GitHub…");
     });
+    $("#cfg-consulta").addEventListener("change", function () {
+      ponerModo(this.checked);
+      mostrar(UI.vista);
+      Util.toast(this.checked
+        ? "Este aparato queda en modo consulta"
+        : "Este aparato vuelve a poder editarlo todo");
+    });
+
     $("#gh-ver").addEventListener("click", function () {
       var campo = $("#gh-token");
       var oculta = campo.type === "password";
@@ -1196,6 +1220,7 @@
   /* ==================== ARRANQUE ==================== */
   function arrancar() {
     Almacen.iniciar();
+    aplicarModo();
     conectarEventos();
 
     // primera vez: deja la semana en curso preparada con la Semana A

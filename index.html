@@ -8,12 +8,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=4">
+<link rel="stylesheet" href="css/estilos.css?v=5">
 </head>
 <body>
 
 <header class="barra">
   <span class="titulo">Asistente de Alimentación</span>
+  <span class="aviso-consulta">Consulta</span>
   <span id="estado-sync" class="sync">Solo en este dispositivo</span>
 </header>
 
@@ -53,11 +54,11 @@
       </div>
     </div>
     <div class="fila" style="margin-bottom:12px">
-      <button class="btn principal mini" data-plantilla="A">Aplicar Semana A</button>
-      <button class="btn principal mini" data-plantilla="B">Aplicar Semana B</button>
-      <button class="btn mini" id="vaciar-semana">Vaciar semana</button>
-      <button class="btn mini" id="guardar-como-plantilla">Guardar como plantilla</button>
-      <button class="btn mini" id="importar-garmin">Importar de Garmin</button>
+      <button class="btn principal mini solo-edicion" data-plantilla="A">Aplicar Semana A</button>
+      <button class="btn principal mini solo-edicion" data-plantilla="B">Aplicar Semana B</button>
+      <button class="btn mini solo-edicion" id="vaciar-semana">Vaciar semana</button>
+      <button class="btn mini solo-edicion" id="guardar-como-plantilla">Guardar como plantilla</button>
+      <button class="btn mini solo-edicion" id="importar-garmin">Importar de Garmin</button>
       <input type="file" id="fichero-garmin" accept=".tcx,.csv,.gpx,.fit,text/xml,text/csv" multiple style="display:none">
     </div>
     <div class="aviso" id="resumen-semana" style="display:none"></div>
@@ -104,7 +105,7 @@
         <option value="cazuela">Cazuela</option>
         <option value="sin-cocinar">Sin cocinar</option>
       </select>
-      <button class="btn principal mini" id="nueva-receta">+ Nueva</button>
+      <button class="btn principal mini solo-edicion" id="nueva-receta">+ Nueva</button>
     </div>
     <div id="contador-recetas" class="nota-peque" style="margin-bottom:10px"></div>
     <div class="rejilla-recetas" id="rejilla-recetas"></div>
@@ -135,8 +136,8 @@
     <div class="aviso">Marca lo que ya tienes en casa: desaparecerá de la lista de la compra hasta que lo desmarques.</div>
     <div class="fila" style="margin-bottom:12px">
       <input type="text" id="buscar-despensa" placeholder="Buscar ingrediente…" style="flex:1; min-width:180px">
-      <button class="btn principal mini" id="nuevo-ingrediente">+ Nuevo</button>
-      <button class="btn mini" id="despensa-vaciar">Desmarcar todo</button>
+      <button class="btn principal mini solo-edicion" id="nuevo-ingrediente">+ Nuevo</button>
+      <button class="btn mini solo-edicion" id="despensa-vaciar">Desmarcar todo</button>
     </div>
     <div class="rejilla-despensa" id="rejilla-despensa"></div>
   </section>
@@ -144,6 +145,17 @@
   <!-- ===================== AJUSTES ===================== -->
   <section class="vista" id="vista-ajustes">
     <div class="tarjeta">
+      <h2>Este aparato</h2>
+      <label style="display:flex; gap:10px; align-items:flex-start; font-size:.9rem">
+        <input type="checkbox" id="cfg-consulta" style="width:22px; height:22px; flex:none; margin-top:2px">
+        <span><b>Solo consulta</b><br>
+          <span class="nota-peque">Para el móvil: deja ver el menú y las recetas, y marcar la compra y
+          lo que has comido, pero esconde todo lo de planificar y editar. Así no hay dos sitios cambiando
+          lo mismo a la vez. Es un ajuste de este aparato: los demás no se enteran.</span></span>
+      </label>
+    </div>
+
+    <div class="tarjeta solo-edicion">
       <h2>Tu perfil</h2>
       <p class="nota-peque">Con estos datos se estima tu gasto diario y se propone el objetivo de calorías
         y de proteína. Es una estimación de fórmula, no una medición: ajústala a lo que veas en la báscula
@@ -183,7 +195,7 @@
       </div>
     </div>
 
-    <div class="tarjeta">
+    <div class="tarjeta solo-edicion">
       <h2>Peso</h2>
       <div class="fila" style="align-items:flex-end">
         <label class="campo" style="flex:1 1 110px; margin-bottom:0"><span>Fecha</span>
@@ -195,7 +207,7 @@
       <div id="peso-historico" style="margin-top:14px"></div>
     </div>
 
-    <div class="tarjeta">
+    <div class="tarjeta solo-edicion">
       <h2>Cocina</h2>
       <label class="campo"><span>Personas para las que se compra</span>
         <input type="number" id="cfg-personas" min="1" max="8" step="1"></label>
@@ -239,7 +251,7 @@
       </div>
     </div>
 
-    <div class="tarjeta">
+    <div class="tarjeta solo-edicion">
       <h2>Copia de seguridad</h2>
       <div class="fila">
         <button class="btn" id="exportar">Descargar copia</button>
@@ -259,13 +271,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=4"></script>
-<script src="datos/recetas.js?v=4"></script>
-<script src="datos/plantillas.js?v=4"></script>
-<script src="datos/actividades.js?v=4"></script>
-<script src="js/util.js?v=4"></script>
-<script src="js/almacen.js?v=4"></script>
-<script src="js/github.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="datos/ingredientes.js?v=5"></script>
+<script src="datos/recetas.js?v=5"></script>
+<script src="datos/plantillas.js?v=5"></script>
+<script src="datos/actividades.js?v=5"></script>
+<script src="js/util.js?v=5"></script>
+<script src="js/almacen.js?v=5"></script>
+<script src="js/github.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>
