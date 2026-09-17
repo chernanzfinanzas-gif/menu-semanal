@@ -15,7 +15,7 @@ En **Ajustes → Sincronizar con GitHub**:
 | Usuario | `chernanzfinanzas-gif` |
 | Repositorio | `menu-semanal-datos` |
 | Rama | `main` |
-| Clave | el token con permiso *Contents: Read and write* sobre ese repositorio |
+| Clave | token con permiso *Contents: Read and write* sobre ese repositorio |
 
 Los datos personales (menús, despensa, recetas propias) viven en el repositorio **privado**
 `menu-semanal-datos`, en el fichero `datos/estado.json`. Este repositorio, el público,
@@ -24,47 +24,69 @@ solo contiene el código y el recetario de partida.
 ## Qué hace
 
 - **Menú**: planifica las cinco tomas de cada día (desayuno, almuerzo, comida, merienda y cena).
-  Cada día muestra la sal total del día con semáforo: verde hasta 1,5 g, ámbar hasta 2 g, rojo por encima.
-  Con un clic aplicas la Semana A o la Semana B completas.
-- **Recetas**: 44 recetas de partida con ingredientes, pasos y sal por ración. Puedes buscarlas
-  por ingrediente, por tipo de comida o por herramienta (Lékué, airfryer, microondas…), editarlas y añadir las tuyas.
+  Cada día muestra la sal total con semáforo: verde hasta 1,5 g, ámbar hasta 2 g, rojo por encima.
+  Con un clic aplicas la Semana A o la Semana B completas. En el móvil se ve un día cada vez,
+  con una barra de días arriba y un punto de color por día.
+- **Recetas**: 44 recetas de partida con ingredientes, pasos y sal por ración. Se buscan
+  por ingrediente, por toma o por herramienta (Lékué, airfryer, microondas…), se editan y se añaden las tuyas.
 - **Compra**: genera la lista de la semana a partir del menú, agrupada por sección del supermercado
-  y calculada para el número de personas configurado. Lo que ya tienes en casa no aparece.
+  y calculada para el número de personas configurado. Con «Ocultar comprados» para llevarla por el súper.
 - **Despensa**: marca lo que tienes; se descuenta automáticamente de la compra.
 - **Compra en Amazon**: el botón «Preparar compra» genera el texto de la lista. Se lo pasas a Claude
-  en el chat y Claude abre Amazon en tu navegador y va añadiendo los productos al carrito.
+  en el chat y Claude abre Amazon en el navegador y va añadiendo los productos al carrito.
 
-## Cómo publicarla (una sola vez)
+## Publicar cambios: el buzón
 
-1. Crea un repositorio nuevo en GitHub (por ejemplo `menu-semanal`). Puede ser privado.
-2. Sube todos estos ficheros a la raíz del repositorio.
-3. En el repositorio: **Settings → Pages → Source: Deploy from a branch → Branch: main / (root)**.
-4. En un par de minutos la app estará en `https://TUUSUARIO.github.io/menu-semanal/`.
-5. Ábrela en el móvil y usa «Añadir a pantalla de inicio»: queda como una app más.
+Igual que en los demás proyectos. Los ficheros nuevos se dejan en `_publicar/` y se sube todo
+de una vez desde **«Menú Semanal - Publicar.bat»**, que abre un menú con todas las opciones.
 
-## Cómo sincronizar el móvil y el ordenador
+```
+_publicar/
+├── (la raíz es la zona de descarga: el script clasifica por el nombre)
+├── raiz/        → raíz del repositorio (index.html, sw.js, manifest, README)
+├── css/  js/  datos/  iconos/  docs/
+├── enviado/AAAA-MM-DD/        ← lo ya publicado se mueve aquí
+└── reemplazados/AAAA-MM-DD/   ← respaldo de lo que «Traer del repo» sustituye
+```
 
-En **Ajustes → Sincronizar con GitHub** rellena usuario, repositorio, rama y una clave personal
-(*fine-grained token* con permiso de **Contents: Read and write** sobre ese repositorio).
+Los cuatro botones:
 
-A partir de ahí, cada cambio se guarda solo en `datos/estado.json` del repositorio y el otro
-dispositivo lo recoge al abrir la app. La clave se queda guardada en cada dispositivo y **nunca**
-se sube al repositorio.
+| Botón | Qué hace |
+|---|---|
+| **Publicar al repo (1 clic)** | Comprueba, enseña los destinos, espera un ENTER y sube todo en un commit |
+| **Publicar - PRUEBA EN SECO** | Lo mismo, pero sin tocar nada |
+| **Que me falta por publicar** | Compara tu carpeta con lo publicado y trae al buzón lo distinto |
+| **Traer del repo** | Cuando el repositorio va por delante de tu carpeta |
+
+**Antes de subir comprueba**, y si algo falla no sube nada:
+
+- que ningún fichero lleve dentro una clave de GitHub;
+- que los `.js` tengan sintaxis válida y los `.json` sean JSON correcto;
+- que ninguna receta use un ingrediente que no existe;
+- que ninguna plantilla llame a una receta borrada;
+- que el `index.html` no cargue ficheros que no vayan a estar en el repositorio.
+
+Y avisa, sin bloquear, de ingredientes que ya no usa ninguna receta, recetas sin pasos
+o ficheros muy pesados. Valida el resultado final: mezcla lo del buzón con lo ya publicado.
+
+La clave del buzón va en `C:\Users\carlo\publicar-token-menu.txt`: fine-grained, solo el
+repositorio `menu-semanal`, permiso *Contents: Read and write*. No es la misma que usa la app.
 
 ## Ficheros
 
 | Fichero | Qué es |
 |---|---|
 | `index.html` | la app |
-| `css/estilos.css` | aspecto |
+| `css/estilos.css` | aspecto, con la adaptación al móvil |
 | `js/almacen.js` | datos, cálculo de sal y lista de la compra |
-| `js/github.js` | sincronización con el repositorio |
+| `js/github.js` | sincronización con el repositorio de datos |
 | `js/app.js` | pantallas |
+| `js/util.js` | fechas, formatos y utilidades |
 | `datos/ingredientes.js` | catálogo con la sal de cada alimento |
 | `datos/recetas.js` | recetario |
 | `datos/plantillas.js` | Semana A y Semana B |
-| `datos/estado.json` | lo tuyo: menús, despensa y recetas propias (lo crea la app) |
 | `docs/pauta-baja-en-sal.md` | la pauta nutricional de referencia |
+| `publicar.py` | el buzón (solo en local, no se publica) |
 
 ## Copias de seguridad
 
