@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=17">
+<link rel="stylesheet" href="css/estilos.css?v=18">
 </head>
 <body>
 
@@ -229,7 +229,11 @@
           <option value="1.375">Ligero: de pie a ratos, algún paseo</option>
           <option value="1.55">Moderado: en movimiento buena parte del día</option>
           <option value="1.725">Alto: trabajo físico</option>
-        </select></label>
+        </select>
+        <span class="nota-peque"><b>Ojo con esto:</b> es tu vida SIN el entreno. Si apuntas la bici,
+        las pesas y los paseos como entreno —y la app lo hace sola—, aquí va <b>Sedentario</b>.
+        Poner «Ligero» además cuenta el mismo ejercicio dos veces y te infla el objetivo unas
+        300 kcal al día.</span></label>
       <label class="campo"><span>Ritmo de pérdida</span>
         <select id="pf-ritmo">
           <option value="0">Mantener el peso</option>
@@ -240,8 +244,11 @@
       <div class="aviso" id="pf-resultado"></div>
       <div class="fila">
         <button class="btn principal" id="pf-guardar">Guardar perfil</button>
-        <button class="btn" id="pf-aplicar">Usar el objetivo calculado</button>
+        <button class="btn" id="pf-aplicar" title="Solo para el objetivo de reserva">Usar el objetivo calculado</button>
       </div>
+      <p class="nota-peque" style="margin-top:8px">Con el perfil relleno, <b>cada día calcula lo suyo</b>:
+        lo que gastas ese día menos el déficit. Ya no hace falta un objetivo fijo. El segundo botón
+        solo rellena el número de reserva de más abajo, el que se usa si algún dato del perfil falta.</p>
     </div>
 
     <div class="tarjeta solo-edicion">
@@ -268,8 +275,10 @@
         <input type="number" id="cfg-limite" min="0.5" max="8" step="0.1">
         <span class="nota-peque">4 g de sal = 1.600 mg de sodio. Las etiquetas suelen dar
         SAL; si dan sodio, multiplica por 2,5 para pasarlo a sal.</span></label>
-      <label class="campo"><span>Objetivo de calorías al día (kcal)</span>
-        <input type="number" id="cfg-kcal" min="800" max="5000" step="50"></label>
+      <label class="campo"><span>Objetivo de calorías al día, de reserva (kcal)</span>
+        <input type="number" id="cfg-kcal" min="800" max="5000" step="50">
+        <span class="nota-peque">Solo se usa si el perfil está incompleto. Con edad, altura y peso
+        rellenos, cada día calcula su propio objetivo y este número no pinta nada.</span></label>
       <label class="campo"><span>Objetivo de proteína al día (g)</span>
         <input type="number" id="cfg-prot" min="20" max="250" step="5"></label>
       <label class="campo"><span>Holgura antes de marcar el día en rojo (%)</span>
@@ -300,6 +309,18 @@
         <button class="btn mini" id="entreno-anadir">Añadir</button>
       </div>
       <p class="nota-peque" id="entreno-total" style="margin-top:10px"></p>
+    </div>
+
+    <div class="tarjeta-ajuste">
+      <img src="iconos/khb/2-frutas-tenedor.webp" alt="" width="44" height="44">
+      <h3>Comer fuera de casa</h3>
+      <p class="nota-peque">Cuando marcas una toma como fuera de casa, no entra en la compra y el
+        día cuenta estos valores en su lugar. <b>Son números inventados</b>, sacados de lo que suele
+        llevar un menú del día: no es lo que has comido. Ajústalos a los sitios donde comes tú.</p>
+      <div id="lista-fuera"></div>
+      <p class="nota-peque" style="margin-top:10px">Ojo a la columna de la sal: una sola comida
+        fuera se lleva casi el tope de un día entero, y no hay forma de bajarla desde casa. Es el
+        motivo de que la app te lo cuente en vez de dejarlo en blanco.</p>
     </div>
 
     <div class="tarjeta">
@@ -345,13 +366,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=17"></script>
-<script src="datos/recetas.js?v=17"></script>
-<script src="datos/plantillas.js?v=17"></script>
-<script src="datos/actividades.js?v=17"></script>
-<script src="js/util.js?v=17"></script>
-<script src="js/almacen.js?v=17"></script>
-<script src="js/github.js?v=17"></script>
-<script src="js/app.js?v=17"></script>
+<script src="datos/ingredientes.js?v=18"></script>
+<script src="datos/recetas.js?v=18"></script>
+<script src="datos/plantillas.js?v=18"></script>
+<script src="datos/actividades.js?v=18"></script>
+<script src="js/util.js?v=18"></script>
+<script src="js/almacen.js?v=18"></script>
+<script src="js/github.js?v=18"></script>
+<script src="js/app.js?v=18"></script>
 </body>
 </html>

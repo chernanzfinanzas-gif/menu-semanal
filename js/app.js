@@ -276,17 +276,27 @@
         html += '<div class="nota-tipo">Desayuno y cena en casa; almuerzo, comida y merienda, de mochila. ' +
                 '<b>Sin tope de sal</b>: sudando se pierden unos 2,1 g de sal por litro, más de lo que cabe ' +
                 'en el tope de un día entero.</div>';
-        /* Una salida larga dispara el objetivo a cifras que nadie se come. Decirlo, en
-           vez de dejar el semáforo en rojo todo el día sin explicar por qué. */
-        if (objetivo > 3200) {
-          html += '<div class="nota-tipo aviso-objetivo">El objetivo se pone en ' + Util.kcal(objetivo) +
-                  ' porque suma lo que vas a quemar. <b>No hace falta comérselo todo.</b> ' +
-                  'En una salida larga lo normal es comer durante la ruta y cerrar el día con ' +
-                  'déficit, que además juega a favor de lo que buscas.</div>';
+      }
+
+      /* De dónde sale el objetivo del día. Es la cadena entera en una línea, y sin ella
+         el número parece salido de la nada. */
+      if (Almacen.tmb()) {
+        var gastoD = Math.round(Almacen.gastoDelDia(fecha));
+        var defD = Math.round(Almacen.deficitDiario());
+        html += '<div class="nota-tipo cadena">Gastas ≈ <b>' + Util.kcal(gastoD) + '</b> ' +
+                '(' + Util.kcal(Math.round(Almacen.gastoBase())) + ' de base' +
+                (kcalAct ? ' + ' + Math.round(kcalAct * devEj) + ' de entreno' : '') + ')' +
+                ' − <b>' + defD + '</b> de déficit = comer <b>' + Util.kcal(objetivo) + '</b></div>';
+        if (Almacen.objetivoEnSuelo(fecha)) {
+          html += '<div class="nota-tipo aviso-objetivo">Con el déficit que tienes puesto, hoy te ' +
+                  'tocarían menos de 1.200 kcal, y por ahí no se baja. El objetivo se ha quedado en ' +
+                  'el suelo. <b>Muévete más o baja el ritmo de pérdida</b>: pasar hambre de esa manera ' +
+                  'no adelanta nada.</div>';
         }
-      } else if (fichaT.comeFuera.length) {
-        html += '<div class="nota-tipo">Comes fuera: la ' + fichaT.comeFuera.join(" y la ") +
-                ' no se planifica ni entra en la lista de la compra.</div>';
+      } else {
+        html += '<div class="nota-tipo aviso-objetivo">Para calcular lo que tienes que comer hacen ' +
+                'falta tu <b>edad, altura y peso</b> en Ajustes → Tu perfil. Mientras tanto uso el ' +
+                'objetivo fijo de ' + Util.kcal(Almacen.estado.config.objetivoKcal) + '.</div>';
       }
 
       if (tieneAlgo) {
@@ -309,14 +319,32 @@
                 '</div>';
       }
 
+      var personasBase = Almacen.estado.config.personas || 1;
       Util.TOMAS.forEach(function (t) {
         var platos = (dia && dia[t.k]) || [];
-        html += '<div class="toma">';
+        var fueraT = Almacen.esFuera(fecha, t.k);
+        var comen = Almacen.comensales(fecha, t.k);
+        html += '<div class="toma' + (fueraT ? " es-fuera" : "") + '">';
+        /* Dos controles por toma: cuántos comen y si se come fuera. Van aquí y no en
+           la cabecera del día porque las dos cosas cambian toma a toma. */
         html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
-                '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button></div>';
-        if (!platos.length) {
-          html += '<div class="nota-peque">' +
-                  (fichaT.comeFuera.indexOf(t.k) >= 0 ? "Fuera de casa" : "—") + '</div>';
+                '<button class="chip-toma comensales' + (comen !== personasBase ? " raro" : "") + '" ' +
+                  'data-comensales="' + fecha + '|' + t.k + '" ' +
+                  'title="Comen ' + comen + '. Pulsa para cambiar">👤 ' + comen + '</button>' +
+                '<button class="chip-toma fuera' + (fueraT ? " si" : "") + '" ' +
+                  'data-fuera="' + fecha + '|' + t.k + '" ' +
+                  'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
+                  '">🍽️</button>' +
+                (fueraT ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
+                '</div>';
+        if (fueraT) {
+          var est = Almacen.estimacionFuera(t.k) || { k: 0, sal: 0 };
+          html += '<div class="plato estimado">' +
+                    '<span class="nom">Fuera de casa <span class="etiqueta">estimado</span></span>' +
+                    '<span class="sal">' + Util.kcal(est.k) + ' · ' + Util.sal(est.sal) + '</span>' +
+                  '</div>';
+        } else if (!platos.length) {
+          html += '<div class="nota-peque">—</div>';
         } else {
           platos.forEach(function (rid, idx) {
             var r = Almacen.receta(rid);
@@ -1145,10 +1173,30 @@
     $("#cfg-margen").value = c.margenKcal;
     $("#cfg-devolucion").value = Math.round((c.devolucionEjercicio != null ? c.devolucionEjercicio : 0.7) * 100);
     pintarEntrenoEstandar();
+    pintarFueraEstimado();
     $("#gh-usuario").value = c.github.usuario || "";
     $("#gh-repo").value = c.github.repo || "";
     $("#gh-rama").value = c.github.rama || "main";
     $("#gh-token").value = c.github.token || "";
+  }
+
+  /* Lo que se estima al comer fuera: una línea por toma, kcal y sal editables. */
+  function pintarFueraEstimado() {
+    var caja = $("#lista-fuera");
+    if (!caja) return;
+    var f = Almacen.estado.config.fueraEstimado || {};
+    var html = '<div class="fila-fuera cabecera"><span></span><span>kcal</span><span>g de sal</span></div>';
+    Util.TOMAS.forEach(function (t) {
+      var e = f[t.k] || { k: 0, sal: 0 };
+      html += '<div class="fila-fuera">' +
+                '<span>' + esc(t.n) + '</span>' +
+                '<input type="number" min="0" max="3000" step="10" value="' + (e.k || 0) +
+                  '" data-fuerak="' + t.k + '">' +
+                '<input type="number" min="0" max="15" step="0.1" value="' + (e.sal || 0) +
+                  '" data-fuerasal="' + t.k + '">' +
+              '</div>';
+    });
+    caja.innerHTML = html;
   }
 
   /* El entreno estándar, en Ajustes: una línea por deporte con sus minutos editables. */
@@ -1334,6 +1382,21 @@
       }
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
+      var cm = e.target.closest("[data-comensales]");
+      if (cm) {
+        var pc = cm.getAttribute("data-comensales").split("|");
+        var ahora = Almacen.comensales(pc[0], pc[1]);
+        Almacen.ponerComensales(pc[0], pc[1], ahora >= 4 ? 1 : ahora + 1);
+        pintarMenu();
+        return;
+      }
+      var fu = e.target.closest("[data-fuera]");
+      if (fu) {
+        var pf = fu.getAttribute("data-fuera").split("|");
+        Almacen.ponerFuera(pf[0], pf[1], !Almacen.esFuera(pf[0], pf[1]));
+        pintarMenu();
+        return;
+      }
       var est = e.target.closest("[data-estandar]");
       if (est) {
         var fe = est.getAttribute("data-estandar");
@@ -1535,6 +1598,28 @@
       Almacen.guardar("config");
       pintarEntrenoEstandar();
       Util.toast("Ajustes guardados");
+    });
+
+    /* --- estimación de comer fuera --- */
+    $("#lista-fuera").addEventListener("change", function (e) {
+      var k = e.target.closest("[data-fuerak]"), s = e.target.closest("[data-fuerasal]");
+      if (!k && !s) return;
+      var toma = (k || s).getAttribute(k ? "data-fuerak" : "data-fuerasal");
+      var f = Almacen.estado.config.fueraEstimado;
+      if (!f[toma]) f[toma] = { k: 0, sal: 0, p: 0, g: 0, h: 0 };
+      if (k) {
+        var nk = parseFloat(k.value) || 0;
+        /* Los macros se reparten solos con un perfil corriente de comida de bar
+           (20% proteína, 38% grasa, 42% hidratos). Pedírselos uno a uno para un
+           número que ya es inventado no tiene sentido. */
+        f[toma].k = nk;
+        f[toma].p = Math.round(nk * 0.20 / 4);
+        f[toma].g = Math.round(nk * 0.38 / 9);
+        f[toma].h = Math.round(nk * 0.42 / 4);
+      }
+      if (s) f[toma].sal = parseFloat(s.value) || 0;
+      Almacen.guardar("config");
+      Util.toast("Estimación actualizada");
     });
 
     /* --- entreno estándar --- */

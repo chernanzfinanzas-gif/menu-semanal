@@ -48,6 +48,19 @@
             { a: "caminar_ligero", min: 60 }
           ],
 
+          /* Lo que se ESTIMA cuando marcas una toma como «fuera de casa». Son números
+             inventados a partir de lo que suele llevar un menú del día, no medidas: lo
+             importante es que el día no se quede cojo y que la sal de fuera se vea, que
+             es donde de verdad se dispara (un menú del día ronda los 3-4 g él solo, casi
+             el tope diario entero). Editables en Ajustes. */
+          fueraEstimado: {
+            desayuno: { k: 320, sal: 1.2, p: 10, g: 12, h: 42 },
+            almuerzo: { k: 200, sal: 0.7, p: 5,  g: 9,  h: 24 },
+            comida:   { k: 900, sal: 3.5, p: 40, g: 38, h: 95 },
+            merienda: { k: 260, sal: 0.8, p: 7,  g: 11, h: 32 },
+            cena:     { k: 800, sal: 3.0, p: 38, g: 34, h: 82 }
+          },
+
           github: { usuario: "", repo: "", rama: "main", token: "" }
         },
         ingredientes: JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || [])),
@@ -202,6 +215,31 @@
         ];
         añadidos.push("entreno estándar");
       }
+      if (!e.config.fueraEstimado) {
+        e.config.fueraEstimado = {
+          desayuno: { k: 320, sal: 1.2, p: 10, g: 12, h: 42 },
+          almuerzo: { k: 200, sal: 0.7, p: 5,  g: 9,  h: 24 },
+          comida:   { k: 900, sal: 3.5, p: 40, g: 38, h: 95 },
+          merienda: { k: 260, sal: 0.8, p: 7,  g: 11, h: 32 },
+          cena:     { k: 800, sal: 3.0, p: 38, g: 34, h: 82 }
+        };
+        añadidos.push("estimación de lo que se come fuera");
+      }
+      if (!e.perfil) e.perfil = {};
+      if (!e.perfil.ritmo) { e.perfil.ritmo = 0.5; añadidos.push("ritmo de 0,5 kg por semana"); }
+
+      /* «Come fuera» era un TIPO de día y bloqueaba la comida entera. Ahora es una marca
+         por toma, porque lo que pasa de verdad es comer fuera una comida, o una cena, o
+         una merienda, no el día completo. Los días que ya estuvieran marcados así pasan
+         a día normal con la comida marcada fuera, que es lo que querían decir. */
+      Object.keys(e.plan || {}).forEach(function (f) {
+        var d = e.plan[f];
+        if (d && d.tipo === "fuera") {
+          d.tipo = "casa";
+          if (!d.fuera) d.fuera = ["comida"];
+          añadidos.push("día " + f + " pasado a «comida fuera»");
+        }
+      });
       if (añadidos.length) {
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
         if (global.console) console.log("Ajustes nuevos: " + añadidos.join(", "));
@@ -268,12 +306,61 @@
       return total / (rec.raciones || 1);
     },
 
-    /* sal total de un día del plan (por persona) */
+    /* ---------- comensales y comidas fuera, TOMA A TOMA ----------
+       Lo de «somos dos» es cierto casi siempre, pero no siempre: el miércoles por la
+       tarde y alguna cena del viernes come solo. Y comer fuera pasa por tomas sueltas
+       (una comida, una cena), no por días enteros. Las dos cosas van por toma. */
+
+    /* Cuántos comen de esa toma. Solo se guardan las excepciones; el resto sale de
+       `config.personas`. */
+    comensales: function (fecha, toma) {
+      var d = this.estado.plan[fecha];
+      var n = d && d.comensales && d.comensales[toma];
+      return n > 0 ? n : (this.estado.config.personas || 1);
+    },
+    ponerComensales: function (fecha, toma, n) {
+      var d = this.asegurarDia(fecha);
+      if (!d.comensales) d.comensales = {};
+      if (n === (this.estado.config.personas || 1)) delete d.comensales[toma];
+      else d.comensales[toma] = n;
+      if (!Object.keys(d.comensales).length) delete d.comensales;
+      this.guardar("comensales");
+    },
+
+    /* ¿Esa toma se come fuera de casa? */
+    esFuera: function (fecha, toma) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.fuera && d.fuera.indexOf(toma) >= 0);
+    },
+    ponerFuera: function (fecha, toma, si) {
+      var d = this.asegurarDia(fecha);
+      if (!d.fuera) d.fuera = [];
+      var i = d.fuera.indexOf(toma);
+      if (si && i < 0) d.fuera.push(toma);
+      if (!si && i >= 0) d.fuera.splice(i, 1);
+      if (!d.fuera.length) delete d.fuera;
+      this.guardar("fuera");
+    },
+
+    /* Lo que se estima que comes fuera. Es un número INVENTADO a propósito, sacado de
+       lo que suele llevar un menú del día: no es lo que has comido, es un relleno para
+       que el recuento del día no se quede cojo. Editable en Ajustes. */
+    estimacionFuera: function (toma) {
+      var e = (this.estado.config.fueraEstimado || {})[toma];
+      return e ? { k: e.k || 0, sal: e.sal || 0, p: e.p || 0, g: e.g || 0, h: e.h || 0 } : null;
+    },
+
+    /* sal total de un día del plan (por persona), con lo comido fuera estimado */
     salDia: function (fecha) {
       var dia = this.estado.plan[fecha];
       if (!dia) return 0;
       var total = 0, self = this;
       ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
+        if (self.esFuera(fecha, toma)) {
+          var e = self.estimacionFuera(toma);
+          if (e) total += e.sal;
+          return;                                   // fuera no se cocina: nada más que sumar
+        }
         (dia[toma] || []).forEach(function (id) { total += self.salReceta(self.receta(id)); });
       });
       return total;
@@ -322,6 +409,13 @@
       if (!dia) return t;
       var self = this;
       ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
+        if (self.esFuera(fecha, toma)) {
+          /* Lo de fuera cuenta siempre, también en «solo lo comido»: si has marcado
+             que comes fuera es que has comido, no hay nada que tachar. */
+          var e = self.estimacionFuera(toma);
+          if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
+          return;
+        }
         (dia[toma] || []).forEach(function (id) {
           if (soloComido && !self.estaComido(fecha, toma, id)) return;
           var n = self.nutrReceta(self.receta(id));
@@ -444,13 +538,41 @@
       return a ? a.n : x.a;
     },
 
-    /* Lo que deberías comer ese día: el objetivo base más PARTE de lo que quemas
-       entrenando, no todo (ver `devolucionEjercicio` en la config). */
+    /* Déficit diario que sale del ritmo de pérdida elegido (1 kg de grasa ≈ 7.700 kcal). */
+    deficitDiario: function () {
+      var p = this.estado.perfil || {};
+      return (p.ritmo || 0) * 7700 / 7;
+    },
+
+    /* Lo que GASTAS ese día: el gasto de estar vivo más el ejercicio.
+       Del ejercicio se cuenta solo una parte (`devolucionEjercicio`, 70% de serie)
+       porque las tablas de MET estiman por encima de lo que mide un reloj. */
+    gastoDelDia: function (fecha) {
+      var c = this.estado.config;
+      var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
+      return this.gastoBase() + this.kcalActividad(fecha) * dev;
+    },
+
+    /* Lo que deberías COMER ese día = lo que gastas menos el déficit programado.
+       Esta es la cadena entera: actividad → gasto → calorías del día → menú.
+       Si el perfil no tiene edad, altura y peso no hay TMB y no hay cadena; en ese
+       caso se cae al objetivo fijo de Ajustes para no dejar la app sin números. */
     objetivoDelDia: function (fecha) {
       var c = this.estado.config;
-      var base = c.objetivoKcal || 0;
       var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
-      return base + Math.round(this.kcalActividad(fecha) * dev);
+      var gasto = this.gastoDelDia(fecha);
+      if (!this.tmb()) return (c.objetivoKcal || 0) + Math.round(this.kcalActividad(fecha) * dev);
+      var obj = Math.round(gasto - this.deficitDiario());
+      /* Suelo de seguridad: por debajo de esto no se baja aunque lo pida el ritmo. */
+      var minimo = (this.estado.perfil || {}).sexo === "m" ? 1200 : 1500;
+      return Math.max(minimo, obj);
+    },
+
+    /* ¿El objetivo de hoy está tocando el suelo de seguridad? Sirve para avisar. */
+    objetivoEnSuelo: function (fecha) {
+      if (!this.tmb()) return false;
+      var minimo = (this.estado.perfil || {}).sexo === "m" ? 1200 : 1500;
+      return Math.round(this.gastoDelDia(fecha) - this.deficitDiario()) < minimo;
     },
 
     /* ---------- entreno previsto ---------- */
@@ -586,10 +708,9 @@
        comida de mochila no tenía ningún sentido. Solo van a la mochila el almuerzo,
        la comida y la merienda, que son las tres tomas que caen en el monte. */
     TIPOS_DIA: {
-      casa:  { n: "En casa",            icono: "🏠", topeSal: true,  mochila: [], comeFuera: [], ruta: false },
-      ruta:  { n: "Ruta o bici larga",  icono: "🥾", topeSal: false, ruta: true,
-               mochila: ["almuerzo", "comida", "merienda"], comeFuera: [] },
-      fuera: { n: "Come fuera",         icono: "🍽️", topeSal: true,  mochila: [], comeFuera: ["comida"], ruta: false }
+      casa: { n: "En casa",           icono: "🏠", topeSal: true,  mochila: [], ruta: false },
+      ruta: { n: "Ruta o bici larga", icono: "🥾", topeSal: false, ruta: true,
+              mochila: ["almuerzo", "comida", "merienda"] }
     },
 
     /* Salidas que se pueden planificar en un día de ruta. El id apunta al catálogo
@@ -664,7 +785,7 @@
 
       Util.TOMAS.forEach(function (t) {
         if ((d[t.k] || []).length) return;                 // ya hay algo puesto: no se toca
-        if (ficha.comeFuera.indexOf(t.k) >= 0) return;     // esa toma no se planifica
+        if (self.esFuera(fecha, t.k)) return;              // esa toma se come fuera
 
         if (ficha.mochila.indexOf(t.k) >= 0) {
           if (!pool.length) return;
@@ -759,12 +880,16 @@
         var ficha = self.TIPOS_DIA[tipo];
         var viejo = self.estado.plan[fecha] || {};
         var nuevo = { tipo: tipo };
-        if (viejo.ruta) nuevo.ruta = viejo.ruta;      // la salida planificada no se pierde
+        /* Lo que decidió él sobre ese día no lo pisa una plantilla: la salida
+           planificada, quién come y qué tomas son fuera de casa. */
+        if (viejo.ruta) nuevo.ruta = viejo.ruta;
+        if (viejo.fuera) nuevo.fuera = viejo.fuera.slice();
+        if (viejo.comensales) nuevo.comensales = JSON.parse(JSON.stringify(viejo.comensales));
         Util.TOMAS.forEach(function (t) {
           /* Se dejan vacías las que rellenarDia trata aparte: las de mochila, las
              que se comen fuera y el desayuno de un día de ruta (que va a por el
              más fuerte del recetario en vez del de la plantilla). */
-          var salta = ficha.comeFuera.indexOf(t.k) >= 0 || ficha.mochila.indexOf(t.k) >= 0 ||
+          var salta = self.esFuera(fecha, t.k) || ficha.mochila.indexOf(t.k) >= 0 ||
                       (ficha.ruta && t.k === "desayuno");
           nuevo[t.k] = salta ? [] : (d[t.k] || []).slice();
         });
@@ -786,7 +911,6 @@
     generarCompra: function (lunesISO, dias) {
       dias = dias || 7;
       var self = this;
-      var personas = this.estado.config.personas || 1;
       var acumulado = {};   // ingId -> { cantidad, recetas:{} }
 
       for (var i = 0; i < dias; i++) {
@@ -794,6 +918,11 @@
         var dia = this.estado.plan[fecha];
         if (!dia) continue;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
+          /* Lo que se come fuera no se compra. */
+          if (self.esFuera(fecha, toma)) return;
+          /* Y se compra para los que comen ESA toma, no para los de la semana: un
+             miércoles que cena solo son la mitad de raciones que un martes. */
+          var personas = self.comensales(fecha, toma);
           (dia[toma] || []).forEach(function (rid) {
             var rec = self.receta(rid);
             if (!rec) return;
