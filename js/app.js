@@ -355,9 +355,13 @@
            la cabecera del día porque las dos cosas cambian toma a toma. */
         html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
                 (cerr ? (comen !== personasBase ? '<span class="chip-toma comensales raro">👤 ' + comen + '</span>' : '')
-                      : '<button class="chip-toma comensales' + (comen !== personasBase ? " raro" : "") + '" ' +
-                        'data-comensales="' + fecha + '|' + t.k + '" ' +
-                        'title="Comen ' + comen + '. Pulsa para cambiar">👤 ' + comen + '</button>' +
+                      : '<span class="grupo-comensales' + (comen !== personasBase ? " raro" : "") + '">' +
+                        '<button class="paso" data-comensales="' + fecha + '|' + t.k + '|-1" ' +
+                          'title="Uno menos"' + (comen <= 1 ? ' disabled' : '') + '>−</button>' +
+                        '<span class="cuantos" title="Comen ' + comen + '">👤 ' + comen + '</span>' +
+                        '<button class="paso" data-comensales="' + fecha + '|' + t.k + '|1" ' +
+                          'title="Uno más"' + (comen >= 8 ? ' disabled' : '') + '>+</button>' +
+                        '</span>' +
                         '<button class="chip-toma fuera' + (fueraT ? " si" : "") + '" ' +
                         'data-fuera="' + fecha + '|' + t.k + '" ' +
                         'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
@@ -1468,8 +1472,8 @@
       if (cm) {
         var pc = cm.getAttribute("data-comensales").split("|");
         var ahora = Almacen.comensales(pc[0], pc[1]);
-        Almacen.ponerComensales(pc[0], pc[1], ahora >= 4 ? 1 : ahora + 1);
-        pintarMenu();
+        var nuevo = Math.max(1, Math.min(8, ahora + parseInt(pc[2], 10)));
+        if (nuevo !== ahora) { Almacen.ponerComensales(pc[0], pc[1], nuevo); pintarMenu(); }
         return;
       }
       var fu = e.target.closest("[data-fuera]");

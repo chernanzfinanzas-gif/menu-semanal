@@ -20,8 +20,10 @@ window.DATOS_ACTIVIDADES = [
      Las de arriba son sesiones de casa, de media hora. Estas son jornadas, y
      por eso vienen con las horas por defecto en horas de verdad. Los MET son
      los del Compendio de Ainsworth para actividad al aire libre con desnivel. */
+  /* MET del Compendium of Physical Activities: 17080 «hiking, cross country» = 6,0
+     y 17010 «backpacking» = 7,0. El 7,5 que había antes no estaba en ninguna tabla. */
   { id:"senderismo",        n:"Senderismo de montaña",              met:6.0, min:240 },
-  { id:"senderismo_fuerte", n:"Senderismo con desnivel o mochila",  met:7.5, min:240 },
+  { id:"senderismo_fuerte", n:"Senderismo con desnivel o mochila",  met:7.0, min:240 },
   { id:"bici_carretera",    n:"Bici de carretera",                  met:8.0, min:180 },
   { id:"bici_btt",          n:"Bici de montaña (BTT)",              met:8.5, min:180 },
   { id:"bici_paseo",        n:"Bici de paseo, ritmo tranquilo",     met:5.0, min:120 }

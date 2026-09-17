@@ -161,6 +161,19 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .nota-tipo.ya-pasado{background:var(--gris-claro); color:var(--gris)}
 .min-fijo{font-size:.8rem; color:var(--gris); font-weight:600; flex:none}
 
+/* comensales con −/+ : subir de 2 a 1 con un solo botón obligaba a dar tres vueltas */
+.grupo-comensales{display:inline-flex; align-items:center; border:1px solid var(--borde);
+  border-radius:99px; background:var(--blanco); overflow:hidden; flex:none}
+.grupo-comensales.raro{border-color:var(--verde); background:var(--verde-claro)}
+.grupo-comensales .paso{
+  border:0; background:none; color:var(--gris); font-size:.9rem; font-weight:700;
+  line-height:1; padding:3px 7px; cursor:pointer;
+}
+.grupo-comensales .paso:hover:not(:disabled){color:var(--verde)}
+.grupo-comensales .paso:disabled{opacity:.3; cursor:default}
+.grupo-comensales .cuantos{font-size:.72rem; font-weight:650; color:var(--gris); padding:0 1px; white-space:nowrap}
+.grupo-comensales.raro .cuantos{color:var(--verde)}
+
 /* comensales y «fuera de casa», toma a toma */
 .chip-toma{
   border:1px solid var(--borde); background:var(--blanco); color:var(--gris);

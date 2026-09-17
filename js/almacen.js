@@ -537,6 +537,20 @@
       var a = this.actividad(x.a);
       if (!a || !peso) return 0;
       var met = Math.max(0, a.met - 1);
+
+      /* SEGUNDA CORRECCIÓN (17-sep-2026). La fórmula clásica da por hecho que 1 MET
+         son 3,5 ml de O2 por kg y minuto, o sea 0,0175 kcal/kg/min, para todo el
+         mundo. Eso es la media de una persona de unos 70 kg, y en alguien con
+         sobrepeso sobrestima: la grasa pesa en el denominador pero gasta mucho menos
+         que el músculo. Un trabajo del International Journal of Obesity lo midió y
+         encontró sobrestimaciones del 16,6% al 38,8% según el IMC.
+         Aquí no hace falta un factor de corrección inventado, porque ya tenemos SU
+         metabolismo basal calculado por Mifflin-St Jeor: 1 MET es, por definición,
+         su gasto en reposo. Se usa eso. Para él son 0,0133 kcal/kg/min en vez de
+         0,0175: la constante le sobrestimaba un 32%.
+         Sin perfil no hay TMB, y entonces se cae a la constante de siempre. */
+      var tmbMin = this.tmb() / 1440;
+      if (tmbMin > 0) return met * tmbMin * (x.min || 0);
       return met * 3.5 * peso / 200 * (x.min || 0);
     },
 
