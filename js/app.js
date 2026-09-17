@@ -1122,10 +1122,11 @@
     var platos = Almacen.platosCompra(r.desde, r.dias);
     if (!platos.length) { cont.innerHTML = ""; return; }
 
-    var comprados = 0;
+    var comprados = 0, listosSinMarcar = 0;
     var porDia = {}, orden = [];
     platos.forEach(function (p) {
       if (p.comprado) comprados++;
+      else if (p.listo) listosSinMarcar++;
       if (!porDia[p.fecha]) { porDia[p.fecha] = []; orden.push(p.fecha); }
       porDia[p.fecha].push(p);
     });
@@ -1137,7 +1138,14 @@
     var html = '<details class="platos-compra"' + (abierto ? " open" : "") + '>' +
       '<summary><b>Los platos de este rango</b> — ' + comprados + ' de ' + platos.length +
       ' ya comprados<span class="nota-peque"> · marca un plato y sus ingredientes salen de la lista</span></summary>' +
-      '<div class="cuerpo-platos">';
+      '<div class="cuerpo-platos">' +
+      /* Si ya tienes en casa todo lo que lleva un plato, marcarlo uno a uno es trabajo
+         tonto: se marcan todos de una vez. */
+      (listosSinMarcar
+        ? '<div class="fila-listos"><span>Hay <b>' + listosSinMarcar + '</b> plato' +
+          (listosSinMarcar === 1 ? '' : 's') + ' cuyos ingredientes ya tienes todos en casa.</span>' +
+          '<button class="btn mini" data-marcarlistos="1">Darlos por comprados</button></div>'
+        : '');
 
     orden.forEach(function (f) {
       var delDia = porDia[f];
@@ -1154,8 +1162,14 @@
         html += '<div class="linea' + (p.comprado ? " hecha" : "") + '">' +
           '<input type="checkbox" data-platocompra="' + f + '|' + p.toma + '|' + esc(p.id) + '"' +
           (p.comprado ? " checked" : "") + ' title="Marcar el plato como comprado">' +
-          '<div class="datos"><div class="nombre">' + esc(p.nombre) + '</div>' +
-          '<div class="detalle">' + esc(p.tomaNombre) + (p.comido ? " \u00b7 ya comido" : "") + '</div></div>' +
+          '<div class="datos"><div class="nombre">' + esc(p.nombre) +
+          (!p.comprado && p.listo ? ' <span class="etiqueta verde">ya lo tienes</span>' : '') + '</div>' +
+          '<div class="detalle">' + esc(p.tomaNombre) + (p.comido ? " \u00b7 ya comido" : "") +
+          (!p.comprado && p.faltan.length
+            ? ' \u00b7 falta' + (p.faltan.length === 1 ? ' ' : 'n ') +
+              esc(p.faltan.slice(0, 3).join(", ")) + (p.faltan.length > 3 ? '\u2026' : '')
+            : '') +
+          '</div></div>' +
           '</div>';
       });
       html += '</div>';
@@ -1694,6 +1708,18 @@
     $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
     /* Los platos de la compra: marcar uno, o el día entero de un golpe. */
     $("#platos-compra").addEventListener("click", function (e) {
+      if (e.target.closest("[data-marcarlistos]")) {
+        var r2 = Almacen.rangoCompra(UI.cuandoCompra);
+        var n2 = 0;
+        Almacen.platosCompra(r2.desde, r2.dias).forEach(function (p) {
+          if (p.comprado || !p.listo) return;
+          Almacen.marcarComprado(p.fecha, p.toma, p.id, true);
+          n2++;
+        });
+        Util.toast(n2 ? "Marcados " + n2 + " platos que ya tenías" : "No había ninguno");
+        pintarCompra();
+        return;
+      }
       var d = e.target.closest("[data-diacomprado]");
       if (d) {
         var n = Almacen.marcarRangoComprado(d.getAttribute("data-diacomprado"), 1, true);

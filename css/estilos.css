@@ -505,3 +505,10 @@ body.modo-consulta .aviso-consulta{display:inline-block}
 @media (max-width:700px){
   .cuerpo-platos .linea .detalle{display:block}
 }
+
+/* aviso de «estos ya los tienes en casa», dentro del bloque de platos (v31) */
+.fila-listos{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  background:var(--verde-claro); border:1px solid var(--verde-borde); border-radius:10px;
+  padding:8px 12px; margin-bottom:10px; font-size:.84rem; color:var(--verde);
+}

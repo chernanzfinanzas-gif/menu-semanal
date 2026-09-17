@@ -1335,6 +1335,18 @@
           (dia[t.k] || []).forEach(function (rid) {
             var rec = self.receta(rid);
             if (!rec) return;
+            /* Qué le falta a ESTE plato. «Comprado» (el plato) y «tachado en la lista»
+               (el producto) son dos marcas independientes, y eso despistaba: tenías el
+               pan Ortiz en casa y el plato del pan seguía saliendo en blanco. Aquí se
+               cruzan las dos. Los básicos de despensa no cuentan: el aceite y el ajo
+               están siempre y si contaran no habría plato «listo» nunca. */
+            var faltan = [];
+            (rec.ing || []).forEach(function (l) {
+              var ing = self.ingrediente(l.i);
+              if (!ing || ing.basico) return;
+              if (self.estado.despensa[l.i] || self.estado.compraMarcada[l.i]) return;
+              if (faltan.indexOf(ing.n) < 0) faltan.push(ing.n);
+            });
             out.push({
               fecha: fecha,
               toma: t.k,
@@ -1342,7 +1354,9 @@
               id: rid,
               nombre: rec.n,
               comprado: self.estaComprado(fecha, t.k, rid),
-              comido: self.estaComido(fecha, t.k, rid)
+              comido: self.estaComido(fecha, t.k, rid),
+              faltan: faltan,
+              listo: faltan.length === 0
             });
           });
         });
