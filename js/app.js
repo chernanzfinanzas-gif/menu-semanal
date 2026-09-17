@@ -375,7 +375,8 @@
         var platos = (dia && dia[t.k]) || [];
         var fueraT = Almacen.esFuera(fecha, t.k);
         var comen = Almacen.comensales(fecha, t.k);
-        html += '<div class="toma' + (fueraT ? " es-fuera" : "") + '">';
+        var activa = Almacen.tomaActiva(fecha, t.k);
+        html += '<div class="toma' + (fueraT ? " es-fuera" : "") + (activa ? "" : " inactiva") + '">';
         /* Dos controles por toma: cuántos comen y si se come fuera. Van aquí y no en
            la cabecera del día porque las dos cosas cambian toma a toma. */
         html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
@@ -391,7 +392,7 @@
                         'data-fuera="' + fecha + '|' + t.k + '" ' +
                         'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
                         '">🍽️</button>') +
-                (cerr || fueraT ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
+                (cerr || fueraT || !activa ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
                 '</div>';
         if (fueraT) {
           var est = Almacen.estimacionFuera(t.k) || { k: 0, sal: 0 };
@@ -400,7 +401,11 @@
                     '<span class="sal">' + Util.kcal(est.k) + ' · ' + Util.sal(est.sal) + '</span>' +
                   '</div>';
         } else if (!platos.length) {
-          html += '<div class="nota-peque">—</div>';
+          /* Una toma puede estar vacía por decisión, no por descuido: el almuerzo y la
+             merienda solo se hacen los días de entreno. Decirlo evita que parezca un
+             hueco sin rellenar. */
+          html += '<div class="nota-peque">' +
+                  (!Almacen.tomaActiva(fecha, t.k) ? "Solo los días que entrenas" : "—") + '</div>';
         } else {
           platos.forEach(function (rid, idx) {
             var r = Almacen.receta(rid);

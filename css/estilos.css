@@ -150,6 +150,10 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   font-size:.82rem; font-family:inherit; color:var(--tinta); background:var(--blanco);
   text-align:right; width:100%}
 
+/* toma que ese día no toca (almuerzo y merienda sin entreno) */
+.toma.inactiva{opacity:.45}
+.toma.inactiva .titulo-toma .chip-toma{display:none}
+
 /* dos casillas por plato: carro (comprado) y visto (comido) */
 .plato .marcar.carro{font-size:.82rem; filter:grayscale(1) opacity(.35)}
 .plato .marcar.carro.si{filter:none}

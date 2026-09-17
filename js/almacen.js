@@ -48,6 +48,14 @@
             { a: "caminar_ligero", min: 60 }
           ],
 
+          /* Tomas con regla propia. El almuerzo y la merienda son solo suyos —su pareja
+             no los hace— y además solo se los toma los días que entrena; un día de
+             descanso van a cero y no se planifican ni entran en la compra. */
+          tomasEspeciales: {
+            almuerzo: { comensales: 1, soloSiEntreno: true },
+            merienda: { comensales: 1, soloSiEntreno: true }
+          },
+
           /* Lo que va TODOS LOS DÍAS en comida y cena, sin tener que ponerlo. No son
              parte de la plantilla: son suyos y van igual el día que improvisa. La app
              los pone sola al rellenar o al completar el día. */
@@ -230,6 +238,13 @@
         añadidos.push("entreno estándar");
       }
       if (!e.comprado) { e.comprado = {}; añadidos.push("registro de lo comprado"); }
+      if (!e.config.tomasEspeciales) {
+        e.config.tomasEspeciales = {
+          almuerzo: { comensales: 1, soloSiEntreno: true },
+          merienda: { comensales: 1, soloSiEntreno: true }
+        };
+        añadidos.push("almuerzo y merienda: solo para él y solo si entrena");
+      }
       if (!e.config.fijos) {
         e.config.fijos = [
           { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
@@ -339,15 +354,40 @@
 
     /* Cuántos comen de esa toma. Solo se guardan las excepciones; el resto sale de
        `config.personas`. */
+    /* Reglas fijas de una toma, las mismas todos los días. Vienen de cómo come él de
+       verdad: el almuerzo y la merienda son SUYOS —su pareja no los hace— y además
+       solo se los toma los días que entrena. Ver `config.tomasEspeciales`. */
+    reglaToma: function (toma) {
+      return (this.estado.config.tomasEspeciales || {})[toma] || null;
+    },
+
+    /* ¿Ese día hay entreno? Cuenta cualquier actividad registrada, sea la prevista o
+       la que midió el reloj. Un día sin nada apuntado es un día de descanso. */
+    hayEntreno: function (fecha) {
+      return (this.estado.actividad[fecha] || []).length > 0;
+    },
+
+    /* ¿Esa toma se planifica ese día? El almuerzo y la merienda, solo si entrena. */
+    tomaActiva: function (fecha, toma) {
+      var r = this.reglaToma(toma);
+      if (r && r.soloSiEntreno && !this.hayEntreno(fecha)) return false;
+      return true;
+    },
+
     comensales: function (fecha, toma) {
       var d = this.estado.plan[fecha];
       var n = d && d.comensales && d.comensales[toma];
-      return n > 0 ? n : (this.estado.config.personas || 1);
+      if (n > 0) return n;                                  // lo que él haya puesto manda
+      var r = this.reglaToma(toma);
+      if (r && r.comensales > 0) return r.comensales;       // almuerzo y merienda: él solo
+      return this.estado.config.personas || 1;
     },
     ponerComensales: function (fecha, toma, n) {
       var d = this.asegurarDia(fecha);
       if (!d.comensales) d.comensales = {};
-      if (n === (this.estado.config.personas || 1)) delete d.comensales[toma];
+      var r = this.reglaToma(toma);
+      var porDefecto = (r && r.comensales > 0) ? r.comensales : (this.estado.config.personas || 1);
+      if (n === porDefecto) delete d.comensales[toma];
       else d.comensales[toma] = n;
       if (!Object.keys(d.comensales).length) delete d.comensales;
       this.guardar("comensales");
@@ -942,6 +982,7 @@
       Util.TOMAS.forEach(function (t) {
         if ((d[t.k] || []).length) return;                 // ya hay algo puesto: no se toca
         if (self.esFuera(fecha, t.k)) return;              // esa toma se come fuera
+        if (!self.tomaActiva(fecha, t.k)) return;          // p.ej. merienda en día de descanso
 
         if (ficha.mochila.indexOf(t.k) >= 0) {
           if (!pool.length) return;
@@ -1072,6 +1113,7 @@
 
       orden.forEach(function (t) {
         if (self.esFuera(fecha, t.k)) return;
+        if (!self.tomaActiva(fecha, t.k)) return;
         var puestosYa = (d[t.k] || []);
         var propios = puestosYa.filter(function (id) { return !esFijo[id]; });
         if (propios.length) return;                        // ya hay plato: no se toca
@@ -1145,6 +1187,7 @@
       if (falta > 250) {
         ["merienda", "almuerzo"].forEach(function (toma) {
           if (self.esFuera(fecha, toma)) return;
+          if (!self.tomaActiva(fecha, toma)) return;
           falta = objetivo - self.nutrDia(fecha).k;
           if (falta < 180) return;
           var base = (pool && ficha.mochila.indexOf(toma) >= 0) ? pool : self.estado.recetas;
@@ -1333,8 +1376,9 @@
            la semana en curso, metía los platos del lunes un jueves. */
         if (this.esPasado(fecha)) continue;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
-          /* Lo que se come fuera no se compra. */
+          /* Lo que se come fuera no se compra, ni lo de una toma que ese día no toca. */
           if (self.esFuera(fecha, toma)) return;
+          if (!self.tomaActiva(fecha, toma)) return;
           /* Y se compra para los que comen ESA toma, no para los de la semana: un
              miércoles que cena solo son la mitad de raciones que un martes. */
           var personas = self.comensales(fecha, toma);
