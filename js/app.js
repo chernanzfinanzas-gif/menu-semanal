@@ -273,8 +273,10 @@
                   'data-tipodia="' + fecha + '|' + k + '" title="' + esc(t.n) + '">' +
                   t.icono + ' <span>' + esc(t.n) + '</span></button>';
         });
-        html += '<button class="btn mini rellenar-dia" data-rellenar="' + fecha + '" ' +
-                'title="Completa las tomas vacías de este día">Rellenar</button>';
+        html += '<button class="btn principal mini rellenar-dia" data-completar="' + fecha + '" ' +
+                'title="Elige platos para cuadrar con las calorías del día">Completar</button>';
+        html += '<button class="btn mini" data-rellenar="' + fecha + '" ' +
+                'title="Copia lo que toque de la plantilla, sin mirar calorías">Plantilla</button>';
         html += '</div>';
       }
 
@@ -496,7 +498,12 @@
       var b = e.target.closest("[data-elegir]");
       if (!b) return;
       var dia = Almacen.asegurarDia(fecha);
+      /* Si la toma estaba VACÍA, es que está montando esa comida desde cero, así que
+         el yogur y el pan entran con el plato. Si ya había algo, no se tocan: puede
+         que los haya quitado él a propósito y resucitarlos sería pelearse con él. */
+      var estabaVacia = !(dia[toma] || []).length;
       dia[toma].push(b.getAttribute("data-elegir"));
+      if (estabaVacia) Almacen.ponerFijos(fecha);
       Almacen.guardar("plato");
       cerrarModal();
       pintarMenu();
@@ -1352,6 +1359,23 @@
       Util.toast("Plantilla guardada");
     });
 
+    $("#completar-semana").addEventListener("click", function () {
+      var r = Almacen.completarSemana(UI.lunes);
+      pintarMenu();
+      if (!r.puestos) { Util.toast("No había huecos que completar"); return; }
+      /* Qué tal ha quedado cada día respecto a su objetivo: es el dato que importa. */
+      var desvios = [];
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(UI.lunes, i);
+        if (Almacen.esPasado(f) || !Almacen.estado.plan[f]) continue;
+        var o = Almacen.objetivoDelDia(f);
+        if (o) desvios.push(Math.abs(Math.round(Almacen.nutrDia(f).k) - o));
+      }
+      var medio = desvios.length ? Math.round(desvios.reduce(function (a, b) { return a + b; }, 0) / desvios.length) : 0;
+      Util.toast("Puestos " + r.puestos + " platos en " + r.dias + " día" + (r.dias === 1 ? "" : "s") +
+                 " · se queda a " + medio + " kcal del objetivo de media");
+    });
+
     $("#rellenar-semana").addEventListener("click", function () {
       var r = Almacen.rellenarSemana(UI.lunes, "A");
       pintarMenu();
@@ -1408,6 +1432,17 @@
         var pt = tip.getAttribute("data-tipodia").split("|");
         Almacen.ponerTipoDia(pt[0], pt[1]);
         pintarMenu();
+        return;
+      }
+      var cp = e.target.closest("[data-completar]");
+      if (cp) {
+        var fc = cp.getAttribute("data-completar");
+        var rc = Almacen.completarDia(fc);
+        pintarMenu();
+        if (!rc || rc.motivo === "sin-objetivo") Util.toast("Rellena tu perfil para tener objetivo de calorías");
+        else if (!rc.puestos) Util.toast("Ese día ya está completo");
+        else Util.toast("Puestos " + rc.puestos + " platos · " + Util.kcal(rc.kcal) +
+                        " de " + Util.kcal(rc.objetivo) + " (" + (rc.desvio >= 0 ? "+" : "") + rc.desvio + ")");
         return;
       }
       var rel = e.target.closest("[data-rellenar]");

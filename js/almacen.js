@@ -48,6 +48,19 @@
             { a: "caminar_ligero", min: 60 }
           ],
 
+          /* Lo que va TODOS LOS DÍAS en comida y cena, sin tener que ponerlo. No son
+             parte de la plantilla: son suyos y van igual el día que improvisa. La app
+             los pone sola al rellenar o al completar el día. */
+          fijos: [
+            { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
+            { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] }
+          ],
+
+          /* Cómo se reparte el objetivo del día entre las cinco tomas. Es el reparto
+             español de toda la vida, y solo lo usa el botón de completar para saber
+             qué tamaño de plato buscar en cada hueco. */
+          repartoTomas: { desayuno: 0.22, almuerzo: 0.10, comida: 0.33, merienda: 0.10, cena: 0.25 },
+
           /* Lo que se ESTIMA cuando marcas una toma como «fuera de casa». Son números
              inventados a partir de lo que suele llevar un menú del día, no medidas: lo
              importante es que el día no se quede cojo y que la sal de fuera se vea, que
@@ -214,6 +227,17 @@
           { a: "caminar_ligero", min: 60 }
         ];
         añadidos.push("entreno estándar");
+      }
+      if (!e.config.fijos) {
+        e.config.fijos = [
+          { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
+          { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] }
+        ];
+        añadidos.push("fijos de comida y cena");
+      }
+      if (!e.config.repartoTomas) {
+        e.config.repartoTomas = { desayuno: 0.22, almuerzo: 0.10, comida: 0.33, merienda: 0.10, cena: 0.25 };
+        añadidos.push("reparto de calorías por toma");
       }
       if (!e.config.fueraEstimado) {
         e.config.fueraEstimado = {
@@ -819,6 +843,9 @@
         if (d[t.k].length) puesto++;
       });
 
+      /* el yogur y el pan tostado de comida y cena van siempre */
+      puesto += this.ponerFijos(fecha);
+
       /* El bidón entra SIEMPRE en un día de ruta: es el único sitio del recetario
          donde reponer sodio es lo correcto, y si no se pone solo se olvida justo
          el día que hace falta. */
@@ -830,6 +857,173 @@
         }
       }
       return puesto;
+    },
+
+    /* ---------- fijos de todos los días ----------
+       El yogur con avena y el pan tostado van en comida y cena SIEMPRE. No se ponen
+       en las tomas que se comen fuera (no las cocina él) ni en las de mochila de un
+       día de ruta (el pan tostado en una mochila acaba hecho migas). */
+    ponerFijos: function (fecha) {
+      if (this.esPasado(fecha)) return 0;
+      var d = this.asegurarDia(fecha);
+      var ficha = this.fichaTipoDia(fecha);
+      var self = this, puestos = 0;
+      (this.estado.config.fijos || []).forEach(function (f) {
+        if (!self.receta(f.r)) return;
+        (f.tomas || []).forEach(function (toma) {
+          if (self.esFuera(fecha, toma)) return;
+          if (ficha.mochila.indexOf(toma) >= 0) return;
+          if (!d[toma]) d[toma] = [];
+          if (d[toma].indexOf(f.r) >= 0) return;
+          d[toma].push(f.r);
+          puestos++;
+        });
+      });
+      return puestos;
+    },
+
+    /* ---------- completar el día hasta el objetivo ----------
+       Elige platos para los huecos buscando que el día CUADRE con las calorías que
+       toca comer. No es un optimizador: es una propuesta razonable y rápida que luego
+       se retoca a mano, que es como se usa esto de verdad.
+
+       Cómo elige, por orden de importancia:
+       1. El tamaño del plato: cada toma tiene su parte del día (ver `repartoTomas`)
+          y se busca la receta que más se le acerque con lo que queda de presupuesto.
+       2. La sal: a igualdad de calorías gana la que menos lleve. Es el criterio de
+          fondo del recetario y aquí no se abandona.
+       3. La variedad: penaliza lo que ya esté esa misma semana, para no acabar con
+          lentejas cuatro días seguidos.
+       Nunca quita nada de lo que ya hay puesto, y nunca toca un día pasado. */
+    /* Cuánto penaliza la sal de un plato al elegirlo. No es un número fijo: depende
+       de cuánta sal lleve ya el día. Un día normal tiene margen y 250 puntos por
+       gramo basta para desempatar; un día que ya viene cargado —porque come fuera,
+       por ejemplo, que son 3,5 g de un golpe— tiene que apretar mucho más, o el
+       resto del día lo remata. En un día de ruta no se penaliza: ahí no hay tope. */
+    penalizaSal: function (fecha, salYa, salPlato) {
+      if (!this.fichaTipoDia(fecha).topeSal) return 0;
+      var tope = this.estado.config.limiteSal || 4;
+      var aviso = this.estado.config.avisoSal || 2;
+      var total = salYa + salPlato;
+      var nota = salPlato * 250;
+      if (total > aviso) nota += (total - aviso) * 400;     // ya en ámbar: aprieta
+      if (total > tope)  nota += (total - tope) * 2500;     // pasarse del tope, casi vetado
+      return nota;
+    },
+
+    completarDia: function (fecha, plantillaId) {
+      if (this.esPasado(fecha)) return { motivo: "pasado" };
+      var self = this;
+      var d = this.asegurarDia(fecha);
+      var ficha = this.fichaTipoDia(fecha);
+      var objetivo = this.objetivoDelDia(fecha);
+      if (!objetivo) return { motivo: "sin-objetivo" };
+
+      var puestos = this.ponerFijos(fecha);
+
+      /* lo que ya hay esta semana, para no repetir */
+      var yaEnLaSemana = {};
+      var lunes = Util.lunesDe(fecha);
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunes, i);
+        var dd = this.estado.plan[f];
+        if (!dd) continue;
+        Util.TOMAS.forEach(function (t) {
+          (dd[t.k] || []).forEach(function (id) { yaEnLaSemana[id] = (yaEnLaSemana[id] || 0) + 1; });
+        });
+      }
+
+      var reparto = this.estado.config.repartoTomas || {};
+      var pool = ficha.mochila.length ? this.llevables() : null;
+
+      /* Se recorren las tomas de mayor a menor peso: los platos grandes primero,
+         porque son los que deciden si el día cuadra. */
+      var orden = Util.TOMAS.slice().sort(function (a, b) {
+        return (reparto[b.k] || 0) - (reparto[a.k] || 0);
+      });
+
+      /* Los fijos NO cuentan como «la toma ya está puesta»: una comida con el yogur y
+         el pan sigue sin tener plato. Antes se daba por llena y el día se quedaba mil
+         calorías corto. */
+      var esFijo = {};
+      (this.estado.config.fijos || []).forEach(function (f) { esFijo[f.r] = true; });
+
+      orden.forEach(function (t) {
+        if (self.esFuera(fecha, t.k)) return;
+        var puestosYa = (d[t.k] || []);
+        var propios = puestosYa.filter(function (id) { return !esFijo[id]; });
+        if (propios.length) return;                        // ya hay plato: no se toca
+
+        /* lo que los fijos ya ocupan de la cuota de esta toma */
+        var yaEnLaToma = 0;
+        puestosYa.forEach(function (id) { yaEnLaToma += self.nutrReceta(self.receta(id)).k; });
+
+        var restante = objetivo - self.nutrDia(fecha).k;
+        var cuota = Math.round(objetivo * (reparto[t.k] || 0.2)) - yaEnLaToma;
+        /* si ya se ha pasado del objetivo, esta toma se queda pequeña a propósito */
+        var busco = Math.max(80, Math.min(cuota, restante));
+
+        var candidatas = (pool && ficha.mochila.indexOf(t.k) >= 0 ? pool : self.estado.recetas)
+          .filter(function (r) { return (r.tipo || []).indexOf(t.k) >= 0; });
+        if (!candidatas.length && pool && ficha.mochila.indexOf(t.k) >= 0) candidatas = pool;
+        if (!candidatas.length) return;
+
+        var salYa = self.salDia(fecha);
+        var mejor = null, mejorNota = Infinity;
+        candidatas.forEach(function (r) {
+          var k = self.nutrReceta(r).k;
+          var sal = self.salReceta(r);
+          var nota = Math.abs(k - busco) + (yaEnLaSemana[r.id] || 0) * 300 +
+                     self.penalizaSal(fecha, salYa, sal);
+          if (nota < mejorNota) { mejorNota = nota; mejor = r; }
+        });
+        if (!mejor) return;
+        /* el plato va DELANTE de los fijos, que son el acompañamiento */
+        d[t.k] = [mejor.id].concat(puestosYa);
+        yaEnLaSemana[mejor.id] = (yaEnLaSemana[mejor.id] || 0) + 1;
+        puestos++;
+      });
+
+      /* Segunda vuelta: si aún falta un buen pico, se refuerzan el almuerzo y la
+         merienda con un segundo bocado, que es donde cabe sin desmontar el día. */
+      var falta = objetivo - this.nutrDia(fecha).k;
+      if (falta > 250) {
+        ["merienda", "almuerzo"].forEach(function (toma) {
+          if (self.esFuera(fecha, toma)) return;
+          falta = objetivo - self.nutrDia(fecha).k;
+          if (falta < 180) return;
+          var base = (pool && ficha.mochila.indexOf(toma) >= 0) ? pool : self.estado.recetas;
+          var aptas = base.filter(function (r) {
+            return (r.tipo || []).indexOf(toma) >= 0 && (d[toma] || []).indexOf(r.id) < 0;
+          });
+          if (!aptas.length) return;
+          var salHoy = self.salDia(fecha);
+          var elegida = null, nota = Infinity;
+          aptas.forEach(function (r) {
+            var n = Math.abs(self.nutrReceta(r).k - falta) + (yaEnLaSemana[r.id] || 0) * 300 +
+                    self.penalizaSal(fecha, salHoy, self.salReceta(r));
+            if (n < nota) { nota = n; elegida = r; }
+          });
+          if (!elegida) return;
+          d[toma].push(elegida.id);
+          yaEnLaSemana[elegida.id] = (yaEnLaSemana[elegida.id] || 0) + 1;
+          puestos++;
+        });
+      }
+
+      var kcal = Math.round(this.nutrDia(fecha).k);
+      if (puestos) this.guardar("completar");
+      return { puestos: puestos, kcal: kcal, objetivo: objetivo, desvio: kcal - objetivo };
+    },
+
+    completarSemana: function (lunesISO, plantillaId) {
+      var total = 0, dias = 0, self = this;
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunesISO, i);
+        var r = this.completarDia(f, plantillaId);
+        if (r && r.puestos) { total += r.puestos; dias++; }
+      }
+      return { puestos: total, dias: dias };
     },
 
     /* Planifica la salida de un día de ruta: deporte y horas. Marca el día como de

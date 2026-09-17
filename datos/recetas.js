@@ -275,20 +275,24 @@ window.DATOS_RECETAS = [
 },
 {
   id:"postre_yogur_avena", n:"Yogur griego con copos de avena",
+  rev:3,
   tipo:["postre"], grupo:"postre", raciones:1, min:1, tools:["sin-cocinar"],
   ing:[{i:"yogur_griego",c:1},{i:"copos_avena",c:10}],
   pasos:[
-    "Un yogur griego natural SIN AZÚCAR, con una cucharada sopera de copos de avena por encima.",
+    "Un yogur griego natural SIN AZÚCAR, con dos cucharadas de copos de avena por encima: unos 10 g.",
     "Remueve justo antes de comerlo, no antes: la avena se ablanda en cinco minutos y pierde la gracia."
   ],
   trucos:[
-    "GRIEGO Y NO NATURAL, Y ES EL MEJOR CAMBIO DE TODO EL RECETARIO. El griego tiene 10 g de proteína por 100 g frente a 3,5 del natural, con las mismas calorías. Cuando ajustamos el menú en su día, este cambio solo aportó 16 de los 19 gramos de proteína que ganamos en todo el día.",
+    "GRIEGO Y NO NATURAL, Y ES EL MEJOR CAMBIO DE TODO EL RECETARIO. El griego tiene 10 g de proteína por 100 g frente a 4,3 del desnatado, con casi las mismas calorías. Lo tomas dos veces al día: son 14 g de proteína diarios que no cuestan nada.",
+    "112 kcal y 13,8 g de proteína por tarrina con su avena. Son 225 kcal al día entre comida y cena.",
+    "Estuvo un rato en desnatado (17-sep-2026) y volvió al griego el mismo día: el desnatado ahorra 42 kcal al día pero cuesta 14 g de proteína, y ese cambio no compensa.",
     "SIN AZÚCAR y sin edulcorar. Los griegos azucarados llevan 12-14 g de azúcar por tarrina, y los «de sabores» aún más.",
     "Ojo con los que ponen «estilo griego»: suelen ser yogur normal con nata añadida, o sea más grasa y la proteína del natural. Mira la etiqueta: tiene que poner 9-10 g de proteína por 100 g.",
-    "Lo tomas dos veces al día, en comida y cena, así que son 14 tarrinas a la semana. Comprarlo en pack sale bastante mejor.",
+    "Dos cucharadas soperas rasas de avena son unos 10 g, 38 kcal. A ojo se va fácil a 20 g y son 76.",
+    "Son 14 tarrinas a la semana. En pack sale bastante mejor.",
     "Si te aburre, canela o ralladura de limón. Nada de miel, que son 21 kcal por cucharadita y ya tienes dulce de sobra en el día."
   ],
-  nota:"Postre fijo de comida y cena, en las dos plantillas y todos los días."
+  nota:"Postre fijo de comida y cena. La app lo pone sola todos los días."
 },
 
 /* ======================== LEGUMBRES ======================== */
