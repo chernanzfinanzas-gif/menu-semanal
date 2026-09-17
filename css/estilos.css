@@ -346,3 +346,13 @@ body.modo-consulta .aviso-consulta{display:inline-block}
 .paso-suelto{margin:9px 0; line-height:1.5; font-size:.92rem}
 .trucos{margin:8px 0 0; padding-left:18px}
 .trucos li{margin:7px 0; line-height:1.5; font-size:.9rem}
+
+/* la herramienta preferida de Carlos, resaltada en las etiquetas */
+.etiqueta.preferida{background:#e3f0e7; color:#245c3c; border-color:#b9d9c6; font-weight:700}
+
+/* rótulos dentro del selector de receta del menú */
+.separador-selec{
+  margin:14px 0 6px; font-size:.74rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:#6b7a70;
+}
+.separador-selec:first-child{margin-top:4px}

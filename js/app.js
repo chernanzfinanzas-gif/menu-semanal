@@ -43,10 +43,39 @@
     "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre"
   };
   var ABREV = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
+  /* Los aparatos, en el ORDEN DE PREFERENCIA de Carlos (17-sep-2026):
+     primero la freidora de aire, después los Lékué de microondas, y al final
+     sartén, cazuela y horno. El número manda en cómo se ordenan las etiquetas
+     y el desplegable del buscador, para que lo preferido salte a la vista.
+     «lekue» a secas es el rótulo viejo: recetas que usan un Lékué sin concretar
+     cuál. Sirve de lista de pendientes hasta que se detallen. */
   var NOMBRE_TOOL = {
-    "lekue": "Lékué", "airfryer": "Airfryer", "microondas": "Microondas", "sarten": "Sartén",
-    "horno": "Horno", "cazuela": "Cazuela", "sin-cocinar": "Sin cocinar"
+    "airfryer": "Airfryer", "lekue-vapor": "Lékué vaporera",
+    "lekue-arroz": "Lékué arrocera", "lekue-pasta": "Lékué cuecepasta",
+    "lekue": "Lékué (sin concretar)", "microondas": "Microondas",
+    "sarten": "Sartén", "cazuela": "Cazuela", "horno": "Horno",
+    "sin-cocinar": "Sin cocinar"
   };
+  var ORDEN_TOOL = {
+    "airfryer": 1, "lekue-vapor": 2, "lekue-arroz": 2, "lekue-pasta": 2,
+    "lekue": 3, "microondas": 4, "sarten": 5, "cazuela": 6, "horno": 6,
+    "sin-cocinar": 0
+  };
+  /* «lekue» a secas entra también: son recetas que YA usan un Lékué, solo falta
+     concretar cuál. Dejarlas fuera del filtro escondería recetas que sí le valen. */
+  var TOOLS_PREFERIDAS = { "airfryer": 1, "lekue-vapor": 1, "lekue-arroz": 1, "lekue-pasta": 1, "lekue": 1 };
+
+  function toolsOrdenadas(tools) {
+    return (tools || []).slice().sort(function (a, b) {
+      return (ORDEN_TOOL[a] || 9) - (ORDEN_TOOL[b] || 9);
+    });
+  }
+  function etiquetasTool(tools) {
+    return toolsOrdenadas(tools).map(function (t) {
+      return '<span class="etiqueta' + (TOOLS_PREFERIDAS[t] ? ' preferida' : '') + '">' +
+             esc(NOMBRE_TOOL[t] || t) + '</span>';
+    }).join("");
+  }
 
 
   /* ==================== PORTADA ==================== */
@@ -271,22 +300,36 @@
     cont.innerHTML = html;
   }
 
-  /* selector de receta para una toma */
+  /* Selector de receta para una toma. NO esconde nada: primero las que están
+     pensadas para esa toma y debajo TODAS las demás, porque una cena como la
+     lubina vale perfectamente para comer. El reparto por tomas es una sugerencia,
+     no una regla. */
   function abrirSelector(fecha, toma) {
-    var recetas = Almacen.estado.recetas.filter(function (r) {
-      return (r.tipo || []).indexOf(toma) >= 0;
-    });
-    if (!recetas.length) recetas = Almacen.estado.recetas.slice();
-    recetas.sort(function (a, b) { return a.n.localeCompare(b.n); });
+    var todas = Almacen.estado.recetas.slice()
+      .sort(function (a, b) { return a.n.localeCompare(b.n); });
+    var propias = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) >= 0; });
+    var resto   = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) < 0; });
+
+    function boton(r) {
+      var t = toolsOrdenadas(r.tools)[0];
+      return '<button data-elegir="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
+             esc(r.n) + '<small>' + (NOMBRE_GRUPO[r.grupo] || r.grupo || "") + ' · ' +
+             Util.sal(Almacen.salReceta(r)) + ' de sal · ' + (r.min || "?") + ' min' +
+             (t ? ' · ' + esc(NOMBRE_TOOL[t] || t) : '') + '</small></button>';
+    }
 
     var html = '<header><h2>Añadir a ' + toma + '</h2><button class="cerrar" data-cerrar>×</button></header>';
     html += '<input type="text" id="filtro-selector" placeholder="Filtrar…">';
     html += '<div class="lista-selec" id="lista-selector">';
-    recetas.forEach(function (r) {
-      html += '<button data-elegir="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
-              esc(r.n) + '<small>' + (NOMBRE_GRUPO[r.grupo] || r.grupo || "") + ' · ' +
-              Util.sal(Almacen.salReceta(r)) + ' de sal · ' + (r.min || "?") + ' min</small></button>';
-    });
+    if (propias.length) {
+      html += '<p class="separador-selec" data-nombre="">Pensadas para ' + esc(toma) + '</p>';
+      propias.forEach(function (r) { html += boton(r); });
+    }
+    if (resto.length) {
+      html += '<p class="separador-selec" data-nombre="">El resto del recetario — ' +
+              'sírvete, las tomas son una sugerencia</p>';
+      resto.forEach(function (r) { html += boton(r); });
+    }
     html += '</div>';
     abrirModal(html);
 
@@ -294,6 +337,15 @@
       var q = e.target.value.toLowerCase();
       $$("#lista-selector button").forEach(function (b) {
         b.style.display = b.getAttribute("data-nombre").indexOf(q) >= 0 ? "" : "none";
+      });
+      /* si al filtrar un grupo se queda sin nada, escondo también su rótulo */
+      $$("#lista-selector .separador-selec").forEach(function (sep) {
+        var hay = false, n = sep.nextElementSibling;
+        while (n && n.tagName === "BUTTON") {
+          if (n.style.display !== "none") { hay = true; break; }
+          n = n.nextElementSibling;
+        }
+        sep.style.display = hay ? "" : "none";
       });
     });
     $("#lista-selector").addEventListener("click", function (e) {
@@ -541,7 +593,7 @@
             '<span class="etiqueta">' + (r.raciones || 1) + ' ración(es)</span>' +
             '<span class="etiqueta">' + (r.min || "?") + ' min</span>' +
             (r.grupo ? '<span class="etiqueta">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
-            (r.tools || []).map(function (t) { return '<span class="etiqueta">' + esc(NOMBRE_TOOL[t] || t) + '</span>'; }).join("") +
+            etiquetasTool(r.tools) +
             '</div>';
 
     html += '<div class="nutri-ficha">' +
@@ -627,7 +679,9 @@
                      ((r.tipo || []).indexOf(t) >= 0 ? " checked" : "") + '> ' + t + '</label>';
             }).join(" ") + '</div></label>';
     html += '<label class="campo"><span>Herramientas</span><div class="fila">' +
-            Object.keys(NOMBRE_TOOL).map(function (t) {
+            Object.keys(NOMBRE_TOOL).sort(function (a, b) {
+              return (ORDEN_TOOL[a] || 9) - (ORDEN_TOOL[b] || 9);
+            }).map(function (t) {
               return '<label style="font-size:.85rem"><input type="checkbox" class="ed-tool" value="' + t + '"' +
                      ((r.tools || []).indexOf(t) >= 0 ? " checked" : "") + '> ' + NOMBRE_TOOL[t] + '</label>';
             }).join(" ") + '</div></label>';
@@ -779,7 +833,9 @@
     var lista = Almacen.estado.recetas.filter(function (r) {
       if (f.toma && (r.tipo || []).indexOf(f.toma) < 0) return false;
       if (f.grupo && r.grupo !== f.grupo) return false;
-      if (f.tool && (r.tools || []).indexOf(f.tool) < 0) return false;
+      if (f.tool === "__preferidas") {
+        if (!toolsOrdenadas(r.tools).some(function (t) { return TOOLS_PREFERIDAS[t]; })) return false;
+      } else if (f.tool && (r.tools || []).indexOf(f.tool) < 0) return false;
       if (f.texto) {
         var q = f.texto.toLowerCase();
         var enNombre = r.n.toLowerCase().indexOf(q) >= 0;
@@ -803,7 +859,7 @@
              Util.sal(sal) + ' sal · ' + (r.min || "?") + ' min</div>' +
              '<div class="etiquetas">' +
                (r.grupo ? '<span class="etiqueta verde">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
-               (r.tools || []).map(function (t) { return '<span class="etiqueta">' + esc(NOMBRE_TOOL[t] || t) + '</span>'; }).join("") +
+               etiquetasTool(r.tools) +
              '</div></div>';
     }).join("") || '<div class="vacio">No hay recetas con esos filtros.</div>';
   }

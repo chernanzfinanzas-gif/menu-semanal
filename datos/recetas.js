@@ -430,18 +430,42 @@ window.DATOS_RECETAS = [
   ]
 },
 {
-  id:"arroz_calamar", n:"Arroz meloso con calamar fresco y fondo oscuro de cebolla",
-  tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:20, tools:["cazuela"],
+  id:"arroz_calamar", n:"Arroz meloso con calamar y fondo oscuro de cebolla (freidora + arrocera)",
+  rev:2,
+  tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:40, tools:["airfryer","lekue-arroz"],
   ing:[{i:"arroz_redondo",c:70},{i:"calamar_fresco",c:200},{i:"cebolla_dulce",c:0.5},{i:"ajo",c:1},{i:"tomate",c:0.5},{i:"pimenton",c:2},{i:"aove",c:10},{i:"laurel",c:1},{i:"pimienta",c:0.3}],
   pasos:[
-    "FONDO OSCURO (5–6 min): cebolla picada en la cazuela con el aceite a fuego medio-alto hasta color marrón avellana. Si se agarra, una cucharada de agua para desglasar. Ajo en el último minuto.",
-    "Añade el calamar troceado y saltea fuerte 2 minutos hasta que cambie de color.",
-    "Retira del fuego un segundo, añade el pimentón y el tomate rallado, remueve e integra 1 minuto a fuego medio (el pimentón se quema en nada).",
-    "Echa el arroz y remuévelo con el sofrito 1 minuto para que se impregne (nacarar).",
-    "Añade 250 ml de agua caliente y el laurel: 8 min a fuego medio + 5 min suave, removiendo para que suelte almidón.",
-    "Reposa 2 minutos tapado con un paño."
+    "Cebolla en juliana de medio centímetro, ni picada ni muy fina: picada se te cuela por la cesta y muy fina se quema por los bordes antes de dorarse por dentro.",
+    "En un bol, la cebolla con 7 ml del aceite hasta que brille toda. Aquí el aceite no es capricho: es lo que conduce el calor y lo que permite que la cebolla se dore en vez de secarse.",
+    "Calamar en anillas o tiras de 1,5 cm, bien seco con papel, y untado con los 3 ml de aceite que quedan.",
+    {min:0, t:"Cebolla sola en la freidora — 180 °C, 16 minutos",
+     d:"Extendida en una capa fina; si la amontonas se cuece al vapor y no se dora nunca. A 180 y no más: a 200 se te quema el filo antes de que el centro coja color."},
+    {min:6, t:"Sacude la cesta",
+     d:"Agarrándola por el asa. La de abajo sube y la de arriba baja, que es lo que iguala el color."},
+    {min:11, t:"Sacude otra vez y mira el color",
+     d:"Buscas marrón avellana, no rubio. Si a los 16 no ha llegado, dale 3 o 4 minutos más: este paso manda sobre el reloj."},
+    {min:16, t:"Añade el calamar y el ajo laminado — 180 °C, 5 minutos",
+     d:"Cinco minutos justos. El calamar tiene dos puntos buenos, muy corto o muy largo: en la franja de en medio se pone a goma, y ahí es donde caerías si lo dejas diez."},
+    {min:21, t:"Todo a la arrocera Lékué",
+     d:"El sofrito con su aceite, el arroz, el tomate rallado, el pimentón, el laurel, la pimienta y 250 ml de agua CALIENTE. Remueve para repartir el pimentón y tapa."},
+    {min:21, t:"Microondas a 800 W — 12 minutos",
+     d:"Con la tapa puesta todo el rato. Si tu microondas fuera de 900 quita un minuto, y de 1000 quita dos: los tiempos de Lékué están medidos a 800."},
+    {min:33, t:"Reposo de 3 minutos, sin abrir",
+     d:"El grano termina de repartir el agua. Abrirlo antes es lo que deja el centro duro."},
+    "Y ahora lo que lo vuelve meloso: destapa y remueve fuerte medio minuto con una cuchara. El roce suelta el almidón del grano y liga el caldo. Si lo ves seco, una cucharada de agua caliente y sigue removiendo.",
+    "Retira el laurel y sirve enseguida. El arroz meloso no espera: en cinco minutos se pasa."
   ],
-  nota:"El color marrón de la cebolla es TODO el sabor del plato. Sin ese paso, el arroz sabe a agua."
+  trucos:[
+    "SI TIENES PRISA, LA CEBOLLA EN SARTÉN. Ahí la sartén gana a la freidora y no hay discusión: el contacto directo con el metal dora en 6-8 minutos lo que a la freidora le cuesta 16, porque la freidora calienta con aire y el aire transmite mucho peor. A fuego medio-alto con los 7 ml de aceite, removiendo, y si se agarra al fondo una cucharada de agua para despegar ese tostado y devolverlo a la cebolla. El calamar y el ajo, 2 minutos más. De ahí, directo a la arrocera y sigue en el minuto 21. El precio es que hay que estar encima removiendo.",
+    "HAZ LA CEBOLLA POR TANDAS. Ese fondo es lo que da sabor a media docena de platos, y en la freidora ocupa lo mismo dorar una cebolla que cuatro. Dora cuatro, congélala en porciones planas, y el día que quieras este arroz pasa de 40 minutos a 15. Con esto la freidora deja de tener desventaja: los 16 minutos los pagas una vez al mes.",
+    "El pimentón no se quema aquí, y es la ventaja de este método. En la cazuela hay que echarlo fuera del fuego porque se amarga en segundos; entrando con el agua a la arrocera no llega nunca a esa temperatura.",
+    "Este arroz no se nacara (no se tuesta el grano en el sofrito) porque en la arrocera no hay forma. Se pierde algo de grano suelto, pero para un arroz meloso da igual: aquí buscas justo lo contrario, que suelte almidón.",
+    "Sin sal. El sabor sale del dorado de la cebolla, del calamar y del pimentón. Por eso el paso de la cebolla no se puede abreviar: si la sacas rubia, el plato sabe a agua y no hay sal que lo arregle.",
+    "Agua caliente, no fría. Con agua del grifo fría el microondas gasta los primeros minutos en calentarla y el arroz se pasa de cocción por fuera mientras espera.",
+    "Para 2 raciones: 140 g de arroz y 480 ml de agua, y sube el microondas a 14 minutos. La freidora aguanta la cebolla de los dos sin cambiar tiempos.",
+    "No llenes la arrocera más de la mitad: con más, rebosa en el microondas. El tope de la Lékué son 240 g de arroz en seco."
+  ],
+  nota:"Dos aparatos, a propósito. El fondo oscuro de cebolla NO se puede hacer en microondas: dorar exige pasar de 140 °C y con agua dentro no se pasa de 100, así que en la arrocera la cebolla saldría cocida y pálida, nunca marrón. Esa parte va en la freidora (o en sartén, ver el primer truco) y el arroz en la arrocera Lékué. Tiempos para la Moulinex Easy Fry XL Surface y microondas de 800 W."
 },
 {
   id:"arroz_oriental", n:"Arroz salteado con pollo, calabacín y jengibre",
