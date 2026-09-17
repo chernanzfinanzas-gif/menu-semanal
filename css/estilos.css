@@ -150,6 +150,10 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   font-size:.82rem; font-family:inherit; color:var(--tinta); background:var(--blanco);
   text-align:right; width:100%}
 
+/* toma que ese día no toca (almuerzo y merienda sin entreno) */
+.toma.inactiva{opacity:.45}
+.toma.inactiva .titulo-toma .chip-toma{display:none}
+
 /* dos casillas por plato: carro (comprado) y visto (comido) */
 .plato .marcar.carro{font-size:.82rem; filter:grayscale(1) opacity(.35)}
 .plato .marcar.carro.si{filter:none}
@@ -504,11 +508,4 @@ body.modo-consulta .aviso-consulta{display:inline-block}
 .cuerpo-platos .linea{margin-bottom:5px}
 @media (max-width:700px){
   .cuerpo-platos .linea .detalle{display:block}
-}
-
-/* aviso de «estos ya los tienes en casa», dentro del bloque de platos (v31) */
-.fila-listos{
-  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-  background:var(--verde-claro); border:1px solid var(--verde-borde); border-radius:10px;
-  padding:8px 12px; margin-bottom:10px; font-size:.84rem; color:var(--verde);
 }
