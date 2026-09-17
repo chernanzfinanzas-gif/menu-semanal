@@ -48,6 +48,106 @@
     "horno": "Horno", "cazuela": "Cazuela", "sin-cocinar": "Sin cocinar"
   };
 
+
+  /* ==================== PORTADA ==================== */
+  /* El vídeo de entrada: una vez al día como mucho, y siempre saltable.
+     La preferencia es de este aparato, igual que el modo consulta. */
+  var CLAVE_INTRO = "asistente-alimentacion-intro";        // último día que se enseñó
+  var CLAVE_INTRO_OFF = "asistente-alimentacion-intro-off";
+  var CLAVE_INTRO_SON = "asistente-alimentacion-intro-sonido";   // si quiere oírlo
+
+  function introActiva() {
+    try { return localStorage.getItem(CLAVE_INTRO_OFF) !== "si"; } catch (e) { return true; }
+  }
+  function ponerIntro(activa) {
+    try { localStorage.setItem(CLAVE_INTRO_OFF, activa ? "no" : "si"); } catch (e) {}
+  }
+
+  function cerrarPortada() {
+    var p = $("#portada");
+    if (!p) return;
+    var v = $("#video-intro");
+    if (v) { try { v.pause(); } catch (e) {} }
+    p.classList.add("saliendo");
+    setTimeout(function () { if (p.parentNode) p.parentNode.removeChild(p); }, 520);
+  }
+
+  function arrancarPortada() {
+    var p = $("#portada");
+    if (!p) return;
+    var hoy = Util.hoyISO(), visto = null;
+    try { visto = localStorage.getItem(CLAVE_INTRO); } catch (e) {}
+
+    if (!introActiva() || visto === hoy) {          // ya se vio hoy, o está desactivada
+      if (p.parentNode) p.parentNode.removeChild(p);
+      return;
+    }
+    try { localStorage.setItem(CLAVE_INTRO, hoy); } catch (e) {}
+
+    var v = $("#video-intro");
+    $("#saltar-intro").addEventListener("click", cerrarPortada);
+    p.addEventListener("click", function (e) { if (e.target === p) cerrarPortada(); });
+    if (v) {
+      /* Dos montajes del mismo vídeo: el apaisado para la pantalla del ordenador
+         y el vertical para el móvil. Decide la forma de la ventana, no el aparato,
+         así el móvil en horizontal también sale bien. */
+      var deAlto = window.innerHeight > window.innerWidth;
+      v.className = deAlto ? "vertical" : "";
+      v.setAttribute("poster", deAlto ? "media/cartel-v.webp" : "media/cartel-h.webp");
+      v.setAttribute("src", deAlto ? "media/intro-v.mp4" : "media/intro-h.mp4");
+      v.addEventListener("ended", cerrarPortada);
+      v.addEventListener("error", cerrarPortada);
+
+      /* El sonido. El vídeo ARRANCA SIEMPRE MUDO porque ningún navegador deja
+         empezar con sonido sin que toques antes la pantalla: si lo intentáramos,
+         no arrancaría. El botón lo activa de un toque y me acuerdo de la
+         elección, pero aun así la próxima vez empiezo mudo e intento subirlo
+         después; si el navegador se queja, se queda mudo y no pasa nada. */
+      var bot = $("#sonido-intro");
+      function pintarSonido() {
+        if (!bot) return;
+        var puesto = !v.muted;
+        bot.setAttribute("aria-pressed", puesto ? "true" : "false");
+        bot.setAttribute("title", puesto ? "Quitar el sonido" : "Activar el sonido");
+      }
+      if (bot) {
+        bot.addEventListener("click", function (ev) {
+          ev.stopPropagation();                  /* que no cuente como cerrar */
+          v.muted = !v.muted;
+          try { localStorage.setItem(CLAVE_INTRO_SON, v.muted ? "no" : "si"); } catch (e) {}
+          pintarSonido();
+        });
+      }
+      pintarSonido();
+
+      var prometido = v.play();
+      if (prometido && prometido.catch) prometido.catch(function () { cerrarPortada(); });
+
+      var queria = false;
+      try { queria = localStorage.getItem(CLAVE_INTRO_SON) === "si"; } catch (e) {}
+      if (queria) {
+        setTimeout(function () {
+          if (!v.parentNode) return;
+          var iba = !v.paused;                 /* ¿estaba corriendo antes de tocarlo? */
+          try { v.muted = false; pintarSonido(); } catch (e) { return; }
+          setTimeout(function () {
+            /* Solo doy marcha atrás si el vídeo IBA y subirle el sonido lo ha
+               parado. Si todavía no había arrancado, no es cosa del sonido y
+               callarlo aquí sería quitárselo por nada. */
+            if (v.parentNode && iba && v.paused) {
+              v.muted = true; pintarSonido();
+              try { v.play(); } catch (e) {}
+            }
+          }, 260);
+        }, 120);
+      }
+
+      setTimeout(cerrarPortada, deAlto ? 23000 : 13000);   // por si se queda colgado
+    } else {
+      cerrarPortada();
+    }
+  }
+
   /* ==================== MODAL ==================== */
   function abrirModal(html) {
     $("#modal-caja").innerHTML = html;
@@ -853,6 +953,7 @@
 
   function pintarAjustes() {
     $("#cfg-consulta").checked = soloConsulta();
+    $("#cfg-intro").checked = introActiva();
     if (soloConsulta()) return;          // en consulta, lo demás ni se rellena
     pintarPerfil();
     var c = Almacen.estado.config;
@@ -1142,6 +1243,11 @@
       Sync.cargar().then(function () { Sync.guardar(); });
       Util.toast("Conectando con GitHub…");
     });
+    $("#cfg-intro").addEventListener("change", function () {
+      ponerIntro(this.checked);
+      Util.toast(this.checked ? "Se enseñará el vídeo al abrir" : "El vídeo no se volverá a enseñar");
+    });
+
     $("#cfg-consulta").addEventListener("change", function () {
       ponerModo(this.checked);
       mostrar(UI.vista);
@@ -1228,6 +1334,7 @@
     if (!hayPlan) Almacen.aplicarPlantilla("A", UI.lunes);
 
     mostrar("menu");
+    arrancarPortada();
 
     if (Sync.configurado()) {
       Sync.cargar().then(function () { mostrar(UI.vista); });

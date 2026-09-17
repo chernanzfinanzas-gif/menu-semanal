@@ -288,3 +288,45 @@ body.modo-consulta .quitar{display:none !important}
 .aviso-consulta{display:none; font-size:.72rem; padding:3px 9px; border-radius:99px;
   background:rgba(255,255,255,.18); white-space:nowrap}
 body.modo-consulta .aviso-consulta{display:inline-block}
+
+/* ---------- portada con el vídeo ---------- */
+.portada{
+  position:fixed; inset:0; z-index:100; background:#f4f2e9;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  transition:opacity .5s ease;
+}
+.portada video{
+  width:min(92vw, 780px); max-height:66vh; border-radius:14px; background:#f4f2e9;
+  box-shadow:0 10px 40px rgba(31,42,36,.18);
+}
+/* el vertical es alto: que mande la altura y no se salga de la pantalla */
+.portada video.vertical{width:auto; height:min(70vh,600px); max-height:none; max-width:92vw}
+.portada .btn{min-width:150px}
+
+/* el botón del sonido, encima del vídeo */
+.marco-intro{position:relative; display:inline-block; line-height:0}
+.portada .sonido{
+  position:absolute; right:12px; bottom:12px; display:flex; align-items:center; gap:7px;
+  padding:9px 13px; border:0; border-radius:999px; cursor:pointer; line-height:1;
+  background:rgba(31,42,36,.62); color:#fff; backdrop-filter:blur(4px);
+  font:inherit; font-size:13px; font-weight:600; transition:background .2s ease;
+}
+.portada .sonido:hover{background:rgba(31,42,36,.80)}
+.portada .sonido .suena{display:none}
+.portada .sonido[aria-pressed="true"]{background:rgba(47,107,71,.88)}
+.portada .sonido[aria-pressed="true"] .mudo{display:none}
+.portada .sonido[aria-pressed="true"] .suena{display:block}
+@media (max-width:420px){ .portada .sonido .etq{display:none} .portada .sonido{padding:10px} }
+.portada.saliendo{opacity:0; pointer-events:none}
+
+/* ---------- cabecera de cada sección ---------- */
+.cabecera-vista{display:flex; align-items:center; gap:12px; margin-bottom:14px}
+.cabecera-vista img{width:52px; height:52px; border-radius:10px; flex:none; object-fit:contain}
+.cabecera-vista h2{margin:0; font-size:1.1rem}
+.cabecera-vista .nota-peque{display:block; line-height:1.3}
+.ico-tarjeta{width:30px; height:30px; vertical-align:-8px; margin-right:8px; object-fit:contain}
+@media (max-width:767px){
+  .cabecera-vista img{width:44px; height:44px}
+  .cabecera-vista h2{font-size:1rem}
+  .cabecera-vista .nota-peque{font-size:.74rem}
+}

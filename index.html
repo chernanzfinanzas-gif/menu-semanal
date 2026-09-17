@@ -8,9 +8,22 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=5">
+<link rel="stylesheet" href="css/estilos.css?v=8">
 </head>
 <body>
+
+<div class="portada" id="portada">
+  <div class="marco-intro">
+    <video id="video-intro" muted playsinline preload="auto"></video>
+    <button class="sonido" id="sonido-intro" type="button" aria-pressed="false" title="Activar el sonido">
+      <svg class="mudo" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6M21 9l-5 6"/></svg>
+      <svg class="suena" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <span class="etq">Sonido</span>
+    </button>
+  </div>
+  <button class="btn principal" id="saltar-intro">Entrar</button>
+</div>
+
 
 <header class="barra">
   <span class="titulo">Asistente de Alimentación</span>
@@ -45,6 +58,10 @@
 
   <!-- ===================== MENÚ ===================== -->
   <section class="vista activa" id="vista-menu">
+    <div class="cabecera-vista">
+      <img src="iconos/khb/2-frutas-tenedor.webp" alt="" width="52" height="52">
+      <div><h2>Menú semanal</h2><span class="nota-peque">Las cinco tomas de cada día, con su sal y sus calorías</span></div>
+    </div>
     <div class="cabecera-semana">
       <span class="rango" id="rango-semana"></span>
       <div class="fila">
@@ -68,6 +85,10 @@
 
   <!-- ===================== RECETAS ===================== -->
   <section class="vista" id="vista-recetas">
+    <div class="cabecera-vista">
+      <img src="iconos/khb/8-recetario.webp" alt="" width="52" height="52">
+      <div><h2>Recetario</h2><span class="nota-peque">Busca por ingrediente, por toma o por herramienta</span></div>
+    </div>
     <div class="filtros">
       <input type="text" id="buscar-receta" placeholder="Buscar receta o ingrediente…">
       <select id="filtro-toma">
@@ -113,6 +134,10 @@
 
   <!-- ===================== COMPRA ===================== -->
   <section class="vista" id="vista-compra">
+    <div class="cabecera-vista">
+      <img src="iconos/khb/1-arbol-pulso.webp" alt="" width="52" height="52">
+      <div><h2>La compra</h2><span class="nota-peque">Lo que hace falta esta semana, por secciones del súper</span></div>
+    </div>
     <div class="tarjeta">
       <div class="fila entre">
         <div>
@@ -133,6 +158,10 @@
 
   <!-- ===================== DESPENSA ===================== -->
   <section class="vista" id="vista-despensa">
+    <div class="cabecera-vista">
+      <img src="iconos/khb/4-agua.webp" alt="" width="52" height="52">
+      <div><h2>Despensa</h2><span class="nota-peque">Lo que ya tienes en casa y los valores de cada alimento</span></div>
+    </div>
     <div class="aviso">Marca lo que ya tienes en casa: desaparecerá de la lista de la compra hasta que lo desmarques.</div>
     <div class="fila" style="margin-bottom:12px">
       <input type="text" id="buscar-despensa" placeholder="Buscar ingrediente…" style="flex:1; min-width:180px">
@@ -144,8 +173,12 @@
 
   <!-- ===================== AJUSTES ===================== -->
   <section class="vista" id="vista-ajustes">
+    <div class="cabecera-vista">
+      <img src="iconos/khb/9-podio.webp" alt="" width="52" height="52">
+      <div><h2>Ajustes</h2><span class="nota-peque">Tu perfil, tus objetivos y la sincronización</span></div>
+    </div>
     <div class="tarjeta">
-      <h2>Este aparato</h2>
+      <h2><img class="ico-tarjeta" src="iconos/khb/7-yoga.webp" alt="">Este aparato</h2>
       <label style="display:flex; gap:10px; align-items:flex-start; font-size:.9rem">
         <input type="checkbox" id="cfg-consulta" style="width:22px; height:22px; flex:none; margin-top:2px">
         <span><b>Solo consulta</b><br>
@@ -153,10 +186,16 @@
           lo que has comido, pero esconde todo lo de planificar y editar. Así no hay dos sitios cambiando
           lo mismo a la vez. Es un ajuste de este aparato: los demás no se enteran.</span></span>
       </label>
+      <label style="display:flex; gap:10px; align-items:flex-start; font-size:.9rem; margin-top:14px">
+        <input type="checkbox" id="cfg-intro" style="width:22px; height:22px; flex:none; margin-top:2px">
+        <span><b>Vídeo al abrir</b><br>
+          <span class="nota-peque">La presentación de KHB En Forma cuando abres la app. Se enseña
+          una vez al día como mucho, y siempre puedes saltarla.</span></span>
+      </label>
     </div>
 
     <div class="tarjeta solo-edicion">
-      <h2>Tu perfil</h2>
+      <h2><img class="ico-tarjeta" src="iconos/khb/3-pesas-corredor.webp" alt="">Tu perfil</h2>
       <p class="nota-peque">Con estos datos se estima tu gasto diario y se propone el objetivo de calorías
         y de proteína. Es una estimación de fórmula, no una medición: ajústala a lo que veas en la báscula
         al cabo de unas semanas.</p>
@@ -196,7 +235,7 @@
     </div>
 
     <div class="tarjeta solo-edicion">
-      <h2>Peso</h2>
+      <h2><img class="ico-tarjeta" src="iconos/khb/6-zapatillas.webp" alt="">Peso</h2>
       <div class="fila" style="align-items:flex-end">
         <label class="campo" style="flex:1 1 110px; margin-bottom:0"><span>Fecha</span>
           <input type="date" id="peso-fecha"></label>
@@ -208,7 +247,7 @@
     </div>
 
     <div class="tarjeta solo-edicion">
-      <h2>Cocina</h2>
+      <h2><img class="ico-tarjeta" src="iconos/khb/5-sueno.webp" alt="">Cocina</h2>
       <label class="campo"><span>Personas para las que se compra</span>
         <input type="number" id="cfg-personas" min="1" max="8" step="1"></label>
       <label class="campo"><span>Aviso ámbar a partir de (g de sal al día)</span>
@@ -271,13 +310,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=5"></script>
-<script src="datos/recetas.js?v=5"></script>
-<script src="datos/plantillas.js?v=5"></script>
-<script src="datos/actividades.js?v=5"></script>
-<script src="js/util.js?v=5"></script>
-<script src="js/almacen.js?v=5"></script>
-<script src="js/github.js?v=5"></script>
-<script src="js/app.js?v=5"></script>
+<script src="datos/ingredientes.js?v=8"></script>
+<script src="datos/recetas.js?v=8"></script>
+<script src="datos/plantillas.js?v=8"></script>
+<script src="datos/actividades.js?v=8"></script>
+<script src="js/util.js?v=8"></script>
+<script src="js/almacen.js?v=8"></script>
+<script src="js/github.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
 </body>
 </html>
