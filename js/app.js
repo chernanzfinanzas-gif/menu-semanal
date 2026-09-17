@@ -11,6 +11,9 @@
     busquedaDespensa: "",
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
     ocultarComprados: false,
+    /* Rango de la lista de la compra. Independiente de la semana que se esté viendo
+       en Menú, que es lo que confundía. */
+    cuandoCompra: "resto",
     tRuta: null,            // espera antes de repintar al teclear las horas de una ruta
     /* Días pasados que ha desbloqueado a mano para corregir algo. Vive solo en
        memoria: al recargar vuelven a estar cerrados, que es lo que se quiere. */
@@ -211,6 +214,28 @@
     }
     $("#selector-dias").innerHTML = sel;
 
+    /* Lo comprado que no se comió y cuyo día ya pasó: está en la nevera. Ni se tira
+       ni se vuelve a comprar — se replanifica al primer hueco libre. */
+    var pend = Almacen.pendientesDespensa();
+    var cajaP = $("#pendientes-despensa");
+    if (cajaP) {
+      if (!pend.length) { cajaP.style.display = "none"; cajaP.innerHTML = ""; }
+      else {
+        var h = '<b>Lo compraste y no te lo comiste</b> — sigue en la despensa, ' +
+                'así que no se vuelve a pedir en la compra:<div class="lista-pend">';
+        pend.slice(0, 8).forEach(function (p) {
+          h += '<span class="pend">' + esc(p.n) +
+               ' <small>' + Util.etiquetaFecha(p.f) + ' · ' + p.toma + '</small>' +
+               '<button class="btn mini" data-reprogramar="' + p.f + '|' + p.toma + '|' + esc(p.id) + '">' +
+               'Reprogramar</button></span>';
+        });
+        h += '</div>';
+        if (pend.length > 8) h += '<div class="nota-peque">Y ' + (pend.length - 8) + ' más.</div>';
+        cajaP.innerHTML = h;
+        cajaP.style.display = "";
+      }
+    }
+
     /* media de la semana */
     var res = Almacen.resumenSemana(UI.lunes);
     var caja = $("#resumen-semana");
@@ -383,7 +408,13 @@
             var n = r ? Almacen.nutrReceta(r) : { k: 0 };
             var s = r ? Util.sal(Almacen.salReceta(r)) : "";
             var com = Almacen.estaComido(fecha, t.k, rid);
-            html += '<div class="plato' + (com ? " comido" : "") + '">' +
+            var cpr = Almacen.estaComprado(fecha, t.k, rid);
+            html += '<div class="plato' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
+                      /* Dos casillas, porque son dos cosas distintas: el carro dice que
+                         los ingredientes ya están en casa; el visto, que te lo comiste. */
+                      '<button class="marcar carro' + (cpr ? " si" : "") + '" ' +
+                        'title="' + (cpr ? "Comprado: no se vuelve a pedir" : "Marcar como comprado") + '" ' +
+                        'data-comprado="' + fecha + '|' + t.k + '|' + esc(rid) + '">🛒</button>' +
                       '<button class="marcar' + (com ? " si" : "") + '" title="Marcar como comido" ' +
                         'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">✓</button>' +
                       '<span class="nom" data-ficha="' + esc(rid) + '">' + esc(nombre) + '</span>' +
@@ -1027,12 +1058,16 @@
   var compraActual = null;
 
   function pintarCompra() {
-    var datos = Almacen.generarCompra(UI.lunes, 7);
+    /* La compra tiene SU PROPIO rango, no el de la pestaña Menú. Antes salía para la
+       semana que estuvieras mirando —que nadie podía adivinar— y en la semana en curso
+       incluía los platos de los días que ya te habías comido. */
+    var r = Almacen.rangoCompra(UI.cuandoCompra);
+    var datos = Almacen.generarCompra(r.desde, r.dias, { saltarComido: true });
     compraActual = datos;
     var pers = Almacen.estado.config.personas || 1;
-    $("#compra-rango").textContent = esMovil()
-      ? "Semana " + Util.etiquetaRangoCorto(UI.lunes)
-      : "Semana del " + Util.etiquetaRango(UI.lunes);
+    $("#compra-cuando").value = UI.cuandoCompra;
+    $("#compra-rango").textContent = Util.etiquetaFecha(r.desde) + " – " + Util.etiquetaFecha(r.hasta) +
+                                     " · " + r.dias + (r.dias === 1 ? " día" : " días");
     $("#compra-personas").textContent = pers === 1 ? "1 persona" : pers + " personas";
 
     var totalLineas = 0, pendientes = 0;
@@ -1041,7 +1076,8 @@
     });
 
     if (!totalLineas) {
-      $("#compra-resumen").textContent = "Esta semana no tiene menú todavía. Aplica la Semana A o B en la pestaña Menú.";
+      $("#compra-resumen").textContent = "No hay menú planificado en esas fechas. Ve a Menú y dale a " +
+        "«Completar la semana», o cambia el rango aquí arriba.";
       $("#lista-compra").innerHTML = "";
       return;
     }
@@ -1501,6 +1537,21 @@
         pintarMenu();
         return;
       }
+      var cpr = e.target.closest("[data-comprado]");
+      if (cpr) {
+        var pp = cpr.getAttribute("data-comprado").split("|");
+        Almacen.marcarComprado(pp[0], pp[1], pp[2], !Almacen.estaComprado(pp[0], pp[1], pp[2]));
+        pintarMenu();
+        return;
+      }
+      var rep = e.target.closest("[data-reprogramar]");
+      if (rep) {
+        var pr = rep.getAttribute("data-reprogramar").split("|");
+        var destino = Almacen.reprogramarPendiente(pr[0], pr[1], pr[2]);
+        pintarMenu();
+        Util.toast(destino ? "Movido al " + Util.etiquetaFecha(destino) : "No hay hueco libre en 3 semanas");
+        return;
+      }
       var com = e.target.closest("[data-comido]");
       if (com) {
         var c = com.getAttribute("data-comido").split("|");
@@ -1559,6 +1610,19 @@
     });
 
     /* --- compra --- */
+    $("#compra-cuando").addEventListener("change", function (e) {
+      UI.cuandoCompra = e.target.value;
+      pintarCompra();
+    });
+    $("#compra-hecha").addEventListener("click", function () {
+      var r = Almacen.rangoCompra(UI.cuandoCompra);
+      if (!confirm("¿Dar por comprado todo lo planificado del " + Util.etiquetaFecha(r.desde) +
+                   " al " + Util.etiquetaFecha(r.hasta) + "?\n\nEsos platos dejarán de pedirse en la " +
+                   "lista. Lo que luego no te comas se queda en «pendiente en la despensa».")) return;
+      var n = Almacen.marcarRangoComprado(r.desde, r.dias, true);
+      pintarCompra();
+      Util.toast(n ? "Marcados " + n + " platos como comprados" : "Ya estaba todo marcado");
+    });
     $("#compra-recalcular").addEventListener("click", pintarCompra);
     $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
     $("#lista-compra").addEventListener("click", function (e) {

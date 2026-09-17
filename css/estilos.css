@@ -150,6 +150,19 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   font-size:.82rem; font-family:inherit; color:var(--tinta); background:var(--blanco);
   text-align:right; width:100%}
 
+/* dos casillas por plato: carro (comprado) y visto (comido) */
+.plato .marcar.carro{font-size:.82rem; filter:grayscale(1) opacity(.35)}
+.plato .marcar.carro.si{filter:none}
+.plato.comprado{background:#fbfcfb}
+.plato.comprado .nom{color:var(--tinta)}
+
+/* lo comprado y no comido, esperando en la despensa */
+.aviso.pendientes{background:var(--ambar-fondo); border-color:var(--ambar)}
+.lista-pend{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+.lista-pend .pend{display:inline-flex; align-items:center; gap:7px; background:var(--blanco);
+  border:1px solid var(--borde); border-radius:99px; padding:3px 4px 3px 12px; font-size:.82rem}
+.lista-pend .pend small{color:var(--gris); font-size:.72rem}
+
 /* ---------- días ya pasados: apagados ----------
    Se ven, se leen y se puede marcar lo comido; lo que no se puede es planificarlos. */
 .dia.cerrado{opacity:.62; background:#fafbfa}

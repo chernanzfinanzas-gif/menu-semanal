@@ -90,6 +90,7 @@
         actividad: {},         // { "YYYY-MM-DD": [{a:"bici_suave", min:30}] }
         plan: {},              // { "YYYY-MM-DD": { desayuno:[], almuerzo:[], comida:[], merienda:[], cena:[] } }
         comido: {},            // { "YYYY-MM-DD": { comida:["receta_id", …] } }  lo que se comió de verdad
+        comprado: {},          // igual, pero lo que ya está COMPRADO (no se vuelve a pedir)
         despensa: {},          // { ingredienteId: true }  -> ya lo tengo en casa
         compraMarcada: {},     // { ingredienteId: true }  -> ya comprado / tachado
         favoritos: [],
@@ -228,6 +229,7 @@
         ];
         añadidos.push("entreno estándar");
       }
+      if (!e.comprado) { e.comprado = {}; añadidos.push("registro de lo comprado"); }
       if (!e.config.fijos) {
         e.config.fijos = [
           { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
@@ -453,6 +455,103 @@
     estaComido: function (fecha, toma, recetaId) {
       var d = this.estado.comido[fecha];
       return !!(d && d[toma] && d[toma].indexOf(recetaId) >= 0);
+    },
+
+    /* ---------- COMPRADO, que no es lo mismo que COMIDO ----------
+       Son dos cosas distintas y confundirlas rompía la lista de la compra:
+         · COMPRADO = los ingredientes de ese plato ya están en casa. No se vuelven
+           a comprar, aunque el plato no se haya cocinado todavía.
+         · COMIDO   = el plato se consumió. Cuenta en las calorías del día.
+       Lo normal es comprar el domingo para toda la semana: el martes no hay nada
+       comido de miércoles a domingo, y sin embargo ya está todo en la nevera. Usar
+       «comido» para filtrar la compra —como estaba hasta la v29— te habría hecho
+       comprar dos veces la misma semana.
+       Y lo COMPRADO PERO NO COMIDO es lo que se queda en la despensa: ver
+       `pendientesDespensa()`, que es lo que permite replanificarlo en vez de tirarlo. */
+    estaComprado: function (fecha, toma, recetaId) {
+      var d = this.estado.comprado[fecha];
+      return !!(d && d[toma] && d[toma].indexOf(recetaId) >= 0);
+    },
+
+    marcarComprado: function (fecha, toma, recetaId, si) {
+      if (!this.estado.comprado[fecha]) this.estado.comprado[fecha] = {};
+      var d = this.estado.comprado[fecha];
+      if (!d[toma]) d[toma] = [];
+      var i = d[toma].indexOf(recetaId);
+      if (si && i < 0) d[toma].push(recetaId);
+      if (!si && i >= 0) d[toma].splice(i, 1);
+      if (!d[toma].length) delete d[toma];
+      if (!Object.keys(d).length) delete this.estado.comprado[fecha];
+      this.guardar("comprado");
+    },
+
+    /* Da por comprado TODO lo planificado en un rango. Es el gesto natural al volver
+       del súper: se compró la lista entera, no plato a plato. */
+    marcarRangoComprado: function (desdeISO, dias, si) {
+      var n = 0, self = this;
+      for (var i = 0; i < dias; i++) {
+        var f = Util.sumarDias(desdeISO, i);
+        var dia = this.estado.plan[f];
+        if (!dia) continue;
+        Util.TOMAS.forEach(function (t) {
+          if (self.esFuera(f, t.k)) return;
+          (dia[t.k] || []).forEach(function (rid) {
+            if (self.estaComprado(f, t.k, rid) === !!si) return;
+            if (!self.estado.comprado[f]) self.estado.comprado[f] = {};
+            var d = self.estado.comprado[f];
+            if (!d[t.k]) d[t.k] = [];
+            var j = d[t.k].indexOf(rid);
+            if (si && j < 0) d[t.k].push(rid);
+            if (!si && j >= 0) d[t.k].splice(j, 1);
+            n++;
+          });
+        });
+      }
+      if (n) this.guardar("comprado");
+      return n;
+    },
+
+    /* Platos COMPRADOS que NO se comieron y cuyo día ya pasó: esa comida está en la
+       nevera esperando. Ni se vuelve a comprar ni se tira: se replanifica. */
+    pendientesDespensa: function () {
+      var self = this, fuera = [];
+      Object.keys(this.estado.comprado).forEach(function (f) {
+        if (!self.esPasado(f)) return;
+        var d = self.estado.comprado[f];
+        Object.keys(d).forEach(function (toma) {
+          (d[toma] || []).forEach(function (rid) {
+            if (self.estaComido(f, toma, rid)) return;
+            var rec = self.receta(rid);
+            if (!rec) return;
+            fuera.push({ f: f, toma: toma, id: rid, n: rec.n });
+          });
+        });
+      });
+      fuera.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+      return fuera;
+    },
+
+    /* Lleva un pendiente al primer día futuro que tenga esa toma libre. Se conserva la
+       marca de comprado, porque los ingredientes siguen siendo los mismos. */
+    reprogramarPendiente: function (fecha, toma, recetaId) {
+      var hoy = Util.hoyISO();
+      for (var i = 0; i < 21; i++) {
+        var f = Util.sumarDias(hoy, i);
+        var ficha = this.fichaTipoDia(f);
+        if (this.esFuera(f, toma) || ficha.mochila.indexOf(toma) >= 0) continue;
+        var d = this.estado.plan[f];
+        var yaHay = d && (d[toma] || []).length;
+        var propio = d && (d[toma] || []).indexOf(recetaId) >= 0;
+        if (yaHay && !propio) continue;
+        if (propio) continue;                       // ya está puesto ahí
+        var dia = this.asegurarDia(f);
+        dia[toma] = (dia[toma] || []).concat([recetaId]);
+        this.marcarComprado(fecha, toma, recetaId, false);
+        this.marcarComprado(f, toma, recetaId, true);
+        this.guardar("reprogramar");
+        return f;
+      }
+      return null;
     },
 
     marcarComido: function (fecha, toma, recetaId, comido) {
@@ -1195,8 +1294,32 @@
 
     /* ---------- lista de la compra ---------- */
     /* Devuelve { secciones:[{nombre, lineas:[...]}], basicos:[...] } */
-    generarCompra: function (lunesISO, dias) {
+    /* Los rangos que puede cubrir la compra. La lista NO es «la semana que estás
+       mirando»: eso era lo que había y no lo adivinaba nadie. Es un rango propio,
+       elegido a mano, y que NUNCA incluye días pasados: no se compra la comida del
+       lunes un jueves. */
+    RANGOS_COMPRA: {
+      resto:    { n: "Lo que queda de esta semana",     desde: "hoy",   hasta: "finSemana" },
+      siguiente:{ n: "La semana que viene",             desde: "lunes+7", hasta: "domingo+7" },
+      hasta14:  { n: "De hoy a fin de la semana que viene", desde: "hoy", hasta: "domingo+7" }
+    },
+
+    /* Devuelve {desde, hasta, dias, n} del rango elegido, ya recortado al futuro. */
+    rangoCompra: function (clave) {
+      var hoy = Util.hoyISO();
+      var lunes = Util.lunesDe(hoy);
+      var r = this.RANGOS_COMPRA[clave] || this.RANGOS_COMPRA.resto;
+      var desde = r.desde === "hoy" ? hoy : Util.sumarDias(lunes, 7);
+      var hasta = r.hasta === "finSemana" ? Util.sumarDias(lunes, 6) : Util.sumarDias(lunes, 13);
+      if (desde > hasta) desde = hasta;                    // domingo por la tarde
+      return { desde: desde, hasta: hasta, dias: Util.diasEntre(desde, hasta) + 1, n: r.n };
+    },
+
+    /* `opciones.saltarComido`: no compra lo que ya está marcado como comido. Sirve
+       para el día en curso, donde media jornada ya está hecha. */
+    generarCompra: function (lunesISO, dias, opciones) {
       dias = dias || 7;
+      opciones = opciones || {};
       var self = this;
       var acumulado = {};   // ingId -> { cantidad, recetas:{} }
       var porciones = {};   // recetaId de tanda -> porciones que hacen falta en la semana
@@ -1205,6 +1328,10 @@
         var fecha = Util.sumarDias(lunesISO, i);
         var dia = this.estado.plan[fecha];
         if (!dia) continue;
+        /* Un día ya vivido no se compra: esa comida ya está hecha o ya no toca. Era el
+           fallo de fondo — la lista salía para la semana que estuvieras mirando y, en
+           la semana en curso, metía los platos del lunes un jueves. */
+        if (this.esPasado(fecha)) continue;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
           /* Lo que se come fuera no se compra. */
           if (self.esFuera(fecha, toma)) return;
@@ -1214,6 +1341,10 @@
           (dia[toma] || []).forEach(function (rid) {
             var rec = self.receta(rid);
             if (!rec) return;
+            /* Lo ya COMPRADO no se vuelve a pedir, aunque no se haya cocinado todavía.
+               Y lo ya comido tampoco, obviamente. */
+            if (opciones.saltarComprado !== false && self.estaComprado(fecha, toma, rid)) return;
+            if (opciones.saltarComido && self.estaComido(fecha, toma, rid)) return;
             /* Las TANDAS se apuntan aparte y se resuelven al final: no se puede comprar
                un cuarto de bandeja de barritas. Ver `tandas` más abajo. */
             if (rec.tanda) {

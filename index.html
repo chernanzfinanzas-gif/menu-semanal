@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=27">
+<link rel="stylesheet" href="css/estilos.css?v=29">
 </head>
 <body>
 
@@ -80,6 +80,7 @@
       <button class="btn mini solo-edicion" id="importar-garmin">Importar de Garmin</button>
       <input type="file" id="fichero-garmin" accept=".tcx,.csv,.gpx,.fit,text/xml,text/csv" multiple style="display:none">
     </div>
+    <div class="aviso pendientes" id="pendientes-despensa" style="display:none"></div>
     <div class="aviso" id="resumen-semana" style="display:none"></div>
     <div class="selector-dias" id="selector-dias"></div>
     <div class="rejilla-dias" id="rejilla-dias"></div>
@@ -148,13 +149,20 @@
     <div class="tarjeta">
       <div class="fila entre">
         <div>
+          <select id="compra-cuando" style="max-width:290px; margin-bottom:5px">
+            <option value="resto">Lo que queda de esta semana</option>
+            <option value="siguiente">La semana que viene</option>
+            <option value="hasta14">De hoy a fin de la semana que viene</option>
+          </select>
           <strong id="compra-rango"></strong>
-          <div class="nota-peque">Cantidades calculadas para <span id="compra-personas"></span>.</div>
+          <div class="nota-peque">Cantidades para <span id="compra-personas"></span>.
+            <b>Los días ya pasados nunca entran</b>, ni lo que ya has marcado como comido.</div>
         </div>
         <div class="fila">
           <button class="btn mini" id="compra-ocultar">Ocultar comprados</button>
           <button class="btn mini" id="compra-recalcular">Recalcular</button>
           <button class="btn mini" id="compra-copiar">Copiar lista</button>
+          <button class="btn mini" id="compra-hecha" title="Da por comprado todo lo de este rango: no volverá a pedirlo">Ya la he comprado</button>
           <button class="btn principal mini" id="compra-para-claude">Preparar compra</button>
         </div>
       </div>
@@ -367,13 +375,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=27"></script>
-<script src="datos/recetas.js?v=27"></script>
-<script src="datos/plantillas.js?v=27"></script>
-<script src="datos/actividades.js?v=27"></script>
-<script src="js/util.js?v=27"></script>
-<script src="js/almacen.js?v=27"></script>
-<script src="js/github.js?v=27"></script>
-<script src="js/app.js?v=27"></script>
+<script src="datos/ingredientes.js?v=29"></script>
+<script src="datos/recetas.js?v=29"></script>
+<script src="datos/plantillas.js?v=29"></script>
+<script src="datos/actividades.js?v=29"></script>
+<script src="js/util.js?v=29"></script>
+<script src="js/almacen.js?v=29"></script>
+<script src="js/github.js?v=29"></script>
+<script src="js/app.js?v=29"></script>
 </body>
 </html>
