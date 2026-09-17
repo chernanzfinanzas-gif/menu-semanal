@@ -84,6 +84,24 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
         if (global.console) console.log("Nutrición completada en " + completados + " campos.");
       }
+      /* Recetas: lo mismo que arriba pero al revés. Cuando mejoro una receta de la
+         app le subo el campo `rev`, y aquí sustituyo la copia guardada por la nueva.
+         Nunca toco una receta con `editado`: esa es tuya y manda sobre la mía. */
+      var recSemilla = {};
+      (global.DATOS_RECETAS || []).forEach(function (r) { if (r.rev) recSemilla[r.id] = r; });
+      var refrescadas = [];
+      e.recetas.forEach(function (r, i) {
+        var nueva = recSemilla[r.id];
+        if (!nueva || r.editado) return;
+        if ((r.rev || 1) >= nueva.rev) return;
+        e.recetas[i] = JSON.parse(JSON.stringify(nueva));
+        refrescadas.push(nueva.n);
+      });
+      if (refrescadas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Recetas actualizadas: " + refrescadas.join(", "));
+      }
+
       if (typeof e.config.objetivoKcal !== "number") e.config.objetivoKcal = 2000;
       if (typeof e.config.objetivoProt !== "number") e.config.objetivoProt = 90;
       if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;

@@ -58,6 +58,25 @@
       return this.etiquetaFecha(lunesISO) + " – " + this.etiquetaFecha(fin) + " de " + this.desdeISO(fin).getFullYear();
     },
 
+    /* La cantidad TAL CUAL, para la ficha de la receta. Media berenjena es media
+       berenjena y 0,5 g de tomillo son 0,5: aquí no se redondea nada.
+       Distinto de formatearCantidad, que es para la lista de la compra y sí
+       redondea hacia arriba porque en la tienda no venden media berenjena. */
+    cantidadReceta: function (c, u, pesoUd) {
+      var FRAC = { 0.25: "¼", 0.33: "⅓", 0.5: "½", 0.66: "⅔", 0.67: "⅔", 0.75: "¾" };
+      if (u === "ud") {
+        var ent = Math.floor(c + 1e-9);
+        var resto = Math.round((c - ent) * 100) / 100;
+        var txt = FRAC[resto] ? (ent ? ent : "") + FRAC[resto] : String(Math.round(c * 100) / 100).replace(".", ",");
+        txt += " ud";
+        if (pesoUd) txt += " (" + Math.round(c * pesoUd) + " g)";
+        return txt;
+      }
+      var uni = u === "ml" ? " ml" : " g";
+      if (c < 10) return String(Math.round(c * 10) / 10).replace(".", ",") + uni;
+      return Math.round(c) + uni;
+    },
+
     formatearCantidad: function (c, u) {
       if (u === "ud") {
         var n = Math.ceil(c - 0.001);

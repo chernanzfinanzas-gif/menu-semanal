@@ -576,14 +576,35 @@
       var gr = Almacen.gramosDeLinea(l) / 100;
       var kc = ing ? Math.round(gr * (ing.k || 0)) : 0;
       html += '<li><span>' + esc(ing ? ing.n : l.i) + '</span><span>' +
-              Util.formatearCantidad(l.c, ing ? ing.u : "g") +
+              Util.cantidadReceta(l.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0) +
               (kc ? ' <em class="nota-peque">· ' + kc + ' kcal</em>' : '') + '</span></li>';
     });
     html += '</ul>';
 
-    html += '<h3>Elaboración</h3><ol class="pasos">';
-    (r.pasos || []).forEach(function (p) { html += '<li>' + esc(p) + '</li>'; });
-    html += '</ol>';
+    /* Los pasos pueden ser texto llano o llevar minuto del reloj: {min, t, d}.
+       Los que llevan minuto se pintan como un guion, para poder seguirlo cocinando. */
+    html += '<h3>Elaboración</h3>';
+    var enGuion = false;
+    (r.pasos || []).forEach(function (p) {
+      var conReloj = p && typeof p === "object" && typeof p.min === "number";
+      if (conReloj && !enGuion) { html += '<ol class="guion">'; enGuion = true; }
+      if (!conReloj && enGuion) { html += '</ol>'; enGuion = false; }
+      if (conReloj) {
+        html += '<li><span class="reloj">' + p.min + "'" + '</span><div>' +
+                '<b>' + esc(p.t || "") + '</b>' +
+                (p.d ? '<span class="nota-peque">' + esc(p.d) + '</span>' : '') +
+                '</div></li>';
+      } else {
+        html += '<p class="paso-suelto">' + esc(typeof p === "string" ? p : (p && p.t) || "") + '</p>';
+      }
+    });
+    if (enGuion) html += '</ol>';
+
+    if ((r.trucos || []).length) {
+      html += '<h3>Para que salga bien</h3><ul class="trucos">';
+      (r.trucos || []).forEach(function (t) { html += '<li>' + esc(t) + '</li>'; });
+      html += '</ul>';
+    }
 
     if (r.nota) html += '<div class="aviso">' + esc(r.nota) + '</div>';
 
@@ -633,7 +654,16 @@
     html += '<label class="campo"><span>Ingredientes — una línea por ingrediente: <em>identificador | cantidad</em></span>' +
             '<textarea id="ed-ing" class="salida" style="min-height:150px">' + esc(lineas) + '</textarea></label>';
     html += '<label class="campo"><span>Añadir ingrediente del catálogo</span><select id="ed-ayuda"><option value="">— elige para insertar la línea —</option>' + opcionesIng + '</select></label>';
-    html += '<label class="campo"><span>Pasos (uno por línea)</span><textarea id="ed-pasos" style="min-height:140px">' + esc((r.pasos || []).join("\n")) + '</textarea></label>';
+    var textoPasos = (r.pasos || []).map(function (p) {
+      if (typeof p === "string") return p;
+      if (!p) return "";
+      return (typeof p.min === "number" ? p.min + " · " : "") + (p.t || "") + (p.d ? " :: " + p.d : "");
+    }).join("\n");
+    html += '<label class="campo"><span>Pasos (uno por línea). Para un paso con minuto del reloj: ' +
+            '<em>12 · lo que hay que hacer :: por qué</em></span>' +
+            '<textarea id="ed-pasos" style="min-height:160px">' + esc(textoPasos) + '</textarea></label>';
+    html += '<label class="campo"><span>Para que salga bien (un truco por línea)</span>' +
+            '<textarea id="ed-trucos" style="min-height:90px">' + esc((r.trucos || []).join("\n")) + '</textarea></label>';
     html += '<label class="campo"><span>Nota</span><input type="text" id="ed-nota" value="' + esc(r.nota || "") + '"></label>';
     html += '<div class="fila"><button class="btn principal" id="ed-guardar">Guardar receta</button>' +
             '<button class="btn" data-cerrar>Cancelar</button></div>';
@@ -669,7 +699,18 @@
         min: parseInt($("#ed-min").value, 10) || 15,
         tools: $$(".ed-tool").filter(function (c) { return c.checked; }).map(function (c) { return c.value; }),
         ing: ing,
-        pasos: $("#ed-pasos").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean),
+        pasos: $("#ed-pasos").value.split("\n").map(function (s) {
+          s = s.trim();
+          if (!s) return null;
+          var m = s.match(/^(\d{1,3})\s*[·.|-]\s*(.+)$/);      // «12 · haz esto :: porque»
+          if (!m) return s;
+          var resto = m[2].split("::");
+          var paso = { min: parseInt(m[1], 10), t: resto[0].trim() };
+          if (resto.length > 1) paso.d = resto.slice(1).join("::").trim();
+          return paso;
+        }).filter(Boolean),
+        trucos: $("#ed-trucos").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean),
+        editado: true,          /* a partir de ahora es tuya: no la piso al actualizar */
         nota: $("#ed-nota").value.trim()
       };
       if (!nueva.tipo.length) nueva.tipo = ["comida"];

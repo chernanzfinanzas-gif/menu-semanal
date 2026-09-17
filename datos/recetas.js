@@ -276,14 +276,37 @@ window.DATOS_RECETAS = [
   ]
 },
 {
-  id:"lubina_horno_verduras", n:"Lubina al horno con tomate y berenjena asada",
-  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:25, tools:["horno","airfryer"],
-  ing:[{i:"lubina",c:250},{i:"tomate",c:1},{i:"berenjena",c:0.5},{i:"aove",c:10},{i:"tomillo",c:0.5},{i:"ajo",c:1},{i:"limon",c:0.25}],
+  id:"lubina_horno_verduras", n:"Lubina con tomate, berenjena y calabacín en airfryer",
+  rev:2,
+  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:28, tools:["airfryer"],
+  ing:[{i:"lubina",c:220},{i:"berenjena",c:0.5},{i:"calabacin",c:0.5},{i:"tomate",c:1},
+       {i:"ajo",c:2},{i:"aove",c:8},{i:"tomillo",c:0.5},{i:"pimienta",c:0.5},
+       {i:"limon",c:0.25},{i:"perejil",c:2}],
   pasos:[
-    "Berenjena y tomate en rodajas gruesas con aceite y tomillo: airfryer 180 °C, 14 min.",
-    "Lubina con ajo laminado y limón al horno 12 min a 200 °C.",
-    "Sirve el pescado sobre las verduras asadas."
-  ]
+    "Saca la lubina de la nevera 10 minutos antes de empezar. El pescado muy frío se hace por fuera antes de que el centro llegue, y sale seco por el borde y crudo por dentro.",
+    "Sécala bien con papel de cocina por las dos caras, sobre todo la piel. Esto no es un detalle: el pescado húmedo se cuece al vapor en vez de dorarse, y se pega a la cesta.",
+    "Berenjena y calabacín en medias lunas de 1,5 cm, sin pelar. El tomate en cuatro gajos gruesos.",
+    "Aliña la verdura EN UN BOL, nunca en la cesta: 5 ml de aceite, el tomillo y la pimienta, y remueve con las manos hasta que brille todo. Regar el aceite por encima de la cesta deja unos trozos empapados y otros secos.",
+    "Unta los lomos con los 3 ml de aceite que quedan y reparte el ajo en láminas finas por encima.",
+    {min:0, t:"La berenjena sola — 190 °C, 6 minutos",
+     d:"Va primero porque es la que más tarda: es densa y necesita ese adelanto para quedar cremosa por dentro en vez de correosa. Esta freidora no necesita precalentar."},
+    {min:6, t:"Añade el calabacín y sacude — 190 °C, 6 minutos",
+     d:"Sacude la cesta agarrándola por el asa, sin cuchara: así lo de abajo sube y se dora por igual. El calabacín entra después porque lleva más agua y se desharía."},
+    {min:12, t:"Aparta la verdura a los lados, baja a 180 °C y mete lubina y tomate — 8 minutos",
+     d:"Los lomos con LA PIEL ABAJO en el centro, sin que se toquen entre ellos. El tomate en los bordes: suelta mucha agua y pegado al pescado lo cocería al vapor. Bajas a 180 porque 190 reseca la lubina."},
+    {min:20, t:"Fuera, todo a la vez",
+     d:"No le des la vuelta al pescado en ningún momento. Esta freidora calienta por arriba y por abajo a la vez, así que se hace por los dos lados solo; darle la vuelta parte el lomo."},
+    "Ya en el plato: ralla un poco de piel de limón, exprime un chorrito y espolvorea el perejil picado."
+  ],
+  trucos:[
+    "Cómo saber que está: la carne pasa de transparente a blanca opaca y se abre en lascas al apretar con el tenedor. Si dudas, sácala — sigue haciéndose un minuto fuera del calor, y de lubina pasada no se vuelve.",
+    "El limón, al final y en el plato. Echado antes, el ácido «cuece» la superficie del pescado y lo reseca.",
+    "Todo en una sola capa. La freidora cocina moviendo aire caliente: si amontonas, lo de abajo se cuece al vapor. En tu cesta de 27×27 cm hay sitio de sobra para esta cantidad.",
+    "Sin sal, tampoco en la verdura. Aquí el sabor lo ponen el ajo, el tomillo, la pimienta y el limón del final. Además la sal sacaría el agua de la berenjena y el calabacín y los dejaría blandos.",
+    "No hace falta desamargar la berenjena: las variedades de ahora no amargan, y el truco clásico era precisamente con sal.",
+    "Si los lomos son de distinto grosor, mete el gordo en el minuto 12 y el fino en el 14."
+  ],
+  nota:"Tiempos medidos para la Moulinex Easy Fry XL Surface: cesta de 27×27 cm y resistencia arriba y abajo. En una freidora de cesta honda y estrecha no cabe en una capa: haz la verdura primero, tápala con papel de aluminio y luego el pescado."
 },
 {
   id:"calamar_plancha", n:"Calamar fresco a la plancha con ajo y perejil",
