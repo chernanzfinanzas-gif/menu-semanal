@@ -444,7 +444,7 @@
      lubina vale perfectamente para comer. El reparto por tomas es una sugerencia,
      no una regla. */
   function abrirSelector(fecha, toma) {
-    var todas = Almacen.estado.recetas.slice()
+    var todas = Almacen.visibles()
       .sort(function (a, b) { return a.n.localeCompare(b.n); });
     /* En un día de ruta lo que manda no es la toma, es si cabe en la mochila. */
     var ruta = Almacen.fichaTipoDia(fecha).soloLlevables;
@@ -987,6 +987,7 @@
   function pintarRecetas() {
     var f = UI.filtros;
     var lista = Almacen.estado.recetas.filter(function (r) {
+      if (r.oculta) return false;                       // retirada: no se ofrece
       if (f.toma && (r.tipo || []).indexOf(f.toma) < 0) return false;
       if (f.grupo && r.grupo !== f.grupo) return false;
       if (f.tool === "__preferidas") {

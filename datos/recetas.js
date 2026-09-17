@@ -896,7 +896,7 @@ window.DATOS_RECETAS = [
 /* ========================== HUEVOS ========================== */
 {
   id:"tortilla_espinacas", n:"Tortilla francesa con espinacas al ajo",
-  rev:2,
+  oculta:true, rev:9,
   cesta:["tomate"],
   tipo:["cena"], grupo:"huevos", raciones:1, min:14, tools:["airfryer","sarten"],
   ing:[{i:"huevo",c:2},{i:"espinacas",c:120},{i:"requeson",c:80},{i:"ajo",c:1},{i:"aove",c:10},{i:"tomate",c:1},{i:"oregano",c:0.5},{i:"pimienta",c:0.5}],
@@ -1188,7 +1188,7 @@ window.DATOS_RECETAS = [
 },
 {
   id:"ensalada_espinacas_mango", n:"Ensalada de espinacas tiernas con mango y queso fresco",
-  rev:2,
+  oculta:true, rev:9,
   tipo:["cena"], grupo:"ensalada", raciones:1, min:8, tools:["sin-cocinar"],
   ing:[{i:"espinacas",c:100},{i:"mango",c:0.5},{i:"queso_burgos_sinsal",c:110},{i:"nueces",c:10},{i:"huevo",c:1},{i:"aove",c:8},{i:"vinagre",c:10}],
   pasos:[
@@ -1692,5 +1692,251 @@ window.DATOS_RECETAS = [
     "Unas gotas de limón en la crema la levantan mucho, y no suman sal."
   ],
   nota:"La merienda de picar. Se dejan los bastones cortados el domingo y duran media semana."
+},
+
+/* ==================== GUARNICIONES (bloque 2) ====================
+   Había 4 guarniciones para 43 platos principales, y dos de ellas eran patata. Con
+   estas cuatro son 8, y entran verduras que no estaban: berenjena sola, zanahoria y
+   espinacas. Ninguna pasa de 0,41 g de sal.
+
+   Todas se hacen mientras el principal está en marcha: son el relleno del hueco
+   muerto de la freidora o del microondas. */
+{
+  id:"snack_chips_calabacin", n:"Chips de calabacín en freidora",
+  rev:1,
+  tipo:["almuerzo","merienda","guarnicion"], grupo:"verdura", raciones:1, min:16, tools:["airfryer"],
+  ing:[{i:"calabacin",c:0.8},{i:"aove",c:8},{i:"oregano",c:1},{i:"ajo_polvo",c:1}],
+  pasos:[
+    "El calabacín en rodajas de 3 mm, con piel. Con mandolina si la tienes; a cuchillo, lo importante es que sean IGUALES: las gruesas se quedan blandas y las finas se queman en la misma tanda.",
+    "Extiéndelas sobre papel de cocina y déjalas 10 minutos con el papel encima apretando. El calabacín es un 95% agua y ésta es la única forma de que salgan crujientes en vez de correosas.",
+    "En un bol con el aceite, el orégano y el ajo en polvo, hasta que brillen todas.",
+    {min:0, t:"A la freidora — 180 °C, 12 minutos, EN UNA CAPA",
+     d:"En una capa y sin amontonar, aunque tengas que hacer dos tandas. Amontonadas se cuecen en su propio vapor y salen blandas: es exactamente el error que arruina esta receta."},
+    {min:7, t:"Sacude la cesta y míralas",
+     d:"A partir de aquí van rápido. Según el grosor pueden estar en 10 minutos o pedir 14: el borde tiene que estar dorado y algo arrugado."},
+    {min:12, t:"Fuera y ESPERAR 3 minutos sobre una rejilla",
+     d:"Crujen al enfriarse, no dentro de la freidora. Recién sacadas parecen blandas y están bien."}
+  ],
+  trucos:[
+    "112 kcal por 200 g de calabacín, con 0,04 g de sal. Es lo más barato en calorías que puedes picar, y encima cruje.",
+    "SECAR EL CALABACÍN 10 MINUTOS. Es el paso que decide si salen chips o rodajas mustias, y es el que todo el mundo se salta por prisa.",
+    "RODAJAS IGUALES Y EN UNA CAPA. Los dos únicos errores posibles.",
+    "No se conservan: a las dos horas están blandas otra vez. Esto se hace y se come.",
+    "Nada de sal por encima. El ajo en polvo y el orégano hacen el trabajo, y el calabacín dorado ya tiene dulzor propio.",
+    "Con pimentón de la Vera en vez de orégano cambian por completo y siguen sin sumar sal."
+  ],
+  nota:"Vale de merienda para picar y de guarnición. Se hacen mientras el principal está en la sartén."
+},
+{
+  id:"guar_berenjena_tomillo", n:"Berenjena asada al tomillo en freidora",
+  rev:1,
+  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:20, tools:["airfryer"],
+  ing:[{i:"berenjena",c:0.8},{i:"aove",c:10},{i:"tomillo",c:1},{i:"ajo",c:1}],
+  pasos:[
+    "La berenjena en dados de 2,5 cm, con piel. La piel es la que los mantiene enteros; pelada se deshace y acabas con puré.",
+    "NO la sales para que sude, que es lo que dice la receta clásica. Las berenjenas de ahora no amargan, y aquí además la sal es justo lo que no queremos. Si acaso, 10 minutos en agua fría y escurrir bien.",
+    "En un bol con el aceite y el tomillo, removiendo hasta que no quede ningún dado seco. La berenjena es una esponja: absorbe el primer aceite que toca y deja el resto de los dados a palo seco, así que hay que insistir.",
+    {min:0, t:"A la freidora — 190 °C, 16 minutos",
+     d:"190 y no menos. La berenjena tiene que perder agua rápido para dorarse; a temperatura baja se cuece, se queda gris y sabe a nada."},
+    {min:9, t:"Sacude la cesta y echa el ajo laminado",
+     d:"El ajo en el último tercio. Desde el principio se quema y amarga toda la bandeja."},
+    {min:16, t:"Fuera, y el tomillo fresco por encima si lo tienes",
+     d:"El seco va en el aliñado, al principio; el fresco, en crudo al final. Son dos cosas distintas."}
+  ],
+  trucos:[
+    "0,02 g DE SAL EN TODA LA GUARNICIÓN. Es la segunda receta más limpia del recetario, detrás de la manzana asada.",
+    "150 kcal, de las que 90 son del aceite. Bajando a 6 ml se queda en 114 y sigue saliendo bien, solo un poco menos untuosa.",
+    "NO SALAR PARA QUE SUDE. Ese paso viene de cuando las berenjenas amargaban de verdad, hace cincuenta años. Hoy solo añade sal.",
+    "DADOS DE 2,5 cm, no más pequeños. Encogen mucho: en dados de 1 cm te quedan tacos secos.",
+    "Insiste al aliñar hasta que brillen todos. Si ves dados mates en el bol, ésos van a salir correosos.",
+    "Aguanta 3 días en la nevera y está buena fría, en ensalada o sobre pan sin sal."
+  ],
+  nota:"La guarnición que faltaba: berenjena sola, sin mezclar con nada."
+},
+{
+  id:"guar_zanahoria_miel", n:"Zanahorias glaseadas con miel y comino",
+  rev:1,
+  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:22, tools:["airfryer"],
+  ing:[{i:"zanahoria",c:2.5},{i:"miel",c:8},{i:"comino",c:1},{i:"aove",c:6}],
+  pasos:[
+    "Las zanahorias en bastones de un centímetro, o por la mitad a lo largo si son finas. Todas del mismo grosor: es una raíz dura y la irregularidad se nota mucho más que en una verdura de agua.",
+    "En un bol con el aceite y el comino. La miel TODAVÍA NO.",
+    {min:0, t:"A la freidora — 190 °C, 14 minutos",
+     d:"Primero se asan a secas. La zanahoria necesita este rato para ablandarse por dentro y concentrar su azúcar; con la miel desde el principio se quemaría el glaseado mucho antes de que estuviera hecha."},
+    {min:14, t:"Sácalas, mézclalas con la miel en el bol y devuélvelas",
+     d:"La miel caliente sobre zanahoria caliente se reparte sola. En frío se queda en pegotes."},
+    {min:15, t:"Otros 4 minutos a 190 °C",
+     d:"Solo cuatro. Es lo que tarda la miel en caramelizar y lo que tardaría en quemarse: a partir del quinto minuto amarga."},
+    {min:19, t:"Fuera, y un poco más de comino en crudo",
+     d:"El comino tostado de los primeros 14 minutos ya ha dado su sabor de fondo; el de encima aporta el aroma."}
+  ],
+  trucos:[
+    "OJO, ÉSTA ES LA MÁS SALADA DE LAS CUATRO: 0,34 g. Y no es por nada que se le añada — la zanahoria trae 0,17 g de sal por 100 g de suyo, más que ninguna otra verdura del catálogo. Con 200 g ya son 0,34. Aun así cabe de sobra en tu día.",
+    "164 kcal, con 27 g de hidratos: es la guarnición más dulce que tienes y la que mejor acompaña a una carne.",
+    "LA MIEL AL FINAL, EN LOS ÚLTIMOS 4 MINUTOS. Es el único error posible aquí y acaba en glaseado quemado con la zanahoria cruda dentro.",
+    "8 g de miel son 24 kcal. Se puede bajar a 5 y el glaseado sigue funcionando.",
+    "El comino y la zanahoria es una pareja clásica del norte de África, y funciona porque el comino es terroso y tapa muy bien la falta de sal en una verdura dulce.",
+    "Si las zanahorias son de las gordas de invierno, quítales el corazón leñoso del centro: es fibra dura que no se ablanda con nada."
+  ],
+  nota:"La guarnición dulce. Va especialmente bien con el lomo, el solomillo y el pollo."
+},
+{
+  id:"guar_pure_patata_zanahoria", n:"Puré de patata y zanahoria sin mantequilla",
+  rev:1,
+  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:18, tools:["lekue-vapor","microondas"],
+  ing:[{i:"patata",c:1.1},{i:"zanahoria",c:1},{i:"leche",c:50},{i:"aove",c:6},{i:"pimienta",c:0.3}],
+  pasos:[
+    "Patata y zanahoria peladas y en dados de 2 cm, todos del mismo tamaño. La zanahoria es más dura, así que córtala algo más pequeña que la patata para que terminen a la vez.",
+    {min:0, t:"Al estuche de vapor — microondas a máxima potencia, 10 minutos",
+     d:"Al vapor y no hervidas en agua. Hervidas absorben agua y el puré sale aguado, y encima se van al agua las vitaminas. En el estuche el vapor las cuece sin mojarlas."},
+    {min:10, t:"Pincha la patata: tiene que ceder sin resistencia",
+     d:"Según el tamaño del dado pueden pedir 2 o 3 minutos más. Poco hechas no se van a aplastar y el puré quedará con grumos duros."},
+    {min:12, t:"Templa la leche 30 segundos en el microondas mientras",
+     d:"La leche TEMPLADA, no fría. La patata caliente con leche fría se vuelve gomosa: el almidón se retrae de golpe. Es el mismo motivo por el que el puré del día siguiente está pastoso."},
+    {min:13, t:"Aplasta con tenedor o pasapurés y añade la leche y el aceite",
+     d:"Tenedor o pasapurés, NUNCA batidora. La batidora rompe los gránulos de almidón y el puré se convierte en una cola elástica. Es irreversible."},
+    "Pimienta negra recién molida y a la mesa. Sin sal: la zanahoria aporta su dulzor y ya trae 0,17 g de sal por 100 g de suyo."
+  ],
+  trucos:[
+    "SIN MANTEQUILLA Y CON ACEITE, y el ahorro es real: un puré normal lleva 20-30 g de mantequilla, que son 150-220 kcal y 0,2 g de sal. Aquí van 6 ml de aceite, 54 kcal y cero sal.",
+    "263 kcal con 0,23 g de sal. Es la guarnición más contundente de las cuatro: para un día de entreno fuerte o para acompañar a un pescado ligero.",
+    "NUNCA BATIDORA. Es el error clásico y no tiene arreglo: el puré se vuelve chicle.",
+    "LA LECHE TEMPLADA. La segunda regla del puré, y la que explica por qué el recalentado está pastoso.",
+    "La zanahoria no está solo por color: aporta dulzor natural, que es lo que compensa la falta de sal. Con patata sola sabe mucho más soso.",
+    "Con leche desnatada baja a 258 kcal, casi nada. Con caldo de verduras en vez de leche, cuidado: el de brik lleva entre 0,6 y 1 g de sal por 100 ml y te dispara el plato."
+  ],
+  nota:"El puré de acompañar, hecho en el Lékué mientras el principal está en la freidora."
+},
+
+/* ============ CARNE ROJA Y ENSALADAS (bloque 3) ============
+   Los dos huecos que quedaban: había 2 recetas de carne roja (entrecot y hamburguesa,
+   las dos a la sartén) y 2 de ensalada (las dos con mango).
+
+   Las dos de carne van a la FREIDORA a propósito: repetir un filete a la sartén sería
+   repetir la técnica que ya tienes en el entrecot. La albóndiga y el dado de brocheta
+   son piezas pequeñas, y ahí la convección de la freidora dora por todas las caras a
+   la vez, que es justo lo que una sartén no puede hacer. */
+{
+  id:"albondigas_tomate", n:"Albóndigas de ternera con tomate casero en freidora",
+  rev:1,
+  tipo:["comida","cena"], grupo:"carne-roja", raciones:1, min:32, tools:["airfryer","sarten"],
+  ing:[{i:"ternera_picada",c:150},{i:"huevo",c:0.35},{i:"copos_avena",c:15},{i:"tomate",c:1.2},
+       {i:"cebolla_dulce",c:0.4},{i:"aove",c:8},{i:"ajo",c:2},{i:"oregano",c:1}],
+  pasos:[
+    "MASA: la carne picada con 15 g de copos de avena molidos (un golpe de picadora o machacados), un tercio de huevo batido, un diente de ajo muy picado y el orégano. Amasa lo justo para integrar, 30 segundos.",
+    "AVENA EN VEZ DE PAN RALLADO, y no es un capricho: el pan rallado de bote lleva entre 1 y 1,5 g de sal por 100 g. 15 g serían 0,2 g de sal de golpe, casi lo que pesa toda esta receta.",
+    "Deja reposar la masa 10 minutos en la nevera. La avena absorbe la humedad de la carne y las albóndigas dejan de agrietarse al cocinarse.",
+    "Bolas de unos 30 g, como una nuez grande. Rueda entre las palmas húmedas sin apretar: apretadas quedan compactas como una pelota.",
+    {min:0, t:"Albóndigas a la freidora — 190 °C, 12 minutos",
+     d:"Aquí gana la freidora a la sartén sin discusión: en la sartén hay que ir girándolas y siempre queda una cara pálida y una plana. En la freidora el aire las dora por los seis lados a la vez y no se deforman."},
+    {min:0, t:"Mientras: sofríe la cebolla en la sartén con 5 ml de aceite, fuego medio — 8 minutos",
+     d:"Fuego medio y sin prisa. La cebolla tiene que quedar transparente y dulce; si la quemas, el tomate sale amargo y no hay forma de arreglarlo."},
+    {min:8, t:"Añade el tomate rallado y el segundo ajo — 12 minutos a fuego medio-bajo",
+     d:"Rallado, no troceado: así suelta la pulpa y se hace salsa sin tener que triturar. Doce minutos es lo que tarda en perder el agua y concentrarse; antes de eso sabe a tomate crudo."},
+    {min:6, t:"Sacude la cesta de las albóndigas a los 6 minutos",
+     d:"Una vez basta. Si se han pegado entre ellas, sepáralas ahora."},
+    {min:12, t:"Las albóndigas al tomate y 5 minutos juntos a fuego bajo",
+     d:"Este paso final es el que hace el plato: la albóndica suelta su jugo al tomate y el tomate le entra a la albóndiga. Sin él son dos cosas en el mismo plato."},
+    "Perejil o más orégano por encima y a la mesa."
+  ],
+  trucos:[
+    "500 kcal y 37 g DE PROTEÍNA con 0,32 g de sal. Es el plato con más proteína del recetario después del entrecot, y tiene 213 kcal menos que él.",
+    "AVENA, NO PAN RALLADO. Es el cambio que hace que este plato quepa en tu día: el pan rallado habría sumado 0,2 g de sal.",
+    "NADA DE TOMATE FRITO DE BOTE. Es lo que arruinaría la receta: el de brik lleva entre 0,8 y 1,2 g de sal por 100 g, así que 180 g serían 1,8 g de sal. Tomate rallado y doce minutos de sartén.",
+    "REPOSAR LA MASA 10 MINUTOS. Es lo que evita que se agrieten, y es gratis.",
+    "Bolas de 30 g y sin apretar. Apretadas salen gomosas; es el error más común.",
+    "Salen para dos raciones si doblas la carne, y congelan de maravilla ya cocinadas con su salsa. Es de lo mejor que puedes tener en el congelador para un día sin tiempo.",
+    "Si te sabe sosa la salsa, un chorrito de vinagre al final, no sal. La acidez levanta el tomate igual que la sal y no suma sodio."
+  ],
+  nota:"La carne roja que faltaba, y la que mejor congela de todo el recetario."
+},
+{
+  id:"brochetas_ternera", n:"Brochetas de ternera con cebolla y tomate en freidora",
+  rev:1,
+  tipo:["comida","cena"], grupo:"carne-roja", raciones:1, min:18, tools:["airfryer"],
+  ing:[{i:"ternera_entrecot",c:150},{i:"cebolla_dulce",c:0.6},{i:"tomate",c:0.8},
+       {i:"aove",c:8},{i:"pimenton",c:1},{i:"ajo_polvo",c:1}],
+  pasos:[
+    "La ternera en dados de 3 cm. Grandes: en dados pequeños el centro se pasa antes de que la superficie se dore, y acaban secos.",
+    "La cebolla en cuartos deshojados y el tomate en gajos gruesos, del mismo tamaño que la carne. Todo parecido es lo que permite que se hagan a la vez.",
+    "Adoba la carne con la mitad del aceite, el pimentón y el ajo en polvo. 15 minutos de reposo si tienes tiempo, aunque sea a temperatura ambiente: además de sabor, la carne atemperada se hace más uniforme.",
+    "Monta las brochetas alternando carne, cebolla y tomate. Si los palos son de madera, mójalos 10 minutos antes.",
+    {min:0, t:"A la freidora — 200 °C, 8 minutos",
+     d:"200 °C, de lo más alto que vas a usar. Para un dado de carne roja se busca costra por fuera y rosa por dentro, y eso solo pasa si el calor es agresivo desde el primer segundo. A 180 la carne se cuece antes de dorarse."},
+    {min:4, t:"Dales la vuelta a los 4 minutos",
+     d:"Media vuelta, no más. Cada vez que abres la freidora pierde temperatura y es justo lo que no interesa aquí."},
+    {min:8, t:"Fuera y REPOSAR 4 minutos antes de comer",
+     d:"El reposo es obligatorio en carne roja: el jugo está empujado hacia el centro por el calor, y necesita esos minutos para repartirse. Si la cortas o la muerdes ya, el jugo se queda en el plato."},
+    "El resto del aceite en crudo por encima al servir."
+  ],
+  trucos:[
+    "466 kcal y 32 g de proteína con 0,25 g de sal. Es 247 kcal más ligero que el entrecot con patatas y aporta casi la misma proteína.",
+    "200 °C Y DADOS DE 3 cm. Son las dos claves, y van juntas: calor alto para la costra, dado grande para que el centro no se pase mientras tanto.",
+    "El PIMENTÓN DE LA VERA es lo que sustituye aquí a la sal. Es ahumado y salado de sabor sin llevar sodio (0,10 g por 100 g, y usas 1 g). Es la especia más rentable de tu despensa.",
+    "8 minutos es al punto. Si lo quieres más hecho, 10; por encima de 12 se seca y ya no hay vuelta atrás.",
+    "REPOSAR 4 MINUTOS. Es el paso que separa una brocheta jugosa de una seca, y no cuesta nada.",
+    "Con solomillo de cerdo en vez de ternera sale igual de bien y son 100 kcal menos. Mismos tiempos.",
+    "Ni se te ocurra la salsa barbacoa de bote: entre 2 y 3 g de sal por 100 g. El pimentón y el ajo ya hacen ese papel."
+  ],
+  nota:"La segunda de carne roja, y la única que llega a 200 °C en la freidora."
+},
+{
+  id:"ensalada_lentejas_templada", n:"Ensalada templada de lentejas con tomate y huevo",
+  rev:1,
+  tipo:["comida","cena"], grupo:"legumbre", raciones:1, min:35, tools:["cazuela"],
+  ing:[{i:"lentejas",c:70},{i:"tomate",c:1},{i:"cebolla_dulce",c:0.3},{i:"huevo",c:1},
+       {i:"aove",c:10},{i:"vinagre",c:5},{i:"comino",c:1},{i:"perejil",c:3}],
+  pasos:[
+    "Las lentejas pardinas NO necesitan remojo, al contrario que el garbanzo. Enjuágalas y al cazo con agua fría que las cubra tres dedos.",
+    {min:0, t:"Al fuego hasta que rompa a hervir, luego medio-bajo — 22 minutos",
+     d:"Fuego bajo en cuanto hierva. A borbotones se despellejan y se deshacen, y aquí interesa justo lo contrario: que queden enteras y con un punto de mordida, porque van a ir en ensalada y no en plato de cuchara."},
+    {min:12, t:"El huevo al mismo cazo, con las lentejas — 10 minutos",
+     d:"Dos cosas en un fuego. El huevo necesita 10 minutos y a las lentejas les quedan 10: entran juntos y salen juntos. Es el truco que hace que esta receta no sea un lío."},
+    {min:22, t:"Escurre las lentejas y pásalas por agua fría 10 segundos",
+     d:"Solo diez segundos: corta la cocción para que no se sigan haciendo con su propio calor, pero se quedan templadas, que es como mejor absorben la vinagreta. Frías del todo no cogen sabor."},
+    {min:23, t:"El huevo a agua con hielo, 5 minutos, y pelar",
+     d:"El choque de frío despega la membrana y sale entero."},
+    "VINAGRETA: el aceite, el vinagre y el comino batidos en un vaso hasta que espese.",
+    "Mezcla las lentejas templadas con el tomate en dados, la cebolla muy picada y la vinagreta. El huevo en cuartos por encima y el perejil picado.",
+    "Deja reposar 10 minutos antes de comer. La lenteja templada va absorbiendo la vinagreta en ese rato y es cuando el plato se junta."
+  ],
+  trucos:[
+    "LEGUMBRE SIN SER PLATO DE CUCHARA, que era el hueco. Tenías tres recetas de legumbre y dos eran de cuchara; ésta se come con tenedor y templada o fría.",
+    "457 kcal, 26 g de proteína y 53 g de hidratos, con 0,23 g de sal. Es el plato más completo del recetario por lo que cuesta.",
+    "LENTEJAS SECAS, NUNCA DE BOTE. Las cocidas de tarro llevan entre 0,5 y 1 g de sal por 100 g: los 180 g escurridos que salen de aquí serían más de 1 g de sal. Cocerlas cuesta 22 minutos de fuego y ya está.",
+    "FUEGO BAJO EN CUANTO HIERVA. A borbotones se deshacen, y una lenteja deshecha no vale para ensalada.",
+    "EL HUEVO ENTRA CON LAS LENTEJAS a los 12 minutos. Un fuego, dos cosas, y terminan a la vez.",
+    "Templadas y no frías: la lenteja tibia absorbe la vinagreta y la fría la resbala. Si la haces de víspera, sácala de la nevera media hora antes.",
+    "Haz el triple de lentejas y congela lo que sobre ya cocido y escurrido: descongelan en cinco minutos y te quitan los 22 minutos de fuego la próxima vez."
+  ],
+  nota:"La única receta de cazuela junto con las lentejas estofadas y los huevos cocidos. Merece la excepción."
+},
+{
+  id:"ensalada_pollo_manzana", n:"Ensalada de brotes con pollo, manzana y nueces",
+  rev:1,
+  tipo:["comida","cena"], grupo:"ensalada", raciones:1, min:20, tools:["airfryer"],
+  ing:[{i:"brotes_verdes",c:60},{i:"pollo_pechuga",c:110},{i:"manzana_reineta",c:0.5},
+       {i:"nueces",c:12},{i:"aove",c:10},{i:"vinagre",c:5},{i:"mostaza_bajasal",c:2}],
+  pasos:[
+    "La pechuga entera, untada con 3 ml del aceite. Entera y no en tiras: en tiras se seca en la freidora antes de dorarse.",
+    {min:0, t:"Pollo a la freidora — 180 °C, 14 minutos, vuelta a los 8",
+     d:"180 °C para una pieza de 110 g. Lo que se busca es llegar a 74 °C en el centro sin pasarse: el pollo seco es el problema de nueve de cada diez ensaladas de pollo."},
+    {min:14, t:"Fuera y REPOSAR 8 minutos antes de cortar",
+     d:"Ocho minutos, y aquí importa el doble que en una carne caliente: si lo cortas recién hecho pierde el jugo en la tabla y encima la ensalada se recalienta y los brotes se mustian."},
+    "Mientras reposa: la manzana en bastones finos, con piel, y rociada con unas gotas del vinagre para que no se oxide.",
+    "VINAGRETA: el aceite restante, el vinagre y la mostaza baja en sal, batidos hasta que espese y deje de verse el aceite suelto.",
+    "El pollo templado en tiras al hilo. Monta: brotes, manzana, pollo, nueces picadas gruesas y la vinagreta por encima justo al servir.",
+    "La vinagreta AL FINAL y no antes. Los brotes aliñados se vienen abajo en cinco minutos."
+  ],
+  trucos:[
+    "351 kcal y 29 g DE PROTEÍNA con 0,22 g de sal. Es la cena más ligera con proteína de verdad que tienes: 200 kcal menos que las otras cenas de carne.",
+    "LA MOSTAZA, CON ETIQUETA EN LA MANO. La corriente lleva 5-6 g de sal por 100 g; la de tu despensa es baja en sal (1 g/100 g) y aun así 2 g aportan 0,02. Si solo encuentras la normal, quítala y pon media cucharadita de miel: emulsiona parecido.",
+    "MANZANA CON PIEL, y reineta o golden ácida. Es lo que da el contraste con el pollo; una manzana muy dulce lo aplana todo.",
+    "POLLO TEMPLADO, NO CALIENTE. Caliente mustia los brotes en un minuto. Por eso los 8 minutos de reposo son parte de la receta y no un lujo.",
+    "Corta el pollo AL HILO, perpendicular a las fibras: se nota muchísimo en la ternura.",
+    "Si sobra pollo asado de otro día, esta ensalada se monta en cinco minutos y es de las mejores formas de aprovecharlo.",
+    "12 g de nueces son 78 kcal, casi una cuarta parte del plato. No las subas a ojo."
+  ],
+  nota:"La ensalada que no lleva mango, que eran las dos que había. Cena completa en veinte minutos."
 }
 ];

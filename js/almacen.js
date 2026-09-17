@@ -794,7 +794,16 @@
     /* Recetas que se pueden meter en una mochila: se comen frías, no se
        derraman y aguantan horas sin nevera. */
     llevables: function () {
-      return this.estado.recetas.filter(function (r) { return r.llevable; });
+      return this.estado.recetas.filter(function (r) { return r.llevable && !r.oculta; });
+    },
+
+    /* `oculta: true` retira una receta sin borrarla. Hace falta porque la app no borra
+       recetas: lo que está guardado en el móvil se queda. Cuando una deja de interesar
+       (las de espinacas, 17-sep-2026), se marca oculta y se le sube el `rev`; entonces
+       desaparece del buscador, del selector y de todo lo automático, pero si estaba en
+       un menú pasado sigue viéndose, que es lo correcto: eso ya te lo comiste. */
+    visibles: function () {
+      return this.estado.recetas.filter(function (r) { return !r.oculta; });
     },
 
     /* La receta más calórica de una toma. En un día de ruta el desayuno se hace en
@@ -837,7 +846,7 @@
 
         if (ficha.mochila.indexOf(t.k) >= 0) {
           if (!pool.length) return;
-          var aptas = pool.filter(function (r) { return (r.tipo || []).indexOf(t.k) >= 0; });
+          var aptas = pool.filter(function (r) { return !r.oculta && (r.tipo || []).indexOf(t.k) >= 0; });
           if (!aptas.length) aptas = pool;
           /* reparto estable: el mismo día siempre propone lo mismo */
           var semilla = 0, s = fecha + t.k;
@@ -978,7 +987,7 @@
         var busco = Math.max(80, Math.min(cuota, restante));
 
         var candidatas = (pool && ficha.mochila.indexOf(t.k) >= 0 ? pool : self.estado.recetas)
-          .filter(function (r) { return (r.tipo || []).indexOf(t.k) >= 0; });
+          .filter(function (r) { return !r.oculta && (r.tipo || []).indexOf(t.k) >= 0; });
         if (!candidatas.length && pool && ficha.mochila.indexOf(t.k) >= 0) candidatas = pool;
         if (!candidatas.length) return;
 
@@ -998,9 +1007,42 @@
         puestos++;
       });
 
-      /* Segunda vuelta: si aún falta un buen pico, se refuerzan el almuerzo y la
-         merienda con un segundo bocado, que es donde cabe sin desmontar el día. */
+      /* SEGUNDA VUELTA: la guarnición.
+         Una guarnición no es un plato suelto, es lo que acompaña al principal. Por eso
+         `tipo:["guarnicion"]` no coincide con ninguna de las cinco tomas y, hasta la
+         v25, el completador NO PODÍA ELEGIR NINGUNA: había ocho guarniciones en el
+         recetario que el botón no usaba jamás. Se añaden aquí, a la comida y a la cena,
+         cuando el día se queda corto — que es justo lo que hace una guarnición. */
       var falta = objetivo - this.nutrDia(fecha).k;
+      if (falta > 120) {
+        ["comida", "cena"].forEach(function (toma) {
+          if (self.esFuera(fecha, toma)) return;
+          if (ficha.mochila.indexOf(toma) >= 0) return;     // en la mochila no hay guarnición
+          if (!(d[toma] || []).length) return;              // sin plato no hay a qué acompañar
+          falta = objetivo - self.nutrDia(fecha).k;
+          if (falta < 100) return;
+          var guar = self.estado.recetas.filter(function (r) {
+            return !r.oculta && (r.tipo || []).indexOf("guarnicion") >= 0 &&
+                   (d[toma] || []).indexOf(r.id) < 0;
+          });
+          if (!guar.length) return;
+          var salHoy2 = self.salDia(fecha);
+          var eleg = null, mejor = Infinity;
+          guar.forEach(function (r) {
+            var nota = Math.abs(self.nutrReceta(r).k - falta) + (yaEnLaSemana[r.id] || 0) * 300 +
+                       self.penalizaSal(fecha, salHoy2, self.salReceta(r));
+            if (nota < mejor) { mejor = nota; eleg = r; }
+          });
+          if (!eleg) return;
+          d[toma].push(eleg.id);
+          yaEnLaSemana[eleg.id] = (yaEnLaSemana[eleg.id] || 0) + 1;
+          puestos++;
+        });
+      }
+
+      /* Y si todavía falta, se refuerzan el almuerzo y la merienda con un segundo
+         bocado, que es donde cabe sin desmontar el día. */
+      falta = objetivo - this.nutrDia(fecha).k;
       if (falta > 250) {
         ["merienda", "almuerzo"].forEach(function (toma) {
           if (self.esFuera(fecha, toma)) return;
@@ -1008,7 +1050,7 @@
           if (falta < 180) return;
           var base = (pool && ficha.mochila.indexOf(toma) >= 0) ? pool : self.estado.recetas;
           var aptas = base.filter(function (r) {
-            return (r.tipo || []).indexOf(toma) >= 0 && (d[toma] || []).indexOf(r.id) < 0;
+            return !r.oculta && (r.tipo || []).indexOf(toma) >= 0 && (d[toma] || []).indexOf(r.id) < 0;
           });
           if (!aptas.length) return;
           var salHoy = self.salDia(fecha);
