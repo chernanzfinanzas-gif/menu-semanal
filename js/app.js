@@ -88,8 +88,9 @@
       var nutr = Almacen.nutrDia(fecha);
       var nutrCom = Almacen.nutrDia(fecha, true);
       var hayComido = Almacen.hayComidoAlgo(fecha);
-      var colorK = Almacen.semaforoKcal(nutr.k);
-      var objetivo = Almacen.estado.config.objetivoKcal || 0;
+      var kcalAct = Math.round(Almacen.kcalActividad(fecha));
+      var objetivo = Almacen.objetivoDelDia(fecha);
+      var colorK = Almacen.semaforoKcal(nutr.k, objetivo);
 
       html += '<div class="dia' + (fecha === hoy ? " hoy" : "") + '">';
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
@@ -106,6 +107,7 @@
                     '<span><b>P</b> ' + Math.round(nutr.p) + ' g</span>' +
                     '<span><b>G</b> ' + Math.round(nutr.g) + ' g</span>' +
                     '<span><b>H</b> ' + Math.round(nutr.h) + ' g</span>' +
+                    (kcalAct ? '<span class="quemado">+' + kcalAct + ' por actividad</span>' : '') +
                     (hayComido
                       ? '<span class="comido-hasta">Llevas ' + Util.kcal(nutrCom.k) + '</span>'
                       : (objetivo ? '<span class="comido-hasta">Objetivo ' + Util.kcal(objetivo) + '</span>' : '')) +
@@ -138,6 +140,26 @@
         }
         html += '</div>';
       });
+
+      /* actividad del día */
+      var actos = Almacen.estado.actividad[fecha] || [];
+      html += '<div class="toma actividad-dia">';
+      html += '<div class="titulo-toma"><span>Actividad</span>' +
+              '<button class="anadir" data-actividad="' + fecha + '">+</button></div>';
+      if (!actos.length) {
+        html += '<div class="nota-peque">—</div>';
+      } else {
+        actos.forEach(function (x, idx) {
+          var kc = Math.round(Almacen.kcalDeEntrada(x));
+          html += '<div class="plato">' +
+                    '<span class="nom">' + esc(Almacen.nombreDeEntrada(x)) +
+                      (x.fuente === "garmin" ? ' <span class="etiqueta">reloj</span>' : '') + '</span>' +
+                    '<span class="sal">' + x.min + ' min · ' + kc + ' kcal</span>' +
+                    '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>' +
+                  '</div>';
+        });
+      }
+      html += '</div>';
       html += '</div>';
     }
     cont.innerHTML = html;
@@ -176,6 +198,226 @@
       Almacen.guardar("plato");
       cerrarModal();
       pintarMenu();
+    });
+  }
+
+  /* selector de actividad */
+  function abrirSelectorActividad(fecha) {
+    var peso = Almacen.estado.perfil.peso;
+    var html = '<header><h2>Actividad del día</h2><button class="cerrar" data-cerrar>×</button></header>';
+    if (!peso) {
+      html += '<div class="aviso">Para estimar lo que quemas necesito tu peso. Rellénalo en ' +
+              '<b>Ajustes → Tu perfil</b>.</div>';
+    }
+    html += '<div class="lista-selec" id="lista-actividad">';
+    Almacen.estado.actividades.forEach(function (a) {
+      var kc = peso ? Math.round(a.met * 3.5 * peso / 200 * a.min) : 0;
+      html += '<button data-act="' + esc(a.id) + '" data-min="' + a.min + '">' + esc(a.n) +
+              '<small>' + a.min + ' min' + (kc ? ' · unas ' + kc + ' kcal' : '') + '</small></button>';
+    });
+    html += '</div>';
+    html += '<label class="campo" style="margin-top:12px"><span>Minutos (ajústalo antes de elegir)</span>' +
+            '<input type="number" id="act-min" min="5" max="300" step="5" placeholder="los de cada actividad"></label>';
+    abrirModal(html);
+
+    $("#lista-actividad").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-act]");
+      if (!b) return;
+      var min = parseInt($("#act-min").value, 10) || parseInt(b.getAttribute("data-min"), 10);
+      Almacen.anadirActividad(fecha, b.getAttribute("data-act"), min);
+      cerrarModal();
+      pintarMenu();
+    });
+  }
+
+  /* ==================== IMPORTAR DE GARMIN ==================== */
+  /* Acepta los ficheros que Garmin Connect deja exportar de cada actividad:
+     .tcx (trae calorías medidas), .gpx (sin calorías) y el .csv del historial. */
+
+  var DEPORTES = {
+    "running": "Carrera", "run": "Carrera", "walking": "Caminar", "walk": "Caminar",
+    "hiking": "Senderismo", "biking": "Bici", "cycling": "Bici", "indoor_cycling": "Bici indoor",
+    "virtual_ride": "Bici indoor", "strength_training": "Musculación", "training": "Entrenamiento",
+    "fitness_equipment": "Máquinas", "cardio": "Cardio", "swimming": "Natación",
+    "elliptical": "Elíptica", "rowing": "Remo", "yoga": "Yoga", "other": "Actividad"
+  };
+
+  function nombreDeporte(s) {
+    if (!s) return "Actividad";
+    var k = String(s).toLowerCase().replace(/\s+/g, "_");
+    if (DEPORTES[k]) return DEPORTES[k];
+    return String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase();
+  }
+
+  /* id de actividad de nuestro catálogo que más se parece, para cuando no haya calorías */
+  function actividadParecida(nombre) {
+    var n = (nombre || "").toLowerCase();
+    if (n.indexOf("bici") >= 0 || n.indexOf("cicl") >= 0 || n.indexOf("cycl") >= 0) return "bici_moderada";
+    if (n.indexOf("camin") >= 0 || n.indexOf("walk") >= 0 || n.indexOf("sender") >= 0) return "caminar_ligero";
+    if (n.indexOf("fuerza") >= 0 || n.indexOf("muscul") >= 0 || n.indexOf("strength") >= 0) return "musculacion";
+    if (n.indexOf("nata") >= 0 || n.indexOf("swim") >= 0) return "natacion";
+    return "otra";
+  }
+
+  function leerTCX(texto, nombreFichero) {
+    var doc = new DOMParser().parseFromString(texto, "application/xml");
+    if (doc.querySelector("parsererror")) return [];
+    var salida = [];
+    var actividades = doc.getElementsByTagName("Activity");
+    for (var i = 0; i < actividades.length; i++) {
+      var act = actividades[i];
+      var idEl = act.getElementsByTagName("Id")[0];
+      var fechaISO = idEl ? (idEl.textContent || "").slice(0, 10) : "";
+      var seg = 0, kcal = 0;
+      var laps = act.getElementsByTagName("Lap");
+      for (var j = 0; j < laps.length; j++) {
+        var t = laps[j].getElementsByTagName("TotalTimeSeconds")[0];
+        var c = laps[j].getElementsByTagName("Calories")[0];
+        if (t) seg += parseFloat(t.textContent) || 0;
+        if (c) kcal += parseFloat(c.textContent) || 0;
+      }
+      if (!fechaISO) continue;
+      salida.push({
+        fecha: fechaISO,
+        n: nombreDeporte(act.getAttribute("Sport")),
+        min: Math.round(seg / 60),
+        kcal: Math.round(kcal),
+        ref: nombreFichero + "|" + fechaISO + "|" + Math.round(seg)
+      });
+    }
+    return salida;
+  }
+
+  /* CSV del historial de Garmin Connect (cabeceras en español o inglés) */
+  function leerCSV(texto, nombreFichero) {
+    var lineas = texto.split(/\r?\n/).filter(function (l) { return l.trim(); });
+    if (lineas.length < 2) return [];
+    var parte = function (l) {
+      var out = [], cur = "", dentro = false;
+      for (var i = 0; i < l.length; i++) {
+        var ch = l[i];
+        if (ch === '"') { dentro = !dentro; continue; }
+        if (ch === "," && !dentro) { out.push(cur); cur = ""; continue; }
+        cur += ch;
+      }
+      out.push(cur);
+      return out.map(function (x) { return x.trim(); });
+    };
+    var cab = parte(lineas[0]).map(function (c) { return c.toLowerCase(); });
+    var busca = function (nombres) {
+      for (var i = 0; i < cab.length; i++)
+        for (var j = 0; j < nombres.length; j++)
+          if (cab[i].indexOf(nombres[j]) >= 0) return i;
+      return -1;
+    };
+    var iFecha = busca(["fecha", "date"]);
+    var iTipo = busca(["tipo de actividad", "activity type", "tipo"]);
+    var iTiempo = busca(["tiempo", "time", "duración", "duration"]);
+    var iKcal = busca(["calorías", "calorias", "calories"]);
+    if (iFecha < 0) return [];
+
+    var salida = [];
+    for (var k = 1; k < lineas.length; k++) {
+      var f = parte(lineas[k]);
+      var crudo = f[iFecha] || "";
+      var fecha = "";
+      var m = crudo.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) fecha = m[0];
+      else {
+        m = crudo.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);   // dd/mm/aaaa
+        if (m) fecha = m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+      }
+      if (!fecha) continue;
+
+      var min = 0;
+      var t = (f[iTiempo] || "").replace(",", ".");
+      var hms = t.match(/(\d+):(\d+):(\d+)/);
+      if (hms) min = Math.round(+hms[1] * 60 + +hms[2] + (+hms[3]) / 60);
+      else { var ms = t.match(/^(\d+):(\d+)$/); if (ms) min = Math.round(+ms[1] + (+ms[2]) / 60); }
+
+      var kcal = parseFloat((f[iKcal] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+      salida.push({
+        fecha: fecha, n: nombreDeporte(f[iTipo]), min: min, kcal: Math.round(kcal),
+        ref: nombreFichero + "|" + fecha + "|" + min + "|" + Math.round(kcal)
+      });
+    }
+    return salida;
+  }
+
+  function importarGarmin(ficheros) {
+    var pendientes = ficheros.length, encontradas = [], fallos = [];
+    if (!pendientes) return;
+
+    Array.prototype.forEach.call(ficheros, function (f) {
+      var lector = new FileReader();
+      lector.onload = function () {
+        var texto = String(lector.result);
+        var bajo = f.name.toLowerCase();
+        var res = [];
+        try {
+          if (bajo.endsWith(".tcx") || texto.indexOf("<TrainingCenterDatabase") >= 0) res = leerTCX(texto, f.name);
+          else if (bajo.endsWith(".csv")) res = leerCSV(texto, f.name);
+          else if (bajo.endsWith(".gpx")) fallos.push(f.name + ": los GPX no traen calorías, exporta el TCX");
+          else if (bajo.endsWith(".fit")) fallos.push(f.name + ": el formato FIT no se puede leer aquí, exporta el TCX");
+          else fallos.push(f.name + ": no reconozco este formato");
+        } catch (e) { fallos.push(f.name + ": no he podido leerlo"); }
+        if (res.length) encontradas = encontradas.concat(res);
+        else if (bajo.endsWith(".tcx") || bajo.endsWith(".csv")) fallos.push(f.name + ": no he encontrado actividades dentro");
+        if (--pendientes === 0) revisarImportacion(encontradas, fallos);
+      };
+      lector.onerror = function () {
+        fallos.push(f.name + ": no he podido abrirlo");
+        if (--pendientes === 0) revisarImportacion(encontradas, fallos);
+      };
+      lector.readAsText(f);
+    });
+  }
+
+  var importPendiente = [];
+
+  function revisarImportacion(lista, fallos) {
+    lista.sort(function (a, b) { return a.fecha < b.fecha ? -1 : 1; });
+    importPendiente = lista;
+
+    var html = '<header><h2>Actividades de Garmin</h2><button class="cerrar" data-cerrar>×</button></header>';
+    if (fallos.length) {
+      html += '<div class="aviso" style="background:var(--ambar-fondo); border-color:#eedcb8">' +
+              fallos.map(esc).join("<br>") + '</div>';
+    }
+    if (!lista.length) {
+      html += '<div class="vacio">No he sacado ninguna actividad de esos ficheros.</div>';
+      abrirModal(html);
+      return;
+    }
+    html += '<p class="nota-peque">Marca las que quieras añadir. Las calorías son las que midió tu reloj.</p>';
+    html += '<ul class="ingredientes" id="lista-import">';
+    lista.forEach(function (x, i) {
+      var repetida = Almacen.yaImportada(x.fecha, x.ref);
+      html += '<li><label style="display:flex; gap:8px; align-items:center; width:100%; cursor:pointer">' +
+              '<input type="checkbox" data-imp="' + i + '"' + (repetida ? "" : " checked") + '>' +
+              '<span style="flex:1">' + esc(x.n) + '<br><span class="nota-peque">' +
+              Util.etiquetaFecha(x.fecha) + ' · ' + x.min + ' min' +
+              (x.kcal ? ' · <b>' + x.kcal + ' kcal</b>' : ' · sin calorías: se estimarán') +
+              (repetida ? ' · <b>ya estaba importada</b>' : '') +
+              '</span></span></label></li>';
+    });
+    html += '</ul>';
+    html += '<div class="fila"><button class="btn principal" id="imp-anadir">Añadir las marcadas</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    $("#imp-anadir").addEventListener("click", function () {
+      var n = 0;
+      $$("#lista-import [data-imp]").forEach(function (chk) {
+        if (!chk.checked) return;
+        var x = importPendiente[+chk.getAttribute("data-imp")];
+        Almacen.anadirActividad(x.fecha, actividadParecida(x.n), x.min,
+          { kcal: x.kcal, n: x.n, fuente: "garmin", ref: x.ref });
+        n++;
+      });
+      cerrarModal();
+      pintarMenu();
+      Util.toast(n === 1 ? "1 actividad añadida" : n + " actividades añadidas");
     });
   }
 
@@ -524,7 +766,79 @@
   }
 
   /* ==================== VISTA: AJUSTES ==================== */
+  function pintarPerfil() {
+    var p = Almacen.estado.perfil;
+    $("#pf-sexo").value = p.sexo || "h";
+    $("#pf-edad").value = p.edad || "";
+    $("#pf-altura").value = p.altura || "";
+    $("#pf-peso").value = p.peso || "";
+    $("#pf-objetivo").value = p.pesoObjetivo || "";
+    $("#pf-base").value = String(p.actividadBase || 1.2);
+    $("#pf-ritmo").value = String(p.ritmo != null ? p.ritmo : 0.5);
+
+    var s = Almacen.objetivoSugerido();
+    var caja = $("#pf-resultado");
+    if (!s) {
+      caja.innerHTML = "Rellena edad, altura y peso y te digo tu gasto y tu objetivo.";
+    } else {
+      caja.innerHTML =
+        "<b>Metabolismo basal:</b> " + Util.kcal(s.tmb) + " · <b>gasto diario estimado:</b> " + Util.kcal(s.gasto) +
+        "<br><b>Objetivo propuesto:</b> " + Util.kcal(s.kcal) +
+        (s.deficit ? " (déficit de " + s.deficit + " kcal al día)" : " (mantenimiento)") +
+        " y <b>" + s.prot + " g de proteína</b>." +
+        (s.semanas ? "<br>A ese ritmo, unas <b>" + s.semanas + " semanas</b> para llegar a tu peso objetivo." : "") +
+        (s.limitado ? "<br><b>Ojo:</b> ese ritmo bajaría de un mínimo razonable, así que el objetivo se ha " +
+                      "quedado en el suelo. Baja el ritmo o súbelo con más actividad." : "") +
+        "<br><span class='nota-peque'>Los días que registres ejercicio, el objetivo de ese día sube en lo que hayas quemado.</span>";
+    }
+
+    /* histórico de peso */
+    var lista = Almacen.estado.pesos.slice().reverse();
+    var cont = $("#peso-historico");
+    if (!lista.length) {
+      cont.innerHTML = '<div class="vacio">Sin pesajes anotados todavía.</div>';
+    } else {
+      var primero = Almacen.estado.pesos[0], ultimo = Almacen.estado.pesos[Almacen.estado.pesos.length - 1];
+      var dif = ultimo.kg - primero.kg;
+      var html = '<div class="nota-peque" style="margin-bottom:8px">' + lista.length + ' pesaje(s) · ' +
+                 (dif === 0 ? "sin cambio" : (dif < 0 ? "<b>" + dif.toFixed(1).replace(".", ",") + " kg</b> desde el primero"
+                                                      : "+" + dif.toFixed(1).replace(".", ",") + " kg desde el primero")) + '</div>';
+      html += grafiquilla(Almacen.estado.pesos);
+      html += '<ul class="ingredientes">';
+      lista.slice(0, 10).forEach(function (x) {
+        html += '<li><span>' + Util.etiquetaFecha(x.f) + '</span><span>' +
+                String(x.kg).replace(".", ",") + ' kg ' +
+                '<button class="quitar" data-quitapeso="' + x.f + '">×</button></span></li>';
+      });
+      html += '</ul>';
+      cont.innerHTML = html;
+    }
+    $("#peso-fecha").value = Util.hoyISO();
+  }
+
+  /* gráfico sencillo de la evolución del peso */
+  function grafiquilla(pesos) {
+    if (pesos.length < 2) return "";
+    var W = 320, H = 70, m = 6;
+    var kgs = pesos.map(function (x) { return x.kg; });
+    var min = Math.min.apply(null, kgs), max = Math.max.apply(null, kgs);
+    if (max - min < 1) { max = min + 1; }
+    var pts = pesos.map(function (x, i) {
+      var px = m + i * (W - 2 * m) / (pesos.length - 1);
+      var py = H - m - (x.kg - min) / (max - min) * (H - 2 * m);
+      return px.toFixed(1) + "," + py.toFixed(1);
+    }).join(" ");
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="grafico-peso" preserveAspectRatio="none">' +
+           '<polyline points="' + pts + '" fill="none" stroke="#2f6b47" stroke-width="2" ' +
+           'stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+           '<div class="nota-peque" style="display:flex; justify-content:space-between">' +
+           '<span>' + Util.etiquetaFecha(pesos[0].f) + '</span>' +
+           '<span>' + min.toFixed(1).replace(".", ",") + ' – ' + max.toFixed(1).replace(".", ",") + ' kg</span>' +
+           '<span>' + Util.etiquetaFecha(pesos[pesos.length - 1].f) + '</span></div>';
+  }
+
   function pintarAjustes() {
+    pintarPerfil();
     var c = Almacen.estado.config;
     $("#cfg-personas").value = c.personas;
     $("#cfg-aviso").value = c.avisoSal;
@@ -563,6 +877,12 @@
     $("#semana-anterior").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, -7); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
     $("#semana-siguiente").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, 7); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
     $("#ir-hoy").addEventListener("click", function () { UI.lunes = Util.lunesDe(Util.hoyISO()); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
+
+    $("#importar-garmin").addEventListener("click", function () { $("#fichero-garmin").click(); });
+    $("#fichero-garmin").addEventListener("change", function (e) {
+      if (e.target.files && e.target.files.length) importarGarmin(e.target.files);
+      e.target.value = "";
+    });
 
     $("#selector-dias").addEventListener("click", function (e) {
       var b = e.target.closest("[data-dia]");
@@ -605,6 +925,15 @@
     $("#rejilla-dias").addEventListener("click", function (e) {
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
+      var act = e.target.closest("[data-actividad]");
+      if (act) { abrirSelectorActividad(act.getAttribute("data-actividad")); return; }
+      var qact = e.target.closest("[data-quitaract]");
+      if (qact) {
+        var q2 = qact.getAttribute("data-quitaract").split("|");
+        Almacen.quitarActividad(q2[0], +q2[1]);
+        pintarMenu();
+        return;
+      }
       var com = e.target.closest("[data-comido]");
       if (com) {
         var c = com.getAttribute("data-comido").split("|");
@@ -718,6 +1047,60 @@
       var id = d.getAttribute("data-despensa");
       if (d.checked) Almacen.estado.despensa[id] = true; else delete Almacen.estado.despensa[id];
       Almacen.guardar("despensa"); pintarDespensa();
+    });
+
+    /* --- perfil --- */
+    function leerPerfil() {
+      var p = Almacen.estado.perfil;
+      var num = function (sel) { var v = parseFloat($(sel).value.replace(",", ".")); return isNaN(v) ? null : v; };
+      p.sexo = $("#pf-sexo").value;
+      p.edad = num("#pf-edad");
+      p.altura = num("#pf-altura");
+      p.peso = num("#pf-peso");
+      p.pesoObjetivo = num("#pf-objetivo");
+      p.actividadBase = parseFloat($("#pf-base").value) || 1.2;
+      p.ritmo = parseFloat($("#pf-ritmo").value) || 0;
+    }
+    ["#pf-sexo", "#pf-edad", "#pf-altura", "#pf-peso", "#pf-objetivo", "#pf-base", "#pf-ritmo"].forEach(function (sel) {
+      $(sel).addEventListener("change", function () { leerPerfil(); pintarPerfil(); });
+    });
+    $("#pf-guardar").addEventListener("click", function () {
+      leerPerfil();
+      var p = Almacen.estado.perfil;
+      if (p.peso && !Almacen.estado.pesos.length) Almacen.anotarPeso(Util.hoyISO(), p.peso);
+      Almacen.guardar("perfil");
+      pintarPerfil();
+      Util.toast("Perfil guardado");
+    });
+    $("#pf-aplicar").addEventListener("click", function () {
+      leerPerfil();
+      var s = Almacen.objetivoSugerido();
+      if (!s) { Util.toast("Faltan datos del perfil"); return; }
+      Almacen.estado.config.objetivoKcal = s.kcal;
+      Almacen.estado.config.objetivoProt = s.prot;
+      Almacen.guardar("perfil");
+      pintarAjustes(); pintarMenu();
+      Util.toast("Objetivo: " + Util.kcal(s.kcal) + " y " + s.prot + " g de proteína");
+    });
+
+    $("#peso-anotar").addEventListener("click", function () {
+      var f = $("#peso-fecha").value || Util.hoyISO();
+      var kg = parseFloat($("#peso-kg").value.replace(",", "."));
+      if (isNaN(kg) || kg < 30) { Util.toast("Escribe los kilos"); return; }
+      Almacen.anotarPeso(f, kg);
+      $("#peso-kg").value = "";
+      pintarPerfil();
+      Util.toast("Peso anotado");
+    });
+    $("#peso-historico").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-quitapeso]");
+      if (!b) return;
+      var f = b.getAttribute("data-quitapeso");
+      Almacen.estado.pesos = Almacen.estado.pesos.filter(function (x) { return x.f !== f; });
+      if (Almacen.estado.pesos.length)
+        Almacen.estado.perfil.peso = Almacen.estado.pesos[Almacen.estado.pesos.length - 1].kg;
+      Almacen.guardar("peso");
+      pintarPerfil();
     });
 
     /* --- ajustes --- */

@@ -3,7 +3,7 @@ var CACHE = "menu-semanal-v3";
 var FICHEROS = [
   "./", "./index.html", "./css/estilos.css?v=3",
   "./js/util.js?v=3", "./js/almacen.js?v=3", "./js/github.js?v=3", "./js/app.js?v=3",
-  "./datos/ingredientes.js?v=3", "./datos/recetas.js?v=3", "./datos/plantillas.js?v=3",
+  "./datos/ingredientes.js?v=3", "./datos/recetas.js?v=3", "./datos/plantillas.js?v=3", "./datos/actividades.js?v=3",
   "./manifest.webmanifest", "./iconos/icono.svg"
 ];
 

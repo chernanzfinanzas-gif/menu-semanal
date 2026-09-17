@@ -57,6 +57,8 @@
       <button class="btn principal mini" data-plantilla="B">Aplicar Semana B</button>
       <button class="btn mini" id="vaciar-semana">Vaciar semana</button>
       <button class="btn mini" id="guardar-como-plantilla">Guardar como plantilla</button>
+      <button class="btn mini" id="importar-garmin">Importar de Garmin</button>
+      <input type="file" id="fichero-garmin" accept=".tcx,.csv,.gpx,.fit,text/xml,text/csv" multiple style="display:none">
     </div>
     <div class="aviso" id="resumen-semana" style="display:none"></div>
     <div class="selector-dias" id="selector-dias"></div>
@@ -142,6 +144,58 @@
   <!-- ===================== AJUSTES ===================== -->
   <section class="vista" id="vista-ajustes">
     <div class="tarjeta">
+      <h2>Tu perfil</h2>
+      <p class="nota-peque">Con estos datos se estima tu gasto diario y se propone el objetivo de calorías
+        y de proteína. Es una estimación de fórmula, no una medición: ajústala a lo que veas en la báscula
+        al cabo de unas semanas.</p>
+      <div class="fila">
+        <label class="campo" style="flex:1 1 90px"><span>Sexo</span>
+          <select id="pf-sexo"><option value="h">Hombre</option><option value="m">Mujer</option></select></label>
+        <label class="campo" style="flex:1 1 80px"><span>Edad</span>
+          <input type="number" id="pf-edad" min="14" max="100" step="1"></label>
+        <label class="campo" style="flex:1 1 90px"><span>Altura (cm)</span>
+          <input type="number" id="pf-altura" min="120" max="220" step="1"></label>
+      </div>
+      <div class="fila">
+        <label class="campo" style="flex:1 1 100px"><span>Peso actual (kg)</span>
+          <input type="number" id="pf-peso" min="35" max="250" step="0.1"></label>
+        <label class="campo" style="flex:1 1 100px"><span>Peso objetivo (kg)</span>
+          <input type="number" id="pf-objetivo" min="35" max="250" step="0.5"></label>
+      </div>
+      <label class="campo"><span>Actividad del día a día, sin contar el ejercicio que registres</span>
+        <select id="pf-base">
+          <option value="1.2">Sedentario: sentado casi todo el día</option>
+          <option value="1.375">Ligero: de pie a ratos, algún paseo</option>
+          <option value="1.55">Moderado: en movimiento buena parte del día</option>
+          <option value="1.725">Alto: trabajo físico</option>
+        </select></label>
+      <label class="campo"><span>Ritmo de pérdida</span>
+        <select id="pf-ritmo">
+          <option value="0">Mantener el peso</option>
+          <option value="0.25">Suave: 0,25 kg por semana</option>
+          <option value="0.5">Moderado: 0,5 kg por semana</option>
+          <option value="0.75">Rápido: 0,75 kg por semana</option>
+        </select></label>
+      <div class="aviso" id="pf-resultado"></div>
+      <div class="fila">
+        <button class="btn principal" id="pf-guardar">Guardar perfil</button>
+        <button class="btn" id="pf-aplicar">Usar el objetivo calculado</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Peso</h2>
+      <div class="fila" style="align-items:flex-end">
+        <label class="campo" style="flex:1 1 110px; margin-bottom:0"><span>Fecha</span>
+          <input type="date" id="peso-fecha"></label>
+        <label class="campo" style="flex:1 1 100px; margin-bottom:0"><span>Kilos</span>
+          <input type="number" id="peso-kg" min="35" max="250" step="0.1"></label>
+        <button class="btn principal" id="peso-anotar">Anotar</button>
+      </div>
+      <div id="peso-historico" style="margin-top:14px"></div>
+    </div>
+
+    <div class="tarjeta">
       <h2>Cocina</h2>
       <label class="campo"><span>Personas para las que se compra</span>
         <input type="number" id="cfg-personas" min="1" max="8" step="1"></label>
@@ -200,6 +254,7 @@
 <script src="datos/ingredientes.js?v=3"></script>
 <script src="datos/recetas.js?v=3"></script>
 <script src="datos/plantillas.js?v=3"></script>
+<script src="datos/actividades.js?v=3"></script>
 <script src="js/util.js?v=3"></script>
 <script src="js/almacen.js?v=3"></script>
 <script src="js/github.js?v=3"></script>

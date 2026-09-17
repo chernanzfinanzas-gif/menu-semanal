@@ -273,3 +273,8 @@ textarea.salida{min-height:180px; font-family:ui-monospace,SFMono-Regular,Menlo,
   .toast{bottom:86px}
   .modal .caja{max-height:84vh; padding-bottom:26px}
 }
+
+/* ---------- actividad y peso ---------- */
+.actividad-dia{background:#fbfcfb}
+.macros .quemado{color:var(--ambar); font-weight:600}
+.grafico-peso{width:100%; height:70px; display:block; margin-bottom:4px}

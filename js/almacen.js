@@ -32,6 +32,15 @@
         ingredientes: JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || [])),
         recetas: JSON.parse(JSON.stringify(global.DATOS_RECETAS || [])),
         plantillas: JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || [])),
+        perfil: {
+          sexo: "h",           // "h" | "m"
+          edad: null, altura: null, peso: null, pesoObjetivo: null,
+          actividadBase: 1.2,  // factor sobre el metabolismo basal, sin contar el ejercicio que registres
+          ritmo: 0.5           // kg por semana que quieres perder (0 = mantener)
+        },
+        pesos: [],             // [{f:"YYYY-MM-DD", kg:95}]  histórico
+        actividades: JSON.parse(JSON.stringify(global.DATOS_ACTIVIDADES || [])),
+        actividad: {},         // { "YYYY-MM-DD": [{a:"bici_suave", min:30}] }
         plan: {},              // { "YYYY-MM-DD": { desayuno:[], almuerzo:[], comida:[], merienda:[], cena:[] } }
         comido: {},            // { "YYYY-MM-DD": { comida:["receta_id", …] } }  lo que se comió de verdad
         despensa: {},          // { ingredienteId: true }  -> ya lo tengo en casa
@@ -50,6 +59,31 @@
       if (!e.plantillas || !e.plantillas.length) e.plantillas = JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || []));
       if (!e.plan) e.plan = {};
       if (!e.comido) e.comido = {};
+      if (!e.perfil) e.perfil = this.estadoInicial().perfil;
+      if (!e.pesos) e.pesos = [];
+      if (!e.actividad) e.actividad = {};
+      if (!e.actividades || !e.actividades.length)
+        e.actividades = JSON.parse(JSON.stringify(global.DATOS_ACTIVIDADES || []));
+
+      /* Los datos guardados mandan sobre los que trae la app, así que cuando se añaden
+         campos nuevos (kcal y macros, 17-sep-2026) hay que completarlos en lo ya guardado.
+         Solo se rellena lo que falte: nunca se pisa un valor que hayas corregido tú. */
+      var semilla = {};
+      (global.DATOS_INGREDIENTES || []).forEach(function (s) { semilla[s.id] = s; });
+      var completados = 0;
+      e.ingredientes.forEach(function (ing) {
+        var ref = semilla[ing.id];
+        ["k", "p", "g", "h"].forEach(function (campo) {
+          if (typeof ing[campo] !== "number") {
+            ing[campo] = ref && typeof ref[campo] === "number" ? ref[campo] : 0;
+            completados++;
+          }
+        });
+      });
+      if (completados) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Nutrición completada en " + completados + " campos.");
+      }
       if (typeof e.config.objetivoKcal !== "number") e.config.objetivoKcal = 2000;
       if (typeof e.config.objetivoProt !== "number") e.config.objetivoProt = 90;
       if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;
@@ -188,12 +222,13 @@
       return !!(d && Object.keys(d).length);
     },
 
-    semaforoKcal: function (kcal) {
+    semaforoKcal: function (kcal, objetivo) {
       var c = this.estado.config;
-      if (!c.objetivoKcal) return "verde";
-      var margen = c.objetivoKcal * (c.margenKcal || 10) / 100;
-      if (kcal > c.objetivoKcal + margen) return "rojo";
-      if (kcal < c.objetivoKcal - margen * 2) return "ambar";   // quedarse muy corto también avisa
+      if (objetivo == null) objetivo = c.objetivoKcal;
+      if (!objetivo) return "verde";
+      var margen = objetivo * (c.margenKcal || 10) / 100;
+      if (kcal > objetivo + margen) return "rojo";
+      if (kcal < objetivo - margen * 2) return "ambar";   // quedarse muy corto también avisa
       return "verde";
     },
 
@@ -216,6 +251,120 @@
       }
       if (!dias) return null;
       return { dias: dias, k: t.k / dias, p: t.p / dias, g: t.g / dias, h: t.h / dias, sal: sal / dias };
+    },
+
+    /* ---------- perfil, gasto y actividad ---------- */
+    actividad: function (id) {
+      var l = this.estado.actividades || [];
+      for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+      return null;
+    },
+
+    /* Metabolismo basal — Mifflin-St Jeor */
+    tmb: function () {
+      var p = this.estado.perfil || {};
+      if (!p.peso || !p.altura || !p.edad) return 0;
+      var base = 10 * p.peso + 6.25 * p.altura - 5 * p.edad;
+      return p.sexo === "m" ? base - 161 : base + 5;
+    },
+
+    /* Gasto diario sin contar el ejercicio que se registre a mano */
+    gastoBase: function () {
+      var p = this.estado.perfil || {};
+      return this.tmb() * (p.actividadBase || 1.2);
+    },
+
+    /* kcal de UNA entrada de actividad: la medida por el reloj si la hay, si no la estimada */
+    kcalDeEntrada: function (x) {
+      if (typeof x.kcal === "number" && x.kcal > 0) return x.kcal;
+      var peso = (this.estado.perfil || {}).peso || 0;
+      var a = this.actividad(x.a);
+      if (!a || !peso) return 0;
+      return a.met * 3.5 * peso / 200 * (x.min || 0);
+    },
+
+    /* kcal que quema la actividad registrada un día */
+    kcalActividad: function (fecha) {
+      var lista = this.estado.actividad[fecha] || [];
+      var self = this, total = 0;
+      lista.forEach(function (x) { total += self.kcalDeEntrada(x); });
+      return total;
+    },
+
+    nombreDeEntrada: function (x) {
+      if (x.n) return x.n;
+      var a = this.actividad(x.a);
+      return a ? a.n : x.a;
+    },
+
+    /* Lo que deberías comer ese día: objetivo + lo que hayas quemado entrenando */
+    objetivoDelDia: function (fecha) {
+      var base = this.estado.config.objetivoKcal || 0;
+      return base + Math.round(this.kcalActividad(fecha));
+    },
+
+    /* Objetivo que sale del perfil: gasto menos el déficit del ritmo elegido
+       (1 kg de grasa ≈ 7.700 kcal) */
+    objetivoSugerido: function () {
+      var g = this.gastoBase();
+      if (!g) return null;
+      var p = this.estado.perfil || {};
+      var deficit = (p.ritmo || 0) * 7700 / 7;
+      var kcal = Math.round((g - deficit) / 10) * 10;
+      var minimo = p.sexo === "m" ? 1200 : 1500;          // suelo de seguridad
+      var limitado = kcal < minimo;
+      if (limitado) kcal = minimo;
+      var refPeso = p.pesoObjetivo || p.peso || 0;
+      return {
+        tmb: Math.round(this.tmb()),
+        gasto: Math.round(g),
+        deficit: Math.round(deficit),
+        kcal: kcal,
+        prot: Math.round(refPeso * 1.6),
+        limitado: limitado,
+        semanas: (p.peso && p.pesoObjetivo && p.ritmo)
+          ? Math.ceil((p.peso - p.pesoObjetivo) / p.ritmo) : null
+      };
+    },
+
+    anotarPeso: function (fecha, kg) {
+      var lista = this.estado.pesos;
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].f === fecha) { lista[i].kg = kg; this.estado.perfil.peso = kg; this.guardar("peso"); return; }
+      }
+      lista.push({ f: fecha, kg: kg });
+      lista.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+      this.estado.perfil.peso = lista[lista.length - 1].kg;
+      this.guardar("peso");
+    },
+
+    anadirActividad: function (fecha, idAct, min, extra) {
+      if (!this.estado.actividad[fecha]) this.estado.actividad[fecha] = [];
+      var e = { a: idAct, min: min };
+      if (extra) {
+        if (extra.kcal) e.kcal = Math.round(extra.kcal);
+        if (extra.n) e.n = extra.n;
+        if (extra.fuente) e.fuente = extra.fuente;
+        if (extra.ref) e.ref = extra.ref;        // identificador para no importar dos veces
+      }
+      this.estado.actividad[fecha].push(e);
+      this.guardar("actividad");
+      return e;
+    },
+
+    /* ¿ya está importada esta actividad? (misma referencia del fichero) */
+    yaImportada: function (fecha, ref) {
+      var l = this.estado.actividad[fecha] || [];
+      for (var i = 0; i < l.length; i++) if (ref && l[i].ref === ref) return true;
+      return false;
+    },
+
+    quitarActividad: function (fecha, idx) {
+      var l = this.estado.actividad[fecha];
+      if (!l) return;
+      l.splice(idx, 1);
+      if (!l.length) delete this.estado.actividad[fecha];
+      this.guardar("actividad");
     },
 
     /* ---------- plan ---------- */
