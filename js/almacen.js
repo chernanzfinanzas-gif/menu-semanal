@@ -31,6 +31,23 @@
           objetivoKcal: 2000,  // kcal/día
           objetivoProt: 90,    // g de proteína/día
           margenKcal: 10,      // % de holgura antes de marcar el día en rojo
+
+          /* Cuánto de lo que quemas entrenando sube al objetivo del día.
+             No es 100% a propósito, y conviene saber por qué:
+             (a) las tablas de MET estiman por encima de lo que mide un reloj,
+             (b) devolver el 100% borra el déficit justo los días que más entrenas.
+             El 70% es el valor que se usa habitualmente. Se cambia en Ajustes. */
+          devolucionEjercicio: 0.70,
+
+          /* Entreno previsto de un día normal. Se pone solo al rellenar la semana
+             y se edita día a día: es una previsión, no un compromiso. Los días de
+             ruta no lo llevan (ya tienen su salida). */
+          entrenoEstandar: [
+            { a: "bici_moderada",  min: 90 },
+            { a: "musculacion",    min: 30 },
+            { a: "caminar_ligero", min: 60 }
+          ],
+
           github: { usuario: "", repo: "", rama: "main", token: "" }
         },
         ingredientes: JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || [])),
@@ -170,6 +187,26 @@
          con gramos de sal, y apretaban 2,5 veces más de lo que Carlos quería. Se
          suben a los que él fijó. Solo si siguen en los valores de fábrica: si los
          ha cambiado a mano, mandan los suyos. */
+      /* Ajustes nuevos de v17. Solo se rellenan si NO existen: si él los ha tocado,
+         mandan los suyos. */
+      var añadidos = [];
+      if (typeof e.config.devolucionEjercicio !== "number") {
+        e.config.devolucionEjercicio = 0.70;
+        añadidos.push("devolución del ejercicio al 70%");
+      }
+      if (!e.config.entrenoEstandar) {
+        e.config.entrenoEstandar = [
+          { a: "bici_moderada",  min: 90 },
+          { a: "musculacion",    min: 30 },
+          { a: "caminar_ligero", min: 60 }
+        ];
+        añadidos.push("entreno estándar");
+      }
+      if (añadidos.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Ajustes nuevos: " + añadidos.join(", "));
+      }
+
       if (e.config.limiteSal === 2.0 && e.config.avisoSal === 1.5) {
         e.config.limiteSal = 4.0;
         e.config.avisoSal = 2.0;
@@ -370,20 +407,34 @@
       return this.tmb() * (p.actividadBase || 1.2);
     },
 
-    /* kcal de UNA entrada de actividad: la medida por el reloj si la hay, si no la estimada */
+    /* kcal de UNA entrada de actividad: la medida por el reloj si la hay, si no la estimada.
+       Se resta 1 MET a propósito, y no es un detalle: el objetivo del día ya incluye lo
+       que gastas estando vivo esas horas. La fórmula bruta (met × 3,5 × kg / 200) cuenta
+       ese metabolismo basal OTRA VEZ. En una sesión de 40 minutos sobran 30 kcal y da
+       igual; en una ruta de seis horas sobran casi 600, y ahí ya no da igual.
+       Lo que devuelve es el gasto NETO: las calorías de más que te ha costado moverte. */
     kcalDeEntrada: function (x) {
       if (typeof x.kcal === "number" && x.kcal > 0) return x.kcal;
       var peso = (this.estado.perfil || {}).peso || 0;
       var a = this.actividad(x.a);
       if (!a || !peso) return 0;
-      return a.met * 3.5 * peso / 200 * (x.min || 0);
+      var met = Math.max(0, a.met - 1);
+      return met * 3.5 * peso / 200 * (x.min || 0);
     },
 
-    /* kcal que quema la actividad registrada un día */
+    /* kcal que quema la actividad registrada un día.
+       La salida PLANIFICADA de un día de ruta (`ref: "ruta"`) es una estimación hecha
+       con tablas de MET, que es lo mejor que se puede hacer por adelantado. En cuanto
+       llega la medida del reloj, esa estimación sobra: si no se descartara, el día
+       contaría la ruta dos veces, la prevista y la real. Manda siempre el reloj. */
     kcalActividad: function (fecha) {
       var lista = this.estado.actividad[fecha] || [];
       var self = this, total = 0;
-      lista.forEach(function (x) { total += self.kcalDeEntrada(x); });
+      var hayReloj = lista.some(function (x) { return x.fuente === "garmin"; });
+      lista.forEach(function (x) {
+        if (hayReloj && x.ref === "ruta") return;
+        total += self.kcalDeEntrada(x);
+      });
       return total;
     },
 
@@ -393,10 +444,64 @@
       return a ? a.n : x.a;
     },
 
-    /* Lo que deberías comer ese día: objetivo + lo que hayas quemado entrenando */
+    /* Lo que deberías comer ese día: el objetivo base más PARTE de lo que quemas
+       entrenando, no todo (ver `devolucionEjercicio` en la config). */
     objetivoDelDia: function (fecha) {
-      var base = this.estado.config.objetivoKcal || 0;
-      return base + Math.round(this.kcalActividad(fecha));
+      var c = this.estado.config;
+      var base = c.objetivoKcal || 0;
+      var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
+      return base + Math.round(this.kcalActividad(fecha) * dev);
+    },
+
+    /* ---------- entreno previsto ---------- */
+    /* El entreno estándar de la config, con su nombre y sus kcal ya calculadas. */
+    fichaEntrenoEstandar: function () {
+      var self = this;
+      var lista = (this.estado.config.entrenoEstandar || []).map(function (x) {
+        var a = self.actividad(x.a);
+        return { a: x.a, n: a ? a.n : x.a, min: x.min,
+                 kcal: Math.round(self.kcalDeEntrada({ a: x.a, min: x.min })) };
+      }).filter(function (x) { return x.n; });
+      var total = 0, min = 0;
+      lista.forEach(function (x) { total += x.kcal; min += x.min; });
+      return { lista: lista, kcal: total, min: min };
+    },
+
+    /* Pone el entreno estándar en un día. Solo si ese día no tiene NADA apuntado:
+       una previsión no pisa nunca lo que ya hayas puesto tú ni lo que traiga el reloj.
+       Los días de ruta se saltan: ya tienen su salida planificada. */
+    aplicarEntrenoEstandar: function (fecha, forzar) {
+      if (this.fichaTipoDia(fecha).ruta) return 0;
+      var lista = this.estado.actividad[fecha] || [];
+      if (lista.length && !forzar) return 0;
+      if (forzar) {
+        /* al forzar se quitan solo las previsiones anteriores, nunca lo medido */
+        for (var i = lista.length - 1; i >= 0; i--) {
+          if (lista[i].ref === "estandar") lista.splice(i, 1);
+        }
+        if (lista.some(function (x) { return x.fuente === "garmin"; })) return 0;
+      }
+      var puestos = 0, self = this;
+      (this.estado.config.entrenoEstandar || []).forEach(function (x) {
+        if (!self.actividad(x.a) || !(x.min > 0)) return;
+        if (!self.estado.actividad[fecha]) self.estado.actividad[fecha] = [];
+        self.estado.actividad[fecha].push({ a: x.a, min: x.min, ref: "estandar" });
+        puestos++;
+      });
+      if (puestos) this.guardar("entreno");
+      return puestos;
+    },
+
+    /* Cambia los minutos de una entrada de actividad ya puesta. */
+    ajustarActividad: function (fecha, idx, min) {
+      var l = this.estado.actividad[fecha];
+      if (!l || !l[idx]) return;
+      if (!(min > 0)) { this.quitarActividad(fecha, idx); return; }
+      l[idx].min = Math.round(min);
+      /* si la entrada traía kcal medidas por el reloj, cambiar los minutos a mano
+         las invalida: se borran y se vuelve a estimar */
+      if (l[idx].fuente !== "garmin") delete l[idx].kcal;
+      this.guardar("actividad");
     },
 
     /* Objetivo que sale del perfil: gasto menos el déficit del ritmo elegido
@@ -475,11 +580,27 @@
        y comer poco sodio es el cuadro de la hiponatremia por ejercicio, y para
        el oído es el mismo vaivén de osmolaridad que la dieta quiere evitar,
        solo que hacia el otro lado. Por eso el semáforo de sal se apaga. */
+    /* `mochila` son las tomas que ese día se comen FUERA DE CASA y por tanto solo
+       admiten recetas `llevable`. En un día de ruta el desayuno y la cena se hacen
+       en casa: sales por la mañana y vuelves para cenar, así que restringirlos a
+       comida de mochila no tenía ningún sentido. Solo van a la mochila el almuerzo,
+       la comida y la merienda, que son las tres tomas que caen en el monte. */
     TIPOS_DIA: {
-      casa:  { n: "En casa",            icono: "🏠", topeSal: true,  soloLlevables: false, comeFuera: [] },
-      ruta:  { n: "Ruta o bici larga",  icono: "🥾", topeSal: false, soloLlevables: true,  comeFuera: [] },
-      fuera: { n: "Come fuera",         icono: "🍽️", topeSal: true,  soloLlevables: false, comeFuera: ["comida"] }
+      casa:  { n: "En casa",            icono: "🏠", topeSal: true,  mochila: [], comeFuera: [], ruta: false },
+      ruta:  { n: "Ruta o bici larga",  icono: "🥾", topeSal: false, ruta: true,
+               mochila: ["almuerzo", "comida", "merienda"], comeFuera: [] },
+      fuera: { n: "Come fuera",         icono: "🍽️", topeSal: true,  mochila: [], comeFuera: ["comida"], ruta: false }
     },
+
+    /* Salidas que se pueden planificar en un día de ruta. El id apunta al catálogo
+       de actividades, y `h` son las horas que se proponen por defecto. */
+    DEPORTES_RUTA: [
+      { id: "senderismo",        h: 4 },
+      { id: "senderismo_fuerte", h: 4 },
+      { id: "bici_carretera",    h: 3 },
+      { id: "bici_btt",          h: 3 },
+      { id: "bici_paseo",        h: 2 }
+    ],
 
     tipoDia: function (fecha) {
       var d = this.estado.plan[fecha];
@@ -508,19 +629,45 @@
       return this.estado.recetas.filter(function (r) { return r.llevable; });
     },
 
+    /* La receta más calórica de una toma. En un día de ruta el desayuno se hace en
+       casa y es la comida que prepara toda la jornada: ahí no interesa el desayuno
+       de diario de 250 kcal, interesa el más fuerte que haya. */
+    masCalorica: function (toma) {
+      var self = this, mejor = null, maxK = -1;
+      this.estado.recetas.forEach(function (r) {
+        if ((r.tipo || []).indexOf(toma) < 0) return;
+        var k = self.nutrReceta(r).k;
+        if (k > maxK) { maxK = k; mejor = r; }
+      });
+      return mejor;
+    },
+
     /* Rellena un día entero con lo que le toca según su tipo. Respeta lo que
-       ya haya puesto: solo completa las tomas vacías. */
+       ya haya puesto: solo completa las tomas vacías.
+       Decide TOMA A TOMA, no el día entero: en un día de ruta el desayuno y la
+       cena salen de la plantilla (se hacen en casa) y solo el almuerzo, la comida
+       y la merienda salen del cajón de la mochila. */
     rellenarDia: function (fecha, plantillaId) {
       var d = this.asegurarDia(fecha);
       var ficha = this.fichaTipoDia(fecha);
       var self = this;
       var puesto = 0;
+      var pool = ficha.mochila.length ? this.llevables() : [];
 
-      if (ficha.soloLlevables) {
-        var pool = this.llevables();
-        if (!pool.length) return 0;
-        Util.TOMAS.forEach(function (t) {
-          if ((d[t.k] || []).length) return;
+      var p = null, plId = plantillaId || "A";
+      this.estado.plantillas.forEach(function (x) { if (x.id === plId) p = x; });
+      var molde = null;
+      if (p) {
+        var idx = Util.diasEntre(Util.lunesDe(fecha), fecha);
+        molde = p.dias[idx] || p.dias[0];
+      }
+
+      Util.TOMAS.forEach(function (t) {
+        if ((d[t.k] || []).length) return;                 // ya hay algo puesto: no se toca
+        if (ficha.comeFuera.indexOf(t.k) >= 0) return;     // esa toma no se planifica
+
+        if (ficha.mochila.indexOf(t.k) >= 0) {
+          if (!pool.length) return;
           var aptas = pool.filter(function (r) { return (r.tipo || []).indexOf(t.k) >= 0; });
           if (!aptas.length) aptas = pool;
           /* reparto estable: el mismo día siempre propone lo mismo */
@@ -528,37 +675,74 @@
           for (var i = 0; i < s.length; i++) semilla = (semilla * 31 + s.charCodeAt(i)) % 100000;
           d[t.k] = [aptas[semilla % aptas.length].id];
           puesto++;
-        });
-        /* El bidón entra SIEMPRE en un día de ruta: es el único sitio del
-           recetario donde reponer sodio es lo correcto, y si no se pone solo
-           se olvida justo el día que hace falta. */
+          return;
+        }
+
+        /* Se come en casa. En día de ruta, el desayuno va a por el más fuerte. */
+        if (ficha.ruta && t.k === "desayuno") {
+          var fuerte = self.masCalorica("desayuno");
+          if (fuerte) { d[t.k] = [fuerte.id]; puesto++; return; }
+        }
+        if (!molde) return;
+        d[t.k] = (molde[t.k] || []).slice();
+        if (d[t.k].length) puesto++;
+      });
+
+      /* El bidón entra SIEMPRE en un día de ruta: es el único sitio del recetario
+         donde reponer sodio es lo correcto, y si no se pone solo se olvida justo
+         el día que hace falta. */
+      if (ficha.ruta) {
         var bid = "mochila_bebida_reposicion";
         if (this.receta(bid)) {
           var yaEsta = Util.TOMAS.some(function (t) { return (d[t.k] || []).indexOf(bid) >= 0; });
           if (!yaEsta) { d.almuerzo.push(bid); puesto++; }
         }
-      } else {
-        var p = null, plId = plantillaId || "A";
-        this.estado.plantillas.forEach(function (x) { if (x.id === plId) p = x; });
-        if (!p) return 0;
-        var idx = Util.diasEntre(Util.lunesDe(fecha), fecha);
-        var molde = p.dias[idx] || p.dias[0];
-        Util.TOMAS.forEach(function (t) {
-          if ((d[t.k] || []).length) return;
-          if (ficha.comeFuera.indexOf(t.k) >= 0) return;   // esa toma no se planifica
-          d[t.k] = (molde[t.k] || []).slice();
-          if (d[t.k].length) puesto++;
-        });
       }
       return puesto;
     },
 
-    /* Rellena la semana entera respetando el tipo de cada día. */
+    /* Planifica la salida de un día de ruta: deporte y horas. Marca el día como de
+       ruta y registra la actividad, que es lo que sube el objetivo de calorías del
+       día por la vía normal (`objetivoDelDia`). Sustituye la anterior si la había,
+       para que cambiar las horas no acumule dos salidas. */
+    planearRuta: function (fecha, idDeporte, horas) {
+      var act = this.actividad(idDeporte);
+      if (!act || !(horas > 0)) return null;
+      var d = this.asegurarDia(fecha);
+      d.tipo = "ruta";
+      d.ruta = { a: idDeporte, h: horas };
+
+      var lista = this.estado.actividad[fecha] || (this.estado.actividad[fecha] = []);
+      for (var i = lista.length - 1; i >= 0; i--) {
+        if (lista[i].ref === "ruta") lista.splice(i, 1);
+      }
+      var min = Math.round(horas * 60);
+      lista.push({ a: idDeporte, min: min, ref: "ruta" });
+      this.guardar("ruta");
+      return { min: min, kcal: Math.round(this.kcalDeEntrada({ a: idDeporte, min: min })) };
+    },
+
+    /* Lo que hay planificado de salida ese día, o null. */
+    fichaRuta: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (!d || !d.ruta) return null;
+      var act = this.actividad(d.ruta.a);
+      if (!act) return null;
+      var min = Math.round(d.ruta.h * 60);
+      return { a: d.ruta.a, n: act.n, h: d.ruta.h, min: min,
+               kcal: Math.round(this.kcalDeEntrada({ a: d.ruta.a, min: min })) };
+    },
+
+    /* Rellena la semana entera respetando el tipo de cada día: comida Y entreno. */
     rellenarSemana: function (lunesISO, plantillaId) {
-      var total = 0;
-      for (var i = 0; i < 7; i++) total += this.rellenarDia(Util.sumarDias(lunesISO, i), plantillaId);
+      var total = 0, entrenos = 0;
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunesISO, i);
+        total += this.rellenarDia(f, plantillaId);
+        entrenos += this.aplicarEntrenoEstandar(f) ? 1 : 0;
+      }
       if (total) this.guardar("rellenar");
-      return total;
+      return { tomas: total, dias: entrenos };
     },
 
     aplicarPlantilla: function (plantillaId, lunesISO) {
@@ -573,14 +757,20 @@
            en la lista de la compra comidas que va a hacer fuera). */
         var tipo = self.tipoDia(fecha);
         var ficha = self.TIPOS_DIA[tipo];
+        var viejo = self.estado.plan[fecha] || {};
         var nuevo = { tipo: tipo };
+        if (viejo.ruta) nuevo.ruta = viejo.ruta;      // la salida planificada no se pierde
         Util.TOMAS.forEach(function (t) {
-          var fuera = ficha.comeFuera.indexOf(t.k) >= 0;
-          nuevo[t.k] = (fuera || ficha.soloLlevables) ? [] : (d[t.k] || []).slice();
+          /* Se dejan vacías las que rellenarDia trata aparte: las de mochila, las
+             que se comen fuera y el desayuno de un día de ruta (que va a por el
+             más fuerte del recetario en vez del de la plantilla). */
+          var salta = ficha.comeFuera.indexOf(t.k) >= 0 || ficha.mochila.indexOf(t.k) >= 0 ||
+                      (ficha.ruta && t.k === "desayuno");
+          nuevo[t.k] = salta ? [] : (d[t.k] || []).slice();
         });
         self.estado.plan[fecha] = nuevo;
-        /* un día de ruta no come de la plantilla: se rellena con la mochila */
-        if (ficha.soloLlevables) self.rellenarDia(fecha, plantillaId);
+        /* las tomas de mochila y el desayuno fuerte de ruta los pone rellenarDia */
+        if (ficha.mochila.length || ficha.ruta) self.rellenarDia(fecha, plantillaId);
       });
       this.guardar("plantilla");
       return true;

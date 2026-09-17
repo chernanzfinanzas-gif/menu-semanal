@@ -1508,5 +1508,69 @@ window.DATOS_RECETAS = [
     "Esta es la única ración de la mochila que no se estropea nunca. Ten una bolsa hecha permanentemente en el cajón para las salidas improvisadas."
   ],
   nota:"El relleno de los huecos de la ruta: se come andando, sin parar y sin ensuciar."
+},
+
+/* ==================== DESAYUNOS DE DÍA DE RUTA ====================
+   Se hacen EN CASA, antes de salir, y son la comida que prepara la jornada. Por eso
+   están en el doble de calorías que un desayuno de diario: el más fuerte que había
+   hasta ahora eran las tortitas, con 394 kcal, y en una mañana de monte eso se va en
+   la primera hora. No llevan la etiqueta `llevable` a propósito: no son de mochila,
+   son de mesa. El relleno automático de un día de ruta coge siempre el desayuno más
+   calórico del recetario, así que estos dos son los que saldrán. */
+{
+  id:"des_ruta_porridge", n:"Porridge grande de día de ruta",
+  rev:1,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:8, tools:["lekue-arroz","microondas"],
+  ing:[{i:"copos_avena",c:90},{i:"leche",c:250},{i:"platano",c:1},{i:"nueces",c:20},{i:"miel",c:15},{i:"canela",c:1}],
+  pasos:[
+    "Los 90 g de avena y los 250 ml de leche en el recipiente de microondas. Son casi el doble de avena que el porridge de diario: eso es lo que se busca.",
+    {min:0, t:"Microondas a máxima potencia — 2 minutos",
+     d:"Dos minutos y parar. La avena con leche sube de golpe justo al final y se desborda; a los dos minutos está a punto de hacerlo."},
+    {min:2, t:"Remueve bien y otros 2 minutos",
+     d:"Al remover bajas la espuma y repartes el calor. En el segundo tramo es cuando el almidón acaba de soltarse y el porridge se pone cremoso."},
+    {min:4, t:"Fuera, la canela y la miel, y REPOSAR 2 minutos",
+     d:"La miel se echa fuera del microondas: calentada pierde el aroma y no gana nada. El reposo es el que espesa de verdad; si te parece líquido al sacarlo, es que vas bien."},
+    "El plátano en rodajas y las nueces picadas por encima, sin mezclar. Encima y no dentro: la nuez dentro se ablanda y se pierde el contraste, que es la mitad de la gracia.",
+    "Si te sale demasiado espeso, un chorro de leche fría al final. Además lo templa y se puede comer ya, que a esa hora hay prisa."
+  ],
+  trucos:[
+    "743 kcal Y 24 g DE PROTEÍNA, que es casi el doble del desayuno de diario. En un día de ruta no es pasarse: con cuatro horas de monte vas a gastar más de 1.500 kcal extra.",
+    "0,27 g de sal, casi toda de la leche. Sube muy poco para lo que da.",
+    "DOS TRAMOS DE DOS MINUTOS, NO UNO DE CUATRO. Del tirón se desborda y te quedas sin medio desayuno y con el microondas para fregar.",
+    "Con leche entera en vez de desnatada son unas 90 kcal más y mejor textura. Para un día de ruta, entera.",
+    "Se puede dejar la avena en remojo con la leche desde la noche anterior: por la mañana cuece en la mitad de tiempo y queda más cremoso.",
+    "Si sales muy temprano y no te entra, hazlo la víspera y cómelo frío: es el mismo plato que los overnight oats.",
+    "Esto NO es de mochila. Lleva lácteo y va en cuenco: se come en casa antes de salir."
+  ],
+  nota:"El desayuno que propone la app sola cuando marcas un día como de ruta."
+},
+{
+  id:"des_ruta_revuelto", n:"Revuelto fuerte de ruta con pan sin sal y plátano",
+  rev:1,
+  tipo:["desayuno"], grupo:"huevos", raciones:1, min:10, tools:["sarten","airfryer"],
+  ing:[{i:"huevo",c:3},{i:"pan_sin_sal",c:2},{i:"platano",c:1},{i:"aove",c:10},{i:"pimienta",c:0.3}],
+  pasos:[
+    "Las dos rebanadas de pan sin sal, directas del congelador.",
+    {min:0, t:"Pan a la freidora — 180 °C, 5 minutos",
+     d:"Mientras se tuesta haces el revuelto: las dos cosas terminan a la vez y el pan llega caliente a la mesa, que con el pan sin sal importa más que con el normal."},
+    {min:1, t:"Bate los 3 huevos con la pimienta, sin pasarte",
+     d:"Batidos justo hasta integrar. Sobrebatir mete aire y el revuelto sale esponjoso y seco en vez de cremoso."},
+    {min:3, t:"Sartén a fuego MEDIO-BAJO con el aceite, y los huevos dentro",
+     d:"Medio-bajo, no fuerte. El huevo cuaja a 65-70 °C: a fuego fuerte la parte de abajo pasa de 100 antes de que la de arriba empiece, y ahí es donde sale gomoso y suelta agua."},
+    {min:4, t:"Remueve despacio desde el borde hacia el centro — 2 o 3 minutos",
+     d:"Del borde al centro y sin prisa. Vas formando cuajos grandes en vez de grumos. Sácalo cuando todavía brille: fuera del fuego sigue cuajando."},
+    {min:7, t:"Fuera al plato, el pan tostado al lado y el plátano entero",
+     d:"El plátano sin cocinar ni nada: aporta 107 kcal y el potasio que vas a perder sudando."}
+  ],
+  trucos:[
+    "646 kcal y 30 g DE PROTEÍNA. Es el desayuno con más proteína del recetario, con diferencia, y en un día de bici larga esos 30 g son lo que te sostiene la musculatura.",
+    "0,62 g de sal, casi toda de los tres huevos (0,35 g por cada 100 g de huevo). En un día normal sería mucho; en un día de ruta, con el tope levantado, no lo es.",
+    "TRES HUEVOS Y NO DOS. Es la diferencia entre 430 y 646 kcal, y la razón de que este desayuno exista.",
+    "FUEGO MEDIO-BAJO. Es el único error que estropea un revuelto, y el más común: con prisa sale gomoso y aguado.",
+    "Sácalo cuando aún brille. El calor residual de la sartén termina el trabajo en el plato.",
+    "Nada de sal ni de queso por encima. Con tres huevos ya hay sabor de sobra; la pimienta recién molida hace el resto.",
+    "La alternativa al porridge para el que no desayuna dulce. Mismo papel, más proteína y 100 kcal menos."
+  ],
+  nota:"El otro desayuno de ruta. Se hace en casa en diez minutos, con el pan en la freidora a la vez."
 }
 ];

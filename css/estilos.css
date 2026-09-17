@@ -120,9 +120,38 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 }
 .pest-tipo.activo{background:var(--verde); border-color:var(--verde); color:#fff}
 .tipo-dia .rellenar-dia{margin-left:auto}
+/* deporte y horas de un día de ruta */
+.plan-ruta{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
+  padding:10px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
+.plan-ruta label{display:flex; flex-direction:column; gap:3px; font-size:.72rem;
+  color:var(--gris); font-weight:650}
+.plan-ruta select, .plan-ruta input{
+  border:1px solid var(--borde); border-radius:9px; padding:6px 8px;
+  font-size:.82rem; font-family:inherit; color:var(--tinta); background:var(--blanco);
+}
+.plan-ruta input[type=number]{width:74px}
+.plan-ruta .quemado-ruta{font-size:.78rem; color:var(--gris); padding-bottom:7px; margin-left:auto}
+.plan-ruta .quemado-ruta b{color:var(--verde)}
+@media (max-width:520px){ .plan-ruta .quemado-ruta{margin-left:0; width:100%; padding-bottom:0} }
+
 .nota-tipo{padding:8px 12px; font-size:.78rem; color:var(--gris);
   border-bottom:1px solid var(--borde); background:#fbfcfb}
 .nota-tipo b{color:var(--tinta)}
+/* minutos editables de una actividad */
+.plato.act .min-act{
+  width:58px; text-align:right; border:1px solid var(--borde); border-radius:7px;
+  padding:3px 5px; font-size:.8rem; font-family:inherit; color:var(--tinta);
+  background:var(--blanco); flex:none;
+}
+.falta-peso{color:var(--ambar)}
+.falta-peso b{color:#8a6110}
+.resumen-act{padding:6px 12px 2px; font-size:.76rem; color:var(--gris)}
+.resumen-act b{color:var(--tinta)}
+.actividad-dia .titulo-toma .btn.mini{padding:2px 9px; font-size:.72rem}
+.plato.no-cuenta{opacity:.5}
+.plato.no-cuenta .sal{text-decoration:line-through}
+.nota-tipo.aviso-objetivo{background:var(--ambar-fondo); color:#8a6110}
+.nota-tipo.aviso-objetivo b{color:#6d4c0c}
 .selector-dias button .marca-tipo{font-size:.7rem; line-height:1}
 @media (max-width:520px){
   .pest-tipo span{display:none}

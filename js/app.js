@@ -10,7 +10,8 @@
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
     busquedaDespensa: "",
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
-    ocultarComprados: false
+    ocultarComprados: false,
+    tRuta: null             // espera antes de repintar al teclear las horas de una ruta
   };
 
   function esMovil() { return window.matchMedia("(max-width:767px)").matches; }
@@ -228,6 +229,8 @@
       var nutrCom = Almacen.nutrDia(fecha, true);
       var hayComido = Almacen.hayComidoAlgo(fecha);
       var kcalAct = Math.round(Almacen.kcalActividad(fecha));
+      var devEj = Almacen.estado.config.devolucionEjercicio;
+      if (typeof devEj !== "number") devEj = 0.70;
       var objetivo = Almacen.objetivoDelDia(fecha);
       var colorK = Almacen.semaforoKcal(nutr.k, objetivo);
 
@@ -252,8 +255,35 @@
       html += '</div>';
 
       if (tipo === "ruta") {
-        html += '<div class="nota-tipo">Día de ruta: solo comida de mochila y <b>sin tope de sal</b>. ' +
-                'Sudando se pierden unos 2,1 g de sal por litro, más de lo que cabe en el tope de un día normal.</div>';
+        /* Qué salida y cuántas horas: es lo que sube el objetivo de calorías del día. */
+        var fr = Almacen.fichaRuta(fecha);
+        html += '<div class="plan-ruta">';
+        html += '<label><span>Salida</span><select data-rutaact="' + fecha + '">' +
+                '<option value="">— elige —</option>';
+        Almacen.DEPORTES_RUTA.forEach(function (x) {
+          var a = Almacen.actividad(x.id);
+          if (!a) return;
+          html += '<option value="' + esc(x.id) + '"' + (fr && fr.a === x.id ? ' selected' : '') + '>' +
+                  esc(a.n) + '</option>';
+        });
+        html += '</select></label>';
+        html += '<label><span>Horas</span><input type="number" min="0.5" max="14" step="0.5" ' +
+                'data-rutahoras="' + fecha + '" value="' + (fr ? fr.h : '') + '" placeholder="4"></label>';
+        html += fr
+          ? '<span class="quemado-ruta">≈ <b>' + fr.kcal + ' kcal</b> de más</span>'
+          : '<span class="quemado-ruta">Sin salida planificada</span>';
+        html += '</div>';
+        html += '<div class="nota-tipo">Desayuno y cena en casa; almuerzo, comida y merienda, de mochila. ' +
+                '<b>Sin tope de sal</b>: sudando se pierden unos 2,1 g de sal por litro, más de lo que cabe ' +
+                'en el tope de un día entero.</div>';
+        /* Una salida larga dispara el objetivo a cifras que nadie se come. Decirlo, en
+           vez de dejar el semáforo en rojo todo el día sin explicar por qué. */
+        if (objetivo > 3200) {
+          html += '<div class="nota-tipo aviso-objetivo">El objetivo se pone en ' + Util.kcal(objetivo) +
+                  ' porque suma lo que vas a quemar. <b>No hace falta comérselo todo.</b> ' +
+                  'En una salida larga lo normal es comer durante la ruta y cerrar el día con ' +
+                  'déficit, que además juega a favor de lo que buscas.</div>';
+        }
       } else if (fichaT.comeFuera.length) {
         html += '<div class="nota-tipo">Comes fuera: la ' + fichaT.comeFuera.join(" y la ") +
                 ' no se planifica ni entra en la lista de la compra.</div>';
@@ -267,7 +297,11 @@
                     '<span><b>P</b> ' + Math.round(nutr.p) + ' g</span>' +
                     '<span><b>G</b> ' + Math.round(nutr.g) + ' g</span>' +
                     '<span><b>H</b> ' + Math.round(nutr.h) + ' g</span>' +
-                    (kcalAct ? '<span class="quemado">+' + kcalAct + ' por actividad</span>' : '') +
+                    /* Lo que SUBE al objetivo, no lo que quemas: si pusiera el bruto
+                       no cuadraría con el objetivo de al lado y parecería un error. */
+                    (kcalAct ? '<span class="quemado" title="Quemas unas ' + kcalAct +
+                               ' kcal; al objetivo sube el ' + Math.round(devEj * 100) + '%">+' +
+                               Math.round(kcalAct * devEj) + ' del entreno</span>' : '') +
                     (hayComido
                       ? '<span class="comido-hasta">Llevas ' + Util.kcal(nutrCom.k) + '</span>'
                       : (objetivo ? '<span class="comido-hasta">Objetivo ' + Util.kcal(objetivo) + '</span>' : '')) +
@@ -302,23 +336,40 @@
         html += '</div>';
       });
 
-      /* actividad del día */
+      /* Entreno del día. Los minutos se editan aquí mismo: la previsión sirve de
+         punto de partida y cada día se ajusta a lo que vaya a hacer de verdad. */
       var actos = Almacen.estado.actividad[fecha] || [];
       html += '<div class="toma actividad-dia">';
-      html += '<div class="titulo-toma"><span>Actividad</span>' +
+      html += '<div class="titulo-toma"><span>Entreno del día</span>' +
+              (tipo !== "ruta"
+                ? '<button class="btn mini" data-estandar="' + fecha + '" ' +
+                  'title="Poner el entreno estándar de Ajustes">Estándar</button>' : '') +
               '<button class="anadir" data-actividad="' + fecha + '">+</button></div>';
       if (!actos.length) {
-        html += '<div class="nota-peque">—</div>';
+        html += '<div class="nota-peque">Sin entreno previsto</div>';
       } else {
+        var hayReloj = actos.some(function (x) { return x.fuente === "garmin"; });
+        var totalAct = 0;
         actos.forEach(function (x, idx) {
           var kc = Math.round(Almacen.kcalDeEntrada(x));
-          html += '<div class="plato">' +
+          /* la ruta prevista deja de contar en cuanto hay medida del reloj */
+          var pisada = hayReloj && x.ref === "ruta";
+          if (!pisada) totalAct += kc;
+          html += '<div class="plato act' + (pisada ? " no-cuenta" : "") + '">' +
                     '<span class="nom">' + esc(Almacen.nombreDeEntrada(x)) +
-                      (x.fuente === "garmin" ? ' <span class="etiqueta">reloj</span>' : '') + '</span>' +
-                    '<span class="sal">' + x.min + ' min · ' + kc + ' kcal</span>' +
+                      (x.fuente === "garmin" ? ' <span class="etiqueta">reloj</span>' : '') +
+                      (x.ref === "estandar" ? ' <span class="etiqueta">previsto</span>' : '') +
+                      (pisada ? ' <span class="etiqueta">ya no cuenta</span>' : '') + '</span>' +
+                    '<input type="number" class="min-act" min="0" max="900" step="5" ' +
+                      'value="' + x.min + '" data-minact="' + fecha + '|' + idx + '" ' +
+                      (x.fuente === "garmin" ? 'title="Medido por el reloj"' : '') + '>' +
+                    '<span class="sal">min · ' + kc + ' kcal</span>' +
                     '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>' +
                   '</div>';
         });
+        var dev = Almacen.estado.config.devolucionEjercicio;
+        html += '<div class="resumen-act">Quemas ≈ <b>' + totalAct + ' kcal</b>; al objetivo sube el ' +
+                Math.round(dev * 100) + '% (<b>' + Math.round(totalAct * dev) + ' kcal</b>)</div>';
       }
       html += '</div>';
       html += '</div>';
@@ -1092,10 +1143,58 @@
     $("#cfg-kcal").value = c.objetivoKcal;
     $("#cfg-prot").value = c.objetivoProt;
     $("#cfg-margen").value = c.margenKcal;
+    $("#cfg-devolucion").value = Math.round((c.devolucionEjercicio != null ? c.devolucionEjercicio : 0.7) * 100);
+    pintarEntrenoEstandar();
     $("#gh-usuario").value = c.github.usuario || "";
     $("#gh-repo").value = c.github.repo || "";
     $("#gh-rama").value = c.github.rama || "main";
     $("#gh-token").value = c.github.token || "";
+  }
+
+  /* El entreno estándar, en Ajustes: una línea por deporte con sus minutos editables. */
+  function pintarEntrenoEstandar() {
+    var caja = $("#lista-entreno");
+    if (!caja) return;
+    var f = Almacen.fichaEntrenoEstandar();
+    if (!f.lista.length) {
+      caja.innerHTML = '<p class="nota-peque">Sin entreno estándar. Añade abajo los deportes de un día normal.</p>';
+    } else {
+      var hayPeso = !!(Almacen.estado.perfil || {}).peso;
+      var html = "";
+      f.lista.forEach(function (x, i) {
+        html += '<div class="plato act">' +
+                  '<span class="nom">' + esc(x.n) + '</span>' +
+                  '<input type="number" class="min-act" min="5" max="600" step="5" value="' + x.min +
+                    '" data-estmin="' + i + '">' +
+                  '<span class="sal">min' + (hayPeso ? ' · ' + x.kcal + ' kcal' : '') + '</span>' +
+                  '<button class="quitar" data-estquitar="' + i + '">×</button>' +
+                '</div>';
+      });
+      caja.innerHTML = html;
+    }
+    var sel = $("#entreno-nuevo");
+    if (sel && !sel.options.length) {
+      var o = "";
+      Almacen.estado.actividades.forEach(function (a) {
+        o += '<option value="' + esc(a.id) + '">' + esc(a.n) + '</option>';
+      });
+      sel.innerHTML = o;
+    }
+    var dev = Almacen.estado.config.devolucionEjercicio;
+    var tot = $("#entreno-total");
+    if (!tot) return;
+    /* Sin peso no hay estimación posible: la fórmula del MET es kcal por kilo. Antes
+       de esto salía «0 kcal» en todas las líneas sin decir por qué. */
+    if (!(Almacen.estado.perfil || {}).peso) {
+      tot.innerHTML = '<span class="falta-peso">Para estimar las calorías hace falta tu <b>peso</b>. ' +
+                      'Rellénalo arriba, en <b>Tu perfil</b>, y estos números aparecen solos.</span>';
+      return;
+    }
+    tot.innerHTML = f.lista.length
+      ? "En total <b>" + Util.horas(f.min / 60) + " al día</b>, unas <b>" + f.kcal +
+        " kcal</b> quemadas. Al objetivo de cada día le suman <b>" + Math.round(f.kcal * dev) +
+        " kcal</b> (el " + Math.round(dev * 100) + "%)."
+      : "";
   }
 
   /* ==================== NAVEGACIÓN ==================== */
@@ -1169,10 +1268,51 @@
     });
 
     $("#rellenar-semana").addEventListener("click", function () {
-      var n = Almacen.rellenarSemana(UI.lunes, "A");
+      var r = Almacen.rellenarSemana(UI.lunes, "A");
       pintarMenu();
-      Util.toast(n ? "Rellenadas " + n + " toma" + (n === 1 ? "" : "s") + " vacía" + (n === 1 ? "" : "s")
-                   : "No había huecos que rellenar");
+      var partes = [];
+      if (r.tomas) partes.push(r.tomas + " toma" + (r.tomas === 1 ? "" : "s"));
+      if (r.dias) partes.push("entreno en " + r.dias + " día" + (r.dias === 1 ? "" : "s"));
+      Util.toast(partes.length ? "Rellenado: " + partes.join(" y ") : "No había huecos que rellenar");
+    });
+
+    /* El deporte y las horas de una ruta son un select y un número: van por «change»,
+       no por «click». Al cambiar cualquiera de los dos se rehace la actividad del día,
+       que es lo que sube el objetivo de calorías. */
+    $("#rejilla-dias").addEventListener("change", function (e) {
+      /* minutos de una actividad ya puesta */
+      var mm = e.target.closest("[data-minact]");
+      if (mm) {
+        var pm = mm.getAttribute("data-minact").split("|");
+        Almacen.ajustarActividad(pm[0], +pm[1], parseFloat(mm.value));
+        clearTimeout(UI.tRuta);
+        UI.tRuta = setTimeout(function () { if (UI.vista === "menu") pintarMenu(); }, 600);
+        return;
+      }
+      var sel = e.target.closest("[data-rutaact]"), num = e.target.closest("[data-rutahoras]");
+      if (!sel && !num) return;
+      var fecha = (sel || num).getAttribute(sel ? "data-rutaact" : "data-rutahoras");
+      var caja = e.target.closest(".plan-ruta");
+      var idDep = (caja.querySelector("[data-rutaact]") || {}).value || "";
+      var horas = parseFloat((caja.querySelector("[data-rutahoras]") || {}).value);
+      if (!idDep) return;                       // sin deporte no hay nada que calcular
+      if (!(horas > 0)) {                       // deporte elegido y horas en blanco: propón las suyas
+        var porDefecto = null;
+        Almacen.DEPORTES_RUTA.forEach(function (x) { if (x.id === idDep) porDefecto = x.h; });
+        horas = porDefecto || 3;
+      }
+      var r = Almacen.planearRuta(fecha, idDep, horas);
+      if (!r) return;
+      /* Repintar la rejilla entera mientras el número tiene el foco rompe el DOM bajo
+         los pies del navegador (falla el innerHTML). Se actualiza lo que cambia y se
+         deja el repintado para cuando suelte el campo. */
+      var eti = caja.querySelector(".quemado-ruta");
+      if (eti) eti.innerHTML = "≈ <b>" + r.kcal + " kcal</b> de más";
+      var hh = caja.querySelector("[data-rutahoras]");
+      if (hh && !hh.value) hh.value = horas;
+      clearTimeout(UI.tRuta);
+      UI.tRuta = setTimeout(function () { if (UI.vista === "menu") pintarMenu(); }, 700);
+      Util.toast("Salida de " + Util.horas(horas) + ": unas " + r.kcal + " kcal de más");
     });
 
     $("#rejilla-dias").addEventListener("click", function (e) {
@@ -1194,6 +1334,14 @@
       }
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
+      var est = e.target.closest("[data-estandar]");
+      if (est) {
+        var fe = est.getAttribute("data-estandar");
+        var n3 = Almacen.aplicarEntrenoEstandar(fe, true);
+        pintarMenu();
+        Util.toast(n3 ? "Entreno estándar puesto" : "Ese día ya tiene el entreno medido por el reloj");
+        return;
+      }
       var act = e.target.closest("[data-actividad]");
       if (act) { abrirSelectorActividad(act.getAttribute("data-actividad")); return; }
       var qact = e.target.closest("[data-quitaract]");
@@ -1382,8 +1530,44 @@
       c.objetivoProt = parseInt($("#cfg-prot").value, 10) || 90;
       c.margenKcal = parseInt($("#cfg-margen").value, 10);
       if (isNaN(c.margenKcal)) c.margenKcal = 10;
+      var pct = parseFloat($("#cfg-devolucion").value);
+      if (!isNaN(pct)) c.devolucionEjercicio = Math.min(1, Math.max(0, pct / 100));
       Almacen.guardar("config");
+      pintarEntrenoEstandar();
       Util.toast("Ajustes guardados");
+    });
+
+    /* --- entreno estándar --- */
+    $("#lista-entreno").addEventListener("change", function (e) {
+      var m = e.target.closest("[data-estmin]");
+      if (!m) return;
+      var i = +m.getAttribute("data-estmin"), v = parseInt(m.value, 10);
+      var lista = Almacen.estado.config.entrenoEstandar;
+      if (!lista[i]) return;
+      if (!(v > 0)) lista.splice(i, 1); else lista[i].min = v;
+      Almacen.guardar("config");
+      pintarEntrenoEstandar();
+    });
+    $("#lista-entreno").addEventListener("click", function (e) {
+      var q = e.target.closest("[data-estquitar]");
+      if (!q) return;
+      Almacen.estado.config.entrenoEstandar.splice(+q.getAttribute("data-estquitar"), 1);
+      Almacen.guardar("config");
+      pintarEntrenoEstandar();
+    });
+    $("#entreno-anadir").addEventListener("click", function () {
+      var id = $("#entreno-nuevo").value;
+      var min = parseInt($("#entreno-min").value, 10);
+      if (!id) return;
+      if (!(min > 0)) {                       // sin minutos, los que trae la actividad
+        var a = Almacen.actividad(id);
+        min = a ? a.min : 30;
+      }
+      Almacen.estado.config.entrenoEstandar.push({ a: id, min: min });
+      Almacen.guardar("config");
+      $("#entreno-min").value = "";
+      pintarEntrenoEstandar();
+      Util.toast("Añadido al entreno estándar");
     });
     $("#gh-guardar").addEventListener("click", function () {
       var g = Almacen.estado.config.github;

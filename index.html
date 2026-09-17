@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=15">
+<link rel="stylesheet" href="css/estilos.css?v=17">
 </head>
 <body>
 
@@ -274,11 +274,32 @@
         <input type="number" id="cfg-prot" min="20" max="250" step="5"></label>
       <label class="campo"><span>Holgura antes de marcar el día en rojo (%)</span>
         <input type="number" id="cfg-margen" min="0" max="40" step="1"></label>
+      <label class="campo"><span>Cuánto del ejercicio sube al objetivo (%)</span>
+        <input type="number" id="cfg-devolucion" min="0" max="100" step="5">
+        <span class="nota-peque">Si un día quemas 1.000 kcal entrenando, al objetivo de ese día
+        se le suman estas. No conviene el 100%: las tablas de MET estiman por encima de lo que mide
+        un reloj, y devolverlo todo borra el déficit justo los días que más entrenas. 70% es lo
+        habitual.</span></label>
       <button class="btn principal" id="guardar-cocina">Guardar</button>
       <p class="nota-peque" style="margin-top:10px">Las calorías y los macros son estimaciones de tablas de
         composición de alimentos, con los ingredientes crudos y el aceite que indica la receta. Sirven para
         comparar días y platos entre sí; no son una medida exacta de lo que acabas comiendo. En la pestaña
         Despensa puedes corregir los valores de cualquier ingrediente con los de la etiqueta de tu producto.</p>
+    </div>
+
+    <div class="tarjeta-ajuste">
+      <img src="iconos/khb/3-pesas-corredor.webp" alt="" width="44" height="44">
+      <h3>Entreno estándar</h3>
+      <p class="nota-peque">Lo que haces en un día normal. Al rellenar la semana se pone solo en cada
+        día, y ahí lo ajustas: los minutos de verdad de ese día mandan sobre esta previsión. Los días
+        de ruta no lo llevan, porque ya tienen su salida.</p>
+      <div id="lista-entreno"></div>
+      <div class="fila" style="margin-top:10px">
+        <select id="entreno-nuevo"></select>
+        <input type="number" id="entreno-min" min="5" max="600" step="5" placeholder="min" style="width:90px">
+        <button class="btn mini" id="entreno-anadir">Añadir</button>
+      </div>
+      <p class="nota-peque" id="entreno-total" style="margin-top:10px"></p>
     </div>
 
     <div class="tarjeta">
@@ -324,13 +345,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=15"></script>
-<script src="datos/recetas.js?v=15"></script>
-<script src="datos/plantillas.js?v=15"></script>
-<script src="datos/actividades.js?v=15"></script>
-<script src="js/util.js?v=15"></script>
-<script src="js/almacen.js?v=15"></script>
-<script src="js/github.js?v=15"></script>
-<script src="js/app.js?v=15"></script>
+<script src="datos/ingredientes.js?v=17"></script>
+<script src="datos/recetas.js?v=17"></script>
+<script src="datos/plantillas.js?v=17"></script>
+<script src="datos/actividades.js?v=17"></script>
+<script src="js/util.js?v=17"></script>
+<script src="js/almacen.js?v=17"></script>
+<script src="js/github.js?v=17"></script>
+<script src="js/app.js?v=17"></script>
 </body>
 </html>

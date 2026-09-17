@@ -14,5 +14,15 @@ window.DATOS_ACTIVIDADES = [
   { id:"tareas_casa",       n:"Tareas de casa activas",       met:3.3, min:60 },
   { id:"jardin",            n:"Jardín o huerto",              met:4.0, min:60 },
   { id:"natacion",          n:"Natación suave",               met:5.8, min:40 },
-  { id:"otra",              n:"Otra actividad",               met:4.0, min:30 }
+  { id:"otra",              n:"Otra actividad",               met:4.0, min:30 },
+
+  /* ---------- SALIDAS LARGAS: las de los días de ruta ----------
+     Las de arriba son sesiones de casa, de media hora. Estas son jornadas, y
+     por eso vienen con las horas por defecto en horas de verdad. Los MET son
+     los del Compendio de Ainsworth para actividad al aire libre con desnivel. */
+  { id:"senderismo",        n:"Senderismo de montaña",              met:6.0, min:240 },
+  { id:"senderismo_fuerte", n:"Senderismo con desnivel o mochila",  met:7.5, min:240 },
+  { id:"bici_carretera",    n:"Bici de carretera",                  met:8.0, min:180 },
+  { id:"bici_btt",          n:"Bici de montaña (BTT)",              met:8.5, min:180 },
+  { id:"bici_paseo",        n:"Bici de paseo, ritmo tranquilo",     met:5.0, min:120 }
 ];

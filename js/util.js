@@ -33,6 +33,13 @@
       return this.aISO(d);
     },
 
+    /* 4 → «4 h»; 3,5 → «3 h 30 min». Para las salidas de los días de ruta. */
+    horas: function (h) {
+      var ent = Math.floor(h), min = Math.round((h - ent) * 60);
+      if (!ent) return min + " min";
+      return ent + " h" + (min ? " " + min + " min" : "");
+    },
+
     /* Días enteros de "desde" a "hasta" (mediodía para esquivar el cambio de hora). */
     diasEntre: function (desdeISO, hastaISO) {
       var a = this.desdeISO(desdeISO), b = this.desdeISO(hastaISO);
