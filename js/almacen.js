@@ -1199,6 +1199,7 @@
       dias = dias || 7;
       var self = this;
       var acumulado = {};   // ingId -> { cantidad, recetas:{} }
+      var porciones = {};   // recetaId de tanda -> porciones que hacen falta en la semana
 
       for (var i = 0; i < dias; i++) {
         var fecha = Util.sumarDias(lunesISO, i);
@@ -1213,6 +1214,12 @@
           (dia[toma] || []).forEach(function (rid) {
             var rec = self.receta(rid);
             if (!rec) return;
+            /* Las TANDAS se apuntan aparte y se resuelven al final: no se puede comprar
+               un cuarto de bandeja de barritas. Ver `tandas` más abajo. */
+            if (rec.tanda) {
+              porciones[rid] = (porciones[rid] || 0) + personas;
+              return;
+            }
             var factor = personas / (rec.raciones || 1);
             (rec.ing || []).forEach(function (l) {
               if (!acumulado[l.i]) acumulado[l.i] = { cantidad: 0, recetas: {} };
@@ -1222,6 +1229,24 @@
           });
         });
       }
+
+      /* ---------- las TANDAS ----------
+         Las barritas, las bolas y la tortilla en porciones no son platos de una comida:
+         se hacen de una vez y se comen a lo largo de varios días. Repartir sus
+         ingredientes como los de un plato normal daba disparates: para dos porciones de
+         barritas pedía «40 g de avena y medio plátano», que no se puede ni amasar.
+         Se cuentan las porciones que pide la semana y se compran TANDAS ENTERAS. */
+      Object.keys(porciones).forEach(function (rid) {
+        var rec = self.receta(rid);
+        if (!rec) return;
+        var tandas = Math.ceil(porciones[rid] / (rec.raciones || 1));
+        if (tandas < 1) tandas = 1;
+        (rec.ing || []).forEach(function (l) {
+          if (!acumulado[l.i]) acumulado[l.i] = { cantidad: 0, recetas: {} };
+          acumulado[l.i].cantidad += l.c * tandas;
+          acumulado[l.i].recetas[rec.n + (tandas > 1 ? " (×" + tandas + " tandas)" : "")] = true;
+        });
+      });
 
       var secciones = {}, basicos = [];
       Object.keys(acumulado).forEach(function (id) {

@@ -1321,7 +1321,7 @@ window.DATOS_RECETAS = [
    quedarse corto. */
 {
   id:"mochila_barritas_avena", n:"Barritas de avena, plátano y nuez (freidora)",
-  rev:1, llevable:true,
+  rev:2, tanda:true,
   tipo:["almuerzo","merienda","desayuno"], grupo:"desayuno", raciones:8, min:30, tools:["airfryer"],
   ing:[{i:"copos_avena",c:160},{i:"platano",c:2},{i:"nueces",c:40},{i:"miel",c:30},{i:"canela",c:2}],
   pasos:[
@@ -1348,7 +1348,7 @@ window.DATOS_RECETAS = [
 },
 {
   id:"mochila_bolas_datil", n:"Bolas energéticas de dátil, avena y cacao",
-  rev:1, llevable:true,
+  rev:2, tanda:true,
   tipo:["almuerzo","merienda","postre"], grupo:"postre", raciones:6, min:15, tools:["sin-cocinar"],
   ing:[{i:"datiles",c:200},{i:"copos_avena",c:80},{i:"nueces",c:40},{i:"cacao_puro",c:15}],
   pasos:[
@@ -1396,7 +1396,7 @@ window.DATOS_RECETAS = [
 },
 {
   id:"mochila_tortilla_porciones", n:"Tortilla de patata en porciones para llevar",
-  rev:1, llevable:true,
+  rev:2, tanda:true,
   tipo:["comida","cena","almuerzo"], grupo:"huevos", raciones:4, min:35, tools:["airfryer","sarten"],
   ing:[{i:"huevo",c:5},{i:"patata",c:2.8},{i:"cebolla_dulce",c:0.7},{i:"aove",c:25},{i:"pimienta",c:0.5}],
   pasos:[
