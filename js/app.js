@@ -56,7 +56,6 @@
   var CLAVE_INTRO = "asistente-alimentacion-intro";        // último día que se enseñó
   var CLAVE_INTRO_OFF = "asistente-alimentacion-intro-off";      // el ajuste viejo
   var CLAVE_INTRO_CUANDO = "asistente-alimentacion-intro-cuando";
-  var CLAVE_INTRO_SON = "asistente-alimentacion-intro-sonido";   // si quiere oírlo
 
   function cuandoIntro() {
     var v = null;
@@ -73,6 +72,8 @@
       if (v === "siempre") localStorage.removeItem(CLAVE_INTRO);
     } catch (e) {}
   }
+
+  try { localStorage.removeItem("asistente-alimentacion-intro-sonido"); } catch (e) {}
 
   function cerrarPortada() {
     var p = $("#portada");
@@ -109,11 +110,11 @@
       v.addEventListener("ended", cerrarPortada);
       v.addEventListener("error", cerrarPortada);
 
-      /* El sonido. El vídeo ARRANCA SIEMPRE MUDO porque ningún navegador deja
-         empezar con sonido sin que toques antes la pantalla: si lo intentáramos,
-         no arrancaría. El botón lo activa de un toque y me acuerdo de la
-         elección, pero aun así la próxima vez empiezo mudo e intento subirlo
-         después; si el navegador se queja, se queda mudo y no pasa nada. */
+      /* El sonido: MUDO SIEMPRE al abrir, en todas las aperturas, sin excepción
+         y sin recordar nada. Solo suena si tocas el botón, y solo esa vez.
+         Es lo que pidió Carlos el 17-sep, y además evita la pelea con el
+         navegador, que corta el vídeo si le subes el sonido sin que lo toquen. */
+      v.muted = true;
       var bot = $("#sonido-intro");
       function pintarSonido() {
         if (!bot) return;
@@ -125,7 +126,6 @@
         bot.addEventListener("click", function (ev) {
           ev.stopPropagation();                  /* que no cuente como cerrar */
           v.muted = !v.muted;
-          try { localStorage.setItem(CLAVE_INTRO_SON, v.muted ? "no" : "si"); } catch (e) {}
           pintarSonido();
         });
       }
@@ -133,25 +133,6 @@
 
       var prometido = v.play();
       if (prometido && prometido.catch) prometido.catch(function () { cerrarPortada(); });
-
-      var queria = false;
-      try { queria = localStorage.getItem(CLAVE_INTRO_SON) === "si"; } catch (e) {}
-      if (queria) {
-        setTimeout(function () {
-          if (!v.parentNode) return;
-          var iba = !v.paused;                 /* ¿estaba corriendo antes de tocarlo? */
-          try { v.muted = false; pintarSonido(); } catch (e) { return; }
-          setTimeout(function () {
-            /* Solo doy marcha atrás si el vídeo IBA y subirle el sonido lo ha
-               parado. Si todavía no había arrancado, no es cosa del sonido y
-               callarlo aquí sería quitárselo por nada. */
-            if (v.parentNode && iba && v.paused) {
-              v.muted = true; pintarSonido();
-              try { v.play(); } catch (e) {}
-            }
-          }, 260);
-        }, 120);
-      }
 
       setTimeout(cerrarPortada, deAlto ? 23000 : 13000);   // por si se queda colgado
     } else {

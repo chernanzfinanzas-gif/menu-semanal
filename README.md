@@ -49,14 +49,16 @@ _publicar/
 └── reemplazados/AAAA-MM-DD/   ← respaldo de lo que «Traer del repo» sustituye
 ```
 
-Los cuatro botones:
+Opciones del menú:
 
-| Botón | Qué hace |
+| Opción | Qué hace |
 |---|---|
-| **Publicar al repo (1 clic)** | Comprueba, enseña los destinos, espera un ENTER y sube todo en un commit |
-| **Publicar - PRUEBA EN SECO** | Lo mismo, pero sin tocar nada |
-| **Que me falta por publicar** | Compara tu carpeta con lo publicado y trae al buzón lo distinto |
-| **Traer del repo** | Cuando el repositorio va por delante de tu carpeta |
+| **1 · Publicar al repo** | Comprueba, enseña los destinos, espera un ENTER y sube todo en un commit |
+| **2 · Prueba en seco** | Lo mismo, pero sin subir ni mover nada |
+| **3 · Qué me falta por publicar** | Compara tu carpeta con lo publicado y trae al buzón lo distinto |
+| **4 · Traer del repo** | Cuando el repositorio va por delante de tu carpeta |
+| **5 · Abrir el buzón** | Abre `_publicar/` en el explorador |
+| **6 · Abrir la app** | Abre la web publicada en el navegador |
 
 **Antes de subir comprueba**, y si algo falla no sube nada:
 
@@ -84,11 +86,26 @@ repositorio `menu-semanal`, permiso *Contents: Read and write*. No es la misma q
 | `js/util.js` | fechas, formatos y utilidades |
 | `datos/ingredientes.js` | catálogo con la sal de cada alimento |
 | `datos/recetas.js` | recetario |
+| `datos/actividades.js` | actividades y su MET |
+| `iconos/khb/*.webp` | los nueve logos KHB |
+| `media/*` | el vídeo de entrada y sus carteles |
 | `datos/plantillas.js` | Semana A y Semana B |
 | `docs/pauta-baja-en-sal.md` | la pauta nutricional de referencia |
 | `publicar.py` | el buzón (solo en local, no se publica) |
+| `Menú Semanal - Publicar.bat` | el menú de publicación (solo en local) |
 
 ## Copias de seguridad
 
 En Ajustes puedes descargar una copia completa en un fichero y restaurarla en cualquier momento.
 «Recargar recetario original» repone las recetas e ingredientes de fábrica sin tocar tus menús.
+
+## Créditos
+
+- **Logos KHB** e **imágenes del vídeo de entrada**: diseños propios.
+- **Música del vídeo de entrada**: «Next Level_Medium 1», de Grand_Project (Roman Dudchyk),
+  descargada de [Pixabay](https://pixabay.com/music/) bajo la Pixabay Content License —
+  uso libre, también comercial, sin atribución obligatoria. Se cita porque es de justicia.
+  El fragmento usado está recortado y con fundido; el resto del tema no se distribuye aquí.
+
+El vídeo de entrada arranca **siempre sin sonido**. Solo suena si pulsas el botón del altavoz,
+y solo durante esa apertura.
