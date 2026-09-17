@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Asistente de Alimentación</title>
+<meta name="theme-color" content="#2f6b47">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="iconos/icono.svg">
+<link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <span class="titulo">Asistente de Alimentación</span>
+  <span id="estado-sync" class="sync">Solo en este dispositivo</span>
+</header>
+
+<nav class="pestanas" id="pestanas">
+  <button data-vista="menu" class="activa">Menú</button>
+  <button data-vista="recetas">Recetas</button>
+  <button data-vista="compra">Compra</button>
+  <button data-vista="despensa">Despensa</button>
+  <button data-vista="ajustes">Ajustes</button>
+</nav>
+
+<main>
+
+  <!-- ===================== MENÚ ===================== -->
+  <section class="vista activa" id="vista-menu">
+    <div class="cabecera-semana">
+      <span class="rango" id="rango-semana"></span>
+      <div class="fila">
+        <button class="btn icono" id="semana-anterior" title="Semana anterior">‹</button>
+        <button class="btn mini" id="ir-hoy">Hoy</button>
+        <button class="btn icono" id="semana-siguiente" title="Semana siguiente">›</button>
+      </div>
+    </div>
+    <div class="fila" style="margin-bottom:12px">
+      <button class="btn principal mini" data-plantilla="A">Aplicar Semana A</button>
+      <button class="btn principal mini" data-plantilla="B">Aplicar Semana B</button>
+      <button class="btn mini" id="vaciar-semana">Vaciar semana</button>
+      <button class="btn mini" id="guardar-como-plantilla">Guardar como plantilla</button>
+    </div>
+    <div class="rejilla-dias" id="rejilla-dias"></div>
+  </section>
+
+  <!-- ===================== RECETAS ===================== -->
+  <section class="vista" id="vista-recetas">
+    <div class="filtros">
+      <input type="text" id="buscar-receta" placeholder="Buscar receta o ingrediente…">
+      <select id="filtro-toma">
+        <option value="">Todas las tomas</option>
+        <option value="desayuno">Desayuno</option>
+        <option value="almuerzo">Almuerzo</option>
+        <option value="comida">Comida</option>
+        <option value="merienda">Merienda</option>
+        <option value="cena">Cena</option>
+        <option value="guarnicion">Guarnición</option>
+        <option value="postre">Postre</option>
+      </select>
+      <select id="filtro-grupo">
+        <option value="">Todos los grupos</option>
+        <option value="carne-roja">Carne roja</option>
+        <option value="carne-blanca">Carne blanca</option>
+        <option value="pescado-blanco">Pescado blanco</option>
+        <option value="pescado-azul">Pescado azul</option>
+        <option value="huevos">Huevos</option>
+        <option value="legumbre">Legumbres</option>
+        <option value="pasta-arroz">Pasta y arroz</option>
+        <option value="verdura">Verduras</option>
+        <option value="ensalada">Ensaladas</option>
+        <option value="desayuno">Desayunos</option>
+        <option value="fruta">Fruta</option>
+        <option value="postre">Postre</option>
+      </select>
+      <select id="filtro-tool">
+        <option value="">Cualquier herramienta</option>
+        <option value="lekue">Lékué / vapor</option>
+        <option value="airfryer">Airfryer</option>
+        <option value="microondas">Microondas</option>
+        <option value="sarten">Sartén</option>
+        <option value="horno">Horno</option>
+        <option value="cazuela">Cazuela</option>
+        <option value="sin-cocinar">Sin cocinar</option>
+      </select>
+      <button class="btn principal mini" id="nueva-receta">+ Nueva</button>
+    </div>
+    <div id="contador-recetas" class="nota-peque" style="margin-bottom:10px"></div>
+    <div class="rejilla-recetas" id="rejilla-recetas"></div>
+  </section>
+
+  <!-- ===================== COMPRA ===================== -->
+  <section class="vista" id="vista-compra">
+    <div class="tarjeta">
+      <div class="fila entre">
+        <div>
+          <strong id="compra-rango"></strong>
+          <div class="nota-peque">Cantidades calculadas para <span id="compra-personas"></span>.</div>
+        </div>
+        <div class="fila">
+          <button class="btn mini" id="compra-recalcular">Recalcular</button>
+          <button class="btn mini" id="compra-copiar">Copiar lista</button>
+          <button class="btn principal mini" id="compra-para-claude">Preparar compra</button>
+        </div>
+      </div>
+    </div>
+    <div class="aviso" id="compra-resumen"></div>
+    <div id="lista-compra"></div>
+  </section>
+
+  <!-- ===================== DESPENSA ===================== -->
+  <section class="vista" id="vista-despensa">
+    <div class="aviso">Marca lo que ya tienes en casa: desaparecerá de la lista de la compra hasta que lo desmarques.</div>
+    <div class="fila" style="margin-bottom:12px">
+      <input type="text" id="buscar-despensa" placeholder="Buscar ingrediente…" style="flex:1; min-width:180px">
+      <button class="btn mini" id="despensa-vaciar">Desmarcar todo</button>
+    </div>
+    <div class="rejilla-despensa" id="rejilla-despensa"></div>
+  </section>
+
+  <!-- ===================== AJUSTES ===================== -->
+  <section class="vista" id="vista-ajustes">
+    <div class="tarjeta">
+      <h2>Cocina</h2>
+      <label class="campo"><span>Personas para las que se compra</span>
+        <input type="number" id="cfg-personas" min="1" max="8" step="1"></label>
+      <label class="campo"><span>Aviso ámbar a partir de (g de sal al día)</span>
+        <input type="number" id="cfg-aviso" min="0.5" max="6" step="0.1"></label>
+      <label class="campo"><span>Rojo a partir de (g de sal al día)</span>
+        <input type="number" id="cfg-limite" min="0.5" max="8" step="0.1"></label>
+      <button class="btn principal" id="guardar-cocina">Guardar</button>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Sincronizar con GitHub</h2>
+      <p class="nota-peque">Con esto, el móvil y el ordenador ven siempre los mismos menús y recetas. La clave se queda guardada en este dispositivo y nunca se sube al repositorio.</p>
+      <label class="campo"><span>Usuario de GitHub</span><input type="text" id="gh-usuario" placeholder="carlos"></label>
+      <label class="campo"><span>Nombre del repositorio</span><input type="text" id="gh-repo" placeholder="menu-semanal"></label>
+      <label class="campo"><span>Rama</span><input type="text" id="gh-rama" placeholder="main"></label>
+      <label class="campo"><span>Clave personal (token)</span><input type="password" id="gh-token" placeholder="github_pat_…"></label>
+      <div class="fila">
+        <button class="btn principal" id="gh-guardar">Guardar y conectar</button>
+        <button class="btn" id="gh-probar">Probar conexión</button>
+        <button class="btn" id="gh-subir">Subir ahora</button>
+        <button class="btn" id="gh-bajar">Traer del repositorio</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Copia de seguridad</h2>
+      <div class="fila">
+        <button class="btn" id="exportar">Descargar copia</button>
+        <button class="btn" id="importar-btn">Restaurar copia</button>
+        <input type="file" id="importar" accept="application/json" style="display:none">
+        <button class="btn" id="recargar-recetas">Recargar recetario original</button>
+      </div>
+      <p class="nota-peque" style="margin-top:10px">«Recargar recetario original» repone las recetas y los ingredientes que vienen con la app sin tocar tus menús ni tu despensa.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ventana emergente -->
+<div class="modal" id="modal">
+  <div class="caja" id="modal-caja"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="datos/ingredientes.js"></script>
+<script src="datos/recetas.js"></script>
+<script src="datos/plantillas.js"></script>
+<script src="js/util.js"></script>
+<script src="js/almacen.js"></script>
+<script src="js/github.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

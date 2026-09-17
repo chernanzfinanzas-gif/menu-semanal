@@ -1,0 +1,17 @@
+{
+  "name": "Asistente de Alimentación",
+  "short_name": "Menú",
+  "description": "Menús semanales, recetas bajas en sal y lista de la compra",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7f6",
+  "theme_color": "#2f6b47",
+  "lang": "es",
+  "icons": [
+    { "src": "iconos/icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "iconos/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
