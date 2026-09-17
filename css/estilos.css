@@ -46,6 +46,21 @@ nav.pestanas button{
 nav.pestanas button.activa{color:var(--verde); border-bottom-color:var(--verde)}
 
 main{padding:14px; max-width:1100px; margin:0 auto 90px}
+
+/* ---------- selector de día (solo móvil) ---------- */
+.selector-dias{display:none; gap:6px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px}
+.selector-dias button{
+  flex:1 0 auto; min-width:44px; border:1px solid var(--borde); background:var(--blanco);
+  border-radius:10px; padding:8px 4px; font-size:.8rem; font-weight:700; color:var(--gris);
+  display:flex; flex-direction:column; align-items:center; gap:3px; line-height:1;
+}
+.selector-dias button .num{font-size:.68rem; font-weight:600; opacity:.75}
+.selector-dias button .punto{width:7px; height:7px; border-radius:50%; background:var(--verde)}
+.selector-dias button .punto.ambar{background:var(--ambar)}
+.selector-dias button .punto.rojo{background:var(--rojo)}
+.selector-dias button .punto.vacio{background:var(--borde)}
+.selector-dias button.activo{background:var(--verde); border-color:var(--verde); color:#fff}
+.selector-dias button.activo .punto{box-shadow:0 0 0 2px rgba(255,255,255,.8)}
 .vista{display:none}
 .vista.activa{display:block}
 
@@ -166,3 +181,67 @@ ul.ingredientes li{display:flex; justify-content:space-between; gap:10px; paddin
 
 textarea.salida{min-height:180px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.8rem}
 .nota-peque{font-size:.78rem; color:var(--gris)}
+
+/* ===================== MÓVIL ===================== */
+@media (max-width:767px){
+  body{font-size:15px}
+
+  header.barra{padding:9px 12px}
+  header.barra .titulo{font-size:.98rem}
+
+  /* pestañas abajo, al alcance del pulgar */
+  nav.pestanas{
+    position:fixed; top:auto; bottom:0; left:0; right:0; z-index:50;
+    border-top:1px solid var(--borde); border-bottom:0; overflow:visible;
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -2px 12px rgba(31,42,36,.08);
+  }
+  nav.pestanas button{
+    min-width:0; padding:9px 2px 8px; font-size:.68rem; border-bottom:0; border-top:3px solid transparent;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav.pestanas button::before{font-size:1.15rem; line-height:1}
+  nav.pestanas button[data-vista="menu"]::before{content:"🗓"}
+  nav.pestanas button[data-vista="recetas"]::before{content:"🍲"}
+  nav.pestanas button[data-vista="compra"]::before{content:"🛒"}
+  nav.pestanas button[data-vista="despensa"]::before{content:"🥫"}
+  nav.pestanas button[data-vista="ajustes"]::before{content:"⚙"}
+  nav.pestanas button.activa{border-top-color:var(--verde)}
+
+  main{padding:12px 12px 0; margin-bottom:84px}
+
+  .selector-dias{display:flex}
+  .cabecera-semana .rango{font-size:.92rem}
+  .cabecera-semana{gap:8px}
+
+  /* un solo día a la vista, sin scroll interminable */
+  .rejilla-dias{grid-template-columns:1fr}
+  .dia > header{padding:12px}
+  .toma{padding:10px 12px}
+  .plato{padding:6px 0; font-size:.92rem; align-items:center}
+  .quitar{font-size:1.3rem; padding:4px 8px}
+  .anadir{padding:6px 12px; font-size:.8rem}
+
+  /* botones cómodos con una mano */
+  .btn{padding:11px 16px}
+  .btn.mini{padding:8px 11px; font-size:.78rem}
+  .btn.icono{padding:10px 14px}
+  .tarjeta .fila.entre{gap:6px}
+  .tarjeta .fila.entre > .fila{flex-wrap:wrap; gap:6px}
+
+  /* la compra se lleva en la mano por el súper */
+  .linea{padding:13px 12px; gap:12px}
+  .linea input[type=checkbox]{width:26px; height:26px}
+  .linea .nombre{font-size:.95rem}
+  .linea .detalle{display:none}
+  .linea .cant{font-size:.92rem}
+  .linea .btn.mini{padding:8px 10px; font-size:.74rem}
+  .seccion-compra > h3{position:sticky; top:44px; z-index:10}
+
+  .rejilla-recetas, .rejilla-despensa{grid-template-columns:1fr}
+  .filtros{gap:6px}
+  .filtros select{flex:1 0 46%; min-width:0}
+
+  .toast{bottom:86px}
+  .modal .caja{max-height:84vh; padding-bottom:26px}
+}

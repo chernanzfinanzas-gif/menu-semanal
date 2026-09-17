@@ -8,8 +8,19 @@
     vista: "menu",
     lunes: Util.lunesDe(Util.hoyISO()),
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
-    busquedaDespensa: ""
+    busquedaDespensa: "",
+    diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
+    ocultarComprados: false
   };
+
+  function esMovil() { return window.matchMedia("(max-width:767px)").matches; }
+
+  /* día que conviene mostrar al abrir: hoy si cae en la semana, si no el lunes */
+  function diaPorDefecto() {
+    var hoy = Util.hoyISO();
+    for (var i = 0; i < 7; i++) if (Util.sumarDias(UI.lunes, i) === hoy) return i;
+    return 0;
+  }
 
   var NOMBRE_GRUPO = {
     "carne-roja": "Carne roja", "carne-blanca": "Carne blanca", "pescado-blanco": "Pescado blanco",
@@ -17,6 +28,7 @@
     "pasta-arroz": "Pasta y arroz", "verdura": "Verdura", "ensalada": "Ensalada",
     "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre"
   };
+  var ABREV = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
   var NOMBRE_TOOL = {
     "lekue": "Lékué", "airfryer": "Airfryer", "microondas": "Microondas", "sarten": "Sartén",
     "horno": "Horno", "cazuela": "Cazuela", "sin-cocinar": "Sin cocinar"
@@ -31,10 +43,28 @@
 
   /* ==================== VISTA: MENÚ ==================== */
   function pintarMenu() {
-    $("#rango-semana").textContent = Util.etiquetaRango(UI.lunes);
+    var movil = esMovil();
+    $("#rango-semana").textContent = movil ? Util.etiquetaRangoCorto(UI.lunes) : Util.etiquetaRango(UI.lunes);
     var cont = $("#rejilla-dias"), html = "", hoy = Util.hoyISO();
+    if (UI.diaActivo === null || UI.diaActivo < 0 || UI.diaActivo > 6) UI.diaActivo = diaPorDefecto();
+
+    /* barra de días (solo se ve en móvil) */
+    var sel = "";
+    for (var d = 0; d < 7; d++) {
+      var f = Util.sumarDias(UI.lunes, d);
+      var dia0 = Almacen.estado.plan[f];
+      var hay = false;
+      if (dia0) Util.TOMAS.forEach(function (t) { if ((dia0[t.k] || []).length) hay = true; });
+      var punto = !hay ? "vacio" : Almacen.semaforo(Almacen.salDia(f));
+      sel += '<button data-dia="' + d + '"' + (d === UI.diaActivo ? ' class="activo"' : '') + '>' +
+             ABREV[d] +
+             '<span class="num">' + Util.desdeISO(f).getDate() + '</span>' +
+             '<span class="punto ' + punto + '"></span></button>';
+    }
+    $("#selector-dias").innerHTML = sel;
 
     for (var i = 0; i < 7; i++) {
+      if (movil && i !== UI.diaActivo) continue;
       var fecha = Util.sumarDias(UI.lunes, i);
       var dia = Almacen.estado.plan[fecha];
       var sal = Almacen.salDia(fecha);
@@ -276,8 +306,11 @@
   function pintarCompra() {
     var datos = Almacen.generarCompra(UI.lunes, 7);
     compraActual = datos;
-    $("#compra-rango").textContent = "Semana del " + Util.etiquetaRango(UI.lunes);
-    $("#compra-personas").textContent = (Almacen.estado.config.personas || 1) + " persona(s)";
+    var pers = Almacen.estado.config.personas || 1;
+    $("#compra-rango").textContent = esMovil()
+      ? "Semana " + Util.etiquetaRangoCorto(UI.lunes)
+      : "Semana del " + Util.etiquetaRango(UI.lunes);
+    $("#compra-personas").textContent = pers === 1 ? "1 persona" : pers + " personas";
 
     var totalLineas = 0, pendientes = 0;
     datos.secciones.forEach(function (s) {
@@ -291,20 +324,24 @@
     }
     $("#compra-resumen").textContent = "Quedan " + pendientes + " productos por comprar de " + totalLineas + ".";
 
+    var visible = function (l) { return UI.ocultarComprados ? (!l.marcado && !l.enCasa) : true; };
     var html = "";
     datos.secciones.forEach(function (s) {
+      var lineas = s.lineas.filter(visible);
+      if (!lineas.length) return;
       html += '<div class="seccion-compra"><h3>' + esc(s.nombre) + '</h3>';
-      s.lineas.forEach(function (l) {
-        html += lineaCompraHTML(l);
-      });
+      lineas.forEach(function (l) { html += lineaCompraHTML(l); });
       html += '</div>';
     });
-    if (datos.basicos.length) {
+    var basicos = datos.basicos.filter(visible);
+    if (basicos.length) {
       html += '<div class="seccion-compra"><h3>Revisa la despensa (básicos)</h3>';
-      datos.basicos.forEach(function (l) { html += lineaCompraHTML(l, true); });
+      basicos.forEach(function (l) { html += lineaCompraHTML(l, true); });
       html += '</div>';
     }
+    if (!html) html = '<div class="vacio">Todo comprado. Buen trabajo.</div>';
     $("#lista-compra").innerHTML = html;
+    $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar comprados";
   }
 
   function lineaCompraHTML(l, basico) {
@@ -315,7 +352,7 @@
       '<div class="detalle">' + esc(l.recetas.slice(0, 3).join(" · ")) + (l.recetas.length > 3 ? " …" : "") +
       (l.nota ? ' — ' + esc(l.nota) : '') + '</div></div>' +
       '<span class="cant">' + esc(l.texto) + '</span>' +
-      '<button class="btn mini" data-encasa="' + esc(l.id) + '">' + (l.enCasa ? "Comprar" : "Ya lo tengo") + '</button>' +
+      '<button class="btn mini" data-encasa="' + esc(l.id) + '">' + (l.enCasa ? "Comprar" : "Lo tengo") + '</button>' +
       '</div>';
   }
 
@@ -399,9 +436,22 @@
     });
 
     /* --- menú --- */
-    $("#semana-anterior").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, -7); pintarMenu(); });
-    $("#semana-siguiente").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, 7); pintarMenu(); });
-    $("#ir-hoy").addEventListener("click", function () { UI.lunes = Util.lunesDe(Util.hoyISO()); pintarMenu(); });
+    $("#semana-anterior").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, -7); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
+    $("#semana-siguiente").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, 7); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
+    $("#ir-hoy").addEventListener("click", function () { UI.lunes = Util.lunesDe(Util.hoyISO()); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
+
+    $("#selector-dias").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-dia]");
+      if (!b) return;
+      UI.diaActivo = parseInt(b.getAttribute("data-dia"), 10);
+      pintarMenu();
+    });
+
+    var anchoAnterior = esMovil();
+    window.addEventListener("resize", function () {
+      var ahora = esMovil();
+      if (ahora !== anchoAnterior) { anchoAnterior = ahora; if (UI.vista === "menu") pintarMenu(); }
+    });
     $("#vaciar-semana").addEventListener("click", function () {
       if (confirm("¿Vaciar el menú de esta semana?")) { Almacen.vaciarSemana(UI.lunes); pintarMenu(); }
     });
@@ -483,6 +533,7 @@
 
     /* --- compra --- */
     $("#compra-recalcular").addEventListener("click", pintarCompra);
+    $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
     $("#lista-compra").addEventListener("click", function (e) {
       var enc = e.target.closest("[data-encasa]");
       if (enc) {

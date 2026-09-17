@@ -46,6 +46,13 @@
       return d.getDate() + " " + MESES[d.getMonth()];
     },
 
+    etiquetaRangoCorto: function (lunesISO) {
+      var ini = this.desdeISO(lunesISO), fin = this.desdeISO(this.sumarDias(lunesISO, 6));
+      var mesIni = MESES[ini.getMonth()].slice(0, 3), mesFin = MESES[fin.getMonth()].slice(0, 3);
+      if (mesIni === mesFin) return ini.getDate() + "–" + fin.getDate() + " " + mesFin;
+      return ini.getDate() + " " + mesIni + " – " + fin.getDate() + " " + mesFin;
+    },
+
     etiquetaRango: function (lunesISO) {
       var fin = this.sumarDias(lunesISO, 6);
       return this.etiquetaFecha(lunesISO) + " – " + this.etiquetaFecha(fin) + " de " + this.desdeISO(fin).getFullYear();
