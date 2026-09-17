@@ -1,17 +1,39 @@
-# Pauta nutricional baja en sodio — hidrops endolinfático
+# Pauta baja en sodio — hidrops endolinfático
 
-> Documento de referencia de la app. Información orientativa: el tratamiento y los ajustes
-> los marca el otorrinolaringólogo.
+> Documento de referencia de la app. **Esto no es una prescripción médica.** El límite de
+> sal lo fijó Carlos por su cuenta, sabiendo que el sodio afecta al hidrops; su otorrino
+> no le ha dado ninguna pauta dietética. El tratamiento y sus ajustes los marca el médico.
 
 ## 1. El objetivo
 
 Mantener la osmolaridad constante a lo largo del día para evitar oscilaciones de líquido
 hacia el oído interno. No basta con comer poca sal en total: hay que repartirla.
 
-- **Límite diario**: 1.500–2.000 mg de sodio (menos de una cucharadita de café de sal al día).
+- **Tope diario: 4 g de SAL** (equivalen a 1.600 mg de sodio). Decisión propia, 17-sep-2026.
+- **La filosofía es reducir todo lo posible**, no llegar al tope. Por eso el aviso ámbar
+  de la app está en 2 g, la mitad del límite: un día en ámbar es un día válido, solo
+  señala que había margen.
+- **Dónde cae esto**: las guías al uso para Ménière e hidrops recomiendan unos 1.500 mg de
+  sodio al día y no pasar de 2.300 (3,75 y 5,75 g de sal). Los 4 g elegidos quedan dentro,
+  cerca del extremo bajo. Conviene saber que la evidencia de la restricción de sal en esta
+  dolencia es débil —no hay ensayos sólidos que la respalden— aunque sea la práctica habitual.
 - **Reparto uniforme** entre desayuno, comida y cena. No acumular en una sola toma.
 - **Hidratación regular**: 1,5–2 litros en vasos pequeños repartidos, nunca mucho de golpe.
 - **Sin cafeína** (café descafeinado), alcohol mínimo o nulo, azúcares refinados limitados.
+
+### Sal y sodio no son lo mismo
+
+Es el error más fácil de cometer leyendo etiquetas, y de hecho se cometió al montar la app:
+sus avisos estuvieron mucho tiempo en 1,5 y 2 g porque se leyó «1.500–2.000 mg de sodio»
+como si fueran gramos de sal.
+
+| Para pasar de | a | multiplica por |
+|---|---|---|
+| sodio | sal | 2,5 |
+| sal | sodio | 0,4 |
+
+**La app trabaja siempre en gramos de SAL.** Las etiquetas españolas también suelen dar sal;
+si alguna da sodio, hay que convertirlo antes de meterlo en Despensa.
 
 ## 2. Cómo leer una etiqueta
 

@@ -107,6 +107,27 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .chip-sal.verde{background:var(--verde-claro); color:var(--verde)}
 .chip-sal.ambar{background:var(--ambar-fondo); color:var(--ambar)}
 .chip-sal.rojo{background:var(--rojo-fondo); color:var(--rojo)}
+/* "libre": el día de ruta no tiene tope, no es que vaya bien ni que vaya mal */
+.chip-sal.libre{background:#eef1f7; color:#4a5a7a}
+
+/* ---------- tipo de día ---------- */
+.tipo-dia{display:flex; gap:5px; align-items:center; flex-wrap:wrap;
+  padding:8px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
+.pest-tipo{
+  border:1px solid var(--borde); background:var(--blanco); color:var(--gris);
+  border-radius:99px; padding:4px 10px; font-size:.75rem; font-weight:650;
+  display:inline-flex; align-items:center; gap:4px; line-height:1.2; cursor:pointer;
+}
+.pest-tipo.activo{background:var(--verde); border-color:var(--verde); color:#fff}
+.tipo-dia .rellenar-dia{margin-left:auto}
+.nota-tipo{padding:8px 12px; font-size:.78rem; color:var(--gris);
+  border-bottom:1px solid var(--borde); background:#fbfcfb}
+.nota-tipo b{color:var(--tinta)}
+.selector-dias button .marca-tipo{font-size:.7rem; line-height:1}
+@media (max-width:520px){
+  .pest-tipo span{display:none}
+  .pest-tipo{padding:4px 9px; font-size:.9rem}
+}
 
 /* resumen de energía del día */
 .resumen-dia{padding:8px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}

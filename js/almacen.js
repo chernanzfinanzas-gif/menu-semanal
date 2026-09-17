@@ -22,8 +22,12 @@
         v: 1,
         config: {
           personas: 2,
-          limiteSal: 2.0,      // g de sal/día: por encima = rojo
-          avisoSal: 1.5,       // g de sal/día: por encima = ámbar
+          /* Topes de SAL (no de sodio: 1 g de sal = 0,4 g de sodio).
+             Los fijó Carlos el 17-sep-2026: 4 g de sal al día como techo, que
+             son 1.600 mg de sodio. El ámbar está mucho más abajo a propósito,
+             porque su criterio es «reducir todo lo posible», no «llegar al tope». */
+          limiteSal: 4.0,      // g de sal/día: por encima = rojo
+          avisoSal: 2.0,       // g de sal/día: por encima = ámbar
           objetivoKcal: 2000,  // kcal/día
           objetivoProt: 90,    // g de proteína/día
           margenKcal: 10,      // % de holgura antes de marcar el día en rojo
@@ -84,6 +88,66 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
         if (global.console) console.log("Nutrición completada en " + completados + " campos.");
       }
+      /* Plantillas: igual que ingredientes y recetas. Sin esto, añadir el pan de
+         mesa a las dos semanas no habría llegado nunca a las plantillas guardadas. */
+      var plaSemilla = {};
+      (global.DATOS_PLANTILLAS || []).forEach(function (x) { if (x.rev) plaSemilla[x.id] = x; });
+      var plaRefrescadas = [];
+      e.plantillas.forEach(function (pl, i) {
+        var nueva = plaSemilla[pl.id];
+        if (!nueva || pl.editado) return;
+        if ((pl.rev || 1) >= nueva.rev) return;
+        e.plantillas[i] = JSON.parse(JSON.stringify(nueva));
+        plaRefrescadas.push(nueva.nombre);
+      });
+      if (plaRefrescadas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Plantillas actualizadas: " + plaRefrescadas.join(", "));
+      }
+
+      /* ALTAS NUEVAS. El `rev` de más abajo solo sirve para CAMBIAR algo que ya
+         está guardado; una receta o un ingrediente que no existían en el móvil no
+         llegaban nunca, porque los datos guardados mandan sobre la semilla. Sin
+         esto, las ocho recetas de mochila no habrían aparecido jamás en su app.
+         Solo da de alta lo que falta por id: nunca pisa ni borra nada suyo. */
+      var altas = [];
+      [["ingredientes", global.DATOS_INGREDIENTES], ["recetas", global.DATOS_RECETAS],
+       ["plantillas", global.DATOS_PLANTILLAS], ["actividades", global.DATOS_ACTIVIDADES]
+      ].forEach(function (par) {
+        var clave = par[0], datos = par[1] || [];
+        if (!e[clave]) return;
+        var hay = {};
+        e[clave].forEach(function (x) { hay[x.id] = true; });
+        datos.forEach(function (x) {
+          if (!x || !x.id || hay[x.id]) return;
+          e[clave].push(JSON.parse(JSON.stringify(x)));
+          altas.push(x.n || x.nombre || x.id);
+        });
+      });
+      if (altas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Altas nuevas (" + altas.length + "): " + altas.join(", "));
+      }
+
+      /* Ingredientes: igual que las recetas. Rellenar lo que falta no basta cuando
+         un valor de la app cambia (la lubina pasó de salvaje a la de acuicultura que
+         compra Carlos): hay que SUSTITUIR, y para eso está `rev`. Lo que él haya
+         corregido en Despensa lleva `editado` y no se toca nunca. */
+      var ingSemilla = {};
+      (global.DATOS_INGREDIENTES || []).forEach(function (x) { if (x.rev) ingSemilla[x.id] = x; });
+      var ingRefrescados = [];
+      e.ingredientes.forEach(function (ing, i) {
+        var nuevo = ingSemilla[ing.id];
+        if (!nuevo || ing.editado) return;
+        if ((ing.rev || 1) >= nuevo.rev) return;
+        e.ingredientes[i] = JSON.parse(JSON.stringify(nuevo));
+        ingRefrescados.push(nuevo.n);
+      });
+      if (ingRefrescados.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Ingredientes actualizados: " + ingRefrescados.join(", "));
+      }
+
       /* Recetas: lo mismo que arriba pero al revés. Cuando mejoro una receta de la
          app le subo el campo `rev`, y aquí sustituyo la copia guardada por la nueva.
          Nunca toco una receta con `editado`: esa es tuya y manda sobre la mía. */
@@ -100,6 +164,17 @@
       if (refrescadas.length) {
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
         if (global.console) console.log("Recetas actualizadas: " + refrescadas.join(", "));
+      }
+
+      /* Los topes de sal viejos (2,0 y 1,5) venían de confundir miligramos de sodio
+         con gramos de sal, y apretaban 2,5 veces más de lo que Carlos quería. Se
+         suben a los que él fijó. Solo si siguen en los valores de fábrica: si los
+         ha cambiado a mano, mandan los suyos. */
+      if (e.config.limiteSal === 2.0 && e.config.avisoSal === 1.5) {
+        e.config.limiteSal = 4.0;
+        e.config.avisoSal = 2.0;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Topes de sal actualizados a 4,0 / 2,0 g.");
       }
 
       if (typeof e.config.objetivoKcal !== "number") e.config.objetivoKcal = 2000;
@@ -167,7 +242,10 @@
       return total;
     },
 
-    semaforo: function (sal) {
+    semaforo: function (sal, fecha) {
+      /* En un día de ruta el tope no se aplica: ese día se pierde más sodio
+         sudando del que el tope permite comer. Ver TIPOS_DIA. */
+      if (fecha && !this.fichaTipoDia(fecha).topeSal) return "libre";
       var c = this.estado.config;
       if (sal > c.limiteSal) return "rojo";
       if (sal > c.avisoSal) return "ambar";
@@ -386,11 +464,101 @@
     },
 
     /* ---------- plan ---------- */
-    diaVacio: function () { return { desayuno: [], almuerzo: [], comida: [], merienda: [], cena: [] }; },
+    /* ==================== TIPOS DE DÍA ====================
+       Un día no siempre se come igual. Los tres tipos cambian qué recetas
+       se ofrecen, si se aplica el tope de sal y qué entra en la compra.
+
+       «ruta» es el importante: en una jornada larga de monte o bici se pierde
+       MUCHO sodio sudando —unos 2,1 g de sal por litro de sudor, y en cuatro
+       horas se sudan dos o tres litros—, más de lo que el tope diario deja
+       comer. Restringir ese día no solo no ayuda: sudar mucho, beber agua sola
+       y comer poco sodio es el cuadro de la hiponatremia por ejercicio, y para
+       el oído es el mismo vaivén de osmolaridad que la dieta quiere evitar,
+       solo que hacia el otro lado. Por eso el semáforo de sal se apaga. */
+    TIPOS_DIA: {
+      casa:  { n: "En casa",            icono: "🏠", topeSal: true,  soloLlevables: false, comeFuera: [] },
+      ruta:  { n: "Ruta o bici larga",  icono: "🥾", topeSal: false, soloLlevables: true,  comeFuera: [] },
+      fuera: { n: "Come fuera",         icono: "🍽️", topeSal: true,  soloLlevables: false, comeFuera: ["comida"] }
+    },
+
+    tipoDia: function (fecha) {
+      var d = this.estado.plan[fecha];
+      var t = d && d.tipo;
+      return this.TIPOS_DIA[t] ? t : "casa";
+    },
+    ponerTipoDia: function (fecha, tipo) {
+      if (!this.TIPOS_DIA[tipo]) return;
+      var d = this.asegurarDia(fecha);
+      d.tipo = tipo;
+      this.guardar("tipo-dia");
+    },
+    fichaTipoDia: function (fecha) { return this.TIPOS_DIA[this.tipoDia(fecha)]; },
+
+    diaVacio: function () { return { tipo: "casa", desayuno: [], almuerzo: [], comida: [], merienda: [], cena: [] }; },
 
     asegurarDia: function (fecha) {
       if (!this.estado.plan[fecha]) this.estado.plan[fecha] = this.diaVacio();
+      if (!this.estado.plan[fecha].tipo) this.estado.plan[fecha].tipo = "casa";
       return this.estado.plan[fecha];
+    },
+
+    /* Recetas que se pueden meter en una mochila: se comen frías, no se
+       derraman y aguantan horas sin nevera. */
+    llevables: function () {
+      return this.estado.recetas.filter(function (r) { return r.llevable; });
+    },
+
+    /* Rellena un día entero con lo que le toca según su tipo. Respeta lo que
+       ya haya puesto: solo completa las tomas vacías. */
+    rellenarDia: function (fecha, plantillaId) {
+      var d = this.asegurarDia(fecha);
+      var ficha = this.fichaTipoDia(fecha);
+      var self = this;
+      var puesto = 0;
+
+      if (ficha.soloLlevables) {
+        var pool = this.llevables();
+        if (!pool.length) return 0;
+        Util.TOMAS.forEach(function (t) {
+          if ((d[t.k] || []).length) return;
+          var aptas = pool.filter(function (r) { return (r.tipo || []).indexOf(t.k) >= 0; });
+          if (!aptas.length) aptas = pool;
+          /* reparto estable: el mismo día siempre propone lo mismo */
+          var semilla = 0, s = fecha + t.k;
+          for (var i = 0; i < s.length; i++) semilla = (semilla * 31 + s.charCodeAt(i)) % 100000;
+          d[t.k] = [aptas[semilla % aptas.length].id];
+          puesto++;
+        });
+        /* El bidón entra SIEMPRE en un día de ruta: es el único sitio del
+           recetario donde reponer sodio es lo correcto, y si no se pone solo
+           se olvida justo el día que hace falta. */
+        var bid = "mochila_bebida_reposicion";
+        if (this.receta(bid)) {
+          var yaEsta = Util.TOMAS.some(function (t) { return (d[t.k] || []).indexOf(bid) >= 0; });
+          if (!yaEsta) { d.almuerzo.push(bid); puesto++; }
+        }
+      } else {
+        var p = null, plId = plantillaId || "A";
+        this.estado.plantillas.forEach(function (x) { if (x.id === plId) p = x; });
+        if (!p) return 0;
+        var idx = Util.diasEntre(Util.lunesDe(fecha), fecha);
+        var molde = p.dias[idx] || p.dias[0];
+        Util.TOMAS.forEach(function (t) {
+          if ((d[t.k] || []).length) return;
+          if (ficha.comeFuera.indexOf(t.k) >= 0) return;   // esa toma no se planifica
+          d[t.k] = (molde[t.k] || []).slice();
+          if (d[t.k].length) puesto++;
+        });
+      }
+      return puesto;
+    },
+
+    /* Rellena la semana entera respetando el tipo de cada día. */
+    rellenarSemana: function (lunesISO, plantillaId) {
+      var total = 0;
+      for (var i = 0; i < 7; i++) total += this.rellenarDia(Util.sumarDias(lunesISO, i), plantillaId);
+      if (total) this.guardar("rellenar");
+      return total;
     },
 
     aplicarPlantilla: function (plantillaId, lunesISO) {
@@ -400,13 +568,19 @@
       var self = this;
       p.dias.forEach(function (d, idx) {
         var fecha = Util.sumarDias(lunesISO, idx);
-        self.estado.plan[fecha] = {
-          desayuno: (d.desayuno || []).slice(),
-          almuerzo: (d.almuerzo || []).slice(),
-          comida: (d.comida || []).slice(),
-          merienda: (d.merienda || []).slice(),
-          cena: (d.cena || []).slice()
-        };
+        /* El tipo de día lo puso él y manda sobre la plantilla: no se pisa, y
+           las tomas que ese tipo no planifica se quedan vacías (así no acaban
+           en la lista de la compra comidas que va a hacer fuera). */
+        var tipo = self.tipoDia(fecha);
+        var ficha = self.TIPOS_DIA[tipo];
+        var nuevo = { tipo: tipo };
+        Util.TOMAS.forEach(function (t) {
+          var fuera = ficha.comeFuera.indexOf(t.k) >= 0;
+          nuevo[t.k] = (fuera || ficha.soloLlevables) ? [] : (d[t.k] || []).slice();
+        });
+        self.estado.plan[fecha] = nuevo;
+        /* un día de ruta no come de la plantilla: se rellena con la mochila */
+        if (ficha.soloLlevables) self.rellenarDia(fecha, plantillaId);
       });
       this.guardar("plantilla");
       return true;

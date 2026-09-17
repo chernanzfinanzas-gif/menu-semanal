@@ -16,7 +16,7 @@ window.DATOS_INGREDIENTES = [
   /* ---------- PESCADERÍA Y CONGELADOS ---------- */
   { id:"bacalao_natural",    n:"Lomo de bacalao al natural SIN SALAR (congelado)", cat:"Pescadería", u:"ud", pesoUd:130, sal:0.16, k:80, p:18, g:0.7, h:0, compra:"paquete", nota:"Nunca desalado ni en salazón" },
   { id:"merluza_lomo",       n:"Lomo de merluza fresca o congelada", cat:"Pescadería", u:"g", sal:0.25, k:72, p:17, g:0.8, h:0, compra:"lomos" },
-  { id:"lubina",             n:"Lubina fresca (entera o en lomos)",  cat:"Pescadería", u:"g", sal:0.25, k:100, p:19, g:2.5, h:0, compra:"pieza" },
+  { id:"lubina",             n:"Lomos de lubina congelados sin aditivos", rev:2, cat:"Pescadería", u:"g", sal:0.20, k:154, p:21, g:7.5, h:0, compra:"paquete", nota:"La Sirena Premium, paquete de 180 g. Ingrediente único: lubina. Rechaza los que lleven polifosfatos (E-451/E-452), salmuera o sal añadida" },
   { id:"calamar_fresco",     n:"Calamar fresco limpio",              cat:"Pescadería", u:"g", sal:0.25, k:80, p:16, g:1.3, h:1.5, compra:"pieza" },
   { id:"salmon_lomo",        n:"Lomo de salmón fresco o congelado",  cat:"Pescadería", u:"g", sal:0.15, k:200, p:20, g:13, h:0, compra:"lomos" },
   { id:"atun_fresco",        n:"Atún fresco (lomo)",                 cat:"Pescadería", u:"g", sal:0.15, k:145, p:23, g:5, h:0, compra:"pieza" },
@@ -54,6 +54,10 @@ window.DATOS_INGREDIENTES = [
   { id:"huevo",            n:"Huevos",                               cat:"Lácteos y huevos", u:"ud", pesoUd:55, sal:0.35, k:143, p:13, g:9.5, h:0.7 },
 
   /* ---------- PANADERÍA ---------- */
+  { id:"pan_ortiz",        n:"Pan tostado Ortiz estilo tradicional (rebanada 10,8 g)", rev:1, cat:"Panadería", u:"ud", pesoUd:10.8, sal:1.40, k:399, p:11, g:6.8, h:70, compra:"paquete", nota:"1,4 g de sal por 100 g: es de lo más salado que entra en la dieta. Mira el apartado del pan en la receta" },
+  { id:"pan_tostado_sinsal", n:"Pan tostado INTEGRAL SIN SAL (rebanada 10,8 g)", rev:1, cat:"Panadería", u:"ud", pesoUd:10.8, sal:0.03, k:373, p:14, g:4.8, h:64, compra:"paquete", nota:"Recondo integral sin sal ni azúcar añadidos, en Carrefour (270 g, unos 2,55 €). 0,03 g de sal por 100 g: 47 veces menos que el Ortiz" },
+  { id:"pan_ortiz_bajosal", n:"Pan tostado 100% integral BAJO EN SAL (rebanada 10,8 g)", rev:1, cat:"Panadería", u:"ud", pesoUd:10.8, sal:0.20, k:388, p:17.7, g:11, h:47, compra:"paquete", nota:"Hacendado, 0,2 g de sal/100 g. Más proteína que el Recondo, pero siete veces más sal" },
+  { id:"leche_desnatada",  n:"Leche desnatada", rev:1, cat:"Lácteos y huevos", u:"ml", sal:0.13, k:35, p:3.4, g:0.3, h:4.9, basico:true },
   { id:"pan_sin_sal",      n:"Pan artesanal SIN SAL (barra o rebanadas congeladas)", cat:"Panadería", u:"ud", pesoUd:40, sal:0.05, k:265, p:8.5, g:1.5, h:52, nota:"Encargar en panadería; congelar en rebanadas" },
 
   /* ---------- DESPENSA ---------- */
@@ -71,6 +75,16 @@ window.DATOS_INGREDIENTES = [
   { id:"aceite_sesamo",  n:"Aceite de sésamo",             cat:"Despensa", u:"ml", sal:0.00, k:900, p:0, g:100, h:0, basico:true },
   { id:"mostaza_bajasal",n:"Mostaza a la antigua baja en sal (o semillas de mostaza)", cat:"Despensa", u:"g", sal:1.00, k:66, p:4, g:4, h:5, basico:true },
   { id:"cafe_desca",     n:"Café descafeinado",            cat:"Despensa", u:"g",  sal:0.00, k:0, p:0, g:0, h:0, basico:true },
+
+  /* ---------- MOCHILA: lo que va a la ruta ---------- */
+  { id:"datiles",        n:"Dátiles sin hueso",            rev:1, cat:"Despensa", u:"g", sal:0.00, k:277, p:1.8, g:0.2, h:66, nota:"Los Medjool van mejor para amasar; los secos de bolsa valen y son más baratos" },
+  { id:"orejones",       n:"Orejones de albaricoque",      rev:1, cat:"Despensa", u:"g", sal:0.03, k:241, p:3.4, g:0.5, h:53 },
+  { id:"pasas",          n:"Pasas sultanas",               rev:1, cat:"Despensa", u:"g", sal:0.03, k:299, p:3.1, g:0.5, h:71 },
+  { id:"almendras",      n:"Almendras crudas sin sal",     rev:1, cat:"Despensa", u:"g", sal:0.01, k:579, p:21, g:50, h:9 },
+  { id:"crema_cacahuete",n:"Crema de cacahuete 100% sin sal ni azúcar", rev:1, cat:"Despensa", u:"g", sal:0.02, k:588, p:25, g:50, h:16,
+    nota:"Mira la etiqueta: la corriente lleva de 0,5 a 1,2 g de sal por 100 g. La buena solo pone «cacahuete 100%»" },
+  { id:"sal",            n:"Sal fina",                     rev:1, cat:"Despensa", u:"g", sal:100, k:0, p:0, g:0, h:0, basico:true,
+    nota:"En todo el recetario solo aparece aquí: en la bebida de reposición de los días de ruta" },
 
   /* ---------- ESPECIAS Y AROMÁTICOS (sodio despreciable) ---------- */
   { id:"pimenton",   n:"Pimentón de la Vera (dulce o ahumado)", cat:"Especias y aromáticos", u:"g", sal:0.10, k:280, p:14, g:13, h:34, basico:true },

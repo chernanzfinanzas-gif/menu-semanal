@@ -190,9 +190,11 @@
       var dia0 = Almacen.estado.plan[f];
       var hay = false;
       if (dia0) Util.TOMAS.forEach(function (t) { if ((dia0[t.k] || []).length) hay = true; });
-      var punto = !hay ? "vacio" : Almacen.semaforo(Almacen.salDia(f));
+      var punto = !hay ? "vacio" : Almacen.semaforo(Almacen.salDia(f), f);
+      var tipo0 = Almacen.tipoDia(f);
       sel += '<button data-dia="' + d + '"' + (d === UI.diaActivo ? ' class="activo"' : '') + '>' +
              ABREV[d] +
+             (tipo0 !== "casa" ? '<span class="marca-tipo">' + Almacen.TIPOS_DIA[tipo0].icono + '</span>' : '') +
              '<span class="num">' + Util.desdeISO(f).getDate() + '</span>' +
              '<span class="punto ' + punto + '"></span></button>';
     }
@@ -216,7 +218,9 @@
       var fecha = Util.sumarDias(UI.lunes, i);
       var dia = Almacen.estado.plan[fecha];
       var sal = Almacen.salDia(fecha);
-      var color = Almacen.semaforo(sal);
+      var color = Almacen.semaforo(sal, fecha);
+      var tipo = Almacen.tipoDia(fecha);
+      var fichaT = Almacen.TIPOS_DIA[tipo];
       var tieneAlgo = false;
       if (dia) Util.TOMAS.forEach(function (t) { if ((dia[t.k] || []).length) tieneAlgo = true; });
 
@@ -231,8 +235,29 @@
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
               '<span class="fecha">' + Util.etiquetaFecha(fecha) + '</span>' +
               (tieneAlgo ? '<span class="chip-sal ' + colorK + '">' + Util.kcal(nutr.k) + '</span>' +
-                           '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal</span>' : '') +
+                           '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal' +
+                           (color === "libre" ? ' · sin tope' : '') + '</span>' : '') +
               '</header>';
+
+      /* tipo de día: se elige ANTES de rellenar, porque manda sobre todo lo demás */
+      html += '<div class="tipo-dia solo-edicion">';
+      Object.keys(Almacen.TIPOS_DIA).forEach(function (k) {
+        var t = Almacen.TIPOS_DIA[k];
+        html += '<button class="pest-tipo' + (k === tipo ? " activo" : "") + '" ' +
+                'data-tipodia="' + fecha + '|' + k + '" title="' + esc(t.n) + '">' +
+                t.icono + ' <span>' + esc(t.n) + '</span></button>';
+      });
+      html += '<button class="btn mini rellenar-dia" data-rellenar="' + fecha + '" ' +
+              'title="Completa las tomas vacías de este día">Rellenar</button>';
+      html += '</div>';
+
+      if (tipo === "ruta") {
+        html += '<div class="nota-tipo">Día de ruta: solo comida de mochila y <b>sin tope de sal</b>. ' +
+                'Sudando se pierden unos 2,1 g de sal por litro, más de lo que cabe en el tope de un día normal.</div>';
+      } else if (fichaT.comeFuera.length) {
+        html += '<div class="nota-tipo">Comes fuera: la ' + fichaT.comeFuera.join(" y la ") +
+                ' no se planifica ni entra en la lista de la compra.</div>';
+      }
 
       if (tieneAlgo) {
         var pct = objetivo ? Math.min(100, Math.round((hayComido ? nutrCom.k : nutr.k) / objetivo * 100)) : 0;
@@ -256,7 +281,8 @@
         html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
                 '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button></div>';
         if (!platos.length) {
-          html += '<div class="nota-peque">—</div>';
+          html += '<div class="nota-peque">' +
+                  (fichaT.comeFuera.indexOf(t.k) >= 0 ? "Fuera de casa" : "—") + '</div>';
         } else {
           platos.forEach(function (rid, idx) {
             var r = Almacen.receta(rid);
@@ -307,8 +333,20 @@
   function abrirSelector(fecha, toma) {
     var todas = Almacen.estado.recetas.slice()
       .sort(function (a, b) { return a.n.localeCompare(b.n); });
-    var propias = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) >= 0; });
-    var resto   = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) < 0; });
+    /* En un día de ruta lo que manda no es la toma, es si cabe en la mochila. */
+    var ruta = Almacen.fichaTipoDia(fecha).soloLlevables;
+    var propias, resto, rotuloA, rotuloB;
+    if (ruta) {
+      propias = todas.filter(function (r) { return r.llevable; });
+      resto   = todas.filter(function (r) { return !r.llevable; });
+      rotuloA = "Para la mochila — se comen frías y aguantan el día";
+      rotuloB = "El resto — hay que cocinarlas, no valen para la ruta";
+    } else {
+      propias = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) >= 0; });
+      resto   = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) < 0; });
+      rotuloA = "Pensadas para " + toma;
+      rotuloB = "El resto del recetario — sírvete, las tomas son una sugerencia";
+    }
 
     function boton(r) {
       var t = toolsOrdenadas(r.tools)[0];
@@ -322,12 +360,11 @@
     html += '<input type="text" id="filtro-selector" placeholder="Filtrar…">';
     html += '<div class="lista-selec" id="lista-selector">';
     if (propias.length) {
-      html += '<p class="separador-selec" data-nombre="">Pensadas para ' + esc(toma) + '</p>';
+      html += '<p class="separador-selec" data-nombre="">' + esc(rotuloA) + '</p>';
       propias.forEach(function (r) { html += boton(r); });
     }
     if (resto.length) {
-      html += '<p class="separador-selec" data-nombre="">El resto del recetario — ' +
-              'sírvete, las tomas son una sugerencia</p>';
+      html += '<p class="separador-selec" data-nombre="">' + esc(rotuloB) + '</p>';
       resto.forEach(function (r) { html += boton(r); });
     }
     html += '</div>';
@@ -815,6 +852,7 @@
       if ($("#ig-basico").checked) res.basico = true;
       if (g.nota) res.nota = g.nota;
       if (g.compra) res.compra = g.compra;
+      res.editado = true;          /* a partir de ahora manda el tuyo: no lo piso */
 
       var idx = -1;
       Almacen.estado.ingredientes.forEach(function (x, i) { if (x.id === res.id) idx = i; });
@@ -835,6 +873,8 @@
       if (f.grupo && r.grupo !== f.grupo) return false;
       if (f.tool === "__preferidas") {
         if (!toolsOrdenadas(r.tools).some(function (t) { return TOOLS_PREFERIDAS[t]; })) return false;
+      } else if (f.tool === "__mochila") {
+        if (!r.llevable) return false;
       } else if (f.tool && (r.tools || []).indexOf(f.tool) < 0) return false;
       if (f.texto) {
         var q = f.texto.toLowerCase();
@@ -1128,7 +1168,30 @@
       Util.toast("Plantilla guardada");
     });
 
+    $("#rellenar-semana").addEventListener("click", function () {
+      var n = Almacen.rellenarSemana(UI.lunes, "A");
+      pintarMenu();
+      Util.toast(n ? "Rellenadas " + n + " toma" + (n === 1 ? "" : "s") + " vacía" + (n === 1 ? "" : "s")
+                   : "No había huecos que rellenar");
+    });
+
     $("#rejilla-dias").addEventListener("click", function (e) {
+      var tip = e.target.closest("[data-tipodia]");
+      if (tip) {
+        var pt = tip.getAttribute("data-tipodia").split("|");
+        Almacen.ponerTipoDia(pt[0], pt[1]);
+        pintarMenu();
+        return;
+      }
+      var rel = e.target.closest("[data-rellenar]");
+      if (rel) {
+        var f2 = rel.getAttribute("data-rellenar");
+        var n2 = Almacen.rellenarDia(f2, "A");
+        if (n2) Almacen.guardar("rellenar");
+        pintarMenu();
+        Util.toast(n2 ? "Rellenadas " + n2 + " toma" + (n2 === 1 ? "" : "s") : "Ese día ya está completo");
+        return;
+      }
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
       var act = e.target.closest("[data-actividad]");
@@ -1313,8 +1376,8 @@
     $("#guardar-cocina").addEventListener("click", function () {
       var c = Almacen.estado.config;
       c.personas = parseInt($("#cfg-personas").value, 10) || 1;
-      c.avisoSal = parseFloat($("#cfg-aviso").value) || 1.5;
-      c.limiteSal = parseFloat($("#cfg-limite").value) || 2.0;
+      c.avisoSal = parseFloat($("#cfg-aviso").value) || 2.0;
+      c.limiteSal = parseFloat($("#cfg-limite").value) || 4.0;
       c.objetivoKcal = parseInt($("#cfg-kcal").value, 10) || 2000;
       c.objetivoProt = parseInt($("#cfg-prot").value, 10) || 90;
       c.margenKcal = parseInt($("#cfg-margen").value, 10);

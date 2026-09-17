@@ -33,6 +33,13 @@
       return this.aISO(d);
     },
 
+    /* Días enteros de "desde" a "hasta" (mediodía para esquivar el cambio de hora). */
+    diasEntre: function (desdeISO, hastaISO) {
+      var a = this.desdeISO(desdeISO), b = this.desdeISO(hastaISO);
+      a.setHours(12, 0, 0, 0); b.setHours(12, 0, 0, 0);
+      return Math.round((b - a) / 86400000);
+    },
+
     lunesDe: function (iso) {
       var d = this.desdeISO(iso);
       var dia = d.getDay();               // 0 domingo

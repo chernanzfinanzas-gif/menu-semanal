@@ -8,282 +8,733 @@ window.DATOS_RECETAS = [
 /* ============================ DESAYUNOS ============================ */
 {
   id:"des_tostada_tomate", n:"Tostada de pan sin sal con tomate y AOVE",
-  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:5, tools:["sin-cocinar"],
-  ing:[{i:"pan_sin_sal",c:1},{i:"tomate",c:0.5},{i:"aove",c:8},{i:"cafe_desca",c:8},{i:"leche",c:100}],
+  rev:2,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:6, tools:["airfryer"],
+  ing:[{i:"pan_sin_sal",c:1},{i:"tomate",c:0.5},{i:"requeson",c:60},{i:"aove",c:8},{i:"cafe_desca",c:8},{i:"leche_desnatada",c:150}],
   pasos:[
-    "Tuesta la rebanada de pan sin sal (sale directa del congelador al tostador).",
-    "Ralla medio tomate maduro y escúrrelo un poco.",
-    "Extiende el tomate sobre el pan y riega con un hilo de aceite de oliva virgen extra.",
-    "Acompaña con el café descafeinado con leche."
+    "La rebanada sale directa del congelador: no hace falta descongelarla.",
+    {min:0, t:"Pan a la freidora — 180 °C, 5 minutos",
+     d:"Congelado y sin más. Sale más crujiente que en el tostador, porque el aire lo seca por los cuatro lados en vez de quemarlo por dos. Y si tienes tostadora, también vale: aquí la freidora gana poco."},
+    {min:1, t:"Mientras: ralla medio tomate maduro y escúrrelo un poco",
+     d:"Escurrido, porque el agua del tomate empapa el pan y a los dos minutos tienes una sopa."},
+    {min:5, t:"Tomate sobre el pan y el aceite en hilo por encima",
+     d:"El aceite al final y en crudo: es lo que liga el tomate al pan y lo que más sabor aporta en un desayuno sin sal."},
+    "El requesón al lado, y el café descafeinado con la leche."
   ],
-  nota:"Variante: en lugar de tomate, requesón con una pizca de orégano."
+  trucos:[
+    "EL REQUESÓN ES LO QUE CONVIERTE ESTO EN UN DESAYUNO. Solo pan y tomate son 4 g de proteína, que a media mañana no sujetan nada. Con 60 g de requesón sube a 11 y con la leche a 16.",
+    "Pan SIN SAL, de panadería y congelado en rebanadas. El pan normal lleva 1,3 g de sal por 100 g: una rebanada de 40 g son 0,5 g, la mitad de lo que aporta todo el resto de tu desayuno.",
+    "Tomate maduro de verdad. En un desayuno sin sal, el ácido y el dulzor del tomate son todo lo que hay: uno verde no aporta nada.",
+    "Si prefieres el requesón encima del pan en vez de al lado, ponlo ANTES que el tomate: hace de barrera y el pan aguanta crujiente más rato.",
+    "Variante salada sin cambiar nada: requesón con una pizca de orégano en lugar del tomate."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Es el único de los desayunos que gana algo pasando a la freidora, y poco: la tostadora hace casi lo mismo."
 },
 {
   id:"des_porridge_manzana", n:"Porridge de manzana y canela",
-  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:5, tools:["microondas"],
-  ing:[{i:"copos_avena",c:30},{i:"leche",c:170},{i:"manzana_reineta",c:0.5},{i:"canela",c:1},{i:"nueces",c:10},{i:"cafe_desca",c:8}],
+  rev:2,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:6, tools:["microondas"],
+  ing:[{i:"copos_avena",c:30},{i:"leche_desnatada",c:170},{i:"manzana_reineta",c:0.5},{i:"canela",c:1},{i:"nueces",c:10},{i:"cafe_desca",c:8}],
   pasos:[
-    "Corta media manzana en dados pequeños (o rállala).",
-    "En un bol, mezcla los copos de avena, la leche, la manzana y una pizca generosa de canela.",
-    "Microondas 1,5–2 minutos a potencia media-alta.",
-    "Remueve y deja reposar 1 minuto: espesará solo.",
-    "Añade las nueces troceadas por encima."
-  ]
+    "Media manzana en dados pequeños, con piel. Rallada también vale y queda más integrada.",
+    "En un bol HONDO —que quepa el doble de lo que echas— mezcla la avena, la leche, la manzana y la canela.",
+    {min:0, t:"Microondas — 800 W, 2 minutos",
+     d:"El bol hondo no es capricho: la avena con leche sube como la espuma y se desborda con una facilidad pasmosa. Si ves que sube, abre y remueve."},
+    {min:2, t:"Remueve y deja reposar 1 minuto",
+     d:"El minuto de reposo es cuando espesa de verdad. Recién salido parece líquido y te lleva a añadir más avena; espera y estará."},
+    {min:3, t:"Las nueces troceadas por encima",
+     d:"Al final y sin cocinar: dentro se ablandan y pierden lo único que aportan de textura."},
+    "Café descafeinado al lado."
+  ],
+  trucos:[
+    "BOL HONDO Y VIGILAR. Es lo único que puede salir mal en esta receta, y sale mal a menudo.",
+    "La canela generosa, más de lo que te parezca. Aporta un dulzor aromático que permite no echar azúcar ni miel, y con la manzana es la combinación de siempre.",
+    "Reineta o golden: se deshacen con el calor y endulzan. Una fuji o una royal gala se quedan enteras y crujientes, que también vale pero es otro plato.",
+    "Leche desnatada en vez de la semi: mismos gramos de proteína y unas 25 kcal menos en los 170 ml.",
+    "10 g de nueces son 65 kcal. Parece poco puñado, pero la nuez es de lo más calórico que hay: en su día ya recortamos de 25 a 10 g por esto mismo."
+  ],
+  nota:"El microondas es el aparato correcto aquí: un porridge es avena hidratándose en leche caliente, no hay nada que dorar."
 },
 {
   id:"des_porridge_cacao", n:"Porridge templado de plátano y cacao puro",
-  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:5, tools:["microondas"],
-  ing:[{i:"copos_avena",c:30},{i:"leche",c:170},{i:"platano",c:0.5},{i:"cacao_puro",c:5},{i:"canela",c:0.5},{i:"cafe_desca",c:8}],
+  rev:2,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:6, tools:["microondas"],
+  ing:[{i:"copos_avena",c:30},{i:"leche_desnatada",c:170},{i:"platano",c:0.5},{i:"cacao_puro",c:5},{i:"canela",c:0.5},{i:"cafe_desca",c:8}],
   pasos:[
-    "Machaca medio plátano maduro con un tenedor en el propio bol hasta hacerlo puré.",
-    "Añade la avena, el cacao puro y la leche. Remueve EN FRÍO hasta que el cacao se disuelva.",
-    "Microondas 1,5–2 minutos a potencia media-alta.",
-    "Remueve bien y deja reposar 1 minuto. Si queda espeso, un chorrito de leche fría.",
-    "Termina con unas rodajas del resto del plátano por encima."
+    "Machaca medio plátano MUY maduro con un tenedor en el propio bol, hasta puré. Uno con motas marrones: cuanto más maduro, más dulce y menos amargo queda.",
+    "Añade la avena, el cacao y la leche, y remueve EN FRÍO hasta que el cacao se disuelva del todo.",
+    {min:0, t:"Microondas — 800 W, 2 minutos, en bol hondo",
+     d:"El cacao SE DISUELVE EN FRÍO, antes de calentar. Echado sobre la leche caliente se apelmaza en grumos que ya no se deshacen."},
+    {min:2, t:"Remueve y deja reposar 1 minuto",
+     d:"Si queda muy espeso, un chorrito de leche fría al remover."},
+    {min:3, t:"Las rodajas del resto del plátano por encima",
+     d:"En crudo y al final, para tener dos texturas."},
+    "Café descafeinado al lado."
   ],
-  nota:"El plátano bien maduro (con motas) neutraliza el amargor del cacao sin añadir azúcar."
+  trucos:[
+    "EL CACAO, EN FRÍO Y ANTES DE CALENTAR. Es el único truco de esta receta y el que separa un porridge cremoso de uno con grumos.",
+    "Cacao PURO desgrasado, no soluble tipo Cola Cao ni Nesquik: esos son azúcar con un poco de cacao, y además suelen llevar sal.",
+    "El plátano con motas marrones. Cuanto más maduro, más azúcar libre tiene y menos se nota el amargor del cacao puro. Uno verde arruina el desayuno.",
+    "Bol hondo, que sube. La avena con leche se desborda con muchísima facilidad en el microondas.",
+    "5 g de cacao puro son 20 kcal y aportan hierro y magnesio. Es de los añadidos más rentables del recetario."
+  ],
+  nota:"Microondas a 800 W. El plátano maduro y el cacao puro juntos permiten un desayuno de sabor a chocolate sin una pizca de azúcar añadido."
 },
 {
   id:"des_porridge_rojos", n:"Porridge de frutos rojos y ralladura de limón",
-  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:5, tools:["microondas"],
-  ing:[{i:"copos_avena",c:30},{i:"leche",c:170},{i:"arandanos",c:60},{i:"limon",c:0.2},{i:"cafe_desca",c:8}],
+  rev:2,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:6, tools:["microondas"],
+  ing:[{i:"copos_avena",c:30},{i:"leche_desnatada",c:170},{i:"arandanos",c:60},{i:"requeson",c:60},{i:"limon",c:0.2},{i:"cafe_desca",c:8}],
   pasos:[
-    "Cocina la avena con la leche y una pizca de ralladura de limón (solo la parte amarilla) 1,5–2 min al microondas.",
-    "Remueve y deja reposar 1 minuto.",
-    "Echa los frutos rojos por encima en caliente: soltarán su jugo y su color."
-  ]
+    "Ralla un poco de piel de limón, SOLO la parte amarilla. La blanca de debajo amarga y no hay forma de quitarlo después.",
+    "Avena, leche y ralladura en un bol hondo.",
+    {min:0, t:"Microondas — 800 W, 2 minutos",
+     d:"Bol hondo: sube muchísimo."},
+    {min:2, t:"Remueve y deja reposar 1 minuto",
+     d:"Es cuando espesa. Recién salido siempre parece demasiado líquido."},
+    {min:3, t:"Los frutos rojos por encima EN CALIENTE",
+     d:"En caliente y sin remover mucho: el calor los revienta un poco y sueltan el jugo y el color sobre la avena, que es media gracia del plato."},
+    "El requesón a cucharadas al lado, y el café descafeinado."
+  ],
+  trucos:[
+    "EL REQUESÓN ES LA PROTEÍNA QUE FALTABA. Este porridge se quedaba en 9 g, el más flojo de los tres; con 60 g de requesón sube a 16.",
+    "Solo la parte amarilla del limón. La ralladura es lo que levanta este desayuno, pero si arrastras lo blanco amarga todo el bol.",
+    "Arándanos congelados van perfectamente y salen mucho más baratos. Directos del congelador sobre la avena caliente.",
+    "Ni azúcar ni miel. El arándano y el limón juntos dan acidez y dulzor de sobra; si te sabe soso, más ralladura antes que azúcar.",
+    "Bol hondo. Es la advertencia de los tres porridges y la que más se olvida."
+  ],
+  nota:"Microondas a 800 W. El más ácido de los tres desayunos de avena, y el que mejor entra en verano."
 },
 {
   id:"des_overnight", n:"Porridge frío sin cocinar (overnight oats)",
   tipo:["desayuno"], grupo:"desayuno", raciones:1, min:3, tools:["sin-cocinar"],
   ing:[{i:"copos_avena",c:30},{i:"leche",c:150},{i:"chia",c:5},{i:"miel",c:7},{i:"mango",c:0.25},{i:"nueces",c:10},{i:"cafe_desca",c:8}],
   pasos:[
-    "LA NOCHE ANTES: en un tarro de cristal con tapa, mezcla la avena, la leche, la chía y la miel.",
-    "Remueve bien para que no quede avena seca en el fondo. Tapa y a la nevera (mínimo 6 horas).",
-    "POR LA MAÑANA: remueve, añade la fruta troceada y las nueces picadas. Se come del propio tarro."
+    "LA NOCHE ANTES, en un tarro de cristal con tapa: la avena, la leche, la chía y la miel.",
+    "Remueve A FONDO, llegando al fondo del tarro. La avena seca que quede abajo sigue seca por la mañana, y es el fallo típico de esta receta.",
+    "Tapa y a la nevera. Mínimo 6 horas; de 8 a 12 está en su punto.",
+    "POR LA MAÑANA: remueve, añade el mango en dados y las nueces picadas. Se come del propio tarro y no se friega nada."
   ],
-  nota:"Deja dos o tres tarros hechos de una vez y tienes la semana resuelta."
+  trucos:[
+    "HAZ TRES O CUATRO TARROS DE GOLPE. Aguantan cuatro días en la nevera y tienes media semana de desayunos resueltos sin tocar nada por la mañana. De todo el recetario, es lo que mejor encaja con hacer el trabajo una vez en lugar de cada día.",
+    "La chía no es un capricho: absorbe diez veces su peso en líquido y es lo que da la textura de natillas. Sin ella queda avena en leche fría, que no es lo mismo.",
+    "La fruta y las nueces SIEMPRE por la mañana. Dentro del tarro toda la noche, la fruta suelta agua y las nueces se ablandan.",
+    "Tarro de cristal con tapa hermética, tipo bote de mermelada. No hace falta comprar nada.",
+    "Si lo quieres más espeso, 10 ml menos de leche. Si más líquido, al revés: es la única variable que hay que tocar."
+  ],
+  nota:"El desayuno de cero minutos por la mañana. Deja dos o tres tarros hechos y tienes la semana resuelta."
 },
 {
   id:"des_tortitas_avena", n:"Tortitas rápidas de avena y huevo",
-  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:8, tools:["sarten"],
-  ing:[{i:"huevo",c:1},{i:"copos_avena",c:35},{i:"leche",c:50},{i:"platano",c:0.5},{i:"canela",c:1},{i:"aove",c:5},{i:"cafe_desca",c:8}],
+  rev:2,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:10, tools:["sarten"],
+  ing:[{i:"huevo",c:1},{i:"copos_avena",c:35},{i:"leche",c:50},{i:"requeson",c:60},{i:"platano",c:0.5},{i:"canela",c:1},{i:"aove",c:5},{i:"cafe_desca",c:8}],
   pasos:[
-    "Bate el huevo con la avena, la leche y la canela hasta tener una masa espesa.",
-    "Sartén antiadherente caliente con unas gotas de aceite: vierte la masa en 2–3 tortitas.",
-    "Dora 1 minuto por cada lado.",
-    "Sirve con rodajas de plátano (o requesón si las prefieres saladas)."
-  ]
+    "Bate el huevo con la avena, la leche y la canela hasta tener una masa espesa que caiga de la cuchara a trozos, no como un hilo.",
+    {min:0, t:"DEJA REPOSAR LA MASA 5 MINUTOS",
+     d:"Cinco minutos y no te los saltes: la avena tiene que beberse la leche. Sin reposo la masa queda líquida, se extiende por la sartén y salen obleas en vez de tortitas."},
+    {min:5, t:"Sartén antiadherente a fuego MEDIO con unas gotas de aceite",
+     d:"Medio, no fuerte. Una tortita a fuego alto se quema por fuera con el centro crudo, y aquí el centro lleva huevo."},
+    {min:6, t:"Tres montoncitos de masa, separados — 1 minuto y medio por cada lado",
+     d:"Separados, porque se extienden un poco. Dales la vuelta cuando veas burbujas en la superficie y los bordes se vean secos: esa es la señal, no el reloj."},
+    {min:10, t:"Fuera",
+     d:"Tienen que quedar doradas por fuera y tiernas dentro. Si las aprietas con la espátula pierden el aire y se quedan como una suela."},
+    "Sirve con el plátano en rodajas, el requesón y canela por encima. Café descafeinado."
+  ],
+  trucos:[
+    "ESTAS SE QUEDAN EN SARTÉN, sin discusión. Una tortita necesita contacto directo con el metal para dorarse en noventa segundos; en la freidora el aire la secaría antes de dorarla y saldría una galleta.",
+    "EL REPOSO DE 5 MINUTOS ES LA RECETA. Es lo único que separa unas tortitas de unas obleas. Aprovecha para prepararte el café.",
+    "Las burbujas mandan sobre el reloj. Cuando la superficie se llena de burbujitas y los bordes pierden el brillo, es el momento de darles la vuelta.",
+    "El requesón las convierte en un desayuno de verdad: sin él son 14 g de proteína y con él, 21. Y va bien tanto con el plátano como si las quieres saladas.",
+    "La canela no es solo sabor: aporta un dulzor aromático que permite no echar azúcar ni miel.",
+    "Dobla la masa y guarda la mitad en la nevera: al día siguiente está igual de bien y el desayuno son 5 minutos."
+  ],
+  nota:"Único plato del recetario que usa solo la sartén, y es lo correcto: las tortitas se doran por contacto."
 },
 {
   id:"des_huevos_revueltos", n:"Huevos revueltos con hierbas",
-  tipo:["desayuno","cena"], grupo:"huevos", raciones:1, min:6, tools:["sarten"],
-  ing:[{i:"huevo",c:2},{i:"aove",c:8},{i:"oregano",c:0.5},{i:"pimienta",c:0.3},{i:"tomate",c:0.5},{i:"cafe_desca",c:8}],
+  rev:2,
+  cesta:["tomate"],
+  tipo:["desayuno","cena"], grupo:"huevos", raciones:1, min:14, tools:["airfryer","sarten"],
+  ing:[{i:"huevo",c:2},{i:"requeson",c:60},{i:"aove",c:8},{i:"oregano",c:0.5},{i:"pimienta",c:0.3},{i:"tomate",c:1},{i:"cafe_desca",c:8}],
   pasos:[
-    "Bate los huevos con orégano y pimienta negra recién molida.",
-    "Sartén a fuego BAJO con un poco de aceite: cuaja removiendo despacio para que queden cremosos.",
-    "Acompaña con una rodaja gruesa de tomate con un hilo de aceite."
-  ]
+    "Tomate en cuatro gajos gruesos con 4 ml del aceite y el orégano.",
+    {min:0, t:"Tomate a la freidora — 180 °C, 12 minutos",
+     d:"Mientras se hace, tú no tienes nada que hacer: prepárate el café. El tomate asado concentra su azúcar y es lo que da sabor a un plato sin sal."},
+    {min:10, t:"Bate los huevos con la pimienta",
+     d:"Bátelos poco, hasta que la yema y la clara se junten y nada más. Batidos en exceso quedan gomosos al cuajar."},
+    {min:11, t:"Sartén a fuego BAJO con los 4 ml que quedan — cuaja removiendo despacio",
+     d:"Bajo de verdad. La diferencia entre unos huevos revueltos cremosos y unos grumos secos es solo la temperatura y la paciencia: tres minutos removiendo sin parar."},
+    {min:14, t:"Sácalos cuando aún te parezcan poco hechos",
+     d:"Siguen cuajando en el plato. Lo que sacas cremoso llega en su punto; lo que sacas en su punto llega seco."},
+    "El requesón a cucharadas al lado y el tomate asado. Café descafeinado."
+  ],
+  trucos:[
+    "EL REQUESÓN SUBE LA PROTEÍNA DE 14 A 21 g. Dos huevos solos se quedan cortos, y por cada 10 g de proteína el requesón trae un 59% menos de sal que el huevo.",
+    "Esta receta vale para desayuno y para cena. De desayuno, con el café; de cena, con una rebanada de pan sin sal.",
+    "SI ES DESAYUNO Y TIENES PRISA, salta el tomate asado y ponlo crudo en rodajas: el plato baja a 4 minutos. O usa tomate que hayas asado el fin de semana, que aguanta cuatro días.",
+    "Fuego bajo y removiendo. Es toda la técnica que tiene este plato, y es la que casi nadie respeta.",
+    "El orégano va en el huevo batido, no por encima al final: necesita el calor para soltar el aroma."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. El tomate asado es opcional si tienes prisa, pero es lo que convierte unos huevos en un plato."
 },
 {
   id:"des_batido", n:"Batido saciante de fruta, leche y avena",
   tipo:["desayuno"], grupo:"desayuno", raciones:1, min:2, tools:["sin-cocinar"],
   ing:[{i:"leche",c:200},{i:"platano",c:0.5},{i:"copos_avena",c:20},{i:"nueces",c:10},{i:"cafe_desca",c:8}],
-  pasos:["Tritura todo en la batidora 30 segundos y listo."],
-  nota:"Para las mañanas con prisa."
+  pasos:[
+    "Todo al vaso de la batidora: la leche primero, luego el plátano, la avena y las nueces.",
+    "Tritura 30 segundos largos. Menos tiempo y la avena se queda en trocitos que se notan al beber.",
+    "Si lo quieres frío de verdad, el plátano congelado en rodajas: enfría sin aguarlo, que es lo que pasa con el hielo."
+  ],
+  trucos:[
+    "LA LECHE PRIMERO, SIEMPRE. Con los sólidos abajo las cuchillas se atascan y la batidora sufre. Es el orden correcto en cualquier batido.",
+    "Ten medio plátano congelado en rodajas. Es el truco que convierte este batido en algo apetecible en verano, y de paso aprovecha los plátanos que se te pasan.",
+    "La avena cruda en el batido se digiere bien y aporta la fibra que hace que esto aguante hasta la comida. Sin ella son calorías líquidas que no sacian.",
+    "30 segundos largos. Es la diferencia entre un batido cremoso y uno con grumos de avena.",
+    "Con leche desnatada en vez de semi son unas 22 kcal menos y la misma proteína."
+  ],
+  nota:"Dos minutos de principio a fin. Para las mañanas con prisa de verdad."
 },
 
 /* ==================== ALMUERZO Y MERIENDA ==================== */
 {
   id:"snack_fruta_nueces", n:"Fruta fresca con nueces",
+  rev:2, llevable:true,
   tipo:["almuerzo","merienda"], grupo:"fruta", raciones:1, min:1, tools:["sin-cocinar"],
   ing:[{i:"fruta_temporada",c:1},{i:"nueces",c:10}],
-  pasos:["Una pieza de fruta de temporada y un puñado de nueces crudas sin sal."]
+  pasos:[
+    "Una pieza de fruta de temporada, la que haya y esté madura.",
+    "10 g de nueces crudas SIN SAL, que son unas tres o cuatro mitades. Se quedan cortas a la vista y es la cantidad correcta."
+  ],
+  trucos:[
+    "NUECES CRUDAS SIN SAL, no las de aperitivo. Las saladas llevan entre 1 y 1,5 g de sal por 100 g, y además suelen estar fritas.",
+    "10 g y no un puñado a ojo. La nuez tiene 654 kcal por 100 g, de lo más calórico del recetario: un puñado generoso son 30 g y 196 kcal, el triple de lo contado. En su día ya recortamos de 25 a 10 g precisamente por esto.",
+    "Pésalas las primeras veces hasta que le cojas el ojo. Es de las pocas cosas donde la vista engaña mucho.",
+    "La grasa de la nuez es de la buena y es lo que hace que este almuerzo aguante hasta la comida. No se trata de quitarlas, sino de contarlas.",
+    "Fruta de temporada y madura: es más barata, sabe más y tiene más vitaminas que la de cámara."
+  ],
+  nota:"El almuerzo y la merienda de casi todos los días del menú. Un minuto y sin cocinar."
 },
 {
   id:"snack_pan_requeson", n:"Pan sin sal con requesón e infusión",
-  tipo:["merienda"], grupo:"desayuno", raciones:1, min:3, tools:["sin-cocinar"],
-  ing:[{i:"pan_sin_sal",c:1},{i:"requeson",c:40},{i:"aove",c:5}],
-  pasos:["Tuesta el pan sin sal, unta el requesón y añade un hilo de aceite.","Acompaña con manzanilla o rooibos."]
+  rev:2,
+  tipo:["merienda"], grupo:"desayuno", raciones:1, min:6, tools:["airfryer"],
+  ing:[{i:"pan_sin_sal",c:1},{i:"requeson",c:70},{i:"aove",c:5}],
+  pasos:[
+    "La rebanada de pan sin sal, directa del congelador.",
+    {min:0, t:"Pan a la freidora — 180 °C, 5 minutos",
+     d:"O en la tostadora, que aquí da casi igual. Lo que importa es que quede bien tostado: el pan sin sal es más soso que el normal y la tostada le da el punto que le falta."},
+    {min:5, t:"Unta el requesón sobre el pan aún caliente y el hilo de aceite por encima",
+     d:"Sobre el pan caliente el requesón se ablanda un poco y se extiende sin romper la tostada."},
+    "Manzanilla o rooibos al lado. Nada de té ni café con cafeína a estas horas."
+  ],
+  trucos:[
+    "MÁS REQUESÓN QUE ANTES: 70 g en vez de 40. La merienda se quedaba en 7 g de proteína y así llega a 11, que para aguantar hasta la cena es otra cosa.",
+    "Pan SIN SAL, de panadería y congelado en rebanadas. Es el mismo del desayuno y de los revueltos: encarga una barra, la cortas y la congelas.",
+    "Rooibos o manzanilla, no té. El té lleva cafeína, y la cafeína es de lo que tu pauta pide evitar.",
+    "Pimienta negra o un poco de orégano sobre el requesón si te sabe soso: son las dos especias que mejor tapan la falta de sal en un lácteo fresco.",
+    "Con media pieza de fruta al lado es una merienda completa por menos de 100 kcal más."
+  ],
+  nota:"La merienda de los días que la fruta con nueces se queda corta."
+},
+{
+  id:"pan_tostado_mesa", n:"Pan tostado de mesa (3 rebanadas)",
+  rev:1,
+  tipo:["comida","cena"], grupo:"desayuno", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"pan_ortiz",c:3}],
+  pasos:[
+    "Tres rebanadas de pan tostado, en la mesa, con la comida y con la cena."
+  ],
+  trucos:[
+    "ESTE PAN ES LO MÁS SALADO DE TU DÍA, Y CON DIFERENCIA. El Ortiz estilo tradicional lleva 1,4 g de sal por 100 g. Tres rebanadas son 0,45 g, y tomándolo en comida y cena son 0,91 g al día: más que todo el resto del menú junto, que ronda 1,2 g entre quince platos.",
+    "HAY PAN TOSTADO SIN SAL EN EL SUPERMERCADO, y cambia el plato entero. El Recondo integral sin sal ni azúcar añadidos, de Carrefour (270 g, unos 2,55 €), tiene 0,03 g de sal por 100 g: 47 veces menos que el Ortiz. Las mismas seis rebanadas al día pasan de 0,91 g de sal a 0,02. Y de propina 9,1 g de proteína en vez de 7,1 y menos calorías. Está en el catálogo como «pan tostado integral sin sal».",
+    "Otras opciones: el Recondo blanco sin sal (0,05 g/100 g) y el Hacendado 100% integral bajo en sal (0,20 g/100 g, con 11,5 g de proteína, que es el que más tiene). Cualquiera de los tres es una mejora enorme sobre el Ortiz.",
+    "Si te quedas con el Ortiz, el ajuste natural es bajar de 3 rebanadas a 2 en una de las dos tomas: son 0,15 g de sal menos al día sin renunciar a él.",
+    "Mira siempre la etiqueta del pan tostado. El rango del mercado va de 0,2 a 1,8 g de sal por 100 g: hay un factor de nueve entre el mejor y el peor, y a simple vista son idénticos.",
+    "Tres rebanadas son 129 kcal por toma, 259 al día. No es poco: equivale a una ración entera de pescado. Está contado en el día, pero conviene saberlo."
+  ],
+  nota:"Fijo en comida y cena, igual que el yogur con avena. Aparece en las dos tomas de todos los días de las plantillas."
+},
+{
+  id:"des_leche_cafe", n:"Leche con café descafeinado",
+  rev:1,
+  tipo:["desayuno"], grupo:"desayuno", raciones:1, min:2, tools:["sin-cocinar"],
+  ing:[{i:"leche_desnatada",c:300},{i:"cafe_desca",c:8}],
+  pasos:[
+    "300 ml de leche desnatada, caliente o fría, con el café descafeinado y sin azúcar."
+  ],
+  trucos:[
+    "DESNATADA, Y NO POR LAS CALORÍAS SINO PORQUE TIENE MÁS PROTEÍNA. Al quitar la grasa se concentra el resto: la desnatada tiene 3,4 g de proteína por 100 ml y la entera 3,2. En 300 ml son 10,2 g frente a 9,6. La entera no da más proteína, da más grasa: 186 kcal frente a 105.",
+    "Si prefieres la entera por sabor, adelante — son 80 kcal más y prácticamente la misma proteína. Pero que sea por gusto, no porque alimente más.",
+    "300 ml de leche llevan 0,39 g de sal. No es despreciable con tu pauta, pero a cambio traen 10 g de proteína y el calcio del día: la relación es buena.",
+    "Descafeinado siempre. La cafeína es de lo que la pauta pide evitar, porque altera el equilibrio de líquidos del oído interno.",
+    "Sin azúcar. Si te sabe sosa, canela o una pizca de cacao puro: los dos engañan al paladar sin aportar sodio ni azúcar."
+  ],
+  nota:"El desayuno más rápido del recetario. 105 kcal y 10 g de proteína en dos minutos."
 },
 {
   id:"postre_yogur_avena", n:"Yogur griego con copos de avena",
   tipo:["postre"], grupo:"postre", raciones:1, min:1, tools:["sin-cocinar"],
   ing:[{i:"yogur_griego",c:1},{i:"copos_avena",c:10}],
-  pasos:["Un yogur griego natural sin azúcar con una cucharada sopera de copos de avena.","El griego lleva el triple de proteína que el natural y las mismas calorías."],
-  nota:"Postre fijo de comida y cena."
+  pasos:[
+    "Un yogur griego natural SIN AZÚCAR, con una cucharada sopera de copos de avena por encima.",
+    "Remueve justo antes de comerlo, no antes: la avena se ablanda en cinco minutos y pierde la gracia."
+  ],
+  trucos:[
+    "GRIEGO Y NO NATURAL, Y ES EL MEJOR CAMBIO DE TODO EL RECETARIO. El griego tiene 10 g de proteína por 100 g frente a 3,5 del natural, con las mismas calorías. Cuando ajustamos el menú en su día, este cambio solo aportó 16 de los 19 gramos de proteína que ganamos en todo el día.",
+    "SIN AZÚCAR y sin edulcorar. Los griegos azucarados llevan 12-14 g de azúcar por tarrina, y los «de sabores» aún más.",
+    "Ojo con los que ponen «estilo griego»: suelen ser yogur normal con nata añadida, o sea más grasa y la proteína del natural. Mira la etiqueta: tiene que poner 9-10 g de proteína por 100 g.",
+    "Lo tomas dos veces al día, en comida y cena, así que son 14 tarrinas a la semana. Comprarlo en pack sale bastante mejor.",
+    "Si te aburre, canela o ralladura de limón. Nada de miel, que son 21 kcal por cucharadita y ya tienes dulce de sobra en el día."
+  ],
+  nota:"Postre fijo de comida y cena, en las dos plantillas y todos los días."
 },
 
 /* ======================== LEGUMBRES ======================== */
 {
   id:"lentejas_estofadas", n:"Lentejas estofadas con sofrito aromático",
-  tipo:["comida"], grupo:"legumbre", raciones:2, min:45, tools:["cazuela"],
-  ing:[{i:"lentejas",c:180},{i:"cebolla_dulce",c:1},{i:"puerro",c:0.5},{i:"zanahoria",c:1},{i:"ajo",c:2},{i:"tomate",c:1},{i:"pimenton",c:3},{i:"laurel",c:1},{i:"comino",c:1},{i:"aove",c:20}],
+  rev:2,
+  cesta:["cebolla_dulce","puerro","zanahoria","ajo"], capaUnica:false,
+  tipo:["comida"], grupo:"legumbre", raciones:2, min:32, tools:["airfryer","cazuela"],
+  ing:[{i:"lentejas",c:180},{i:"cebolla_dulce",c:1},{i:"puerro",c:0.5},{i:"zanahoria",c:1},{i:"ajo",c:2},{i:"tomate",c:1},{i:"pimenton",c:3},{i:"laurel",c:1},{i:"comino",c:1},{i:"aove",c:16}],
   pasos:[
-    "Sofríe MUY despacio cebolla, puerro, zanahoria y ajo picados hasta que estén dorados (10–12 min). Aquí está todo el sabor.",
-    "Añade el tomate rallado y deja reducir 3 minutos.",
-    "Fuera del fuego, incorpora el pimentón de la Vera y remueve rápido para que no se queme.",
-    "Añade las lentejas, el laurel, una pizca de comino y agua hasta cubrir dos dedos.",
-    "Cuece 30–35 minutos a fuego suave. Sin sal: el sofrito y el pimentón la sustituyen."
+    "Cebolla en juliana de medio centímetro, puerro en rodajas de 1 cm y zanahoria en rodajas finas. Todo en un bol con 12 ml del aceite hasta que brille.",
+    "Lentejas pardinas: NO hace falta remojarlas, y lavarlas por encima basta.",
+    {min:0, t:"Lentejas a la cazuela con el laurel, el comino y agua que cubra dos dedos — fuego suave",
+     d:"Van al fuego desde el minuto cero y a la vez que el sofrito. Las dos cosas corren en paralelo y por eso este plato baja de 45 minutos a 32."},
+    {min:0, t:"Cebolla, puerro y zanahoria a la freidora — 180 °C, 16 minutos",
+     d:"Aquí está TODO el sabor del plato: sin sal ni caldo, lo único que lo sostiene es este dorado. En sartén son 12 minutos sin despegarte; en la freidora se hace solo mientras la olla trabaja."},
+    {min:8, t:"Sacude la cesta y echa el ajo laminado",
+     d:"Tarde, porque el ajo se amarga si pasa dieciséis minutos a 180."},
+    {min:16, t:"Todo el sofrito a la cazuela, con el tomate rallado y el pimentón",
+     d:"El pimentón va directo al guiso, con el agua ya dentro. Es la ventaja de este método: en sartén hay que echarlo fuera del fuego porque se amarga en segundos, y aquí no llega nunca a esa temperatura."},
+    {min:32, t:"Prueba una lenteja: tiene que estar entera pero blanda",
+     d:"Si está dura, cinco minutos más y vuelve a probar. Con las legumbres manda la textura, no el reloj: el agua de tu grifo y el año de la lenteja cambian el tiempo."},
+    "Retira el laurel, deja reposar cinco minutos tapado y sirve con los 4 ml de aceite que quedan en crudo por encima. Sin calentar, el aceite conserva el aroma y remata el plato."
   ],
-  nota:"Salen 2 raciones: congela una o repítela a media semana."
+  trucos:[
+    "LA CAZUELA NO SE VA, Y NO HAY ALTERNATIVA. Una legumbre seca necesita media hora larga de calor húmedo para hidratarse y ablandarse; ni la freidora ni un Lékué de microondas pueden hacerlo. Lo que SÍ se va a la freidora es el sofrito, que es la parte que te tenía atado a los fogones.",
+    "SIN SAL Y SIN PASTILLA DE CALDO. Una pastilla lleva entre 1,5 y 2 g de sal, medio día tuyo de golpe. El sabor lo ponen el sofrito dorado, el pimentón y el comino.",
+    "Pimentón de la Vera ahumado si lo encuentras. El ahumado es lo que más engaña al paladar cuando falta la sal, porque el cerebro asocia ese aroma con embutido y sal.",
+    "Nada de agua fría a mitad de cocción: corta el hervor y la piel de la lenteja se endurece. Si hay que añadir, que esté caliente.",
+    "Salen 2 raciones a propósito. Congela una: la lenteja congela perfectamente y de un día para otro está mejor.",
+    "Con el sofrito del congelador esto son 32 minutos de los que solo dos son tuyos."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y cazuela. El sofrito y las lentejas se hacen a la vez, que es lo que recorta trece minutos respecto a la versión anterior."
 },
 {
   id:"crema_lentejas", n:"Crema suave de lentejas con calabacín y zanahoria",
-  tipo:["comida","cena"], grupo:"legumbre", raciones:2, min:30, tools:["cazuela"],
-  ing:[{i:"lentejas",c:140},{i:"zanahoria",c:1},{i:"calabacin",c:0.5},{i:"cebolla_dulce",c:0.5},{i:"ajo",c:1},{i:"aove",c:15},{i:"comino",c:1},{i:"pimienta",c:0.5}],
+  rev:2,
+  cesta:["cebolla_dulce","ajo"], capaUnica:false,
+  tipo:["comida","cena"], grupo:"legumbre", raciones:2, min:27, tools:["airfryer","cazuela"],
+  ing:[{i:"lentejas",c:170},{i:"zanahoria",c:1},{i:"calabacin",c:0.5},{i:"cebolla_dulce",c:0.5},{i:"ajo",c:1},{i:"aove",c:15},{i:"comino",c:1},{i:"pimienta",c:0.5}],
   pasos:[
-    "Pocha la cebolla y el ajo en la cazuela con el aceite.",
-    "Añade la lenteja, la zanahoria y el calabacín en trozos y agua hasta cubrir.",
-    "Cuece 25 minutos y tritura hasta que quede una crema fina.",
-    "Termina con pimienta negra y un hilo de aceite en crudo."
-  ]
+    "Cebolla en juliana con 8 ml del aceite en un bol.",
+    "Zanahoria y calabacín en trozos grandes: se van a triturar, así que no te esmeres.",
+    {min:0, t:"Lentejas, zanahoria y calabacín a la cazuela con el comino y agua justa — fuego suave",
+     d:"AGUA JUSTA, que cubra y poco más. Es la regla de oro de cualquier crema: el agua de más ya no se puede quitar y lo que hace es diluir el sabor. Si queda espesa, se aclara luego; al revés no hay arreglo."},
+    {min:0, t:"Cebolla a la freidora — 180 °C, 12 minutos",
+     d:"En paralelo con la olla. Dorada, no pochada: es la diferencia entre una crema con fondo y una crema de agua."},
+    {min:6, t:"Sacude y echa el ajo",
+     d:"Tarde, para que no amargue."},
+    {min:12, t:"La cebolla y el ajo a la cazuela",
+     d:"Quedan trece minutos de cocción para que todo se entienda."},
+    {min:25, t:"Tritura hasta que quede fina, añadiendo agua caliente a cucharadas si hace falta",
+     d:"A cucharadas y probando. Con la batidora de brazo, un minuto largo: una crema de legumbre necesita más tiempo de triturado del que parece para perder la textura arenosa."},
+    "Pimienta negra y los 7 ml de aceite que quedan, en crudo y ya en el plato."
+  ],
+  trucos:[
+    "MÁS LENTEJA QUE ANTES: 170 g en vez de 140. Esta crema se quedaba en 19 g de proteína por ración, de las más flojas del recetario; así sube a 23 sin que cambie la textura.",
+    "Agua justa, siempre. Es el error que arruina las cremas: se echa de más «por si acaso» y el resultado sabe a nada. Empieza corto y aclara al final.",
+    "El aceite en crudo al final no es adorno: sin calentar conserva el aroma a aceituna y es lo que le da el brillo y el remate de sabor.",
+    "Congela en porciones. Esta crema sale igual descongelada y es la cena de emergencia perfecta.",
+    "Si la quieres más sedosa, una patata pequeña con las lentejas: su almidón liga la crema sin añadir nada graso.",
+    "La cazuela se queda porque una legumbre seca necesita calor húmedo prolongado. Lo que se va a la freidora es la cebolla, que es lo que pedía vigilancia."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y cazuela, trabajando a la vez."
 },
 {
   id:"guisantes_pollo", n:"Guisantes salteados con cebolla pochada y pollo",
-  tipo:["comida"], grupo:"legumbre", raciones:1, min:20, tools:["sarten","microondas"],
-  ing:[{i:"guisantes",c:200},{i:"cebolla_dulce",c:1},{i:"pollo_pechuga",c:150},{i:"ajo",c:1},{i:"aove",c:10},{i:"pimienta",c:0.5}],
+  rev:2,
+  cesta:["cebolla_dulce","pollo_pechuga","ajo"],
+  tipo:["comida"], grupo:"legumbre", raciones:1, min:19, tools:["airfryer","lekue-vapor"],
+  ing:[{i:"guisantes",c:200},{i:"cebolla_dulce",c:1},{i:"pollo_pechuga",c:150},{i:"ajo",c:1},{i:"aove",c:8},{i:"pimienta",c:0.5}],
   pasos:[
-    "Cebolla en juliana al estuche de silicona 3 min al microondas; pásala a la sartén y dórala 3 min.",
-    "Añade el pollo en taquitos y séllalo a fuego fuerte.",
-    "Incorpora los guisantes (si son congelados, directamente) y saltea 5–6 minutos.",
-    "Pimienta negra al final."
-  ]
+    "Cebolla en juliana de medio centímetro, en un bol con 5 ml del aceite.",
+    "Pollo en dados de 2 cm, seco con papel y untado con los 3 ml que quedan y la pimienta.",
+    {min:0, t:"Cebolla a la freidora — 180 °C, 12 minutos",
+     d:"Sola los primeros seis. Sin este dorado el plato no tiene de dónde sacar sabor: no hay sal ni caldo, solo la cebolla."},
+    {min:6, t:"Sacude, añade el pollo y el ajo laminado — 12 minutos más",
+     d:"El pollo en dados de 2 cm: más pequeños se secan y más grandes se quedan crudos dentro cuando el borde ya está tostado."},
+    {min:13, t:"Guisantes a la vaporera — 800 W, 5 minutos (6 si están congelados, directos del congelador)",
+     d:"Al vapor y no salteados. Es el cambio que más se nota: el guisante conserva el verde y revienta dulce en la boca, mientras que en la sartén se arruga y se apaga."},
+    {min:18, t:"Todo junto en un bol y remueve",
+     d:"En el bol, no en la sartén. Solo hay que mezclar: todo está ya en su punto y cualquier minuto extra de calor estropea los guisantes."},
+    "Pimienta negra recién molida al final, generosa."
+  ],
+  trucos:[
+    "EL GUISANTE CONGELADO ES MEJOR QUE EL FRESCO DE MERCADO, salvo que sea de temporada y del día. Se congelan a las horas de recogerse, cuando el azúcar aún no se ha convertido en almidón. El fresco de tres días ya está harinoso.",
+    "Al vapor y ni un minuto de más. Cinco minutos y fuera: el guisante pasado pierde el color, la piel se arruga y se acabó la gracia del plato.",
+    "200 g de guisantes son 7 g de fibra y 11 g de proteína vegetal. Sumados a los 150 g de pollo, este plato se planta en 47 g de proteína siendo de los más ligeros del recetario.",
+    "Sin caldo ni pastillas: una pastilla de caldo lleva entre 1,5 y 2 g de sal, que es tu día entero. El sabor lo pone la cebolla dorada.",
+    "Si te sobra, frío está buenísimo con unas gotas de vinagre, casi como una ensalada templada."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y vaporera Lékué a 800 W. Antes iba todo salteado en sartén; el guisante al vapor es otra cosa."
 },
 
 /* ======================== CARNE ROJA ======================== */
 {
   id:"entrecot_patatas", n:"Entrecot de ternera a la plancha con patatas en airfryer",
-  tipo:["comida"], grupo:"carne-roja", raciones:1, min:20, tools:["sarten","airfryer","microondas"],
-  ing:[{i:"ternera_entrecot",c:200},{i:"patata",c:1},{i:"aove",c:10},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"romero",c:0.5},{i:"brotes_verdes",c:50},{i:"tomate",c:1}],
+  rev:4,
+  cesta:["patata"],
+  tipo:["comida"], grupo:"carne-roja", raciones:1, min:20, tools:["airfryer","sarten","microondas"],
+  ing:[{i:"ternera_entrecot",c:180},{i:"patata",c:0.75},{i:"aove",c:7},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"romero",c:0.5},{i:"brotes_verdes",c:80},{i:"tomate",c:1}],
   pasos:[
-    "Patata en bastones al estuche de silicona con 1 cucharada de agua: 3 min al microondas.",
-    "Pásala al cesto de la airfryer con aceite, pimentón y ajo en polvo: 8–10 min a 200 °C.",
-    "Saca el entrecot de la nevera 20 min antes. Sartén MUY caliente, unas gotas de aceite.",
-    "Marca 2–3 min por cada lado según grosor. Pimienta y romero al sacarlo, nunca antes.",
-    "Deja reposar 2 minutos antes de cortar y sirve con ensalada de brotes y tomate."
-  ]
+    "El entrecot fuera de la nevera 30 minutos antes. Frío por dentro no hay forma de darle el punto: el borde se pasa mientras el centro sigue helado.",
+    "Justo antes de la sartén, sécalo a conciencia con papel por las dos caras.",
+    "Patata en bastones de 1 cm, al estuche de silicona con una cucharada de agua.",
+    {min:0, t:"Patata al microondas — 800 W, 3 minutos",
+     d:"Este precocinado es el truco de las patatas de freidora: sale de ahí blanda por dentro, así que el aire caliente solo tiene que ocuparse de la costra."},
+    {min:3, t:"Patata a la freidora con 5 ml de aceite, el ajo en polvo y la pimienta — 200 °C, 12 minutos",
+     d:"Escúrrela del agua y sécala antes de aliñarla. En una capa, sacudiendo a los 6."},
+    {min:11, t:"Sartén al fuego, vacía y a tope",
+     d:"Tres minutos largos calentando. Es el paso que todo el mundo se salta y el que decide la costra. Tiene que llegar a humear ligeramente."},
+    {min:14, t:"Entrecot a la sartén — 2,5 minutos por cada cara",
+     d:"Los 2 ml de aceite que quedan, en la carne y no en la sartén. Ponlo y NO LO TOQUES: cada vez que lo mueves rompes el contacto y pierdes la costra que estaba formándose."},
+    {min:15, t:"Apaga la freidora y deja las patatas dentro",
+     d:"Se mantienen calientes y siguen secándose con el calor residual, que las deja más crujientes."},
+    {min:19, t:"Entrecot fuera, a reposar 3 minutos en un plato caliente",
+     d:"Pimienta y romero AHORA, nunca antes: en la sartén se quemarían y amargarían. El reposo reparte el jugo, que durante el sellado se ha ido todo al centro."},
+    "Corta contra la fibra y sirve con las patatas y la ensalada de brotes y tomate."
+  ],
+  trucos:[
+    "ESTE PLATO NO PASA A LA FREIDORA Y ES A PROPÓSITO. Un entrecot necesita costra, y la costra se hace por contacto: el metal a 250 °C tuesta la superficie en 60-90 segundos mientras el centro sigue rojo. La freidora calienta con aire, que transmite diez o veinte veces peor: tardaría minutos en dorar, y para entonces el interior estaría gris. Saldría una carne cocida por igual y sin punto.",
+    "Los puntos, para 2 cm de grosor: 1,5 min por cara poco hecho, 2,5 al punto, 3,5 hecho. Al tacto, poco hecho cede como la palma de la mano relajada y hecho como la palma apretando el puño.",
+    "Nunca sal antes de la sartén. Además de que no la usas, la sal saca agua a la superficie y el agua impide que se forme la costra.",
+    "Una sartén por trozo. Si metes dos filetes juntos la temperatura del metal se desploma y en vez de sellar, cueces.",
+    "La patata al microondas primero no es un atajo: es lo que permite que 12 minutos de freidora basten. Sin ese paso necesitarías 25 y saldrían secas por dentro.",
+    "180 g DE ENTRECOT SIGUEN SIENDO UN FILETE SERIO. Bajamos de 200 a 180, la patata de una entera a tres cuartos y el aceite de 10 a 7 ml, y a cambio sube la ensalada de 50 a 80 g. Son 106 kcal menos y el plato sigue teniendo 40 g de proteína."
+  ],
+  nota:"La carne en sartén y la guarnición en freidora, cada una donde sale mejor. Patatas medidas en la Moulinex Easy Fry XL Surface y microondas de 800 W."
 },
 {
   id:"hamburguesa_completa", n:"Hamburguesa baja en sal con cebolla caramelizada y queso fundido",
+  rev:2,
   tipo:["comida","cena"], grupo:"carne-roja", raciones:1, min:15, tools:["sarten","airfryer","microondas"],
-  ing:[{i:"hamburguesa_bajasal",c:1},{i:"cebolla_dulce",c:1},{i:"mozzarella_fresca",c:40},{i:"patata",c:1},{i:"aove",c:10},{i:"vinagre",c:5},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"pimenton",c:1}],
+  ing:[{i:"hamburguesa_bajasal",c:1},{i:"cebolla_dulce",c:1},{i:"mozzarella_fresca",c:25},{i:"patata",c:0.75},{i:"aove",c:10},{i:"vinagre",c:5},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"pimenton",c:1}],
+  cesta:["patata","cebolla_dulce"],
   pasos:[
-    "CEBOLLA EXPRÉS: juliana fina al estuche de silicona con unas gotas de aceite y 1 cucharadita de agua → 3 min al microondas a máxima potencia.",
-    "Pásala a una sartén pequeña con un hilo de aceite: en 3 minutos coge color marrón intenso. Unas gotas de vinagre balsámico al final para desglasar.",
-    "PATATAS: en bastones, 2 min al estuche con una cucharada de agua; luego airfryer a 200 °C 8–10 min con aceite, pimentón y ajo en polvo.",
-    "CARNE: sartén muy caliente, 2 minutos por lado (o en la airfryer los últimos 6 min a 190 °C).",
-    "Al dar la vuelta, coloca encima la cebolla caliente y sobre ella la mozzarella.",
-    "Tapa la sartén 60 segundos con el fuego apagado: el queso funde sobre la cebolla."
+    "Patata en bastones de 1 cm, al estuche de silicona con una cucharada de agua.",
+    "Cebolla en juliana GRUESA, de un centímetro, no fina: va a compartir cesta con la patata a 190 °C y en juliana fina se te quemaría.",
+    "Las dos, aliñadas en un bol con 7 ml del aceite, el pimentón y el ajo en polvo.",
+    {min:0, t:"Patata al microondas — 800 W, 2 minutos",
+     d:"El precocinado que hace que luego basten 12 minutos de freidora: sale blanda por dentro y el aire caliente solo tiene que ocuparse de la costra."},
+    {min:2, t:"Patata y cebolla juntas a la freidora — 190 °C, 12 minutos",
+     d:"190 es el término medio entre los 200 que quiere la patata y los 180 de la cebolla. Sacude a los 6."},
+    {min:11, t:"Sartén al máximo, vacía, hasta que humee",
+     d:"Tres minutos calentando. Una hamburguesa necesita costra, y la costra se hace por contacto con metal muy caliente: en la freidora saldría gris y cocida."},
+    {min:14, t:"Hamburguesa a la sartén con los 3 ml de aceite que quedan — 2 minutos por cara",
+     d:"Ponla y NO LA APLASTES con la espátula. Ese gesto exprime el jugo a la sartén y es lo que convierte una hamburguesa en una suela."},
+    {min:14, t:"Saca la patata y la cebolla. Riega la cebolla con el vinagre",
+     d:"El vinagre sobre la cebolla caliente corta el dulzor. Reserva la patata en la cesta apagada, que se mantiene caliente."},
+    {min:16, t:"Al dar la vuelta a la carne: la cebolla encima y la mozzarella sobre ella",
+     d:"En ese orden. La cebolla hace de cama y evita que el queso toque la sartén."},
+    {min:17, t:"Apaga el fuego y tapa 60 segundos",
+     d:"Con el fuego apagado. El calor que queda funde la mozzarella sin recocer la carne por debajo."}
   ],
-  nota:"La cebolla comercial en tarro NO: lleva conservantes con sodio. El queso en lonchas tampoco (0,5–0,8 g de sal por loncha)."
+  trucos:[
+    "NO LA APLASTES NUNCA. Es el error más repetido del mundo con las hamburguesas: cada vez que aprietas con la espátula exprimes el jugo y lo pierdes en la sartén.",
+    "LA CARNE NO PASA A LA FREIDORA, y es a propósito. Necesita costra por contacto; el aire caliente tardaría el doble y para entonces el centro estaría gris. Es el mismo caso que el entrecot y el calamar.",
+    "La cebolla comercial en tarro NO: lleva conservantes con sodio y a veces sal directa. Y el queso en lonchas tampoco, que se va a 0,5-0,8 g de sal por loncha. La mozzarella fresca de bola se queda en 0,25.",
+    "Hamburguesa baja en sal, de 0,25 g por 100 g o menos. La corriente de supermercado ronda 1 g, que con 150 g te come el 75% de tu cupo del día en un solo plato.",
+    "Si la compras en la carnicería, pídela SIN SAL y sin adobar. Te la hacen en el momento y no cuesta más.",
+    "Sin pan. No está en la receta a propósito: el pan normal lleva 1,3 g de sal por 100 g y una hamburguesa te la fundiría. Si quieres pan, el sin sal del congelador."
+  ],
+  nota:"La carne en sartén y la guarnición en freidora, cada una donde sale mejor. Moulinex Easy Fry XL Surface y microondas de 800 W."
 },
 
 /* ======================= CARNE BLANCA ======================= */
 {
   id:"pollo_pina", n:"Pechuga de pollo a la plancha con piña fresca dorada",
-  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:15, tools:["sarten"],
+  rev:2,
+  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:18, tools:["airfryer"],
   ing:[{i:"pollo_pechuga",c:220},{i:"pina_fresca",c:0.15},{i:"aove",c:10},{i:"pimienta",c:0.5},{i:"brotes_verdes",c:50}],
   pasos:[
-    "Abre la pechuga en filetes no muy gruesos y sécala bien con papel.",
-    "Sartén muy caliente con unas gotas de aceite: 2–3 min por lado. Pimienta al sacarla.",
-    "En la MISMA sartén, dora las rodajas de piña fresca 1 minuto por cara: caramelizan y recogen los jugos del pollo.",
-    "Sirve el pollo con la piña encima y ensalada verde al lado."
+    "La pechuga, partida a lo ancho en dos trozos gruesos — NO en filetes finos. En la freidora el grosor es lo que te salva de que se seque.",
+    "Sécala bien con papel y úntala con 6 ml del aceite y la pimienta.",
+    "Piña en rodajas de 1,5 cm, secas también con papel: suelta mucho jugo y mojada no caramelizaría.",
+    {min:0, t:"Pollo a la freidora — 190 °C, 13 minutos",
+     d:"Los dos trozos separados, sin tocarse. Si se tocan, esa cara no recibe aire y se queda pálida y húmeda."},
+    {min:7, t:"Dale la vuelta al pollo y mete la piña en los huecos",
+     d:"La piña solo necesita los 6 minutos finales. Su azúcar caramelizaría a negro si entrara desde el principio."},
+    {min:13, t:"Fuera los dos y deja reposar el pollo 3 minutos",
+     d:"El reposo no es opcional en una pieza gruesa: durante la cocción el jugo se va al centro, y si cortas al momento se te queda en la tabla."},
+    "Corta el pollo en lonchas contra la fibra, la piña encima y los brotes al lado, aliñados con los 4 ml de aceite que quedan, en crudo."
   ],
-  nota:"La acidez y el dulzor de la piña hacen innecesaria la sal."
+  trucos:[
+    "Cómo saber que está: al pinchar la parte más gruesa el jugo tiene que salir transparente, no rosado. Si tienes termómetro, 74 °C en el centro.",
+    "Grueso, no en filetes. Es al revés que en la sartén: ahí un filete fino se hace en dos minutos, pero en la freidora se secaría antes de dorarse. Cada aparato pide un corte distinto y este es el ejemplo más claro.",
+    "La piña no es adorno. Su acidez y su dulzor son lo que tapa la falta de sal, igual que el limón en el pescado. Fresca, nunca en almíbar.",
+    "Contra la fibra al cortar. Se ven las líneas de la carne: el cuchillo va perpendicular a ellas. Cortado a favor queda correoso aunque esté en su punto.",
+    "Hazte dos pechugas de una vez. En la cesta caben sin cambiar los tiempos y la fría del día siguiente resuelve una ensalada o la pasta al pesto."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Antes iba a la plancha y funcionaba, pero la freidora la deja igual de dorada sin tener que estar encima, y la piña se hace sola en la misma cesta."
 },
 {
   id:"solomillo_manzana_setas", n:"Medallones de solomillo con puré de manzana asada y setas",
-  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:20, tools:["sarten","microondas"],
+  rev:2,
+  cesta:["cerdo_solomillo","setas"],
+  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:23, tools:["airfryer","lekue-vapor"],
   ing:[{i:"cerdo_solomillo",c:220},{i:"manzana_reineta",c:1},{i:"setas",c:100},{i:"ajo",c:1},{i:"aove",c:10},{i:"pimienta",c:0.5},{i:"tomillo",c:0.5},{i:"canela",c:0.5}],
   pasos:[
-    "PURÉ: manzana pelada en dados al bol tapado con 1 cucharada de agua y una pizca de canela → 4–5 min al microondas. Aplasta con tenedor.",
-    "SETAS: sartén con aceite y ajo laminado; setas troceadas a fuego VIVO para que doren y no suelten agua. Tomillo y pimienta al sacarlas.",
-    "SOLOMILLO: corta 3 medallones gruesos (2–3 cm). Sartén muy caliente, 2–3 min por lado: dorados fuera, jugosos dentro.",
-    "Monta: base de puré templado, los medallones encima y las setas al lado."
-  ]
+    "EL SOLOMILLO, ENTERO, NO EN MEDALLONES. Se cortan al final, después de reposar. Así el trozo tiene masa para aguantar el asado sin secarse, y luego lo abres y está rosa en el centro de punta a punta.",
+    "Fuera de la nevera 20 minutos antes, seco con papel y untado con 5 ml del aceite, la pimienta y el tomillo.",
+    "Setas limpias con un paño, NUNCA bajo el grifo: son una esponja y el agua que cojan es la que luego las cuece en vez de dorarlas. En trozos grandes, que encogen a la mitad. Con 3 ml de aceite y el ajo laminado.",
+    "Manzana pelada en dados, a la vaporera con una cucharada de agua, la canela y los 2 ml de aceite que quedan.",
+    {min:0, t:"Solomillo entero a la freidora — 180 °C, 16 minutos",
+     d:"En pieza entera la freidora gana a la sartén: 220 g aguantan los 16 minutos que el exterior necesita para dorarse sin que el centro se pase. En medallones de 2 cm no, se secarían."},
+    {min:8, t:"Dale la vuelta al solomillo y mete las setas al lado",
+     d:"Las setas solo necesitan 8 minutos y caben de sobra: entre el solomillo y ellas ocupas un 24% de la cesta. Aquí la freidora es mejor que la sartén para las setas, porque el aire seco evapora su agua en vez de dejarlas guisándose en ella."},
+    {min:12, t:"Manzana a la vaporera — 800 W, 4 minutos",
+     d:"Termina a la vez que lo demás. Sale deshecha y dulce, y con el tenedor queda puré en diez segundos."},
+    {min:16, t:"Todo fuera. El solomillo, a REPOSAR 5 minutos tapado con aluminio",
+     d:"Los cinco minutos no son espera, son parte de la cocción: el jugo se ha ido al centro durante el asado y necesita repartirse. Si lo cortas ahora, se te queda en la tabla."},
+    "Corta el solomillo en medallones de 2 cm, y monta: base de puré de manzana templado, los medallones encima y las setas al lado."
+  ],
+  trucos:[
+    "Cómo saber que está: 63 °C en el centro con termómetro. Sin termómetro, la punta del cuchillo en el centro tiene que salir caliente, no ardiendo, y el jugo transparente con un punto rosado. Ese punto rosado es correcto en el cerdo de hoy; pasarlo hasta que salga blanco es lo que lo seca.",
+    "Las setas, en trozos grandes y sin lavar. Encogen a la mitad, así que cortadas finas te quedan virutas. Y el agua del grifo es lo que impide que doren.",
+    "La manzana reineta es la buena aquí: se deshace sola y tiene la acidez que hace de contrapunto al cerdo. La golden vale; la fuji o la royal gala son demasiado dulces y firmes.",
+    "La canela con el cerdo no es una rareza: es la especia que más engaña al paladar cuando falta la sal, porque aporta un dulzor aromático que llena el hueco.",
+    "Haz el solomillo entero aunque comas la mitad. Frío en lonchas finas es el mejor relleno de pan sin sal que hay, y te resuelve un almuerzo.",
+    "Si tu solomillo es más grueso que la media, cuenta 18-20 minutos y confía en el termómetro, no en el reloj."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y vaporera Lékué a 800 W. Antes era todo en sartén con medallones; en pieza entera sale más jugoso y sin tener que estar encima."
 },
 {
   id:"solomillo_cebolla_pure", n:"Solomillo de cerdo con cebolla caramelizada y puré de patata",
-  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:25, tools:["sarten","microondas"],
+  rev:2,
+  cesta:["cerdo_solomillo","cebolla_dulce"],
+  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:27, tools:["airfryer","lekue-vapor"],
   ing:[{i:"cerdo_solomillo",c:220},{i:"cebolla_dulce",c:1},{i:"patata",c:1},{i:"leche",c:50},{i:"aove",c:10},{i:"pimienta",c:0.5},{i:"vinagre",c:5}],
   pasos:[
-    "Patata en trozos al estuche de silicona con 2 cucharadas de agua: 6–7 min al microondas. Aplasta con la leche y un chorro de aceite.",
-    "Cebolla en juliana: 3 min al estuche y 3 min en sartén hasta caramelizar. Gotas de vinagre al final.",
-    "Sella los medallones de solomillo 2–3 min por lado en sartén muy caliente.",
-    "Sirve sobre el puré con la cebolla por encima."
-  ]
+    "Solomillo ENTERO, fuera de la nevera 20 minutos antes, seco y untado con 4 ml del aceite y la pimienta. Se corta al final.",
+    "Cebolla en juliana de medio centímetro, en un bol con 4 ml del aceite hasta que brille.",
+    "Patata pelada en dados de 2 cm.",
+    {min:0, t:"Cebolla sola a la freidora — 180 °C, 14 minutos",
+     d:"Va primero y sola porque caramelizar es lo que más tarda de todo el plato, y es lo que sustituye a la sal."},
+    {min:6, t:"Sacude la cebolla y mete el solomillo al lado — siguen los dos a 180 °C",
+     d:"Entre los dos ocupas menos de la mitad de la cesta. El solomillo necesita 16 minutos desde ahora."},
+    {min:8, t:"Patata a la vaporera con dos cucharadas de agua — 800 W, 7 minutos",
+     d:"Al vapor y no hervida: la patata no suelta su almidón al agua, así que el puré sale más sabroso y más ligado sin necesitar mantequilla."},
+    {min:14, t:"Saca la cebolla y riégala con el vinagre. El solomillo sigue",
+     d:"El vinagre sobre la cebolla caliente es el golpe de acidez que corta el dulzor y despierta el plato entero."},
+    {min:15, t:"El puré: aplasta la patata con la leche caliente y los 2 ml de aceite que quedan",
+     d:"La leche CALIENTE. Fría corta el almidón de golpe y el puré se queda gomoso. Con tenedor, no con batidora: batido se vuelve cola."},
+    {min:22, t:"Solomillo fuera y a reposar 5 minutos tapado",
+     d:"63 °C en el centro. Los cinco minutos reparten el jugo que el asado ha empujado al centro."},
+    "Corta en medallones de 2 cm y monta: el puré de base, los medallones encima y la cebolla caramelizada por arriba."
+  ],
+  trucos:[
+    "LA LECHE CALIENTE, SIEMPRE. Es el error clásico del puré: leche fría sobre patata caliente y el almidón se retrae. Caliéntala 30 segundos en el microondas mientras aplastas.",
+    "Con tenedor y nunca con batidora. La batidora rompe las células de la patata y suelta tanto almidón que el puré se vuelve una pasta pegajosa de la que no se vuelve.",
+    "La cebolla caramelizada, otra vez, del congelador. Con una porción hecha arrancas en el minuto 6 y la comida baja a 21 minutos.",
+    "Cómo saber que el solomillo está: 63 °C en el centro y jugo transparente con un punto rosado. Sube a 65-66 durante el reposo.",
+    "Nada de cebolla caramelizada de tarro: lleva conservantes con sodio y a veces sal directamente. Mírale la etiqueta a cualquier atajo que compres hecho.",
+    "El puré admite media patata menos si quieres bajar calorías: son 70 kcal y el plato ya tiene mucho cuerpo con la cebolla."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y vaporera Lékué a 800 W. Antes: sartén para los medallones y microondas para el puré. Ahora la carne sale más jugosa y la cebolla se hace sola."
 },
 {
   id:"lomo_manzana", n:"Lomo de cerdo con salsa exprés de manzana y cebolla",
-  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:12, tools:["lekue","sarten","microondas"],
+  rev:2,
+  tipo:["comida"], grupo:"carne-blanca", raciones:1, min:12, tools:["lekue-vapor","sarten"],
   ing:[{i:"cerdo_lomo",c:200},{i:"manzana_reineta",c:1},{i:"cebolla_dulce",c:0.5},{i:"aove",c:10},{i:"pimienta",c:0.5},{i:"tomillo",c:0.5},{i:"vino_blanco",c:30}],
   pasos:[
-    "Manzana en láminas y cebolla en juliana al estuche Lékué con el vino blanco (o 3 cucharadas de agua), pimienta y unas gotas de aceite.",
-    "Cierra y cocina 5 minutos a 800 W: saldrán deshechas y dulces.",
-    "Tritura 30 segundos con la batidora hasta crema untuosa (o aplasta con tenedor si la quieres rústica). Reserva caliente.",
-    "Sartén a fuego fuerte: sella los filetes SOLO 1 minuto por cada lado para que no se sequen.",
-    "Vierte la crema caliente sobre la sartén, apaga el fuego y deja 30–40 segundos. Tomillo por encima."
+    "Los filetes, a temperatura ambiente 10 minutos antes y secos con papel por las dos caras.",
+    "Manzana en láminas y cebolla en juliana, a la vaporera Lékué con el vino blanco (o 3 cucharadas de agua), la pimienta y unas gotas de aceite.",
+    {min:0, t:"Vaporera al microondas — 800 W, 5 minutos",
+     d:"Salen deshechas y dulces. Esto es cocer, no dorar, así que el microondas es exactamente la herramienta correcta y no hay nada que ganar llevándolo a otro sitio."},
+    {min:5, t:"Tritura 30 segundos y reserva tapado",
+     d:"Con la batidora sale crema; con el tenedor, rústica. Tapado para que llegue caliente al final."},
+    {min:6, t:"Sartén a fuego fuerte, sin prisa en calentarla",
+     d:"Dale sus tres minutos largos. Una sartén tibia no sella: suelta el jugo y te cuece el filete en su propia agua."},
+    {min:9, t:"Los filetes, UN MINUTO por cada cara y fuera",
+     d:"Un minuto, no dos. El lomo es magrísimo y no tiene grasa que lo perdone: en cuanto se pasa se pone estropajoso y ya no hay vuelta atrás."},
+    {min:11, t:"Apaga el fuego, vuelca la crema caliente en la sartén y espera 40 segundos",
+     d:"Con el fuego apagado. La crema arrastra el tostado del fondo, que es donde está el sabor. Tomillo por encima y a la mesa."}
   ],
-  nota:"Nunca lomo adobado comercial: supera 1,5 g de sal por cada 100 g."
+  trucos:[
+    "EN FILETES, LA SARTÉN. En la freidora un filete fino se seca antes de dorarse: el aire transmite el calor mucho peor que el metal, así que tarda minutos en tostar la superficie y para entonces los dos centímetros de dentro están pasados. Con el lomo, que no tiene grasa, el castigo es inmediato.",
+    "EN PIEZA ENTERA, LA FREIDORA, y sale mejor que en sartén. Está como receta aparte, «Lomo de cerdo asado en airfryer». La diferencia es la masa: una pieza de 400 g aguanta los 20 minutos que necesita para dorarse por fuera sin pasarse por dentro. Un filete de dos centímetros no.",
+    "Nunca lomo adobado del supermercado: pasa de 1,5 g de sal por cada 100 g. Con 200 g te comerías 3 g de sal, más de lo que tienes para todo el día.",
+    "El vino blanco se puede cambiar por agua sin que se note mucho: lo que aporta es acidez, y unas gotas de limón hacen lo mismo.",
+    "Seca bien los filetes. La humedad de la superficie tiene que evaporarse antes de que empiece a dorarse, y ese tiempo lo paga el interior."
+  ],
+  nota:"Vaporera Lékué a 800 W. La sartén aquí no es una concesión: para un filete magro y fino es el aparato correcto, y la freidora sería peor."
 },
 
 /* ======================= PESCADO BLANCO ======================= */
 {
-  id:"bacalao_panadera", n:"Bacalao al natural con patatas panaderas en Lékué",
-  tipo:["comida","cena"], grupo:"pescado-blanco", raciones:1, min:9, tools:["lekue","microondas"],
-  ing:[{i:"bacalao_natural",c:1.5},{i:"patata",c:1},{i:"cebolla_dulce",c:0.5},{i:"aove",c:10},{i:"ajo_polvo",c:1},{i:"pimienta",c:0.5},{i:"perejil",c:2},{i:"limon",c:0.25}],
+  id:"lomo_pieza_airfryer", n:"Lomo de cerdo asado en airfryer con salsa de manzana",
+  rev:2,
+  cesta:["cerdo_lomo"],
+  tipo:["comida","cena"], grupo:"carne-blanca", raciones:2, min:32, tools:["airfryer","lekue-vapor"],
+  ing:[{i:"cerdo_lomo",c:420},{i:"manzana_reineta",c:1},{i:"cebolla_dulce",c:0.5},{i:"aove",c:12},{i:"pimienta",c:1},{i:"tomillo",c:1},{i:"ajo_polvo",c:1},{i:"vino_blanco",c:30}],
   pasos:[
-    "Patata en rodajas MUY finas (2 mm) y cebolla en juliana al fondo del estuche, alternadas.",
-    "Añade 2 cucharadas de agua (o vino blanco), el aceite, ajo en polvo y pimienta. Cierra.",
-    "4 minutos y medio a 800 W: las patatas salen tiernas.",
-    "Abre con cuidado del vapor. Seca bien el lomo de bacalao y ponlo encima, con la piel hacia abajo.",
-    "Pincela con aceite, pimienta y perejil. Cierra y 3 minutos exactos a 800 W.",
-    "Reposa 1 minuto con el estuche cerrado dentro del microondas apagado. Unas gotas de limón al servir."
+    "Pide en la carnicería un trozo de lomo de una pieza, de unos 420 g y lo más parejo de grosor posible. Si un extremo es mucho más fino, dóblalo sobre sí mismo y átalo con hilo de cocina: así se hace todo a la vez.",
+    "Fuera de la nevera 30 minutos antes, y seco con papel.",
+    "Úntalo con 8 ml de aceite y frótalo con la pimienta, el tomillo y el ajo en polvo por toda la superficie.",
+    {min:0, t:"Lomo a la freidora — 180 °C, 22 minutos",
+     d:"A 180 y no más. A 200 la costra va demasiado deprisa para el centro. Aquí la freidora gana a la sartén: la pieza entera tiene masa suficiente para aguantar los 22 minutos que necesita el exterior sin que el interior se pase, que es justo lo que un filete fino no puede hacer."},
+    {min:11, t:"Dale la vuelta",
+     d:"Una sola vez y a mitad. Con la resistencia arriba y abajo casi no haría falta, pero la cara que toca la cesta siempre se dora distinto."},
+    {min:17, t:"Manzana y cebolla a la vaporera — 800 W, 5 minutos",
+     d:"La manzana en láminas y la cebolla en juliana, con el vino blanco y los 4 ml de aceite que quedan. Termina a la vez que el lomo."},
+    {min:22, t:"Lomo fuera y a REPOSAR 8 minutos tapado con papel de aluminio",
+     d:"Ocho minutos, no dos. En una pieza de este tamaño el reposo es la mitad del trabajo: si lo cortas recién salido pierdes en la tabla el jugo de todo el asado."},
+    {min:22, t:"Mientras reposa, tritura la manzana y la cebolla",
+     d:"Con la batidora, 30 segundos. Si queda muy espesa, una cucharada del jugo que haya soltado el lomo en la cesta."},
+    "Corta en lonchas de 1 cm contra la fibra y sirve con la salsa al lado, no por encima, para que la costra no se ablande."
   ],
-  nota:"Bacalao AL NATURAL sin salar (0,16 g de sal/100 g). Nunca el desalado."
+  trucos:[
+    "Cómo saber que está: 63 °C en el centro con termómetro, y sube a 65-66 durante el reposo. Sin termómetro, pincha con la punta de un cuchillo en el centro y apóyala en el labio: tiene que estar caliente, no ardiendo. El jugo sale transparente con un punto rosado, y eso es correcto en el cerdo de hoy — pasarlo hasta que salga blanco es lo que lo deja seco.",
+    "ESTA ES LA VERSIÓN DE FREIDORA DEL LOMO. La otra receta, «Lomo de cerdo con salsa exprés», es en filetes y va en sartén. No es incoherencia: en filetes finos la freidora seca la carne antes de dorarla, y en pieza entera pasa justo lo contrario. Manda el corte, no el aparato.",
+    "Salen 2 raciones y ese es medio motivo para hacerlo. El lomo asado frío, en lonchas finas, es el mejor relleno de pan sin sal que vas a encontrar, y te resuelve almuerzos sin cocinar nada.",
+    "Átalo si no es parejo. Un trozo con un extremo fino se te queda seco por ahí y crudo por el gordo. Doblar y atar iguala el grosor y es un minuto.",
+    "Nunca lomo adobado del supermercado: pasa de 1,5 g de sal por 100 g. Pídelo fresco y sin nada.",
+    "Cabe el doble en la cesta. Con dos piezas de 420 g súbelo a 26 minutos y pon el termómetro, que ahí ya no me fío del reloj."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y microondas de 800 W. Los 63 °C son el estándar actual de seguridad para el cerdo entero; la vieja idea de asarlo hasta que quede blanco venía de la triquinosis y hoy no aplica a la carne de producción controlada."
+},
+{
+  id:"bacalao_panadera", n:"Bacalao al natural con patatas panaderas en Lékué",
+  rev:2,
+  tipo:["comida","cena"], grupo:"pescado-blanco", raciones:1, min:11, tools:["lekue-vapor"],
+  ing:[{i:"bacalao_natural",c:1.5},{i:"patata",c:1},{i:"cebolla_dulce",c:0.5},{i:"aove",c:8},{i:"ajo_polvo",c:1},{i:"pimienta",c:0.5},{i:"perejil",c:2},{i:"limon",c:0.25}],
+  pasos:[
+    "Patata en rodajas MUY finas, de 2 mm. Con mandolina si la tienes; a cuchillo, tómate el minuto que haga falta. Es lo único que decide si salen tiernas en cuatro minutos o duras.",
+    "Cebolla en juliana fina. Al fondo de la vaporera, alternando capas de patata y cebolla para que el vapor circule entre ellas.",
+    "Dos cucharadas de agua (o vino blanco), 5 ml del aceite, el ajo en polvo y la pimienta. Cierra.",
+    {min:0, t:"Microondas — 800 W, 4 minutos y medio",
+     d:"Las patatas tienen que salir tiernas del todo antes de que entre el pescado, porque a partir de ahí el reloj lo manda el bacalao y ya no hay margen para ellas."},
+    {min:5, t:"Abre APARTANDO LA CARA y pincha una patata",
+     d:"Sale vapor a cien grados de golpe. Si la patata ofrece resistencia, un minuto más antes de seguir: aquí sí puedes corregir."},
+    {min:6, t:"El bacalao encima, con la piel abajo, pincelado con los 3 ml que quedan y el perejil",
+     d:"Encima de las patatas, no enterrado. Bien seco con papel: el agua que traiga se suma a la del estuche y te deja el plato caldoso."},
+    {min:6, t:"Cierra y 3 minutos EXACTOS a 800 W",
+     d:"Tres. El bacalao al natural es magro y sin la sal que lo curte aguanta todavía menos que el salado."},
+    {min:9, t:"Reposo de 1 minuto con el estuche cerrado, dentro del microondas apagado",
+     d:"Termina de cuajar con el vapor que queda dentro. Este minuto es parte de la cocción, no una espera."},
+    "Unas gotas de limón al servir, y el jugo del fondo por encima de las patatas."
+  ],
+  trucos:[
+    "ONCE MINUTOS Y UN SOLO CACHARRO. De las cenas completas es la más rápida que tienes, y encima se friega sola.",
+    "Bacalao AL NATURAL sin salar: 0,16 g de sal por 100 g. El desalado se queda en 1,5 g aunque lo tengas dos días a remojo, y con eso ya te habrías comido el cupo del día.",
+    "Los 2 mm de la patata no son un capricho. A 4 mm necesitan el doble de tiempo, y ese tiempo el bacalao no lo tiene.",
+    "Cómo saber que está: las lascas se separan solas. Si queda un punto translúcido en el centro del lomo más gordo, el minuto de reposo lo termina.",
+    "El agua puede ser vino blanco y se nota. Aporta la acidez que aquí no pone la sal, y el alcohol se evapora entero en el microondas.",
+    "Esto es exactamente lo que hace la vaporera mejor que cualquier otro aparato: cocer sin que el sabor se escape al agua, en un solo recipiente y en la mitad de tiempo."
+  ],
+  nota:"Vaporera Lékué a 800 W. Antes decía «lekue» a secas; ahora está concretado y con los tiempos por pasos."
 },
 {
   id:"bacalao_tomate", n:"Bacalao al natural con tomate casero y cebolla",
-  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:20, tools:["sarten"],
-  ing:[{i:"bacalao_natural",c:1.5},{i:"tomate",c:2},{i:"cebolla_dulce",c:0.5},{i:"ajo",c:1},{i:"aove",c:10},{i:"oregano",c:0.5},{i:"pimienta",c:0.5}],
+  rev:3,
+  cesta:["cebolla_dulce","ajo"], capaUnica:false,
+  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:26, tools:["airfryer","sarten"],
+  ing:[{i:"bacalao_natural",c:1.5},{i:"tomate",c:2},{i:"cebolla_dulce",c:0.5},{i:"ajo",c:1},{i:"aove",c:8},{i:"oregano",c:0.5},{i:"pimienta",c:0.5}],
   pasos:[
-    "Pocha la cebolla y el ajo despacio hasta que estén dorados.",
-    "Añade el tomate rallado sin piel y deja reducir 10 minutos a fuego lento con orégano: sin sal, el tomate concentra su propio dulzor.",
-    "Coloca el lomo de bacalao sobre la salsa, tapa y cocina 5–6 minutos a fuego suave.",
-    "No remuevas: mueve la sartén para que ligue."
-  ]
+    "Descongela los lomos en la nevera desde la noche antes. Descongelados a lo bruto sueltan agua y te aguan la salsa.",
+    "Cebolla en juliana de medio centímetro, en un bol con 5 ml del aceite hasta que brille.",
+    "Tomate rallado sin piel, reservado en un cuenco.",
+    {min:0, t:"Cebolla a la freidora — 180 °C, 14 minutos",
+     d:"Aquí la freidora te libera: la cebolla se dora sola mientras tú no haces nada, en vez de tenerte quince minutos removiendo una sartén."},
+    {min:8, t:"Sacude la cesta y echa el ajo laminado",
+     d:"Tarde, porque el ajo se amarga si pasa catorce minutos a 180."},
+    {min:14, t:"El sofrito a la sartén con el tomate y el orégano — fuego suave, 8 minutos",
+     d:"Con los 3 ml de aceite que quedan, reduciendo. Sin sal, el tomate concentra su propio dulzor al perder agua, y es lo que hace de este plato algo más que pescado hervido."},
+    {min:22, t:"El bacalao encima de la salsa, con la piel abajo — tapado, 5 minutos",
+     d:"Encima, no hundido: se hace con el vapor de la salsa y queda en lascas. Seca bien los lomos antes."},
+    {min:27, t:"NO REMUEVAS: mueve la sartén en círculos",
+     d:"La gelatina que suelta el bacalao es lo que liga la salsa y le da cuerpo. Con la cuchara romperías el lomo; moviendo la sartén se liga solo."}
+  ],
+  trucos:[
+    "Bacalao AL NATURAL sin salar, 0,16 g de sal por 100 g. El desalado de toda la vida se queda en 1,5 g aunque lo tengas dos días en agua, y te comerías tu cupo del día en una cena.",
+    "Cómo saber que está: las lascas se separan solas al empujar con el tenedor. Si aún ofrece resistencia, dos minutos más tapado y fuera del fuego, que con el calor de la salsa basta.",
+    "El sofrito de cebolla, otra vez del congelador. Con una porción hecha arrancas en el minuto 14 y la cena baja a 13 minutos.",
+    "Quita la piel al tomate. Rallándolo se queda en la mano; si lo picas, escáldalo. La piel enrollada en la salsa es lo único desagradable de este plato.",
+    "Sin sal, pero con ácido al final si lo ves soso: unas gotas de vinagre despiertan el tomate igual que el limón al pescado blanco."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Antes iba entero en sartén y funcionaba, pero eran quince minutos de pochar sin despegarte. Ahora la cebolla se hace sola."
 },
 {
   id:"merluza_vapor", n:"Merluza al vapor en Lékué con calabacín y berenjena",
-  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:12, tools:["lekue","airfryer","microondas"],
-  ing:[{i:"merluza_lomo",c:220},{i:"calabacin",c:0.5},{i:"berenjena",c:0.5},{i:"aove",c:10},{i:"limon",c:0.25},{i:"pimienta",c:0.5},{i:"oregano",c:0.5},{i:"eneldo",c:0.5}],
+  rev:2,
+  rev:4,
+  cesta:["calabacin","berenjena"],
+  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:16, tools:["airfryer","lekue-vapor"],
+  ing:[{i:"merluza_lomo",c:220},{i:"calabacin",c:0.5},{i:"berenjena",c:0.5},{i:"aove",c:6},{i:"limon",c:0.25},{i:"pimienta",c:0.5},{i:"oregano",c:0.5},{i:"eneldo",c:0.5}],
   pasos:[
-    "Verduras en rodajas de 1 cm al cesto de la airfryer con aceite y orégano: 14 min a 180 °C, removiendo a mitad.",
-    "Merluza al estuche con unas gotas de aceite, zumo de limón, pimienta y eneldo.",
-    "2,5–3 minutos a 800 W. Queda jugosísima; ni un minuto más."
-  ]
+    "Verduras en rodajas de 1 cm, en un bol con 4 ml del aceite y el orégano hasta que brillen.",
+    "Merluza seca con papel. Si es congelada, descongelada en la nevera: a temperatura ambiente suelta agua y se deshace.",
+    {min:0, t:"Verduras a la freidora — 180 °C, 14 minutos",
+     d:"Van primero y solas porque tardan tres veces más que el pescado. Sacude a los 7."},
+    {min:11, t:"Merluza a la vaporera con los 2 ml de aceite que quedan, el limón, la pimienta y el eneldo",
+     d:"El limón AHORA sí, a diferencia de la lubina a la plancha: aquí el pescado se hace en su propio vapor en tres minutos y el ácido no tiene tiempo de curtir la carne."},
+    {min:13, t:"Microondas — 800 W, 3 minutos exactos",
+     d:"Tres, y ni uno más. La merluza tiene la carne más delicada de todas las que cocinas: en cuatro minutos pasa de lascas jugosas a algodón seco, y no hay marcha atrás."},
+    {min:16, t:"Abre la vaporera APARTANDO LA CARA",
+     d:"Ahí dentro hay vapor a cien grados y sale de golpe. Ábrela de lejos y por el lado contrario."},
+    "Monta la merluza sobre las verduras y riega con el jugo que haya quedado en la vaporera, que es puro sabor a pescado."
+  ],
+  trucos:[
+    "TRES MINUTOS. Es la receta menos perdonadora del recetario. Si los lomos son muy gruesos, 3 y medio; si son finos, 2 y medio. Ante la duda, corto: puedes darle 30 segundos más, pero de merluza pasada no se vuelve.",
+    "Cómo saber que está: la carne está blanca opaca y las lascas se abren solas. Si queda un hilo translúcido en el centro del lomo más gordo, está perfecta — termina de cuajar con su propio calor mientras la emplatas.",
+    "El vapor es el mejor método para el pescado blanco y no solo por comodidad: al no haber agua de cocción no se le va el sabor a ninguna parte, que es lo que pasa al hervirlo.",
+    "El jugo del fondo de la vaporera no se tira nunca. Son dos cucharadas y llevan concentrado todo lo que ha soltado el pescado.",
+    "La merluza congelada en lomos va perfectamente aquí, y suele ser mejor que la fresca de días. Eso sí, descongelada en la nevera y bien seca."
+  ],
+  nota:"Vaporera Lékué a 800 W y Moulinex Easy Fry XL Surface. Los dos aparatos terminan a la vez: las verduras entran 11 minutos antes que el pescado."
 },
 {
-  id:"lubina_espalda", n:"Lubina a la espalda con ajos dorados",
-  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:20, tools:["horno","sarten"],
-  ing:[{i:"lubina",c:250},{i:"ajo",c:3},{i:"aove",c:10},{i:"vinagre",c:5},{i:"perejil",c:2},{i:"tomate",c:1},{i:"cebolla_dulce",c:0.25}],
+  id:"lubina_espalda", n:"Lomos de lubina con refrito de ajos dorados",
+  rev:4,
+  cesta:["lubina"],
+  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:16, tools:["airfryer","sarten"],
+  ing:[{i:"lubina",c:180},{i:"ajo",c:3},{i:"aove",c:10},{i:"vinagre",c:5},{i:"perejil",c:2},{i:"tomate",c:1},{i:"cebolla_dulce",c:0.25}],
   pasos:[
-    "Lubina abierta en libro al horno a 200 °C durante 10–12 minutos (o airfryer 180 °C, 12 min).",
-    "Mientras, dora los ajos laminados en aceite a fuego suave hasta que estén rubios.",
-    "Fuera del fuego añade unas gotas de vinagre y el perejil picado.",
-    "Riega el pescado con el refrito y sirve con ensalada de tomate y cebolla dulce."
-  ]
+    "Un paquete de 180 g de lomos de lubina, descongelados en la nevera la noche antes.",
+    "Sécalos a conciencia por las dos caras, sobre todo la piel, y úntalos con 3 ml del aceite y pimienta. El congelado suelta más agua que el fresco: papel de cocina hasta que salga casi seco.",
+    "Ensalada de tomate en rodajas y cebolla en pluma fina, montada y sin aliñar todavía.",
+    {min:0, t:"Lomos a la freidora con LA PIEL ABAJO — 180 °C, 10 minutos",
+     d:"Separados, sin tocarse, en el centro de la cesta. Diez minutos para un lomo de dos centímetros; si son más finos, ocho. El horno hacía esto mismo en veinte minutos y calentando toda la cocina."},
+    {min:6, t:"Sartén pequeña a fuego SUAVE con los 7 ml de aceite y los ajos laminados",
+     d:"Suave de verdad, no medio. El ajo tiene que confitarse hasta rubio, no freírse: en cuanto coge color oscuro amarga y el refrito se echa a perder."},
+    {min:9, t:"Fuera del fuego, el vinagre y el perejil picado",
+     d:"Fuera del fuego y apartando la cara: el vinagre sobre el aceite caliente salpica. Ese chisporroteo es el refrito ligando."},
+    {min:10, t:"Los lomos al plato y riégalos con el refrito por encima",
+     d:"En ese orden. El refrito sobre el pescado recién salido penetra en la carne caliente; al revés se queda en el fondo."}
+  ],
+  trucos:[
+    "SI LA COMPRAS ENTERA, ábrela en libro (que te la abran en la pescadería) y súbelo a 14 minutos. Pero ocupa el triple de cesta: 79 cm² por cada 100 g frente a 48 en lomos. Para una sola pieza da igual; para dos, no cabe nada más.",
+    "Cómo saber que está: la carne pasa de transparente a blanca opaca y se abre en lascas al apretar con el tenedor. Si dudas, sácala: sigue haciéndose fuera del calor.",
+    "El ajo rubio, nunca dorado oscuro. Es el error clásico de este plato: pasa de rubio a amargo en veinte segundos, así que sácalo del fuego un punto antes de lo que te pide el ojo.",
+    "El vinagre no es opcional. Aquí hace el trabajo de la sal: corta la grasa del refrito y despierta el pescado. Si no tienes, limón.",
+    "La ensalada se aliña con lo que quede del refrito en la sartén, no con aceite nuevo. Lleva todo el sabor del ajo y son calorías que ya has contado."
+  ],
+  nota:"Moulinex Easy Fry XL Surface, con lomos de lubina congelados de 180 g. Sale del horno a la freidora: mismo resultado en diez minutos en vez de veinte, sin precalentar y sin calentar la cocina entera para una cena."
 },
 {
   id:"lubina_horno_verduras", n:"Lubina con tomate, berenjena y calabacín en airfryer",
-  rev:2,
+  rev:4,
   tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:28, tools:["airfryer"],
-  ing:[{i:"lubina",c:220},{i:"berenjena",c:0.5},{i:"calabacin",c:0.5},{i:"tomate",c:1},
+  ing:[{i:"lubina",c:180},{i:"berenjena",c:0.5},{i:"calabacin",c:0.5},{i:"tomate",c:1},
        {i:"ajo",c:2},{i:"aove",c:8},{i:"tomillo",c:0.5},{i:"pimienta",c:0.5},
        {i:"limon",c:0.25},{i:"perejil",c:2}],
   pasos:[
-    "Saca la lubina de la nevera 10 minutos antes de empezar. El pescado muy frío se hace por fuera antes de que el centro llegue, y sale seco por el borde y crudo por dentro.",
+    "ESTA RECETA ES CON LOMOS DE LUBINA, un paquete de 180 g, no con la pieza entera abierta (para eso, mira el truco de las piezas enteras: cambia el reparto de la cesta). Descongelados en la nevera y fuera 10 minutos antes: el pescado muy frío se hace por fuera antes de que el centro llegue, y sale seco por el borde y crudo por dentro.",
     "Sécala bien con papel de cocina por las dos caras, sobre todo la piel. Esto no es un detalle: el pescado húmedo se cuece al vapor en vez de dorarse, y se pega a la cesta.",
     "Berenjena y calabacín en medias lunas de 1,5 cm, sin pelar. El tomate en cuatro gajos gruesos.",
     "Aliña la verdura EN UN BOL, nunca en la cesta: 5 ml de aceite, el tomillo y la pimienta, y remueve con las manos hasta que brille todo. Regar el aceite por encima de la cesta deja unos trozos empapados y otros secos.",
@@ -301,137 +752,349 @@ window.DATOS_RECETAS = [
   trucos:[
     "Cómo saber que está: la carne pasa de transparente a blanca opaca y se abre en lascas al apretar con el tenedor. Si dudas, sácala — sigue haciéndose un minuto fuera del calor, y de lubina pasada no se vuelve.",
     "El limón, al final y en el plato. Echado antes, el ácido «cuece» la superficie del pescado y lo reseca.",
-    "Todo en una sola capa. La freidora cocina moviendo aire caliente: si amontonas, lo de abajo se cuece al vapor. En tu cesta de 27×27 cm hay sitio de sobra para esta cantidad.",
+    "CON LUBINAS ENTERAS ABIERTAS, EL PESCADO SOLO YA LLENA LA CESTA. Abierta en libro, la lubina se despliega fina y ancha: ocupa 79 cm² por cada 100 g, casi el doble que en lomos (48). Dos piezas de 400 g son 635 cm², y en una capa solo se aprovechan 630. O sea que las dos lubinas se comen la cesta entera y no queda sitio para NADA más. Eso es lo que te pasó, y no tenía arreglo colocándolas mejor.",
+    "CON LUBINAS ENTERAS, DOS TANDAS: la verdura primero 14 minutos, la sacas y la tapas con papel de aluminio; luego las lubinas solas, abiertas, con la piel abajo, 15 minutos a 180 °C. Sirves el pescado sobre la verdura, que sigue caliente. Son 29 minutos en vez de 20, pero sale todo en su punto. Volver a meter la verdura debajo del pescado NO vale: le tapa el paso del aire.",
+    "CUÁNTO CABE, CON NÚMEROS. Tu cesta tiene 745 cm² y en una capa se aprovechan unos 630. Con las cantidades de esta receta, EN LOMOS, ocupas 457: el 72%, te sobra un tercio. Con la misma cantidad de pescado en lomos y el doble de verdura te vas al 128% y ya no cabe: LA VERDURA OCUPA MÁS QUE EL PESCADO. 100 g de berenjena son 148 cm² y 100 g de lomo de lubina, 48.",
+    "SI NO TE CABE, SACRIFICA EL TOMATE, NUNCA APILES. El tomate es lo que menos necesita la freidora: sírvelo fresco, o mételo 5 minutos al final cuando hayas sacado el resto y la cesta siga caliente. Lo que no puede hacerse es poner el pescado encima de la verdura: el lomo tapa el paso del aire y lo de debajo se queda crudo y aguado. Si quieres las tres verduras y más cantidad, dos tandas: verduras primero, tapadas con papel de aluminio mientras se hace el pescado.",
+    "PARA DOS RACIONES NO CABE EN UNA TANDA ni siquiera en lomos: harían falta 834 cm² y tienes 630. Las verduras primero, reservadas y tapadas, y el pescado después. Doblar y apilar no es una opción en este plato.",
     "Sin sal, tampoco en la verdura. Aquí el sabor lo ponen el ajo, el tomillo, la pimienta y el limón del final. Además la sal sacaría el agua de la berenjena y el calabacín y los dejaría blandos.",
     "No hace falta desamargar la berenjena: las variedades de ahora no amargan, y el truco clásico era precisamente con sal.",
+    "LOS LOMOS CONGELADOS SON LA SOLUCIÓN AL PROBLEMA DEL SITIO. En lomos ocupas el 33% de la cesta en vez del 100%, así que cabe todo de una tanda y la receta va tal cual está escrita. Eso sí: DESCONGÉLALOS EN LA NEVERA LA NOCHE ANTES. Metidos congelados necesitan la mitad más de tiempo y sueltan agua, que es justo lo que cuece la verdura en vez de asarla.",
+    "SÉCALOS MÁS DE LO QUE CREES. El pescado congelado suelta bastante más agua que el fresco al descongelarse. Papel de cocina por las dos caras, apretando, hasta que el papel salga casi seco.",
+    "MIRA LA ETIQUETA, Y NO TODO EL CONGELADO VALE. El bueno pone un solo ingrediente: «lubina (pescado)». Lo que hay que esquivar es el que lleva POLIFOSFATOS (E-451 o E-452), que se añaden para que retenga agua, y cualquiera que mencione salmuera o sal añadida. Los lomos de lubina de La Sirena, por ejemplo, van sin aditivos y con 0,13-0,2 g de sal por 100 g: menos que la lubina fresca del catálogo.",
+    "OJO AL GLASEADO. El congelado lleva una capa de hielo que cuenta en el peso del paquete. Busca el «peso neto escurrido» en la etiqueta y compra con margen, o te quedas corto de ración sin darte cuenta.",
+    "LA RACIÓN ES UN PAQUETE DE 180 g, ni más ni menos. Son 277 kcal y 38 g de proteína: casi un tercio de tu proteína del día. Antes ponía 220 g, pero con la lubina de acuicultura (154 kcal/100 g, el triple de grasa que la salvaje) la cena se iba por encima de las 500. Con el paquete entero cuadran las dos cosas: no sobra pescado en la nevera y la cena se queda en 453.",
     "Si los lomos son de distinto grosor, mete el gordo en el minuto 12 y el fino en el 14."
   ],
   nota:"Tiempos medidos para la Moulinex Easy Fry XL Surface: cesta de 27×27 cm y resistencia arriba y abajo. En una freidora de cesta honda y estrecha no cabe en una capa: haz la verdura primero, tápala con papel de aluminio y luego el pescado."
 },
 {
   id:"calamar_plancha", n:"Calamar fresco a la plancha con ajo y perejil",
-  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:12, tools:["sarten","airfryer"],
+  rev:3,
+  cesta:["calabacin"],
+  tipo:["cena"], grupo:"pescado-blanco", raciones:1, min:16, tools:["airfryer","sarten"],
   ing:[{i:"calamar_fresco",c:280},{i:"ajo",c:2},{i:"perejil",c:3},{i:"limon",c:0.5},{i:"aove",c:10},{i:"calabacin",c:0.5},{i:"pimienta",c:0.5}],
   pasos:[
-    "Seca muy bien el calamar limpio: si tiene agua, cuece en vez de dorarse.",
-    "Plancha o sartén al máximo, 2 minutos por cada lado. Ni un minuto más o se endurece.",
-    "Picada de ajo y perejil crudos con aceite y unas gotas de limón por encima al sacarlo.",
-    "Calabacín en rodajas a la plancha de acompañamiento."
-  ]
+    "Calamar limpio y abierto, SECO A CONCIENCIA con papel por las dos caras. Este es el paso que decide el plato: con agua encima se cuece en vez de dorarse y sale gris y blando.",
+    "Hazle unos cortes en diagonal por la cara interior, sin llegar a atravesarlo. Se riza al calor y coge el aliño.",
+    "Calabacín en rodajas de 1 cm con 3 ml del aceite.",
+    "PICADA: ajo y perejil crudos muy picados con 4 ml de aceite y el zumo del limón. En frío, sin cocinar.",
+    {min:0, t:"Calabacín a la freidora — 190 °C, 12 minutos",
+     d:"Va en la freidora porque la guarnición no necesita costra y así te deja la sartén libre y las manos también."},
+    {min:9, t:"Sartén al máximo, vacía, hasta que humee",
+     d:"Al máximo de verdad. Con el calamar no hay término medio: o sartén ardiendo o se cuece."},
+    {min:12, t:"Calamar a la sartén — 2 minutos por cada cara y FUERA",
+     d:"Dos y dos, con los 3 ml de aceite que quedan. El calamar solo tiene dos puntos buenos: muy corto o guisado media hora. En medio se pone a goma, y ahí es donde acabas si le das seis minutos."},
+    {min:16, t:"Al plato y la picada por encima, en crudo",
+     d:"En crudo y en el último momento. Si echas el ajo a la sartén se quema en segundos con ese calor, y el perejil cocido no sabe a nada."}
+  ],
+  trucos:[
+    "ESTE NO PASA A LA FREIDORA Y ES A PROPÓSITO. El calamar necesita dos minutos de calor brutal por contacto. La freidora tardaría seis u ocho minutos en dorarlo con aire, que es justo el intervalo en el que la proteína del calamar se contrae y se vuelve goma. Es el mismo caso que el entrecot.",
+    "Seco, seco y seco. Si solo recuerdas una cosa de esta receta, que sea esta. Un calamar húmedo no se dora ni en la mejor sartén del mundo.",
+    "Los cortes en diagonal no son estética: abren la superficie, el calamar se enrosca y la picada se agarra en los surcos en vez de resbalar.",
+    "280 g de calamar son 45 g de proteína por 160 kcal. Es de lo más eficiente que tienes en el recetario, y con 0,7 g de sal se queda dentro de la cena.",
+    "Si el calamar es muy grande, pártelo en dos trozos y hazlos de uno en uno. Dos piezas juntas bajan la temperatura de la sartén y vuelves a cocerlo."
+  ],
+  nota:"La guarnición en freidora y el calamar en sartén, cada uno donde sale mejor. Moulinex Easy Fry XL Surface."
 },
 
 /* ======================== PESCADO AZUL ======================== */
 {
   id:"salmon_patatas", n:"Salmón a la plancha con patatas en airfryer",
-  tipo:["comida"], grupo:"pescado-azul", raciones:1, min:18, tools:["sarten","airfryer","microondas"],
-  ing:[{i:"salmon_lomo",c:210},{i:"patata",c:1},{i:"aove",c:10},{i:"limon",c:0.25},{i:"eneldo",c:0.5},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"pimenton",c:1}],
+  rev:3,
+  cesta:["patata","salmon_lomo"],
+  tipo:["comida"], grupo:"pescado-azul", raciones:1, min:20, tools:["airfryer","microondas"],
+  ing:[{i:"salmon_lomo",c:210},{i:"patata",c:0.75},{i:"aove",c:8},{i:"limon",c:0.25},{i:"eneldo",c:0.5},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"pimenton",c:1}],
   pasos:[
-    "Patata en bastones: 3 min al estuche con una cucharada de agua, luego airfryer 200 °C 8 min con aceite, pimentón y ajo en polvo.",
-    "Salmón con la piel hacia abajo en sartén caliente: 4 minutos sin tocarlo, 1 minuto por el otro lado.",
-    "Eneldo, pimienta y unas gotas de limón al servir."
-  ]
+    "Patata en bastones de 1 cm, al estuche de silicona con una cucharada de agua.",
+    "Salmón seco con papel, untado con 3 ml del aceite y la pimienta. Con la piel puesta: sujeta el lomo y queda crujiente.",
+    {min:0, t:"Patata al microondas — 800 W, 3 minutos",
+     d:"Escúrrela y sécala antes de aliñarla con los 5 ml de aceite, el pimentón y el ajo en polvo."},
+    {min:3, t:"Patata a la freidora — 200 °C, 8 minutos",
+     d:"Sola y a 200, que es lo que le pide la costra. El salmón entra después, cuando bajemos la temperatura."},
+    {min:11, t:"BAJA A 180 °C, aparta la patata a los lados y mete el salmón con LA PIEL ABAJO — 9 minutos",
+     d:"Bajar a 180 es obligatorio: a 200 el salmón suelta esa grasa blanca cuajada por fuera y se seca. La patata aguanta perfectamente los últimos nueve minutos a 180."},
+    {min:20, t:"Fuera los dos a la vez",
+     d:"No le des la vuelta al salmón en ningún momento. Con la resistencia arriba y abajo se hace por los dos lados, y darle la vuelta rompe el lomo."},
+    "Eneldo, pimienta y unas gotas de limón al servir, nunca antes."
+  ],
+  trucos:[
+    "UN SOLO APARATO. Antes esto usaba sartén, freidora y microondas para un plato de dos elementos. Escalonando la temperatura sale igual y se friega la mitad.",
+    "Cómo saber que está: al apretar con el tenedor el lomo se abre en láminas y el centro está de un rosa más vivo que el borde. Eso es el punto, no que esté crudo.",
+    "SI LO PREFIERES A LA PLANCHA, la piel queda algo más crujiente: sartén caliente, piel abajo, 4 minutos sin tocarlo y 1 por el otro lado. Pero tienes que estar encima y ensucias una sartén más, y la diferencia es pequeña.",
+    "El limón al final y en el plato. Echado antes, el ácido curte la superficie del pescado y lo reseca.",
+    "El salmón es el pescado que más perdona porque su propia grasa hace de colchón. Es el de los días de menos atención.",
+    "210 g de salmón son 420 kcal: es el plato principal más calórico del recetario después de la carne roja, pero también 42 g de proteína y toda la grasa es de la buena. No lo recortes, compensa con la guarnición."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y microondas de 800 W. La patata entra 11 minutos antes que el salmón, y se baja de 200 a 180 al meterlo."
 },
 {
   id:"salmon_verduras_horno", n:"Salmón con berenjena y tomate asados al tomillo",
-  tipo:["cena"], grupo:"pescado-azul", raciones:1, min:20, tools:["airfryer","lekue"],
-  ing:[{i:"salmon_lomo",c:190},{i:"berenjena",c:0.5},{i:"tomate",c:1},{i:"aove",c:10},{i:"tomillo",c:1},{i:"pimienta",c:0.5},{i:"calabacin",c:0.3}],
+  rev:2,
+  rev:3,
+  tipo:["cena"], grupo:"pescado-azul", raciones:1, min:20, tools:["airfryer"],
+  ing:[{i:"salmon_lomo",c:170},{i:"berenjena",c:0.5},{i:"tomate",c:1},{i:"aove",c:6},{i:"tomillo",c:1},{i:"pimienta",c:0.5},{i:"calabacin",c:0.3}],
   pasos:[
-    "Berenjena, tomate y calabacín en rodajas con aceite y tomillo: airfryer 180 °C, 14–16 min.",
-    "Salmón al estuche Lékué con calabacín fino debajo: 2–2,5 min a 800 W (o 5 min en la airfryer a 180 °C).",
-    "Monta el salmón sobre las verduras asadas."
-  ]
+    "Berenjena y calabacín en medias lunas de 1,5 cm; el tomate en cuatro gajos. En un bol con 4 ml del aceite y el tomillo.",
+    "Salmón seco con papel, untado con los 2 ml restantes y la pimienta. Deja la piel puesta: es la que sujeta el lomo y se queda crujiente.",
+    {min:0, t:"Berenjena y calabacín a la freidora — 180 °C, 9 minutos",
+     d:"Solos. El tomate y el salmón son mucho más rápidos y entrarían a destiempo."},
+    {min:9, t:"Sacude, aparta a los lados y mete el salmón con LA PIEL ABAJO, y el tomate en los bordes",
+     d:"En el centro, que es donde el aire circula mejor. El tomate al borde porque suelta agua y pegado al salmón lo cocería al vapor."},
+    {min:9, t:"180 °C, 9 minutos más",
+     d:"El salmón tiene grasa propia, así que perdona bastante más que la merluza. Aun así, nueve minutos para un lomo de 170 g es el punto: jugoso y con el centro apenas rosado."},
+    {min:18, t:"Fuera todo a la vez",
+     d:"Si lo prefieres muy hecho, dos minutos más. Pero pruébalo así primero: el salmón pasado suelta esa grasa blanca cuajada por fuera y pierde todo el interés."}
+  ],
+  trucos:[
+    "UN SOLO APARATO Y UNA SOLA CESTA. Antes esto usaba la freidora y el Lékué a la vez para hacer lo mismo. Escalonando las entradas cabe todo y se friega la mitad.",
+    "Cómo saber que está: al apretar con el tenedor el lomo se abre en láminas y el centro está de un rosa más vivo que el borde. Eso es el punto, no que esté crudo.",
+    "La piel abajo y no le des la vuelta. Con la resistencia arriba y abajo se hace por los dos lados, y la piel protege la carne del calor directo de la cesta.",
+    "El salmón es el pescado que más perdona porque su grasa hace de colchón. Es el que hay que poner los días de menos atención.",
+    "Si el lomo lleva espinas, se sacan con una pinza tirando en el sentido en que salen, no en contra. Al salir de la freidora ya es tarde."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Se ha quitado el Lékué de esta receta: no aportaba nada que la misma cesta no hiciera mejor."
 },
 {
   id:"atun_sellado", n:"Atún fresco sellado con patatas gajo en airfryer",
-  tipo:["comida"], grupo:"pescado-azul", raciones:1, min:18, tools:["sarten","airfryer","microondas"],
-  ing:[{i:"atun_fresco",c:220},{i:"patata",c:1},{i:"limon",c:0.5},{i:"aove",c:10},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"jengibre",c:1},{i:"aceite_sesamo",c:3}],
+  rev:2,
+  cesta:["patata"],
+  tipo:["comida"], grupo:"pescado-azul", raciones:1, min:18, tools:["airfryer","sarten","microondas"],
+  ing:[{i:"atun_fresco",c:220},{i:"patata",c:1},{i:"limon",c:0.5},{i:"aove",c:8},{i:"pimienta",c:0.5},{i:"ajo_polvo",c:1},{i:"jengibre",c:1},{i:"aceite_sesamo",c:3}],
   pasos:[
-    "MARINADO (15 min antes): el lomo de atún con zumo de limón, un poco de jengibre rallado y unas gotas de aceite de sésamo.",
-    "Patatas en gajos: 3 min al estuche, luego airfryer 200 °C 9 min con aceite y ajo en polvo.",
-    "Sartén al MÁXIMO: sella el atún 1 minuto por cada cara. El centro debe quedar rosado, si se pasa queda seco y estopajoso.",
-    "Corta en láminas gruesas y pimienta por encima."
+    "MARINADO, 15 minutos antes de encender nada: el lomo de atún con el zumo de limón, el jengibre rallado y el aceite de sésamo. Quince minutos y no más — el ácido va curtiendo la superficie y en media hora te la deja blanca y correosa.",
+    "Patata en gajos, al estuche de silicona con una cucharada de agua.",
+    {min:0, t:"Patata al microondas — 800 W, 3 minutos",
+     d:"Escúrrela, sécala y aliña con 5 ml del aceite y el ajo en polvo."},
+    {min:3, t:"Patata a la freidora — 200 °C, 12 minutos",
+     d:"Sacude a los 6. Se hace sola mientras tú te ocupas del atún, que es lo que pide atención."},
+    {min:11, t:"Saca el atún del marinado y SÉCALO ENTERO con papel",
+     d:"Secarlo es lo que decide el plato. Con el marinado encima no sella: se cuece en su propio líquido y sale gris."},
+    {min:11, t:"Sartén al MÁXIMO, vacía, hasta que humee",
+     d:"Al máximo de verdad, tres minutos largos. Con el atún no hay término medio posible."},
+    {min:14, t:"Atún a la sartén — UN MINUTO por cada cara y fuera",
+     d:"Con los 3 ml de aceite que quedan, en la pieza y no en la sartén. Un minuto: buscas un centímetro dorado por fuera y el centro rojo entero. Si le das tres, se pone estopajoso y no hay marcha atrás."},
+    {min:15, t:"Patata fuera, y el atún a reposar 2 minutos antes de cortar",
+     d:"Dos minutos bastan: es una pieza pequeña y el reposo solo tiene que asentar el jugo del borde sellado."},
+    "Corta en láminas gruesas de 1,5 cm, contra la fibra, y pimienta recién molida por encima."
   ],
-  nota:"El atún se seca en segundos: sellado fuerte y corto es la única forma de que quede jugoso."
+  trucos:[
+    "ESTE NO PASA A LA FREIDORA, y es el caso más claro de todos. El atún necesita sesenta segundos de calor brutal por contacto para hacer un borde dorado dejando el centro crudo. La freidora, con aire, tardaría cinco o seis minutos en dorar y para entonces la pieza estaría cocida de lado a lado: exactamente el plato contrario al que buscas.",
+    "220 g de atún fresco son 50 g de proteína por 319 kcal. Es la mejor relación proteína/caloría de todo el recetario, con diferencia.",
+    "El marinado, 15 minutos clavados. Es aliño, no conserva: más tiempo y el limón te cocina el atún por fuera como si fuera un ceviche, y luego la sartén no encuentra nada que sellar.",
+    "Contra la fibra al cortar. En el atún las fibras se ven a simple vista; el cuchillo va perpendicular a ellas.",
+    "El atún fresco tiene 0,4 g de sal por 100 g, más que la lubina o la merluza. Sigue estando bien para una comida, pero no es el pescado para un día que ya vengas cargado de sodio.",
+    "Ni se te ocurra con atún congelado sin descongelar del todo: el centro helado no se calienta en un minuto y te quedas con un plato frío por dentro."
+  ],
+  nota:"La patata en freidora y el atún en sartén. El sellado corto y fuerte es la única forma de que quede jugoso, y eso solo lo da el metal."
 },
 
 /* ========================== HUEVOS ========================== */
 {
   id:"tortilla_espinacas", n:"Tortilla francesa con espinacas al ajo",
-  tipo:["cena"], grupo:"huevos", raciones:1, min:12, tools:["sarten"],
-  ing:[{i:"huevo",c:2},{i:"espinacas",c:120},{i:"ajo",c:1},{i:"aove",c:10},{i:"tomate",c:1},{i:"oregano",c:0.5},{i:"pimienta",c:0.5}],
+  rev:2,
+  cesta:["tomate"],
+  tipo:["cena"], grupo:"huevos", raciones:1, min:14, tools:["airfryer","sarten"],
+  ing:[{i:"huevo",c:2},{i:"espinacas",c:120},{i:"requeson",c:80},{i:"ajo",c:1},{i:"aove",c:10},{i:"tomate",c:1},{i:"oregano",c:0.5},{i:"pimienta",c:0.5}],
   pasos:[
-    "Saltea las espinacas con el ajo laminado a fuego vivo 3 minutos hasta que pierdan el agua.",
-    "Bate los huevos con pimienta, añade las espinacas y cuaja la tortilla vuelta y vuelta.",
-    "Acompaña con tomate en rodajas con orégano y aceite."
-  ]
+    "Tomate en cuatro gajos gruesos, con 3 ml del aceite y el orégano.",
+    "Espinacas lavadas y BIEN escurridas: el agua que traigan es la que luego te deja la tortilla aguada.",
+    {min:0, t:"Tomate a la freidora — 180 °C, 12 minutos",
+     d:"Asado, no en rodajas crudas. Al concentrarse pierde agua y el azúcar se hace notar: es un contrapunto dulce que en crudo no tiene, y aquí donde no hay sal eso cuenta."},
+    {min:8, t:"Sartén a fuego vivo con 4 ml de aceite: espinacas y ajo laminado — 3 minutos",
+     d:"A fuego vivo y removiendo. Las espinacas tienen que soltar el agua y que se evapore; a fuego suave se quedan nadando y la tortilla no cuaja."},
+    {min:11, t:"Escúrrelas apretando y bate los huevos con la pimienta",
+     d:"Apretando de verdad contra un colador. De 120 g de espinacas frescas salen 40 escurridas, y el resto es agua que no quieres dentro."},
+    {min:12, t:"Espinacas a los huevos, 3 ml de aceite en la sartén a fuego MEDIO y cuaja vuelta y vuelta",
+     d:"Fuego medio, no fuerte. La tortilla francesa quiere cuajar despacio para quedar jugosa por dentro; a fuego alto se dora fuera y se seca dentro."},
+    "Sirve con el requesón a cucharadas al lado y el tomate asado. Pimienta por encima."
+  ],
+  trucos:[
+    "EL REQUESÓN NO ES UN ADORNO, ES LA PROTEÍNA QUE FALTABA. Dos huevos solo dan 14 g, que para una cena con tu objetivo de 128 g al día se queda corto. Con 80 g de requesón sube a 27. Y es mejor que poner un tercer huevo: por cada 10 g de proteína el requesón aporta un 59% menos de sal y un 19% menos de calorías que el huevo.",
+    "Escurre las espinacas como si les tuvieras manía. Es el único motivo por el que una tortilla de espinacas sale mal.",
+    "El ajo entra con las espinacas, no antes. Solo en la sartén se quema en treinta segundos; entre las hojas se confita.",
+    "ASA TOMATES POR TANDAS. Llena la cesta de tomates el fin de semana: aguantan cuatro días en la nevera con un hilo de aceite y convierten estas cenas de huevo en cinco minutos.",
+    "Requesón con menos de 0,15 g de sal por 100 g. Hay marcas que se van a 0,5: míralo, porque aquí van 80 g de golpe."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. El huevo se queda en sartén a propósito: cuajar una tortilla es controlar el punto segundo a segundo, y eso en una freidora no se puede."
 },
 {
   id:"tortilla_calabacin", n:"Tortilla francesa con calabacín pochado",
-  tipo:["cena"], grupo:"huevos", raciones:1, min:12, tools:["sarten","microondas"],
-  ing:[{i:"huevo",c:2},{i:"calabacin",c:0.5},{i:"cebolla_dulce",c:0.25},{i:"aove",c:10},{i:"pimienta",c:0.5}],
+  rev:2,
+  cesta:["calabacin","cebolla_dulce"],
+  tipo:["cena"], grupo:"huevos", raciones:1, min:16, tools:["airfryer","sarten"],
+  ing:[{i:"huevo",c:2},{i:"calabacin",c:0.5},{i:"cebolla_dulce",c:0.25},{i:"requeson",c:80},{i:"aove",c:8},{i:"pimienta",c:0.5}],
   pasos:[
-    "Calabacín rallado (escurrido) y cebolla al estuche 3 min al microondas, o pochados en sartén 6 min.",
-    "Bate los huevos con pimienta, mezcla el calabacín y cuaja a fuego medio."
-  ]
+    "Calabacín en dados de 1 cm, NO rallado. Rallado suelta toda el agua; en dados se asa y se queda entero dentro de la tortilla.",
+    "Cebolla en juliana gruesa. Las dos cosas en un bol con 5 ml del aceite.",
+    {min:0, t:"Calabacín y cebolla a la freidora — 180 °C, 13 minutos",
+     d:"Asados y no pochados: es la diferencia entre una tortilla con sabor y una tortilla pálida. El calabacín pierde agua y concentra, y la cebolla endulza."},
+    {min:7, t:"Sacude la cesta",
+     d:"Para que lo de abajo suba. Si no, la mitad sale dorada y la otra mitad blanda."},
+    {min:13, t:"Bate los huevos con la pimienta y mézclalos con la verdura ya fuera",
+     d:"Fuera del fuego y con la verdura caliente pero no ardiendo: si está al rojo empieza a cuajar el huevo en el bol y te queda grumoso."},
+    {min:14, t:"Sartén a fuego MEDIO con los 3 ml que quedan — cuaja vuelta y vuelta",
+     d:"Medio, no fuerte. Una tortilla francesa se hace en dos minutos y tiene que quedar jugosa por dentro."},
+    "El requesón a cucharadas al lado, con pimienta recién molida."
+  ],
+  trucos:[
+    "EL REQUESÓN ES LA PROTEÍNA QUE FALTABA. Dos huevos son 14 g; con 80 g de requesón el plato se pone en 25. Y mejor que un tercer huevo: misma proteína con un 59% menos de sal.",
+    "En dados y no rallado. El rallado es un atajo que sale caro: suelta tanta agua que la tortilla no llega a cuajar bien y el calabacín desaparece.",
+    "Asado en freidora en vez de pochado al microondas. El microondas cuece, y la verdura cocida no tiene nada que aportar a un huevo. Aquí el dorado es todo el sabor.",
+    "HAZ VERDURA PARA TRES DÍAS. Llena la cesta de calabacín y cebolla: aguantan en la nevera y estas cenas pasan de 16 minutos a 4.",
+    "Si te sobra verdura asada, al día siguiente con un huevo revuelto es otra cena distinta sin cocinar nada."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. El huevo se queda en sartén: el punto de cuajado se controla a mano y no hay aparato que lo sustituya."
 },
 {
   id:"revuelto_guisantes", n:"Revuelto de huevos con guisantes y cebolla pochada",
-  tipo:["cena"], grupo:"huevos", raciones:1, min:15, tools:["sarten","microondas"],
-  ing:[{i:"huevo",c:2},{i:"guisantes",c:120},{i:"cebolla_dulce",c:0.5},{i:"aove",c:10},{i:"pimienta",c:0.5}],
+  rev:2,
+  cesta:["cebolla_dulce"],
+  tipo:["cena"], grupo:"huevos", raciones:1, min:17, tools:["airfryer","lekue-vapor","sarten"],
+  ing:[{i:"huevo",c:3},{i:"guisantes",c:150},{i:"cebolla_dulce",c:0.5},{i:"aove",c:8},{i:"pimienta",c:0.5}],
   pasos:[
-    "Cebolla al estuche 3 min y luego a la sartén hasta dorar.",
-    "Añade los guisantes y saltea 5 minutos.",
-    "Echa los huevos batidos y remueve a fuego bajo hasta que cuajen cremosos."
-  ]
+    "Cebolla en juliana de medio centímetro, en un bol con 5 ml del aceite.",
+    {min:0, t:"Cebolla a la freidora — 180 °C, 12 minutos",
+     d:"Doce minutos hasta marrón avellana. Sin sal ni caldo, ese dorado es lo único que da sabor al plato: no se puede abreviar."},
+    {min:6, t:"Sacude la cesta",
+     d:"Para igualar el color."},
+    {min:11, t:"Guisantes a la vaporera — 800 W, 6 minutos, directos del congelador",
+     d:"Sin descongelar. Al vapor conservan el verde y revientan dulces; salteados en la sartén se arrugan y pierden la gracia."},
+    {min:14, t:"Sartén a fuego BAJO con los 3 ml que quedan y los huevos batidos",
+     d:"Bajo de verdad. El revuelto cremoso se hace con paciencia y removiendo sin parar; a fuego medio se te cuaja en grumos secos en veinte segundos."},
+    {min:17, t:"Cuando esté a medio cuajar, la cebolla y los guisantes dentro",
+     d:"A medio cuajar, todavía brillante. Sigue removiendo treinta segundos fuera del fuego: el calor de la sartén termina el trabajo sin pasarse."},
+    "Pimienta negra recién molida, generosa."
+  ],
+  trucos:[
+    "AQUÍ SÍ VAN TRES HUEVOS, y en las tortillas de verdura no. El motivo es la sal: el guisante trae 0,01 g por 100 g, o sea nada, así que hay sitio para el tercer huevo (0,19 g) sin pasarse. En cambio las espinacas ya traen 0,20 y ahí el tercer huevo se iba de 0,95 g.",
+    "Fuego bajo y removiendo sin parar. Un revuelto es huevo cuajado lentamente; si lo dejas quieto tienes una tortilla rota.",
+    "Sácalo antes de que te parezca hecho. El huevo sigue cuajando con el calor de la sartén y del plato: lo que sacas cremoso llega a la mesa en su punto, y lo que sacas en su punto llega seco.",
+    "El guisante congelado va directo, sin descongelar. Descongelado suelta agua y se deshace.",
+    "150 g de guisantes son 8 g de proteína vegetal y 5 g de fibra, por 121 kcal. Es de las guarniciones más rentables que tienes.",
+    "Con la cebolla del congelador este plato baja de 17 minutos a 8."
+  ],
+  nota:"Tres aparatos pero ninguno pide atención a la vez: la cebolla sola en la freidora, los guisantes solos en el microondas, y tú solo con el huevo al final."
 },
 {
   id:"revuelto_calabacin", n:"Revuelto suave de calabacín con pan sin sal",
-  tipo:["cena"], grupo:"huevos", raciones:1, min:12, tools:["sarten"],
-  ing:[{i:"huevo",c:2},{i:"calabacin",c:0.5},{i:"aove",c:10},{i:"pan_sin_sal",c:1},{i:"pimienta",c:0.5}],
+  rev:2,
+  cesta:["calabacin"],
+  tipo:["cena"], grupo:"huevos", raciones:1, min:16, tools:["airfryer","sarten"],
+  ing:[{i:"huevo",c:2},{i:"calabacin",c:0.5},{i:"requeson",c:80},{i:"aove",c:8},{i:"pan_sin_sal",c:1},{i:"pimienta",c:0.5}],
   pasos:[
-    "Calabacín en dados pequeños pochado en sartén 6 minutos.",
-    "Añade los huevos y remueve a fuego bajo hasta que queden cremosos.",
-    "Sirve con una rebanada de pan sin sal tostada con aceite."
-  ]
+    "Calabacín en dados de 1 cm con 5 ml del aceite. Sin pelar: la piel es donde está la fibra y el color.",
+    {min:0, t:"Calabacín a la freidora — 190 °C, 12 minutos",
+     d:"A 190 y no a 180: el calabacín es casi todo agua y necesita calor alto para que se evapore y llegue a dorarse. A menos temperatura se queda cocido y blando."},
+    {min:6, t:"Sacude la cesta y mete el pan a tostar en el hueco",
+     d:"La rebanada de pan sin sal tuesta en los últimos 6 minutos en la misma cesta. Un cacharro menos y sale mejor que en el tostador."},
+    {min:12, t:"Sartén a fuego BAJO con los 3 ml que quedan y los huevos batidos",
+     d:"Bajo y removiendo sin parar, que es la única forma de que un revuelto salga cremoso en vez de en grumos."},
+    {min:15, t:"A medio cuajar, el calabacín dentro",
+     d:"Todavía brillante. Treinta segundos más fuera del fuego y listo: el huevo termina de cuajarse con el calor que queda."},
+    "El requesón a cucharadas al lado, el pan tostado y pimienta recién molida."
+  ],
+  trucos:[
+    "EL REQUESÓN SUBE LA PROTEÍNA DE 19 A 28 g. Esta cena estaba entre las más flojas del recetario; con 80 g se pone a la altura de las demás, y con menos sal que si pusieras otro huevo.",
+    "El pan se tuesta en la propia cesta, en los últimos seis minutos. No hace falta encender nada más.",
+    "Pan SIN SAL, de la panadería y congelado en rebanadas. El pan corriente lleva 1,3 g de sal por 100 g: una rebanada de 40 g son 0,5 g, más que los dos huevos juntos.",
+    "190 °C para el calabacín, no 180. Es la verdura con más agua de las que usas y necesita el calor alto para dorarse en vez de cocerse.",
+    "Sácalo del fuego cremoso, antes de que te parezca hecho. El huevo sigue cuajándose en el plato."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Antes era todo en sartén; el calabacín asado tiene un sabor que pochado no tiene, y de paso el pan se tuesta solo."
 },
 {
   id:"crema_calabacin_huevo", n:"Crema de calabacín y cebolla con huevo cocido",
-  tipo:["cena"], grupo:"verdura", raciones:2, min:20, tools:["cazuela","microondas"],
+  rev:2,
+  tipo:["cena"], grupo:"verdura", raciones:2, min:16, tools:["lekue-vapor"],
   ing:[{i:"calabacin",c:2},{i:"cebolla_dulce",c:1},{i:"patata",c:0.5},{i:"huevo",c:2},{i:"aove",c:20},{i:"pimienta",c:0.5}],
   pasos:[
-    "Pocha la cebolla, añade el calabacín y la patata en trozos y agua justo hasta cubrir.",
-    "Cuece 15 minutos y tritura. Cuanta menos agua, más sabor concentrado.",
-    "Sirve con huevo cocido picado por encima y un hilo de aceite en crudo."
-  ]
+    "Patata en dados de 1 cm y cebolla en juliana: son las dos que más tardan. Calabacín en medias lunas de 2 cm, sin pelar — la piel es donde está el color verde de la crema.",
+    {min:0, t:"Patata y cebolla a la vaporera — 800 W, 5 minutos",
+     d:"Con dos cucharadas de agua, no más. Aquí está la diferencia con la cazuela: al vapor la verdura no suelta su sabor al agua de cocción, se queda dentro. Por eso la crema sale más sabrosa aunque no lleve sal."},
+    {min:5, t:"Añade el calabacín — 6 minutos más",
+     d:"Entra después porque es casi todo agua y se deshace en nada. Pínchalo al terminar: tiene que ceder sin resistencia."},
+    {min:11, t:"Tritura con MUY poca agua",
+     d:"Empieza sin añadir nada: el agua que ha soltado la verdura suele bastar. Vas añadiendo a cucharadas hasta la textura que quieras. Pasarse de agua es lo que deja estas cremas insípidas, y ya no tiene arreglo."},
+    "Pimienta y los 20 ml de aceite en crudo al final, con la crema ya fuera. El aceite sin calentar es lo que le da el brillo y el sabor a aceituna.",
+    "El huevo cocido picado por encima, que además es lo que convierte esto en una cena con proteína de verdad."
+  ],
+  trucos:[
+    "EL HUEVO, NUNCA CON CÁSCARA EN EL MICROONDAS: revienta, y revienta fuerte. O lo cueces en un cazo 10 minutos, o lo escalfas en un vaso con agua que lo cubra, la yema pinchada con un palillo y 1 minuto a 800 W.",
+    "La patata no es relleno, es la que liga la crema. Su almidón hace de espesante y evita tener que echar nata o queso, que son los que traen la sal.",
+    "No peles el calabacín. Además del color, la piel lleva casi toda la fibra.",
+    "Al vapor y no hervida: es el cambio que más se nota de toda esta receta. Hervir la verdura manda la mitad del sabor al agua que luego escurres.",
+    "Congela en porciones. Esta crema sale igual de bien descongelada, y es la cena de emergencia perfecta para el día que no te apetece cocinar."
+  ],
+  nota:"Vaporera Lékué a 800 W. Antes iba en cazuela y no había ningún motivo: al vapor sale más sabrosa, se tarda menos y no hay que vigilar."
 },
 
 /* ======================== PASTA Y ARROZ ======================== */
 {
   id:"pasta_bolonesa", n:"Pasta con carne picada y tomate casero",
-  tipo:["comida"], grupo:"pasta-arroz", raciones:2, min:35, tools:["sarten","microondas"],
-  ing:[{i:"pasta",c:160},{i:"ternera_picada",c:300},{i:"tomate",c:4},{i:"cebolla_dulce",c:1},{i:"ajo",c:2},{i:"aove",c:20},{i:"oregano",c:1},{i:"albahaca",c:5},{i:"pimienta",c:0.5},{i:"zanahoria",c:1}],
+  rev:4,
+  cesta:["cebolla_dulce","zanahoria","calabacin","ajo"], capaUnica:false,
+  tipo:["comida"], grupo:"pasta-arroz", raciones:2, min:36, tools:["airfryer","lekue-pasta","sarten"],
+  ing:[{i:"pasta",c:140},{i:"ternera_picada",c:240},{i:"tomate",c:4},{i:"cebolla_dulce",c:1},{i:"ajo",c:2},{i:"aove",c:12},{i:"oregano",c:1},{i:"albahaca",c:5},{i:"pimienta",c:0.5},{i:"zanahoria",c:2},{i:"calabacin",c:0.5}],
   pasos:[
-    "Sofríe cebolla, ajo y zanahoria rallada MUY despacio, 12 minutos: es lo que sustituye a la sal.",
-    "Sube el fuego y sella la carne picada removiendo hasta que pierda el color rosado.",
-    "Añade el tomate natural rallado, orégano y pimienta. Reduce 15 minutos a fuego lento.",
-    "Cuece la pasta en el cocedor de microondas (10–12 min a 800 W) o en cazuela SIN sal en el agua.",
-    "Mezcla y termina con albahaca fresca rota a mano."
-  ]
+    "Cebolla en juliana de medio centímetro, zanahoria en rodajas finas y calabacín en dados de 1 cm (rallados se quemarían en la freidora). En un bol con 8 ml del aceite hasta que brille todo.",
+    "Tomate rallado en un cuenco y ajo en láminas, listos para cuando toque.",
+    {min:0, t:"Cebolla y zanahoria a la freidora — 180 °C, 16 minutos",
+     d:"Este sofrito es lo que sustituye a la sal en este plato, y por eso no se puede abreviar. En una capa fina; amontonado se cuece al vapor y se queda pálido."},
+    {min:8, t:"Sacude la cesta y echa el ajo laminado",
+     d:"El ajo entra tarde a propósito: dieciséis minutos a 180 lo dejarían amargo."},
+    {min:12, t:"Sartén fuerte con el aceite que queda: sella la carne picada",
+     d:"Con los 4 ml de aceite que quedan y desmenuzándola. Aquí sí hace falta la sartén: la carne tiene que tostarse por contacto, y en la freidora soltaría el jugo y se cocería en él. Cuando pierda el rosa, listo."},
+    {min:16, t:"El sofrito de la freidora a la sartén, con el tomate, el orégano y la pimienta",
+     d:"Fuego suave y a reducir. Raspa el fondo de la sartén con la cuchara: ese tostado pegado es sabor puro."},
+    {min:25, t:"Cuecepasta: 140 g de pasta y 350 ml de agua — 800 W, 10 minutos",
+     d:"Agua sin sal, que para eso está el sofrito. Diez minutos es lo que marca la tabla de Lékué a 800 W, igual para 120 que para 240 g."},
+    {min:35, t:"Escurre la pasta y junta con la salsa",
+     d:"Guarda dos cucharadas del agua de cocción: si la salsa te queda espesa, eso la liga mejor que el agua del grifo, porque lleva almidón."},
+    "Albahaca fresca rota con la mano por encima, ya fuera del fuego. Cortada con cuchillo se oxida y amarga."
+  ],
+  trucos:[
+    "Con sofrito del congelador esto baja de 36 minutos a 20. Dora cuatro cebollas de golpe en la freidora, congela en porciones planas, y arrancas directamente en el minuto 12.",
+    "La zanahoria en rodajas, no rallada. Rallada tiene tanta superficie que en la freidora se quema antes de que la cebolla se dore.",
+    "La carne, en la sartén y en tandas si hace falta. Amontonada suelta agua y se cuece gris en vez de tostarse.",
+    "Sin sal en el agua de la pasta tampoco. La pasta coge muy poca del agua, pero cada gramo cuenta y el sabor ya está en la salsa.",
+    "Esta salsa aguanta tres días en la nevera y congela bien. Haz doble y tienes otra comida resuelta.",
+    "AJUSTADA DE CALORÍAS SIN QUE SE NOTE EN EL PLATO. Carne de 300 a 240 g, pasta de 160 a 140 y aceite de 20 a 12 ml, pero entra medio calabacín y el doble de zanahoria. El plato pesa lo mismo en el bol y son 120 kcal menos por ración: lo que sale es grasa y almidón, lo que entra es verdura."
+  ],
+  nota:"Tiempos para la Moulinex Easy Fry XL Surface y microondas de 800 W. Los datos del cuecepasta salen de la tabla de Lékué: pasta seca, 120 g con 300 ml o 240 g con 600 ml, 10 minutos en los dos casos."
 },
 {
   id:"pasta_pesto_pollo", n:"Pasta al pesto casero de nueces con pollo",
-  tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:20, tools:["sarten","microondas"],
-  ing:[{i:"pasta",c:80},{i:"albahaca",c:25},{i:"nueces",c:20},{i:"ajo",c:1},{i:"aove",c:18},{i:"pollo_pechuga",c:150},{i:"pimienta",c:0.5},{i:"limon",c:0.2}],
+  rev:4,
+  cesta:["pollo_pechuga"],
+  tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:16, tools:["airfryer","lekue-pasta"],
+  ing:[{i:"pasta",c:75},{i:"albahaca",c:35},{i:"nueces",c:14},{i:"ajo",c:1},{i:"aove",c:11},{i:"pollo_pechuga",c:150},{i:"pimienta",c:0.5},{i:"limon",c:0.3}],
   pasos:[
-    "PESTO: tritura albahaca, nueces, el ajo sin germen, el aceite y unas gotas de limón. Sin queso: las nueces dan la untuosidad.",
-    "Cuece la pasta (cocedor de microondas, 10–12 min) y reserva un poco del agua de cocción.",
-    "Dora el pollo en dados en la sartén.",
-    "Mezcla la pasta con el pesto EN FRÍO fuera del fuego (si lo calientas, amarga) y una cucharada del agua de cocción para ligar. Añade el pollo."
-  ]
+    "Pollo en dados de 2 cm, bien seco con papel y untado con 3 ml del aceite y la pimienta.",
+    {min:0, t:"Pollo a la freidora — 190 °C, 12 minutos",
+     d:"En dados de 2 cm y en una capa. Más pequeños se secan, más grandes se quedan crudos por dentro cuando el borde ya está tostado."},
+    {min:2, t:"Mientras: el pesto",
+     d:"Tritura la albahaca, las nueces, el ajo SIN el germen del centro, los 8 ml de aceite que quedan y el zumo de limón. Sin queso: la grasa de la nuez ya da la untuosidad, y el queso es de lo más salado que hay."},
+    {min:6, t:"Sacude la cesta y pon la pasta — cuecepasta, 80 g con 200 ml, 800 W, 10 minutos",
+     d:"Sin sal en el agua. Los dos aparatos terminan a la vez y no hay nada que esperar."},
+    {min:16, t:"Escurre guardando una cucharada del agua",
+     d:"El pollo sale a la vez. Comprueba que un dado partido por la mitad está blanco hasta el centro."},
+    "Mezcla la pasta con el pesto FUERA DEL FUEGO y con DOS cucharadas de agua de cocción. Añade el pollo por encima."
+  ],
+  trucos:[
+    "El pesto NUNCA se calienta. La albahaca amarga en cuanto pasa de unos 60 °C y el aceite virgen extra pierde el aroma. Por eso se mezcla en el bol, no en la sartén.",
+    "El germen del ajo —el brotecito verde del centro— es lo que repite y lo que pica de más en crudo. Ábrelo por la mitad y quítalo.",
+    "La cucharada de agua de cocción no es manía: lleva almidón disuelto y es lo que hace que el pesto se agarre a la pasta en vez de resbalar al fondo del plato.",
+    "El pesto aguanta cinco días en la nevera con un dedo de aceite por encima que lo aísle del aire. Haz el triple y tienes tres comidas a 16 minutos.",
+    "Si te sobra pollo, hazlo en la misma tanda: cabe el doble en la cesta sin cambiar tiempos, y frío va muy bien en las ensaladas de brotes.",
+    "ESTE PESTO LLEVA MENOS GRASA QUE EL CLÁSICO Y NO SE NOTA. Bajamos el aceite de 18 a 8 ml y las nueces de 20 a 14 g —eran 293 kcal de grasa para una salsa— y subimos la albahaca de 25 a 35 g. El volumen lo pone la hoja, y la untuosidad, las dos cucharadas de agua de cocción. Son 120 kcal menos por plato."
+  ],
+  nota:"Tiempos para la Moulinex Easy Fry XL Surface y microondas de 800 W. Cuecepasta según la tabla de Lékué: pasta seca, 10 minutos."
 },
 {
   id:"arroz_calamar", n:"Arroz meloso con calamar y fondo oscuro de cebolla (freidora + arrocera)",
-  rev:2,
+  rev:3,
+  cesta:["cebolla_dulce","ajo","calamar_fresco"], capaUnica:false,
   tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:40, tools:["airfryer","lekue-arroz"],
   ing:[{i:"arroz_redondo",c:70},{i:"calamar_fresco",c:200},{i:"cebolla_dulce",c:0.5},{i:"ajo",c:1},{i:"tomate",c:0.5},{i:"pimenton",c:2},{i:"aove",c:10},{i:"laurel",c:1},{i:"pimienta",c:0.3}],
   pasos:[
@@ -469,73 +1132,381 @@ window.DATOS_RECETAS = [
 },
 {
   id:"arroz_oriental", n:"Arroz salteado con pollo, calabacín y jengibre",
-  tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:20, tools:["sarten","microondas"],
-  ing:[{i:"arroz_redondo",c:80},{i:"pollo_pechuga",c:150},{i:"calabacin",c:0.5},{i:"cebolla_dulce",c:0.5},{i:"huevo",c:1},{i:"aceite_sesamo",c:5},{i:"jengibre",c:3},{i:"ajo",c:1},{i:"aove",c:10}],
+  rev:3,
+  tipo:["comida"], grupo:"pasta-arroz", raciones:1, min:26, tools:["lekue-arroz","sarten"],
+  ing:[{i:"arroz_redondo",c:65},{i:"pollo_pechuga",c:150},{i:"calabacin",c:0.5},{i:"cebolla_dulce",c:0.5},{i:"huevo",c:1},{i:"aceite_sesamo",c:5},{i:"jengibre",c:3},{i:"ajo",c:1},{i:"aove",c:7}],
   pasos:[
-    "Cuece el arroz en el cocedor de microondas (12 min a 800 W) y déjalo enfriar un poco: frío saltea mejor.",
-    "Cuaja una tortilla francesa fina y córtala en tiras.",
-    "Sartén al máximo: pollo en dados, cebolla y calabacín. Saltea sin parar 5 minutos.",
-    "Añade el arroz, el jengibre rallado y el ajo. Saltea 3 minutos más.",
-    "Fuera del fuego, las tiras de tortilla y unas gotas de aceite de sésamo. SIN salsa de soja: tiene muchísima sal."
-  ]
+    "Pollo en dados de 1,5 cm, cebolla en juliana y calabacín en medias lunas finas. Todo cortado ANTES de encender la sartén: un salteado no da tiempo a cortar nada por el camino.",
+    {min:0, t:"Arroz a la arrocera Lékué — 65 g con 150 ml de agua, 800 W, 11 minutos",
+     d:"Menos agua de lo normal a propósito: para saltear quieres el grano firme y suelto, no meloso. Si te sale pegajoso, baja a 140 ml la próxima vez."},
+    {min:11, t:"Reposo de 3 minutos y ESPARCE EL ARROZ EN UN PLATO ANCHO",
+     d:"Esparcido y no amontonado. Tiene que soltar el vapor y enfriarse: el arroz caliente y húmedo se apelmaza en la sartén y acabas con una papilla en vez de un salteado."},
+    {min:14, t:"Tortilla francesa fina en la sartén y córtala en tiras",
+     d:"Un huevo y 2 ml de aceite, fuego medio, treinta segundos por cara. Se hace ahora y se reserva, porque luego la sartén va a estar al máximo y el huevo se quemaría."},
+    {min:18, t:"Sartén AL MÁXIMO con 5 ml de aceite: pollo, cebolla y calabacín — 5 minutos sin parar de remover",
+     d:"Al máximo y removiendo sin parar. Un salteado es eso: calor brutal y movimiento constante para que se dore por fuera y no suelte agua. Aquí la freidora no sirve, es justo la técnica contraria."},
+    {min:23, t:"El arroz, el jengibre rallado y el ajo — 3 minutos más",
+     d:"Extiéndelo por toda la sartén y déjalo un momento quieto entre remover y remover: así algunos granos se tuestan, que es lo mejor de un arroz salteado."},
+    {min:26, t:"FUERA DEL FUEGO: las tiras de tortilla y el aceite de sésamo",
+     d:"Fuera del fuego. El sésamo es un aceite de aroma, no de fritura: calentado pierde todo lo que aporta y amarga."}
+  ],
+  trucos:[
+    "EL ARROZ DEL DÍA ANTERIOR ES MEJOR QUE EL RECIÉN HECHO, y no es un apaño. Una noche en la nevera seca el grano por fuera y el almidón se retrograda, que es exactamente lo que hace falta para que salte suelto. Si lo haces la víspera, este plato baja de 26 minutos a 12.",
+    "NADA DE SALSA DE SOJA. Una cucharada lleva 1 g de sal: un cuarto de tu día entero. El sabor aquí lo ponen el jengibre, el ajo y el sésamo, que es de lo poco que puede competir con la soja sin sodio.",
+    "Este es el único plato del recetario donde la sartén es insustituible por potencia, no por costra. Un salteado necesita que la sartén esté tan caliente que el agua se evapore antes de acumularse; el aire de la freidora no llega a eso.",
+    "Jengibre fresco rallado, no en polvo. En este plato es la mitad del sabor y el polvo no se le parece.",
+    "Sártén grande y no la llenes. Si amontonas, la temperatura se desploma y en vez de saltear cueces. Si vas a hacer dos raciones, en dos tandas.",
+    "Los 11 minutos de la arrocera son mi cálculo, no una medición: la primera vez ábrela y prueba un grano antes del reposo, y me dices."
+  ],
+  nota:"Arrocera Lékué a 800 W y sartén. Cambia el cocedor de microondas genérico por la arrocera, y deja claro por qué el salteado no puede irse a la freidora."
 },
 
 /* ======================== ENSALADAS Y VERDURAS ======================== */
 {
   id:"ensalada_mango", n:"Ensalada de brotes, mango, nueces y requesón",
+  rev:2,
   tipo:["cena"], grupo:"ensalada", raciones:1, min:10, tools:["sin-cocinar"],
-  ing:[{i:"brotes_verdes",c:80},{i:"mango",c:0.5},{i:"nueces",c:15},{i:"requeson",c:60},{i:"aove",c:12},{i:"vinagre",c:10},{i:"miel",c:7},{i:"mostaza_bajasal",c:3}],
+  ing:[{i:"brotes_verdes",c:100},{i:"mango",c:0.5},{i:"nueces",c:10},{i:"requeson",c:110},{i:"huevo",c:1},{i:"aove",c:8},{i:"vinagre",c:10},{i:"miel",c:7},{i:"mostaza_bajasal",c:3}],
   pasos:[
-    "VINAGRETA: emulsiona el aceite con el vinagre de manzana (o limón), la miel y una punta de mostaza baja en sal.",
-    "Monta los brotes, el mango en dados, el requesón en cucharadas y las nueces.",
-    "Aliña justo antes de comer."
+    "Huevo cocido: 10 minutos desde que el agua hierve, y a un bol con agua fría al sacarlo. El golpe de frío es lo que hace que la cáscara salga entera en vez de a trozos.",
+    "VINAGRETA: emulsiona el aceite con el vinagre de manzana (o limón), la miel y una punta de mostaza baja en sal. Bátelo en un vaso hasta que espese y deje de verse el aceite suelto.",
+    "Monta los brotes, el mango en dados, el requesón a cucharadas, el huevo en cuartos y las nueces por encima.",
+    "Aliña JUSTO antes de comer. Aliñada y esperando, la hoja se marchita en diez minutos."
   ],
-  nota:"La mostaza de Dijon corriente lleva 3–5 g de sal por 100 g: usa la baja en sal o semillas molidas con vinagre."
+  trucos:[
+    "AHORA ES UNA CENA DE VERDAD, NO UNA GUARNICIÓN. Antes tenía 12 g de proteína, que para una cena se queda muy corto con tu objetivo de 128 g al día. Con el huevo y el requesón subido a 110 g se pone en 25 g, y aun así baja de calorías porque el aceite va de 12 a 8 ml y las nueces de 15 a 10 g.",
+    "La mostaza de Dijon corriente lleva 3-5 g de sal por 100 g. Usa la baja en sal, o semillas de mostaza molidas con vinagre.",
+    "El requesón es de los pocos lácteos con poca sal y mucha proteína. Mira la etiqueta igualmente: hay marcas que se van a 0,5 g por 100 g.",
+    "El mango tiene que estar maduro. Es el dulzor que sustituye a la sal en este plato, y verde no aporta nada.",
+    "Cuece tres o cuatro huevos de una vez. Aguantan una semana en la nevera con su cáscara y te resuelven el almuerzo o esta cena en un minuto."
+  ],
+  nota:"Ajustada el 17-sep-2026: el problema no eran las calorías sino la proteína. Sigue siendo la cena más rápida del recetario."
 },
 {
   id:"ensalada_espinacas_mango", n:"Ensalada de espinacas tiernas con mango y queso fresco",
+  rev:2,
   tipo:["cena"], grupo:"ensalada", raciones:1, min:8, tools:["sin-cocinar"],
-  ing:[{i:"espinacas",c:80},{i:"mango",c:0.5},{i:"queso_burgos_sinsal",c:60},{i:"nueces",c:15},{i:"aove",c:12},{i:"vinagre",c:10}],
+  ing:[{i:"espinacas",c:100},{i:"mango",c:0.5},{i:"queso_burgos_sinsal",c:110},{i:"nueces",c:10},{i:"huevo",c:1},{i:"aove",c:8},{i:"vinagre",c:10}],
   pasos:[
-    "Espinacas tiernas lavadas de base.",
-    "Mango en dados, queso fresco sin sal en tacos del mismo tamaño y nueces.",
-    "Aliña con aceite y unas gotas de vinagre balsámico."
+    "Huevo cocido: 10 minutos desde que rompe a hervir, y al agua fría al sacarlo para poder pelarlo entero.",
+    "Espinacas tiernas lavadas y bien escurridas. El agua que quede diluye el aliño y la ensalada sabe a poco.",
+    "Mango en dados, queso fresco sin sal en tacos del mismo tamaño —que se coja todo de una cucharada— y el huevo en cuartos.",
+    "Aliña con el aceite y unas gotas de vinagre balsámico, y las nueces por encima al final para que no se ablanden."
+  ],
+  trucos:[
+    "SUBIDA DE PROTEÍNA, BAJADA DE GRASA. Tenía 13 g de proteína para una cena. Con el huevo y el queso fresco a 110 g se pone en 25, y con el aceite de 12 a 8 ml y las nueces de 15 a 10 g sale además más ligera.",
+    "El queso fresco tipo Burgos SIN SAL AÑADIDA, no el normal. El corriente lleva unos 0,7 g de sal por 100 g y con 110 g te comerías casi un gramo de golpe.",
+    "Las nueces, al final y sin remover. Debajo del aliño se reblandecen y pierden lo único que aportan de textura.",
+    "Las espinacas tiernas de bolsa valen, pero sécalas con un paño aunque vengan lavadas: siempre traen agua.",
+    "Si te sobra pollo o lomo asado de otro día, en lonchas finas aquí va perfecto y te ahorra cocer el huevo."
   ]
 },
 {
   id:"parrillada_airfryer", n:"Parrillada de verduras en airfryer",
+  rev:3,
   tipo:["guarnicion","cena"], grupo:"verdura", raciones:2, min:18, tools:["airfryer"],
-  ing:[{i:"calabacin",c:1},{i:"berenjena",c:1},{i:"tomate",c:2},{i:"cebolla_dulce",c:1},{i:"aove",c:12},{i:"oregano",c:1},{i:"ajo_polvo",c:1},{i:"pimienta",c:0.5}],
+  ing:[{i:"calabacin",c:0.75},{i:"berenjena",c:0.75},{i:"tomate",c:1},{i:"cebolla_dulce",c:0.25},{i:"aove",c:6},{i:"oregano",c:1},{i:"ajo_polvo",c:1},{i:"pimienta",c:0.5}],
   pasos:[
-    "Calabacín y berenjena en rodajas de 1 cm, cebolla en gajos, tomate en mitades.",
-    "Mézclalo todo en un bol con el aceite y las especias, con las manos, para que se impregne por igual.",
-    "Airfryer precalentada a 180 °C: 14–16 minutos removiendo el cesto a mitad."
-  ]
+    "Calabacín y berenjena en rodajas de 1 cm, cebolla en gajos gruesos (no en juliana: deshecha ocupa el triple de cesta) y el tomate por la mitad.",
+    "Mézclalo TODO en un bol con el aceite y las especias, con las manos. Repartido en la cesta a chorro, unos trozos salen empapados y otros secos.",
+    {min:0, t:"Berenjena y cebolla a la freidora — 180 °C, 8 minutos",
+     d:"Las dos que más tardan, solas y en una capa. La berenjena es densa y la cebolla necesita tiempo para endulzar."},
+    {min:8, t:"Sacude y añade el calabacín — 5 minutos",
+     d:"Lleva mucha agua: entrando al principio se desharía antes de que la berenjena estuviera hecha."},
+    {min:13, t:"Sacude y añade el tomate por los bordes — 5 minutos",
+     d:"El último y al borde: con 5 minutos se asa sin deshacerse, y suelta agua que no conviene tener en el centro."},
+    {min:18, t:"Fuera",
+     d:"La berenjena tiene que estar cremosa al pincharla y el calabacín ceder sin llegar a puré."}
+  ],
+  trucos:[
+    "CANTIDADES CORREGIDAS EL 17-SEP PORQUE NO CABÍAN. Tal como estaba escrita (un calabacín, una berenjena, dos tomates y una cebolla enteros) hacían falta 1.016 cm² y la cesta da 630 útiles: el 160%. Habría salido todo amontonado y cocido al vapor. Ahora ocupa 568 cm², el 90%, que es lo máximo razonable para una capa.",
+    "LO QUE LLENA LA CESTA ES LA VERDURA, NO LA PROTEÍNA. 100 g de berenjena ocupan 148 cm² y 100 g de cebolla en juliana 208, mientras que 100 g de pescado o pollo se quedan en 48. Por eso puedes doblar el pollo sin problema y la berenjena no.",
+    "Si necesitas el doble de verdura, dos tandas. La primera se mantiene caliente tapada con papel de aluminio y se vuelve a meter un minuto al final.",
+    "Esta parrillada es la guarnición comodín: acompaña cualquier pescado o carne del recetario y se hace sola mientras tú estás en otra cosa.",
+    "Fría al día siguiente, con un chorrito de vinagre, es una escalivada. No la tires."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Las cantidades están calculadas para que quepa todo en UNA sola capa: es la condición para que la freidora dore en vez de cocer."
 },
 {
   id:"patatas_airfryer", n:"Patatas crujientes en airfryer (truco microondas)",
-  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:12, tools:["airfryer","microondas"],
+  rev:2,
+  cesta:["patata"],
+  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:13, tools:["airfryer","microondas"],
   ing:[{i:"patata",c:1},{i:"aove",c:6},{i:"pimenton",c:1},{i:"ajo_polvo",c:1},{i:"pimienta",c:0.3}],
   pasos:[
-    "Patata en bastones o gajos al estuche de vapor con 1 cucharada de agua: 3 min al microondas.",
-    "Pásalas al bol, pincela con aceite y añade pimentón, ajo en polvo y pimienta.",
-    "Airfryer 200 °C, 7–8 minutos. Tiernas por dentro y crujientes por fuera en la mitad de tiempo."
-  ]
+    "Patata en bastones de 1 cm o en gajos, SIN pelar si la piel está limpia: ahí está la fibra y además queda más crujiente.",
+    "Al estuche de silicona con una cucharada de agua.",
+    {min:0, t:"Microondas — 800 W, 3 minutos",
+     d:"Este es el truco entero de la receta. La patata sale ya blanda por dentro, así que la freidora solo tiene que ocuparse de la costra. Sin este paso harían falta 25 minutos de aire y saldrían secas."},
+    {min:3, t:"ESCÚRRELAS Y SÉCALAS con papel antes de aliñar",
+     d:"Salen mojadas del vapor, y el agua de la superficie tiene que evaporarse antes de que empiece a dorarse. Ese tiempo lo paga el interior."},
+    {min:4, t:"Aliña en un bol con el aceite, el pimentón, el ajo en polvo y la pimienta",
+     d:"En el bol y con las manos, nunca regando la cesta. Repartido a chorro, unos bastones salen empapados y otros secos."},
+    {min:5, t:"A la freidora — 200 °C, 8 minutos",
+     d:"200 y no menos: la costra necesita calor alto. En una capa; amontonadas se cuecen al vapor entre ellas."},
+    {min:9, t:"Sacude la cesta",
+     d:"A mitad, para que la cara que tocaba el fondo se dore también."}
+  ],
+  trucos:[
+    "EL PASO DEL MICROONDAS NO ES UN ATAJO, ES LA RECETA. Tres minutos de vapor y ocho de aire dan mejor resultado que veinticinco minutos de aire solo, y en la mitad de tiempo.",
+    "Sécalas bien tras el microondas. Es el paso que más gente se salta y el que más se nota.",
+    "Sin sal, pero con pimentón y ajo en polvo generosos. Son los dos que mejor tapan el hueco en una patata, que sin sal es donde más se nota.",
+    "Una patata mediana son 139 kcal. Es la guarnición más calórica que usas: en un plato que ya venga cargado, cámbiala por los tomates asados o las setas.",
+    "Cabe el doble sin cambiar tiempos: 665 g de patata caben en la cesta en una capa. Haz para dos si las vas a comer en el día — recalentadas al día siguiente ya no crujen."
+  ],
+  nota:"Moulinex Easy Fry XL Surface y microondas de 800 W. La guarnición comodín del recetario."
 },
 {
   id:"tomates_airfryer", n:"Tomates asados en airfryer con ajo y hierbas",
+  rev:2,
   tipo:["guarnicion"], grupo:"verdura", raciones:1, min:12, tools:["airfryer"],
   ing:[{i:"tomate",c:2},{i:"aove",c:6},{i:"ajo_polvo",c:1},{i:"oregano",c:1},{i:"pimienta",c:0.3}],
   pasos:[
-    "Tomates por la mitad, con unos cortes en cruz sobre la pulpa.",
-    "Pincela con aceite y espolvorea ajo, orégano y pimienta.",
-    "Airfryer 190 °C, 10–12 minutos hasta que la piel se arrugue y la pulpa caramelice."
-  ]
+    "Tomates por la mitad y con dos cortes en cruz sobre la pulpa, sin llegar a la piel. Los cortes dejan salir el agua y entrar el calor.",
+    "Pincelados con el aceite y espolvoreados con el ajo en polvo, el orégano y la pimienta.",
+    {min:0, t:"A la freidora con el corte HACIA ARRIBA — 190 °C, 11 minutos",
+     d:"Hacia arriba y no hacia abajo. Boca abajo el tomate suelta el jugo a la cesta y se queda seco; boca arriba el jugo se queda dentro y se concentra."},
+    {min:11, t:"Fuera cuando la piel se arrugue y los bordes empiecen a tostarse",
+     d:"Esa piel arrugada es la señal: ha perdido agua y el azúcar del tomate se ha concentrado. Ahí es cuando sabe a algo."}
+  ],
+  trucos:[
+    "ESTO ES LO QUE MÁS RENDIMIENTO DA POR MINUTO EN TODO EL RECETARIO. Once minutos sin vigilancia convierten un tomate soso en lo más parecido a un condimento que tienes sin usar sal: concentrado, dulce y ácido a la vez.",
+    "ASA UNA CESTA ENTERA DE GOLPE. Caben 1.200 g de tomate en una capa, o sea unos ocho tomates. Aguantan cuatro días en la nevera cubiertos de aceite y convierten media docena de cenas del recetario en cinco minutos.",
+    "Tomate maduro y de pera si puedes: tiene menos agua y más carne, y se concentra mejor.",
+    "Dos tomates son 54 kcal. Es prácticamente gratis y llena el plato.",
+    "Con un diente de ajo laminado en los últimos cuatro minutos gana bastante, si tienes ajo fresco a mano."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. La guarnición que más aparece en el recetario, y la que mejor sustituye a la sal."
 },
 {
-  id:"setas_lekue", n:"Setas al vapor con ajo y perejil (Lékué)",
-  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:5, tools:["lekue","microondas"],
+  id:"setas_lekue", n:"Setas doradas en airfryer con ajo y perejil",
+  rev:2,
+  tipo:["guarnicion"], grupo:"verdura", raciones:1, min:12, tools:["airfryer"],
   ing:[{i:"setas",c:150},{i:"ajo",c:1},{i:"perejil",c:3},{i:"aove",c:8},{i:"pimienta",c:0.3}],
-  pasos:["Setas laminadas al estuche con aceite, ajo picado y perejil.","3 minutos a 800 W. Salen en su propio jugo."]
+  pasos:[
+    "Limpia las setas con un paño o papel húmedo, NUNCA bajo el grifo. Son una esponja: el agua que cojan es la que luego las cuece en vez de dorarlas.",
+    "En trozos grandes, por la mitad o en cuartos según el tamaño. Encogen a la mitad, así que laminadas finas te quedan virutas.",
+    "En un bol con 6 ml del aceite y la pimienta hasta que brillen.",
+    {min:0, t:"Setas a la freidora — 190 °C, 10 minutos",
+     d:"A 190 y en una capa. La seta es casi toda agua: necesita calor alto para que se evapore y llegue a dorarse. Si la amontonas, se cuece en su propio vapor y sale gris y encogida."},
+    {min:6, t:"Sacude la cesta y echa el ajo laminado",
+     d:"El ajo en los cuatro minutos finales. Desde el principio se quemaría."},
+    {min:10, t:"Fuera, y el perejil picado con los 2 ml de aceite que quedan, en crudo",
+     d:"El perejil en crudo y al final: cocinado pierde el aroma y no aporta nada."}
+  ],
+  trucos:[
+    "ESTA RECETA HA CAMBIADO DE APARATO Y GANA MUCHO. Antes iba al vapor en el Lékué: salían «en su propio jugo», que es una forma amable de decir cocidas y sin dorar. Al vapor una seta no puede dorarse, porque ahí dentro no se pasa de 100 °C, y el sabor de la seta está justo en el dorado.",
+    "Nunca bajo el grifo. Es la regla número uno de las setas y la que casi todo el mundo se salta.",
+    "En trozos grandes. Pierden la mitad del volumen al perder el agua, así que lo que te parece exagerado al cortarlas es lo correcto.",
+    "150 g de setas son 33 kcal. Es la guarnición más barata en calorías que tienes y llena bastante: buena para los días en que el plato principal viene cargado.",
+    "Un chorrito de vinagre al final, si la falta de sal se nota. La acidez despierta la seta igual que el limón al pescado."
+  ],
+  nota:"Moulinex Easy Fry XL Surface. Es la última receta que llevaba la etiqueta «Lékué sin concretar»: con esta, el recetario ya no tiene ninguna sin clasificar."
+},
+
+/* ==================== MOCHILA: DÍAS DE RUTA ====================
+   Todo lo de aquí lleva `llevable:true`. La regla para entrar en esta lista es
+   dura: se come frío, no se derrama, aguanta media jornada en una mochila sin
+   nevera y se puede comer de pie y con una mano. Por eso no están aquí ni el
+   yogur, ni las ensaladas, ni nada con lácteo fresco.
+
+   La sal de estas recetas es MÁS ALTA de lo habitual en el recetario, y es a
+   propósito. Un día de ruta el tope de 4 g no se aplica (ver TIPOS_DIA en
+   almacen.js): sudando se pierden unos 2,1 g de sal por litro, y cuatro horas
+   andando son 2 o 3 litros. Ahí el problema no es pasarse de sodio, es
+   quedarse corto. */
+{
+  id:"mochila_barritas_avena", n:"Barritas de avena, plátano y nuez (freidora)",
+  rev:1, llevable:true,
+  tipo:["almuerzo","merienda","desayuno"], grupo:"desayuno", raciones:8, min:30, tools:["airfryer"],
+  ing:[{i:"copos_avena",c:160},{i:"platano",c:2},{i:"nueces",c:40},{i:"miel",c:30},{i:"canela",c:2}],
+  pasos:[
+    "Los plátanos muy maduros, de los que ya tienen la piel moteada. Aplástalos con un tenedor en un bol hasta que sea puré, sin grumos grandes.",
+    "Añade la miel y la canela al puré y mézclalo. La miel se integra mejor en el plátano solo que después, con la avena por medio.",
+    "Pica las nueces a cuchillo en trozos gordos, del tamaño de media almendra. Molidas desaparecen; en trozos se notan al morder y es la gracia de la barrita.",
+    "Mezcla la avena y las nueces con el puré hasta que no quede avena seca. Queda una masa pegajosa y densa, no una masa de bizcocho: si te parece demasiado espesa, vas bien.",
+    "Forra la cesta de la freidora con papel de horno y sube los bordes 2 cm, como una bandeja. Extiende la masa encima y aplástala a 1,5 cm de grosor, bien igualada, en un rectángulo de unos 20 × 14 cm.",
+    {min:0, t:"A la freidora — 160 °C, 20 minutos",
+     d:"160 °C y no más. Esto no se dora por fuera como una patata: se tiene que secar por dentro. A 180 la superficie se tuesta en ocho minutos y el centro se queda húmedo, y una barrita húmeda se enmohece en la mochila."},
+    {min:20, t:"Fuera, y ENFRIAR ENTERA sobre una rejilla — 20 minutos",
+     d:"Aquí está el paso que todo el mundo se salta. Recién hecha la masa está blanda y se deshace al cortarla; al enfriarse, el almidón de la avena retrograda y agarra. Si la cortas caliente tienes ocho montones de avena, no ocho barritas."},
+    "Fría y firme, córtala en 8 barritas de unos 5 × 3,5 cm. Envuelve cada una en papel de horno o film, no todas juntas en una bolsa: pegadas se sueldan."
+  ],
+  trucos:[
+    "SIN NADA DE SAL Y CASI SIN AZÚCAR AÑADIDO. 0,005 g de sal por barrita. El dulce lo pone el plátano maduro; los 30 g de miel son para seis barritas, no para una.",
+    "147 kcal y 24 g de hidratos por barrita. Dos barritas son una toma de mochila decente; tres, si la ruta es dura.",
+    "EL PLÁTANO TIENE QUE ESTAR PASADO. Con el plátano verde no hay dulzor ni pegamento, y la masa no liga. Es la receta perfecta para los dos plátanos que se te han quedado en el frutero.",
+    "Aguantan 5 días en un tarro a temperatura ambiente y 3 meses congeladas. Del congelador a la mochila directas: se descongelan solas en una hora andando.",
+    "Si la masa te queda seca (avena muy gruesa, plátanos pequeños), un chorro de leche de 20 ml. Si queda líquida, 20 g más de avena. Se arregla en el bol, no en la freidora.",
+    "Papel de horno SIEMPRE, y sujétalo con la propia masa antes de encender: en una freidora de aire el papel suelto vuela contra la resistencia."
+  ],
+  nota:"La base de la mochila. Se hacen el día antes de la ruta y sobran para el resto de la semana."
+},
+{
+  id:"mochila_bolas_datil", n:"Bolas energéticas de dátil, avena y cacao",
+  rev:1, llevable:true,
+  tipo:["almuerzo","merienda","postre"], grupo:"postre", raciones:6, min:15, tools:["sin-cocinar"],
+  ing:[{i:"datiles",c:200},{i:"copos_avena",c:80},{i:"nueces",c:40},{i:"cacao_puro",c:15}],
+  pasos:[
+    "Si los dátiles están secos y duros, tenlos 10 minutos en agua caliente y escúrrelos bien. Los Medjool blandos no lo necesitan.",
+    "A la picadora: primero los dátiles solos, hasta que se hagan una pasta que se pega a las paredes. Unos 30 segundos, parando a bajar la masa con una espátula.",
+    "Añade la avena, las nueces y el cacao. Pulsa a golpes cortos, de dos segundos, unas diez veces. A golpes y no seguido: si lo dejas girar, las nueces sueltan el aceite y la masa se vuelve grasienta.",
+    "Prueba la masa apretando un poco entre los dedos: si se queda hecha una bola, está. Si se desmiga, uno o dos dátiles más.",
+    "Haz 12 bolas del tamaño de una nuez con las manos ligeramente húmedas, que es lo que impide que se te pegue.",
+    "Nevera 30 minutos para que agarren, y luego a un tarro. Aguantan 2 semanas en la nevera y un mes en el congelador."
+  ],
+  trucos:[
+    "CERO COCINA Y CERO SAL: 0,005 g por ración de dos bolas. Es el sitio donde no hay que hacer ninguna concesión.",
+    "192 kcal y 32 g de hidratos por ración de dos bolas, con azúcares del dátil que entran rápido. En una ruta es exactamente lo que se busca a mitad de mañana.",
+    "A GOLPES CORTOS, NO SEGUIDO. Es el único error que estropea la receta: pasarse de picadora convierte la nuez en mantequilla de nuez y las bolas salen aceitosas y pesadas.",
+    "El cacao es cacao PURO desgrasado, no soluble de desayuno. El soluble es azúcar en un 75%: cambiaría la receta entera y encima aporta sodio.",
+    "Rebózalas en cacao o en avena molida si se te pegan entre ellas dentro del tarro.",
+    "En verano llévalas en la parte de dentro de la mochila, no en el bolsillo exterior: con el sol directo el dátil se reblandece y se hacen una masa."
+  ],
+  nota:"Lo más compacto de la mochila: 192 kcal en dos bocados que no ocupan nada."
+},
+{
+  id:"mochila_bocadillo_lomo", n:"Bocadillo de pan sin sal con lomo asado y tomate",
+  rev:1, llevable:true,
+  tipo:["comida","cena"], grupo:"carne-blanca", raciones:1, min:10, tools:["airfryer"],
+  ing:[{i:"pan_sin_sal",c:2},{i:"cerdo_lomo",c:90},{i:"tomate",c:0.4},{i:"aove",c:8},{i:"oregano",c:0.5},{i:"ajo_polvo",c:0.5}],
+  pasos:[
+    "Si tienes lomo de la receta del lomo asado en freidora, sáltate los tres pasos siguientes: córtalo en lonchas finas y al pan. Esta receta está pensada para aprovecharlo.",
+    "Si lo haces a propósito: el lomo en una pieza de 90 g, untado con 3 ml del aceite, el orégano y el ajo en polvo.",
+    {min:0, t:"Lomo a la freidora — 180 °C, 12 minutos, dándole la vuelta a los 7",
+     d:"180 °C para una pieza pequeña. Lo que buscas es que llegue a 63 °C en el centro y no se pase: el lomo seco en un bocadillo es serrín."},
+    {min:12, t:"Fuera y reposar 10 minutos ANTES de cortarlo",
+     d:"El reposo no es opcional en una pieza que va a ir fría. Si la cortas caliente pierde el jugo en la tabla y el bocadillo sale seco."},
+    "Abre el pan, ralla el tomate encima de las dos caras y riégalo con los 5 ml de aceite que quedan. El tomate rallado, no en rodajas: en rodajas suelta agua y a las tres horas el pan está empapado.",
+    "El lomo en lonchas finas encima, cierra y envuelve apretado en papel de horno. Apretado de verdad: un bocadillo flojo se desmonta dentro de la mochila."
+  ],
+  trucos:[
+    "0,18 g de sal en todo el bocadillo, y eso contando el lomo. Un bocadillo de pan normal con jamón york está entre 2 y 3 g: es de diez a quince veces más.",
+    "EL PAN SIN SAL ES EL QUE HACE EL TRUCO. El mismo bocadillo con pan de barra corriente serían 1,3 g de sal solo del pan.",
+    "428 kcal y 27 g de proteína. Es la única toma de la mochila con proteína de verdad, y por eso es la que va en la comida.",
+    "APROVECHA EL LOMO DE LA VÍSPERA. Asa la pieza entera la noche anterior con la cena y corta lo que te lleves: te ahorras los 12 minutos de la mañana, y frío corta mucho mejor que caliente.",
+    "Nada de mayonesa ni de salsas de bote. El tomate rallado con aceite hace el mismo trabajo de humedecer el pan con 0,01 g de sal en vez de 1.",
+    "Envuélvelo en papel de horno y no en film: el papel deja respirar y el pan no suda. En film, a las tres horas la corteza está gomosa."
+  ],
+  nota:"La comida de los días de ruta. Se monta en cinco minutos si el lomo ya está asado del día anterior."
+},
+{
+  id:"mochila_tortilla_porciones", n:"Tortilla de patata en porciones para llevar",
+  rev:1, llevable:true,
+  tipo:["comida","cena","almuerzo"], grupo:"huevos", raciones:4, min:35, tools:["airfryer","sarten"],
+  ing:[{i:"huevo",c:5},{i:"patata",c:2.8},{i:"cebolla_dulce",c:0.7},{i:"aove",c:25},{i:"pimienta",c:0.5}],
+  pasos:[
+    "Pela las patatas y córtalas en láminas de 3 mm, no en dados. La lámina se hace antes y se rompe al batir, que es lo que da la textura de tortilla y no de revuelto con tropezones.",
+    "La cebolla en pluma fina. Mézclala con la patata, 15 ml del aceite y la pimienta, hasta que todo brille.",
+    {min:0, t:"Patata y cebolla a la freidora — 180 °C, 18 minutos",
+     d:"Aquí la freidora sustituye a la fritura en aceite y es donde se ahorran las calorías: una tortilla de bar lleva 100 ml de aceite y esta lleva 25. Sacude la cesta a los 9 minutos."},
+    {min:9, t:"Sacude la cesta",
+     d:"Una sola vez y sin miedo: si la patata se rompe un poco, mejor para la tortilla."},
+    {min:18, t:"Bate los 5 huevos con la pimienta mientras la patata sale",
+     d:"Bátelos bien, hasta que no se distinga la clara de la yema. Una clara sin batir sale como un hilo blanco en la porción fría y se ve mucho."},
+    {min:19, t:"Patata caliente al huevo batido y REPOSAR 5 minutos",
+     d:"El reposo es lo que hace que la patata suelte su almidón al huevo y la tortilla ligue. Sin él, al cortar en porciones frías se te desmonta en capas."},
+    {min:24, t:"A la sartén — 10 ml de aceite, fuego medio, 4 minutos por cara",
+     d:"Fuego medio, no fuerte. Para llevar interesa que quede CUAJADA, no jugosa: la tortilla poco hecha en una mochila a 25 °C es huevo crudo cuatro horas, y eso no se lleva."},
+    {min:32, t:"Fuera y enfriar del todo sobre una rejilla antes de cortarla",
+     d:"Sobre rejilla y no sobre plato: en el plato el vapor se condensa debajo y la base queda mojada."},
+    "Fría, en 4 porciones, cada una en su papel de horno."
+  ],
+  trucos:[
+    "CUAJADA Y NO JUGOSA, y esto es seguridad alimentaria, no gusto. Una tortilla jugosa tiene huevo sin cuajar; cuatro horas en una mochila templada es el escenario clásico de la salmonelosis. Para casa, jugosa; para la mochila, hecha.",
+    "262 kcal y 12 g de proteína por porción, con 25 ml de aceite en vez de los 100 de la fritura tradicional. La freidora se lleva aquí unas 300 kcal de la tortilla entera.",
+    "0,27 g de sal por porción, casi toda del huevo, que trae 0,35 g por 100 g de serie. No se le añade nada: la cebolla dulce bien hecha es lo que la hace sabrosa.",
+    "LÁMINAS DE 3 mm, NO DADOS. Es la diferencia entre una tortilla y unas patatas con huevo.",
+    "Aguanta el día fuera de la nevera si va cuajada, y 3 días en la nevera. No la congeles: la patata se vuelve harinosa.",
+    "Un táper rígido mejor que el papel si la mochila va a ir cargada. Es lo único de esta lista que se aplasta."
+  ],
+  nota:"La toma más contundente de la mochila. Se hace la noche antes y se lleva fría."
+},
+{
+  id:"mochila_huevos_cocidos", n:"Huevos cocidos con fruta y pan sin sal",
+  rev:1, llevable:true,
+  tipo:["almuerzo","comida","merienda"], grupo:"huevos", raciones:1, min:12, tools:["cazuela"],
+  ing:[{i:"huevo",c:2},{i:"fruta_temporada",c:1},{i:"pan_sin_sal",c:1},{i:"pimienta",c:0.2}],
+  pasos:[
+    "Los huevos de la nevera a un cazo, cubiertos con agua fría que los sobrepase dos dedos. Del agua fría y no del agua hirviendo: metidos en agua hirviendo la cáscara se raja por el salto de temperatura.",
+    {min:0, t:"Al fuego fuerte hasta que rompa a hervir — unos 6 minutos",
+     d:"Tapado hierve antes. A partir de aquí empieza a contar el tiempo de verdad."},
+    {min:6, t:"Baja a fuego medio y cuenta 10 minutos exactos",
+     d:"Diez minutos es huevo duro con la yema entera y aún amarilla. A los doce aparece el anillo verdoso alrededor de la yema, que es hierro y azufre reaccionando: no hace daño, pero sabe a azufre y para llevar queda feo."},
+    {min:16, t:"Del cazo a un bol con agua y hielo, 5 minutos",
+     d:"El choque de frío para la cocción en seco y, sobre todo, despega la membrana de la cáscara. Es el truco que hace que se pelen limpios en vez de a cachos."},
+    "Pélalos ya, en casa, y llévalos pelados en un táper con la pimienta. Pelarlos en la ruta con las manos sucias y sin sitio donde tirar la cáscara es peor plan de lo que parece.",
+    "La pieza de fruta y la rebanada de pan sin sal, aparte."
+  ],
+  trucos:[
+    "346 kcal y 19 g de proteína para un almuerzo que no se cocina el mismo día. Los huevos se hacen el domingo y duran toda la semana.",
+    "0,41 g de sal, casi toda del huevo: 0,35 g por cada 100 g de huevo, y dos huevos son 110 g. Es de las recetas con más sal del recetario aunque no se le añada nada.",
+    "NADA DE SAL POR ENCIMA. La costumbre de salar el huevo cocido añade medio gramo de un golpe. La pimienta negra molida gruesa hace el mismo papel de despertar el sabor.",
+    "PELADOS DE CASA, y en un táper con papel de cocina en el fondo para que no naden en su propia humedad.",
+    "Huevos de al menos una semana en la nevera se pelan mejor que los muy frescos: la cámara de aire ha crecido y la membrana se ha despegado sola.",
+    "En el microondas NO, ni con los Lékué. Un huevo con cáscara en el microondas revienta, y pelado también. Este es de los pocos platos donde el cazo de toda la vida es la única respuesta."
+  ],
+  nota:"Lo más sencillo de la mochila y lo único que se cocina en cazuela."
+},
+{
+  id:"mochila_datiles_cacahuete", n:"Dátiles con crema de cacahuete",
+  rev:1, llevable:true,
+  tipo:["almuerzo","merienda","postre"], grupo:"postre", raciones:1, min:3, tools:["sin-cocinar"],
+  ing:[{i:"datiles",c:40},{i:"crema_cacahuete",c:20}],
+  pasos:[
+    "Cuatro o cinco dátiles, unos 40 g. Ábrelos a lo largo con el dedo sin llegar a partirlos y quítales el hueso si lo llevan.",
+    "Un poco de crema de cacahuete dentro de cada uno, unos 4 g, y ciérralos apretando.",
+    "A un táper pequeño y rígido. En bolsa se aplastan y la crema se sale."
+  ],
+  trucos:[
+    "MIRA LA ETIQUETA DE LA CREMA DE CACAHUETE. La corriente de supermercado lleva entre 0,5 y 1,2 g de sal por 100 g y azúcar añadido. La que vale pone «cacahuete 100%» y nada más, y está al lado en el mismo lineal. Con la corriente esta receta pasaría de 0,01 g de sal a 0,2.",
+    "228 kcal, 5,7 g de proteína y azúcar de fruta. El dátil entra rápido y la grasa del cacahuete estira el efecto: es la combinación que mejor funciona a mitad de una subida.",
+    "Tres minutos y sin cocinar nada. Es el plan B para el día que no te has preparado nada.",
+    "Se le pone una nuez o media almendra dentro con la crema si quieres algo que crujir.",
+    "Aguanta días fuera de la nevera. Ni el dátil ni la crema de cacahuete tienen agua libre suficiente para estropearse."
+  ],
+  nota:"El bocado de emergencia de la mochila. Cabe en un bolsillo del pantalón."
+},
+{
+  id:"mochila_bebida_reposicion", n:"Bebida de reposición casera (bidón de 750 ml)",
+  rev:1, llevable:true,
+  tipo:["almuerzo","merienda"], grupo:"fruta", raciones:1, min:3, tools:["sin-cocinar"],
+  ing:[{i:"sal",c:1.6},{i:"miel",c:45},{i:"limon",c:0.5}],
+  pasos:[
+    "Un dedo de agua templada en el fondo del bidón, no fría. La miel en agua fría se queda hecha un pegote en el fondo y acabas bebiendo agua sola los primeros diez minutos y jarabe al final.",
+    "Los 45 g de miel al agua templada y agita hasta que no quede hilo en el fondo. Son unas dos cucharadas soperas colmadas.",
+    "1,6 g de sal fina. PÉSALA la primera vez: es un cuarto de cucharadita rasa de las de café, y a ojo es facilísimo poner el doble. Agita hasta que no se vea el grano.",
+    "El zumo de medio limón, colado. Es sabor y algo de potasio, y sobre todo es lo que hace que no sepa a agua salada.",
+    "Acaba de llenar el bidón hasta los 750 ml con agua fría y agítalo bien. Pruébalo: tiene que saber ligeramente dulce y apenas salado. Si te sabe a caldo, te has pasado de sal."
+  ],
+  trucos:[
+    "1,6 g de sal en el bidón, y ESO ES LO CORRECTO PARA UN DÍA DE RUTA, no un desliz. Sudando se pierden unos 2,1 g de sal por litro: este bidón repone justo lo de su propio volumen. Cuatro horas andando son 2 o 3 litros de sudor, o sea entre 4 y 6 g de sal, más que el tope de un día entero en casa.",
+    "LA MIEL NO ES CAPRICHO, ES LO QUE HACE QUE EL SODIO ENTRE. El intestino absorbe el sodio pegado a la glucosa, por el mismo transportador. Agua con sal a secas se absorbe bastante peor que agua con sal y azúcar: es el principio del suero de rehidratación de la OMS.",
+    "153 kcal y 41 g de hidratos por bidón. No es solo bebida: es también parte del avituallamiento, y hay que contarlo como tal.",
+    "ESTE BIDÓN NO ES PARA LOS DÍAS DE CASA. 1,6 g de sal es el 40% de tu tope diario de un solo trago, y sin sudar no hay nada que reponer.",
+    "Un bidón no cubre una ruta larga: cubre unos 750 ml de sudor, o sea la primera hora y media. Lleva el resto en agua y, si la ruta es de las largas, el sobre de preparado aparte para rellenar.",
+    "ENJUAGA EL BIDÓN AL LLEGAR A CASA, aunque sea solo con agua. La miel deja una película que al día siguiente huele, y en verano fermenta.",
+    "Fría sabe mucho mejor. Prepáralo la noche antes y a la nevera; en verano, medio bidón congelado y el resto de líquido encima."
+  ],
+  nota:"La respuesta al problema de la sal en los días de ruta: en vez de comer más sal, se bebe repartida a lo largo del día."
+},
+{
+  id:"mochila_frutos_secos", n:"Mezcla de frutos secos y orejones",
+  rev:1, llevable:true,
+  tipo:["almuerzo","merienda"], grupo:"fruta", raciones:1, min:2, tools:["sin-cocinar"],
+  ing:[{i:"nueces",c:15},{i:"almendras",c:15},{i:"orejones",c:25},{i:"pasas",c:20}],
+  pasos:[
+    "15 g de nueces, 15 de almendras, 25 g de orejones cortados en tiras y 20 g de pasas, a una bolsita o a un táper pequeño.",
+    "PÉSALO en casa y lleva solo la ración. Es la única forma de que 305 kcal no se conviertan en 600 sin enterarte."
+  ],
+  trucos:[
+    "CRUDOS Y SIN SAL, no de aperitivo. Los frutos secos fritos y salados llevan entre 1 y 1,5 g de sal por 100 g: los mismos 30 g de esta receta serían unos 0,4 g de sal en vez de 0,017, que es lo que traen de suyo los orejones y las pasas. Un factor de más de veinte.",
+    "305 kcal en 75 g que caben en un puño. Es lo más denso en energía de toda la mochila, y por eso es también lo más fácil de pasarse.",
+    "Los orejones y las pasas son los que traen el potasio, que es el otro mineral que se va con el sudor. 25 g de orejones tienen unos 290 mg.",
+    "PÉSALO Y HAZ LAS BOLSAS EL DÍA ANTES. Comer de una bolsa grande andando no tiene freno.",
+    "Los orejones sin azufre (los oscuros, no los naranja brillante) saben más a albaricoque. El azufre es solo un conservante del color.",
+    "Esta es la única ración de la mochila que no se estropea nunca. Ten una bolsa hecha permanentemente en el cajón para las salidas improvisadas."
+  ],
+  nota:"El relleno de los huecos de la ruta: se come andando, sin parar y sin ensuciar."
 }
 ];
