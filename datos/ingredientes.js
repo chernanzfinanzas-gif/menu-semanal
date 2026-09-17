@@ -47,6 +47,7 @@ window.DATOS_INGREDIENTES = [
   /* ---------- LÁCTEOS Y HUEVOS ---------- */
   { id:"leche",            n:"Leche",                                cat:"Lácteos y huevos", u:"ml", sal:0.10, k:46, p:3.2, g:1.6, h:4.8 },
   { id:"yogur_natural",    n:"Yogur natural sin azúcar",             cat:"Lácteos y huevos", u:"ud", pesoUd:125, sal:0.13, k:61, p:3.5, g:3.3, h:4.7 },
+  { id:"yogur_griego",    n:"Yogur griego natural sin azúcar",       cat:"Lácteos y huevos", u:"ud", pesoUd:125, sal:0.09, k:59, p:10, g:0.4, h:3.6 },
   { id:"requeson",         n:"Requesón fresco (o ricotta)",          cat:"Lácteos y huevos", u:"g",  sal:0.12, k:98, p:11, g:4.3, h:3.4 },
   { id:"queso_burgos_sinsal", n:"Queso fresco tipo Burgos 0% sal añadida", cat:"Lácteos y huevos", u:"g", sal:0.10, k:130, p:12, g:8, h:3 },
   { id:"mozzarella_fresca",n:"Mozzarella fresca de bola",            cat:"Lácteos y huevos", u:"g",  sal:0.35, k:250, p:18, g:19, h:2 },

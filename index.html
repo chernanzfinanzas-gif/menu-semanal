@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=3">
+<link rel="stylesheet" href="css/estilos.css?v=4">
 </head>
 <body>
 
@@ -222,7 +222,15 @@
       <label class="campo"><span>Usuario de GitHub</span><input type="text" id="gh-usuario" placeholder="carlos"></label>
       <label class="campo"><span>Nombre del repositorio</span><input type="text" id="gh-repo" placeholder="menu-semanal"></label>
       <label class="campo"><span>Rama</span><input type="text" id="gh-rama" placeholder="main"></label>
-      <label class="campo"><span>Clave personal (token)</span><input type="password" id="gh-token" placeholder="github_pat_…"></label>
+      <label class="campo"><span>Clave personal (token)</span>
+        <div class="fila-clave">
+          <input type="password" id="gh-token" placeholder="github_pat_…">
+          <button type="button" class="btn mini" id="gh-ver">Ver</button>
+          <button type="button" class="btn mini" id="gh-copiar">Copiar</button>
+        </div>
+        <span class="nota-peque" style="font-weight:400; margin-top:4px; display:block">La misma clave en todos
+          tus aparatos. Se guarda solo aquí y nunca se sube al repositorio.</span>
+      </label>
       <div class="fila">
         <button class="btn principal" id="gh-guardar">Guardar y conectar</button>
         <button class="btn" id="gh-probar">Probar conexión</button>
@@ -251,13 +259,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=3"></script>
-<script src="datos/recetas.js?v=3"></script>
-<script src="datos/plantillas.js?v=3"></script>
-<script src="datos/actividades.js?v=3"></script>
-<script src="js/util.js?v=3"></script>
-<script src="js/almacen.js?v=3"></script>
-<script src="js/github.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
+<script src="datos/ingredientes.js?v=4"></script>
+<script src="datos/recetas.js?v=4"></script>
+<script src="datos/plantillas.js?v=4"></script>
+<script src="datos/actividades.js?v=4"></script>
+<script src="js/util.js?v=4"></script>
+<script src="js/almacen.js?v=4"></script>
+<script src="js/github.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
 </body>
 </html>

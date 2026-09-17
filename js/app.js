@@ -1126,6 +1126,30 @@
       Sync.cargar().then(function () { Sync.guardar(); });
       Util.toast("Conectando con GitHub…");
     });
+    $("#gh-ver").addEventListener("click", function () {
+      var campo = $("#gh-token");
+      var oculta = campo.type === "password";
+      campo.type = oculta ? "text" : "password";
+      this.textContent = oculta ? "Ocultar" : "Ver";
+    });
+    $("#gh-copiar").addEventListener("click", function () {
+      var campo = $("#gh-token");
+      var valor = campo.value;
+      if (!valor) { Util.toast("No hay ninguna clave guardada aquí"); return; }
+      var tipo = campo.type;
+      campo.type = "text";
+      campo.select();
+      campo.setSelectionRange(0, valor.length);
+      var hecho = false;
+      try { hecho = document.execCommand("copy"); } catch (e) {}
+      if (!hecho && navigator.clipboard) {
+        navigator.clipboard.writeText(valor).then(function () { Util.toast("Clave copiada"); },
+          function () { Util.toast("No he podido copiarla: está a la vista para que la copies a mano"); });
+      } else {
+        Util.toast(hecho ? "Clave copiada" : "No he podido copiarla: está a la vista para que la copies a mano");
+      }
+      if (hecho) campo.type = tipo;
+    });
     $("#gh-probar").addEventListener("click", function () { Sync.probar(); });
     $("#gh-subir").addEventListener("click", function () { Sync.guardar(); });
     $("#gh-bajar").addEventListener("click", function () {
