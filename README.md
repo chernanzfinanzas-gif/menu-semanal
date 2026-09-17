@@ -1,7 +1,25 @@
 # Asistente de Alimentación
 
 App de menús semanales, recetas bajas en sodio y lista de la compra.
-Funciona en el ordenador y en el móvil, sin instalar nada.
+
+**La app está publicada en: https://chernanzfinanzas-gif.github.io/menu-semanal/**
+
+Ábrela en el móvil y usa «Añadir a pantalla de inicio» para tenerla como una app más.
+
+## Configuración de la sincronización
+
+En **Ajustes → Sincronizar con GitHub**:
+
+| Campo | Valor |
+|---|---|
+| Usuario | `chernanzfinanzas-gif` |
+| Repositorio | `menu-semanal-datos` |
+| Rama | `main` |
+| Clave | el token con permiso *Contents: Read and write* sobre ese repositorio |
+
+Los datos personales (menús, despensa, recetas propias) viven en el repositorio **privado**
+`menu-semanal-datos`, en el fichero `datos/estado.json`. Este repositorio, el público,
+solo contiene el código y el recetario de partida.
 
 ## Qué hace
 
