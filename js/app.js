@@ -1290,7 +1290,14 @@
       if (ahora !== anchoAnterior) { anchoAnterior = ahora; if (UI.vista === "menu") pintarMenu(); }
     });
     $("#vaciar-semana").addEventListener("click", function () {
-      if (confirm("¿Vaciar el menú de esta semana?")) { Almacen.vaciarSemana(UI.lunes); pintarMenu(); }
+      if (!confirm("¿Vaciar la semana entera?\n\nSe borra TODO lo planificado: el menú, el tipo de " +
+                   "cada día, las salidas de ruta, el entreno previsto y las marcas de comer fuera.\n\n" +
+                   "Lo que midió el reloj NO se toca: eso es lo que hiciste de verdad.")) return;
+      var b = Almacen.vaciarSemana(UI.lunes);
+      pintarMenu();
+      Util.toast(b.medidas
+        ? "Semana vaciada (se quedan " + b.medidas + " actividad" + (b.medidas === 1 ? "" : "es") + " del reloj)"
+        : "Semana vaciada");
     });
     $$("[data-plantilla]").forEach(function (b) {
       b.addEventListener("click", function () {

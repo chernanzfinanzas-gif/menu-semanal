@@ -901,9 +901,31 @@
       return true;
     },
 
+    /* Vaciar la semana borra TODO LO PLANIFICADO: el menú, el tipo de cada día, la
+       salida de los días de ruta, quién come, lo que se comía fuera y el entreno
+       previsto. Antes solo borraba el menú y el entreno se quedaba ahí contando
+       calorías en una semana por lo demás vacía.
+       Lo que NO se toca es lo MEDIDO: las actividades que vienen del reloj son el
+       registro de lo que hiciste de verdad, no un plan, y borrar eso sería perder
+       datos. Tampoco se toca el peso. */
     vaciarSemana: function (lunesISO) {
-      for (var i = 0; i < 7; i++) delete this.estado.plan[Util.sumarDias(lunesISO, i)];
+      var borrados = { dias: 0, entrenos: 0, medidas: 0 };
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunesISO, i);
+        if (this.estado.plan[f]) { delete this.estado.plan[f]; borrados.dias++; }
+        delete this.estado.comido[f];              // sin plan no hay nada que marcar
+
+        var lista = this.estado.actividad[f];
+        if (lista) {
+          var medidas = lista.filter(function (x) { return x.fuente === "garmin"; });
+          borrados.entrenos += lista.length - medidas.length;
+          borrados.medidas += medidas.length;
+          if (medidas.length) this.estado.actividad[f] = medidas;
+          else delete this.estado.actividad[f];
+        }
+      }
       this.guardar("vaciar");
+      return borrados;
     },
 
     /* ---------- lista de la compra ---------- */

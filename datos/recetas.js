@@ -1572,5 +1572,121 @@ window.DATOS_RECETAS = [
     "La alternativa al porridge para el que no desayuna dulce. Mismo papel, más proteína y 100 kcal menos."
   ],
   nota:"El otro desayuno de ruta. Se hace en casa en diez minutos, con el pan en la freidora a la vez."
+},
+
+/* ==================== ALMUERZO Y MERIENDA (bloque 1) ====================
+   El hueco más grande del recetario: había 21 comidas y 22 cenas pero solo 8
+   almuerzos y 8 meriendas, y cuatro de ésos eran de mochila. En la práctica se
+   repetía fruta con nueces casi todos los días.
+
+   Todas rondan las 150-300 kcal y ninguna pasa de 0,26 g de sal. */
+{
+  id:"snack_requeson_mango", n:"Requesón con mango y nueces",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"postre", raciones:1, min:4, tools:["sin-cocinar"],
+  ing:[{i:"requeson",c:100},{i:"mango",c:0.25},{i:"nueces",c:10}],
+  pasos:[
+    "100 g de requesón en un bol. Escúrrelo si trae suero: ese líquido aguado es lo que luego lo pone todo soso.",
+    "Un cuarto de mango, unos 87 g, en dados de un centímetro. En dados y no en láminas: la lámina se deshace al mezclar y acabas con puré rosa.",
+    "Las nueces picadas gruesas por encima, sin mezclar. Van arriba para que crujan; mezcladas se humedecen en dos minutos.",
+    "Si te sabe soso, ralladura de limón o un poco de canela. Las dos despiertan un lácteo fresco sin tocar la sal."
+  ],
+  trucos:[
+    "216 kcal Y 13 g DE PROTEÍNA con 0,12 g de sal. Es el almuerzo con más proteína del recetario fuera de los huevos, y por eso entra: los demás almuerzos se quedaban en 3 g.",
+    "EL REQUESÓN ES LA PIEZA CLAVE Y HAY QUE MIRAR LA ETIQUETA. El de verdad ronda 0,1 g de sal por 100 g; el queso fresco batido de sabores se va a 0,6 y lleva azúcar. Busca «requesón» a secas, en la lista de ingredientes solo leche y cuajo.",
+    "El mango maduro cede al apretarlo cerca del rabito, como el aguacate. Verde no vale aquí: no hay nada que lo dulcifique.",
+    "10 g de nueces, no un puñado. Son 65 kcal; el puñado son 200 y se te va el almuerzo a 350.",
+    "Se puede dejar hecho de la noche anterior en un tarro, con las nueces aparte en el mismo tarro pero en un papelito.",
+    "No es de mochila: lleva lácteo fresco y necesita nevera."
+  ],
+  nota:"El almuerzo de los días que la fruta con nueces se queda corta de proteína."
+},
+{
+  id:"snack_batido_cacao", n:"Batido de plátano, leche y cacao",
+  rev:1,
+  tipo:["almuerzo","merienda","desayuno"], grupo:"desayuno", raciones:1, min:3, tools:["sin-cocinar"],
+  ing:[{i:"leche",c:250},{i:"platano",c:1},{i:"cacao_puro",c:5},{i:"copos_avena",c:20}],
+  pasos:[
+    "El plátano en trozos a la batidora, con la leche, el cacao y la avena.",
+    "Bate 40 segundos largos, no diez. La avena cruda necesita romperse del todo: si paras antes se queda arenosa y se nota en cada trago.",
+    "Déjalo reposar 5 minutos antes de beberlo. La avena absorbe leche y el batido pasa de aguado a cremoso; es la diferencia entre un batido y un vaso de leche con cosas."
+  ],
+  trucos:[
+    "309 kcal y 13 g de proteína, con 0,26 g de sal, casi toda de la leche. Es el más calórico de este grupo: bueno para los días de entreno y para cuando la comida se retrasa.",
+    "CACAO PURO DESGRASADO, NO SOLUBLE. El soluble de desayuno es azúcar en un 75% y aporta sodio. El puro son 5 g que dan todo el sabor y 12 kcal.",
+    "PLÁTANO MADURO, con la piel moteada. Es lo único que endulza aquí; verde sabe a harina y no hay azúcar que lo arregle.",
+    "Congela los plátanos pasados en rodajas y úsalos así: sale un batido frío y espeso sin echarle hielo, que es lo que lo agua.",
+    "Con leche desnatada baja a unas 282 kcal y pierde muy poco. Con leche entera gana textura.",
+    "Se puede llevar en botella para el entreno, pero bébetelo en las dos horas siguientes: es leche."
+  ],
+  nota:"El almuerzo que más llena de los cinco. Tres minutos, un vaso y a otra cosa."
+},
+{
+  id:"snack_manzana_asada", n:"Manzana asada en freidora con canela y nueces",
+  rev:1, llevable:true,
+  tipo:["almuerzo","merienda","postre"], grupo:"fruta", raciones:1, min:20, tools:["airfryer"],
+  ing:[{i:"manzana_reineta",c:1},{i:"nueces",c:10},{i:"canela",c:1},{i:"miel",c:5}],
+  pasos:[
+    "Quítale el corazón con un descorazonador o con un cuchillo pequeño, haciendo un cilindro desde arriba. NO la peles: la piel es la que sujeta la manzana mientras se hace; pelada se te deshace en compota.",
+    "Hazle un corte superficial alrededor del ecuador, sin llegar a la carne. Es el truco de siempre: la piel encoge con el calor y sin ese corte revienta por donde quiere.",
+    "Rellena el hueco con las nueces picadas, la canela y la miel.",
+    {min:0, t:"A la freidora — 180 °C, 18 minutos",
+     d:"Reineta y 180 °C. Es la manzana de asar de toda la vida: tiene más agua y más ácido que la golden, así que aguanta el calor sin convertirse en puré y sabe a algo cuando se le va el dulzor al concentrarse."},
+    {min:12, t:"Míralas a los 12 minutos y pincha con un cuchillo",
+     d:"Tienen que ceder sin resistencia pero mantener la forma. Según el tamaño pueden estar en 15 o pedir 20: la manzana no perdona el reloj a ciegas."},
+    {min:18, t:"Fuera, y esperar 5 minutos antes de comerla",
+     d:"El relleno de miel sale a 180 °C y quema de verdad. Además al templarse espesa y deja de correrse."}
+  ],
+  trucos:[
+    "0,001 g DE SAL. Es la receta más limpia de todo el recetario, sin excepción. 177 kcal, casi todas de la manzana y las nueces.",
+    "NO LA PELES Y HAZLE EL CORTE DEL ECUADOR. Son los dos únicos errores posibles aquí, y los dos acaban en compota.",
+    "REINETA, no golden ni fuji. Las de mesa se deshacen: están criadas para comerse crudas.",
+    "Haz cuatro de golpe, que caben en la cesta, y guárdalas en la nevera. Frías están igual de buenas y aguantan 4 días.",
+    "Los 5 g de miel son 15 kcal y se pueden quitar del todo: la manzana asada concentra su propio azúcar y con la canela va sobrada.",
+    "Ésta SÍ vale para la mochila, en un táper rígido. Fría, sin cuchara y sin derramarse."
+  ],
+  nota:"La receta con menos sal del recetario. Se hacen cuatro de una tacada."
+},
+{
+  id:"snack_yogur_mango", n:"Yogur griego con mango y chía",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"postre", raciones:1, min:3, tools:["sin-cocinar"],
+  ing:[{i:"yogur_griego",c:1},{i:"mango",c:0.25},{i:"chia",c:8}],
+  pasos:[
+    "El yogur griego natural SIN AZÚCAR en un bol o en su propio vaso.",
+    "Un cuarto de mango en dados encima y las semillas de chía repartidas.",
+    "Déjalo 10 minutos en la nevera si puedes. La chía absorbe hasta diez veces su peso en líquido y en ese rato pasa de semilla seca a gelatina, que es cuando aporta textura y sacia; echada y comida al instante es solo grava."
+  ],
+  trucos:[
+    "165 kcal y 15 g DE PROTEÍNA, la mejor relación de todo el recetario. Con 0,12 g de sal.",
+    "GRIEGO, NO NATURAL. 10 g de proteína por 100 g frente a 3,5 del natural, con las mismas calorías. Es el mismo cambio que ya hicimos en el postre y aquí vuelve a mandar.",
+    "SIN AZÚCAR y sin sabores. El de mango industrial lleva 12 g de azúcar por tarrina y menos proteína.",
+    "DALE LOS 10 MINUTOS A LA CHÍA. Es el único paso que cambia algo y es el que todo el mundo se salta.",
+    "8 g de chía son 39 kcal y 3 g de fibra. Más cantidad no mejora nada y empieza a pesar en el estómago.",
+    "Si no hay mango, vale arándanos o cualquier fruta de temporada. El mango es por su textura, no porque sea insustituible."
+  ],
+  nota:"El almuerzo con más proteína por caloría. Tres minutos y sin cocinar."
+},
+{
+  id:"snack_bastones_requeson", n:"Bastones de zanahoria y calabacín con crema de requesón",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"verdura", raciones:1, min:8, tools:["sin-cocinar"],
+  ing:[{i:"zanahoria",c:1},{i:"calabacin",c:0.3},{i:"requeson",c:60},{i:"aove",c:5},{i:"eneldo",c:1}],
+  pasos:[
+    "La zanahoria y un trozo de calabacín (unos 75 g) en bastones de un centímetro de grosor y siete u ocho de largo. Gruesos: finos se doblan al mojar y se quedan dentro de la crema.",
+    "El calabacín, con piel y quitándole la parte central de semillas si es grueso. Esa parte es agua y se ablanda enseguida.",
+    "CREMA: machaca el requesón con el aceite y el eneldo con un tenedor hasta que quede untable y sin grumos. Un minuto largo de tenedor, que es lo que la hace crema y no queso desmigado.",
+    "Métela 20 minutos en la nevera si tienes tiempo: fría espesa y se queda pegada al bastón en vez de escurrirse.",
+    "Los bastones en un vaso, de pie, y la crema al lado."
+  ],
+  trucos:[
+    "152 kcal y 8 g de proteína, con 0,22 g de sal. Es la merienda que más volumen da por caloría de todo el recetario: te comes 155 g de verdura cruda.",
+    "ENELDO, Y NO ES CAPRICHO. Es la hierba que mejor funciona con el lácteo fresco y la que mejor tapa la falta de sal en una crema fría. Si no tienes, cebollino o perejil; el orégano aquí no pega.",
+    "BASTONES GRUESOS. Es la diferencia entre mojar y perder el bastón dentro del bol.",
+    "Corta de más y guarda los bastones en un táper con agua fría en la nevera: aguantan 3 días tiesos y crujientes, y así la merienda está lista.",
+    "La zanahoria cruda es lo que más sacia por caloría que tienes: 80 g son 33 kcal y hay que masticarlos.",
+    "Unas gotas de limón en la crema la levantan mucho, y no suman sal."
+  ],
+  nota:"La merienda de picar. Se dejan los bastones cortados el domingo y duran media semana."
 }
 ];

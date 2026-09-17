@@ -1,6 +1,6 @@
 {
-  "name": "Asistente de Alimentación",
-  "short_name": "Menú",
+  "name": "KHB En Forma",
+  "short_name": "KHB En Forma",
   "description": "Menús semanales, recetas bajas en sal y lista de la compra",
   "start_url": "./index.html",
   "scope": "./",

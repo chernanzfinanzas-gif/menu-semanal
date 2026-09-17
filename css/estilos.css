@@ -24,7 +24,9 @@ input,select,textarea{font:inherit; color:inherit}
 /* ---------- cabecera ---------- */
 header.barra{
   position:sticky; top:0; z-index:40; background:var(--verde); color:#fff;
-  padding:10px 16px; display:flex; align-items:center; gap:12px;
+  /* altura fija: es la que usa `nav.pestanas` para pegarse justo debajo */
+  padding:6px 16px; min-height:40px; box-sizing:border-box;
+  display:flex; align-items:center; gap:12px;
 }
 header.barra .titulo{font-weight:650; font-size:1.05rem; flex:1; min-width:0;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
@@ -37,10 +39,10 @@ header.barra .titulo{font-weight:650; font-size:1.05rem; flex:1; min-width:0;
 /* ---------- pestañas ---------- */
 nav.pestanas{
   display:flex; background:var(--blanco); border-bottom:1px solid var(--borde);
-  position:sticky; top:48px; z-index:35; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  position:sticky; top:40px; z-index:35; overflow-x:auto; -webkit-overflow-scrolling:touch;
 }
 nav.pestanas button{
-  flex:1 0 auto; min-width:88px; padding:12px 10px; border:0; background:none; color:var(--gris);
+  flex:1 0 auto; min-width:88px; padding:9px 10px; border:0; background:none; color:var(--gris);
   font-size:.85rem; font-weight:600; border-bottom:3px solid transparent;
 }
 nav.pestanas button.activa{color:var(--verde); border-bottom-color:var(--verde)}
@@ -186,10 +188,14 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 
 /* resumen de energía del día */
 .resumen-dia{padding:8px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
-.barra{height:6px; border-radius:99px; background:var(--borde); overflow:hidden; margin-bottom:6px}
-.barra .relleno{display:block; height:100%; border-radius:99px; background:var(--verde); transition:width .3s ease}
-.barra .relleno.ambar{background:var(--ambar)}
-.barra .relleno.rojo{background:var(--rojo)}
+/* OJO: esta clase se llamaba `.barra` a secas y chocaba con `header.barra`, la
+   cabecera verde. Le colaba un margin-bottom de 6 px (el hueco que separaba las
+   pestañas del nombre), más un border-radius y un overflow:hidden que ahí no
+   pintaban nada. Va acotada a la tarjeta del día. */
+.resumen-dia .barra{height:6px; border-radius:99px; background:var(--borde); overflow:hidden; margin-bottom:6px}
+.resumen-dia .barra .relleno{display:block; height:100%; border-radius:99px; background:var(--verde); transition:width .3s ease}
+.resumen-dia .barra .relleno.ambar{background:var(--ambar)}
+.resumen-dia .barra .relleno.rojo{background:var(--rojo)}
 .macros{display:flex; gap:12px; flex-wrap:wrap; font-size:.75rem; color:var(--gris)}
 .macros b{color:var(--tinta); font-weight:700}
 .macros .comido-hasta{margin-left:auto; color:var(--verde); font-weight:600}
@@ -293,7 +299,7 @@ textarea.salida{min-height:180px; font-family:ui-monospace,SFMono-Regular,Menlo,
 @media (max-width:767px){
   body{font-size:15px}
 
-  header.barra{padding:9px 12px}
+  header.barra{padding:6px 12px; min-height:38px}
   header.barra .titulo{font-size:.98rem}
 
   /* pestañas abajo, al alcance del pulgar */
