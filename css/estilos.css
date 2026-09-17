@@ -150,10 +150,6 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   font-size:.82rem; font-family:inherit; color:var(--tinta); background:var(--blanco);
   text-align:right; width:100%}
 
-/* toma que ese día no toca (almuerzo y merienda sin entreno) */
-.toma.inactiva{opacity:.45}
-.toma.inactiva .titulo-toma .chip-toma{display:none}
-
 /* dos casillas por plato: carro (comprado) y visto (comido) */
 .plato .marcar.carro{font-size:.82rem; filter:grayscale(1) opacity(.35)}
 .plato .marcar.carro.si{filter:none}
@@ -481,3 +477,31 @@ body.modo-consulta .aviso-consulta{display:inline-block}
   letter-spacing:.05em; color:#6b7a70;
 }
 .separador-selec:first-child{margin-top:4px}
+
+/* ---------- los platos de la pestaña Compra (v30) ----------
+   Va arriba del todo, antes de los ingredientes: la decisión al volver del súper es
+   por plato, y marcar un plato ya saca sus ingredientes de la lista de abajo. */
+.platos-compra{
+  background:var(--blanco); border:1px solid var(--borde); border-radius:var(--radio);
+  margin-bottom:12px; overflow:hidden;
+}
+.platos-compra > summary{
+  padding:11px 14px; cursor:pointer; font-size:.88rem; background:var(--verde-claro);
+  color:var(--verde); list-style:none;
+}
+.platos-compra > summary::-webkit-details-marker{display:none}
+.platos-compra > summary::before{content:"▸ "; font-size:.8em}
+.platos-compra[open] > summary::before{content:"▾ "}
+.platos-compra > summary .nota-peque{color:var(--verde); opacity:.8}
+.cuerpo-platos{padding:10px 12px 12px}
+.dia-platos{margin-bottom:10px}
+.dia-platos:last-child{margin-bottom:0}
+.cab-dia-platos{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin:0 2px 5px; font-size:.8rem; font-weight:650; color:var(--gris);
+  text-transform:uppercase; letter-spacing:.03em;
+}
+.cuerpo-platos .linea{margin-bottom:5px}
+@media (max-width:700px){
+  .cuerpo-platos .linea .detalle{display:block}
+}

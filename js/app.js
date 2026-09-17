@@ -11,6 +11,7 @@
     busquedaDespensa: "",
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
     ocultarComprados: false,
+    verPlatosCompra: null,   // bloque de platos de Compra: null = aún no ha elegido él
     /* Rango de la lista de la compra. Independiente de la semana que se esté viendo
        en Menú, que es lo que confundía. */
     cuandoCompra: "resto",
@@ -375,8 +376,7 @@
         var platos = (dia && dia[t.k]) || [];
         var fueraT = Almacen.esFuera(fecha, t.k);
         var comen = Almacen.comensales(fecha, t.k);
-        var activa = Almacen.tomaActiva(fecha, t.k);
-        html += '<div class="toma' + (fueraT ? " es-fuera" : "") + (activa ? "" : " inactiva") + '">';
+        html += '<div class="toma' + (fueraT ? " es-fuera" : "") + '">';
         /* Dos controles por toma: cuántos comen y si se come fuera. Van aquí y no en
            la cabecera del día porque las dos cosas cambian toma a toma. */
         html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
@@ -392,7 +392,7 @@
                         'data-fuera="' + fecha + '|' + t.k + '" ' +
                         'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
                         '">🍽️</button>') +
-                (cerr || fueraT || !activa ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
+                (cerr || fueraT ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
                 '</div>';
         if (fueraT) {
           var est = Almacen.estimacionFuera(t.k) || { k: 0, sal: 0 };
@@ -401,11 +401,7 @@
                     '<span class="sal">' + Util.kcal(est.k) + ' · ' + Util.sal(est.sal) + '</span>' +
                   '</div>';
         } else if (!platos.length) {
-          /* Una toma puede estar vacía por decisión, no por descuido: el almuerzo y la
-             merienda solo se hacen los días de entreno. Decirlo evita que parezca un
-             hueco sin rellenar. */
-          html += '<div class="nota-peque">' +
-                  (!Almacen.tomaActiva(fecha, t.k) ? "Solo los días que entrenas" : "—") + '</div>';
+          html += '<div class="nota-peque">—</div>';
         } else {
           platos.forEach(function (rid, idx) {
             var r = Almacen.receta(rid);
@@ -1084,9 +1080,11 @@
       $("#compra-resumen").textContent = "No hay menú planificado en esas fechas. Ve a Menú y dale a " +
         "«Completar la semana», o cambia el rango aquí arriba.";
       $("#lista-compra").innerHTML = "";
+      $("#platos-compra").innerHTML = "";
       return;
     }
     $("#compra-resumen").textContent = "Quedan " + pendientes + " productos por comprar de " + totalLineas + ".";
+    pintarPlatosCompra(r);
 
     var visible = function (l) { return UI.ocultarComprados ? (!l.marcado && !l.enCasa) : true; };
     var html = "";
@@ -1108,6 +1106,64 @@
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar comprados";
   }
 
+  /* ---------- los PLATOS de la compra ----------
+     La lista de abajo son ingredientes, que es lo que se mete en el carro. Pero al
+     volver del súper lo que uno sabe no es «tengo 180 g de lomo», es «la comida del
+     viernes ya la tengo». Marcar aquí un plato saca SUS ingredientes de la lista de
+     abajo, así que se decide por plato y no producto a producto. */
+  function etiquetaDiaLargo(iso) {
+    var d = Util.desdeISO(iso);
+    return Util.DIAS[(d.getDay() + 6) % 7] + " " + Util.etiquetaFecha(iso);
+  }
+
+  function pintarPlatosCompra(r) {
+    var cont = $("#platos-compra");
+    if (!cont) return;
+    var platos = Almacen.platosCompra(r.desde, r.dias);
+    if (!platos.length) { cont.innerHTML = ""; return; }
+
+    var comprados = 0;
+    var porDia = {}, orden = [];
+    platos.forEach(function (p) {
+      if (p.comprado) comprados++;
+      if (!porDia[p.fecha]) { porDia[p.fecha] = []; orden.push(p.fecha); }
+      porDia[p.fecha].push(p);
+    });
+
+    /* Con la semana entera son 35 platos y el bloque taparía la lista de la compra.
+       Abierto por defecto solo si caben de un vistazo; en cuanto él lo abre o lo cierra,
+       manda su decisión. */
+    var abierto = UI.verPlatosCompra === null ? platos.length <= 12 : UI.verPlatosCompra;
+    var html = '<details class="platos-compra"' + (abierto ? " open" : "") + '>' +
+      '<summary><b>Los platos de este rango</b> — ' + comprados + ' de ' + platos.length +
+      ' ya comprados<span class="nota-peque"> · marca un plato y sus ingredientes salen de la lista</span></summary>' +
+      '<div class="cuerpo-platos">';
+
+    orden.forEach(function (f) {
+      var delDia = porDia[f];
+      var visibles = delDia.filter(function (p) { return UI.ocultarComprados ? !p.comprado : true; });
+      if (!visibles.length) return;
+      var faltan = delDia.filter(function (p) { return !p.comprado; }).length;
+      html += '<div class="dia-platos">' +
+              '<div class="cab-dia-platos"><span>' + esc(etiquetaDiaLargo(f)) + '</span>' +
+              (faltan
+                ? '<button class="btn mini" data-diacomprado="' + f + '">Todo el día (' + faltan + ')</button>'
+                : '<span class="etiqueta verde">día completo</span>') +
+              '</div>';
+      visibles.forEach(function (p) {
+        html += '<div class="linea' + (p.comprado ? " hecha" : "") + '">' +
+          '<input type="checkbox" data-platocompra="' + f + '|' + p.toma + '|' + esc(p.id) + '"' +
+          (p.comprado ? " checked" : "") + ' title="Marcar el plato como comprado">' +
+          '<div class="datos"><div class="nombre">' + esc(p.nombre) + '</div>' +
+          '<div class="detalle">' + esc(p.tomaNombre) + (p.comido ? " \u00b7 ya comido" : "") + '</div></div>' +
+          '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div></details>';
+    cont.innerHTML = html;
+  }
+
   function lineaCompraHTML(l, basico) {
     var clases = "linea" + (l.marcado ? " hecha" : "") + (l.enCasa ? " en-casa" : "");
     return '<div class="' + clases + '">' +
@@ -1122,8 +1178,14 @@
 
   function textoCompra(soloPendientes) {
     if (!compraActual) return "";
-    var out = "LISTA DE LA COMPRA — semana del " + Util.etiquetaRango(UI.lunes) +
-              " (" + (Almacen.estado.config.personas || 1) + " personas)\n\n";
+    /* El rango que se imprime tiene que ser el que se ha CALCULADO, no la semana que
+       esté abierta en Menú. Salía «semana del 14 al 20» con las cantidades de jueves
+       a domingo, y los números no cuadraban con el título. */
+    var rr = Almacen.rangoCompra(UI.cuandoCompra);
+    var out = "LISTA DE LA COMPRA — del " + Util.etiquetaFecha(rr.desde) + " al " +
+              Util.etiquetaFecha(rr.hasta) + " de " + Util.desdeISO(rr.hasta).getFullYear() +
+              " (" + rr.dias + (rr.dias === 1 ? " día" : " días") +
+              ", " + (Almacen.estado.config.personas || 1) + " personas)\n\n";
     compraActual.secciones.forEach(function (s) {
       var lineas = s.lineas.filter(function (l) { return soloPendientes ? (!l.enCasa && !l.marcado) : true; });
       if (!lineas.length) return;
@@ -1630,6 +1692,27 @@
     });
     $("#compra-recalcular").addEventListener("click", pintarCompra);
     $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
+    /* Los platos de la compra: marcar uno, o el día entero de un golpe. */
+    $("#platos-compra").addEventListener("click", function (e) {
+      var d = e.target.closest("[data-diacomprado]");
+      if (d) {
+        var n = Almacen.marcarRangoComprado(d.getAttribute("data-diacomprado"), 1, true);
+        Util.toast(n ? "Marcados " + n + " platos" : "Ya estaba todo marcado");
+        pintarCompra();
+        return;
+      }
+      /* Recordar si el bloque queda abierto o cerrado, para no tener que desplegarlo
+         cada vez que se recalcula la lista. */
+      var det = e.target.closest("details.platos-compra");
+      if (det && e.target.closest("summary")) UI.verPlatosCompra = !det.open;
+    });
+    $("#platos-compra").addEventListener("change", function (e) {
+      var m = e.target.closest("[data-platocompra]");
+      if (!m) return;
+      var pp = m.getAttribute("data-platocompra").split("|");
+      Almacen.marcarComprado(pp[0], pp[1], pp[2], m.checked);
+      pintarCompra();
+    });
     $("#lista-compra").addEventListener("click", function (e) {
       var enc = e.target.closest("[data-encasa]");
       if (enc) {
