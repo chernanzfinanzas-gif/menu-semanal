@@ -24,12 +24,16 @@
           personas: 2,
           limiteSal: 2.0,      // g de sal/día: por encima = rojo
           avisoSal: 1.5,       // g de sal/día: por encima = ámbar
+          objetivoKcal: 2000,  // kcal/día
+          objetivoProt: 90,    // g de proteína/día
+          margenKcal: 10,      // % de holgura antes de marcar el día en rojo
           github: { usuario: "", repo: "", rama: "main", token: "" }
         },
         ingredientes: JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || [])),
         recetas: JSON.parse(JSON.stringify(global.DATOS_RECETAS || [])),
         plantillas: JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || [])),
         plan: {},              // { "YYYY-MM-DD": { desayuno:[], almuerzo:[], comida:[], merienda:[], cena:[] } }
+        comido: {},            // { "YYYY-MM-DD": { comida:["receta_id", …] } }  lo que se comió de verdad
         despensa: {},          // { ingredienteId: true }  -> ya lo tengo en casa
         compraMarcada: {},     // { ingredienteId: true }  -> ya comprado / tachado
         favoritos: [],
@@ -45,6 +49,10 @@
       if (!e.recetas || !e.recetas.length) e.recetas = JSON.parse(JSON.stringify(global.DATOS_RECETAS || []));
       if (!e.plantillas || !e.plantillas.length) e.plantillas = JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || []));
       if (!e.plan) e.plan = {};
+      if (!e.comido) e.comido = {};
+      if (typeof e.config.objetivoKcal !== "number") e.config.objetivoKcal = 2000;
+      if (typeof e.config.objetivoProt !== "number") e.config.objetivoProt = 90;
+      if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;
       if (!e.despensa) e.despensa = {};
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.favoritos) e.favoritos = [];
@@ -112,6 +120,102 @@
       if (sal > c.limiteSal) return "rojo";
       if (sal > c.avisoSal) return "ambar";
       return "verde";
+    },
+
+    /* ---------- energía y macros ---------- */
+    /* gramos que aporta una línea de ingrediente */
+    gramosDeLinea: function (linea) {
+      var ing = this.ingrediente(linea.i);
+      if (!ing) return 0;
+      return ing.u === "ud" ? (linea.c * (ing.pesoUd || 100)) : linea.c;
+    },
+
+    /* {k,p,g,h} POR RACIÓN de una receta */
+    nutrReceta: function (rec) {
+      var vacio = { k: 0, p: 0, g: 0, h: 0 };
+      if (!rec) return vacio;
+      var t = { k: 0, p: 0, g: 0, h: 0 }, self = this;
+      (rec.ing || []).forEach(function (l) {
+        var ing = self.ingrediente(l.i);
+        if (!ing) return;
+        var gr = self.gramosDeLinea(l) / 100;
+        t.k += gr * (ing.k || 0);
+        t.p += gr * (ing.p || 0);
+        t.g += gr * (ing.g || 0);
+        t.h += gr * (ing.h || 0);
+      });
+      var r = rec.raciones || 1;
+      return { k: t.k / r, p: t.p / r, g: t.g / r, h: t.h / r };
+    },
+
+    /* {k,p,g,h} de un día. soloComido = suma únicamente lo marcado como comido */
+    nutrDia: function (fecha, soloComido) {
+      var dia = this.estado.plan[fecha];
+      var t = { k: 0, p: 0, g: 0, h: 0 };
+      if (!dia) return t;
+      var self = this;
+      ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
+        (dia[toma] || []).forEach(function (id) {
+          if (soloComido && !self.estaComido(fecha, toma, id)) return;
+          var n = self.nutrReceta(self.receta(id));
+          t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
+        });
+      });
+      return t;
+    },
+
+    /* ---------- registro de lo que se come de verdad ---------- */
+    estaComido: function (fecha, toma, recetaId) {
+      var d = this.estado.comido[fecha];
+      return !!(d && d[toma] && d[toma].indexOf(recetaId) >= 0);
+    },
+
+    marcarComido: function (fecha, toma, recetaId, comido) {
+      if (!this.estado.comido[fecha]) this.estado.comido[fecha] = {};
+      var d = this.estado.comido[fecha];
+      if (!d[toma]) d[toma] = [];
+      var i = d[toma].indexOf(recetaId);
+      if (comido && i < 0) d[toma].push(recetaId);
+      if (!comido && i >= 0) d[toma].splice(i, 1);
+      if (!d[toma].length) delete d[toma];
+      if (!Object.keys(d).length) delete this.estado.comido[fecha];
+      this.guardar("comido");
+    },
+
+    /* ¿queda algo del día sin marcar? */
+    hayComidoAlgo: function (fecha) {
+      var d = this.estado.comido[fecha];
+      return !!(d && Object.keys(d).length);
+    },
+
+    semaforoKcal: function (kcal) {
+      var c = this.estado.config;
+      if (!c.objetivoKcal) return "verde";
+      var margen = c.objetivoKcal * (c.margenKcal || 10) / 100;
+      if (kcal > c.objetivoKcal + margen) return "rojo";
+      if (kcal < c.objetivoKcal - margen * 2) return "ambar";   // quedarse muy corto también avisa
+      return "verde";
+    },
+
+    /* medias de la semana: {kcal, sal, prot} por día con algo planificado */
+    resumenSemana: function (lunesISO) {
+      var t = { k: 0, p: 0, g: 0, h: 0 }, sal = 0, dias = 0;
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunesISO, i);
+        var dia = this.estado.plan[f];
+        if (!dia) continue;
+        var algo = false;
+        ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (x) {
+          if ((dia[x] || []).length) algo = true;
+        });
+        if (!algo) continue;
+        var n = this.nutrDia(f);
+        t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
+        sal += this.salDia(f);
+        dias++;
+      }
+      if (!dias) return null;
+      return { dias: dias, k: t.k / dias, p: t.p / dias, g: t.g / dias, h: t.h / dias, sal: sal / dias };
     },
 
     /* ---------- plan ---------- */

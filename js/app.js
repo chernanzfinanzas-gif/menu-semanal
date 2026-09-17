@@ -63,6 +63,19 @@
     }
     $("#selector-dias").innerHTML = sel;
 
+    /* media de la semana */
+    var res = Almacen.resumenSemana(UI.lunes);
+    var caja = $("#resumen-semana");
+    if (res) {
+      caja.style.display = "";
+      caja.innerHTML = "<b>Media de la semana</b> (" + res.dias + " día" + (res.dias === 1 ? "" : "s") + "): " +
+        Util.kcal(res.k) + " · " + Math.round(res.p) + " g de proteína · " +
+        Math.round(res.g) + " g de grasa · " + Math.round(res.h) + " g de hidratos · " +
+        Util.sal(res.sal) + " de sal al día.";
+    } else {
+      caja.style.display = "none";
+    }
+
     for (var i = 0; i < 7; i++) {
       if (movil && i !== UI.diaActivo) continue;
       var fecha = Util.sumarDias(UI.lunes, i);
@@ -72,11 +85,33 @@
       var tieneAlgo = false;
       if (dia) Util.TOMAS.forEach(function (t) { if ((dia[t.k] || []).length) tieneAlgo = true; });
 
+      var nutr = Almacen.nutrDia(fecha);
+      var nutrCom = Almacen.nutrDia(fecha, true);
+      var hayComido = Almacen.hayComidoAlgo(fecha);
+      var colorK = Almacen.semaforoKcal(nutr.k);
+      var objetivo = Almacen.estado.config.objetivoKcal || 0;
+
       html += '<div class="dia' + (fecha === hoy ? " hoy" : "") + '">';
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
               '<span class="fecha">' + Util.etiquetaFecha(fecha) + '</span>' +
-              (tieneAlgo ? '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal</span>' : '') +
+              (tieneAlgo ? '<span class="chip-sal ' + colorK + '">' + Util.kcal(nutr.k) + '</span>' +
+                           '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal</span>' : '') +
               '</header>';
+
+      if (tieneAlgo) {
+        var pct = objetivo ? Math.min(100, Math.round((hayComido ? nutrCom.k : nutr.k) / objetivo * 100)) : 0;
+        html += '<div class="resumen-dia">' +
+                  (objetivo ? '<div class="barra"><span class="relleno ' + colorK + '" style="width:' + pct + '%"></span></div>' : '') +
+                  '<div class="macros">' +
+                    '<span><b>P</b> ' + Math.round(nutr.p) + ' g</span>' +
+                    '<span><b>G</b> ' + Math.round(nutr.g) + ' g</span>' +
+                    '<span><b>H</b> ' + Math.round(nutr.h) + ' g</span>' +
+                    (hayComido
+                      ? '<span class="comido-hasta">Llevas ' + Util.kcal(nutrCom.k) + '</span>'
+                      : (objetivo ? '<span class="comido-hasta">Objetivo ' + Util.kcal(objetivo) + '</span>' : '')) +
+                  '</div>' +
+                '</div>';
+      }
 
       Util.TOMAS.forEach(function (t) {
         var platos = (dia && dia[t.k]) || [];
@@ -89,10 +124,14 @@
           platos.forEach(function (rid, idx) {
             var r = Almacen.receta(rid);
             var nombre = r ? r.n : "(receta borrada)";
+            var n = r ? Almacen.nutrReceta(r) : { k: 0 };
             var s = r ? Util.sal(Almacen.salReceta(r)) : "";
-            html += '<div class="plato">' +
+            var com = Almacen.estaComido(fecha, t.k, rid);
+            html += '<div class="plato' + (com ? " comido" : "") + '">' +
+                      '<button class="marcar' + (com ? " si" : "") + '" title="Marcar como comido" ' +
+                        'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">✓</button>' +
                       '<span class="nom" data-ficha="' + esc(rid) + '">' + esc(nombre) + '</span>' +
-                      '<span class="sal">' + s + '</span>' +
+                      '<span class="sal">' + Util.kcal(n.k) + ' · ' + s + '</span>' +
                       '<button class="quitar" data-quitar="' + fecha + '|' + t.k + '|' + idx + '">×</button>' +
                     '</div>';
           });
@@ -145,10 +184,11 @@
     var r = Almacen.receta(id);
     if (!r) return;
     var salRacion = Almacen.salReceta(r);
-    var color = salRacion > 1 ? "rojo" : (salRacion > 0.6 ? "ambar" : "verde");
+    var n = Almacen.nutrReceta(r);
 
     var html = '<header><h2>' + esc(r.n) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
     html += '<div class="etiquetas">' +
+            '<span class="etiqueta verde">' + Util.kcal(n.k) + ' / ración</span>' +
             '<span class="etiqueta verde">' + Util.sal(salRacion) + ' de sal / ración</span>' +
             '<span class="etiqueta">' + (r.raciones || 1) + ' ración(es)</span>' +
             '<span class="etiqueta">' + (r.min || "?") + ' min</span>' +
@@ -156,11 +196,21 @@
             (r.tools || []).map(function (t) { return '<span class="etiqueta">' + esc(NOMBRE_TOOL[t] || t) + '</span>'; }).join("") +
             '</div>';
 
+    html += '<div class="nutri-ficha">' +
+            '<div><b>' + Math.round(n.p) + ' g</b><span>proteína</span></div>' +
+            '<div><b>' + Math.round(n.g) + ' g</b><span>grasa</span></div>' +
+            '<div><b>' + Math.round(n.h) + ' g</b><span>hidratos</span></div>' +
+            '<div><b>' + Util.kcal(n.k).replace(" kcal", "") + '</b><span>kcal</span></div>' +
+            '</div>';
+
     html += '<h3 style="margin-top:16px">Ingredientes</h3><ul class="ingredientes">';
     (r.ing || []).forEach(function (l) {
       var ing = Almacen.ingrediente(l.i);
+      var gr = Almacen.gramosDeLinea(l) / 100;
+      var kc = ing ? Math.round(gr * (ing.k || 0)) : 0;
       html += '<li><span>' + esc(ing ? ing.n : l.i) + '</span><span>' +
-              Util.formatearCantidad(l.c, ing ? ing.u : "g") + '</span></li>';
+              Util.formatearCantidad(l.c, ing ? ing.u : "g") +
+              (kc ? ' <em class="nota-peque">· ' + kc + ' kcal</em>' : '') + '</span></li>';
     });
     html += '</ul>';
 
@@ -267,6 +317,73 @@
     });
   }
 
+  /* ==================== EDITOR DE INGREDIENTE ==================== */
+  function abrirIngrediente(id) {
+    var nuevo = !id;
+    var g = nuevo
+      ? { id: "", n: "", cat: "Frutas y verduras", u: "g", sal: 0, k: 0, p: 0, g: 0, h: 0 }
+      : JSON.parse(JSON.stringify(Almacen.ingrediente(id)));
+    if (!g) return;
+
+    var cats = ["Frutas y verduras", "Carnicería", "Pescadería", "Congelados",
+                "Lácteos y huevos", "Panadería", "Despensa", "Especias y aromáticos"];
+
+    var html = '<header><h2>' + (nuevo ? "Nuevo ingrediente" : esc(g.n)) + '</h2>' +
+               '<button class="cerrar" data-cerrar>×</button></header>';
+    html += '<p class="nota-peque">Los valores son por cada 100 g (o 100 ml). Si el producto que compras ' +
+            'trae otros en la etiqueta, cámbialos aquí y se recalcula todo.</p>';
+    html += '<label class="campo"><span>Nombre</span><input type="text" id="ig-n" value="' + esc(g.n) + '"></label>';
+    html += '<div class="fila">' +
+      '<label class="campo" style="flex:1 1 180px"><span>Sección del súper</span><select id="ig-cat">' +
+        cats.map(function (c) { return '<option' + (g.cat === c ? " selected" : "") + '>' + c + '</option>'; }).join("") +
+      '</select></label>' +
+      '<label class="campo" style="flex:0 1 110px"><span>Se mide en</span><select id="ig-u">' +
+        ['g', 'ml', 'ud'].map(function (u) { return '<option' + (g.u === u ? " selected" : "") + '>' + u + '</option>'; }).join("") +
+      '</select></label>' +
+      '<label class="campo" style="flex:0 1 130px"><span>Peso de 1 unidad (g)</span>' +
+        '<input type="number" id="ig-peso" min="1" step="1" value="' + (g.pesoUd || "") + '"></label>' +
+      '</div>';
+    html += '<div class="fila">' +
+      ['sal|Sal (g)|0.01', 'k|Calorías (kcal)|1', 'p|Proteína (g)|0.1', 'g|Grasa (g)|0.1', 'h|Hidratos (g)|0.1']
+        .map(function (c) {
+          var p = c.split("|");
+          return '<label class="campo" style="flex:1 1 90px"><span>' + p[1] + '</span>' +
+                 '<input type="number" id="ig-' + p[0] + '" min="0" step="' + p[2] + '" value="' +
+                 (g[p[0]] != null ? g[p[0]] : 0) + '"></label>';
+        }).join("") + '</div>';
+    html += '<label style="font-size:.85rem; display:block; margin-bottom:12px">' +
+            '<input type="checkbox" id="ig-basico"' + (g.basico ? " checked" : "") + '> ' +
+            'Es un básico de despensa (va aparte en la lista de la compra)</label>';
+    html += '<div class="fila"><button class="btn principal" id="ig-guardar">Guardar</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    $("#ig-guardar").addEventListener("click", function () {
+      var nombre = $("#ig-n").value.trim();
+      if (!nombre) { Util.toast("Ponle nombre al ingrediente"); return; }
+      var num = function (sel) { var v = parseFloat($(sel).value.replace(",", ".")); return isNaN(v) ? 0 : v; };
+      var res = {
+        id: g.id || ("ing_" + Date.now().toString(36)),
+        n: nombre, cat: $("#ig-cat").value, u: $("#ig-u").value,
+        sal: num("#ig-sal"), k: num("#ig-k"), p: num("#ig-p"), g: num("#ig-g"), h: num("#ig-h")
+      };
+      var peso = parseFloat($("#ig-peso").value);
+      if (res.u === "ud" && peso > 0) res.pesoUd = peso;
+      if ($("#ig-basico").checked) res.basico = true;
+      if (g.nota) res.nota = g.nota;
+      if (g.compra) res.compra = g.compra;
+
+      var idx = -1;
+      Almacen.estado.ingredientes.forEach(function (x, i) { if (x.id === res.id) idx = i; });
+      if (idx >= 0) Almacen.estado.ingredientes[idx] = res;
+      else Almacen.estado.ingredientes.push(res);
+      Almacen.guardar("ingrediente");
+      cerrarModal();
+      pintarDespensa(); pintarMenu();
+      Util.toast("Ingrediente guardado");
+    });
+  }
+
   /* ==================== VISTA: RECETAS ==================== */
   function pintarRecetas() {
     var f = UI.filtros;
@@ -290,9 +407,11 @@
     $("#contador-recetas").textContent = lista.length + " recetas";
     $("#rejilla-recetas").innerHTML = lista.map(function (r) {
       var sal = Almacen.salReceta(r);
+      var n = Almacen.nutrReceta(r);
       return '<div class="receta" data-ficha="' + esc(r.id) + '">' +
              '<h3>' + esc(r.n) + '</h3>' +
-             '<div class="nota-peque">' + (r.min || "?") + ' min · ' + (r.raciones || 1) + ' ración(es) · ' + Util.sal(sal) + ' de sal</div>' +
+             '<div class="nota-peque">' + Util.kcal(n.k) + ' · ' + Math.round(n.p) + ' g prot. · ' +
+             Util.sal(sal) + ' sal · ' + (r.min || "?") + ' min</div>' +
              '<div class="etiquetas">' +
                (r.grupo ? '<span class="etiqueta verde">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
                (r.tools || []).map(function (t) { return '<span class="etiqueta">' + esc(NOMBRE_TOOL[t] || t) + '</span>'; }).join("") +
@@ -396,7 +515,9 @@
       html += '<div class="linea' + (tengo ? " en-casa" : "") + '">' +
               '<input type="checkbox" data-despensa="' + esc(i.id) + '"' + (tengo ? " checked" : "") + '>' +
               '<div class="datos"><div class="nombre">' + esc(i.n) + '</div>' +
-              '<div class="detalle">' + Util.sal(i.sal) + ' de sal por 100 ' + (i.u === "ml" ? "ml" : "g") + '</div></div></div>';
+              '<div class="detalle">' + Math.round(i.k || 0) + ' kcal · ' + (i.p || 0) + ' g prot. · ' +
+              Util.sal(i.sal) + ' sal — por 100 ' + (i.u === "ml" ? "ml" : "g") + '</div></div>' +
+              '<button class="btn mini" data-editaring="' + esc(i.id) + '">Valores</button></div>';
     });
     if (catActual) html += '</div>';
     $("#rejilla-despensa").innerHTML = html || '<div class="vacio">Sin resultados.</div>';
@@ -408,6 +529,9 @@
     $("#cfg-personas").value = c.personas;
     $("#cfg-aviso").value = c.avisoSal;
     $("#cfg-limite").value = c.limiteSal;
+    $("#cfg-kcal").value = c.objetivoKcal;
+    $("#cfg-prot").value = c.objetivoProt;
+    $("#cfg-margen").value = c.margenKcal;
     $("#gh-usuario").value = c.github.usuario || "";
     $("#gh-repo").value = c.github.repo || "";
     $("#gh-rama").value = c.github.rama || "main";
@@ -481,6 +605,13 @@
     $("#rejilla-dias").addEventListener("click", function (e) {
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
+      var com = e.target.closest("[data-comido]");
+      if (com) {
+        var c = com.getAttribute("data-comido").split("|");
+        Almacen.marcarComido(c[0], c[1], c[2], !Almacen.estaComido(c[0], c[1], c[2]));
+        pintarMenu();
+        return;
+      }
       var quitar = e.target.closest("[data-quitar]");
       if (quitar) {
         var q = quitar.getAttribute("data-quitar").split("|");
@@ -576,6 +707,11 @@
       if (!confirm("¿Desmarcar todo lo que tienes en casa?")) return;
       Almacen.estado.despensa = {}; Almacen.guardar("despensa"); pintarDespensa();
     });
+    $("#rejilla-despensa").addEventListener("click", function (e) {
+      var ed = e.target.closest("[data-editaring]");
+      if (ed) abrirIngrediente(ed.getAttribute("data-editaring"));
+    });
+    $("#nuevo-ingrediente").addEventListener("click", function () { abrirIngrediente(null); });
     $("#rejilla-despensa").addEventListener("change", function (e) {
       var d = e.target.closest("[data-despensa]");
       if (!d) return;
@@ -590,6 +726,10 @@
       c.personas = parseInt($("#cfg-personas").value, 10) || 1;
       c.avisoSal = parseFloat($("#cfg-aviso").value) || 1.5;
       c.limiteSal = parseFloat($("#cfg-limite").value) || 2.0;
+      c.objetivoKcal = parseInt($("#cfg-kcal").value, 10) || 2000;
+      c.objetivoProt = parseInt($("#cfg-prot").value, 10) || 90;
+      c.margenKcal = parseInt($("#cfg-margen").value, 10);
+      if (isNaN(c.margenKcal)) c.margenKcal = 10;
       Almacen.guardar("config");
       Util.toast("Ajustes guardados");
     });

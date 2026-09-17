@@ -108,6 +108,32 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .chip-sal.ambar{background:var(--ambar-fondo); color:var(--ambar)}
 .chip-sal.rojo{background:var(--rojo-fondo); color:var(--rojo)}
 
+/* resumen de energía del día */
+.resumen-dia{padding:8px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
+.barra{height:6px; border-radius:99px; background:var(--borde); overflow:hidden; margin-bottom:6px}
+.barra .relleno{display:block; height:100%; border-radius:99px; background:var(--verde); transition:width .3s ease}
+.barra .relleno.ambar{background:var(--ambar)}
+.barra .relleno.rojo{background:var(--rojo)}
+.macros{display:flex; gap:12px; flex-wrap:wrap; font-size:.75rem; color:var(--gris)}
+.macros b{color:var(--tinta); font-weight:700}
+.macros .comido-hasta{margin-left:auto; color:var(--verde); font-weight:600}
+
+.nutri-ficha{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 4px}
+.nutri-ficha div{background:var(--gris-claro); border:1px solid var(--borde); border-radius:10px;
+  padding:9px 6px; text-align:center}
+.nutri-ficha b{display:block; font-size:1rem}
+.nutri-ficha span{font-size:.68rem; color:var(--gris); text-transform:uppercase; letter-spacing:.03em}
+
+/* marcar un plato como comido */
+.marcar{
+  flex:none; width:22px; height:22px; border-radius:7px; border:1.5px solid var(--borde);
+  background:var(--blanco); color:transparent; font-size:.8rem; font-weight:700; line-height:1;
+  padding:0; display:flex; align-items:center; justify-content:center;
+}
+.marcar:hover{border-color:var(--verde); color:var(--verde-borde)}
+.marcar.si{background:var(--verde); border-color:var(--verde); color:#fff}
+.plato.comido .nom{color:var(--gris)}
+
 .toma{padding:8px 12px; border-bottom:1px dashed var(--borde)}
 .toma:last-child{border-bottom:0}
 .toma .titulo-toma{font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--gris); font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center}
@@ -216,8 +242,12 @@ textarea.salida{min-height:180px; font-family:ui-monospace,SFMono-Regular,Menlo,
   .rejilla-dias{grid-template-columns:1fr}
   .dia > header{padding:12px}
   .toma{padding:10px 12px}
-  .plato{padding:6px 0; font-size:.92rem; align-items:center}
+  .plato{padding:7px 0; font-size:.92rem; align-items:center}
   .quitar{font-size:1.3rem; padding:4px 8px}
+  .marcar{width:26px; height:26px; font-size:.9rem}
+  .macros{font-size:.72rem; gap:10px}
+  .nutri-ficha{grid-template-columns:repeat(2,1fr)}
+  .plato .sal{font-size:.7rem}
   .anadir{padding:6px 12px; font-size:.8rem}
 
   /* botones cómodos con una mano */

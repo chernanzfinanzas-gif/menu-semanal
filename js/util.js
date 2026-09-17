@@ -77,6 +77,11 @@
       return g.toFixed(2).replace(".", ",") + " g";
     },
 
+    kcal: function (k) {
+      k = Math.round(k || 0);
+      return (k >= 1000 ? String(k).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : String(k)) + " kcal";
+    },
+
     esc: function (s) {
       return String(s == null ? "" : s)
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
