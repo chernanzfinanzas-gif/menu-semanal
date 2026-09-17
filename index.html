@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=8">
+<link rel="stylesheet" href="css/estilos.css?v=9">
 </head>
 <body>
 
@@ -186,11 +186,15 @@
           lo que has comido, pero esconde todo lo de planificar y editar. Así no hay dos sitios cambiando
           lo mismo a la vez. Es un ajuste de este aparato: los demás no se enteran.</span></span>
       </label>
-      <label style="display:flex; gap:10px; align-items:flex-start; font-size:.9rem; margin-top:14px">
-        <input type="checkbox" id="cfg-intro" style="width:22px; height:22px; flex:none; margin-top:2px">
-        <span><b>Vídeo al abrir</b><br>
-          <span class="nota-peque">La presentación de KHB En Forma cuando abres la app. Se enseña
-          una vez al día como mucho, y siempre puedes saltarla.</span></span>
+      <label style="display:block; font-size:.9rem; margin-top:14px">
+        <b>Vídeo al abrir</b>
+        <select id="cfg-intro" style="display:block; margin:6px 0 4px; max-width:260px">
+          <option value="siempre">Cada vez que abro la app</option>
+          <option value="dia">Una vez al día</option>
+          <option value="nunca">Nunca</option>
+        </select>
+        <span class="nota-peque">La presentación de KHB En Forma. Siempre puedes saltarla
+          con «Entrar» sin esperar a que termine.</span>
       </label>
     </div>
 
@@ -310,13 +314,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=8"></script>
-<script src="datos/recetas.js?v=8"></script>
-<script src="datos/plantillas.js?v=8"></script>
-<script src="datos/actividades.js?v=8"></script>
-<script src="js/util.js?v=8"></script>
-<script src="js/almacen.js?v=8"></script>
-<script src="js/github.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="datos/ingredientes.js?v=9"></script>
+<script src="datos/recetas.js?v=9"></script>
+<script src="datos/plantillas.js?v=9"></script>
+<script src="datos/actividades.js?v=9"></script>
+<script src="js/util.js?v=9"></script>
+<script src="js/almacen.js?v=9"></script>
+<script src="js/github.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>

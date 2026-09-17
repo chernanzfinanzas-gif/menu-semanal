@@ -50,17 +50,28 @@
 
 
   /* ==================== PORTADA ==================== */
-  /* El vídeo de entrada: una vez al día como mucho, y siempre saltable.
+  /* El vídeo de entrada. Tres opciones, porque «siempre» puede acabar cansando
+     y así se baja sin tener que tocar nada: siempre / una vez al día / nunca.
      La preferencia es de este aparato, igual que el modo consulta. */
   var CLAVE_INTRO = "asistente-alimentacion-intro";        // último día que se enseñó
-  var CLAVE_INTRO_OFF = "asistente-alimentacion-intro-off";
+  var CLAVE_INTRO_OFF = "asistente-alimentacion-intro-off";      // el ajuste viejo
+  var CLAVE_INTRO_CUANDO = "asistente-alimentacion-intro-cuando";
   var CLAVE_INTRO_SON = "asistente-alimentacion-intro-sonido";   // si quiere oírlo
 
-  function introActiva() {
-    try { return localStorage.getItem(CLAVE_INTRO_OFF) !== "si"; } catch (e) { return true; }
+  function cuandoIntro() {
+    var v = null;
+    try { v = localStorage.getItem(CLAVE_INTRO_CUANDO); } catch (e) {}
+    if (v === "siempre" || v === "dia" || v === "nunca") return v;
+    /* Sin elección todavía: respeto lo que dijera el interruptor de antes. */
+    try { if (localStorage.getItem(CLAVE_INTRO_OFF) === "si") return "nunca"; } catch (e) {}
+    return "siempre";
   }
-  function ponerIntro(activa) {
-    try { localStorage.setItem(CLAVE_INTRO_OFF, activa ? "no" : "si"); } catch (e) {}
+  function ponerCuandoIntro(v) {
+    try {
+      localStorage.setItem(CLAVE_INTRO_CUANDO, v);
+      localStorage.removeItem(CLAVE_INTRO_OFF);      // el ajuste viejo ya no manda
+      if (v === "siempre") localStorage.removeItem(CLAVE_INTRO);
+    } catch (e) {}
   }
 
   function cerrarPortada() {
@@ -75,10 +86,10 @@
   function arrancarPortada() {
     var p = $("#portada");
     if (!p) return;
-    var hoy = Util.hoyISO(), visto = null;
+    var cuando = cuandoIntro(), hoy = Util.hoyISO(), visto = null;
     try { visto = localStorage.getItem(CLAVE_INTRO); } catch (e) {}
 
-    if (!introActiva() || visto === hoy) {          // ya se vio hoy, o está desactivada
+    if (cuando === "nunca" || (cuando === "dia" && visto === hoy)) {
       if (p.parentNode) p.parentNode.removeChild(p);
       return;
     }
@@ -953,7 +964,7 @@
 
   function pintarAjustes() {
     $("#cfg-consulta").checked = soloConsulta();
-    $("#cfg-intro").checked = introActiva();
+    $("#cfg-intro").value = cuandoIntro();
     if (soloConsulta()) return;          // en consulta, lo demás ni se rellena
     pintarPerfil();
     var c = Almacen.estado.config;
@@ -1244,8 +1255,10 @@
       Util.toast("Conectando con GitHub…");
     });
     $("#cfg-intro").addEventListener("change", function () {
-      ponerIntro(this.checked);
-      Util.toast(this.checked ? "Se enseñará el vídeo al abrir" : "El vídeo no se volverá a enseñar");
+      ponerCuandoIntro(this.value);
+      Util.toast(this.value === "siempre" ? "El vídeo saldrá cada vez que abras la app"
+               : this.value === "dia"     ? "El vídeo saldrá una vez al día"
+               :                            "El vídeo no se volverá a enseñar");
     });
 
     $("#cfg-consulta").addEventListener("change", function () {

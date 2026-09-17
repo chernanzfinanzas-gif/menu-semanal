@@ -1,9 +1,9 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v8";
+var CACHE = "menu-semanal-v9";
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=8",
-  "./js/util.js?v=8", "./js/almacen.js?v=8", "./js/github.js?v=8", "./js/app.js?v=8",
-  "./datos/ingredientes.js?v=8", "./datos/recetas.js?v=8", "./datos/plantillas.js?v=8", "./datos/actividades.js?v=8",
+  "./", "./index.html", "./css/estilos.css?v=9",
+  "./js/util.js?v=9", "./js/almacen.js?v=9", "./js/github.js?v=9", "./js/app.js?v=9",
+  "./datos/ingredientes.js?v=9", "./datos/recetas.js?v=9", "./datos/plantillas.js?v=9", "./datos/actividades.js?v=9",
   "./iconos/khb/1-arbol-pulso.webp", "./iconos/khb/2-frutas-tenedor.webp", "./iconos/khb/3-pesas-corredor.webp", "./iconos/khb/4-agua.webp", "./iconos/khb/5-sueno.webp", "./iconos/khb/6-zapatillas.webp", "./iconos/khb/7-yoga.webp", "./iconos/khb/8-recetario.webp", "./iconos/khb/9-podio.webp", "./media/cartel-h.webp", "./media/cartel-v.webp", "./manifest.webmanifest", "./iconos/icono.svg"
 ];
 
