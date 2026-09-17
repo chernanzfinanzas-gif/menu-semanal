@@ -150,6 +150,17 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   font-size:.82rem; font-family:inherit; color:var(--tinta); background:var(--blanco);
   text-align:right; width:100%}
 
+/* ---------- días ya pasados: apagados ----------
+   Se ven, se leen y se puede marcar lo comido; lo que no se puede es planificarlos. */
+.dia.cerrado{opacity:.62; background:#fafbfa}
+.dia.cerrado:hover{opacity:.85}
+.dia.cerrado > header{background:var(--gris-claro)}
+.dia.cerrado .nom{color:var(--gris)}
+.dia.reabierto > header{background:var(--ambar-fondo)}
+.dia .abrir-dia{padding:2px 9px; font-size:.7rem}
+.nota-tipo.ya-pasado{background:var(--gris-claro); color:var(--gris)}
+.min-fijo{font-size:.8rem; color:var(--gris); font-weight:600; flex:none}
+
 /* comensales y «fuera de casa», toma a toma */
 .chip-toma{
   border:1px solid var(--borde); background:var(--blanco); color:var(--gris);

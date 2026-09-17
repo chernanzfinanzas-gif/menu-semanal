@@ -593,6 +593,7 @@
        una previsión no pisa nunca lo que ya hayas puesto tú ni lo que traiga el reloj.
        Los días de ruta se saltan: ya tienen su salida planificada. */
     aplicarEntrenoEstandar: function (fecha, forzar) {
+      if (this.esPasado(fecha)) return 0;              // no se inventa un entreno pasado
       if (this.fichaTipoDia(fecha).ruta) return 0;
       var lista = this.estado.actividad[fecha] || [];
       if (lista.length && !forzar) return 0;
@@ -723,6 +724,14 @@
       { id: "bici_paseo",        h: 2 }
     ],
 
+    /* ---------- la guarda del pasado ----------
+       Un día que ya ha pasado no se planifica: no tiene sentido que «Rellenar huecos»
+       le ponga la cena del martes que viene, ni que el entreno estándar le invente
+       una sesión de bici que no hiciste. Y sobre todo, no debe pisar el registro de
+       lo que comiste y entrenaste de verdad, que es el único dato honesto que hay.
+       HOY NO cuenta como pasado: el día en curso se planifica con normalidad. */
+    esPasado: function (fecha) { return fecha < Util.hoyISO(); },
+
     tipoDia: function (fecha) {
       var d = this.estado.plan[fecha];
       var t = d && d.tipo;
@@ -769,6 +778,7 @@
        cena salen de la plantilla (se hacen en casa) y solo el almuerzo, la comida
        y la merienda salen del cajón de la mochila. */
     rellenarDia: function (fecha, plantillaId) {
+      if (this.esPasado(fecha)) return 0;              // el pasado no se planifica
       var d = this.asegurarDia(fecha);
       var ficha = this.fichaTipoDia(fecha);
       var self = this;
@@ -873,6 +883,7 @@
       var self = this;
       p.dias.forEach(function (d, idx) {
         var fecha = Util.sumarDias(lunesISO, idx);
+        if (self.esPasado(fecha)) return;              // el pasado no se replanifica
         /* El tipo de día lo puso él y manda sobre la plantilla: no se pisa, y
            las tomas que ese tipo no planifica se quedan vacías (así no acaban
            en la lista de la compra comidas que va a hacer fuera). */
@@ -909,9 +920,13 @@
        registro de lo que hiciste de verdad, no un plan, y borrar eso sería perder
        datos. Tampoco se toca el peso. */
     vaciarSemana: function (lunesISO) {
-      var borrados = { dias: 0, entrenos: 0, medidas: 0 };
+      var borrados = { dias: 0, entrenos: 0, medidas: 0, pasados: 0 };
       for (var i = 0; i < 7; i++) {
         var f = Util.sumarDias(lunesISO, i);
+        /* Los días ya vividos no se vacían: ahí está lo que comiste y lo que hiciste,
+           y eso es un registro, no un plan. Vaciar la semana en miércoles borra de
+           miércoles en adelante. */
+        if (this.esPasado(f)) { borrados.pasados++; continue; }
         if (this.estado.plan[f]) { delete this.estado.plan[f]; borrados.dias++; }
         delete this.estado.comido[f];              // sin plan no hay nada que marcar
 

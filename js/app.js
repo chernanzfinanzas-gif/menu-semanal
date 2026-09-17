@@ -11,8 +11,18 @@
     busquedaDespensa: "",
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
     ocultarComprados: false,
-    tRuta: null             // espera antes de repintar al teclear las horas de una ruta
+    tRuta: null,            // espera antes de repintar al teclear las horas de una ruta
+    /* Días pasados que ha desbloqueado a mano para corregir algo. Vive solo en
+       memoria: al recargar vuelven a estar cerrados, que es lo que se quiere. */
+    desbloqueados: {}
   };
+
+  /* Un día pasado está cerrado salvo que lo haya abierto él. Cerrado significa
+     que no se PLANIFICA: marcar lo que comiste sigue estando disponible siempre,
+     porque eso es registro y suele apuntarse después. */
+  function cerrado(fecha) {
+    return Almacen.esPasado(fecha) && !UI.desbloqueados[fecha];
+  }
 
   function esMovil() { return window.matchMedia("(max-width:767px)").matches; }
 
@@ -234,27 +244,41 @@
       var objetivo = Almacen.objetivoDelDia(fecha);
       var colorK = Almacen.semaforoKcal(nutr.k, objetivo);
 
-      html += '<div class="dia' + (fecha === hoy ? " hoy" : "") + '">';
+      var cerr = cerrado(fecha);
+      html += '<div class="dia' + (fecha === hoy ? " hoy" : "") + (cerr ? " cerrado" : "") +
+              (Almacen.esPasado(fecha) && !cerr ? " reabierto" : "") + '">';
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
               '<span class="fecha">' + Util.etiquetaFecha(fecha) + '</span>' +
               (tieneAlgo ? '<span class="chip-sal ' + colorK + '">' + Util.kcal(nutr.k) + '</span>' +
                            '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal' +
                            (color === "libre" ? ' · sin tope' : '') + '</span>' : '') +
+              (Almacen.esPasado(fecha)
+                ? '<button class="btn mini abrir-dia solo-edicion" data-abrir="' + fecha + '">' +
+                  (cerr ? 'Editar' : 'Cerrar') + '</button>'
+                : '') +
               '</header>';
 
-      /* tipo de día: se elige ANTES de rellenar, porque manda sobre todo lo demás */
-      html += '<div class="tipo-dia solo-edicion">';
-      Object.keys(Almacen.TIPOS_DIA).forEach(function (k) {
-        var t = Almacen.TIPOS_DIA[k];
-        html += '<button class="pest-tipo' + (k === tipo ? " activo" : "") + '" ' +
-                'data-tipodia="' + fecha + '|' + k + '" title="' + esc(t.n) + '">' +
-                t.icono + ' <span>' + esc(t.n) + '</span></button>';
-      });
-      html += '<button class="btn mini rellenar-dia" data-rellenar="' + fecha + '" ' +
-              'title="Completa las tomas vacías de este día">Rellenar</button>';
-      html += '</div>';
+      if (cerr) {
+        html += '<div class="nota-tipo ya-pasado">Día pasado. No se planifica ni se rellena, ' +
+                'para no pisar lo que comiste de verdad. <b>Puedes seguir marcando ✓</b> lo que ' +
+                'comiste; si necesitas corregir algo más, dale a «Editar».</div>';
+      }
 
-      if (tipo === "ruta") {
+      /* tipo de día: se elige ANTES de rellenar, porque manda sobre todo lo demás */
+      if (!cerr) {
+        html += '<div class="tipo-dia solo-edicion">';
+        Object.keys(Almacen.TIPOS_DIA).forEach(function (k) {
+          var t = Almacen.TIPOS_DIA[k];
+          html += '<button class="pest-tipo' + (k === tipo ? " activo" : "") + '" ' +
+                  'data-tipodia="' + fecha + '|' + k + '" title="' + esc(t.n) + '">' +
+                  t.icono + ' <span>' + esc(t.n) + '</span></button>';
+        });
+        html += '<button class="btn mini rellenar-dia" data-rellenar="' + fecha + '" ' +
+                'title="Completa las tomas vacías de este día">Rellenar</button>';
+        html += '</div>';
+      }
+
+      if (tipo === "ruta" && !cerr) {
         /* Qué salida y cuántas horas: es lo que sube el objetivo de calorías del día. */
         var fr = Almacen.fichaRuta(fecha);
         html += '<div class="plan-ruta">';
@@ -328,14 +352,15 @@
         /* Dos controles por toma: cuántos comen y si se come fuera. Van aquí y no en
            la cabecera del día porque las dos cosas cambian toma a toma. */
         html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
-                '<button class="chip-toma comensales' + (comen !== personasBase ? " raro" : "") + '" ' +
-                  'data-comensales="' + fecha + '|' + t.k + '" ' +
-                  'title="Comen ' + comen + '. Pulsa para cambiar">👤 ' + comen + '</button>' +
-                '<button class="chip-toma fuera' + (fueraT ? " si" : "") + '" ' +
-                  'data-fuera="' + fecha + '|' + t.k + '" ' +
-                  'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
-                  '">🍽️</button>' +
-                (fueraT ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
+                (cerr ? (comen !== personasBase ? '<span class="chip-toma comensales raro">👤 ' + comen + '</span>' : '')
+                      : '<button class="chip-toma comensales' + (comen !== personasBase ? " raro" : "") + '" ' +
+                        'data-comensales="' + fecha + '|' + t.k + '" ' +
+                        'title="Comen ' + comen + '. Pulsa para cambiar">👤 ' + comen + '</button>' +
+                        '<button class="chip-toma fuera' + (fueraT ? " si" : "") + '" ' +
+                        'data-fuera="' + fecha + '|' + t.k + '" ' +
+                        'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
+                        '">🍽️</button>') +
+                (cerr || fueraT ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
                 '</div>';
         if (fueraT) {
           var est = Almacen.estimacionFuera(t.k) || { k: 0, sal: 0 };
@@ -357,7 +382,7 @@
                         'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">✓</button>' +
                       '<span class="nom" data-ficha="' + esc(rid) + '">' + esc(nombre) + '</span>' +
                       '<span class="sal">' + Util.kcal(n.k) + ' · ' + s + '</span>' +
-                      '<button class="quitar" data-quitar="' + fecha + '|' + t.k + '|' + idx + '">×</button>' +
+                      (cerr ? '' : '<button class="quitar" data-quitar="' + fecha + '|' + t.k + '|' + idx + '">×</button>') +
                     '</div>';
           });
         }
@@ -369,12 +394,13 @@
       var actos = Almacen.estado.actividad[fecha] || [];
       html += '<div class="toma actividad-dia">';
       html += '<div class="titulo-toma"><span>Entreno del día</span>' +
-              (tipo !== "ruta"
+              (!cerr && tipo !== "ruta"
                 ? '<button class="btn mini" data-estandar="' + fecha + '" ' +
                   'title="Poner el entreno estándar de Ajustes">Estándar</button>' : '') +
-              '<button class="anadir" data-actividad="' + fecha + '">+</button></div>';
+              (cerr ? '' : '<button class="anadir" data-actividad="' + fecha + '">+</button>') +
+              '</div>';
       if (!actos.length) {
-        html += '<div class="nota-peque">Sin entreno previsto</div>';
+        html += '<div class="nota-peque">' + (cerr ? "No apuntaste nada" : "Sin entreno previsto") + '</div>';
       } else {
         var hayReloj = actos.some(function (x) { return x.fuente === "garmin"; });
         var totalAct = 0;
@@ -388,11 +414,13 @@
                       (x.fuente === "garmin" ? ' <span class="etiqueta">reloj</span>' : '') +
                       (x.ref === "estandar" ? ' <span class="etiqueta">previsto</span>' : '') +
                       (pisada ? ' <span class="etiqueta">ya no cuenta</span>' : '') + '</span>' +
-                    '<input type="number" class="min-act" min="0" max="900" step="5" ' +
-                      'value="' + x.min + '" data-minact="' + fecha + '|' + idx + '" ' +
-                      (x.fuente === "garmin" ? 'title="Medido por el reloj"' : '') + '>' +
+                    (cerr
+                      ? '<span class="min-fijo">' + x.min + '</span>'
+                      : '<input type="number" class="min-act" min="0" max="900" step="5" ' +
+                        'value="' + x.min + '" data-minact="' + fecha + '|' + idx + '" ' +
+                        (x.fuente === "garmin" ? 'title="Medido por el reloj"' : '') + '>') +
                     '<span class="sal">min · ' + kc + ' kcal</span>' +
-                    '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>' +
+                    (cerr ? '' : '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>') +
                   '</div>';
         });
         var dev = Almacen.estado.config.devolucionEjercicio;
@@ -1290,14 +1318,16 @@
       if (ahora !== anchoAnterior) { anchoAnterior = ahora; if (UI.vista === "menu") pintarMenu(); }
     });
     $("#vaciar-semana").addEventListener("click", function () {
-      if (!confirm("¿Vaciar la semana entera?\n\nSe borra TODO lo planificado: el menú, el tipo de " +
-                   "cada día, las salidas de ruta, el entreno previsto y las marcas de comer fuera.\n\n" +
-                   "Lo que midió el reloj NO se toca: eso es lo que hiciste de verdad.")) return;
+      if (!confirm("¿Vaciar la semana de hoy en adelante?\n\nSe borra TODO lo planificado: el menú, " +
+                   "el tipo de cada día, las salidas de ruta, el entreno previsto y las marcas de " +
+                   "comer fuera.\n\nNO se toca: los días que ya han pasado, ni lo que midió el reloj. " +
+                   "Eso es lo que hiciste de verdad.")) return;
       var b = Almacen.vaciarSemana(UI.lunes);
       pintarMenu();
-      Util.toast(b.medidas
-        ? "Semana vaciada (se quedan " + b.medidas + " actividad" + (b.medidas === 1 ? "" : "es") + " del reloj)"
-        : "Semana vaciada");
+      var resto = [];
+      if (b.pasados) resto.push(b.pasados + " día" + (b.pasados === 1 ? "" : "s") + " ya pasado" + (b.pasados === 1 ? "" : "s"));
+      if (b.medidas) resto.push(b.medidas + " actividad" + (b.medidas === 1 ? "" : "es") + " del reloj");
+      Util.toast(resto.length ? "Semana vaciada; se respetan " + resto.join(" y ") : "Semana vaciada");
     });
     $$("[data-plantilla]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -1328,7 +1358,9 @@
       var partes = [];
       if (r.tomas) partes.push(r.tomas + " toma" + (r.tomas === 1 ? "" : "s"));
       if (r.dias) partes.push("entreno en " + r.dias + " día" + (r.dias === 1 ? "" : "s"));
-      Util.toast(partes.length ? "Rellenado: " + partes.join(" y ") : "No había huecos que rellenar");
+      Util.toast(partes.length
+        ? "Rellenado: " + partes.join(" y ") + " (los días pasados se respetan)"
+        : "No había huecos que rellenar de hoy en adelante");
     });
 
     /* El deporte y las horas de una ruta son un select y un número: van por «change»,
@@ -1389,6 +1421,14 @@
       }
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
+      var ab = e.target.closest("[data-abrir]");
+      if (ab) {
+        var fa = ab.getAttribute("data-abrir");
+        if (UI.desbloqueados[fa]) delete UI.desbloqueados[fa];
+        else UI.desbloqueados[fa] = true;
+        pintarMenu();
+        return;
+      }
       var cm = e.target.closest("[data-comensales]");
       if (cm) {
         var pc = cm.getAttribute("data-comensales").split("|");
