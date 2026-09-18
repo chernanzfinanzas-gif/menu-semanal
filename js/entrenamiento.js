@@ -1859,12 +1859,16 @@
 
   /* cumplimiento: días con sesión hecha sobre días con sesión prevista */
   function cumplimientoSemana(sem, hasta) {
-    var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = [];
+    var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = [], hoy = U.hoyISO();
     for (var f = sem.desde; f <= sem.hasta && f <= hasta; f = U.sumarDias(f, 1)) {
       var ses = sesionesDe(f, sem, talla);
       if (!ses.length) continue;                       // día de descanso
+      var hecho = diaCumplido(f, sem, talla);
+      /* el día de hoy no se juzga hasta que termina: a media tarde todavía se
+         puede salir a caminar, y contarlo como fallo es sencillamente falso */
+      if (f === hoy && !hecho) continue;
       previstos++;
-      if (diaCumplido(f, sem, talla)) hechos++;
+      if (hecho) hechos++;
       else fallos.push({ f: f, m: motivosDe(f), nota: (obsDe(f) || {}).nota });
     }
     return { previstos: previstos, hechos: hechos, fallos: fallos };
@@ -1919,7 +1923,10 @@
     }
 
     var v, porque;
-    if (sal.parar >= 2) {
+    if (!cerrada && !cump.previstos) {
+      v = "pronto";
+      porque = "La semana acaba de empezar.";
+    } else if (sal.parar >= 2) {
       v = "parar";
       porque = "Dos días o más de lesión o enfermedad.";
     } else if (pct === null) {
@@ -1979,7 +1986,10 @@
       (cerrada ? "" : '<em class="prov">Provisional: la semana no ha terminado.</em>') + "</div>";
 
     /* 1. carga */
-    if (r.porAsistencia) {
+    if (!r.cerrada && !r.cump.previstos) {
+      h += '<h3 class="evo-sub">Días movidos</h3><p class="nota-peque">Todavía ninguno que juzgar: ' +
+        "la sesión de hoy no cuenta hasta que termine el día.</p>";
+    } else if (r.porAsistencia) {
       h += '<h3 class="evo-sub">Días movidos</h3>' +
         barraPase(r.pct === null ? 0 : r.pct) +
         filaPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos,
@@ -2025,8 +2035,8 @@
     if (a7 && a7.n >= 2) {
       var dif = b7 && b7.n >= 2 ? a7.m - b7.m : null;
       var obj = cfg.pesoObjetivo;
-      h += filaPase("Media de la semana", num(a7.m) + " kg", a7.n + " pesadas") +
-        filaPase("Contra la semana anterior", dif === null ? null : signo(dif) + " kg",
+      h += filaPase("Media de 7 días", num(a7.m) + " kg", a7.n + (a7.n === 1 ? " pesada" : " pesadas")) +
+        filaPase("Contra los 7 anteriores", dif === null ? null : signo(dif) + " kg",
           dif === null ? "hacen falta dos semanas" :
             (dif <= obj[0] ? "más rápido que el objetivo"
               : dif <= obj[1] ? "en el ritmo del plan"
@@ -2052,6 +2062,8 @@
     h += '<h3 class="evo-sub">La semana que viene</h3>';
     if (!sig) {
       h += '<p class="nota-peque">Última semana de la rampa escrita. Toca decidir la siguiente a mano.</p>';
+    } else if (r.v === "pronto") {
+      h += '<p class="nota-peque">Se decide el domingo, con la semana cerrada. Hasta entonces esto es solo un espejo de cómo va.</p>';
     } else if (r.v === "subir") {
       h += '<p class="pase-prox">Semana ' + sig.n + " · <b>" + U.esc(P.plantillas[sig.talla].nombre) +
         "</b> · carga objetivo <b>" + sig.carga + "</b>" + (sig.nota ? " · " + U.esc(sig.nota) : "") + "</p>";

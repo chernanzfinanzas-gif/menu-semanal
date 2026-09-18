@@ -174,6 +174,7 @@
       titulo: "El pase de la semana",
       umbrales: { subir: 0.95, repetir: 0.70, asistencia: 0.85 },
       veredictos: {
+        pronto:  { n: "Todavía no", t: "No hay días suficientes para juzgar nada. Lo que se ve debajo es cómo va la semana, no una decisión." },
         subir:   { n: "Subir", t: "Semana cumplida. La que viene va según la rampa, sin adornos." },
         repetir: { n: "Repetir", t: "Por debajo del objetivo: se repite la misma carga en vez de subir. Subir sobre una semana incompleta es exactamente como se rompió 2025." },
         bajar:   { n: "Bajar", t: "Dos semanas seguidas por debajo del 70 %, o la salud manda: se baja un peldaño y se vuelve a construir desde ahí." },
