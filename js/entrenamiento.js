@@ -1205,15 +1205,10 @@
       out.push({ k: "peso", t: "Peso: " + num(a.m) + " kg", d: "Una sola pesada esta semana. El dato del día oscila más de un kilo por agua y tránsito: lo que cuenta es la media." });
     }
 
-    /* grasa por cinta */
+    /* la grasa por cinta tiene su tarjeta arriba, con su serie y su tendencia:
+       repetir aquí el mismo número no añadía nada. Lo que sí añade —el contraste
+       con la báscula— está en la lectura siguiente. */
     var g = grasaPorCinta(dia);
-    if (g) {
-      out.push({
-        k: "grasa",
-        t: "Grasa estimada con la cinta: " + num(g.pct) + " %" + (g.magra ? " · masa magra " + num(g.magra) + " kg" : ""),
-        d: "Cintura " + num(g.cintura) + " cm y cuello " + num(g.cuello) + " cm, del " + U.etiquetaFecha(g.fecha) + ". " + P.grasaCinta.aviso
-      });
-    }
 
     /* grasa de la báscula: lo que baja de intervals, medido por impedancia */
     var gb = ultimoDeSalud("grasa", dia);
@@ -1240,7 +1235,13 @@
           "porcentaje de grasa sin que hayas engordado. Ese dato vale menos que el de la cinta.";
       }
       if (atraso > 21) det += " Es la última que mandó la báscula: desde entonces no ha bajado ninguna.";
-      out.push({ k: "grasa", t: "Grasa de la báscula: " + num(gb.v) + " %", d: det });
+      /* el número de la báscula ya está en Mi estado con su tendencia: aquí
+         solo va lo que esa tarjeta no puede decir, que es el contraste entre
+         los dos métodos */
+      out.push({ k: "grasa",
+        t: g ? "Báscula y cinta: " + num(Math.abs(g.pct - gb.v)) + " puntos de diferencia"
+             : "La báscula y la cinta todavía no se pueden contrastar",
+        d: det });
     }
 
     /* lo que dicen las observaciones del día */
@@ -1291,49 +1292,13 @@
       });
     }
 
-    /* tobillo: retención */
-    var tob = serieMedida("tobillo", dia, 21);
-    if (tob.length) {
-      var hoyT = tob[tob.length - 1], previos = tob.slice(0, -1), mp = media(previos);
-      var difT = mp === null ? null : hoyT.v - mp;
-      out.push({
-        k: "tobillo",
-        t: "Tobillo: " + num(hoyT.v) + " cm" +
-          (difT === null ? "" : (Math.abs(difT) < 0.05 ? " · igual que tu media" : " · " + signo(difT) + " cm sobre tu media")),
-        d: mp === null
-          ? "Primera medida. A partir de la tercera se puede comparar."
-          : (hoyT.v - mp >= 0.7
-            ? "Por encima de tus días normales: eso es líquido, no grasa — con el corticoide es lo esperable. Si no baja al terminar la pauta, es dato para la revisión."
-            : "Dentro de tu rango habitual (media de " + previos.length + " días: " + num(mp) + " cm).")
-      });
-    }
+    /* el tobillo y la tensión viven arriba, en «Lo que estoy midiendo», cada uno
+       con su serie. Lo que decían aquí —el tobillo contra su media— se dice
+       ahora en su propia tarjeta, donde está el número. */
 
-    /* tensión y pulso */
-    var mt = mediaTension(U.sumarDias(dia, -6), dia);
-    if (mt) {
-      var ms = mt.sis, md = mt.dia, mpu = mt.pul, alta = mt.alta;
-      out.push({
-        k: "tension",
-        t: "Tensión: media de " + mt.n + (mt.n === 1 ? " toma " : " tomas ") + Math.round(ms) + "/" + Math.round(md) +
-          (mpu !== null ? " · pulso " + Math.round(mpu) : ""),
-        d: alta
-          ? "La media de estos días queda en o por encima de 140/90. No es un diagnóstico y los corticoides la suben por sí solos, pero es exactamente el dato que conviene llevar a la revisión del 28."
-          : "Dentro de lo esperable. Una toma suelta no dice nada; lo que se mira es la media de varios días."
-      });
-    }
-
-    /* brazo y muslo: cambio mensual */
-    [["muslo", "Muslo"], ["brazo", "Brazo"]].forEach(function (par) {
-      var s = serieMedida(par[0], dia, 400);
-      if (!s.length) return;
-      var u = s[s.length - 1], ant = s.length > 1 ? s[s.length - 2] : null;
-      var dif = ant ? u.v - ant.v : null, det;
-      if (!ant) det = "Primera medida; sirve de referencia para los meses siguientes.";
-      else if (dif <= -1) det = "Desde el " + U.etiquetaFecha(ant.f) + ". Ha bajado más de un centímetro: si el peso también bajó, parte de lo perdido era músculo. Revisa proteína y las dos sesiones de fuerza.";
-      else if (dif >= 1) det = "Desde el " + U.etiquetaFecha(ant.f) + ". Ha subido: con el peso estable, buena señal.";
-      else det = "Desde el " + U.etiquetaFecha(ant.f) + ". Estable dentro del error de la cinta (±5 mm). Si el peso baja y esto aguanta, lo que pierdes es grasa.";
-      out.push({ k: par[0], t: par[1] + ": " + num(u.v) + " cm" + (ant ? " · " + signo(dif) + " cm" : ""), d: det });
-    });
+    /* Muslo y brazo también tienen su tarjeta con su serie, y el aviso M8 ya
+       salta si el muslo pierde un centímetro con el peso bajando. Una tercera
+       versión del mismo número sobraba. */
 
     return out;
   }
@@ -3482,16 +3447,26 @@
       "El color aparece a partir de la cuarta medida.</p>";
 
     MIS_MEDIDAS.forEach(function (m) {
-      var u = ultimaMedida(dia, m.k);
-      h += tarjeta(m.n, u ? num(u.v) + m.u : null,
-        u ? "del " + U.etiquetaFecha(u.f) : "sin anotar todavía",
-        m.k, null, u ? u.v : null);
+      var u = ultimaMedida(dia, m.k), pie = u ? "del " + U.etiquetaFecha(u.f) : "sin anotar todavía";
+      /* el tobillo se lee contra su propia media: es lo que distingue líquido
+         de grasa, y antes se decía en una lectura aparte */
+      if (m.k === "tobillo" && u) {
+        var tb = serieMedida("tobillo", dia, 21), prev = tb.slice(0, -1), mp = media(prev);
+        if (mp !== null) {
+          var dt = u.v - mp;
+          pie += " · " + (Math.abs(dt) < 0.05 ? "igual que tu media de " + prev.length + " días"
+            : signo(dt) + " cm sobre tu media de " + prev.length + " días") +
+            (dt >= 0.7 ? " — eso es líquido, no grasa" : "");
+        }
+      }
+      h += tarjeta(m.n, u ? num(u.v) + m.u : null, pie, m.k, null, u ? u.v : null);
     });
 
     /* la tensión va con sus dos cifras, así que se cuenta aparte */
-    var mt = mediaTension(U.sumarDias(dia, -13), dia);
+    var mt = mediaTension(U.sumarDias(dia, -6), dia);
     h += tarjeta("Tensión", mt ? Math.round(mt.sis) + "/" + Math.round(mt.dia) : null,
-      mt ? "media de " + mt.n + (mt.n === 1 ? " toma" : " tomas") + " en dos semanas · el color lo manda la alta"
+      mt ? "media de " + mt.n + (mt.n === 1 ? " toma" : " tomas") + " en 7 días · el color lo manda la alta" +
+           (mt.alta ? " · en o por encima de 140/90: dato para la revisión" : "")
          : "sin tomas anotadas", "tension", null, mt ? mt.sis : null);
     if (mt && mt.pul) {
       h += tarjeta("Pulso del tensiómetro", Math.round(mt.pul) + " ppm",
