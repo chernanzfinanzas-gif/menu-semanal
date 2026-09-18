@@ -123,6 +123,17 @@
       ".ent-medida input{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
       ".ent-medida input:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-medida.puesta input{border-color:var(--azul);background:var(--azul-claro)}",
+      /* botones de guía y su ventana */
+      ".ent-guias{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}",
+      ".ent-guia{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--azul-borde);",
+      "  background:var(--azul-claro);color:var(--azul-hondo);border-radius:999px;padding:7px 13px;",
+      "  font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}",
+      ".ent-guia:hover{border-color:var(--azul)}",
+      ".ent-guia .i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;",
+      "  border-radius:50%;background:var(--azul);color:#fff;font-size:.72rem;font-weight:700}",
+      ".ent-dibujo{display:flex;justify-content:center;padding:10px 0 4px;color:var(--azul)}",
+      ".ent-fallos{margin-top:10px;padding:11px 13px;border-radius:10px;background:var(--ambar-fondo);",
+      "  border:1px solid #eccf9a;font-size:.88rem;line-height:1.4}",
       ".ent-estim{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--azul-claro);",
       "  border:1px solid var(--azul-borde);color:var(--azul-hondo);font-size:.95rem}",
       ".ent-estim small{display:block;margin-top:4px;color:var(--gris);font-size:.8rem;line-height:1.35}",
@@ -391,6 +402,95 @@
     return fuera;
   }
 
+  /* ==================== GUÍAS DE MEDIDA ==================== */
+
+  var DIBUJO_CINTURA =
+    '<svg viewBox="0 0 150 150" width="140" height="140" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    /* hombros, tronco con cintura y cadera */
+    '<path d="M50 18h50l16 10c4 2 6 7 5 12l-6 26c-1 6-2 9-2 14l1 12c0 4 1 8 2 12l3 12H46l3-12c1-4 2-8 2-12l1-12c0-5-1-8-2-14l-6-26c-1-5 1-10 5-12z"/>' +
+    /* la cinta, horizontal, a la altura del ombligo */
+    '<line x1="18" y1="82" x2="132" y2="82" stroke-dasharray="5 4"/>' +
+    '<path d="M25 77l-7 5 7 5M125 77l7 5-7 5"/>' +
+    '<circle cx="75" cy="82" r="3.5" fill="currentColor" stroke="none"/>' +
+    '<text x="75" y="128" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">a la altura del ombligo,</text>' +
+    '<text x="75" y="141" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">y horizontal por detrás</text>' +
+    "</svg>";
+
+  var DIBUJO_CUELLO =
+    '<svg viewBox="0 0 150 150" width="140" height="140" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<ellipse cx="75" cy="30" rx="17" ry="20"/>' +
+    '<path d="M64 49v18M86 49v18"/>' +
+    '<path d="M22 108c3-18 16-32 42-41M128 108c-3-18-16-32-42-41"/>' +
+    '<line x1="56" y1="70" x2="94" y2="61" stroke-dasharray="5 4"/>' +
+    '<circle cx="75" cy="58" r="3" fill="currentColor" stroke="none"/>' +
+    '<path d="M100 58l10-6" /><text x="112" y="54" font-size="9" fill="currentColor" stroke="none">nuez</text>' +
+    '<text x="75" y="128" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">justo por debajo de la nuez,</text>' +
+    '<text x="75" y="141" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">algo más baja por delante</text>' +
+    "</svg>";
+
+  var GUIAS = {
+    cintura: {
+      titulo: "Cómo medir la cintura",
+      dibujo: DIBUJO_CINTURA,
+      pasos: [
+        "De pie, descalzo, en ayunas y después de ir al baño.",
+        "La cinta sobre la piel, no sobre la ropa.",
+        "A la altura del ombligo, y <b>horizontal</b>: compruébalo en el espejo, que por detrás no se caiga.",
+        "Brazos caídos y hombros relajados.",
+        "Mide <b>al final de una espiración normal</b>, sin vaciar el pecho a propósito.",
+        "La cinta apoyada, sin hundir la piel.",
+        "Mide dos veces; si se diferencian más de medio centímetro, una tercera y te quedas con la que se repita."
+      ],
+      fallos: "Meter tripa, apretar la cinta, medir después de comer o llevarla torcida. Cualquiera de las cuatro te cambia el número más que un mes de dieta."
+    },
+    cuello: {
+      titulo: "Cómo medir el cuello",
+      dibujo: DIBUJO_CUELLO,
+      pasos: [
+        "De pie, mirada al frente y hombros relajados.",
+        "La cinta <b>justo por debajo de la nuez</b>.",
+        "Ligeramente inclinada: un poco más baja por delante que por detrás.",
+        "Apoyada, sin apretar — no debe marcar la piel.",
+        "No tragues ni hables mientras mides.",
+        "Dos veces, igual que la cintura."
+      ],
+      fallos: "Apretar para que salga un número menor. Aquí un centímetro de menos en el cuello te sube casi un punto el porcentaje de grasa."
+    },
+    peso: {
+      titulo: "Cómo pesarse",
+      dibujo: "",
+      pasos: [
+        "Al despertar, después de orinar y <b>antes</b> de beber o comer nada.",
+        "Desnudo y con los pies secos, sobre suelo duro — nunca sobre alfombra.",
+        "La misma báscula y el mismo sitio siempre.",
+        "<b>Nunca después de entrenar</b>: el sudor te quita un kilo y medio que no has perdido, y la báscula te calcula de más la grasa."
+      ],
+      fallos: "El dato del día no significa nada: oscila más de un kilo por agua y tránsito. Lo que cuenta es la media de la semana."
+    }
+  };
+
+  function abrirGuia(id) {
+    var g = GUIAS[id], caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!g || !caja || !modal) return;
+    var h = '<header><h2>' + U.esc(g.titulo) + '</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>';
+    if (g.dibujo) h += '<div class="ent-dibujo">' + g.dibujo + "</div>";
+    h += '<ol class="pasos">';
+    g.pasos.forEach(function (p) { h += "<li>" + p + "</li>"; });
+    h += "</ol>";
+    h += '<div class="ent-fallos"><b>Lo que más falla:</b> ' + U.esc(g.fallos) + "</div>";
+    h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Entendido</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
+  }
+
+  function cerrarGuia() {
+    var modal = document.getElementById("modal");
+    if (modal) modal.classList.remove("abierta");
+  }
+
   /* ==================== PINTAR ==================== */
 
   /* la barra de arriba y la pestaña activa se tiñen de azul mientras estás dentro */
@@ -542,6 +642,15 @@
           String(g.cuello).replace(".", ",") + " cm, del " + U.etiquetaFecha(g.fecha) + ". " +
           U.esc(P.grasaCinta.aviso) + "</small></div>";
       }
+      var conGuia = medHoy.filter(function (m) { return GUIAS[m.id]; });
+      if (conGuia.length) {
+        h += '<div class="ent-guias"><span class="nota-peque">¿Cómo se mide?</span>';
+        conGuia.forEach(function (m) {
+          h += '<button type="button" class="ent-guia" data-guia="' + m.id + '">' +
+            '<span class="i">?</span>' + U.esc(m.nombre) + "</button>";
+        });
+        h += "</div>";
+      }
       medHoy.forEach(function (m) {
         h += '<p class="nota-peque" style="margin-top:8px"><b>' + U.esc(m.nombre) + ":</b> " + U.esc(m.ayuda) + "</p>";
       });
@@ -592,6 +701,8 @@
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
       if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
+      var gb = t.closest ? t.closest("[data-guia]") : null;
+      if (gb) { e.preventDefault(); abrirGuia(gb.getAttribute("data-guia")); return; }
       var ns = t.closest ? t.closest("[data-semana]") : null;
       if (ns) {
         var base = lunesVista || U.lunesDe(U.hoyISO());
@@ -639,6 +750,13 @@
         if (sem) { ent().talla[sem.desde] = t.value; A.guardar("entreno"); pintar(); }
       }
     });
+
+    /* cerrar la ventana de la guía: con la × , con «Entendido» o pinchando fuera */
+    var modal = document.getElementById("modal");
+    if (modal) modal.addEventListener("click", function (e) {
+      if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarGuia(); });
 
     var nav = document.getElementById("pestanas");
     if (nav) nav.addEventListener("click", function (e) {
