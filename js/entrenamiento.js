@@ -24,7 +24,7 @@
     { id: "actividad", nombre: "Actividad", img: "iconos/khb/6-zapatillas.webp",
       pie: "Qué he hecho: carga de la semana frente al objetivo, horas y kilómetros.", listo: false },
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
-      pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: false },
+      pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
       pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: false }
   ];
@@ -193,7 +193,35 @@
       "  border:1px solid var(--azul-borde);color:var(--azul-hondo);font-size:.95rem}",
       ".ent-estim small{display:block;margin-top:4px;color:var(--gris);font-size:.8rem;line-height:1.35}",
       ".ent-estim + .ent-estim{margin-top:8px}",
-      ".ent-subt{margin:16px 0 8px;font-size:1rem;color:var(--azul-hondo)}",
+      ".ent-subt{margin:16px 0 8px;font-size:1rem;color:var(--azul-hondo);",
+      "  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}",
+      ".ent-subt.suave{color:var(--gris);font-weight:600;font-size:.92rem;margin-top:18px}",
+      ".ent-subt .ent-cuenta{font-size:.72rem;font-weight:600;color:var(--gris);",
+      "  border:1px solid var(--borde);border-radius:999px;padding:2px 9px}",
+      /* las obligatorias del día se ven de un vistazo, aunque estén vacías */
+      ".ent-medidas.obligatorias .ent-medida input{border-color:var(--azul-borde);background:#fbfdff}",
+      ".ent-medidas.obligatorias .ent-medida.puesta input{background:var(--azul-claro)}",
+      /* evolución: las series largas */
+      ".evo-rangos{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}",
+      ".evo-r{border:1px solid var(--borde);background:#fff;color:var(--gris);border-radius:999px;",
+      "  padding:6px 13px;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}",
+      ".evo-r.activo{background:var(--azul);border-color:var(--azul);color:#fff}",
+      ".evo-t{border-top:3px solid var(--azul)}",
+      ".evo-cab{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}",
+      ".evo-cab h2{flex:1 1 auto;margin:0}",
+      ".evo-v{font-size:1.25rem;font-weight:700;color:var(--azul-hondo)}",
+      ".evo-u{font-size:.72rem;color:var(--gris)}",
+      ".evo-pie{margin:2px 0 10px}",
+      ".evo-svg{display:block;width:100%;height:auto;overflow:visible}",
+      ".evo-sub{margin:16px 0 6px;font-size:.86rem;font-weight:700;color:var(--azul-hondo)}",
+      ".evo-ley{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:.72rem;color:var(--gris)}",
+      ".evo-ley span{display:inline-flex;align-items:center;gap:5px}",
+      ".evo-ley i{width:12px;height:3px;border-radius:2px;display:inline-block}",
+      ".evo-nota{margin:10px 0 0;font-size:.82rem;line-height:1.45;color:var(--tinta)}",
+      ".evo-vacio{border:1px dashed var(--azul-borde);background:var(--azul-claro);border-radius:11px;",
+      "  padding:16px 14px;text-align:center}",
+      ".evo-vacio b{display:block;font-size:.88rem;color:var(--azul-hondo)}",
+      ".evo-vacio small{display:block;margin-top:5px;font-size:.78rem;color:var(--gris)}",
       ".ent-refresco{float:right;border:1px solid var(--azul-borde);background:var(--azul-claro);",
       "  color:var(--azul-hondo);border-radius:999px;padding:4px 11px;font:inherit;font-size:.72rem;",
       "  font-weight:600;cursor:pointer}",
@@ -346,6 +374,15 @@
 
     /* Tramo con fármaco: los hitos marcan el inicio y dura la pauta + 14 días */
     conFarmaco: function (iso) {
+      /* La pauta tiene fecha de fin en el puente (14 a 28 de septiembre): el día
+         que termina dejan de sombrearse las filas y desaparece la nota. */
+      var t = P.tratamientos || [];
+      if (t.length) {
+        for (var j = 0; j < t.length; j++) {
+          if (t[j].desde && iso >= t[j].desde && (!t[j].hasta || iso <= t[j].hasta)) return true;
+        }
+        return false;
+      }
       var d = this.datos;
       if (!d || !d.hitos) return false;
       for (var i = 0; i < d.hitos.length; i++) {
@@ -1063,6 +1100,486 @@
     if (modal) modal.classList.remove("abierta");
   }
 
+  /* ==================== EVOLUCIÓN ====================
+     Las series largas. Regla que manda: no se dibuja lo que no existe. Si faltan
+     datos se dice qué falta y cuándo habrá, nunca se pinta una línea inventada. */
+
+  var rangoEvo = "6m";
+  var RANGOS = [{ id: "3m", n: "3 meses", d: 92 }, { id: "6m", n: "6 meses", d: 183 },
+                { id: "1a", n: "1 año", d: 365 }, { id: "todo", n: "Todo", d: 0 }];
+
+  /* El histórico vive en otro fichero del mismo repositorio y son 230 KB:
+     solo se pide cuando hace falta, es decir, al elegir «Todo». */
+  var Historico = {
+    CLAVE: "khb-salud-hist-v1",
+    RUTA: "datos/salud-historico.json",
+    datos: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (j && j.datos) { this.datos = j.datos; this.estado = "ok"; return true; }
+      } catch (e) {}
+      return false;
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.datos || this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = JSON.parse(Salud.deB64(j.content));
+          self.estado = "ok";
+          try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        .catch(function () { self.estado = "error"; if (alTerminar) alTerminar(); });
+    }
+  };
+
+  function ventanaEvo() {
+    var hasta = U.hoyISO(), r = null;
+    for (var i = 0; i < RANGOS.length; i++) if (RANGOS[i].id === rangoEvo) r = RANGOS[i];
+    return { desde: (r && r.d) ? U.sumarDias(hasta, -r.d) : "2019-01-01", hasta: hasta };
+  }
+
+  /* serie de un campo de salud.json; el histórico se suma si está cargado */
+  function serieSalud(campo, v) {
+    var vistos = {}, out = [];
+    [Historico.datos, Salud.datos].forEach(function (src) {
+      if (!src || !src.dias) return;
+      for (var f in src.dias) {
+        if (f < v.desde || f > v.hasta) continue;
+        var val = src.dias[f][campo];
+        if (val === undefined || val === null || val === "") continue;
+        vistos[f] = val;                         // lo reciente manda sobre lo histórico
+      }
+    });
+    for (var f2 in vistos) out.push({ f: f2, v: vistos[f2] });
+    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+  }
+
+  /* serie de lo que anotas tú: pesos y medidas de cinta */
+  function serieApp(id, v) {
+    var out = [];
+    if (id === "peso") {
+      (A.estado.pesos || []).forEach(function (p) {
+        if (p.f >= v.desde && p.f <= v.hasta) out.push({ f: p.f, v: p.kg });
+      });
+    } else {
+      var m = ent().medidas;
+      for (var f in m) {
+        if (f < v.desde || f > v.hasta) continue;
+        var val = m[f][id];
+        if (val === undefined || val === "" || val === null) continue;
+        var n = parseFloat(val);
+        if (!isNaN(n)) out.push({ f: f, v: n });
+      }
+    }
+    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+  }
+
+  /* pesos de las dos fuentes en una sola serie: intervals y lo anotado a mano */
+  function seriePeso(v) {
+    var vistos = {};
+    serieApp("peso", v).forEach(function (p) { vistos[p.f] = p.v; });
+    serieSalud("peso", v).forEach(function (p) { vistos[p.f] = p.v; });
+    var out = [];
+    for (var f in vistos) out.push({ f: f, v: vistos[f] });
+    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+  }
+
+  /* media de los últimos n días, no de los últimos n puntos */
+  function mediaMovilDias(serie, n) {
+    var out = [];
+    for (var i = 0; i < serie.length; i++) {
+      var s = 0, c = 0;
+      for (var j = i; j >= 0; j--) {
+        if (diasEntre(serie[j].f, serie[i].f) >= n) break;
+        s += serie[j].v; c++;
+      }
+      out.push({ f: serie[i].f, v: s / c });
+    }
+    return out;
+  }
+
+  /* la grasa por cinta, recalculada en cada día con cintura o cuello nuevos */
+  function serieGrasaCinta(v) {
+    var fechas = {}, out = [];
+    serieApp("cintura", v).forEach(function (p) { fechas[p.f] = 1; });
+    serieApp("cuello", v).forEach(function (p) { fechas[p.f] = 1; });
+    Object.keys(fechas).sort().forEach(function (f) {
+      var g = grasaPorCinta(f);
+      if (g && g.fecha === f) out.push({ f: f, v: g.pct });
+    });
+    return out;
+  }
+
+  /* vatios por kilo de cada actividad con potencia */
+  function serieWkg(v) {
+    var d = Salud.datos, out = [];
+    [Historico.datos, d].forEach(function (src) {
+      if (!src || !src.actividades) return;
+      src.actividades.forEach(function (a) {
+        var f = String(a.fecha || "").slice(0, 10);
+        if (f < v.desde || f > v.hasta) return;
+        if (typeof a.w_kg !== "number" || !a.w_kg) return;
+        out.push({ f: f, v: a.w_kg });
+      });
+    });
+    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+  }
+
+  /* carga real de cada semana frente al objetivo de la rampa */
+  /* La rampa entera, no solo el tramo elegido: es el plan, y se mira completo.
+     Las semanas que aún no han empezado salen solo como objetivo. */
+  function seriesCargaSemanal() {
+    var reales = [], objetivos = [], hoy = U.hoyISO();
+    P.rampa.forEach(function (r) {
+      objetivos.push({ f: r.desde, v: r.carga, n: r.n });
+      if (r.desde > hoy) return;
+      var c = cargaSemana(r.desde, r.hasta < hoy ? r.hasta : hoy);
+      if (c !== null) reales.push({ f: r.desde, v: c, n: r.n });
+    });
+    /* la última semana de la rampa está abierta («crucero»): para dibujar se
+       cuenta como una semana más, o el eje se iría hasta el verano que viene */
+    var ult = P.rampa[P.rampa.length - 1];
+    return { reales: reales, objetivos: objetivos,
+             desde: P.rampa[0].desde, hasta: U.sumarDias(ult.desde, 7) };
+  }
+
+  /* ---------- el dibujo ----------
+     SVG a mano, sin librerías: una rejilla, las bandas, las líneas y el último
+     punto marcado. El viewBox escala solo al ancho del móvil. */
+  function grafica(o) {
+    var W = 320, H = o.alto || 108, L = 2, R = 2, T = 10, B = 14;
+    var series = (o.series || []).filter(function (s) { return s.pts && s.pts.length; });
+    if (!series.length) return "";
+
+    var min = Infinity, max = -Infinity;
+    series.forEach(function (s) {
+      s.pts.forEach(function (p) { if (p.v < min) min = p.v; if (p.v > max) max = p.v; });
+    });
+    if (o.min !== undefined && o.min < min) min = o.min;
+    if (o.max !== undefined && o.max > max) max = o.max;
+    if (max - min < 0.5) { max += 0.5; min -= 0.5; }
+    var minD = min, maxD = max;                    // los extremos reales, para rotularlos
+    var pad = (max - min) * 0.12; min -= pad; max += pad;
+
+    var t0 = U.desdeISO(o.desde).getTime(), t1 = U.desdeISO(o.hasta).getTime();
+    if (t1 <= t0) t1 = t0 + 86400000;
+    function X(f) { return L + (W - L - R) * ((U.desdeISO(f).getTime() - t0) / (t1 - t0)); }
+    function Y(v) { return T + (H - T - B) * (1 - (v - min) / (max - min)); }
+    function xy(p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); }
+
+    var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' +
+      U.esc(o.alt || "") + '">';
+
+    (o.bandas || []).forEach(function (b) {
+      var x0 = Math.max(L, X(b.desde)), x1 = Math.min(W - R, X(b.hasta));
+      if (x1 <= x0) return;
+      s += '<rect x="' + x0.toFixed(1) + '" y="' + T + '" width="' + (x1 - x0).toFixed(1) +
+        '" height="' + (H - T - B) + '" fill="' + (b.color || "#eef1f0") + '"/>';
+      /* la etiqueta de la banda va arriba: abajo chocaba con las fechas */
+      if (b.etq && (x1 - x0) > 26) s += '<text x="' + ((x0 + x1) / 2).toFixed(1) + '" y="' + (T + 7) +
+        '" text-anchor="middle" font-size="7" fill="#667a70">' + U.esc(b.etq) + "</text>";
+    });
+
+    (o.lineasH || []).forEach(function (l) {
+      var y = Y(l.v).toFixed(1);
+      s += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - R) + '" y2="' + y +
+        '" stroke="' + (l.color || "#cfd8d4") + '" stroke-width="1" stroke-dasharray="3 3"/>';
+      /* a la izquierda: a la derecha están los números de la escala */
+      if (l.etq) s += '<text x="' + (L + 2) + '" y="' + (Y(l.v) - 2).toFixed(1) +
+        '" font-size="7" fill="#667a70">' + U.esc(l.etq) + "</text>";
+    });
+
+    series.forEach(function (se) {
+      if (se.barras) {
+        var an = Math.max(3, (W - L - R) / Math.max(8, se.pts.length * 2.2));
+        se.pts.forEach(function (p) {
+          var y = Y(p.v), y0 = Y(Math.max(min, 0));
+          s += '<rect x="' + (X(p.f) - an / 2).toFixed(1) + '" y="' + Math.min(y, y0).toFixed(1) +
+            '" width="' + an.toFixed(1) + '" height="' + Math.max(1, Math.abs(y0 - y)).toFixed(1) +
+            '" fill="' + se.color + '" opacity="' + (se.opacidad || 1) + '"/>';
+        });
+        return;
+      }
+      if (se.pts.length > 1 && !se.soloPuntos) {
+        /* los huecos no se unen con una recta: cinco meses sin pesarse no son una
+           bajada lenta. El tramo sin datos va en guiones y con su propio punto. */
+        var hueco = se.hueco || 21, tramos = [], cur = [];
+        se.pts.forEach(function (p, i) {
+          if (i && diasEntre(se.pts[i - 1].f, p.f) > hueco) { tramos.push(cur); cur = []; }
+          cur.push(p);
+        });
+        tramos.push(cur);
+        tramos.forEach(function (tr, i) {
+          if (i) {
+            var a = tramos[i - 1][tramos[i - 1].length - 1], b2 = tr[0];
+            s += '<line x1="' + X(a.f).toFixed(1) + '" y1="' + Y(a.v).toFixed(1) +
+              '" x2="' + X(b2.f).toFixed(1) + '" y2="' + Y(b2.v).toFixed(1) +
+              '" stroke="' + se.color + '" stroke-width="1.2" stroke-dasharray="4 4" opacity=".5"/>';
+          }
+          if (tr.length > 1) {
+            s += '<polyline points="' + tr.map(xy).join(" ") + '" fill="none" stroke="' + se.color +
+              '" stroke-width="' + (se.ancho || 2) + '" stroke-linejoin="round" stroke-linecap="round"' +
+              (se.guiones ? ' stroke-dasharray="5 4"' : "") + "/>";
+          } else {
+            s += '<circle cx="' + X(tr[0].f).toFixed(1) + '" cy="' + Y(tr[0].v).toFixed(1) +
+              '" r="' + (se.radio || 2.4) + '" fill="' + se.color + '"/>';
+          }
+        });
+        if (tramos.length > 1) se.tuvoHuecos = true;
+      }
+      if (se.soloPuntos || se.pts.length === 1) {
+        se.pts.forEach(function (p) {
+          s += '<circle cx="' + X(p.f).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) +
+            '" r="' + (se.radio || 2.4) + '" fill="' + se.color + '"/>';
+        });
+      }
+      if (se.marcarUltimo !== false) {
+        var u = se.pts[se.pts.length - 1];
+        s += '<circle cx="' + X(u.f).toFixed(1) + '" cy="' + Y(u.v).toFixed(1) +
+          '" r="3.2" fill="' + se.color + '" stroke="#fff" stroke-width="1.2"/>';
+      }
+    });
+
+    /* los extremos, rotulados: una gráfica sin escala no dice nada */
+    if (o.escala !== false) {
+      s += '<text x="' + (W - R) + '" y="' + (Y(maxD) - 3).toFixed(1) +
+        '" text-anchor="end" font-size="7" fill="#9aa8a2">' + U.esc(num(maxD)) + "</text>";
+      s += '<text x="' + (W - R) + '" y="' + (Y(minD) + 8).toFixed(1) +
+        '" text-anchor="end" font-size="7" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
+    }
+    s += '<text x="' + L + '" y="7" font-size="7.5" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
+    s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="7.5" fill="#667a70">' +
+      U.etiquetaFecha(o.desde) + "</text>";
+    s += '<text x="' + (W - R) + '" y="' + (H - 3) + '" text-anchor="end" font-size="7.5" fill="#667a70">' +
+      (o.hasta === U.hoyISO() ? "hoy" : U.etiquetaFecha(o.hasta)) + "</text>";
+    return s + "</svg>";
+  }
+
+  /* leyenda de una gráfica */
+  function leyenda(items) {
+    var h = '<div class="evo-ley">';
+    items.forEach(function (i) {
+      h += '<span><i style="background:' + i.color + (i.guiones ? ";opacity:.55" : "") + '"></i>' +
+        U.esc(i.n) + "</span>";
+    });
+    return h + "</div>";
+  }
+
+  function tarjetaEvo(titulo, valor, unidad, pie, cuerpo, nota) {
+    var h = '<div class="tarjeta evo-t"><div class="evo-cab"><h2>' + U.esc(titulo) + "</h2>" +
+      (valor === null || valor === undefined ? "" :
+        '<b class="evo-v">' + U.esc(String(valor)) + "</b>" +
+        (unidad ? '<span class="evo-u">' + U.esc(unidad) + "</span>" : "")) + "</div>";
+    if (pie) h += '<p class="nota-peque evo-pie">' + pie + "</p>";
+    h += cuerpo;
+    if (nota) h += '<p class="evo-nota">' + nota + "</p>";
+    return h + "</div>";
+  }
+
+  function sinDatos(texto, cuando) {
+    return '<div class="evo-vacio"><b>' + U.esc(texto) + "</b>" +
+      (cuando ? "<small>" + U.esc(cuando) + "</small>" : "") + "</div>";
+  }
+
+  /* banda sombreada de la pauta de corticoide, para no interpretar ese tramo */
+  function bandasFarmaco(v) {
+    var out = [];
+    (P.tratamientos || []).forEach(function (t) {
+      if (!t.desde || !t.hasta) return;
+      if (t.hasta < v.desde || t.desde > v.hasta) return;
+      out.push({ desde: t.desde > v.desde ? t.desde : v.desde,
+                 hasta: t.hasta < v.hasta ? t.hasta : v.hasta,
+                 color: "#eef0ef", etq: "corticoide" });
+    });
+    return out;
+  }
+
+  function htmlEvolucion() {
+    var FLECHA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M15 5l-7 7 7 7"/></svg>';
+    var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
+    var h = volver;
+
+    h += '<div class="evo-rangos">';
+    RANGOS.forEach(function (r) {
+      h += '<button type="button" class="evo-r' + (r.id === rangoEvo ? " activo" : "") +
+        '" data-rango="' + r.id + '">' + U.esc(r.n) + "</button>";
+    });
+    h += "</div>";
+
+    if (!Salud.datos) {
+      return h + '<div class="tarjeta"><h2>Evolución</h2><p class="nota-peque">' +
+        (Salud.estado === "sin-config"
+          ? "Hace falta la sincronización con GitHub: Ajustes → Sincronizar."
+          : "Todavía no tengo <b>datos/salud.json</b>. Se reintenta al volver a entrar.") + "</p></div>";
+    }
+    if (rangoEvo === "todo" && !Historico.datos) {
+      h += '<p class="nota-peque" style="margin:0 0 10px">' +
+        (Historico.estado === "cargando" ? "Trayendo el histórico…"
+          : Historico.estado === "error" ? "No he podido traer el histórico; se enseña lo reciente."
+          : "Trayendo el histórico…") + "</p>";
+    }
+
+    var v = ventanaEvo(), bandas = bandasFarmaco(v);
+    var AZUL = "#2f5c8a", VERDE = "#2f6b47", AMBAR = "#c98a1b", ROJO = "#b3402f", GRIS = "#8aa0b5";
+
+    /* ---------- 1. peso, masa magra y grasa ---------- */
+    var pes = seriePeso(v), med7 = mediaMovilDias(pes, 7), magra = serieSalud("magra", v);
+    var gBas = serieSalud("grasa", v), gCin = serieGrasaCinta(v);
+    var cuerpo1, nota1 = "";
+    if (pes.length) {
+      cuerpo1 = grafica({
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112,
+        arriba: "kg", alt: "Peso y masa magra",
+        series: [{ pts: pes, color: GRIS, ancho: 1.2, marcarUltimo: false },
+                 { pts: med7, color: AZUL, ancho: 2.4 },
+                 { pts: magra, color: VERDE, ancho: 2 }]
+      }) + leyenda([{ n: "peso", color: GRIS }, { n: "media de 7 días", color: AZUL },
+                    { n: "masa magra", color: VERDE }]);
+      if (gBas.length || gCin.length) {
+        cuerpo1 += '<h3 class="evo-sub">Grasa: las dos fuentes</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "%",
+          alt: "Grasa por báscula y por cinta",
+          series: [{ pts: gBas, color: AZUL, ancho: 2, soloPuntos: gBas.length < 3 },
+                   { pts: gCin, color: ROJO, ancho: 2, soloPuntos: gCin.length < 3 }]
+        }) + leyenda([{ n: "báscula (impedancia)", color: AZUL }, { n: "cinta", color: ROJO }]);
+        if (gBas.length && gCin.length) {
+          var dif = gCin[gCin.length - 1].v - gBas[gBas.length - 1].v;
+          nota1 = "Las dos últimas se separan <b>" + num(Math.abs(dif)) + " puntos</b>. " +
+            "Mientras vayan juntas, las dos valen; si se abren, la de la cinta es la que no depende del agua.";
+        }
+      }
+      var prim = pes[0], ult = pes[pes.length - 1], mayorHueco = 0;
+      for (var iH = 1; iH < pes.length; iH++) {
+        var dH = diasEntre(pes[iH - 1].f, pes[iH].f);
+        if (dH > mayorHueco) mayorHueco = dH;
+      }
+      if (pes.length > 3 && !nota1) {
+        nota1 = "Desde " + U.etiquetaFecha(prim.f) + ": <b>" + signo(ult.v - prim.v) + " kg</b>.";
+      }
+      if (mayorHueco > 21) {
+        nota1 += (nota1 ? " " : "") + "Los tramos de guiones son huecos sin pesarte —el mayor, de " +
+          mayorHueco + " días—, no bajadas ni subidas lentas.";
+      }
+    } else {
+      cuerpo1 = sinDatos("Sin pesadas en este tramo", "Aquí no se dibuja nada inventado.");
+    }
+    var ultPeso = pes.length ? pes[pes.length - 1].v : null;
+    h += tarjetaEvo("Peso y composición", ultPeso === null ? null : num(ultPeso), "kg",
+      "El peso del día oscila más de un kilo por agua y tránsito: la línea gruesa es la media de 7 días, que es la que cuenta.",
+      cuerpo1, nota1);
+
+    /* ---------- 2. VFC, FC en reposo y sueño ---------- */
+    var vfc = serieSalud("vfc", v), vfc7 = serieSalud("vfc7", v), fcr = serieSalud("fcr", v);
+    var sue = serieSalud("sueno_min", v).map(function (p) { return { f: p.f, v: p.v / 60 }; });
+    var cuerpo2, nota2 = "";
+    if (vfc.length || fcr.length) {
+      var par = (Salud.datos.meta && Salud.datos.meta.parametros) || {};
+      cuerpo2 = grafica({
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "ms · lpm",
+        alt: "VFC y frecuencia cardíaca en reposo",
+        lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base de VFC" }] : [],
+        series: [{ pts: vfc, color: "#b9cbdd", ancho: 1.1, marcarUltimo: false },
+                 { pts: vfc7, color: AZUL, ancho: 2.4 },
+                 { pts: fcr, color: AMBAR, ancho: 1.8 }]
+      }) + leyenda([{ n: "VFC diaria", color: "#b9cbdd" }, { n: "VFC media de 7", color: AZUL },
+                    { n: "FC en reposo", color: AMBAR }]);
+      if (sue.length) {
+        cuerpo2 += '<h3 class="evo-sub">Sueño</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 84, arriba: "horas", min: 0,
+          alt: "Horas de sueño por noche",
+          lineasH: [{ v: 7, color: "#cfdcea", etq: "7 h" }],
+          series: [{ pts: sue, color: "#7fa8cd", barras: true, opacidad: 0.85 }]
+        });
+      }
+      if (bandas.length) {
+        nota2 = "El tramo sombreado es el del corticoide: <b>ahí no se interpreta nada</b>, " +
+          "porque el fármaco baja la VFC y sube el pulso por sí solo.";
+      }
+    } else {
+      cuerpo2 = sinDatos("Sin datos de recuperación en este tramo");
+    }
+    h += tarjetaEvo("Recuperación", vfc7.length ? num(vfc7[vfc7.length - 1].v) : null, "ms",
+      "La VFC dice lo que ya pasó; el sueño y la carga dicen lo que va a pasar.", cuerpo2, nota2);
+
+    /* ---------- 3. forma, fatiga y carga contra la rampa ---------- */
+    var ctl = serieSalud("ctl", v), atl = serieSalud("atl", v);
+    var cs = seriesCargaSemanal();
+    var cuerpo3, nota3 = "";
+    if (ctl.length) {
+      cuerpo3 = grafica({
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "puntos", min: 0,
+        alt: "Forma y fatiga",
+        series: [{ pts: ctl, color: AZUL, ancho: 2.4 }, { pts: atl, color: ROJO, ancho: 1.6 }]
+      }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
+      if (cs.objetivos.length) {
+        cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
+          desde: cs.desde, hasta: cs.hasta, alto: 92, arriba: "carga semanal · la rampa entera", min: 0,
+          alt: "Carga semanal real frente al objetivo del plan",
+          series: [{ pts: cs.objetivos, color: "#cfdcea", barras: true, marcarUltimo: false },
+                   { pts: cs.reales, color: VERDE, barras: true, marcarUltimo: false }]
+        }) + leyenda([{ n: "objetivo de la rampa", color: "#cfdcea" }, { n: "lo hecho", color: VERDE }]);
+      }
+      var u3 = ctl[ctl.length - 1], p3 = ctl[0];
+      nota3 = "Verde es lo que el plan propone, no lo que ha pasado: <b>nunca se mezclan en la misma línea</b>." +
+        (ctl.length > 3 ? " La forma va de " + num(p3.v) + " a " + num(u3.v) + " en este tramo." : "");
+    } else {
+      cuerpo3 = sinDatos("Sin carga registrada en este tramo");
+    }
+    h += tarjetaEvo("Forma y fatiga", ctl.length ? num(ctl[ctl.length - 1].v) : null, "puntos",
+      "La forma sube despacio y se cae rápido: por eso la rampa manda sobre las ganas.", cuerpo3, nota3);
+
+    /* ---------- 4. cintura, cintura÷altura y vatios por kilo ---------- */
+    var cin = serieApp("cintura", v), wkg = serieWkg(v);
+    var altura = (A.estado.perfil && A.estado.perfil.altura) || (P.grasaCinta && P.grasaCinta.altura_cm) || 182;
+    var cuerpo4 = "", nota4 = "";
+    if (cin.length >= 2) {
+      cuerpo4 += grafica({
+        desde: v.desde, hasta: v.hasta, alto: 100, arriba: "cm", alt: "Cintura",
+        lineasH: [{ v: altura * 0.5, color: "#cfdcea", etq: "0,50 de tu altura" },
+                  { v: 102, color: "#eccf9a", etq: "102 cm" }],
+        series: [{ pts: cin, color: AZUL, ancho: 2.4, soloPuntos: cin.length < 3 }]
+      });
+    } else {
+      cuerpo4 += sinDatos(
+        cin.length === 1 ? "Solo hay una medida de cintura: " + num(cin[0].v) + " cm"
+                         : "Todavía no hay medidas de cintura",
+        "La gráfica aparece con la tercera. Se mide los lunes.");
+    }
+    if (wkg.length) {
+      cuerpo4 += '<h3 class="evo-sub">Vatios por kilo</h3>' + grafica({
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "W/kg",
+        alt: "Vatios por kilo de cada sesión con potencia",
+        series: [{ pts: wkg, color: VERDE, ancho: 1.6, soloPuntos: true, radio: 2 }]
+      }) + '<p class="nota-peque" style="margin:4px 0 0">Una sesión suave y una dura no son comparables: ' +
+        "mira la nube, no el punto.</p>";
+    }
+    var rc = cinturaAltura(U.hoyISO());
+    if (rc) {
+      nota4 = "Cintura ÷ altura: <b>" + rc.ratio.toFixed(2).replace(".", ",") + "</b>. El umbral de riesgo bajo " +
+        "está en 0,50, que para tus " + rc.altura + " cm son " + rc.objetivo + " cm.";
+    }
+    h += tarjetaEvo("Cintura y rendimiento", cin.length ? num(cin[cin.length - 1].v) : null, "cm",
+      "La cintura es la medida que más se mueve con el plan, y la que más dice del riesgo.", cuerpo4, nota4);
+
+    h += volver;
+    return h;
+  }
+
   /* ==================== PINTAR ==================== */
 
   /* la barra de arriba y la pestaña activa se tiñen de azul mientras estás dentro */
@@ -1083,7 +1600,8 @@
     var cont = document.getElementById("vista-entreno");
     if (!cont || !A.estado) return;
     vestir(cont.classList.contains("activa"));
-    cont.innerHTML = (bloque === "plan") ? htmlPlan() : htmlPortada();
+    cont.innerHTML = (bloque === "plan") ? htmlPlan()
+      : (bloque === "evolucion") ? htmlEvolucion() : htmlPortada();
     window.scrollTo(0, 0);
   }
 
@@ -1209,32 +1727,48 @@
       h += "</ul>";
     }
 
-    /* TODAS las medidas, siempre, cada una con su último dato.
-       Las que toca medir hoy van primero y marcadas; las demás están ahí por si
-       te apetece medir. La fecha del día abierto es la que se guarda. */
-    var medHoy = P.medidas.slice().sort(function (a, b) {
-      return (tocaMedida(b, dia) ? 1 : 0) - (tocaMedida(a, dia) ? 1 : 0);
-    });
-    if (medHoy.length) {
-      h += '<div class="ent-medidas">';
-      medHoy.forEach(function (m) {
-        var v = valorDe(dia, m.id);
-        var puesta = (v !== null && v !== undefined && v !== "");
-        var ult = puesta ? null : ultimoValor(m.id, dia);
-        var toca = tocaMedida(m, dia);
-        h += '<label class="ent-medida' + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
-          "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")" +
-            (toca ? '<em class="hoy">hoy</em>' : "") + "</span>" +
-          (m.texto
-            ? '<input type="text" inputmode="numeric" placeholder="128/82" data-medida="' + m.id + '" value="' + U.esc(puesta ? v : "") + '">'
-            : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
-              (ult ? ' placeholder="' + ult.v + '"' : "") +
-              ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') +
-          '<small>' + (puesta ? "anotado hoy"
-            : (ult ? "último " + num(ult.v) + " · " + U.etiquetaFecha(ult.f) : "sin medir todavía")) + "</small>" +
-          "</label>";
-      });
-      h += "</div>";
+    /* Las medidas van en dos grupos: las que el método pide HOY, que son las
+       obligatorias, y el resto, que están ahí por si te apetece medir.
+       La fecha del día abierto es la que se guarda. */
+    var tocanHoy = [], lasDemas = [];
+    P.medidas.forEach(function (m) { (tocaMedida(m, dia) ? tocanHoy : lasDemas).push(m); });
+
+    function pintaMedida(m) {
+      var v = valorDe(dia, m.id);
+      var puesta = (v !== null && v !== undefined && v !== "");
+      var ult = puesta ? null : ultimoValor(m.id, dia);
+      var toca = tocaMedida(m, dia);
+      return '<label class="ent-medida' + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
+        "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")</span>" +
+        (m.texto
+          ? '<input type="text" inputmode="numeric" placeholder="128/82" data-medida="' + m.id + '" value="' + U.esc(puesta ? v : "") + '">'
+          : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
+            (ult ? ' placeholder="' + ult.v + '"' : "") +
+            ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') +
+        '<small>' + (puesta ? "anotado hoy"
+          : (ult ? "último " + num(ult.v) + " · " + U.etiquetaFecha(ult.f) : "sin medir todavía")) + "</small>" +
+        "</label>";
+    }
+
+    if (P.medidas.length) {
+      if (tocanHoy.length) {
+        var faltan = 0;
+        tocanHoy.forEach(function (m) {
+          var v = valorDe(dia, m.id);
+          if (v === null || v === undefined || v === "") faltan++;
+        });
+        h += '<h3 class="ent-subt">Hoy toca medir' +
+          '<span class="ent-cuenta">' + (faltan === 0 ? "todas anotadas" : faltan + " sin anotar") + "</span></h3>";
+        h += '<div class="ent-medidas obligatorias">';
+        tocanHoy.forEach(function (m) { h += pintaMedida(m); });
+        h += "</div>";
+      }
+      if (lasDemas.length) {
+        h += '<h3 class="ent-subt suave">Las demás<span class="ent-cuenta">solo si te apetece</span></h3>';
+        h += '<div class="ent-medidas">';
+        lasDemas.forEach(function (m) { h += pintaMedida(m); });
+        h += "</div>";
+      }
       var lec = lecturas(dia);
       if (lec.length) {
         h += '<h3 class="ent-subt">Lo que dicen tus medidas</h3>';
@@ -1401,6 +1935,13 @@
       if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
       var gb = t.closest ? t.closest("[data-guia]") : null;
       if (gb) { e.preventDefault(); abrirGuia(gb.getAttribute("data-guia")); return; }
+      var rg = t.closest ? t.closest("[data-rango]") : null;
+      if (rg) {
+        rangoEvo = rg.getAttribute("data-rango");
+        if (rangoEvo === "todo" && !Historico.datos) Historico.cargar(function () { pintar(); });
+        pintar();
+        return;
+      }
       var rc = t.closest ? t.closest("[data-recargar]") : null;
       if (rc) {
         e.preventDefault();
