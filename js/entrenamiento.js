@@ -1224,19 +1224,27 @@
     return out;
   }
 
-  /* vatios por kilo de cada actividad con potencia */
-  function serieWkg(v) {
-    var d = Salud.datos, out = [];
-    [Historico.datos, d].forEach(function (src) {
+  /* Vatios por kilo: la MEJOR sesión de cada mes, no todas.
+     La nube de todas las sesiones no dice nada —un rodaje suave y unas series
+     caen en el mismo sitio—; el techo del mes sí: sube si mejora la forma o
+     baja el peso, y es lo que el test de FTP confirmará. */
+  function serieWkgMensual(v) {
+    var mejor = {};
+    [Historico.datos, Salud.datos].forEach(function (src) {
       if (!src || !src.actividades) return;
       src.actividades.forEach(function (a) {
         var f = String(a.fecha || "").slice(0, 10);
         if (f < v.desde || f > v.hasta) return;
         if (typeof a.w_kg !== "number" || !a.w_kg) return;
-        out.push({ f: f, v: a.w_kg });
+        var mins = a.min_mov || a.min_total || 0;
+        if (mins && mins < 20) return;                     // sesiones muy cortas, fuera
+        var mes = f.slice(0, 7);
+        if (!mejor[mes] || a.w_kg > mejor[mes].v) mejor[mes] = { f: f, v: a.w_kg };
       });
     });
-    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+    var out = [];
+    Object.keys(mejor).sort().forEach(function (m) { out.push(mejor[m]); });
+    return out;
   }
 
   /* carga real de cada semana frente al objetivo de la rampa */
@@ -1261,7 +1269,9 @@
      SVG a mano, sin librerías: una rejilla, las bandas, las líneas y el último
      punto marcado. El viewBox escala solo al ancho del móvil. */
   function grafica(o) {
-    var W = 320, H = o.alto || 108, L = 2, R = 2, T = 10, B = 14;
+    /* el margen derecho guarda sitio para los números de la escala: si no,
+       el punto del último dato se les monta encima */
+    var W = 320, H = o.alto || 108, L = 2, R = (o.escala === false ? 2 : 17), T = 10, B = 14;
     var series = (o.series || []).filter(function (s) { return s.pts && s.pts.length; });
     if (!series.length) return "";
 
@@ -1361,7 +1371,7 @@
               (se.guiones ? ' stroke-dasharray="5 4"' : "") + "/>";
           } else {
             s += '<circle cx="' + X(tr[0].f).toFixed(1) + '" cy="' + Y(tr[0].v).toFixed(1) +
-              '" r="' + (se.radio || 2.4) + '" fill="' + se.color + '"/>';
+              '" r="' + (se.radio || 1.9) + '" fill="' + se.color + '"/>';
           }
         });
         if (tramos.length > 1) se.tuvoHuecos = true;
@@ -1369,28 +1379,28 @@
       if (se.soloPuntos || se.pts.length === 1) {
         se.pts.forEach(function (p) {
           s += '<circle cx="' + X(p.f).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) +
-            '" r="' + (se.radio || 2.4) + '" fill="' + se.color + '"/>';
+            '" r="' + (se.radio || 1.9) + '" fill="' + se.color + '"/>';
         });
       }
       if (se.marcarUltimo !== false) {
         var u = se.pts[se.pts.length - 1];
         s += '<circle cx="' + X(u.f).toFixed(1) + '" cy="' + Y(u.v).toFixed(1) +
-          '" r="3.2" fill="' + se.color + '" stroke="#fff" stroke-width="1.2"/>';
+          '" r="2.4" fill="' + se.color + '" stroke="#fff" stroke-width="1"/>';
       }
     });
 
     /* los extremos, rotulados: una gráfica sin escala no dice nada */
     if (o.escala !== false) {
-      s += '<text x="' + (W - R) + '" y="' + (Y(maxD) + 1).toFixed(1) +
+      s += '<text x="' + (W - 1) + '" y="' + (Y(maxD) + 1).toFixed(1) +
         '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(maxD)) +
         (recortados ? "+" : "") + "</text>";
-      s += '<text x="' + (W - R) + '" y="' + (Y(minD) - 1).toFixed(1) +
+      s += '<text x="' + (W - 1) + '" y="' + (Y(minD) - 1).toFixed(1) +
         '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
     }
     s += '<text x="' + L + '" y="7" font-size="8" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
     s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="8" fill="#667a70">' +
       rotuloFecha(o.desde) + "</text>";
-    s += '<text x="' + (W - R) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
+    s += '<text x="' + (W - 1) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
       (o.hasta === U.hoyISO() ? "hoy" : rotuloFecha(o.hasta)) + "</text>";
     return s + "</svg>";
   }
@@ -1429,7 +1439,7 @@
       if (t.hasta < v.desde || t.desde > v.hasta) return;
       out.push({ desde: t.desde > v.desde ? t.desde : v.desde,
                  hasta: t.hasta < v.hasta ? t.hasta : v.hasta,
-                 color: "#eef0ef", etq: "corticoide" });
+                 color: "#f3f5f4", etq: "corticoide" });
     });
     return out;
   }
@@ -1472,17 +1482,17 @@
       cuerpo1 = grafica({
         desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112,
         arriba: "kg", alt: "Peso y masa magra",
-        series: [{ pts: pes, color: GRIS, ancho: 1.2, marcarUltimo: false },
-                 { pts: med7, color: AZUL, ancho: 2.4 },
-                 { pts: magra, color: VERDE, ancho: 2 }]
+        series: [{ pts: pes, color: GRIS, ancho: 0.8, marcarUltimo: false },
+                 { pts: med7, color: AZUL, ancho: 1.6 },
+                 { pts: magra, color: VERDE, ancho: 1.3 }]
       }) + leyenda([{ n: "peso", color: GRIS }, { n: "media de 7 días", color: AZUL },
                     { n: "masa magra", color: VERDE }]);
       if (gBas.length || gCin.length) {
         cuerpo1 += '<h3 class="evo-sub">Grasa: las dos fuentes</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "%",
           alt: "Grasa por báscula y por cinta",
-          series: [{ pts: gBas, color: AZUL, ancho: 2, soloPuntos: gBas.length < 3 },
-                   { pts: gCin, color: ROJO, ancho: 2, soloPuntos: gCin.length < 3 }]
+          series: [{ pts: gBas, color: AZUL, ancho: 1.4, soloPuntos: gBas.length < 3 },
+                   { pts: gCin, color: ROJO, ancho: 1.4, soloPuntos: gCin.length < 3 }]
         }) + leyenda([{ n: "báscula (impedancia)", color: AZUL }, { n: "cinta", color: ROJO }]);
         if (gBas.length && gCin.length) {
           var dif = gCin[gCin.length - 1].v - gBas[gBas.length - 1].v;
@@ -1524,8 +1534,8 @@
         desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 104, arriba: "VFC · ms",
         alt: "Variabilidad de la frecuencia cardíaca",
         lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base" }] : [],
-        series: (tramoLargo ? [] : [{ pts: vfc, color: "#c3d3e2", ancho: 1, marcarUltimo: false }])
-          .concat([{ pts: vfc7, color: AZUL, ancho: 2.4 }])
+        series: (tramoLargo ? [] : [{ pts: vfc, color: "#c3d3e2", ancho: 0.7, marcarUltimo: false }])
+          .concat([{ pts: vfc7, color: AZUL, ancho: 1.5 }])
       }) + leyenda([{ n: "media de 7 días", color: AZUL }].concat(
         tramoLargo ? [] : [{ n: "cada noche", color: "#c3d3e2" }]));
       if (fcr.length) {
@@ -1533,7 +1543,7 @@
           desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm",
           alt: "Frecuencia cardíaca en reposo",
           lineasH: par.base_fcr ? [{ v: par.base_fcr, color: "#eccf9a", etq: "tu base" }] : [],
-          series: [{ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr, color: AMBAR, ancho: 1.8 }]
+          series: [{ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr, color: AMBAR, ancho: 1.2 }]
         });
       }
       if (sue.length) {
@@ -1542,7 +1552,7 @@
           alt: "Horas de sueño por noche",
           lineasH: [{ v: 7, color: "#cfdcea", etq: "7 h" }],
           series: [{ pts: tramoLargo ? mediaMovilDias(sue, 7) : sue, color: "#7fa8cd",
-                     barras: !tramoLargo, ancho: 2, opacidad: 0.85 }]
+                     barras: !tramoLargo, ancho: 1.2, opacidad: 0.85 }]
         }) + '<p class="nota-peque" style="margin:4px 0 0">' +
           (tramoLargo ? "En tramos largos, la media móvil de siete noches." : "Una barra por noche.") + "</p>";
       }
@@ -1564,8 +1574,8 @@
       cuerpo3 = grafica({
         desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "puntos", min: 0,
         alt: "Forma y fatiga",
-        series: [{ pts: ctl, color: AZUL, ancho: 2.4 },
-                 { pts: atl, color: ROJO, ancho: diasEntre(v.desde, v.hasta) > 200 ? 1 : 1.6 }]
+        series: [{ pts: ctl, color: AZUL, ancho: 1.5 },
+                 { pts: atl, color: ROJO, ancho: diasEntre(v.desde, v.hasta) > 200 ? 0.7 : 1.1 }]
       }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
       if (cs.objetivos.length) {
         cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
@@ -1585,7 +1595,7 @@
       "La forma sube despacio y se cae rápido: por eso la rampa manda sobre las ganas.", cuerpo3, nota3);
 
     /* ---------- 4. cintura, cintura÷altura y vatios por kilo ---------- */
-    var cin = serieApp("cintura", v), wkg = serieWkg(v);
+    var cin = serieApp("cintura", v), wkg = serieWkgMensual(v);
     var altura = (A.estado.perfil && A.estado.perfil.altura) || (P.grasaCinta && P.grasaCinta.altura_cm) || 182;
     var cuerpo4 = "", nota4 = "";
     if (cin.length >= 2) {
@@ -1593,7 +1603,7 @@
         desde: v.desde, hasta: v.hasta, alto: 100, arriba: "cm", alt: "Cintura",
         lineasH: [{ v: altura * 0.5, color: "#cfdcea", etq: "0,50 de tu altura" },
                   { v: 102, color: "#eccf9a", etq: "102 cm" }],
-        series: [{ pts: cin, color: AZUL, ancho: 2.4, soloPuntos: cin.length < 3 }]
+        series: [{ pts: cin, color: AZUL, ancho: 1.6, soloPuntos: cin.length < 3 }]
       });
     } else {
       cuerpo4 += sinDatos(
@@ -1602,12 +1612,16 @@
         "La gráfica aparece con la tercera. Se mide los lunes.");
     }
     if (wkg.length) {
-      cuerpo4 += '<h3 class="evo-sub">Vatios por kilo</h3>' + grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "W/kg",
-        alt: "Vatios por kilo de cada sesión con potencia",
-        series: [{ pts: wkg, color: VERDE, ancho: 1.6, soloPuntos: true, radio: 2 }]
-      }) + '<p class="nota-peque" style="margin:4px 0 0">Una sesión suave y una dura no son comparables: ' +
-        "mira la nube, no el punto.</p>";
+      var uw = wkg[wkg.length - 1], pw = wkg[0];
+      cuerpo4 += '<h3 class="evo-sub">Tu mejor sesión de cada mes</h3>' + grafica({
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "W/kg", hueco: 70,
+        alt: "Vatios por kilo de la mejor sesión de cada mes",
+        series: [{ pts: wkg, color: VERDE, ancho: 1.4, radio: 1.8 }]
+      }) + '<p class="nota-peque" style="margin:4px 0 0">Un punto por mes: los vatios por kilo de la ' +
+        "sesión más fuerte. Sube si mejora la forma o si baja el peso — por eso es la medida que junta " +
+        "las dos mitades del plan." +
+        (wkg.length > 2 ? " Ahora vas por <b>" + num(uw.v) + " W/kg</b>; tu mejor mes del tramo, " +
+          num(Math.max.apply(null, wkg.map(function (x) { return x.v; }))) + "." : "") + "</p>";
     }
     var rc = cinturaAltura(U.hoyISO());
     if (rc) {
