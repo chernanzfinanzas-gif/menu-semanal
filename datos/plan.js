@@ -84,6 +84,23 @@
       }
     },
 
+    /* Semana 1 entera a pie: da tiempo a montar la habitación del rodillo.
+       La fuerza se queda —es en casa y es lo que frena la pérdida de músculo
+       con el corticoide—. La bici entra en la semana 2, el martes 29.
+       Estas líneas mandan sobre la plantilla de la semana. */
+    excepciones: {
+      "2026-09-18": [{ t: "Caminar llano, a ritmo de poder hablar", min: 45 }],
+      "2026-09-19": [{ t: "Caminar", min: 50 }, { t: "Movilidad de cuello y mandíbula", min: 10 }],
+      "2026-09-20": [{ t: "Caminar suave", min: 60 }],
+      "2026-09-21": [{ t: "Fuerza A, media carga", min: 30 }, { t: "Caminar", min: 30 }],
+      "2026-09-22": [{ t: "Caminar a buen paso", min: 50 }],
+      "2026-09-23": [{ t: "Caminar", min: 55 }, { t: "Movilidad de cuello y mandíbula", min: 10 }],
+      "2026-09-24": [{ t: "Fuerza B, media carga", min: 30 }, { t: "Caminar", min: 30 }],
+      "2026-09-25": [{ t: "Caminar a buen paso", min: 55 }],
+      "2026-09-26": [{ t: "Caminar", min: 65 }],
+      "2026-09-27": [{ t: "Descanso, o paseo corto", min: 30 }]
+    },
+
     /* El día grande alterna: semana impar, montaña; semana par, bici. */
     diaGrande: {
       montana: [
@@ -112,6 +129,9 @@
         dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. Sin apretar." },
       { id: "tension", nombre: "Tensión",    unidad: "mmHg", texto: true,
         diariaHasta: "2026-09-28", diasDespues: [1, 4], ayuda: "Escríbela como 128/82. Los corticoides la suben." },
+      { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,
+        diariaHasta: "2026-09-28", diasDespues: [1, 4],
+        ayuda: "El que marca el tensiómetro en esa misma medida. Sirve de contraste con el pulso en reposo del reloj." },
       { id: "brazo",   nombre: "Brazo",      unidad: "cm",   paso: 0.5, min: 15, max: 70,
         diaDelMes: 1, informativo: true, ayuda: "Solo informativo: se mueve 2-3 mm en meses y la cinta tiene ±5 mm de error." }
     ],

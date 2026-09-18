@@ -15,6 +15,7 @@
   var DIA_CORTO = ["D", "L", "M", "X", "J", "V", "S"];
   var MIN_SESION = 20;      // minutos a partir de los cuales el reloj marca el día como hecho
   var bloque = "portada";   // "portada" | "plan"
+  var diaSel = null;        // día abierto en la tarjeta; null = hoy
 
   var BLOQUES = [
     { id: "plan", nombre: "El Plan", img: "iconos/khb/3-pesas-corredor.webp",
@@ -73,7 +74,22 @@
       "@media(prefers-reduced-motion:reduce){.ent-bloque{transition:none}.ent-bloque:hover{transform:none}}",
       ".ent-pronto{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gris);",
       "  border:1px solid var(--borde);border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:1px}",
-      /* volver */
+      /* volver a Entrenamiento: botón grande */
+      ".ent-atras{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;",
+      "  margin:0 0 14px;padding:15px 16px;border:0;border-radius:14px;cursor:pointer;",
+      "  font:inherit;font-size:1.02rem;font-weight:700;color:#fff;letter-spacing:.01em;",
+      "  background:linear-gradient(180deg,#39699a 0%,var(--azul-hondo) 100%);",
+      "  box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 5px 0 -1px #0d2540, 0 12px 20px rgba(19,50,83,.28);",
+      "  transition:transform .12s ease, box-shadow .12s ease}",
+      ".ent-atras:hover{transform:translateY(-1px);",
+      "  box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 6px 0 -1px #0d2540, 0 14px 24px rgba(19,50,83,.32)}",
+      ".ent-atras:active{transform:translateY(4px);",
+      "  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 1px 0 -1px #0d2540, 0 3px 7px rgba(19,50,83,.3)}",
+      ".ent-atras:focus-visible{outline:3px solid #7d9cbb;outline-offset:2px}",
+      ".ent-atras svg{flex:none}",
+      ".ent-atras.abajo{margin:4px 0 8px}",
+      "@media(prefers-reduced-motion:reduce){.ent-atras{transition:none}.ent-atras:hover{transform:none}}",
+      /* volver al día de hoy: enlace discreto */
       ".ent-volver{background:none;border:0;color:var(--azul);font:inherit;font-weight:600;",
       "  padding:4px 0;margin-bottom:8px;cursor:pointer}",
       /* cabecera del plan */
@@ -109,8 +125,11 @@
       /* semana */
       ".ent-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}",
       ".ent-dia{background:var(--gris-claro);border:1px solid var(--borde);border-radius:10px;padding:7px 4px;",
-      "  text-align:center;min-height:86px;display:flex;flex-direction:column;gap:3px;align-items:center}",
+      "  text-align:center;min-height:86px;display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer}",
+      ".ent-dia:hover{border-color:var(--azul-borde)}",
+      ".ent-dia:focus-visible{outline:2px solid var(--azul);outline-offset:2px}",
       ".ent-dia.hoy{border-color:var(--azul);background:var(--azul-claro);box-shadow:inset 0 -3px 0 var(--azul)}",
+      ".ent-dia.sel{border-color:var(--azul);border-width:2px;background:var(--azul-claro)}",
       ".ent-dia .d{font-weight:700;font-size:.8rem;color:var(--azul-hondo)}",
       ".ent-dia .f{font-size:.66rem;color:var(--gris)}",
       ".ent-dia .q{font-size:.64rem;color:var(--gris);line-height:1.25;overflow-wrap:anywhere}",
@@ -217,6 +236,8 @@
   }
 
   function sesionesDe(iso, sem, talla) {
+    var exc = (P.excepciones || {})[iso];
+    if (exc) return exc.map(function (s) { return { t: s.t, min: s.min }; });
     var pl = P.plantillas[talla];
     if (!pl) return [];
     return (pl.dias[U.desdeISO(iso).getDay()] || []).map(function (s) {
@@ -337,7 +358,10 @@
 
   function htmlPlan() {
     var hoy = U.hoyISO(), sem = semanaDe(hoy);
-    var volver = '<button type="button" class="ent-volver" data-volver="1">‹ Entrenamiento</button>';
+    var FLECHA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M15 5l-7 7 7 7"/></svg>';
+    var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
 
     if (!sem) {
       return volver + '<div class="tarjeta"><h2>El Plan</h2><p class="nota-peque">' +
@@ -357,21 +381,28 @@
         " · carga objetivo <b>" + sem.carga + "</b>" + (sem.nota ? " · " + U.esc(sem.nota) : "") + "</p></div>" +
       '<div class="ent-racha"><b>' + racha() + "</b><span>días seguidos</span></div></div>";
 
-    /* hoy */
-    var d = U.desdeISO(hoy);
-    h += '<div class="tarjeta"><h2>Hoy, ' + DIA_LARGO[d.getDay()] + " " + U.etiquetaFecha(hoy) + "</h2>";
+    /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana */
+    var dia = (diaSel && semanaDe(diaSel)) ? diaSel : hoy;
+    var semDia = semanaDe(dia) || sem, tallaDia = tallaDe(semDia);
+    var d = U.desdeISO(dia), esHoy = (dia === hoy);
+    var titulo = esHoy
+      ? "Hoy, " + DIA_LARGO[d.getDay()] + " " + U.etiquetaFecha(dia)
+      : DIA_LARGO[d.getDay()].charAt(0).toUpperCase() + DIA_LARGO[d.getDay()].slice(1) + " " + U.etiquetaFecha(dia);
 
-    var ses = sesionesDe(hoy, sem, talla), auto = hechoPorElReloj(hoy), filas = [];
+    h += '<div class="tarjeta"><h2>' + titulo + "</h2>";
+    if (!esHoy) h += '<button type="button" class="ent-volver" data-dia="' + hoy + '">‹ volver a hoy</button>';
+
+    var ses = sesionesDe(dia, semDia, tallaDia), auto = hechoPorElReloj(dia), filas = [];
     ses.forEach(function (s, i) {
-      var id = "s" + i, manual = marcado(hoy, id);
+      var id = "s" + i, manual = marcado(dia, id);
       filas.push({
         id: id, nombre: s.t + (s.min ? " · " + s.min + " min" : ""), hecho: manual || auto,
         ayuda: s.grande ? P.diaGrande.aviso : (auto && !manual ? "Marcada con la sesión que llegó del reloj." : P.textos.auto),
         sello: auto ? "reloj" : ""
       });
     });
-    tareasDelDia(hoy).forEach(function (t) {
-      filas.push({ id: t.id, nombre: t.nombre, ayuda: t.ayuda, hecho: marcado(hoy, t.id),
+    tareasDelDia(dia).forEach(function (t) {
+      filas.push({ id: t.id, nombre: t.nombre, ayuda: t.ayuda, hecho: marcado(dia, t.id),
         sello: t.sello, claseSello: t.claseSello });
     });
 
@@ -390,11 +421,11 @@
     }
 
     /* medidas del día */
-    var medHoy = P.medidas.filter(function (m) { return tocaMedida(m, hoy); });
+    var medHoy = P.medidas.filter(function (m) { return tocaMedida(m, dia); });
     if (medHoy.length) {
       h += '<div class="ent-medidas">';
       medHoy.forEach(function (m) {
-        var v = (m.id === "peso") ? pesoDe(hoy) : medida(hoy, m.id);
+        var v = (m.id === "peso") ? pesoDe(dia) : medida(dia, m.id);
         var puesta = (v !== null && v !== undefined && v !== "");
         h += '<label class="ent-medida' + (puesta ? " puesta" : "") + '" title="' + U.esc(m.ayuda) + '">' +
           "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")</span>" +
@@ -424,7 +455,8 @@
       var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
       var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
       var ok = semF && f <= hoy && ss.length && diaCumplido(f, semF, tallaDe(semF));
-      h += '<div class="ent-dia' + (f === hoy ? " hoy" : "") + (ok ? " ok" : "") + '">' +
+      h += '<div class="ent-dia' + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
+        '" data-dia="' + f + '" role="button" tabindex="0">' +
         '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
         '<span class="q">' + (!semF ? "—" : (ss.length
           ? U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))
@@ -433,6 +465,8 @@
     h += "</div>";
     h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
       " El fin de semana, un solo día grande: " + U.esc(textoDiaGrande(sem).toLowerCase()) + ". El otro, descanso.</p></div>";
+
+    h += '<button type="button" class="ent-atras abajo" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
 
     return h;
   }
@@ -445,22 +479,35 @@
     cont.addEventListener("click", function (e) {
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
-      if (volver) { bloque = "portada"; pintar(); return; }
+      if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
+      var dd = t.closest ? t.closest("[data-dia]") : null;
+      if (dd) {
+        var f = dd.getAttribute("data-dia");
+        diaSel = (f === U.hoyISO()) ? null : f;
+        pintar();
+        return;
+      }
       var b = t.closest ? t.closest("[data-bloque]") : null;
       if (b) { bloque = b.getAttribute("data-bloque"); pintar(); }
     });
 
+    cont.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var dd = e.target.closest ? e.target.closest("[data-dia]") : null;
+      if (dd) { e.preventDefault(); dd.click(); }
+    });
+
     cont.addEventListener("change", function (e) {
-      var hoy = U.hoyISO(), t = e.target;
-      if (t.getAttribute("data-check")) { marcar(hoy, t.getAttribute("data-check"), t.checked); pintar(); return; }
+      var dia = (diaSel && semanaDe(diaSel)) ? diaSel : U.hoyISO(), t = e.target;
+      if (t.getAttribute("data-check")) { marcar(dia, t.getAttribute("data-check"), t.checked); pintar(); return; }
       if (t.getAttribute("data-medida")) {
-        anotarMedida(hoy, t.getAttribute("data-medida"), String(t.value).trim());
-        U.toast("Anotado");
+        anotarMedida(dia, t.getAttribute("data-medida"), String(t.value).trim());
+        U.toast(dia === U.hoyISO() ? "Anotado" : "Anotado en el " + U.etiquetaFecha(dia));
         pintar();
         return;
       }
       if (t.id === "ent-talla") {
-        var sem = semanaDe(hoy);
+        var sem = semanaDe(U.hoyISO());
         if (sem) { ent().talla[sem.desde] = t.value; A.guardar("entreno"); pintar(); }
       }
     });
