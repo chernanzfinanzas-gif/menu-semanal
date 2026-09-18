@@ -202,6 +202,15 @@
       /* las obligatorias del día se ven de un vistazo, aunque estén vacías */
       ".ent-medidas.obligatorias .ent-medida input{border-color:var(--azul-borde);background:#fbfdff}",
       ".ent-medidas.obligatorias .ent-medida.puesta input{background:var(--azul-claro)}",
+      /* importar el csv del tensiómetro */
+      ".ent-tension{margin-top:14px;padding:11px 13px;border:1px dashed var(--azul-borde);",
+      "  border-radius:12px;background:#fbfdff}",
+      ".ent-mini-file{display:inline-block;cursor:pointer}",
+      ".ent-mini-file input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}",
+      ".ent-mini-file span{display:inline-block;border:1px solid var(--azul-borde);background:var(--azul-claro);",
+      "  color:var(--azul-hondo);border-radius:999px;padding:7px 14px;font-size:.84rem;font-weight:600}",
+      ".ent-mini-file:hover span{border-color:var(--azul)}",
+      ".ent-tension small{display:block;margin-top:7px;font-size:.76rem;color:var(--gris)}",
       /* el parte de la noche */
       ".ent-parte h2{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}",
       ".ent-parte h2 .ent-cuenta{font-size:.68rem;font-weight:600;color:var(--gris);",
@@ -230,6 +239,37 @@
       ".ent-nota:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-mini{border:1px solid var(--azul-borde);background:var(--azul-claro);color:var(--azul-hondo);",
       "  border-radius:999px;padding:3px 10px;font:inherit;font-size:.76rem;font-weight:600;cursor:pointer}",
+      /* el pase de la semana */
+      ".pase{border-top:3px solid var(--azul)}",
+      ".pase-etq{font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;",
+      "  color:var(--azul);border:1px solid var(--azul-borde);background:var(--azul-claro);",
+      "  border-radius:999px;padding:3px 10px}",
+      ".pase-ver{margin:10px 0 4px;padding:13px 15px;border-radius:12px;background:var(--azul-claro);",
+      "  border:1px solid var(--azul-borde)}",
+      ".pase-ver b{display:block;font-size:1.15rem;color:var(--azul-hondo)}",
+      ".pase-ver small{display:block;margin-top:4px;font-size:.85rem;line-height:1.45;color:var(--tinta)}",
+      ".pase-ver .prov{display:block;margin-top:6px;font-style:normal;font-size:.74rem;color:var(--gris)}",
+      ".pase-subir .pase-ver{background:#eef5f0;border-color:#c3ddcd}",
+      ".pase-subir .pase-ver b{color:#2f6b47}",
+      ".pase-bajar .pase-ver,.pase-parar .pase-ver{background:var(--ambar-fondo);border-color:#eccf9a}",
+      ".pase-bajar .pase-ver b,.pase-parar .pase-ver b{color:#8a5a12}",
+      ".pase-barra{position:relative;height:10px;border-radius:999px;background:var(--borde);",
+      "  overflow:hidden;margin:6px 0 10px}",
+      ".pase-barra i{display:block;height:100%;border-radius:999px;background:var(--azul)}",
+      ".pase-barra i.ok{background:#2f6b47}",
+      ".pase-barra i.medio{background:var(--ambar)}",
+      ".pase-barra i.bajo{background:#b3402f}",
+      ".pase-barra .obj{position:absolute;top:-2px;bottom:-2px;left:76.9%;width:2px;background:var(--azul-hondo);opacity:.55}",
+      ".pase-fallo{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;padding:8px 0;",
+      "  border-bottom:1px solid var(--borde)}",
+      ".pase-fallo:last-of-type{border-bottom:0}",
+      ".pase-fallo b{min-width:52px;font-size:.82rem;color:var(--azul-hondo);text-transform:capitalize}",
+      ".pase-fallo span{font-size:.84rem;color:var(--gris)}",
+      ".pase-fallo.salud span{color:#b3402f}",
+      ".pase-fallo.agenda span{color:var(--ambar)}",
+      ".pase-fallo small{flex:1 1 100%;margin-left:52px;font-size:.8rem;color:var(--gris)}",
+      ".pase-prox{margin:4px 0 0;font-size:.9rem;line-height:1.5;padding:11px 13px;border-radius:11px;",
+      "  background:var(--azul-claro);border:1px solid var(--azul-borde);color:var(--azul-hondo)}",
       /* evolución: las series largas */
       ".evo-rangos{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}",
       ".evo-r{border:1px solid var(--borde);background:#fff;color:var(--gris);border-radius:999px;",
@@ -603,6 +643,227 @@
     };
   }
 
+  /* ==================== TENSIÓN: TOMAS ====================
+     Dos fuentes que se suman: lo que tecleas en la tarjeta del día y lo que
+     llega del CSV del tensiómetro. Una toma es una toma, venga de donde venga;
+     lo único que no se admite es contar dos veces la misma. */
+
+  function tomasImportadas() {
+    var e = ent();
+    if (!e.tension) e.tension = [];
+    return e.tension;
+  }
+
+  function claveToma(t) {
+    return t.f + "|" + (t.h || "") + "|" + t.sis + "/" + t.dia;
+  }
+
+  /* Todas las tomas entre dos fechas, ordenadas. Las tecleadas a mano cuentan
+     como una toma del día, sin hora. */
+  function tomasTension(desde, hasta) {
+    var out = [], vistas = {};
+    /* las que ya venían en salud.json, del export que sembramos en su día */
+    var sd = Salud.datos;
+    if (sd && sd.tension) {
+      sd.tension.forEach(function (x) {
+        var f = String(x.fecha || "").slice(0, 10);
+        if (!f || f < desde || f > hasta) return;
+        var t = { f: f, h: String(x.fecha || "").slice(11, 16), sis: Math.round(x.sis),
+                  dia: Math.round(x.dia), pul: x.pulso ? Math.round(x.pulso) : null,
+                  arr: !!x.arritmia, origen: x.origen || "omron" };
+        if (!(t.sis > 0) || !(t.dia > 0)) return;
+        var k = claveToma(t);
+        if (vistas[k]) return;
+        vistas[k] = 1;
+        vistas["d" + t.f + "|" + t.sis + "/" + t.dia] = 1;
+        out.push(t);
+      });
+    }
+    tomasImportadas().forEach(function (t) {
+      if (t.f < desde || t.f > hasta) return;
+      var k = claveToma(t);
+      if (vistas[k]) return;
+      vistas[k] = 1;
+      vistas["d" + t.f + "|" + t.sis + "/" + t.dia] = 1;
+      out.push(t);
+    });
+    var m = ent().medidas;
+    for (var f in m) {
+      if (f < desde || f > hasta) continue;
+      var s = parseFloat(m[f].sistolica), d = parseFloat(m[f].diastolica), p = parseFloat(m[f].pulso);
+      if (!(s > 0) || !(d > 0)) continue;
+      var t2 = { f: f, h: "", sis: Math.round(s), dia: Math.round(d), pul: p > 0 ? Math.round(p) : null, origen: "mano" };
+      var k2 = claveToma(t2), kDia = t2.f + "|" + t2.sis + "/" + t2.dia;
+      /* si esa misma cifra ya vino del aparato ese día —aunque con su hora—,
+         es la misma toma tecleada a mano: no se cuenta dos veces */
+      if (vistas[k2] || vistas["d" + kDia]) continue;
+      vistas[k2] = 1;
+      out.push(t2);
+    }
+    return out.sort(function (a, b) {
+      return (a.f + (a.h || "")) < (b.f + (b.h || "")) ? -1 : 1;
+    });
+  }
+
+  function mediaTension(desde, hasta) {
+    var t = tomasTension(desde, hasta);
+    if (!t.length) return null;
+    var s = 0, d = 0, p = 0, np = 0;
+    t.forEach(function (x) {
+      s += x.sis; d += x.dia;
+      if (x.pul) { p += x.pul; np++; }
+    });
+    return { sis: s / t.length, dia: d / t.length, pul: np ? p / np : null, n: t.length,
+             alta: (s / t.length) >= 140 || (d / t.length) >= 90 };
+  }
+
+  /* ---------- el CSV del tensiómetro ----------
+     Los exports de Omron cambian de columnas según la versión y el idioma, así
+     que no se asume un formato: se busca cada dato por el nombre de su columna
+     y, si no hay cabecera reconocible, por la forma de los números. */
+
+  function partirLinea(linea, sep) {
+    var out = [], act = "", dentro = false;
+    for (var i = 0; i < linea.length; i++) {
+      var c = linea.charAt(i);
+      if (c === '"') { dentro = !dentro; continue; }
+      if (c === sep && !dentro) { out.push(act); act = ""; continue; }
+      act += c;
+    }
+    out.push(act);
+    return out.map(function (x) { return x.replace(/^\s+|\s+$/g, ""); });
+  }
+
+  function normaliza(s) {
+    return String(s).toLowerCase()
+      .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+      .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u").replace(/\s+/g, " ");
+  }
+
+  /* Meses escritos, que es como los manda el tensiómetro: "18 sep. 2026".
+     Se admiten tres o cuatro letras y el nombre entero, en español e inglés. */
+  var MESES_TXT = {
+    ene: 1, enero: 1, jan: 1, january: 1,
+    feb: 2, febrero: 2, february: 2,
+    mar: 3, marzo: 3, march: 3,
+    abr: 4, abril: 4, apr: 4, april: 4,
+    may: 5, mayo: 5,
+    jun: 6, junio: 6, june: 6,
+    jul: 7, julio: 7, july: 7,
+    ago: 8, agosto: 8, aug: 8, august: 8,
+    sep: 9, sept: 9, septiembre: 9, september: 9,
+    oct: 10, octubre: 10, october: 10,
+    nov: 11, noviembre: 11, november: 11,
+    dic: 12, diciembre: 12, dec: 12, december: 12
+  };
+
+  /* "18/09/2026", "2026-09-18", "18.09.2026", "18 sep. 2026" → "2026-09-18" */
+  function fechaDeTexto(txt) {
+    var t = String(txt).replace(/^\s+|\s+$/g, "");
+    var m = t.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+    if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2);
+    m = t.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);
+    if (m) return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+
+    var n = normaliza(t).replace(/\./g, " ").replace(/,/g, " ");
+    /* día mes año: «18 sep 2026» */
+    m = n.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/);
+    if (m && MESES_TXT[m[2]]) {
+      return m[3] + "-" + ("0" + MESES_TXT[m[2]]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+    }
+    /* mes día año: «sep 18 2026» */
+    m = n.match(/([a-z]+)\s+(\d{1,2})\s+(\d{4})/);
+    if (m && MESES_TXT[m[1]]) {
+      return m[3] + "-" + ("0" + MESES_TXT[m[1]]).slice(-2) + "-" + ("0" + m[2]).slice(-2);
+    }
+    return null;
+  }
+
+  function horaDeTexto(txt) {
+    var m = String(txt).match(/(\d{1,2}):(\d{2})/);
+    if (!m) return "";
+    var h = parseInt(m[1], 10);
+    if (/p\.?\s?m/i.test(txt) && h < 12) h += 12;
+    if (/a\.?\s?m/i.test(txt) && h === 12) h = 0;
+    return ("0" + h).slice(-2) + ":" + m[2];
+  }
+
+  function leerCsvTension(texto) {
+    var lineas = String(texto).replace(/\r/g, "").split("\n").filter(function (l) { return l.replace(/[\s,;]/g, "").length; });
+    if (!lineas.length) return { tomas: [], error: "El fichero está vacío." };
+
+    /* separador: el que más aparece en la primera línea */
+    var sep = ",", mejor = 0;
+    [",", ";", "\t"].forEach(function (s) {
+      var n = lineas[0].split(s).length;
+      if (n > mejor) { mejor = n; sep = s; }
+    });
+    if (mejor < 2) return { tomas: [], error: "No parece un CSV: no encuentro columnas." };
+
+    /* cabecera: se busca en las cinco primeras líneas */
+    var cab = -1, col = {};
+    for (var i = 0; i < Math.min(5, lineas.length) && cab < 0; i++) {
+      var campos = partirLinea(lineas[i], sep).map(normaliza), c = {};
+      campos.forEach(function (n, j) {
+        if (c.sis === undefined && /sist|systol|sys|alta|superior/.test(n)) c.sis = j;
+        else if (c.dia === undefined && /diast|dia\b|baja|inferior/.test(n)) c.dia = j;
+        else if (c.pul === undefined && /puls|heart|hr\b|lpm|bpm|frecuencia/.test(n)) c.pul = j;
+        if (c.fec === undefined && /fecha|date|dia y hora|measurement/.test(n)) c.fec = j;
+        if (c.hor === undefined && /hora|time/.test(n) && !/fecha|date/.test(n)) c.hor = j;
+        if (c.arr === undefined && /irregul|arritm|ihb/.test(n)) c.arr = j;
+      });
+      if (c.sis !== undefined && c.dia !== undefined) { cab = i; col = c; }
+    }
+
+    var tomas = [], malas = 0;
+    for (var k = (cab >= 0 ? cab + 1 : 0); k < lineas.length; k++) {
+      var f = partirLinea(lineas[k], sep);
+      var fecha = null, hora = "", sis = null, dia = null, pul = null, arr = false;
+
+      if (cab >= 0) {
+        fecha = fechaDeTexto(f[col.fec !== undefined ? col.fec : 0]);
+        hora = horaDeTexto(f[col.hor !== undefined ? col.hor : (col.fec !== undefined ? col.fec : 0)]);
+        sis = parseFloat(String(f[col.sis]).replace(",", "."));
+        dia = parseFloat(String(f[col.dia]).replace(",", "."));
+        if (col.pul !== undefined) pul = parseFloat(String(f[col.pul]).replace(",", "."));
+        if (col.arr !== undefined) arr = /1|si|sí|yes|true|x/i.test(f[col.arr] || "");
+      } else {
+        /* sin cabecera: fecha en algún campo y los dos primeros números con
+           pinta de tensión (60-260 y 30-160) */
+        for (var j = 0; j < f.length && !fecha; j++) fecha = fechaDeTexto(f[j]);
+        for (var j2 = 0; j2 < f.length && !hora; j2++) hora = horaDeTexto(f[j2]);
+        var nums = [];
+        f.forEach(function (x) {
+          var n = parseFloat(String(x).replace(",", "."));
+          if (!isNaN(n) && n >= 25 && n <= 260 && !/[-\/:]/.test(String(x))) nums.push(n);
+        });
+        if (nums.length >= 2) { sis = nums[0]; dia = nums[1]; if (nums.length > 2) pul = nums[2]; }
+      }
+
+      if (!fecha || !(sis >= 60 && sis <= 260) || !(dia >= 30 && dia <= 160) || dia >= sis) { malas++; continue; }
+      tomas.push({ f: fecha, h: hora, sis: Math.round(sis), dia: Math.round(dia),
+                   pul: (pul >= 30 && pul <= 220) ? Math.round(pul) : null,
+                   arr: !!arr, origen: "omron" });
+    }
+    return { tomas: tomas, malas: malas, conCabecera: cab >= 0 };
+  }
+
+  /* mete las tomas nuevas en el almacén; devuelve el recuento */
+  function importarTomas(tomas) {
+    var lista = tomasImportadas(), hay = {}, nuevas = 0;
+    lista.forEach(function (t) { hay[claveToma(t)] = 1; });
+    tomas.forEach(function (t) {
+      var k = claveToma(t);
+      if (hay[k]) return;
+      hay[k] = 1;
+      lista.push(t);
+      nuevas++;
+    });
+    lista.sort(function (a, b) { return (a.f + (a.h || "")) < (b.f + (b.h || "")) ? -1 : 1; });
+    if (nuevas) A.guardar("entreno");
+    return { nuevas: nuevas, repetidas: tomas.length - nuevas, total: lista.length };
+  }
+
   /* ==================== EL PLAN: CÁLCULO ==================== */
 
   function diasEntre(a, b) { return Math.round((U.desdeISO(b) - U.desdeISO(a)) / 86400000); }
@@ -903,12 +1164,11 @@
     }
 
     /* tensión y pulso */
-    var sis = serieMedida("sistolica", dia, 7), dia2 = serieMedida("diastolica", dia, 7), pul = serieMedida("pulso", dia, 7);
-    if (sis.length && dia2.length) {
-      var ms = media(sis), md = media(dia2), mpu = pul.length ? media(pul) : null;
-      var alta = ms >= 140 || md >= 90;
+    var mt = mediaTension(U.sumarDias(dia, -6), dia);
+    if (mt) {
+      var ms = mt.sis, md = mt.dia, mpu = mt.pul, alta = mt.alta;
       out.push({
-        t: "Tensión: media de " + sis.length + (sis.length === 1 ? " toma " : " tomas ") + Math.round(ms) + "/" + Math.round(md) +
+        t: "Tensión: media de " + mt.n + (mt.n === 1 ? " toma " : " tomas ") + Math.round(ms) + "/" + Math.round(md) +
           (mpu !== null ? " · pulso " + Math.round(mpu) : ""),
         d: alta
           ? "La media de estos días queda en o por encima de 140/90. No es un diagnóstico y los corticoides la suben por sí solos, pero es exactamente el dato que conviene llevar a la revisión del 28."
@@ -986,19 +1246,25 @@
       }
     }
 
-    /* M6 y M7 — tensión */
-    var sis = serieMedida("sistolica", dia, 14), dias = serieMedida("diastolica", dia, 14);
+    /* M6 y M7 — tensión, con TODAS las tomas: tecleadas y las del aparato */
+    var tomas14 = tomasTension(U.sumarDias(dia, -13), dia);
     d = def("M7");
     if (d) {
-      var recientes = sis.filter(function (x) { return x.f >= U.sumarDias(dia, -1); })
-        .concat(dias.filter(function (x) { return x.f >= U.sumarDias(dia, -1); }));
-      var pico = sis.some(function (x) { return x.f >= U.sumarDias(dia, -1) && x.v >= d.umbral_sis; }) ||
-                 dias.some(function (x) { return x.f >= U.sumarDias(dia, -1) && x.v >= d.umbral_dia; });
-      if (pico && recientes.length) out.push({ d: d, dato: "toma de " + Math.round(sis[sis.length - 1].v) + "/" + Math.round(dias[dias.length - 1].v) });
+      var ayer = U.sumarDias(dia, -1);
+      var picos = tomas14.filter(function (x) {
+        return x.f >= ayer && (x.sis >= d.umbral_sis || x.dia >= d.umbral_dia);
+      });
+      if (picos.length) {
+        var pk = picos[picos.length - 1];
+        out.push({ d: d, dato: "toma de " + pk.sis + "/" + pk.dia + (pk.h ? " (" + pk.h + ")" : "") });
+      }
     }
     d = def("M6");
-    if (d && sis.length >= d.tomas && dias.length >= d.tomas) {
-      var ms = media(sis.slice(-d.tomas)), md = media(dias.slice(-d.tomas));
+    if (d && tomas14.length >= d.tomas) {
+      var ult = tomas14.slice(-d.tomas);
+      var ms = 0, md = 0;
+      ult.forEach(function (x) { ms += x.sis; md += x.dia; });
+      ms /= ult.length; md /= ult.length;
       if (ms >= d.umbral_sis || md >= d.umbral_dia) {
         out.push({ d: d, dato: "media de " + d.tomas + " tomas: " + Math.round(ms) + "/" + Math.round(md) });
       }
@@ -1571,6 +1837,241 @@
     return out;
   }
 
+  /* ==================== EL PASE DE LA SEMANA ====================
+     La decisión del domingo, calculada por la app. Mira cinco cosas —carga,
+     cumplimiento, peso, recuperación y observaciones— y sale con un veredicto:
+     subir, repetir, bajar o semana en blanco. Nada de esto se estima: lo que
+     falta se dice que falta. */
+
+  function semanaAnteriorDe(sem) {
+    for (var i = 0; i < P.rampa.length; i++) {
+      if (P.rampa[i].n === sem.n - 1) return P.rampa[i];
+    }
+    return null;
+  }
+
+  function semanaSiguienteDe(sem) {
+    for (var i = 0; i < P.rampa.length; i++) {
+      if (P.rampa[i].n === sem.n + 1) return P.rampa[i];
+    }
+    return null;
+  }
+
+  /* cumplimiento: días con sesión hecha sobre días con sesión prevista */
+  function cumplimientoSemana(sem, hasta) {
+    var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = [];
+    for (var f = sem.desde; f <= sem.hasta && f <= hasta; f = U.sumarDias(f, 1)) {
+      var ses = sesionesDe(f, sem, talla);
+      if (!ses.length) continue;                       // día de descanso
+      previstos++;
+      if (diaCumplido(f, sem, talla)) hechos++;
+      else fallos.push({ f: f, m: motivosDe(f), nota: (obsDe(f) || {}).nota });
+    }
+    return { previstos: previstos, hechos: hechos, fallos: fallos };
+  }
+
+  /* los motivos de la semana, agrupados por efecto */
+  function saludSemana(sem, hasta) {
+    var r = { parar: 0, limitar: 0, vigilar: 0, agenda: 0, dias: {} };
+    for (var f = sem.desde; f <= sem.hasta && f <= hasta; f = U.sumarDias(f, 1)) {
+      motivosDe(f).forEach(function (v) {
+        var m = motivo(v);
+        if (!m || !(m.efecto in r)) return;
+        r[m.efecto]++;
+        r.dias[f] = 1;
+      });
+    }
+    return r;
+  }
+
+  /* media de un campo de salud.json en el tramo de la semana */
+  function mediaSalud(campo, desde, hasta) {
+    var s = 0, n = 0, d = Salud.datos;
+    if (!d || !d.dias) return null;
+    for (var f = desde; f <= hasta; f = U.sumarDias(f, 1)) {
+      var v = d.dias[f] && d.dias[f][campo];
+      if (typeof v === "number") { s += v; n++; }
+    }
+    return n ? { m: s / n, n: n } : null;
+  }
+
+  /* EL VEREDICTO. El orden importa: la salud manda sobre la carga. */
+  function veredictoSemana(sem, hasta, cerrada) {
+    var U0 = P.pase.umbrales;
+    var cump = cumplimientoSemana(sem, hasta);
+    var sal = saludSemana(sem, hasta);
+    var carga = cargaSemana(sem.desde, hasta < sem.hasta ? hasta : sem.hasta);
+    var porAsistencia = (sem.criterio === "asistencia");
+    var pct = porAsistencia
+      ? (cump.previstos ? cump.hechos / cump.previstos : null)
+      : (carga === null || !sem.carga ? null : carga / sem.carga);
+
+    /* la semana anterior, para la regla de las dos seguidas */
+    var ant = semanaAnteriorDe(sem), pctAnt = null;
+    if (ant) {
+      var cAnt = cargaSemana(ant.desde, ant.hasta);
+      if (ant.criterio === "asistencia") {
+        var cuAnt = cumplimientoSemana(ant, ant.hasta);
+        pctAnt = cuAnt.previstos ? cuAnt.hechos / cuAnt.previstos : null;
+      } else if (cAnt !== null && ant.carga) {
+        pctAnt = cAnt / ant.carga;
+      }
+    }
+
+    var v, porque;
+    if (sal.parar >= 2) {
+      v = "parar";
+      porque = "Dos días o más de lesión o enfermedad.";
+    } else if (pct === null) {
+      v = "repetir";
+      porque = "Sin datos de carga suficientes para decidir otra cosa.";
+    } else if (pctAnt !== null && pct < U0.repetir && pctAnt < U0.repetir) {
+      v = "bajar";
+      porque = "Dos semanas seguidas por debajo del 70 % del objetivo.";
+    } else if (pct >= (porAsistencia ? U0.asistencia : U0.subir)) {
+      v = "subir";
+      porque = porAsistencia
+        ? "Has movido " + cump.hechos + " de " + cump.previstos + " días previstos."
+        : "Carga al " + Math.round(pct * 100) + " % del objetivo.";
+    } else {
+      v = "repetir";
+      porque = (porAsistencia ? "Días movidos: " + cump.hechos + " de " + cump.previstos + "."
+        : "Carga al " + Math.round(pct * 100) + " % del objetivo.") +
+        (sal.limitar ? " Y hubo " + sal.limitar + " día" + (sal.limitar > 1 ? "s" : "") + " con lesión limitante." : "");
+    }
+    return { v: v, porque: porque, pct: pct, pctAnt: pctAnt, carga: carga,
+             cump: cump, sal: sal, porAsistencia: porAsistencia, cerrada: cerrada };
+  }
+
+  function barraPase(pct) {
+    var p = Math.max(0, Math.min(1.3, pct || 0));
+    var clase = pct >= 0.95 ? "ok" : (pct >= 0.7 ? "medio" : "bajo");
+    return '<div class="pase-barra"><i class="' + clase + '" style="width:' +
+      Math.round((p / 1.3) * 100) + '%"></i><span class="obj"></span></div>';
+  }
+
+  function filaPase(n, v, c) {
+    return '<div class="ent-fila"><span class="n">' + U.esc(n) + "</span>" +
+      '<span class="v">' + (v === null || v === undefined ? "—" : v) + "</span>" +
+      '<span class="c">' + U.esc(c || "") + "</span></div>";
+  }
+
+  function htmlPase() {
+    var cfg = P.pase;
+    if (!cfg) return "";
+    var hoy = U.hoyISO(), sem = semanaDe(hoy);
+    if (!sem) return "";
+    var cerrada = hoy >= sem.hasta;
+    var hasta = cerrada ? sem.hasta : hoy;
+    var r = veredictoSemana(sem, hasta, cerrada);
+    var ver = cfg.veredictos[r.v];
+    var pl = P.plantillas[tallaDe(sem)];
+
+    var h = '<div class="tarjeta pase pase-' + r.v + '">' +
+      '<div class="evo-cab"><h2>' + U.esc(cfg.titulo) + "</h2>" +
+      '<span class="pase-etq">Semana ' + sem.n + " · " + U.esc(pl.nombre) + "</span></div>" +
+      '<p class="nota-peque evo-pie">' + U.etiquetaFecha(sem.desde) + " – " + U.etiquetaFecha(sem.hasta) +
+      (cerrada ? " · semana cerrada" : " · en curso, faltan " + diasEntre(hoy, sem.hasta) + " días") + "</p>";
+
+    /* el veredicto, arriba y en grande */
+    h += '<div class="pase-ver"><b>' + U.esc(ver.n) + "</b><small>" + U.esc(r.porque) + " " +
+      U.esc(ver.t) + "</small>" +
+      (cerrada ? "" : '<em class="prov">Provisional: la semana no ha terminado.</em>') + "</div>";
+
+    /* 1. carga */
+    if (r.porAsistencia) {
+      h += '<h3 class="evo-sub">Días movidos</h3>' +
+        barraPase(r.pct === null ? 0 : r.pct) +
+        filaPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos,
+          r.pct === null ? "" : Math.round(r.pct * 100) + " %") +
+        filaPase("Carga registrada", r.carga === null ? null : r.carga,
+          "esta semana no se juzga por carga: es la de arranque, a pie");
+    } else {
+      h += '<h3 class="evo-sub">Carga</h3>' + barraPase(r.pct === null ? 0 : r.pct) +
+        filaPase("Carga de la semana", r.carga === null ? null : r.carga, "objetivo " + sem.carga) +
+        filaPase("Cumplimiento", r.pct === null ? null : Math.round(r.pct * 100) + " %",
+          r.pctAnt === null ? "" : "la anterior, " + Math.round(r.pctAnt * 100) + " %") +
+        filaPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos, "");
+    }
+
+    /* 2. lo que falló, y por qué */
+    if (r.cump.fallos.length) {
+      h += '<h3 class="evo-sub">Lo que falló</h3>';
+      r.cump.fallos.forEach(function (x) {
+        var nombres = x.m.map(function (v) { var m = motivo(v); return m ? m.n : v; });
+        var clase = "otro";
+        x.m.forEach(function (v) {
+          var m = motivo(v);
+          if (!m) return;
+          if (m.efecto === "parar" || m.efecto === "limitar") clase = "salud";
+          else if (m.efecto === "agenda" && clase !== "salud") clase = "agenda";
+        });
+        h += '<div class="pase-fallo ' + clase + '"><b>' +
+          DIA_CORTO[U.desdeISO(x.f).getDay()] + " " + U.desdeISO(x.f).getDate() + "</b>" +
+          '<span>' + (nombres.length ? U.esc(nombres.join(" · ")) : "sin motivo anotado") + "</span>" +
+          (x.nota ? "<small>«" + U.esc(x.nota) + "»</small>" : "") + "</div>";
+      });
+      h += '<p class="nota-peque" style="margin-top:8px">' +
+        (r.sal.agenda && !r.sal.parar && !r.sal.limitar
+          ? "Todo lo que falló fue por agenda, no por el cuerpo: eso no cambia la rampa, cambia el calendario."
+          : (r.sal.parar || r.sal.limitar
+            ? "Lo que falló fue por salud. Eso sí manda sobre la rampa: no se compensa, se recupera."
+            : "Sin motivo anotado. Si vuelve a pasar, marca la observación del día: es lo que distingue «no pude» de «no quise».")) + "</p>";
+    }
+
+    /* 3. peso */
+    var a7 = mediaPesos(hasta, 7), b7 = mediaPesos(U.sumarDias(sem.desde, -1), 7);
+    h += '<h3 class="evo-sub">Peso</h3>';
+    if (a7 && a7.n >= 2) {
+      var dif = b7 && b7.n >= 2 ? a7.m - b7.m : null;
+      var obj = cfg.pesoObjetivo;
+      h += filaPase("Media de la semana", num(a7.m) + " kg", a7.n + " pesadas") +
+        filaPase("Contra la semana anterior", dif === null ? null : signo(dif) + " kg",
+          dif === null ? "hacen falta dos semanas" :
+            (dif <= obj[0] ? "más rápido que el objetivo"
+              : dif <= obj[1] ? "en el ritmo del plan"
+                : dif <= 0 ? "más lento que el objetivo" : "hacia arriba"));
+    } else {
+      h += '<p class="nota-peque">Con ' + (a7 ? a7.n : 0) + " pesadas no se puede hacer media. Con dos ya sale.</p>";
+    }
+
+    /* 4. recuperación */
+    var vf = mediaSalud("vfc", sem.desde, hasta), fc = mediaSalud("fcr", sem.desde, hasta);
+    var su = mediaSalud("sueno_min", sem.desde, hasta);
+    var par = (Salud.datos && Salud.datos.meta && Salud.datos.meta.parametros) || {};
+    var farm = Salud.conFarmaco(hasta);
+    h += '<h3 class="evo-sub">Recuperación</h3>';
+    h += filaPase("VFC media", vf ? num(vf.m) + " ms" : null,
+      farm ? "con corticoide: sin lectura" : (par.base_vfc ? "tu base " + num(par.base_vfc) : ""), farm);
+    h += filaPase("FC en reposo media", fc ? Math.round(fc.m) + " lpm" : null,
+      farm ? "con corticoide: sin lectura" : (par.base_fcr ? "tu base " + num(par.base_fcr) : ""), farm);
+    h += filaPase("Sueño medio", su ? hhmm(Math.round(su.m)) : null, "tu media 6h24");
+
+    /* 5. la semana que viene */
+    var sig = semanaSiguienteDe(sem);
+    h += '<h3 class="evo-sub">La semana que viene</h3>';
+    if (!sig) {
+      h += '<p class="nota-peque">Última semana de la rampa escrita. Toca decidir la siguiente a mano.</p>';
+    } else if (r.v === "subir") {
+      h += '<p class="pase-prox">Semana ' + sig.n + " · <b>" + U.esc(P.plantillas[sig.talla].nombre) +
+        "</b> · carga objetivo <b>" + sig.carga + "</b>" + (sig.nota ? " · " + U.esc(sig.nota) : "") + "</p>";
+    } else if (r.v === "repetir") {
+      h += '<p class="pase-prox">Se repite la <b>semana ' + sem.n + "</b>: misma talla y misma carga objetivo (<b>" +
+        sem.carga + "</b>). La rampa se retrasa una semana y no pasa nada.</p>";
+    } else if (r.v === "bajar") {
+      var prev = semanaAnteriorDe(sem);
+      h += '<p class="pase-prox">Se baja a la carga de la <b>semana ' + (prev ? prev.n : 1) + "</b> (<b>" +
+        (prev ? prev.carga : sem.carga) + "</b>) con talla <b>" +
+        U.esc(P.plantillas[prev ? prev.talla : "B"].nombre) + "</b>.</p>";
+    } else {
+      h += '<p class="pase-prox">Semana en blanco: <b>' + U.esc(P.plantillas.S.nombre) +
+        "</b> si te ves, y si no, descanso. Se retoma donde se dejó.</p>";
+    }
+
+    h += '<p class="nota-peque" style="margin-top:12px">' + U.esc(cfg.nota) + "</p></div>";
+    return h;
+  }
+
   function htmlEvolucion() {
     var FLECHA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
       'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -1578,6 +2079,9 @@
     var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
     var h = volver;
 
+    h += htmlPase();
+
+    h += '<h3 class="evo-sub" style="margin-top:20px">Las series</h3>';
     h += '<div class="evo-rangos">';
     RANGOS.forEach(function (r) {
       h += '<button type="button" class="evo-r' + (r.id === rangoEvo ? " activo" : "") +
@@ -1960,6 +2464,8 @@
       }
       h += htmlObs(dia);
 
+      h += htmlImportarTension(dia);
+
       /* una sola puerta a toda la ayuda: dentro está cada medida por separado */
       h += '<button type="button" class="ent-ayuda" data-guia="*">' +
         '<span class="i">?</span>' +
@@ -2094,6 +2600,19 @@
     return h;
   }
 
+  /* Importar el CSV del tensiómetro desde el propio aparato o el móvil: el
+     fichero no sale de aquí, se lee en la app y las tomas se guardan con el
+     resto del estado. */
+  function htmlImportarTension(dia) {
+    var tot = tomasImportadas().length;
+    var sem = tomasTension(U.sumarDias(dia, -6), dia).length;
+    return '<div class="ent-tension">' +
+      '<label class="ent-mini-file"><input type="file" accept=".csv,text/csv,text/plain" data-csv-tension="1">' +
+      "<span>Importar CSV del tensiómetro</span></label>" +
+      '<small>' + (tot ? tot + " tomas guardadas · " + sem + " esta semana"
+        : "Aún no has importado ninguna. Exporta desde la app del tensiómetro y suelta el fichero aquí.") + "</small></div>";
+  }
+
   function htmlMiEstado(dia, sem) {
     /* el botón trae salud.json otra vez sin esperar a que caduque la copia local:
        hace falta justo después de disparar la recolección, para ver lo que ha bajado */
@@ -2126,7 +2645,13 @@
     var s1 = hhmm(n1.sueno_min), s2 = hhmm(n2.sueno_min);
     h += fila("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""), "tu media: 6h24");
 
-    h += fila("Body Battery al despertar", (d.body_battery || d.body_battery === 0) ? d.body_battery : null, "");
+    /* Body Battery no baja de Garmin a intervals —no está entre los once campos
+       que la integración descarga—, así que la fila solo sale los días que lo
+       tienen del histórico. En su lugar, la puntuación de sueño, que sí llega. */
+    h += fila("Puntuación de sueño", (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null, "de 100, de Garmin");
+    if (d.body_battery || d.body_battery === 0) {
+      h += fila("Body Battery al despertar", d.body_battery, "del histórico");
+    }
 
     var bal = (typeof d.ctl === "number" && typeof d.atl === "number") ? d.ctl - d.atl : null;
     h += fila("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
@@ -2152,10 +2677,10 @@
     if (gCin) h += fila("Grasa (cinta)", num(gCin.pct) + " %",
       "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua");
 
-    var sis = serieMedida("sistolica", dia, 7), dias2 = serieMedida("diastolica", dia, 7);
+    var mtE = mediaTension(U.sumarDias(dia, -6), dia);
     h += fila("Tensión, media de la semana",
-      (sis.length && dias2.length) ? Math.round(media(sis)) + "/" + Math.round(media(dias2)) : null,
-      sis.length ? sis.length + (sis.length === 1 ? " toma" : " tomas") : "la anotas tú");
+      mtE ? Math.round(mtE.sis) + "/" + Math.round(mtE.dia) : null,
+      mtE ? mtE.n + (mtE.n === 1 ? " toma" : " tomas") : "la anotas tú");
 
     if (farmaco) {
       h += '<p class="nota-peque" style="margin-top:10px">Las filas en gris están dentro de la pauta de ' +
@@ -2240,6 +2765,27 @@
         anotarMedida(dia, t.getAttribute("data-medida"), String(t.value).trim());
         U.toast(dia === U.hoyISO() ? "Anotado" : "Anotado en el " + U.etiquetaFecha(dia));
         pintar();
+        return;
+      }
+      if (t.getAttribute("data-csv-tension")) {
+        var fich = t.files && t.files[0];
+        if (!fich) return;
+        var lector = new FileReader();
+        lector.onload = function () {
+          var r = leerCsvTension(lector.result);
+          if (!r.tomas.length) {
+            U.toast(r.error || "No he encontrado ninguna toma en ese fichero");
+            return;
+          }
+          var res = importarTomas(r.tomas);
+          U.toast(res.nuevas
+            ? res.nuevas + (res.nuevas === 1 ? " toma nueva" : " tomas nuevas") +
+              (res.repetidas ? " · " + res.repetidas + " ya estaban" : "")
+            : "Nada nuevo: las " + r.tomas.length + " tomas ya estaban");
+          pintar();
+        };
+        lector.onerror = function () { U.toast("No he podido leer el fichero"); };
+        lector.readAsText(fich, "utf-8");
         return;
       }
       if (t.getAttribute("data-obs-nota")) {

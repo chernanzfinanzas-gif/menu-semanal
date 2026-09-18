@@ -24,7 +24,8 @@
 
     /* ---------- la rampa: cada semana, su carga y su talla ---------- */
     rampa: [
-      { n: 1,  desde: "2026-09-18", hasta: "2026-09-27", carga: 90,  talla: "R", nota: "Con prednisona. Fuerza a media carga" },
+      { n: 1,  desde: "2026-09-18", hasta: "2026-09-27", carga: 90,  talla: "R", criterio: "asistencia",
+        nota: "Con prednisona. Fuerza a media carga" },
       { n: 2,  desde: "2026-09-28", hasta: "2026-10-04", carga: 110, talla: "R", nota: "Fin del corticoide. Revisión el 28" },
       { n: 3,  desde: "2026-10-05", hasta: "2026-10-11", carga: 140, talla: "A", nota: "Primera semana de verdad" },
       { n: 4,  desde: "2026-10-12", hasta: "2026-10-18", carga: 95,  talla: "B", nota: "Descarga. El domingo, test de 20 minutos" },
@@ -164,6 +165,23 @@
         diaDelMes: 1, informativo: true,
         ayuda: "Mensual. Es donde vive el músculo del ciclista: si el peso baja y el muslo aguanta, vas bien; si bajan los dos, estás perdiendo músculo." }
     ],
+
+    /* ---------- el pase de la semana ----------
+       La decisión del domingo, con sus umbrales a la vista. Se decide sobre la
+       CARGA, no sobre las ganas; y las semanas con «criterio: asistencia» se
+       juzgan por días movidos, porque su objetivo de carga no es exigible. */
+    pase: {
+      titulo: "El pase de la semana",
+      umbrales: { subir: 0.95, repetir: 0.70, asistencia: 0.85 },
+      veredictos: {
+        subir:   { n: "Subir", t: "Semana cumplida. La que viene va según la rampa, sin adornos." },
+        repetir: { n: "Repetir", t: "Por debajo del objetivo: se repite la misma carga en vez de subir. Subir sobre una semana incompleta es exactamente como se rompió 2025." },
+        bajar:   { n: "Bajar", t: "Dos semanas seguidas por debajo del 70 %, o la salud manda: se baja un peldaño y se vuelve a construir desde ahí." },
+        parar:   { n: "Semana en blanco", t: "Con lesión o enfermedad no se negocia la carga: se recupera y se retoma donde se dejó, sin intentar compensar." }
+      },
+      pesoObjetivo: [-0.5, -0.3],
+      nota: "El pase mira cinco cosas y ninguna más: carga, cumplimiento, peso, recuperación y lo que dijeron tus observaciones."
+    },
 
     /* ---------- observaciones del día ----------
        Van pegadas a las medidas, y se rellenan en un toque. No son un diario:

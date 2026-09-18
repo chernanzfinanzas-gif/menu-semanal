@@ -1,9 +1,9 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v42";
+var CACHE = "menu-semanal-v46";
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=41",
-  "./js/util.js?v=41", "./js/almacen.js?v=41", "./js/github.js?v=41", "./js/app.js?v=41",
-  "./datos/ingredientes.js?v=41", "./datos/recetas.js?v=41", "./datos/plantillas.js?v=41", "./datos/actividades.js?v=41", "./datos/plan.js?v=41", "./js/entrenamiento.js?v=41",
+  "./", "./index.html", "./css/estilos.css?v=45",
+  "./js/util.js?v=45", "./js/almacen.js?v=45", "./js/github.js?v=45", "./js/app.js?v=45",
+  "./datos/ingredientes.js?v=45", "./datos/recetas.js?v=45", "./datos/plantillas.js?v=45", "./datos/actividades.js?v=45", "./datos/plan.js?v=45", "./js/entrenamiento.js?v=45",
   "./iconos/khb/1-arbol-pulso.webp", "./iconos/khb/2-frutas-tenedor.webp", "./iconos/khb/3-pesas-corredor.webp", "./iconos/khb/4-agua.webp", "./iconos/khb/5-sueno.webp", "./iconos/khb/6-zapatillas.webp", "./iconos/khb/7-yoga.webp", "./iconos/khb/8-recetario.webp", "./iconos/khb/9-podio.webp", "./iconos/khb/10-bici.webp", "./iconos/khb/11-montana.webp", "./media/cartel-h.webp", "./media/cartel-v.webp", "./manifest.webmanifest", "./iconos/icono.svg"
 ];
 
