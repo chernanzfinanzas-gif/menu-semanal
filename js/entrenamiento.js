@@ -1794,6 +1794,16 @@
   }
 
   /* pesos de las dos fuentes en una sola serie: intervals y lo anotado a mano */
+  /* Las tres de la báscula que hay que teclear: lo anotado en la app manda
+     sobre lo que quedó en el histórico. */
+  function serieMixta(campo, v) {
+    var vistos = {}, out = [], i;
+    serieSalud(campo, v).forEach(function (p) { vistos[p.f] = p.v; });
+    serieApp(campo, v).forEach(function (p) { vistos[p.f] = p.v; });
+    for (i in vistos) out.push({ f: i, v: vistos[i] });
+    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+  }
+
   function seriePeso(v) {
     var vistos = {};
     serieApp("peso", v).forEach(function (p) { vistos[p.f] = p.v; });
@@ -2607,52 +2617,61 @@
   function defHistoria(clave) {
     var v = { desde: "2019-01-01", hasta: U.hoyISO() };
     var D = {
-      peso: { n: "Peso", u: "kg", serie: function () { return seriePeso(v); },
+      peso: { n: "Peso", u: "kg", dias: 90, serie: function () { return seriePeso(v); },
               media: 7, objetivo: pesoObjetivo(), etqObj: "tu objetivo",
               pie: "La línea gruesa es la media de 7 días, que es la que cuenta: el dato del día oscila más de un kilo por agua y tránsito." },
-      cintura: { n: "Cintura", u: "cm", serie: function () { return serieApp("cintura", v); },
+      cintura: { n: "Cintura", u: "cm", dias: 120, serie: function () { return serieApp("cintura", v); },
                  objetivo: Math.round(alturaCm() * 0.5), etqObj: "0,50 de tu altura",
                  techo: 102, etqTecho: "102 cm · riesgo alto",
                  pie: "El umbral de riesgo bajo es media altura. Es la medida que más se mueve con el plan." },
-      cuello: { n: "Cuello", u: "cm", serie: function () { return serieApp("cuello", v); },
+      cuello: { n: "Cuello", u: "cm", dias: 120, serie: function () { return serieApp("cuello", v); },
                 pie: "Solo sirve para el cálculo de grasa por cinta: no es un objetivo en sí." },
-      tobillo: { n: "Tobillo", u: "cm", serie: function () { return serieApp("tobillo", v); },
+      tobillo: { n: "Tobillo", u: "cm", dias: 30, serie: function () { return serieApp("tobillo", v); },
                  pie: "Mide líquido, no grasa. Lo que cuenta es el cambio respecto a tus días normales." },
-      brazo: { n: "Brazo", u: "cm", serie: function () { return serieApp("brazo", v); }, pie: "Informativo: se mueve muy poco." },
-      muslo: { n: "Muslo", u: "cm", serie: function () { return serieApp("muslo", v); },
+      brazo: { n: "Brazo", u: "cm", dias: 180, serie: function () { return serieApp("brazo", v); }, pie: "Informativo: se mueve muy poco." },
+      muslo: { n: "Muslo", u: "cm", dias: 180, serie: function () { return serieApp("muslo", v); },
                pie: "Donde vive el músculo del ciclista. Si el peso baja y el muslo aguanta, vas bien." },
-      grasa: { n: "Grasa corporal", u: "%", serie: function () { return serieSalud("grasa", v); },
+      grasaCinta: { n: "Grasa por cinta", u: "%", dias: 120,
+                    serie: function () { return serieGrasaCinta(v); },
+                    pie: "Sale de cintura, cuello y altura. No depende del agua del cuerpo, así que para la tendencia es más fiable que la báscula." },
+      grasa: { n: "Grasa corporal", u: "%", dias: 120, serie: function () { return serieSalud("grasa", v); },
                serie2: function () { return serieGrasaCinta(v); }, etq2: "por cinta",
                par: ["báscula", "cinta"],
                pie: "Azul la báscula, roja la cinta. Mientras vayan juntas, las dos valen." },
-      magra: { n: "Masa magra", u: "kg", serie: function () { return serieSalud("magra", v); },
+      musculo: { n: "Músculo", u: "kg", dias: 120, serie: function () { return serieMixta("musculo", v); },
+                 pie: "La báscula lo mide y intervals no lo baja, así que solo entra si lo tecleas tú mirando la app de Garmin." },
+      agua: { n: "Agua corporal", u: "%", dias: 120, serie: function () { return serieMixta("agua", v); },
+              pie: "Sube al perder grasa y sube al retener líquido: con el corticoide pueden estar pasando las dos. Se mira junto al tobillo y al peso, nunca sola." },
+      hueso: { n: "Masa ósea", u: "kg", dias: 365, serie: function () { return serieMixta("hueso", v); },
+               pie: "En un adulto es casi una constante. Sirve de control de la báscula: si baila, la medición de ese día no vale." },
+      magra: { n: "Masa magra", u: "kg", dias: 120, serie: function () { return serieSalud("magra", v); },
                pie: "El indicador principal del plan: lo que se quiere es que baje el peso y ésta aguante." },
-      vfc: { n: "VFC", u: "ms", serie: function () { return serieSalud("vfc7", v); },
+      vfc: { n: "VFC", u: "ms", dias: 30, serie: function () { return serieSalud("vfc7", v); },
              objetivo: baseSalud("base_vfc"), etqObj: "tu base",
              pie: "Media de 7 noches. Dice lo que ya pasó, no lo que va a pasar." },
-      fcr: { n: "FC en reposo", u: "lpm", serie: function () { return serieSalud("fcr", v); },
+      fcr: { n: "FC en reposo", u: "lpm", dias: 30, serie: function () { return serieSalud("fcr", v); },
              objetivo: baseSalud("base_fcr"), etqObj: "tu base", invertido: true,
              pie: "Cuanto más baja, mejor. Cinco pulsaciones por encima de tu base tres días seguidos es señal." },
-      sueno: { n: "Sueño", u: "h", serie: function () {
+      sueno: { n: "Sueño", u: "h", dias: 14, serie: function () {
                  return serieSalud("sueno_min", v).map(function (p) { return { f: p.f, v: p.v / 60 }; });
                }, objetivo: 7, etqObj: "7 h",
                pie: "Lo que predice el día siguiente son las dos últimas noches, no la media del mes." },
-      pt_sueno: { n: "Puntuación de sueño", u: "de 100", serie: function () { return serieSalud("pt_sueno", v); },
+      pt_sueno: { n: "Puntuación de sueño", u: "de 100", dias: 14, serie: function () { return serieSalud("pt_sueno", v); },
                   objetivo: 70, etqObj: "70", pie: "La nota que pone Garmin a la noche." },
-      ctl: { n: "Forma (CTL)", u: "puntos", serie: function () { return serieSalud("ctl", v); },
+      ctl: { n: "Forma (CTL)", u: "puntos", dias: 42, serie: function () { return serieSalud("ctl", v); },
              pie: "Sube despacio y se cae rápido. Mayo de 2026 estaba en 79." },
       carga: { n: "Carga semanal", u: "", serie: function () {
                  var cs = seriesCargaSemanal();
                  return cs.reales;
                }, serie2: function () { return seriesCargaSemanal().objetivos; }, etq2: "objetivo de la rampa",
                barras: true, pie: "Lo hecho contra lo que pedía la rampa, semana a semana." },
-      tension: { n: "Tensión", u: "mmHg", serie: function () {
+      tension: { n: "Tensión", u: "mmHg", dias: 30, serie: function () {
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.sis }; });
                  }, serie2: function () {
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.dia }; });
                  }, etq2: "diastólica", par: ["alta", "baja"], techo: 140, etqTecho: "140",
                  pie: "Azul la alta, roja la baja. Lo que se mira es la media de varios días, nunca una toma." },
-      pulso: { n: "Pulso del tensiómetro", u: "ppm", serie: function () {
+      pulso: { n: "Pulso del tensiómetro", u: "ppm", dias: 30, serie: function () {
                  return tomasTension(v.desde, v.hasta).filter(function (t) { return t.pul; })
                    .map(function (t) { return { f: t.f, v: t.pul }; });
                }, pie: "Contraste independiente del pulso en reposo del reloj." }
@@ -2814,7 +2833,7 @@
   /* hacia dónde es mejor que vaya cada una */
   var MEJOR = {
     peso: "baja", cintura: "baja", cuello: null, tobillo: null, brazo: null, muslo: null,
-    grasa: "baja", magra: "sube", vfc: "sube", fcr: "baja", sueno: "sube",
+    grasa: "baja", grasaCinta: "baja", magra: "sube", musculo: "sube", vfc: "sube", fcr: "baja", sueno: "sube",
     pt_sueno: "sube", ctl: "sube", carga: "sube", tension: "baja", pulso: null
   };
 
@@ -2831,21 +2850,23 @@
 
   /* la tendencia: media del tercio final contra la del tercio inicial */
   function tendencia(clave, dias) {
-    var s = serieDe(clave, dias || 90);
-    /* si en la ventana corta no hay casi nada —el peso son dos pesadas, la
-       cintura una—, se mira la serie entera: lo que hay, ni más ni menos */
-    if (s.length < 3) {
-      var todo = serieDe(clave, 0);
-      if (todo.length > s.length) s = todo;
-    }
+    var d0 = defHistoria(clave);
+    var v = dias || (d0 && d0.dias) || 90;
+    var s = serieDe(clave, v);
+    /* NO se cae a la serie entera cuando faltan datos. Hacerlo pintaba el peso
+       de verde —«bajando»— porque miraba de agosto de 2025 a abril de 2026,
+       mientras hoy sube. El color tiene que hablar del mismo tramo que el
+       número que tiene al lado, o miente. */
     /* Con menos de cuatro medidas no se pinta color. Dos puntos separados
        cinco meses dibujan la historia que uno quiera, y un rojo que miente una
        vez deja de mirarse para siempre. */
     if (s.length < MINIMO_TEND) {
       var faltan = MINIMO_TEND - s.length;
-      return { estado: "nada", color: COL_TEND.nada, serie: s,
-               texto: !s.length ? "sin datos"
-                 : "falta" + (faltan === 1 ? " 1 medida" : "n " + faltan + " medidas") + " para decir nada" };
+      var cuanto = v >= 365 ? "el último año" : (v >= 60 ? "los últimos " + Math.round(v / 30) + " meses"
+        : "los últimos " + v + " días");
+      return { estado: "nada", color: COL_TEND.nada, serie: s, ventanaDias: v,
+               texto: !s.length ? "sin medidas en " + cuanto
+                 : "falta" + (faltan === 1 ? " 1 medida" : "n " + faltan + " medidas") + " en " + cuanto };
     }
     /* los tercios van de dos en dos como mínimo: con un solo punto por tercio,
        una pesada alta un día cualquiera daría la vuelta a la tendencia */
@@ -2991,8 +3012,8 @@
   function barraRef(clave, valor, t) {
     if (valor === null || valor === undefined || isNaN(valor)) return "";
     var d = defHistoria(clave);
-    var s = (t && t.serie && t.serie.length) ? t.serie : serieDe(clave, 90);
-    if (!s.length) return "";
+    var s = (t && t.serie && t.serie.length) ? t.serie : serieDe(clave, (d && d.dias) || 90);
+    if (s.length < 2) return "";          // con un punto la barra iría de 43,5 a 43,5
     var min = Infinity, max = -Infinity;
     s.forEach(function (x) { if (x.v < min) min = x.v; if (x.v > max) max = x.v; });
     if (valor < min) min = valor;
@@ -3282,6 +3303,8 @@
     }
     h += "</div>";
 
+    h += htmlMisMedidas(dia);
+
     /* lo que sale de todo eso: primero la lectura del día, luego el estado */
     var lec = lecturas(dia);
     if (lec.length) {
@@ -3439,6 +3462,64 @@
         : "Aún no has importado ninguna. Exporta desde la app del tensiómetro y suelta el fichero aquí.") + "</small></div>";
   }
 
+  /* ==================== LO QUE ESTOY MIDIENDO ====================
+     Las medidas que se teclean, con el mismo formato que Mi estado: valor,
+     dibujito, barra contra la referencia y tendencia con su color. Mientras no
+     haya cuatro medidas el semáforo está apagado y dice cuántas faltan — que es
+     precisamente el estado en el que están casi todas ahora mismo. */
+
+  var MIS_MEDIDAS = [
+    { k: "cintura", n: "Cintura", u: " cm" },
+    { k: "cuello",  n: "Cuello",  u: " cm" },
+    { k: "tobillo", n: "Tobillo", u: " cm" },
+    { k: "muslo",   n: "Muslo",   u: " cm" },
+    { k: "brazo",   n: "Brazo",   u: " cm" }
+  ];
+
+  function htmlMisMedidas(dia) {
+    var h = '<div class="tarjeta"><h2>Lo que estoy midiendo</h2>' +
+      '<p class="nota-peque">Lo que has anotado tú, con su tendencia. ' +
+      "El color aparece a partir de la cuarta medida.</p>";
+
+    MIS_MEDIDAS.forEach(function (m) {
+      var u = ultimaMedida(dia, m.k);
+      h += tarjeta(m.n, u ? num(u.v) + m.u : null,
+        u ? "del " + U.etiquetaFecha(u.f) : "sin anotar todavía",
+        m.k, null, u ? u.v : null);
+    });
+
+    /* la tensión va con sus dos cifras, así que se cuenta aparte */
+    var mt = mediaTension(U.sumarDias(dia, -13), dia);
+    h += tarjeta("Tensión", mt ? Math.round(mt.sis) + "/" + Math.round(mt.dia) : null,
+      mt ? "media de " + mt.n + (mt.n === 1 ? " toma" : " tomas") + " en dos semanas · el color lo manda la alta"
+         : "sin tomas anotadas", "tension", null, mt ? mt.sis : null);
+    if (mt && mt.pul) {
+      h += tarjeta("Pulso del tensiómetro", Math.round(mt.pul) + " ppm",
+        "contraste independiente del pulso del reloj", "pulso", null, mt.pul);
+    }
+
+    /* las tres de la báscula que intervals no baja y tecleas tú */
+    [{ k: "musculo", n: "Músculo", u: " kg",
+       vacio: "lo mide tu báscula pero no llega a intervals: anótalo cuando te acuerdes" },
+     { k: "agua", n: "Agua corporal", u: " %",
+       vacio: "de la misma pantalla de Garmin · sin color a propósito: sube por grasa y por retención" },
+     { k: "hueso", n: "Masa ósea", u: " kg",
+       vacio: "de la misma pantalla de Garmin · sirve de control de la báscula" }
+    ].forEach(function (m) {
+      var u = ultimaMedida(dia, m.k) || ultimoDeSalud(m.k, dia);
+      h += tarjeta(m.n, u ? num(u.v) + m.u : null,
+        u ? "del " + U.etiquetaFecha(u.f) + " · lo anotas tú desde la app de Garmin" : m.vacio,
+        m.k, null, u ? u.v : null);
+    });
+
+    /* la grasa por cinta sale de cintura y cuello, así que vive aquí */
+    var gc = grasaPorCinta(dia);
+    h += tarjeta("Grasa estimada por cinta", gc ? num(gc.pct) + " %" : null,
+      gc ? "de la cintura y el cuello del " + U.etiquetaFecha(gc.fecha) + " · no depende del agua"
+         : "hacen falta cintura y cuello", "grasaCinta", null, gc ? gc.pct : null);
+    return h + "</div>";
+  }
+
   function htmlMiEstado(dia, sem) {
     /* el botón trae salud.json otra vez sin esperar a que caduque la copia local:
        hace falta justo después de disparar la recolección, para ver lo que ha bajado */
@@ -3478,9 +3559,6 @@
     h += tarjeta("Puntuación de sueño", (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null,
       "de 100, de Garmin", "pt_sueno", null,
       (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null);
-    if (d.body_battery || d.body_battery === 0) {
-      h += tarjeta("Body Battery al despertar", d.body_battery, "del histórico");
-    }
 
     var bal = (typeof d.ctl === "number" && typeof d.atl === "number") ? d.ctl - d.atl : null;
     h += tarjeta("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
@@ -3504,17 +3582,8 @@
     var mBas = ultimoDeSalud("magra", fechaDato);
     if (mBas) h += tarjeta("Masa magra (báscula)", num(mBas.v) + " kg",
       "del " + U.etiquetaFecha(mBas.f), "magra", null, mBas.v);
-    var muBas = ultimoDeSalud("musculo", fechaDato);
-    if (muBas) h += tarjeta("Músculo (báscula)", num(muBas.v) + " kg", "del " + U.etiquetaFecha(muBas.f));
-    var gCin = grasaPorCinta(dia);
-    if (gCin) h += tarjeta("Grasa (cinta)", num(gCin.pct) + " %",
-      "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua", "grasa", null, gCin.pct);
-
-    var mtE = mediaTension(U.sumarDias(dia, -6), dia);
-    h += tarjeta("Tensión, media de la semana",
-      mtE ? Math.round(mtE.sis) + "/" + Math.round(mtE.dia) : null,
-      mtE ? mtE.n + (mtE.n === 1 ? " toma" : " tomas") : "la anotas tú",
-      "tension", null, mtE ? mtE.sis : null);
+    /* grasa por cinta y tensión las tecleas tú: viven en «Lo que estoy
+       midiendo» y no se repiten aquí. Un dato en dos sitios sobra en uno. */
 
     if (farmaco) {
       h += '<p class="nota-peque" style="margin-top:12px">Estás dentro de la pauta de corticoide. ' +
