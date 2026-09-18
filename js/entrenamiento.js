@@ -12,6 +12,7 @@
 
   var U = global.Util, A = global.Almacen, P = global.DATOS_PLAN;
   var DIA_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  var MES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   var DIA_CORTO = ["D", "L", "M", "X", "J", "V", "S"];
   var MIN_SESION = 20;      // minutos a partir de los cuales el reloj marca el día como hecho
   var bloque = "portada";   // "portada" | "plan"
@@ -212,7 +213,7 @@
       ".evo-v{font-size:1.25rem;font-weight:700;color:var(--azul-hondo)}",
       ".evo-u{font-size:.72rem;color:var(--gris)}",
       ".evo-pie{margin:2px 0 10px}",
-      ".evo-svg{display:block;width:100%;height:auto;overflow:visible}",
+      ".evo-svg{display:block;width:100%;max-width:520px;height:auto;overflow:visible}",
       ".evo-sub{margin:16px 0 6px;font-size:.86rem;font-weight:700;color:var(--azul-hondo)}",
       ".evo-ley{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:.72rem;color:var(--gris)}",
       ".evo-ley span{display:inline-flex;align-items:center;gap:5px}",
@@ -1264,20 +1265,45 @@
     var series = (o.series || []).filter(function (s) { return s.pts && s.pts.length; });
     if (!series.length) return "";
 
-    var min = Infinity, max = -Infinity;
-    series.forEach(function (s) {
-      s.pts.forEach(function (p) { if (p.v < min) min = p.v; if (p.v > max) max = p.v; });
-    });
+    /* La escala se hace con los percentiles 2 y 98, no con el mínimo y el máximo:
+       una noche suelta de 18,9 h aplastaba el resto de la gráfica contra el suelo. */
+    var todos = [];
+    series.forEach(function (s) { s.pts.forEach(function (p) { todos.push(p.v); }); });
+    todos.sort(function (a, b) { return a - b; });
+    function pct(q) { return todos[Math.min(todos.length - 1, Math.max(0, Math.round((todos.length - 1) * q)))]; }
+    var min = pct(0.02), max = pct(0.98);
+    var recortados = (min > todos[0] || max < todos[todos.length - 1]);
     if (o.min !== undefined && o.min < min) min = o.min;
     if (o.max !== undefined && o.max > max) max = o.max;
     if (max - min < 0.5) { max += 0.5; min -= 0.5; }
-    var minD = min, maxD = max;                    // los extremos reales, para rotularlos
+    var minD = min, maxD = max;                    // los extremos rotulados
     var pad = (max - min) * 0.12; min -= pad; max += pad;
+
+    /* El eje empieza donde empiezan los datos: si no, se ven medias gráficas vacías */
+    var priF = null, ultF = null;
+    series.forEach(function (s) {
+      var a = s.pts[0].f, b = s.pts[s.pts.length - 1].f;
+      if (!priF || a < priF) priF = a;
+      if (!ultF || b > ultF) ultF = b;
+    });
+    if (priF && priF > o.desde) o.desde = priF;
+    if (o.ajustarFin !== false && ultF && ultF < o.hasta && diasEntre(ultF, o.hasta) > 30) o.hasta = ultF;
 
     var t0 = U.desdeISO(o.desde).getTime(), t1 = U.desdeISO(o.hasta).getTime();
     if (t1 <= t0) t1 = t0 + 86400000;
-    function X(f) { return L + (W - L - R) * ((U.desdeISO(f).getTime() - t0) / (t1 - t0)); }
-    function Y(v) { return T + (H - T - B) * (1 - (v - min) / (max - min)); }
+    var diasEje = Math.round((t1 - t0) / 86400000);
+    function rotuloFecha(f) {
+      var d = U.desdeISO(f);
+      return diasEje > 300 ? (MES_CORTO[d.getMonth()] + " " + d.getFullYear()) : U.etiquetaFecha(f);
+    }
+    function X(f) {
+      var x = L + (W - L - R) * ((U.desdeISO(f).getTime() - t0) / (t1 - t0));
+      return x < L ? L : (x > W - R ? W - R : x);
+    }
+    function Y(v) {
+      var y = T + (H - T - B) * (1 - (v - min) / (max - min));
+      return y < T ? T : (y > H - B ? H - B : y);   // lo que se sale de escala se recorta al borde
+    }
     function xy(p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); }
 
     var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' +
@@ -1290,7 +1316,7 @@
         '" height="' + (H - T - B) + '" fill="' + (b.color || "#eef1f0") + '"/>';
       /* la etiqueta de la banda va arriba: abajo chocaba con las fechas */
       if (b.etq && (x1 - x0) > 26) s += '<text x="' + ((x0 + x1) / 2).toFixed(1) + '" y="' + (T + 7) +
-        '" text-anchor="middle" font-size="7" fill="#667a70">' + U.esc(b.etq) + "</text>";
+        '" text-anchor="middle" font-size="8" fill="#667a70">' + U.esc(b.etq) + "</text>";
     });
 
     (o.lineasH || []).forEach(function (l) {
@@ -1299,7 +1325,7 @@
         '" stroke="' + (l.color || "#cfd8d4") + '" stroke-width="1" stroke-dasharray="3 3"/>';
       /* a la izquierda: a la derecha están los números de la escala */
       if (l.etq) s += '<text x="' + (L + 2) + '" y="' + (Y(l.v) - 2).toFixed(1) +
-        '" font-size="7" fill="#667a70">' + U.esc(l.etq) + "</text>";
+        '" font-size="8" fill="#667a70">' + U.esc(l.etq) + "</text>";
     });
 
     series.forEach(function (se) {
@@ -1355,16 +1381,17 @@
 
     /* los extremos, rotulados: una gráfica sin escala no dice nada */
     if (o.escala !== false) {
-      s += '<text x="' + (W - R) + '" y="' + (Y(maxD) - 3).toFixed(1) +
-        '" text-anchor="end" font-size="7" fill="#9aa8a2">' + U.esc(num(maxD)) + "</text>";
-      s += '<text x="' + (W - R) + '" y="' + (Y(minD) + 8).toFixed(1) +
-        '" text-anchor="end" font-size="7" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
+      s += '<text x="' + (W - R) + '" y="' + (Y(maxD) + 1).toFixed(1) +
+        '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(maxD)) +
+        (recortados ? "+" : "") + "</text>";
+      s += '<text x="' + (W - R) + '" y="' + (Y(minD) - 1).toFixed(1) +
+        '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
     }
-    s += '<text x="' + L + '" y="7" font-size="7.5" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
-    s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="7.5" fill="#667a70">' +
-      U.etiquetaFecha(o.desde) + "</text>";
-    s += '<text x="' + (W - R) + '" y="' + (H - 3) + '" text-anchor="end" font-size="7.5" fill="#667a70">' +
-      (o.hasta === U.hoyISO() ? "hoy" : U.etiquetaFecha(o.hasta)) + "</text>";
+    s += '<text x="' + L + '" y="7" font-size="8" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
+    s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="8" fill="#667a70">' +
+      rotuloFecha(o.desde) + "</text>";
+    s += '<text x="' + (W - R) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
+      (o.hasta === U.hoyISO() ? "hoy" : rotuloFecha(o.hasta)) + "</text>";
     return s + "</svg>";
   }
 
@@ -1489,22 +1516,35 @@
     var cuerpo2, nota2 = "";
     if (vfc.length || fcr.length) {
       var par = (Salud.datos.meta && Salud.datos.meta.parametros) || {};
+      /* VFC y pulso en reposo, en gráficas separadas: comparten rango de números
+         pero no significan lo mismo, y juntos se aplastaban en una cinta.
+         En tramos largos la VFC de cada noche se calla: son cientos de picos. */
+      var tramoLargo = diasEntre(v.desde, v.hasta) > 200;
       cuerpo2 = grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "ms · lpm",
-        alt: "VFC y frecuencia cardíaca en reposo",
-        lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base de VFC" }] : [],
-        series: [{ pts: vfc, color: "#b9cbdd", ancho: 1.1, marcarUltimo: false },
-                 { pts: vfc7, color: AZUL, ancho: 2.4 },
-                 { pts: fcr, color: AMBAR, ancho: 1.8 }]
-      }) + leyenda([{ n: "VFC diaria", color: "#b9cbdd" }, { n: "VFC media de 7", color: AZUL },
-                    { n: "FC en reposo", color: AMBAR }]);
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 104, arriba: "VFC · ms",
+        alt: "Variabilidad de la frecuencia cardíaca",
+        lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base" }] : [],
+        series: (tramoLargo ? [] : [{ pts: vfc, color: "#c3d3e2", ancho: 1, marcarUltimo: false }])
+          .concat([{ pts: vfc7, color: AZUL, ancho: 2.4 }])
+      }) + leyenda([{ n: "media de 7 días", color: AZUL }].concat(
+        tramoLargo ? [] : [{ n: "cada noche", color: "#c3d3e2" }]));
+      if (fcr.length) {
+        cuerpo2 += '<h3 class="evo-sub">Pulso en reposo</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm",
+          alt: "Frecuencia cardíaca en reposo",
+          lineasH: par.base_fcr ? [{ v: par.base_fcr, color: "#eccf9a", etq: "tu base" }] : [],
+          series: [{ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr, color: AMBAR, ancho: 1.8 }]
+        });
+      }
       if (sue.length) {
         cuerpo2 += '<h3 class="evo-sub">Sueño</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 84, arriba: "horas", min: 0,
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "horas", min: 0,
           alt: "Horas de sueño por noche",
           lineasH: [{ v: 7, color: "#cfdcea", etq: "7 h" }],
-          series: [{ pts: sue, color: "#7fa8cd", barras: true, opacidad: 0.85 }]
-        });
+          series: [{ pts: tramoLargo ? mediaMovilDias(sue, 7) : sue, color: "#7fa8cd",
+                     barras: !tramoLargo, ancho: 2, opacidad: 0.85 }]
+        }) + '<p class="nota-peque" style="margin:4px 0 0">' +
+          (tramoLargo ? "En tramos largos, la media móvil de siete noches." : "Una barra por noche.") + "</p>";
       }
       if (bandas.length) {
         nota2 = "El tramo sombreado es el del corticoide: <b>ahí no se interpreta nada</b>, " +
@@ -1524,7 +1564,8 @@
       cuerpo3 = grafica({
         desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "puntos", min: 0,
         alt: "Forma y fatiga",
-        series: [{ pts: ctl, color: AZUL, ancho: 2.4 }, { pts: atl, color: ROJO, ancho: 1.6 }]
+        series: [{ pts: ctl, color: AZUL, ancho: 2.4 },
+                 { pts: atl, color: ROJO, ancho: diasEntre(v.desde, v.hasta) > 200 ? 1 : 1.6 }]
       }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
       if (cs.objetivos.length) {
         cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
