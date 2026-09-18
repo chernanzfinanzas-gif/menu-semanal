@@ -323,6 +323,9 @@
       "  font-weight:600;cursor:pointer}",
       ".ent-refresco:hover{border-color:var(--azul)}",
       /* guías de sesión */
+      ".ent-soltar{border:0;background:none;padding:0 0 0 4px;font:inherit;font-size:.78rem;",
+      "  color:var(--azul);text-decoration:underline;cursor:pointer}",
+      ".ent-soltar:hover{color:var(--azul-hondo)}",
       ".ent-comose{margin-left:8px;border:1px solid var(--azul-borde);background:var(--azul-claro);",
       "  color:var(--azul-hondo);border-radius:999px;padding:2px 9px;font:inherit;font-size:.68rem;",
       "  font-weight:700;letter-spacing:.02em;cursor:pointer;vertical-align:1px}",
@@ -419,13 +422,24 @@
       "  text-align:center;min-height:86px;display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer}",
       ".ent-dia:hover{border-color:var(--azul-borde)}",
       ".ent-dia:focus-visible{outline:2px solid var(--azul);outline-offset:2px}",
+      /* verde cumplido · rojo sin cumplir · ámbar lo que cae fuera del plan ·
+         azul lo vigente y lo pendiente */
+      ".ent-dia.ok{background:#eef5f0;border-color:#bcd6c6}",
+      ".ent-dia.fallo{background:var(--rojo-fondo);border-color:#e3b4ab}",
+      ".ent-dia.fuera{background:var(--ambar-fondo);border-color:#eccf9a}",
+      ".ent-dia.pend{background:var(--azul-claro);border-color:var(--azul-borde)}",
       ".ent-dia.hoy{border-color:var(--azul);background:var(--azul-claro);box-shadow:inset 0 -3px 0 var(--azul)}",
       ".ent-dia.sel{border-color:var(--azul);border-width:2px;background:var(--azul-claro)}",
       ".ent-dia .d{font-weight:700;font-size:.8rem;color:var(--azul-hondo)}",
       ".ent-dia .f{font-size:.66rem;color:var(--gris)}",
       ".ent-dia .q{font-size:.64rem;color:var(--gris);line-height:1.25;overflow-wrap:anywhere}",
       ".ent-dia .p{width:9px;height:9px;border-radius:50%;background:var(--borde);margin-top:auto;flex:none}",
-      ".ent-dia.ok .p{background:var(--azul)}",
+      ".ent-dia.ok .p{background:#2f6b47}",
+      ".ent-dia.fallo .p{background:#b3402f}",
+      ".ent-dia.fuera .p{background:#e0c48c}",
+      ".ent-dia.pend .p{background:var(--azul-borde)}",
+      ".ent-dia.hoy.ok .p{background:#2f6b47}",       /* hoy sigue azul, pero el punto ya dice que está hecho */
+      ".ent-dia.fuera .q,.ent-dia.fuera .f{color:#8a7448}",
       ".ent-talla{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}",
       ".ent-talla select{padding:7px 9px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
       "@media(max-width:520px){.ent-semana{grid-template-columns:repeat(4,1fr)}.ent-cab img{width:52px;height:52px}}"
@@ -596,15 +610,21 @@
     return e.entreno;
   }
 
-  /* marca: true = hecha · "no" = NO hecha, aunque el reloj diga otra cosa · nada = lo que diga el reloj */
+  /* marca: true = hecha · "no" = NO hecha · nada = lo que diga el reloj.
+     El «no» se guarda CON LA HORA en que se puso —{v:"no", t:<ms>}— porque un
+     «no» de las nueve de la mañana no puede desmentir una caminata de las seis
+     de la tarde. Los «no» antiguos, que son la cadena "no" sin hora, siguen
+     valiendo y siguen mandando siempre. */
   function marcaDe(iso, id) { var d = ent().checks[iso]; return d ? d[id] : undefined; }
-  function marcado(iso, id) { return marcaDe(iso, id) === true; }
+  function valorMarca(m) { return (m && typeof m === "object") ? m.v : m; }
+  function horaMarca(m) { return (m && typeof m === "object" && m.t) ? m.t : null; }
+  function marcado(iso, id) { return valorMarca(marcaDe(iso, id)) === true; }
 
   function marcar(iso, id, valor) {
     var c = ent().checks;
     if (!c[iso]) c[iso] = {};
     if (valor === true) c[iso][id] = true;
-    else if (valor === "no") c[iso][id] = "no";
+    else if (valor === "no") c[iso][id] = { v: "no", t: Date.now() };
     else delete c[iso][id];
     if (c[iso] && !Object.keys(c[iso]).length) delete c[iso];
     A.guardar("entreno");
@@ -1065,9 +1085,15 @@
   function registradas(iso) {
     if (Salud.datos) {
       return Salud.actividades(iso).map(function (a) {
+        var ms = null;
+        if (a.fecha && String(a.fecha).length > 10) {
+          var d0 = new Date(String(a.fecha).replace(" ", "T"));
+          if (!isNaN(d0.getTime())) ms = d0.getTime();
+        }
         return {
           min: Math.round(a.min_mov || a.min || 0),
           nombre: a.nombre || a.tipo || "Actividad",
+          ms: ms,
           fam: familia((a.nombre || "") + " " + (a.tipo || ""))
         };
       });
@@ -1098,10 +1124,21 @@
     return null;
   }
 
+  /* ¿Hay una actividad que desmienta un «no»? Solo cuenta la que EMPEZÓ
+     después de que pusieras el «no»: si desmarcas una sesión que el reloj ya
+     había registrado, sigues diciendo «esa actividad no era la sesión», y eso
+     manda. */
+  function desmienteAlNo(iso, sesion, m) {
+    var t = horaMarca(m);
+    if (!t) return null;                     // «no» viejo, sin hora: manda siempre
+    var r = relojPara(iso, sesion);
+    return (r && r.ms && r.ms > t) ? r : null;
+  }
+
   function sesionHecha(iso, sesion, i) {
-    var m = marcaDe(iso, "s" + i);
-    if (m === true) return true;
-    if (m === "no") return false;
+    var m = marcaDe(iso, "s" + i), v = valorMarca(m);
+    if (v === true) return true;
+    if (v === "no") return !!desmienteAlNo(iso, sesion, m);
     return !!relojPara(iso, sesion);
   }
 
@@ -1144,6 +1181,7 @@
     });
     (P.tareas || []).forEach(function (t) {
       if (marcadaAlgunDia("tk_" + t.id)) return;
+      if (t.desde && iso < t.desde) return;        // todavía no toca acordarse
       var vencida = iso > t.limite;
       fuera.push({
         id: "tk_" + t.id, nombre: t.nombre, sello: "tarea", claseSello: "tarea",
@@ -3065,14 +3103,51 @@
     }
   }
 
-  function pintar() {
+  function pintar(mantener) {
     var cont = document.getElementById("vista-entreno");
     if (!cont || !A.estado) return;
     aplicarPases();                         // lo primero: la cola al día antes de dibujar nada
     vestir(cont.classList.contains("activa"));
     cont.innerHTML = (bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion() : htmlPortada();
-    window.scrollTo(0, 0);
+    if (!mantener) window.scrollTo(0, 0);
+  }
+
+  /* Repintar cuesta la pantalla entera: el scroll sube y el foco desaparece.
+     Tecleando agua, músculo y hueso seguidos, cada valor te echaba de la
+     pantalla. Así que antes de repintar se apunta dónde estabas y después se
+     devuelve. Lo que se guarda es DÓNDE ESTÁ EL FOCO AHORA, no qué casilla
+     cambió: al tabular, el cambio lo dispara la casilla que dejas y el foco ya
+     está en la siguiente — devolverlo a la que dejaste sería ir hacia atrás. */
+  function pintarConservando() {
+    /* Se repinta en el siguiente tick, no ahora. Al tabular, el «change» salta
+       ANTES de que el navegador haya movido el foco a la casilla siguiente: si
+       repintamos aquí, el foco viaja a un nodo que ya no existe y se pierde.
+       Esperando un tick, el foco ya está donde el usuario lo quiere y solo hay
+       que devolverlo a la casilla equivalente del árbol nuevo. */
+    setTimeout(function () {
+      var y = window.scrollY || window.pageYOffset || 0;
+      var a = document.activeElement, clave = null, ini = null, fin = null;
+      if (a && a.getAttribute) {
+        /* vale cualquier ancla estable, no solo una casilla de medida */
+        ["data-medida", "data-check", "data-historia"].forEach(function (at) {
+          if (!clave && a.getAttribute(at)) clave = "[" + at + '="' + a.getAttribute(at) + '"]';
+        });
+        try { ini = a.selectionStart; fin = a.selectionEnd; } catch (e) { ini = null; }
+      }
+      pintar(true);
+      window.scrollTo(0, y);
+      if (clave) {
+        var n = document.querySelector(clave);
+        if (n) {
+          try { n.focus({ preventScroll: true }); } catch (e) { n.focus(); }
+          /* los input[type=number] no dejan tocar la selección en algunos
+             navegadores: si protesta, basta con tener el foco */
+          try { if (ini !== null) n.setSelectionRange(ini, fin); } catch (e) {}
+          window.scrollTo(0, y);
+        }
+      }
+    }, 0);
   }
 
   function htmlPortada() {
@@ -3180,14 +3255,31 @@
 
     var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
     ses.forEach(function (s, i) {
-      var id = "s" + i, m = marcaDe(dia, id), reloj = relojPara(dia, s);
-      var porElReloj = (m !== true && m !== "no" && !!reloj);
-      var ayuda = porElReloj
-        ? "El reloj midió " + reloj.min + " min de «" + reloj.nombre + "». Si no la hiciste, desmárcala y se queda desmarcada."
-        : (m === "no" ? "La has marcado como no hecha." : (s.grande ? P.diaGrande.aviso : P.textos.auto));
+      var id = "s" + i, m = marcaDe(dia, id), v = valorMarca(m), reloj = relojPara(dia, s);
+      var tarde = (v === "no") ? desmienteAlNo(dia, s, m) : null;
+      var porElReloj = (v !== true && (v !== "no" || tarde) && !!reloj);
+      var ayuda;
+      if (tarde) {
+        /* la habías dado por no hecha y luego saliste: manda el dato */
+        ayuda = "La habías marcado como no hecha, pero después el reloj midió " + tarde.min +
+          " min de «" + tarde.nombre + "». Cuenta como hecha.";
+      } else if (porElReloj) {
+        ayuda = "El reloj midió " + reloj.min + " min de «" + reloj.nombre + "». Si no la hiciste, desmárcala y se queda desmarcada.";
+      } else if (v === "no") {
+        ayuda = "La has marcado como no hecha.";
+      } else if (v === true) {
+        ayuda = "La has marcado a mano.";
+      } else {
+        ayuda = s.grande ? P.diaGrande.aviso : P.textos.auto;
+      }
       filas.push({
         id: id, nombre: s.t + (s.min ? " · " + s.min + " min" : ""),
-        hecho: sesionHecha(dia, s, i), ayuda: ayuda, sello: porElReloj ? "reloj" : "",
+        hecho: sesionHecha(dia, s, i), ayuda: ayuda,
+        sello: porElReloj ? "reloj" : "",
+        /* sin este enlace no hay forma de volver a «sin marca», que es el único
+           estado en el que decide el reloj: marcar guarda true, desmarcar
+           guarda «no», y no había tercera posición */
+        borrable: (v === true || v === "no") ? id : null,
         guia: guiaDeSesion(s.t)
       });
     });
@@ -3207,7 +3299,9 @@
             (f.sello ? '<span class="ent-sello ' + (f.claseSello || "") + '">' + U.esc(f.sello) + "</span>" : "") +
             (f.guia ? '<button type="button" class="ent-comose" data-sesion-guia="' + f.guia.id +
               '">cómo se hace</button>' : "") +
-          "</b>" + (f.ayuda ? "<small>" + U.esc(f.ayuda) + "</small>" : "") + "</span></label></li>";
+          "</b>" + (f.ayuda ? "<small>" + U.esc(f.ayuda) +
+            (f.borrable ? ' <button type="button" class="ent-soltar" data-soltar="' + f.borrable +
+              '">que decida el reloj</button>' : "") + "</small>" : "") + "</span></label></li>";
       });
       h += "</ul>";
     }
@@ -3225,7 +3319,7 @@
       var toca = tocaMedida(m, dia);
       return '<label class="ent-medida' + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
         "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")" +
-          (defHistoria(m.id) ? '<button type="button" class="ent-ver" data-historia="' + m.id +
+          (defHistoria(m.id) ? '<button type="button" class="ent-ver" tabindex="-1" data-historia="' + m.id +
             '" title="Ver histórico" aria-label="Ver histórico de ' + U.esc(m.nombre) + '">' + ICONO_GRAF + "</button>" : "") +
         "</span>" +
         (m.texto
@@ -3302,8 +3396,16 @@
     for (var i = 0; i < 7; i++) {
       var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
       var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
-      var ok = semF && f <= hoy && ss.length && diaCumplido(f, semF, tallaDe(semF));
-      h += '<div class="ent-dia' + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
+      /* Cuatro estados, y el color dice de qué habla cada uno:
+         ámbar claro = fuera del plan, no hay nada que juzgar (los días
+         anteriores al 18 de septiembre); verde = día terminado y cumplido;
+         rojo = día terminado sin cumplir; azul = lo vigente y lo que viene.
+         Hoy se queda azul aunque ya esté hecho: todavía está corriendo. */
+      var cumplido = semF && diaCumplido(f, semF, tallaDe(semF));
+      var estadoDia = !semF ? "fuera"
+        : (f > hoy ? "pend" : (f === hoy ? "pend" : (cumplido ? "ok" : "fallo")));
+      var ok = (estadoDia === "ok") || (f === hoy && cumplido);
+      h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
         '" data-dia="' + f + '" role="button" tabindex="0">' +
         '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
         '<span class="q">' + (!semF ? "—" : (ss.length
@@ -3584,6 +3686,18 @@
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
+      /* «que decida el reloj»: borra la marca manual y devuelve la sesión al
+         estado neutro. Va dentro de un <label>, así que hay que frenar el
+         clic o de paso marcaría la casilla. */
+      var sb = t.closest ? t.closest("[data-soltar]") : null;
+      if (sb) {
+        e.preventDefault();
+        e.stopPropagation();
+        marcar((diaSel && semanaDe(diaSel)) ? diaSel : U.hoyISO(), sb.getAttribute("data-soltar"), null);
+        U.toast("Vuelve a decidirlo el reloj");
+        pintarConservando();
+        return;
+      }
       var ab = t.closest ? t.closest("[data-avisos]") : null;
       if (ab) { e.preventDefault(); abrirAvisos(); return; }
       var gb = t.closest ? t.closest("[data-guia]") : null;
@@ -3646,13 +3760,13 @@
            tu marca manda siempre sobre lo que diga el reloj */
         if (t.checked) marcar(dia, id, true);
         else marcar(dia, id, id.charAt(0) === "s" ? "no" : false);
-        pintar();
+        pintarConservando();
         return;
       }
       if (t.getAttribute("data-medida")) {
         anotarMedida(dia, t.getAttribute("data-medida"), String(t.value).trim());
         U.toast(dia === U.hoyISO() ? "Anotado" : "Anotado en el " + U.etiquetaFecha(dia));
-        pintar();
+        pintarConservando();
         return;
       }
       if (t.getAttribute("data-csv-tension")) {

@@ -321,10 +321,11 @@
       { id: "ftp155", nombre: "Poner la FTP en 155 W en Zwift, Strava e intervals", limite: "2026-09-21",
         ayuda: "Con 200 W declarados, toda la carga del plan sale un 35-40 % baja." },
       { id: "cinta", nombre: "Tener a mano una cinta métrica de sastre", limite: "2026-09-21", ayuda: "" },
-      { id: "revision", nombre: "Revisión en el IOM, con las cuatro preguntas", limite: "2026-09-28",
-        ayuda: "Sal y ejercicio · limitación vestibular · trabajo de fuerza · doble inmunosupresión." },
-      { id: "test1", nombre: "Test de 20 minutos en Zwift", limite: "2026-10-12",
-        ayuda: "Sale la FTP real y con ella las zonas definitivas." }
+      /* «desde» es cuándo EMPIEZA a avisar, no cuándo se hace. Una tarea que
+         asoma tres semanas antes deja de leerse mucho antes de vencer. */
+      { id: "test1", nombre: "Test de 20 minutos en Zwift", desde: "2026-10-05", limite: "2026-10-12",
+        ayuda: "Sale la FTP real y con ella las zonas definitivas. Hasta que lo hagas, toda la carga " +
+               "del plan se calcula sobre la FTP declarada, que es una estimación." }
     ],
 
     /* ---------- grasa estimada con la cinta ----------
