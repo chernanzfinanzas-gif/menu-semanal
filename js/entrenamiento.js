@@ -1429,6 +1429,74 @@
       }
     }
 
+    /* ---------- M9 — la carga se está quedando corta ----------
+       El pase del domingo ya juzga la semana cerrada, así que repetir aquí lo
+       mismo sobraría. Este aviso mira ADELANTE: la semana pasada quedó por
+       debajo del 70 % y ésta lleva el mismo camino a estas alturas. Sirve
+       mientras aún se puede hacer algo, que es lo que el pase no puede dar. */
+    d = def("M9");
+    if (d) {
+      var semAct = semanaDe(dia), semAnt = semAct ? semanaAnteriorDe(semAct) : null;
+      if (semAct && semAnt && semAct.criterio !== "asistencia" && semAnt.criterio !== "asistencia" &&
+          semAct.carga && semAnt.carga) {
+        var cAnt = cargaSemana(semAnt.desde, semAnt.hasta);
+        var pctAnt2 = (cAnt === null) ? null : cAnt / semAnt.carga;
+        if (pctAnt2 !== null && pctAnt2 < d.umbral) {
+          var rep = repartoSemana(semAct, dia), objHoy = semAct.carga * rep.parte;
+          var cAct = cargaSemana(semAct.desde, dia);
+          /* con menos de dos días corridos no hay nada que anticipar */
+          if (cAct !== null && objHoy > 0 && rep.parte >= 0.25 && (cAct / objHoy) < d.umbral) {
+            out.push({ d: d, dato: "la semana pasada quedó en el " + Math.round(pctAnt2 * 100) +
+              " % y ésta va por el " + Math.round((cAct / objHoy) * 100) + " % de lo que tocaría" });
+          }
+        }
+      }
+    }
+
+    /* ---------- M10 — hueco de cuatro días ----------
+       Días seguidos sin NADA registrado, contando hacia atrás desde ayer: hoy
+       no cuenta, que todavía da tiempo a salir. */
+    d = def("M10");
+    if (d && Salud.datos) {
+      var huecos = 0, fH = U.sumarDias(dia, -1), tope = 30;
+      for (var iH = 0; iH < tope; iH++) {
+        if (registradas(fH).length) break;
+        huecos++;
+        fH = U.sumarDias(fH, -1);
+      }
+      if (huecos >= d.umbral) {
+        /* si se llega al tope, el hueco es más largo de lo que se ha contado:
+           decir «30 días» cuando son cinco meses sería mentir por defecto */
+        out.push({ d: d, dato: huecos >= tope
+          ? "más de " + tope + " días sin actividad registrada"
+          : huecos + " días seguidos sin actividad registrada, desde el " +
+            U.etiquetaFecha(U.sumarDias(dia, -huecos)) });
+      }
+    }
+
+    /* ---------- M11 — pulso en reposo alto ----------
+       Callado mientras dure el corticoide: el fármaco sube el pulso por sí
+       solo y el aviso sonaría todos los días sin decir nada nuevo. */
+    d = def("M11");
+    if (d && !Salud.conFarmaco(dia)) {
+      var baseF = Salud.base("base_fcr");
+      if (baseF) {
+        var seguidos = 0, fF = dia, ultF = null;
+        for (var iF = 0; iF < d.dias; iF++) {
+          var dd = Salud.dia(fF);
+          if (!dd || typeof dd.fcr !== "number") break;
+          if (dd.fcr < baseF + d.umbral) break;
+          if (ultF === null) ultF = dd.fcr;
+          seguidos++;
+          fF = U.sumarDias(fF, -1);
+        }
+        if (seguidos >= d.dias) {
+          out.push({ d: d, dato: ultF + " lpm hoy, " + d.dias + " días seguidos por encima de " +
+            Math.round(baseF + d.umbral) + " (tu base es " + num(baseF) + ")" });
+        }
+      }
+    }
+
     var orden = { consulta: 0, atencion: 1, nota: 2 };
     out.sort(function (a, b) { return orden[a.d.nivel] - orden[b.d.nivel]; });
     return out;

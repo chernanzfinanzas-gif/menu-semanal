@@ -377,9 +377,11 @@
       { id: "M8", nivel: "atencion", titulo: "El muslo está perdiendo", umbral: -1,
         texto: "Un centímetro o más con el peso bajando: parte de lo que pierdes es músculo. Revisa proteína y las dos sesiones de fuerza." },
       { id: "M9", nivel: "atencion", titulo: "Carga por debajo del objetivo", umbral: 0.7, semanas: 2,
-        texto: "Dos semanas por debajo del 70 %. No se sube: se repite la misma semana de la rampa.", requiere: "salud.json" },
+        texto: "Vas camino de la segunda semana seguida por debajo del 70 %, y todavía quedan días para evitarlo. " +
+               "Si se cierra así, el pase del domingo repetirá la semana en vez de subir.", requiere: "salud.json" },
       { id: "M10", nivel: "atencion", titulo: "Hueco de cuatro días", umbral: 4,
-        texto: "Se vuelve a la semana anterior de la rampa.", requiere: "salud.json" },
+        texto: "Cuatro días sin nada registrado. Volver con la sesión que tocaba es lo que rompió 2025: " +
+               "se retoma por la talla S y se sube desde ahí.", requiere: "salud.json" },
       { id: "M11", nivel: "nota", titulo: "Pulso en reposo alto", umbral: 5, dias: 3,
         texto: "Cinco pulsaciones sobre tu base tres días seguidos: fatiga, poco sueño o algo incubándose.",
         requiere: "salud.json", silenciado_hasta: "2026-09-28" }
