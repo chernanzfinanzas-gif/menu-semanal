@@ -144,6 +144,8 @@
         dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. La cinta apoyada, sin apretar. Mide dos veces y quédate con la que se repita." },
       { id: "cuello",  nombre: "Cuello",     unidad: "cm",   paso: 0.5, min: 25, max: 60,
         dias: [1], ayuda: "Justo debajo de la nuez, con la cinta un poco inclinada hacia abajo por delante. Con cuello y cintura sale el porcentaje de grasa por cinta, que no se mueve con la hidratación." },
+      /* Las de arriba salen el día que tocan; cualquier otra se anota con
+         «Anotar otra medida», porque la fecha manda sobre el día de la semana. */
       { id: "sistolica",  nombre: "Tensión alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
         diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "La alta es la SISTÓLICA, el número grande del tensiómetro. Los corticoides la suben." },

@@ -147,14 +147,39 @@
       ".ent-medida input{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
       ".ent-medida input:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-medida.puesta input{border-color:var(--azul);background:var(--azul-claro)}",
+      ".ent-medida span{display:flex;align-items:center;gap:6px}",
+      ".ent-medida .hoy{font-style:normal;font-size:.62rem;font-weight:700;letter-spacing:.06em;",
+      "  text-transform:uppercase;color:var(--azul);border:1px solid var(--azul-borde);",
+      "  background:var(--azul-claro);border-radius:999px;padding:0 6px}",
+      ".ent-medida.toca input{border-color:var(--azul)}",
+      ".ent-medida small{display:block;margin-top:3px;font-size:.7rem;color:var(--gris)}",
       /* botones de guía y su ventana */
-      ".ent-guias{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}",
-      ".ent-guia{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--azul-borde);",
-      "  background:var(--azul-claro);color:var(--azul-hondo);border-radius:999px;padding:7px 13px;",
-      "  font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}",
-      ".ent-guia:hover{border-color:var(--azul)}",
-      ".ent-guia .i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;",
-      "  border-radius:50%;background:var(--azul);color:#fff;font-size:.72rem;font-weight:700}",
+      ".ent-mas{margin-top:10px;background:none;border:1px dashed var(--azul-borde);color:var(--azul);",
+      "  border-radius:10px;padding:8px 12px;font:inherit;font-size:.83rem;font-weight:600;cursor:pointer;width:100%}",
+      ".ent-mas:hover{border-style:solid}",
+      /* un solo banner de ayuda: se abre si hace falta y no estorba si no */
+      ".ent-ayuda{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;text-align:left;",
+      "  border:1px solid var(--azul-borde);background:var(--azul-claro);color:var(--azul-hondo);",
+      "  border-radius:12px;padding:11px 13px;font:inherit;cursor:pointer}",
+      ".ent-ayuda:hover{border-color:var(--azul)}",
+      ".ent-ayuda .i{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;",
+      "  width:26px;height:26px;border-radius:50%;background:var(--azul);color:#fff;font-weight:700}",
+      ".ent-ayuda .t{flex:1 1 auto;min-width:0}",
+      ".ent-ayuda .t b{display:block;font-size:.92rem}",
+      ".ent-ayuda .t small{display:block;color:var(--gris);font-size:.76rem;margin-top:1px}",
+      ".ent-ayuda .v{flex:0 0 auto;color:var(--azul);font-size:1.15rem;line-height:1}",
+      /* acordeón dentro de la ventana de ayuda */
+      ".gu-i{border:1px solid var(--borde);border-radius:10px;margin-top:8px;overflow:hidden}",
+      ".gu-i[open]{border-color:var(--azul-borde)}",
+      ".gu-i > summary{list-style:none;cursor:pointer;padding:11px 13px;font-weight:600;font-size:.92rem;",
+      "  color:var(--azul-hondo);display:flex;align-items:center;gap:8px}",
+      ".gu-i > summary::-webkit-details-marker{display:none}",
+      ".gu-i > summary::after{content:'+';margin-left:auto;color:var(--azul);font-weight:700}",
+      ".gu-i[open] > summary{background:var(--azul-claro)}",
+      ".gu-i[open] > summary::after{content:'\\2212'}",
+      ".gu-c{padding:2px 13px 13px}",
+      ".gu-c .pasos{margin:0;padding-left:20px;font-size:.9rem;line-height:1.45}",
+      ".gu-c .pasos li{margin-bottom:5px}",
       ".ent-dibujo{display:flex;justify-content:center;padding:10px 0 4px;color:var(--azul)}",
       ".ent-fallos{margin-top:10px;padding:11px 13px;border-radius:10px;background:var(--ambar-fondo);",
       "  border:1px solid #eccf9a;font-size:.88rem;line-height:1.4}",
@@ -382,6 +407,15 @@
     var l = A.estado.pesos || [];
     for (var i = 0; i < l.length; i++) if (l[i].f === iso) return l[i].kg;
     return null;
+  }
+
+  /* Valor de cualquier medida ese día: el peso vive en el histórico de la app */
+  function valorDe(iso, id) { return id === "peso" ? pesoDe(iso) : medida(iso, id); }
+
+  /* Último valor de esa medida hasta esa fecha, sea peso o cinta */
+  function ultimoValor(id, iso) {
+    if (id === "peso") { var p = ultimoPeso(iso); return p ? { v: p.kg, f: p.f } : null; }
+    return ultimaMedida(iso, id);
   }
 
   /* El último peso anotado hasta esa fecha (la lista viene ordenada) */
@@ -904,16 +938,61 @@
     }
   };
 
-  function abrirGuia(id) {
-    var g = GUIAS[id], caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
-    if (!g || !caja || !modal) return;
-    var h = '<header><h2>' + U.esc(g.titulo) + '</h2>' +
-      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>';
+  /* cómo va la pantalla: es ayuda también, así que vive en el mismo sitio */
+  var GUIA_PANTALLA = {
+    titulo: "Cómo funciona El Plan",
+    pasos: [
+      "Arriba tienes <b>la sesión del día</b> con sus casillas: márcala cuando la hagas.",
+      "Si el reloj registra una actividad del mismo tipo y al menos el <b>60 % de los minutos previstos</b>, la sesión se marca sola. Si la desmarcas a mano, <b>manda tu marca</b>, no el reloj.",
+      "Las <b>casillas de medidas</b> están siempre, todas. Las que toca medir hoy salen las primeras con la etiqueta <b>HOY</b>; las demás las rellenas solo si te apetece.",
+      "Cada casilla trae de fondo <b>tu último dato</b> y debajo la fecha en que lo tomaste. Lo que escribas se guarda con la fecha del día que tengas abierto.",
+      "El <b>peso</b> lo manda intervals: si allí hay dato del día, el que se guarda es ese aunque hayas escrito otro."
+    ],
+    fallos: "Un dato suelto no significa casi nada. Lo que se mira en el pase del domingo es la media de la semana y la dirección, no el número de un día."
+  };
+
+  function bloqueGuia(g) {
+    var h = "";
     if (g.dibujo) h += '<div class="ent-dibujo">' + g.dibujo + "</div>";
     h += '<ol class="pasos">';
     g.pasos.forEach(function (p) { h += "<li>" + p + "</li>"; });
     h += "</ol>";
     h += '<div class="ent-fallos"><b>Lo que más falla:</b> ' + U.esc(g.fallos) + "</div>";
+    return h;
+  }
+
+  /* toda la ayuda en una ventana: un desplegable por medida, cerrados de inicio */
+  function abrirAyuda() {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    var h = '<header><h2>Ayuda</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      '<p class="nota-peque" style="margin:0 0 4px">Toca lo que quieras leer. Se abre solo lo que abras tú.</p>';
+
+    h += '<details class="gu-i"><summary>' + U.esc(GUIA_PANTALLA.titulo) + "</summary>" +
+      '<div class="gu-c">' + bloqueGuia(GUIA_PANTALLA) + "</div></details>";
+
+    var vistas = {};
+    (P.medidas || []).forEach(function (m) {
+      var k = m.guia || m.id, g = GUIAS[k];
+      if (!g || vistas[k]) return;
+      vistas[k] = 1;
+      h += '<details class="gu-i"><summary>' + U.esc(g.titulo) + "</summary>" +
+        '<div class="gu-c">' + bloqueGuia(g) + "</div></details>";
+    });
+
+    h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Cerrar</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
+  }
+
+  function abrirGuia(id) {
+    if (id === "*") return abrirAyuda();
+    var g = GUIAS[id], caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!g || !caja || !modal) return;
+    var h = '<header><h2>' + U.esc(g.titulo) + '</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      bloqueGuia(g);
     h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Entendido</button>';
     caja.innerHTML = h;
     modal.classList.add("abierta");
@@ -1070,29 +1149,32 @@
       h += "</ul>";
     }
 
-    /* medidas del día */
-    var medHoy = P.medidas.filter(function (m) { return tocaMedida(m, dia); });
+    /* TODAS las medidas, siempre, cada una con su último dato.
+       Las que toca medir hoy van primero y marcadas; las demás están ahí por si
+       te apetece medir. La fecha del día abierto es la que se guarda. */
+    var medHoy = P.medidas.slice().sort(function (a, b) {
+      return (tocaMedida(b, dia) ? 1 : 0) - (tocaMedida(a, dia) ? 1 : 0);
+    });
     if (medHoy.length) {
       h += '<div class="ent-medidas">';
       medHoy.forEach(function (m) {
-        var v = (m.id === "peso") ? pesoDe(dia) : medida(dia, m.id);
+        var v = valorDe(dia, m.id);
         var puesta = (v !== null && v !== undefined && v !== "");
-        var ult = (m.ultimo && !puesta) ? ultimoPeso(dia) : null;
-        h += '<label class="ent-medida' + (puesta ? " puesta" : "") + '" title="' + U.esc(m.ayuda) + '">' +
-          "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")</span>" +
+        var ult = puesta ? null : ultimoValor(m.id, dia);
+        var toca = tocaMedida(m, dia);
+        h += '<label class="ent-medida' + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
+          "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")" +
+            (toca ? '<em class="hoy">hoy</em>' : "") + "</span>" +
           (m.texto
             ? '<input type="text" inputmode="numeric" placeholder="128/82" data-medida="' + m.id + '" value="' + U.esc(puesta ? v : "") + '">'
             : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
-              (ult ? ' placeholder="' + ult.kg + '"' : "") +
-              ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') + "</label>";
+              (ult ? ' placeholder="' + ult.v + '"' : "") +
+              ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') +
+          '<small>' + (puesta ? "anotado hoy"
+            : (ult ? "último " + num(ult.v) + " · " + U.etiquetaFecha(ult.f) : "sin medir todavía")) + "</small>" +
+          "</label>";
       });
       h += "</div>";
-      var up = ultimoPeso(dia);
-      if (up) {
-        h += '<p class="nota-peque" style="margin-top:8px">Último peso anotado: <b>' +
-          String(up.kg).replace(".", ",") + " kg</b>, del " + U.etiquetaFecha(up.f) +
-          (up.f === dia ? " (hoy)" : "") + ". Escribe encima para corregirlo o poner el de hoy.</p>";
-      }
       var lec = lecturas(dia);
       if (lec.length) {
         h += '<h3 class="ent-subt">Lo que dicen tus medidas</h3>';
@@ -1100,22 +1182,12 @@
           h += '<div class="ent-estim"><b>' + U.esc(l.t) + "</b><small>" + U.esc(l.d) + "</small></div>";
         });
       }
-      var vistas = {}, conGuia = [];
-      medHoy.forEach(function (m) {
-        var k = m.guia || m.id;
-        if (GUIAS[k] && !vistas[k]) { vistas[k] = 1; conGuia.push({ k: k, n: GUIAS[k].boton || m.nombre }); }
-      });
-      if (conGuia.length) {
-        h += '<div class="ent-guias"><span class="nota-peque">¿Cómo se mide?</span>';
-        conGuia.forEach(function (m) {
-          h += '<button type="button" class="ent-guia" data-guia="' + m.k + '">' +
-            '<span class="i">?</span>' + U.esc(m.n) + "</button>";
-        });
-        h += "</div>";
-      }
-      medHoy.forEach(function (m) {
-        h += '<p class="nota-peque" style="margin-top:8px"><b>' + U.esc(m.nombre) + ":</b> " + U.esc(m.ayuda) + "</p>";
-      });
+      /* una sola puerta a toda la ayuda: dentro está cada medida por separado */
+      h += '<button type="button" class="ent-ayuda" data-guia="*">' +
+        '<span class="i">?</span>' +
+        '<span class="t"><b>Ayuda: cómo se mide cada cosa</b>' +
+        "<small>Cintura, cuello, tensión, tobillo, peso… y cómo funciona esta pantalla</small></span>" +
+        '<span class="v">›</span></button>';
     }
 
     /* talla de la semana */
