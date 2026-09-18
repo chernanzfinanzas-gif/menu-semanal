@@ -146,10 +146,10 @@
         dias: [1], ayuda: "Justo debajo de la nuez, con la cinta un poco inclinada hacia abajo por delante. Con cuello y cintura sale el porcentaje de grasa por cinta, que no se mueve con la hidratación." },
       /* Las de arriba salen el día que tocan; cualquier otra se anota con
          «Anotar otra medida», porque la fecha manda sobre el día de la semana. */
-      { id: "sistolica",  nombre: "Tensión alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
+      { id: "sistolica",  nombre: "T. alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
         diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "La alta es la SISTÓLICA, el número grande del tensiómetro. Los corticoides la suben." },
-      { id: "diastolica", nombre: "Tensión baja", unidad: "mmHg", paso: 1, min: 30, max: 160,
+      { id: "diastolica", nombre: "T. baja", unidad: "mmHg", paso: 1, min: 30, max: 160,
         diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "La baja es la DIASTÓLICA, el segundo número." },
       { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,

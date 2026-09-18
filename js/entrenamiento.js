@@ -141,16 +141,22 @@
       "  border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:1px}",
       ".ent-sello.tarea{color:var(--ambar);border-color:#eccf9a;background:var(--ambar-fondo)}",
       /* medidas */
-      ".ent-medidas{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}",
-      ".ent-medida{flex:1 1 120px;min-width:110px}",
-      ".ent-medida span{display:block;font-size:.76rem;color:var(--gris);margin-bottom:3px}",
+      /* rejilla: columnas fijas por ancho, para que las medidas queden repartidas
+         en filas parejas y no ocho arriba y una sola abajo */
+      ".ent-medidas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}",
+      "@media(min-width:620px){.ent-medidas{grid-template-columns:repeat(3,minmax(0,1fr))}}",
+      "@media(min-width:980px){.ent-medidas{grid-template-columns:repeat(5,minmax(0,1fr))}}",
+      /* en columna: el rótulo crece hasta igualar al vecino más alto, así las
+         cajas de la fila quedan alineadas aunque el texto ocupe dos líneas */
+      ".ent-medida{display:flex;flex-direction:column;min-width:0;max-width:280px;width:100%}",
       ".ent-medida input{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
       ".ent-medida input:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-medida.puesta input{border-color:var(--azul);background:var(--azul-claro)}",
-      ".ent-medida span{display:flex;align-items:center;gap:6px}",
-      ".ent-medida .hoy{font-style:normal;font-size:.62rem;font-weight:700;letter-spacing:.06em;",
+      ".ent-medida span{display:flex;flex:1 0 auto;align-items:flex-start;gap:6px;",
+      "  font-size:.76rem;color:var(--gris);margin-bottom:3px;line-height:1.25}",
+      ".ent-medida .hoy{flex:none;font-style:normal;font-size:.62rem;font-weight:700;letter-spacing:.06em;",
       "  text-transform:uppercase;color:var(--azul);border:1px solid var(--azul-borde);",
-      "  background:var(--azul-claro);border-radius:999px;padding:0 6px}",
+      "  background:var(--azul-claro);border-radius:999px;padding:0 6px;line-height:1.5}",
       ".ent-medida.toca input{border-color:var(--azul)}",
       ".ent-medida small{display:block;margin-top:3px;font-size:.7rem;color:var(--gris)}",
       /* botones de guía y su ventana */
@@ -434,6 +440,20 @@
     return mejor;
   }
 
+  /* El último dato de la báscula que ha bajado de intervals hasta esa fecha.
+     Llegan salteados: la báscula solo manda el día que te pesas con ella. */
+  function ultimoDeSalud(campo, iso) {
+    var d = Salud.datos, mejor = null;
+    if (!d || !d.dias) return null;
+    for (var f in d.dias) {
+      if (f > iso) continue;
+      var v = d.dias[f][campo];
+      if (v === undefined || v === null || v === "") continue;
+      if (!mejor || f > mejor.f) mejor = { f: f, v: v };
+    }
+    return mejor;
+  }
+
   /* Grasa estimada con la cinta (fórmula de la Marina de EE. UU., en cm) */
   function grasaPorCinta(iso) {
     var cfg = P.grasaCinta;
@@ -660,6 +680,30 @@
         t: "Grasa estimada con la cinta: " + num(g.pct) + " %" + (g.magra ? " · masa magra " + num(g.magra) + " kg" : ""),
         d: "Cintura " + num(g.cintura) + " cm y cuello " + num(g.cuello) + " cm, del " + U.etiquetaFecha(g.fecha) + ". " + P.grasaCinta.aviso
       });
+    }
+
+    /* grasa de la báscula: lo que baja de intervals, medido por impedancia */
+    var gb = ultimoDeSalud("grasa", dia);
+    if (gb) {
+      var mb = ultimoDeSalud("magra", dia), mus = ultimoDeSalud("musculo", dia);
+      var atraso = diasEntre(gb.f, dia);
+      var det = "Del " + U.etiquetaFecha(gb.f) +
+        (mb && mb.f === gb.f ? " · masa magra " + num(mb.v) + " kg" : "") +
+        (mus && mus.f === gb.f ? " · músculo " + num(mus.v) + " kg" : "") + ". ";
+      if (g) {
+        var difG = g.pct - gb.v;
+        det += "La cinta te da " + num(g.pct) + " % y la báscula " + num(gb.v) + " %: " +
+          (Math.abs(difG) < 1
+            ? "prácticamente lo mismo, que es la mejor señal de que ambas están bien tomadas."
+            : num(Math.abs(difG)) + " puntos de diferencia. ") +
+          "Son dos métodos distintos y ninguno es la verdad: la báscula se mueve con el agua del cuerpo " +
+          "—si te pesas deshidratado, sube—, y la cinta no. Lo que vale es que cada una siga su propia línea.";
+      } else {
+        det += "La báscula la calcula por impedancia, así que se mueve con el agua del cuerpo. " +
+          "Cuando anotes cintura y cuello tendrás el contraste con un método que no depende de eso.";
+      }
+      if (atraso > 21) det += " Es la última que mandó la báscula: desde entonces no ha bajado ninguna.";
+      out.push({ t: "Grasa de la báscula: " + num(gb.v) + " %", d: det });
     }
 
     /* cintura / altura */
@@ -1300,7 +1344,19 @@
 
     var p = ultimoPeso(dia);
     h += fila("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "");
-    if (d.magra) h += fila("Masa magra (báscula)", num(d.magra) + " kg", "de la impedancia: referencia");
+
+    /* la báscula manda grasa y magra solo los días que te pesas con ella:
+       se enseña la última que llegó, con su fecha, para que se vea si está vieja */
+    var gBas = ultimoDeSalud("grasa", fechaDato);
+    h += fila("Grasa (báscula)", gBas ? num(gBas.v) + " %" : null,
+      gBas ? "del " + U.etiquetaFecha(gBas.f) + " · por impedancia" : "aún no ha bajado ninguna de intervals");
+    var mBas = ultimoDeSalud("magra", fechaDato);
+    if (mBas) h += fila("Masa magra (báscula)", num(mBas.v) + " kg", "del " + U.etiquetaFecha(mBas.f));
+    var muBas = ultimoDeSalud("musculo", fechaDato);
+    if (muBas) h += fila("Músculo (báscula)", num(muBas.v) + " kg", "del " + U.etiquetaFecha(muBas.f));
+    var gCin = grasaPorCinta(dia);
+    if (gCin) h += fila("Grasa (cinta)", num(gCin.pct) + " %",
+      "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua");
 
     var sis = serieMedida("sistolica", dia, 7), dias2 = serieMedida("diastolica", dia, 7);
     h += fila("Tensión, media de la semana",
