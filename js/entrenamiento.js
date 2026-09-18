@@ -93,6 +93,30 @@
       /* volver al día de hoy: enlace discreto */
       ".ent-volver{background:none;border:0;color:var(--azul);font:inherit;font-weight:600;",
       "  padding:4px 0;margin-bottom:8px;cursor:pointer}",
+      /* la franja: semáforo y avisos, en ranuras distintas */
+      ".ent-franja{display:flex;gap:8px;align-items:stretch;margin-bottom:12px}",
+      /* más específico a propósito: esta media query va antes que la regla base de .ent-sem */
+      "@media(max-width:520px){.ent-franja{flex-direction:column}.ent-franja .ent-sem{flex:none}}",
+      ".ent-sem{flex:0 0 138px;background:var(--blanco);border:1px solid var(--borde);",
+      "  border-left:4px solid var(--gris);border-radius:var(--radio);padding:11px 13px;",
+      "  display:flex;flex-direction:column;gap:2px}",
+      ".ent-sem b{font-size:1.05rem;color:var(--tinta)}",
+      ".ent-sem.apagado b{color:var(--gris)}",
+      ".ent-sem.ambar{border-left-color:var(--ambar);background:var(--ambar-fondo)}",
+      ".ent-sem.ambar b{color:var(--ambar)}",
+      ".ent-avisos{flex:1 1 200px;background:var(--blanco);border:1px solid var(--borde);",
+      "  border-radius:var(--radio);padding:11px 13px;display:flex;flex-direction:column;gap:6px}",
+      ".ent-franja .et{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;",
+      "  color:var(--gris);font-weight:700}",
+      ".ent-franja small{font-size:.78rem;color:var(--gris);line-height:1.35;display:block}",
+      ".ent-franja small.ok{color:var(--gris)}",
+      ".ent-aviso b{display:block;font-size:.85rem;color:var(--tinta);margin-top:2px}",
+      ".ent-aviso .niv{display:inline-block;font-size:.64rem;font-weight:700;letter-spacing:.06em;",
+      "  text-transform:uppercase;border-radius:999px;padding:1px 7px;",
+      "  color:var(--azul);border:1px solid var(--azul-borde);background:var(--azul-claro)}",
+      ".ent-aviso.atencion .niv{color:var(--ambar);border-color:#eccf9a;background:var(--ambar-fondo)}",
+      ".ent-aviso.consulta .niv{color:var(--rojo);border-color:#e3b4ab;background:var(--rojo-fondo)}",
+      ".ent-aviso + .ent-aviso{border-top:1px solid var(--borde);padding-top:6px}",
       /* cabecera del plan */
       ".ent-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap}",
       ".ent-cab img{width:64px;height:64px;flex:none;border-radius:10px;background:#fff}",
@@ -137,6 +161,8 @@
       ".ent-estim{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--azul-claro);",
       "  border:1px solid var(--azul-borde);color:var(--azul-hondo);font-size:.95rem}",
       ".ent-estim small{display:block;margin-top:4px;color:var(--gris);font-size:.8rem;line-height:1.35}",
+      ".ent-estim + .ent-estim{margin-top:8px}",
+      ".ent-subt{margin:16px 0 8px;font-size:1rem;color:var(--azul-hondo)}",
       /* semana */
       ".ent-navsem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}",
       ".ent-navsem h2{margin:0;flex:1;text-align:center}",
@@ -402,6 +428,222 @@
     return fuera;
   }
 
+  /* ---------- series y lecturas ---------- */
+
+  function serieMedida(id, hasta, dias) {
+    var m = ent().medidas, desde = U.sumarDias(hasta, -(dias - 1)), fuera = [];
+    for (var f in m) {
+      if (f >= desde && f <= hasta && m[f][id] !== undefined && m[f][id] !== "") {
+        var v = parseFloat(m[f][id]);
+        if (!isNaN(v)) fuera.push({ f: f, v: v });
+      }
+    }
+    fuera.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+    return fuera;
+  }
+
+  function media(lista) {
+    if (!lista.length) return null;
+    var s = 0;
+    lista.forEach(function (x) { s += x.v; });
+    return s / lista.length;
+  }
+
+  function mediaPesos(hasta, dias) {
+    var desde = U.sumarDias(hasta, -(dias - 1)), l = (A.estado.pesos || []).filter(function (x) {
+      return x.f >= desde && x.f <= hasta;
+    });
+    if (!l.length) return null;
+    var s = 0;
+    l.forEach(function (x) { s += x.kg; });
+    return { m: s / l.length, n: l.length };
+  }
+
+  function num(x, dec) { return x.toFixed(dec === undefined ? 1 : dec).replace(".", ","); }
+  function signo(x, dec) { return (x > 0 ? "+" : "") + num(x, dec); }
+
+  /* Cada medida produce una lectura; sin datos suficientes, no se inventa nada. */
+  function lecturas(dia) {
+    var out = [];
+
+    /* peso: media de la semana contra la anterior */
+    var a = mediaPesos(dia, 7), b = mediaPesos(U.sumarDias(dia, -7), 7);
+    if (a && a.n >= 2) {
+      out.push({
+        t: "Peso: media de 7 días " + num(a.m) + " kg",
+        d: b && b.n >= 2
+          ? signo(a.m - b.m) + " kg respecto a la semana anterior (" + num(b.m) + "). El objetivo del plan es entre −0,3 y −0,5 kg por semana."
+          : "Con " + a.n + " pesadas. Hacen falta dos semanas para poder comparar."
+      });
+    } else if (a) {
+      out.push({ t: "Peso: " + num(a.m) + " kg", d: "Una sola pesada esta semana. El dato del día oscila más de un kilo por agua y tránsito: lo que cuenta es la media." });
+    }
+
+    /* grasa por cinta */
+    var g = grasaPorCinta(dia);
+    if (g) {
+      out.push({
+        t: "Grasa estimada con la cinta: " + num(g.pct) + " %" + (g.magra ? " · masa magra " + num(g.magra) + " kg" : ""),
+        d: "Cintura " + num(g.cintura) + " cm y cuello " + num(g.cuello) + " cm, del " + U.etiquetaFecha(g.fecha) + ". " + P.grasaCinta.aviso
+      });
+    }
+
+    /* cintura / altura */
+    var rc = cinturaAltura(dia);
+    if (rc) {
+      out.push({
+        t: "Cintura ÷ altura: " + rc.ratio.toFixed(2).replace(".", ","),
+        d: "El umbral de riesgo bajo está en 0,50, que para tus " + rc.altura + " cm son " + rc.objetivo +
+          " cm de cintura. Ahora vas por " + num(rc.cintura) + " cm: " +
+          (rc.ratio < 0.5 ? "dentro." : "te faltan " + num(rc.faltan) + " cm.")
+      });
+    }
+
+    /* tobillo: retención */
+    var tob = serieMedida("tobillo", dia, 21);
+    if (tob.length) {
+      var hoyT = tob[tob.length - 1], previos = tob.slice(0, -1), mp = media(previos);
+      var difT = mp === null ? null : hoyT.v - mp;
+      out.push({
+        t: "Tobillo: " + num(hoyT.v) + " cm" +
+          (difT === null ? "" : (Math.abs(difT) < 0.05 ? " · igual que tu media" : " · " + signo(difT) + " cm sobre tu media")),
+        d: mp === null
+          ? "Primera medida. A partir de la tercera se puede comparar."
+          : (hoyT.v - mp >= 0.7
+            ? "Por encima de tus días normales: eso es líquido, no grasa — con el corticoide es lo esperable. Si no baja al terminar la pauta, es dato para la revisión."
+            : "Dentro de tu rango habitual (media de " + previos.length + " días: " + num(mp) + " cm).")
+      });
+    }
+
+    /* tensión y pulso */
+    var sis = serieMedida("sistolica", dia, 7), dia2 = serieMedida("diastolica", dia, 7), pul = serieMedida("pulso", dia, 7);
+    if (sis.length && dia2.length) {
+      var ms = media(sis), md = media(dia2), mpu = pul.length ? media(pul) : null;
+      var alta = ms >= 140 || md >= 90;
+      out.push({
+        t: "Tensión: media de " + sis.length + (sis.length === 1 ? " toma " : " tomas ") + Math.round(ms) + "/" + Math.round(md) +
+          (mpu !== null ? " · pulso " + Math.round(mpu) : ""),
+        d: alta
+          ? "La media de estos días queda en o por encima de 140/90. No es un diagnóstico y los corticoides la suben por sí solos, pero es exactamente el dato que conviene llevar a la revisión del 28."
+          : "Dentro de lo esperable. Una toma suelta no dice nada; lo que se mira es la media de varios días."
+      });
+    }
+
+    /* brazo y muslo: cambio mensual */
+    [["muslo", "Muslo"], ["brazo", "Brazo"]].forEach(function (par) {
+      var s = serieMedida(par[0], dia, 400);
+      if (!s.length) return;
+      var u = s[s.length - 1], ant = s.length > 1 ? s[s.length - 2] : null;
+      var dif = ant ? u.v - ant.v : null, det;
+      if (!ant) det = "Primera medida; sirve de referencia para los meses siguientes.";
+      else if (dif <= -1) det = "Desde el " + U.etiquetaFecha(ant.f) + ". Ha bajado más de un centímetro: si el peso también bajó, parte de lo perdido era músculo. Revisa proteína y las dos sesiones de fuerza.";
+      else if (dif >= 1) det = "Desde el " + U.etiquetaFecha(ant.f) + ". Ha subido: con el peso estable, buena señal.";
+      else det = "Desde el " + U.etiquetaFecha(ant.f) + ". Estable dentro del error de la cinta (±5 mm). Si el peso baja y esto aguanta, lo que pierdes es grasa.";
+      out.push({ t: par[1] + ": " + num(u.v) + " cm" + (ant ? " · " + signo(dif) + " cm" : ""), d: det });
+    });
+
+    return out;
+  }
+
+  /* ==================== AVISOS ====================
+     Catálogo cerrado en datos/plan.js. Aquí solo se evalúan las condiciones;
+     los umbrales no se escriben en este fichero. Los avisos que necesitan
+     salud.json quedan fuera hasta que la app lo lea. */
+
+  function def(id) {
+    var l = P.avisos || [];
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+    return null;
+  }
+
+  function avisos(dia) {
+    var out = [], d;
+
+    /* M1 y M2 — cintura */
+    var cin = ultimaMedida(dia, "cintura"), rc = cinturaAltura(dia);
+    d = def("M1");
+    if (d && cin && cin.v >= d.umbral) out.push({ d: d, dato: num(cin.v) + " cm, del " + U.etiquetaFecha(cin.f) });
+    d = def("M2");
+    if (d && rc && rc.ratio >= d.umbral) out.push({ d: d, dato: rc.ratio.toFixed(2).replace(".", ",") + " · tu objetivo son " + rc.objetivo + " cm de cintura" });
+
+    /* M3 y M4 — peso */
+    var s0 = mediaPesos(dia, 7), s1 = mediaPesos(U.sumarDias(dia, -7), 7), s2 = mediaPesos(U.sumarDias(dia, -14), 7);
+    d = def("M3");
+    if (d && s0 && s1 && s2 && s0.n >= 2 && s1.n >= 2 && s2.n >= 2 &&
+        (s1.m - s0.m) > d.umbral && (s2.m - s1.m) > d.umbral) {
+      out.push({ d: d, dato: num(s1.m - s0.m) + " y " + num(s2.m - s1.m) + " kg en las dos últimas semanas" });
+    }
+    d = def("M4");
+    if (d && s0 && s0.n >= 2) {
+      var mins = [], k;
+      for (k = 0; k < 8; k++) {
+        var w = mediaPesos(U.sumarDias(dia, -7 * k), 7);
+        if (w && w.n >= 1) mins.push(w.m);
+      }
+      var minimo = mins.length ? Math.min.apply(null, mins) : null;
+      var tres = [s0, s1, s2].every(function (x) { return x && x.n >= 1 && minimo !== null && x.m >= minimo + d.umbral; });
+      if (tres) out.push({ d: d, dato: num(s0.m) + " kg frente a tu mínimo de " + num(minimo) });
+    }
+
+    /* M5 — tobillo */
+    d = def("M5");
+    if (d) {
+      var t = serieMedida("tobillo", dia, 21);
+      if (t.length >= 4) {
+        var base = media(t.slice(0, -d.dias));
+        var ultimos = t.slice(-d.dias);
+        if (base !== null && ultimos.length === d.dias &&
+            ultimos.every(function (x) { return x.v - base >= d.umbral; })) {
+          out.push({ d: d, dato: signo(ultimos[ultimos.length - 1].v - base) + " cm sobre tu media de " + num(base) });
+        }
+      }
+    }
+
+    /* M6 y M7 — tensión */
+    var sis = serieMedida("sistolica", dia, 14), dias = serieMedida("diastolica", dia, 14);
+    d = def("M7");
+    if (d) {
+      var recientes = sis.filter(function (x) { return x.f >= U.sumarDias(dia, -1); })
+        .concat(dias.filter(function (x) { return x.f >= U.sumarDias(dia, -1); }));
+      var pico = sis.some(function (x) { return x.f >= U.sumarDias(dia, -1) && x.v >= d.umbral_sis; }) ||
+                 dias.some(function (x) { return x.f >= U.sumarDias(dia, -1) && x.v >= d.umbral_dia; });
+      if (pico && recientes.length) out.push({ d: d, dato: "toma de " + Math.round(sis[sis.length - 1].v) + "/" + Math.round(dias[dias.length - 1].v) });
+    }
+    d = def("M6");
+    if (d && sis.length >= d.tomas && dias.length >= d.tomas) {
+      var ms = media(sis.slice(-d.tomas)), md = media(dias.slice(-d.tomas));
+      if (ms >= d.umbral_sis || md >= d.umbral_dia) {
+        out.push({ d: d, dato: "media de " + d.tomas + " tomas: " + Math.round(ms) + "/" + Math.round(md) });
+      }
+    }
+
+    /* M8 — muslo */
+    d = def("M8");
+    if (d) {
+      var mu = serieMedida("muslo", dia, 400);
+      if (mu.length >= 2 && s0 && s1 && s0.n >= 1 && s1.n >= 1) {
+        var difMu = mu[mu.length - 1].v - mu[mu.length - 2].v;
+        if (difMu <= d.umbral && s0.m < s1.m) out.push({ d: d, dato: num(difMu) + " cm desde la medida anterior" });
+      }
+    }
+
+    var orden = { consulta: 0, atencion: 1, nota: 2 };
+    out.sort(function (a, b) { return orden[a.d.nivel] - orden[b.d.nivel]; });
+    return out;
+  }
+
+  /* Cintura partida por altura: umbral de riesgo bajo en 0,50 */
+  function cinturaAltura(iso) {
+    var cin = ultimaMedida(iso, "cintura");
+    var altura = (A.estado.perfil && A.estado.perfil.altura) || (P.grasaCinta && P.grasaCinta.altura_cm);
+    if (!cin || !altura) return null;
+    return {
+      ratio: cin.v / altura, cintura: cin.v, altura: altura,
+      objetivo: Math.round(altura * 0.5),
+      faltan: Math.round((cin.v - altura * 0.5) * 10) / 10
+    };
+  }
+
   /* ==================== GUÍAS DE MEDIDA ==================== */
 
   var DIBUJO_CINTURA =
@@ -457,6 +699,57 @@
         "Dos veces, igual que la cintura."
       ],
       fallos: "Apretar para que salga un número menor. Aquí un centímetro de menos en el cuello te sube casi un punto el porcentaje de grasa."
+    },
+    tension: {
+      titulo: "Cómo tomar la tensión",
+      boton: "Tensión",
+      dibujo: "",
+      pasos: [
+        "Sentado y <b>quieto cinco minutos</b> antes de medir. Sin hablar durante la toma.",
+        "Espalda apoyada, pies en el suelo sin cruzar las piernas.",
+        "El brazo apoyado en la mesa, con el manguito <b>a la altura del corazón</b>.",
+        "El manguito sobre la piel, dos dedos por encima del codo.",
+        "Ni café ni tabaco ni ejercicio en la media hora anterior; con la vejiga vacía.",
+        "Haz <b>dos tomas separadas un minuto</b> y anota la segunda. Siempre el mismo brazo y la misma hora."
+      ],
+      fallos: "Medir con prisa, recién llegado o con el brazo colgando: sube la cifra sin que pase nada. " +
+        "El pulso que anotas es el de esa misma toma. Y una toma suelta no significa nada: lo que se mira es la media de varios días."
+    },
+    tobillo: {
+      titulo: "Cómo medir el tobillo",
+      dibujo: "",
+      pasos: [
+        "Sentado, con el pie apoyado en el suelo y la pierna relajada.",
+        "La cinta <b>justo por encima de los dos huesos</b> que sobresalen en el tobillo.",
+        "Siempre <b>la misma pierna</b> y en el mismo punto: marca de referencia mental, por ejemplo el hueso de dentro.",
+        "Por la mañana, antes de andar mucho: el líquido baja a lo largo del día.",
+        "Apoyada, sin apretar."
+      ],
+      fallos: "Esto no mide grasa: mide líquido. Sirve para ver si retienes —con el corticoide es lo esperable— y lo que cuenta es el cambio respecto a tus días normales. " +
+        "Si un tobillo se hincha mucho más que el otro, o duele o está caliente, eso no es dato para el plan: es para el médico."
+    },
+    muslo: {
+      titulo: "Cómo medir el muslo",
+      dibujo: "",
+      pasos: [
+        "De pie, peso repartido en las dos piernas, músculo relajado.",
+        "En el <b>punto medio</b> entre el pliegue de la ingle y el borde superior de la rodilla.",
+        "Mide una vez ese punto con la cinta y apunta a cuántos centímetros de la rodilla está: así repites siempre el mismo sitio.",
+        "Cinta horizontal y apoyada, sin apretar.",
+        "Siempre la misma pierna."
+      ],
+      fallos: "Apretar, o medir en un sitio distinto cada mes. Un centímetro de diferencia en la altura del muslo cambia el número más que tres meses de entrenamiento."
+    },
+    brazo: {
+      titulo: "Cómo medir el brazo",
+      dibujo: "",
+      pasos: [
+        "Brazo <b>relajado y colgando</b>, no en tensión.",
+        "En el punto medio entre el hombro y el codo.",
+        "Cinta horizontal, apoyada, sin apretar.",
+        "Siempre el mismo brazo."
+      ],
+      fallos: "Medirlo en tensión. Y no le des importancia al número: se mueve 2-3 mm en meses y la cinta tiene ±5 mm de error. Es informativo."
     },
     peso: {
       titulo: "Cómo pesarse",
@@ -560,6 +853,32 @@
     var img = (sem.n % 2) ? P.diaGrande.imagenes.montana : P.diaGrande.imagenes.bici;
     var h = volver;
 
+    /* franja: dos ranuras, el semáforo y los avisos */
+    var av = avisos(hoy).slice(0, 2), sem0 = (P.semaforo || {});
+    var hayConsulta = av.some(function (a) { return a.d.nivel === "consulta"; });
+    h += '<div class="ent-franja">';
+    h += '<div class="ent-sem' + (sem0.activo ? "" : " apagado") + (hayConsulta ? " ambar" : "") + '">' +
+      '<span class="et">Semáforo</span>' +
+      "<b>" + (sem0.activo ? "—" : (hayConsulta ? "Suave" : "Sin calibrar")) + "</b>" +
+      "<small>" + (sem0.activo
+        ? ""
+        : (hayConsulta
+          ? "Hoy suave: hay un aviso de consulta sin resolver."
+          : "Se activa el " + U.etiquetaFecha(sem0.desde || "2026-10-15") + ", con tres semanas sin corticoide.")) +
+      "</small></div>";
+    h += '<div class="ent-avisos"><span class="et">Avisos · ' + av.length + "</span>";
+    if (!av.length) {
+      h += '<small class="ok">Nada que atender hoy.</small>';
+    } else {
+      av.forEach(function (a) {
+        h += '<div class="ent-aviso ' + a.d.nivel + '">' +
+          '<span class="niv">' + (a.d.nivel === "consulta" ? "Consulta" : a.d.nivel === "atencion" ? "Atención" : "Nota") + "</span>" +
+          "<b>" + a.d.id + " · " + U.esc(a.d.titulo) + "</b>" +
+          "<small>" + U.esc(a.dato) + ". " + U.esc(a.d.texto) + "</small></div>";
+      });
+    }
+    h += "</div></div>";
+
     /* cabecera */
     h += '<div class="tarjeta ent-cab">' +
       '<img src="' + img + '" alt="" onerror="this.style.display=\'none\'">' +
@@ -634,20 +953,23 @@
           String(up.kg).replace(".", ",") + " kg</b>, del " + U.etiquetaFecha(up.f) +
           (up.f === dia ? " (hoy)" : "") + ". Escribe encima para corregirlo o poner el de hoy.</p>";
       }
-      var g = grasaPorCinta(dia);
-      if (g) {
-        h += '<div class="ent-estim"><b>Grasa estimada con la cinta: ' + String(g.pct).replace(".", ",") + " %</b>" +
-          (g.magra ? " · masa magra <b>" + String(g.magra).replace(".", ",") + " kg</b>" : "") +
-          "<small>Cintura " + String(g.cintura).replace(".", ",") + " cm y cuello " +
-          String(g.cuello).replace(".", ",") + " cm, del " + U.etiquetaFecha(g.fecha) + ". " +
-          U.esc(P.grasaCinta.aviso) + "</small></div>";
+      var lec = lecturas(dia);
+      if (lec.length) {
+        h += '<h3 class="ent-subt">Lo que dicen tus medidas</h3>';
+        lec.forEach(function (l) {
+          h += '<div class="ent-estim"><b>' + U.esc(l.t) + "</b><small>" + U.esc(l.d) + "</small></div>";
+        });
       }
-      var conGuia = medHoy.filter(function (m) { return GUIAS[m.id]; });
+      var vistas = {}, conGuia = [];
+      medHoy.forEach(function (m) {
+        var k = m.guia || m.id;
+        if (GUIAS[k] && !vistas[k]) { vistas[k] = 1; conGuia.push({ k: k, n: GUIAS[k].boton || m.nombre }); }
+      });
       if (conGuia.length) {
         h += '<div class="ent-guias"><span class="nota-peque">¿Cómo se mide?</span>';
         conGuia.forEach(function (m) {
-          h += '<button type="button" class="ent-guia" data-guia="' + m.id + '">' +
-            '<span class="i">?</span>' + U.esc(m.nombre) + "</button>";
+          h += '<button type="button" class="ent-guia" data-guia="' + m.k + '">' +
+            '<span class="i">?</span>' + U.esc(m.n) + "</button>";
         });
         h += "</div>";
       }

@@ -132,16 +132,22 @@
       { id: "cuello",  nombre: "Cuello",     unidad: "cm",   paso: 0.5, min: 25, max: 60,
         dias: [1], ayuda: "Justo debajo de la nuez, con la cinta un poco inclinada hacia abajo por delante. Con cuello y cintura sale el porcentaje de grasa por cinta, que no se mueve con la hidratación." },
       { id: "sistolica",  nombre: "Tensión alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
-        diariaHasta: "2026-09-28", diasDespues: [1, 4],
+        diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "La alta es la SISTÓLICA, el número grande del tensiómetro. Los corticoides la suben." },
       { id: "diastolica", nombre: "Tensión baja", unidad: "mmHg", paso: 1, min: 30, max: 160,
-        diariaHasta: "2026-09-28", diasDespues: [1, 4],
+        diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "La baja es la DIASTÓLICA, el segundo número." },
       { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,
-        diariaHasta: "2026-09-28", diasDespues: [1, 4],
+        diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "El que marca el tensiómetro en esa misma medida. Sirve de contraste con el pulso en reposo del reloj." },
+      { id: "tobillo", nombre: "Tobillo",    unidad: "cm",   paso: 0.5, min: 15, max: 45,
+        diariaHasta: "2026-09-28", diasDespues: [1],
+        ayuda: "Mide retención de líquidos, no grasa. Justo por encima de los huesos del tobillo, siempre la MISMA pierna y por la mañana. Con el corticoide, a diario." },
       { id: "brazo",   nombre: "Brazo",      unidad: "cm",   paso: 0.5, min: 15, max: 70,
-        diaDelMes: 1, informativo: true, ayuda: "Solo informativo: se mueve 2-3 mm en meses y la cinta tiene ±5 mm de error." }
+        diaDelMes: 1, informativo: true, ayuda: "Mensual y solo informativo: se mueve 2-3 mm en meses y la cinta tiene ±5 mm de error." },
+      { id: "muslo",   nombre: "Muslo",      unidad: "cm",   paso: 0.5, min: 30, max: 90,
+        diaDelMes: 1, informativo: true,
+        ayuda: "Mensual. Es donde vive el músculo del ciclista: si el peso baja y el muslo aguanta, vas bien; si bajan los dos, estás perdiendo músculo." }
     ],
 
     /* ---------- tratamiento y tareas sueltas ---------- */
@@ -167,6 +173,55 @@
        que es justo lo que estropea la impedancia de la báscula. */
     grasaCinta: { metodo: "navy", altura_cm: 182, sexo: "h",
       aviso: "Estimación por cinta, con 3-4 % de error. Vale para la tendencia, no como cifra exacta." },
+
+    /* ---------- el semáforo ----------
+       Autoriza o modifica la sesión, y cuando la rebaja ofrece la alternativa.
+       Se calibra a mediados de octubre, con tres semanas limpias sin corticoide. */
+    semaforo: {
+      activo: false,
+      desde: "2026-10-15",
+      pendiente: "Sin calibrar. Se decide sobre fatiga frente a forma, las dos últimas noches y el tamaño de la sesión — no sobre la VFC.",
+      estados: {
+        verde:  { nombre: "Normal",   dice: "Adelante con lo de hoy" },
+        ambar:  { nombre: "Suave",    dice: "Hoy no toca apretar",
+                  ofrece: ["La misma sesión al 60 % del tiempo y sin intensidad", "Cambiar la bici por una caminata"] },
+        rojo:   { nombre: "Descansa", dice: "Hoy no",
+                  ofrece: ["Paseo de 20-30 minutos", "Descanso completo"],
+                  nota: "Lo que no se hace no se recupera." },
+        azul:   { nombre: "Sube",     dice: "Llevas días por debajo de tu forma",
+                  ofrece: ["Un 10-15 % más de tiempo"] }
+      },
+      regla_consulta: "Un aviso de nivel Consulta baja el semáforo a ámbar y lo dice con esas palabras. Es la única conexión entre avisos y entrenamiento."
+    },
+
+    /* ---------- catálogo cerrado de avisos ----------
+       Niveles: nota | atencion | consulta. Máximo dos a la vez, ordenados
+       consulta → atencion → nota. Los umbrales viven AQUÍ, no en el código. */
+    avisos: [
+      { id: "M1", nivel: "atencion", titulo: "Cintura por encima de 102 cm", umbral: 102,
+        texto: "Umbral de riesgo cardiometabólico muy aumentado para hombre (94 cm es el de riesgo aumentado). Es de lo que más mejora con el plan." },
+      { id: "M2", nivel: "nota", titulo: "Cintura ÷ altura por encima de 0,50", umbral: 0.5,
+        texto: "Por encima del umbral de riesgo bajo." },
+      { id: "M3", nivel: "atencion", titulo: "Estás bajando demasiado rápido", umbral: 0.6,
+        texto: "Más de 0,6 kg por semana dos semanas seguidas. En 2025, a 0,9 kg/semana, el 43 % de lo perdido no era grasa. Sube la proteína y no recortes la fuerza." },
+      { id: "M4", nivel: "atencion", titulo: "El peso está volviendo", umbral: 2, semanas: 3,
+        texto: "Dos kilos sobre tu mínimo de las últimas ocho semanas, sostenidos tres semanas. Es la forma que tuvo el desplome de 2025-2026." },
+      { id: "M5", nivel: "nota", titulo: "Retención de líquidos", umbral: 0.7, dias: 3,
+        texto: "El tobillo lleva tres días por encima de tu media. Con el corticoide es lo esperable; si no baja al terminar la pauta, es dato para la revisión." },
+      { id: "M6", nivel: "consulta", titulo: "Tensión media alta", umbral_sis: 140, umbral_dia: 90, tomas: 5,
+        texto: "No es un diagnóstico y los corticoides la suben por sí solos, pero es el dato que conviene llevar a la consulta." },
+      { id: "M7", nivel: "consulta", titulo: "Una toma de tensión muy alta", umbral_sis: 180, umbral_dia: 110,
+        texto: "Repite la toma tras cinco minutos sentado y en reposo. Si se confirma, se consulta sin esperar a la cita." },
+      { id: "M8", nivel: "atencion", titulo: "El muslo está perdiendo", umbral: -1,
+        texto: "Un centímetro o más con el peso bajando: parte de lo que pierdes es músculo. Revisa proteína y las dos sesiones de fuerza." },
+      { id: "M9", nivel: "atencion", titulo: "Carga por debajo del objetivo", umbral: 0.7, semanas: 2,
+        texto: "Dos semanas por debajo del 70 %. No se sube: se repite la misma semana de la rampa.", requiere: "salud.json" },
+      { id: "M10", nivel: "atencion", titulo: "Hueco de cuatro días", umbral: 4,
+        texto: "Se vuelve a la semana anterior de la rampa.", requiere: "salud.json" },
+      { id: "M11", nivel: "nota", titulo: "Pulso en reposo alto", umbral: 5, dias: 3,
+        texto: "Cinco pulsaciones sobre tu base tres días seguidos: fatiga, poco sueño o algo incubándose.",
+        requiere: "salud.json", silenciado_hasta: "2026-09-28" }
+    ],
 
     /* ---------- reglas que la pantalla enseña ---------- */
     suelo: "El día cuenta como cumplido si se hizo la sesión que tocaba.",
