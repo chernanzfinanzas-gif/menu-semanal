@@ -1,0 +1,173 @@
+/* ============================================================================
+   ActividadKHB — estilos del archivo navegable.
+   Todo cuelga de variables con valor de reserva, así que si la app ya define
+   sus propios tokens (--ink, --card…) los coge, y si no, se ve bien igual.
+   ========================================================================== */
+
+.akhb {
+  --akhb-ink:    var(--ink, #15181b);
+  --akhb-ink2:   var(--ink-2, #4f5761);
+  --akhb-ink3:   var(--ink-3, #7b838d);
+  --akhb-card:   var(--card, #fff);
+  --akhb-card2:  var(--card-2, #f4f3ee);
+  --akhb-linea:  var(--line, #e4e3dc);
+  --akhb-linea2: var(--line-2, #efeee8);
+  --akhb-acento: var(--s1, #2a78d6);
+  --akhb-ini:    var(--s3, #1baf7a);
+  --akhb-fin:    var(--s2, #eb6834);
+  color: var(--akhb-ink);
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .akhb {
+    --akhb-ink: #f1f2ef; --akhb-ink2: #a8b1bb; --akhb-ink3: #7d868f;
+    --akhb-card: #1c1f24; --akhb-card2: #22262c;
+    --akhb-linea: #2c3138; --akhb-linea2: #252a31;
+    --akhb-acento: #3987e5; --akhb-ini: #199e70; --akhb-fin: #d95926;
+  }
+}
+:root[data-theme="dark"] .akhb {
+  --akhb-ink: #f1f2ef; --akhb-ink2: #a8b1bb; --akhb-ink3: #7d868f;
+  --akhb-card: #1c1f24; --akhb-card2: #22262c;
+  --akhb-linea: #2c3138; --akhb-linea2: #252a31;
+  --akhb-acento: #3987e5; --akhb-ini: #199e70; --akhb-fin: #d95926;
+}
+
+/* ---- tira de años ---- */
+.akhb-anios {
+  display: flex; gap: 4px; overflow-x: auto; padding: 2px 0 6px;
+  scrollbar-width: thin;
+}
+.akhb-anio {
+  flex: 1 0 44px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: 1px solid var(--akhb-linea); background: var(--akhb-card);
+  border-radius: 8px; padding: 6px 4px 5px; cursor: pointer;
+  font: inherit; font-size: 11px; color: var(--akhb-ink3); line-height: 1.1;
+}
+.akhb-anio:hover { border-color: var(--akhb-ink3); }
+.akhb-anio.sel {
+  border-color: var(--akhb-acento); background: var(--akhb-card2);
+  color: var(--akhb-ink); font-weight: 600;
+}
+.akhb-anio-n { font-size: 12px; }
+.akhb-anio-c { font-size: 10px; }
+.akhb-barra {
+  display: block; width: 100%; height: 26px; position: relative;
+  background: var(--akhb-linea2); border-radius: 3px; overflow: hidden;
+}
+.akhb-barra i {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--akhb-ink3); border-radius: 3px;
+}
+.akhb-anio.sel .akhb-barra i { background: var(--akhb-acento); }
+
+/* ---- cabecera del año ---- */
+.akhb-cab {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin: 10px 0 2px;
+}
+.akhb-cab h3 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+.akhb-fuente { font-size: 11.5px; color: var(--akhb-ink3); }
+
+/* ---- meses ---- */
+.akhb-meses {
+  display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 14px;
+}
+.akhb-mes {
+  border: 1px solid var(--akhb-linea); background: var(--akhb-card);
+  border-radius: 7px; padding: 4px 9px; cursor: pointer;
+  font: inherit; font-size: 12px; color: var(--akhb-ink2);
+  display: inline-flex; align-items: baseline; gap: 5px;
+}
+.akhb-mes b { font-size: 10.5px; color: var(--akhb-ink3); font-weight: 600; }
+.akhb-mes:hover:not(.vacio) { border-color: var(--akhb-ink3); color: var(--akhb-ink); }
+.akhb-mes.sel {
+  border-color: var(--akhb-acento); background: var(--akhb-acento);
+  color: #fff; font-weight: 600;
+}
+.akhb-mes.sel b { color: rgba(255,255,255,.8); }
+.akhb-mes.vacio { opacity: .4; cursor: default; }
+.akhb-todo { font-weight: 600; }
+
+/* ---- lista ---- */
+.akhb-titmes {
+  margin: 16px 0 6px; font-size: 13px; font-weight: 700;
+  text-transform: capitalize; letter-spacing: -.01em;
+}
+.akhb-titmes span {
+  font-weight: 400; font-size: 11.5px; color: var(--akhb-ink3);
+  text-transform: none; margin-left: 6px;
+}
+.akhb-lista { list-style: none; margin: 0; padding: 0; }
+.akhb-item { border-top: 1px solid var(--akhb-linea2); }
+.akhb-item:first-child { border-top: 0; }
+.akhb-fila {
+  width: 100%; display: grid; grid-template-columns: 40px 1fr 14px;
+  gap: 10px; align-items: center; text-align: left;
+  border: 0; background: none; cursor: pointer; font: inherit;
+  padding: 9px 2px; color: inherit;
+}
+.akhb-fila:hover { background: var(--akhb-card2); }
+.akhb-dia { text-align: center; line-height: 1.05; color: var(--akhb-ink3); }
+.akhb-dia b { display: block; font-size: 15px; color: var(--akhb-ink); }
+.akhb-dia i { font-style: normal; font-size: 10px; }
+.akhb-txt { min-width: 0; }
+.akhb-nom {
+  display: block; font-size: 13.5px; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.akhb-sub { display: block; font-size: 11.5px; color: var(--akhb-ink2); margin-top: 1px; }
+.akhb-chev {
+  width: 8px; height: 8px; border-right: 2px solid var(--akhb-ink3);
+  border-bottom: 2px solid var(--akhb-ink3); transform: rotate(45deg);
+  transition: transform .15s;
+}
+.akhb-fila[aria-expanded="true"] .akhb-chev { transform: rotate(225deg); }
+.akhb-fila[aria-expanded="true"] { background: var(--akhb-card2); }
+
+/* ---- ficha ---- */
+.akhb-ficha {
+  background: var(--akhb-card2); border-radius: 0 0 9px 9px;
+  padding: 13px; margin-bottom: 6px;
+  display: grid; grid-template-columns: 136px 1fr; gap: 15px; align-items: start;
+}
+.akhb-mapa {
+  margin: 0; background: var(--akhb-card); border: 1px solid var(--akhb-linea);
+  border-radius: 8px; padding: 7px; color: var(--akhb-acento);
+}
+.akhb-mapa figcaption {
+  font-size: 10.5px; color: var(--akhb-ink3); margin-top: 5px; line-height: 1.3;
+}
+.akhb-trazo, .akhb-icono { display: block; width: 100%; height: auto; }
+.akhb-icono { color: var(--akhb-ink3); opacity: .55; padding: 12%; }
+.akhb-ini { fill: var(--akhb-ini); }
+.akhb-fin { fill: var(--akhb-fin); }
+.akhb-cargando {
+  aspect-ratio: 1; display: grid; place-items: center;
+  font-size: 11px; color: var(--akhb-ink3);
+}
+.akhb-kv {
+  margin: 0; display: grid; gap: 10px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+.akhb-kv div { min-width: 0; }
+.akhb-kv dt {
+  font-size: 10px; color: var(--akhb-ink3);
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.akhb-kv dd { margin: 1px 0 0; font-size: 14.5px; font-weight: 600; }
+.akhb-pte { color: var(--akhb-ink3); font-weight: 400; font-size: 12px; }
+
+.akhb-nada {
+  font-size: 13px; color: var(--akhb-ink2);
+  padding: 18px 2px; margin: 0;
+}
+
+@media (max-width: 560px) {
+  .akhb-ficha { grid-template-columns: 1fr; }
+  .akhb-mapa { max-width: 170px; }
+  .akhb-anio { flex: 0 0 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .akhb-chev { transition: none; }
+}

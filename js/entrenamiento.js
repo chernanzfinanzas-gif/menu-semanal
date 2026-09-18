@@ -1113,8 +1113,17 @@
     return fuera;
   }
 
+  /* Hay sesiones que el reloj no registra nunca —la movilidad de cuello, por
+     ejemplo—: para ésas la casilla es la única fuente y no tiene sentido
+     esperar a un dato que no va a llegar. */
+  function sinReloj(sesion) {
+    var l = P.familiasSinReloj || [];
+    return l.indexOf(familia(sesion.t)) >= 0;
+  }
+
   /* ¿Hay una actividad medida que encaje con ESTA sesión? */
   function relojPara(iso, sesion) {
+    if (sinReloj(sesion)) return null;
     var fam = familia(sesion.t), reg = registradas(iso), umbral = Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
     if (sesion.grande) umbral = MIN_SESION;
     for (var i = 0; i < reg.length; i++) {
@@ -1138,6 +1147,7 @@
   function sesionHecha(iso, sesion, i) {
     var m = marcaDe(iso, "s" + i), v = valorMarca(m);
     if (v === true) return true;
+    if (sinReloj(sesion)) return false;        // sin reloj que valga, manda la casilla
     if (v === "no") return !!desmienteAlNo(iso, sesion, m);
     return !!relojPara(iso, sesion);
   }
@@ -1458,11 +1468,16 @@
        no cuenta, que todavía da tiempo a salir. */
     d = def("M10");
     if (d && Salud.datos) {
+      /* Si hoy ya has salido, el hueco se ha terminado: decirte que llevas
+         nueve días parado el día que vuelves es lo contrario de lo que tiene
+         que hacer este aviso. */
       var huecos = 0, fH = U.sumarDias(dia, -1), tope = 30;
-      for (var iH = 0; iH < tope; iH++) {
-        if (registradas(fH).length) break;
-        huecos++;
-        fH = U.sumarDias(fH, -1);
+      if (!registradas(dia).length) {
+        for (var iH = 0; iH < tope; iH++) {
+          if (registradas(fH).length) break;
+          huecos++;
+          fH = U.sumarDias(fH, -1);
+        }
       }
       if (huecos >= d.umbral) {
         /* si se llega al tope, el hueco es más largo de lo que se ha contado:
@@ -3324,10 +3339,13 @@
     var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
     ses.forEach(function (s, i) {
       var id = "s" + i, m = marcaDe(dia, id), v = valorMarca(m), reloj = relojPara(dia, s);
-      var tarde = (v === "no") ? desmienteAlNo(dia, s, m) : null;
-      var porElReloj = (v !== true && (v !== "no" || tarde) && !!reloj);
+      var aMano = sinReloj(s);
+      var tarde = (!aMano && v === "no") ? desmienteAlNo(dia, s, m) : null;
+      var porElReloj = (!aMano && v !== true && (v !== "no" || tarde) && !!reloj);
       var ayuda;
-      if (tarde) {
+      if (aMano) {
+        ayuda = (v === true ? "Marcada. " : "") + (P.textoSinReloj || "El reloj no mide esto: la marcas tú.");
+      } else if (tarde) {
         /* la habías dado por no hecha y luego saliste: manda el dato */
         ayuda = "La habías marcado como no hecha, pero después el reloj midió " + tarde.min +
           " min de «" + tarde.nombre + "». Cuenta como hecha.";
@@ -3347,7 +3365,9 @@
         /* sin este enlace no hay forma de volver a «sin marca», que es el único
            estado en el que decide el reloj: marcar guarda true, desmarcar
            guarda «no», y no había tercera posición */
-        borrable: (v === true || v === "no") ? id : null,
+        /* en las que el reloj no mide, «que decida el reloj» sería dejarla sin
+           decidir para siempre: no se ofrece */
+        borrable: (!aMano && (v === true || v === "no")) ? id : null,
         guia: guiaDeSesion(s.t)
       });
     });

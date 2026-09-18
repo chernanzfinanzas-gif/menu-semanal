@@ -225,6 +225,14 @@
       nota: "El pase mira cinco cosas y ninguna más: carga, cumplimiento, peso, recuperación y lo que dijeron tus observaciones."
     },
 
+    /* ---------- lo que el reloj no puede medir ----------
+       Familias de sesión que no generan actividad registrada: por mucho que
+       esperes, nunca se van a marcar solas. Para éstas la casilla es la única
+       fuente, así que no se ofrece «que decida el reloj» —sería dejarlas sin
+       decidir para siempre— y la ayuda lo dice. */
+    familiasSinReloj: ["movilidad"],
+    textoSinReloj: "El reloj no mide esto: la marcas tú cuando la hagas.",
+
     /* ---------- guías de sesión ----------
        Sesiones que no se explican solas y piden pauta. Se enganchan por texto:
        si el nombre de la sesión contiene «patron», sale el botón de la guía. */
@@ -380,8 +388,8 @@
         texto: "Vas camino de la segunda semana seguida por debajo del 70 %, y todavía quedan días para evitarlo. " +
                "Si se cierra así, el pase del domingo repetirá la semana en vez de subir.", requiere: "salud.json" },
       { id: "M10", nivel: "atencion", titulo: "Hueco de cuatro días", umbral: 4,
-        texto: "Cuatro días sin nada registrado. Volver con la sesión que tocaba es lo que rompió 2025: " +
-               "se retoma por la talla S y se sube desde ahí.", requiere: "salud.json" },
+        texto: "Volver con la sesión que tocaba es lo que rompió 2025. Se retoma por la semana S —la de " +
+               "supervivencia: tres sesiones de 40 minutos, sin salida— y desde ahí se sube.", requiere: "salud.json" },
       { id: "M11", nivel: "nota", titulo: "Pulso en reposo alto", umbral: 5, dias: 3,
         texto: "Cinco pulsaciones sobre tu base tres días seguidos: fatiga, poco sueño o algo incubándose.",
         requiere: "salud.json", silenciado_hasta: "2026-09-28" }
