@@ -207,6 +207,12 @@
       ".ent-parte h2 .ent-cuenta{font-size:.68rem;font-weight:600;color:var(--gris);",
       "  border:1px solid var(--borde);border-radius:999px;padding:2px 9px}",
       ".ent-obs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}",
+      ".ent-dia-obs{padding:9px 0;border-bottom:1px solid var(--borde)}",
+      ".ent-dia-obs:last-child{border-bottom:0}",
+      ".ent-dia-obs b{display:inline-block;min-width:52px;font-size:.82rem;color:var(--azul-hondo);",
+      "  text-transform:capitalize}",
+      ".ent-dia-obs .ms{font-size:.82rem;color:var(--azul)}",
+      ".ent-dia-obs small{display:block;margin:3px 0 0 52px;font-size:.82rem;color:var(--gris);line-height:1.4}",
       ".ent-obs-dice{margin:8px 0 0;font-size:.8rem;line-height:1.45;color:var(--gris);",
       "  border-left:3px solid var(--azul-borde);padding-left:9px}",
       ".ent-obs + .ent-obs-dice{margin-top:10px}",
@@ -836,25 +842,35 @@
     /* lo que dicen las observaciones del día */
     var mots = motivosDe(dia);
     if (mots.length) {
-      var nombres = [], parar = false, vigilar = false, agenda = false;
+      /* manda el efecto más serio de los marcados: parar > limitar > vigilar > agenda */
+      var ORDEN = ["parar", "limitar", "vigilar", "agenda"], nombres = [], hay = {};
       mots.forEach(function (v) {
         var m = motivo(v);
         if (!m) return;
         nombres.push(m.n.toLowerCase());
-        if (m.efecto === "parar") parar = true;
-        if (m.efecto === "vigilar") vigilar = true;
-        if (m.efecto === "agenda") agenda = true;
+        hay[m.efecto] = true;
       });
-      if (parar || vigilar || agenda) {
-        var racha = rachaObs(dia, parar ? ["parar"] : (vigilar ? ["vigilar", "parar"] : ["agenda"]));
-        var txt = P.observaciones.textos[parar ? "parar" : (vigilar ? "vigilar" : "agenda")];
-        if (!parar && vigilar && racha >= 2) {
+      var manda = null;
+      for (var iO = 0; iO < ORDEN.length; iO++) if (hay[ORDEN[iO]]) { manda = ORDEN[iO]; break; }
+      if (manda) {
+        /* la racha cuenta también lo más serio: una limitante después de una
+           invalidante son dos días seguidos con la misma pierna rota */
+        var cuenta = manda === "agenda" ? ["agenda"] : ORDEN.slice(0, ORDEN.indexOf(manda) + 1);
+        if (manda === "vigilar" || manda === "limitar") cuenta = ["parar", "limitar", "vigilar"];
+        var racha = rachaObs(dia, cuenta);
+        var txt = P.observaciones.textos[manda];
+        if (manda === "vigilar" && racha >= 2) {
           txt = "Van " + racha + " días seguidos con esto. Dos ya son motivo para bajar la intensidad " +
             "de la semana en vez de seguir como si nada.";
         }
+        if (manda === "limitar" && racha >= 3) {
+          txt += " Y van " + racha + " días seguidos: si a la semana no ha remitido, deja de ser " +
+            "cosa del plan y pasa a ser cosa de la consulta.";
+        }
+        var notaHoy = (obsDe(dia) || {}).nota;
         out.push({
           t: "Hoy: " + nombres.join(", ") + (racha > 1 ? " · " + racha + " días seguidos" : ""),
-          d: txt
+          d: (notaHoy ? "«" + notaHoy + "». " : "") + txt
         });
       }
     }
@@ -1985,6 +2001,27 @@
     h += "</div>";
     h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
       " El fin de semana, un solo día grande: " + U.esc(textoDiaGrande(sem).toLowerCase()) + ". El otro, descanso.</p></div>";
+
+    /* El diario: lo marcado y lo escrito cada día de la semana. Es lo que
+       contesta «¿qué lesión era?» cuando se mira esto dentro de tres meses. */
+    var diario = "";
+    for (var iD = 0; iD < 7; iD++) {
+      var fD = U.sumarDias(lunes, iD), oD = obsDe(fD);
+      if (!oD || (!(oD.m || []).length && !oD.nota)) continue;
+      var fichas = (oD.m || []).map(function (v) {
+        var m = motivo(v);
+        return m ? m.n : v;
+      });
+      diario += '<div class="ent-dia-obs"><b>' + U.esc(DIA_CORTO[U.desdeISO(fD).getDay()]) + " " +
+        U.desdeISO(fD).getDate() + "</b>" +
+        (fichas.length ? '<span class="ms">' + U.esc(fichas.join(" · ")) + "</span>" : "") +
+        (oD.nota ? '<small>«' + U.esc(oD.nota) + "»</small>" : "") + "</div>";
+    }
+    if (diario) {
+      h += '<div class="tarjeta"><h2>Lo que ha pasado esta semana</h2>' +
+        '<p class="nota-peque evo-pie">Lo que marcaste y lo que escribiste, día a día. De aquí sale el pase del domingo.</p>' +
+        diario + "</div>";
+    }
 
     h += '<button type="button" class="ent-atras abajo" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
 

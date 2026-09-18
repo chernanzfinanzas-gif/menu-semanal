@@ -174,7 +174,10 @@
       titulo: "¿Algo que haya afectado hoy?",
       pie: "Toca lo que aplique. Sin nada marcado se entiende que fue un día normal.",
       motivos: [
-        { v: "lesion",    n: "Lesión",        efecto: "parar" },
+        { v: "lesion",    n: "Lesión: no entreno", efecto: "parar",
+          ayuda: "Invalidante: hoy no hay sesión, ni rebajada." },
+        { v: "lesionlim", n: "Lesión: limita",      efecto: "limitar",
+          ayuda: "Limitante: se entrena, pero sin apretar y sin día grande." },
         { v: "enfermo",   n: "Enfermedad",    efecto: "parar" },
         { v: "dolor",     n: "Molestia",      efecto: "vigilar" },
         { v: "fatiga",    n: "Fatiga",        efecto: "vigilar" },
@@ -191,6 +194,7 @@
       nota: { n: "Detalle, si hace falta", ph: "qué rodilla, qué viaje, qué pasó…" },
       textos: {
         parar: "Esto manda sobre el plan: hoy no se entrena, o se camina y ya está. Si sigue dos días, es dato para la consulta, no para la rampa.",
+        limitar: "Se entrena, pero sin apretar: hoy nada de intensidad ni día grande. La sesión sale al 60 % del tiempo, o se cambia por caminar.",
         vigilar: "Anotado. Un día suelto no dice nada; dos seguidos bajan la intensidad de la semana.",
         agenda: "No es fisiología, es vida: sirve para el pase del domingo, para no confundir «no pude» con «no pude más»."
       }
