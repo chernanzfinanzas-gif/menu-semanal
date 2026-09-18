@@ -16,6 +16,7 @@
   var MIN_SESION = 20;      // minutos a partir de los cuales el reloj marca el día como hecho
   var bloque = "portada";   // "portada" | "plan"
   var diaSel = null;        // día abierto en la tarjeta; null = hoy
+  var lunesVista = null;    // lunes de la semana que se enseña abajo; null = la de hoy
 
   var BLOQUES = [
     { id: "plan", nombre: "El Plan", img: "iconos/khb/3-pesas-corredor.webp",
@@ -122,7 +123,13 @@
       ".ent-medida input{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
       ".ent-medida input:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-medida.puesta input{border-color:var(--azul);background:var(--azul-claro)}",
+      ".ent-estim{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--azul-claro);",
+      "  border:1px solid var(--azul-borde);color:var(--azul-hondo);font-size:.95rem}",
+      ".ent-estim small{display:block;margin-top:4px;color:var(--gris);font-size:.8rem;line-height:1.35}",
       /* semana */
+      ".ent-navsem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}",
+      ".ent-navsem h2{margin:0;flex:1;text-align:center}",
+      ".ent-navsem .btn{flex:none}",
       ".ent-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}",
       ".ent-dia{background:var(--gris-claro);border:1px solid var(--borde);border-radius:10px;padding:7px 4px;",
       "  text-align:center;min-height:86px;display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer}",
@@ -215,6 +222,35 @@
     var l = A.estado.pesos || [], ult = null;
     for (var i = 0; i < l.length; i++) if (l[i].f <= iso) ult = l[i];
     return ult;
+  }
+
+  /* La última medida de ese tipo hasta esa fecha */
+  function ultimaMedida(iso, id) {
+    var m = ent().medidas, mejor = null;
+    for (var f in m) if (f <= iso && m[f][id] !== undefined && m[f][id] !== "") {
+      if (!mejor || f > mejor.f) mejor = { f: f, v: parseFloat(m[f][id]) };
+    }
+    return mejor;
+  }
+
+  /* Grasa estimada con la cinta (fórmula de la Marina de EE. UU., en cm) */
+  function grasaPorCinta(iso) {
+    var cfg = P.grasaCinta;
+    if (!cfg) return null;
+    var cin = ultimaMedida(iso, "cintura"), cue = ultimaMedida(iso, "cuello");
+    if (!cin || !cue) return null;
+    var altura = (A.estado.perfil && A.estado.perfil.altura) || cfg.altura_cm;
+    var dif = cin.v - cue.v;
+    if (!(dif > 0) || !(altura > 0)) return null;
+    var pct = 495 / (1.0324 - 0.19077 * (Math.log(dif) / Math.LN10) + 0.15456 * (Math.log(altura) / Math.LN10)) - 450;
+    if (!isFinite(pct) || pct <= 0 || pct >= 70) return null;
+    var peso = ultimoPeso(iso);
+    return {
+      pct: Math.round(pct * 10) / 10,
+      cintura: cin.v, cuello: cue.v, fecha: (cin.f > cue.f ? cin.f : cue.f),
+      magra: peso ? Math.round(peso.kg * (1 - pct / 100) * 10) / 10 : null,
+      peso: peso ? peso.kg : null
+    };
   }
 
   /* ==================== EL PLAN: CÁLCULO ==================== */
@@ -498,6 +534,14 @@
           String(up.kg).replace(".", ",") + " kg</b>, del " + U.etiquetaFecha(up.f) +
           (up.f === dia ? " (hoy)" : "") + ". Escribe encima para corregirlo o poner el de hoy.</p>";
       }
+      var g = grasaPorCinta(dia);
+      if (g) {
+        h += '<div class="ent-estim"><b>Grasa estimada con la cinta: ' + String(g.pct).replace(".", ",") + " %</b>" +
+          (g.magra ? " · masa magra <b>" + String(g.magra).replace(".", ",") + " kg</b>" : "") +
+          "<small>Cintura " + String(g.cintura).replace(".", ",") + " cm y cuello " +
+          String(g.cuello).replace(".", ",") + " cm, del " + U.etiquetaFecha(g.fecha) + ". " +
+          U.esc(P.grasaCinta.aviso) + "</small></div>";
+      }
       medHoy.forEach(function (m) {
         h += '<p class="nota-peque" style="margin-top:8px"><b>' + U.esc(m.nombre) + ":</b> " + U.esc(m.ayuda) + "</p>";
       });
@@ -512,8 +556,13 @@
     h += '<p class="nota-peque" style="margin-top:6px">' + U.esc(pl.pie) + "</p></div>";
 
     /* la semana */
-    h += '<div class="tarjeta"><h2>La semana</h2><div class="ent-semana">';
-    var lunes = U.lunesDe(hoy);
+    var lunes = lunesVista || U.lunesDe(hoy);
+    h += '<div class="tarjeta"><div class="ent-navsem">' +
+      '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
+      "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) + "</h2>" +
+      '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
+      "</div>" +
+      '<div class="ent-semana">';
     for (var i = 0; i < 7; i++) {
       var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
       var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
@@ -543,6 +592,14 @@
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
       if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
+      var ns = t.closest ? t.closest("[data-semana]") : null;
+      if (ns) {
+        var base = lunesVista || U.lunesDe(U.hoyISO());
+        var nuevo = U.sumarDias(base, 7 * parseInt(ns.getAttribute("data-semana"), 10));
+        lunesVista = (nuevo === U.lunesDe(U.hoyISO())) ? null : nuevo;
+        pintar();
+        return;
+      }
       var dd = t.closest ? t.closest("[data-dia]") : null;
       if (dd) {
         var f = dd.getAttribute("data-dia");

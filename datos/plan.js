@@ -128,7 +128,9 @@
         ayuda: "Al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar. " +
                "Los días fijos son lunes, miércoles y sábado, pero si te pesas otro día, queda anotado igual." },
       { id: "cintura", nombre: "Cintura",    unidad: "cm",   paso: 0.5, min: 50, max: 180,
-        dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. Sin apretar." },
+        dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. La cinta apoyada, sin apretar. Mide dos veces y quédate con la que se repita." },
+      { id: "cuello",  nombre: "Cuello",     unidad: "cm",   paso: 0.5, min: 25, max: 60,
+        dias: [1], ayuda: "Justo debajo de la nuez, con la cinta un poco inclinada hacia abajo por delante. Con cuello y cintura sale el porcentaje de grasa por cinta, que no se mueve con la hidratación." },
       { id: "sistolica",  nombre: "Tensión alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
         diariaHasta: "2026-09-28", diasDespues: [1, 4],
         ayuda: "La alta es la SISTÓLICA, el número grande del tensiómetro. Los corticoides la suben." },
@@ -157,6 +159,14 @@
       { id: "test1", nombre: "Test de 20 minutos en Zwift", limite: "2026-10-12",
         ayuda: "Sale la FTP real y con ella las zonas definitivas." }
     ],
+
+    /* ---------- grasa estimada con la cinta ----------
+       Fórmula de la Marina de EE. UU. en centímetros, para hombre:
+         %grasa = 495 / (1,0324 − 0,19077·log10(cintura − cuello) + 0,15456·log10(altura)) − 450
+       Error de un 3-4 % frente a un DEXA, pero ESTABLE: no depende de la hidratación,
+       que es justo lo que estropea la impedancia de la báscula. */
+    grasaCinta: { metodo: "navy", altura_cm: 182, sexo: "h",
+      aviso: "Estimación por cinta, con 3-4 % de error. Vale para la tendencia, no como cifra exacta." },
 
     /* ---------- reglas que la pantalla enseña ---------- */
     suelo: "El día cuenta como cumplido si se hizo la sesión que tocaba.",
