@@ -165,6 +165,37 @@
         ayuda: "Mensual. Es donde vive el músculo del ciclista: si el peso baja y el muslo aguanta, vas bien; si bajan los dos, estás perdiendo músculo." }
     ],
 
+    /* ---------- observaciones del día ----------
+       Van pegadas a las medidas, y se rellenan en un toque. No son un diario:
+       son las RAZONES que explican por qué un día se sale de la raya, que es lo
+       que falta cuando dentro de tres meses miras un bache y no sabes qué pasó.
+       «efecto» dice qué hace cada una en el resto del sistema. */
+    observaciones: {
+      titulo: "¿Algo que haya afectado hoy?",
+      pie: "Toca lo que aplique. Sin nada marcado se entiende que fue un día normal.",
+      motivos: [
+        { v: "lesion",    n: "Lesión",        efecto: "parar" },
+        { v: "enfermo",   n: "Enfermedad",    efecto: "parar" },
+        { v: "dolor",     n: "Molestia",      efecto: "vigilar" },
+        { v: "fatiga",    n: "Fatiga",        efecto: "vigilar" },
+        { v: "malanoche", n: "Mala noche",    efecto: "vigilar" },
+        { v: "animo",     n: "Ánimo bajo",    efecto: "vigilar" },
+        { v: "trabajo",   n: "Trabajo",       efecto: "agenda" },
+        { v: "compromiso",n: "Compromiso",    efecto: "agenda" },
+        { v: "viaje",     n: "Viaje",         efecto: "agenda" },
+        { v: "calor",     n: "Calor o frío",  efecto: "contexto" },
+        { v: "seco",      n: "Deshidratado",  efecto: "medida",
+          ayuda: "Marca la grasa de la báscula de hoy como poco fiable: con poca agua sale alta." },
+        { v: "comida",    n: "Comí distinto", efecto: "contexto" }
+      ],
+      nota: { n: "Detalle, si hace falta", ph: "qué rodilla, qué viaje, qué pasó…" },
+      textos: {
+        parar: "Esto manda sobre el plan: hoy no se entrena, o se camina y ya está. Si sigue dos días, es dato para la consulta, no para la rampa.",
+        vigilar: "Anotado. Un día suelto no dice nada; dos seguidos bajan la intensidad de la semana.",
+        agenda: "No es fisiología, es vida: sirve para el pase del domingo, para no confundir «no pude» con «no pude más»."
+      }
+    },
+
     /* ---------- tratamiento y tareas sueltas ---------- */
     tratamientos: [
       { id: "prednisona", nombre: "Prednisona de la mañana", desde: "2026-09-14", hasta: "2026-09-28",

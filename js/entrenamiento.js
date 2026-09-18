@@ -202,6 +202,28 @@
       /* las obligatorias del día se ven de un vistazo, aunque estén vacías */
       ".ent-medidas.obligatorias .ent-medida input{border-color:var(--azul-borde);background:#fbfdff}",
       ".ent-medidas.obligatorias .ent-medida.puesta input{background:var(--azul-claro)}",
+      /* el parte de la noche */
+      ".ent-parte h2{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}",
+      ".ent-parte h2 .ent-cuenta{font-size:.68rem;font-weight:600;color:var(--gris);",
+      "  border:1px solid var(--borde);border-radius:999px;padding:2px 9px}",
+      ".ent-obs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}",
+      ".ent-obs-dice{margin:8px 0 0;font-size:.8rem;line-height:1.45;color:var(--gris);",
+      "  border-left:3px solid var(--azul-borde);padding-left:9px}",
+      ".ent-obs + .ent-obs-dice{margin-top:10px}",
+      ".ent-nota{margin-top:10px}",
+      ".ent-preg{margin-top:12px}",
+      ".ent-preg .n{display:block;font-size:.78rem;color:var(--gris);margin-bottom:5px}",
+      ".ent-preg .ops{display:flex;flex-wrap:wrap;gap:6px}",
+      ".ent-ficha{border:1px solid var(--borde);background:#fff;color:var(--tinta);border-radius:999px;",
+      "  padding:8px 14px;font:inherit;font-size:.86rem;cursor:pointer}",
+      ".ent-ficha:hover{border-color:var(--azul)}",
+      ".ent-ficha.puesta{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}",
+      ".ent-preg .pista{display:block;margin-top:6px;font-size:.76rem;color:var(--gris);line-height:1.4}",
+      ".ent-nota{width:100%;border:1px solid var(--borde);border-radius:10px;padding:9px 10px;font:inherit;",
+      "  font-size:.9rem;resize:vertical}",
+      ".ent-nota:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
+      ".ent-mini{border:1px solid var(--azul-borde);background:var(--azul-claro);color:var(--azul-hondo);",
+      "  border-radius:999px;padding:3px 10px;font:inherit;font-size:.76rem;font-weight:600;cursor:pointer}",
       /* evolución: las series largas */
       ".evo-rangos{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}",
       ".evo-r{border:1px solid var(--borde);background:#fff;color:var(--gris);border-radius:999px;",
@@ -434,6 +456,65 @@
     else delete c[iso][id];
     if (c[iso] && !Object.keys(c[iso]).length) delete c[iso];
     A.guardar("entreno");
+  }
+
+  /* ---------- observaciones del día ----------
+     Los motivos que explican por qué un día se sale de la raya. Viven en el
+     estado de la app, así que viajan en la sincronización de siempre: no hace
+     falta teclear nada en intervals, que es justo lo que no se hacía. */
+  function obsDe(iso) {
+    var o = ent().obs;
+    return (o && o[iso]) || null;
+  }
+
+  function motivosDe(iso) {
+    var d = obsDe(iso);
+    return (d && d.m) || [];
+  }
+
+  function tieneObs(iso, v) { return motivosDe(iso).indexOf(v) >= 0; }
+
+  function alternarObs(iso, v) {
+    var e = ent();
+    if (!e.obs) e.obs = {};
+    if (!e.obs[iso]) e.obs[iso] = { m: [] };
+    var d = e.obs[iso], i = d.m.indexOf(v);
+    if (i >= 0) d.m.splice(i, 1); else d.m.push(v);
+    d.hora = new Date().toTimeString().slice(0, 5);
+    if (!d.m.length && !d.nota) delete e.obs[iso];
+    A.guardar("entreno");
+  }
+
+  function anotarNotaObs(iso, texto) {
+    var e = ent();
+    if (!e.obs) e.obs = {};
+    if (!e.obs[iso]) e.obs[iso] = { m: [] };
+    var d = e.obs[iso];
+    if (texto) d.nota = texto; else delete d.nota;
+    d.hora = new Date().toTimeString().slice(0, 5);
+    if (!d.m.length && !d.nota) delete e.obs[iso];
+    A.guardar("entreno");
+  }
+
+  /* el motivo, tal como está definido en el puente */
+  function motivo(v) {
+    var l = (P.observaciones && P.observaciones.motivos) || [];
+    for (var i = 0; i < l.length; i++) if (l[i].v === v) return l[i];
+    return null;
+  }
+
+  /* días seguidos, hacia atrás, con algún motivo de ese efecto */
+  function rachaObs(iso, efectos) {
+    var n = 0;
+    for (var i = 0; i < 21; i++) {
+      var f = U.sumarDias(iso, -i), hay = false;
+      motivosDe(f).forEach(function (v) {
+        var m = motivo(v);
+        if (m && efectos.indexOf(m.efecto) >= 0) hay = true;
+      });
+      if (hay) n++; else break;
+    }
+    return n;
   }
 
   function medida(iso, id) { var d = ent().medidas[iso]; return d ? d[id] : null; }
@@ -744,8 +825,38 @@
         det += "La báscula la calcula por impedancia, así que se mueve con el agua del cuerpo. " +
           "Cuando anotes cintura y cuello tendrás el contraste con un método que no depende de eso.";
       }
+      if (tieneObs(gb.f, "seco")) {
+        det += " Ojo: ese día marcaste deshidratado, y la impedancia con poca agua sube el " +
+          "porcentaje de grasa sin que hayas engordado. Ese dato vale menos que el de la cinta.";
+      }
       if (atraso > 21) det += " Es la última que mandó la báscula: desde entonces no ha bajado ninguna.";
       out.push({ t: "Grasa de la báscula: " + num(gb.v) + " %", d: det });
+    }
+
+    /* lo que dicen las observaciones del día */
+    var mots = motivosDe(dia);
+    if (mots.length) {
+      var nombres = [], parar = false, vigilar = false, agenda = false;
+      mots.forEach(function (v) {
+        var m = motivo(v);
+        if (!m) return;
+        nombres.push(m.n.toLowerCase());
+        if (m.efecto === "parar") parar = true;
+        if (m.efecto === "vigilar") vigilar = true;
+        if (m.efecto === "agenda") agenda = true;
+      });
+      if (parar || vigilar || agenda) {
+        var racha = rachaObs(dia, parar ? ["parar"] : (vigilar ? ["vigilar", "parar"] : ["agenda"]));
+        var txt = P.observaciones.textos[parar ? "parar" : (vigilar ? "vigilar" : "agenda")];
+        if (!parar && vigilar && racha >= 2) {
+          txt = "Van " + racha + " días seguidos con esto. Dos ya son motivo para bajar la intensidad " +
+            "de la semana en vez de seguir como si nada.";
+        }
+        out.push({
+          t: "Hoy: " + nombres.join(", ") + (racha > 1 ? " · " + racha + " días seguidos" : ""),
+          d: txt
+        });
+      }
     }
 
     /* cintura / altura */
@@ -1831,6 +1942,8 @@
           h += '<div class="ent-estim"><b>' + U.esc(l.t) + "</b><small>" + U.esc(l.d) + "</small></div>";
         });
       }
+      h += htmlObs(dia);
+
       /* una sola puerta a toda la ayuda: dentro está cada medida por separado */
       h += '<button type="button" class="ent-ayuda" data-guia="*">' +
         '<span class="i">?</span>' +
@@ -1907,6 +2020,41 @@
       f = U.sumarDias(f, 1);
     }
     return hubo ? Math.max(0, Math.round(total)) : null;
+  }
+
+  /* Observaciones: una fila de fichas debajo de las medidas. Multi-selección,
+     un toque cada una, y una nota corta si hace falta detalle. */
+  function htmlObs(dia) {
+    var cfg = P.observaciones;
+    if (!cfg) return "";
+    var d = obsDe(dia) || { m: [] }, puestos = d.m || [];
+
+    var h = '<h3 class="ent-subt">' + U.esc(cfg.titulo) +
+      '<span class="ent-cuenta">' + (puestos.length ? puestos.length + " marcada" + (puestos.length > 1 ? "s" : "") +
+        (d.hora ? " · " + U.esc(d.hora) : "") : "día normal") + "</span></h3>";
+    h += '<div class="ent-obs">';
+    cfg.motivos.forEach(function (m) {
+      h += '<button type="button" class="ent-ficha' + (puestos.indexOf(m.v) >= 0 ? " puesta" : "") +
+        '" data-obs="' + m.v + '">' + U.esc(m.n) + "</button>";
+    });
+    h += "</div>";
+
+    /* la explicación solo aparece cuando algo está marcado: si no, estorba */
+    var dichos = {};
+    puestos.forEach(function (v) {
+      var m = motivo(v);
+      if (!m) return;
+      if (m.ayuda && !dichos["a" + v]) { dichos["a" + v] = 1; h2(m.ayuda); }
+      if (m.efecto && cfg.textos[m.efecto] && !dichos[m.efecto]) {
+        dichos[m.efecto] = 1;
+        h2(cfg.textos[m.efecto]);
+      }
+    });
+    function h2(txt) { h += '<p class="ent-obs-dice">' + U.esc(txt) + "</p>"; }
+
+    h += '<textarea class="ent-nota" data-obs-nota="1" rows="2" placeholder="' +
+      U.esc(cfg.nota.ph) + '">' + U.esc(d.nota || "") + "</textarea>";
+    return h;
   }
 
   function htmlMiEstado(dia, sem) {
@@ -1997,6 +2145,13 @@
         pintar();
         return;
       }
+      var ob = t.closest ? t.closest("[data-obs]") : null;
+      if (ob) {
+        e.preventDefault();
+        alternarObs((diaSel && semanaDe(diaSel)) ? diaSel : U.hoyISO(), ob.getAttribute("data-obs"));
+        pintar();
+        return;
+      }
       var rc = t.closest ? t.closest("[data-recargar]") : null;
       if (rc) {
         e.preventDefault();
@@ -2049,6 +2204,11 @@
         U.toast(dia === U.hoyISO() ? "Anotado" : "Anotado en el " + U.etiquetaFecha(dia));
         pintar();
         return;
+      }
+      if (t.getAttribute("data-obs-nota")) {
+        anotarNotaObs(dia, String(t.value).trim());
+        U.toast("Anotado");
+        return;                       // sin repintar: se perdería el cursor del texto
       }
       if (t.id === "ent-talla") {
         var sem = semanaDe(U.hoyISO());
