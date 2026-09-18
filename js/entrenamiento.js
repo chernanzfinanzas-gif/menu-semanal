@@ -194,6 +194,10 @@
       ".ent-estim small{display:block;margin-top:4px;color:var(--gris);font-size:.8rem;line-height:1.35}",
       ".ent-estim + .ent-estim{margin-top:8px}",
       ".ent-subt{margin:16px 0 8px;font-size:1rem;color:var(--azul-hondo)}",
+      ".ent-refresco{float:right;border:1px solid var(--azul-borde);background:var(--azul-claro);",
+      "  color:var(--azul-hondo);border-radius:999px;padding:4px 11px;font:inherit;font-size:.72rem;",
+      "  font-weight:600;cursor:pointer}",
+      ".ent-refresco:hover{border-color:var(--azul)}",
       /* filas de Mi estado */
       ".ent-fila{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde)}",
       ".ent-fila:last-of-type{border-bottom:0}",
@@ -1025,6 +1029,18 @@
         '<div class="gu-c">' + bloqueGuia(g) + "</div></details>";
     });
 
+    /* diagnóstico: qué campos manda intervals de verdad. Lo escribe el workflow
+       en salud.json, así no hay que abrir el registro de la acción para verlo. */
+    var cb = (Salud.datos && Salud.datos.meta && Salud.datos.meta.campos_bienestar) || null;
+    if (cb && cb.length) {
+      h += '<details class="gu-i"><summary>Qué manda intervals (' + cb.length + " campos)</summary>" +
+        '<div class="gu-c"><p class="nota-peque" style="margin:0 0 8px">Campos de bienestar que llegan ' +
+        "con algún valor, tal como los devuelve intervals. Si el agua o la masa ósea de la báscula no " +
+        "aparecen en esta lista, es que no llegan: el fallo estaría antes, entre Garmin e intervals.</p>" +
+        '<p style="margin:0;font-size:.85rem;line-height:1.5;word-break:break-word">' +
+        U.esc(cb.join(" · ")) + "</p></div></details>";
+    }
+
     h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Cerrar</button>';
     caja.innerHTML = h;
     modal.classList.add("abierta");
@@ -1305,7 +1321,11 @@
   }
 
   function htmlMiEstado(dia, sem) {
-    var h = '<div class="tarjeta"><h2>Mi estado</h2>';
+    /* el botón trae salud.json otra vez sin esperar a que caduque la copia local:
+       hace falta justo después de disparar la recolección, para ver lo que ha bajado */
+    var h = '<div class="tarjeta"><h2>Mi estado' +
+      '<button type="button" class="ent-refresco" data-recargar="1" title="Volver a traer los datos">' +
+      (Salud.estado === "cargando" ? "trayendo…" : "actualizar") + "</button></h2>";
 
     if (!Salud.datos) {
       var por = Salud.estado === "sin-config"
@@ -1381,6 +1401,17 @@
       if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
       var gb = t.closest ? t.closest("[data-guia]") : null;
       if (gb) { e.preventDefault(); abrirGuia(gb.getAttribute("data-guia")); return; }
+      var rc = t.closest ? t.closest("[data-recargar]") : null;
+      if (rc) {
+        e.preventDefault();
+        Salud.cargar(true, function () {
+          var n = Salud.sembrarPesos();
+          if (n) U.toast(n === 1 ? "1 peso traído de intervals" : n + " pesos traídos de intervals");
+          pintar();
+        });
+        pintar();   // para que el botón diga «trayendo…» mientras tanto
+        return;
+      }
       var ns = t.closest ? t.closest("[data-semana]") : null;
       if (ns) {
         var base = lunesVista || U.lunesDe(U.hoyISO());
