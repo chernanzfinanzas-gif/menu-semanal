@@ -175,13 +175,17 @@
     return e.entreno;
   }
 
-  function marcado(iso, id) { var d = ent().checks[iso]; return !!(d && d[id]); }
+  /* marca: true = hecha · "no" = NO hecha, aunque el reloj diga otra cosa · nada = lo que diga el reloj */
+  function marcaDe(iso, id) { var d = ent().checks[iso]; return d ? d[id] : undefined; }
+  function marcado(iso, id) { return marcaDe(iso, id) === true; }
 
   function marcar(iso, id, valor) {
     var c = ent().checks;
     if (!c[iso]) c[iso] = {};
-    if (valor) c[iso][id] = true; else delete c[iso][id];
-    if (!Object.keys(c[iso]).length) delete c[iso];
+    if (valor === true) c[iso][id] = true;
+    else if (valor === "no") c[iso][id] = "no";
+    else delete c[iso][id];
+    if (c[iso] && !Object.keys(c[iso]).length) delete c[iso];
     A.guardar("entreno");
   }
 
@@ -246,19 +250,60 @@
     });
   }
 
-  function hechoPorElReloj(iso) {
-    var lista = (A.estado.actividad || {})[iso];
-    if (!lista || !lista.length) return false;
-    var min = 0;
-    lista.forEach(function (a) { min += (a.min || 0); });
-    return min >= MIN_SESION;
+  /* A qué se parece un texto: así la sesión de caminar solo la marca una caminata. */
+  function familia(txt) {
+    var t = String(txt || "").toLowerCase()
+      .replace(/[áà]/g, "a").replace(/[éè]/g, "e").replace(/[íì]/g, "i")
+      .replace(/[óò]/g, "o").replace(/[úù]/g, "u");
+    if (/camin|sender|pasear|paseo|hike|walk/.test(t)) return "caminar";
+    if (/bici|rodillo|zwift|ciclis|ride/.test(t)) return "bici";
+    if (/fuerza|muscula|pesas|gimnas|weight/.test(t)) return "fuerza";
+    if (/movilidad|estira|yoga/.test(t)) return "movilidad";
+    if (/correr|carrera|run|trotar/.test(t)) return "correr";
+    if (/remo|row/.test(t)) return "remo";
+    return "otra";
+  }
+
+  /* Solo lo que MIDIÓ el reloj (fuente garmin). Lo que apuntas a mano en el Menú
+     para calcular el gasto NO cuenta como sesión hecha. */
+  function registradas(iso) {
+    var lista = (A.estado.actividad || {})[iso] || [], fuera = [];
+    lista.forEach(function (a) {
+      var ex = a.extra || a;
+      if (!ex || ex.fuente !== "garmin") return;
+      var cat = null;
+      (A.estado.actividades || []).forEach(function (c) { if (c.id === a.a) cat = c; });
+      fuera.push({
+        min: a.min || 0,
+        nombre: ex.n || (cat ? cat.n : "Actividad"),
+        fam: familia((ex.n || "") + " " + (cat ? cat.n : "") + " " + (a.a || ""))
+      });
+    });
+    return fuera;
+  }
+
+  /* ¿Hay una actividad medida que encaje con ESTA sesión? */
+  function relojPara(iso, sesion) {
+    var fam = familia(sesion.t), reg = registradas(iso), umbral = Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
+    if (sesion.grande) umbral = MIN_SESION;
+    for (var i = 0; i < reg.length; i++) {
+      if ((reg[i].fam === fam || (sesion.grande && (reg[i].fam === "caminar" || reg[i].fam === "bici"))) &&
+          reg[i].min >= umbral) return reg[i];
+    }
+    return null;
+  }
+
+  function sesionHecha(iso, sesion, i) {
+    var m = marcaDe(iso, "s" + i);
+    if (m === true) return true;
+    if (m === "no") return false;
+    return !!relojPara(iso, sesion);
   }
 
   function diaCumplido(iso, sem, talla) {
     var ses = sesionesDe(iso, sem, talla);
     if (!ses.length) return true;                 // descanso: el día cuenta
-    if (hechoPorElReloj(iso)) return true;
-    for (var i = 0; i < ses.length; i++) if (marcado(iso, "s" + i)) return true;
+    for (var i = 0; i < ses.length; i++) if (sesionHecha(iso, ses[i], i)) return true;
     return false;
   }
 
@@ -392,13 +437,16 @@
     h += '<div class="tarjeta"><h2>' + titulo + "</h2>";
     if (!esHoy) h += '<button type="button" class="ent-volver" data-dia="' + hoy + '">‹ volver a hoy</button>';
 
-    var ses = sesionesDe(dia, semDia, tallaDia), auto = hechoPorElReloj(dia), filas = [];
+    var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
     ses.forEach(function (s, i) {
-      var id = "s" + i, manual = marcado(dia, id);
+      var id = "s" + i, m = marcaDe(dia, id), reloj = relojPara(dia, s);
+      var porElReloj = (m !== true && m !== "no" && !!reloj);
+      var ayuda = porElReloj
+        ? "El reloj midió " + reloj.min + " min de «" + reloj.nombre + "». Si no la hiciste, desmárcala y se queda desmarcada."
+        : (m === "no" ? "La has marcado como no hecha." : (s.grande ? P.diaGrande.aviso : P.textos.auto));
       filas.push({
-        id: id, nombre: s.t + (s.min ? " · " + s.min + " min" : ""), hecho: manual || auto,
-        ayuda: s.grande ? P.diaGrande.aviso : (auto && !manual ? "Marcada con la sesión que llegó del reloj." : P.textos.auto),
-        sello: auto ? "reloj" : ""
+        id: id, nombre: s.t + (s.min ? " · " + s.min + " min" : ""),
+        hecho: sesionHecha(dia, s, i), ayuda: ayuda, sello: porElReloj ? "reloj" : ""
       });
     });
     tareasDelDia(dia).forEach(function (t) {
@@ -499,7 +547,15 @@
 
     cont.addEventListener("change", function (e) {
       var dia = (diaSel && semanaDe(diaSel)) ? diaSel : U.hoyISO(), t = e.target;
-      if (t.getAttribute("data-check")) { marcar(dia, t.getAttribute("data-check"), t.checked); pintar(); return; }
+      var id = t.getAttribute("data-check");
+      if (id) {
+        /* al desmarcar una sesión que venía del reloj, se guarda un «no» explícito:
+           tu marca manda siempre sobre lo que diga el reloj */
+        if (t.checked) marcar(dia, id, true);
+        else marcar(dia, id, id.charAt(0) === "s" ? "no" : false);
+        pintar();
+        return;
+      }
       if (t.getAttribute("data-medida")) {
         anotarMedida(dia, t.getAttribute("data-medida"), String(t.value).trim());
         U.toast(dia === U.hoyISO() ? "Anotado" : "Anotado en el " + U.etiquetaFecha(dia));
