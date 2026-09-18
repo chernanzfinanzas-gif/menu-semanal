@@ -123,6 +123,28 @@
       ".ent-aviso.atencion .niv{color:var(--ambar);border-color:#eccf9a;background:var(--ambar-fondo)}",
       ".ent-aviso.consulta .niv{color:var(--rojo);border-color:#e3b4ab;background:var(--rojo-fondo)}",
       ".ent-aviso + .ent-aviso{border-top:1px solid var(--borde);padding-top:6px}",
+      ".ent-avisos.pulsable{cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s}",
+      ".ent-avisos.pulsable:hover,.ent-avisos.pulsable:focus-visible{border-color:var(--azul-borde);",
+      "  box-shadow:0 1px 6px rgba(47,92,138,.10);outline:none}",
+      ".av-mas{font-size:.72rem;color:var(--azul);font-weight:700;margin-top:2px}",
+      ".av-grupo{font-size:.74rem;letter-spacing:.07em;text-transform:uppercase;color:var(--gris);",
+      "  font-weight:700;margin:14px 0 6px}",
+      ".av-grupo.callados{margin-top:20px}",
+      ".av-callados{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-direction:column;gap:4px}",
+      ".av-callados li{font-size:.8rem;color:var(--gris)}",
+      ".av-callados b{color:var(--tinta);margin-right:5px}",
+      /* el pase que ya se aplicó, arriba de El Plan */
+      ".pase-aplicado{background:var(--blanco);border:1px solid var(--borde);border-left:3px solid var(--azul);",
+      "  border-radius:var(--radio);padding:11px 13px;margin-bottom:12px;cursor:pointer;",
+      "  display:flex;flex-direction:column;gap:3px}",
+      ".pase-aplicado:hover,.pase-aplicado:focus-visible{box-shadow:0 1px 6px rgba(47,92,138,.10);outline:none}",
+      ".pase-aplicado .et{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;",
+      "  color:var(--gris);font-weight:700}",
+      ".pase-aplicado b{font-size:.88rem;color:var(--tinta);line-height:1.35}",
+      ".pase-aplicado small{font-size:.76rem;color:var(--gris);line-height:1.35}",
+      ".pase-aplicado.ok{border-left-color:var(--verde,#2f6b47)}",
+      ".pase-aplicado.ojo{border-left-color:var(--ambar);background:var(--ambar-fondo)}",
+      ".pase-aplicado.parar{border-left-color:var(--rojo);background:var(--rojo-fondo)}",
       /* cabecera del plan */
       ".ent-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap}",
       ".ent-cab img{width:64px;height:64px;flex:none;border-radius:10px;background:#fff}",
@@ -316,6 +338,25 @@
       "  border-radius:999px;padding:1px 8px}",
       ".ses-bloque ol{margin:0;padding-left:20px;font-size:.88rem;line-height:1.5}",
       ".ses-bloque li{margin-bottom:4px}",
+      /* tendencia: chispa y punto de color */
+      ".chispa{display:inline-flex;align-items:center;line-height:0}",
+      ".chispa.vacia{width:74px;height:20px;border-bottom:1px dashed var(--borde)}",
+      ".tend-punto{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;",
+      "  flex:none;vertical-align:1px}",
+      "button.ent-fila{display:flex;align-items:center;gap:8px}",
+      "button.ent-fila .ch{flex:none;display:none}",
+      "@media(min-width:420px){button.ent-fila .ch{display:inline-flex}}",
+      ".ent-estim.con-tend{border-left:3px solid var(--azul-borde)}",
+      ".ent-estim.t-bien{border-left-color:#2f6b47}",
+      ".ent-estim.t-mal{border-left-color:#b3402f}",
+      ".ent-estim.t-plano{border-left-color:#8aa0b5}",
+      ".ent-estim.t-nada{border-left-color:#c7cfcb}",
+      ".est-cab{display:flex;align-items:center;gap:10px;justify-content:space-between}",
+      ".est-cab b{flex:1 1 auto;min-width:0}",
+      ".est-tend{display:block;margin-top:6px;font-style:normal;font-size:.72rem;font-weight:700;",
+      "  letter-spacing:.03em;text-transform:uppercase;color:var(--gris)}",
+      ".ent-estim.t-bien .est-tend{color:#2f6b47}",
+      ".ent-estim.t-mal .est-tend{color:#b3402f}",
       /* la ventanita de las gráficas */
       ".graf-caja{position:relative}",
       ".graf-tip{position:absolute;display:none;pointer-events:none;background:var(--azul-hondo);",
@@ -910,21 +951,56 @@
 
   function diasEntre(a, b) { return Math.round((U.desdeISO(b) - U.desdeISO(a)) / 86400000); }
 
-  function semanaDe(iso) {
+  /* ==================== LA RAMPA ES UNA COLA, NO UN CALENDARIO ====================
+     El calendario dice QUÉ SEMANA es; el pase dice POR QUÉ PELDAÑO vas. Si una
+     semana se queda corta, el lunes siguiente no sube: repite. Así la rampa
+     avanza cuando avanzas tú, y nadie tiene que llevar la cuenta de memoria. */
+
+  /* el hueco del calendario en el que cae un día, y qué peldaño le tocaría
+     si todo hubiese ido bien */
+  function tramoNatural(iso) {
     for (var i = 0; i < P.rampa.length; i++) {
       var r = P.rampa[i];
       if (iso >= r.desde && iso <= r.hasta) {
-        if (r.n < 13) return r;
-        var sem = Math.floor(diasEntre(r.desde, U.lunesDe(iso)) / 7);   // crucero: 3 semanas y la 4ª de descarga
-        var descarga = (sem % 4) === 3;
-        return {
-          n: 13 + sem, desde: U.lunesDe(iso), hasta: U.sumarDias(U.lunesDe(iso), 6),
-          carga: descarga ? Math.round(r.carga * 0.65) : r.carga,
-          talla: descarga ? "B" : "A", nota: descarga ? "Descarga" : r.nota
-        };
+        if (r.n < 13) return { i: i, desde: r.desde, hasta: r.hasta };
+        var k = Math.floor(diasEntre(r.desde, U.lunesDe(iso)) / 7);     // crucero: una semana por hueco
+        return { i: i + k, desde: U.lunesDe(iso), hasta: U.sumarDias(U.lunesDe(iso), 6) };
       }
     }
     return null;
+  }
+
+  /* el contenido de un peldaño; pasado el 13 se genera el crucero */
+  function peldano(idx) {
+    if (idx < 0) idx = 0;
+    if (idx < P.rampa.length - 1) {
+      var r = P.rampa[idx];
+      return { n: r.n, carga: r.carga, talla: r.talla, nota: r.nota, criterio: r.criterio };
+    }
+    var base = P.rampa[P.rampa.length - 1], k = idx - (P.rampa.length - 1);
+    var descarga = (k % 4) === 3;                                       // tres semanas y la cuarta de descarga
+    return { n: base.n + k, carga: descarga ? Math.round(base.carga * 0.65) : base.carga,
+             talla: descarga ? "B" : "A", nota: descarga ? "Descarga" : base.nota };
+  }
+
+  function registroPase() { var e = ent(); if (!e.pase) e.pase = {}; return e.pase; }
+
+  /* cuántos peldaños te has quedado atrás por los pases ya aplicados */
+  function desfaseHasta(desde) {
+    var reg = registroPase(), suma = 0;
+    for (var k in reg) if (k < desde) suma += (reg[k].d || 0);
+    return suma;
+  }
+
+  function semanaDe(iso) {
+    var t = tramoNatural(iso);
+    if (!t) return null;
+    var des = desfaseHasta(t.desde), p = peldano(t.i + des);
+    return { n: p.n, desde: t.desde, hasta: t.hasta, carga: p.carga, talla: p.talla,
+             /* la nota describía esa semana en el calendario original; si vas
+                retrasado ya no es verdad, así que no se arrastra */
+             nota: des === 0 ? p.nota : "", criterio: p.criterio,
+             natural: peldano(t.i).n, desfase: des, idx: t.i + des };
   }
 
   function tallaDe(sem) { return ent().talla[sem.desde] || sem.talla; }
@@ -1096,19 +1172,21 @@
     var a = mediaPesos(dia, 7), b = mediaPesos(U.sumarDias(dia, -7), 7);
     if (a && a.n >= 2) {
       out.push({
+        k: "peso",
         t: "Peso: media de 7 días " + num(a.m) + " kg",
         d: b && b.n >= 2
           ? signo(a.m - b.m) + " kg respecto a la semana anterior (" + num(b.m) + "). El objetivo del plan es entre −0,3 y −0,5 kg por semana."
           : "Con " + a.n + " pesadas. Hacen falta dos semanas para poder comparar."
       });
     } else if (a) {
-      out.push({ t: "Peso: " + num(a.m) + " kg", d: "Una sola pesada esta semana. El dato del día oscila más de un kilo por agua y tránsito: lo que cuenta es la media." });
+      out.push({ k: "peso", t: "Peso: " + num(a.m) + " kg", d: "Una sola pesada esta semana. El dato del día oscila más de un kilo por agua y tránsito: lo que cuenta es la media." });
     }
 
     /* grasa por cinta */
     var g = grasaPorCinta(dia);
     if (g) {
       out.push({
+        k: "grasa",
         t: "Grasa estimada con la cinta: " + num(g.pct) + " %" + (g.magra ? " · masa magra " + num(g.magra) + " kg" : ""),
         d: "Cintura " + num(g.cintura) + " cm y cuello " + num(g.cuello) + " cm, del " + U.etiquetaFecha(g.fecha) + ". " + P.grasaCinta.aviso
       });
@@ -1139,7 +1217,7 @@
           "porcentaje de grasa sin que hayas engordado. Ese dato vale menos que el de la cinta.";
       }
       if (atraso > 21) det += " Es la última que mandó la báscula: desde entonces no ha bajado ninguna.";
-      out.push({ t: "Grasa de la báscula: " + num(gb.v) + " %", d: det });
+      out.push({ k: "grasa", t: "Grasa de la báscula: " + num(gb.v) + " %", d: det });
     }
 
     /* lo que dicen las observaciones del día */
@@ -1182,6 +1260,7 @@
     var rc = cinturaAltura(dia);
     if (rc) {
       out.push({
+        k: "cintura",
         t: "Cintura ÷ altura: " + rc.ratio.toFixed(2).replace(".", ","),
         d: "El umbral de riesgo bajo está en 0,50, que para tus " + rc.altura + " cm son " + rc.objetivo +
           " cm de cintura. Ahora vas por " + num(rc.cintura) + " cm: " +
@@ -1195,6 +1274,7 @@
       var hoyT = tob[tob.length - 1], previos = tob.slice(0, -1), mp = media(previos);
       var difT = mp === null ? null : hoyT.v - mp;
       out.push({
+        k: "tobillo",
         t: "Tobillo: " + num(hoyT.v) + " cm" +
           (difT === null ? "" : (Math.abs(difT) < 0.05 ? " · igual que tu media" : " · " + signo(difT) + " cm sobre tu media")),
         d: mp === null
@@ -1210,6 +1290,7 @@
     if (mt) {
       var ms = mt.sis, md = mt.dia, mpu = mt.pul, alta = mt.alta;
       out.push({
+        k: "tension",
         t: "Tensión: media de " + mt.n + (mt.n === 1 ? " toma " : " tomas ") + Math.round(ms) + "/" + Math.round(md) +
           (mpu !== null ? " · pulso " + Math.round(mpu) : ""),
         d: alta
@@ -1228,7 +1309,7 @@
       else if (dif <= -1) det = "Desde el " + U.etiquetaFecha(ant.f) + ". Ha bajado más de un centímetro: si el peso también bajó, parte de lo perdido era músculo. Revisa proteína y las dos sesiones de fuerza.";
       else if (dif >= 1) det = "Desde el " + U.etiquetaFecha(ant.f) + ". Ha subido: con el peso estable, buena señal.";
       else det = "Desde el " + U.etiquetaFecha(ant.f) + ". Estable dentro del error de la cinta (±5 mm). Si el peso baja y esto aguanta, lo que pierdes es grasa.";
-      out.push({ t: par[1] + ": " + num(u.v) + " cm" + (ant ? " · " + signo(dif) + " cm" : ""), d: det });
+      out.push({ k: par[0], t: par[1] + ": " + num(u.v) + " cm" + (ant ? " · " + signo(dif) + " cm" : ""), d: det });
     });
 
     return out;
@@ -1337,6 +1418,72 @@
       objetivo: Math.round(altura * 0.5),
       faltan: Math.round((cin.v - altura * 0.5) * 10) / 10
     };
+  }
+
+  /* Los avisos, de más grave a menos: en la franja solo caben dos, así que los
+     dos que se ven han de ser los que más importan. */
+  var ORDEN_NIVEL = { consulta: 0, atencion: 1, nota: 2 };
+
+  function avisosOrdenados(dia) {
+    return avisos(dia).slice().sort(function (a, b) {
+      var na = ORDEN_NIVEL[a.d.nivel], nb = ORDEN_NIVEL[b.d.nivel];
+      if (na === undefined) na = 9;
+      if (nb === undefined) nb = 9;
+      if (na !== nb) return na - nb;
+      return a.d.id < b.d.id ? -1 : 1;
+    });
+  }
+
+  function etqNivel(n) {
+    return n === "consulta" ? "Consulta" : (n === "atencion" ? "Atención" : "Nota");
+  }
+
+  function htmlAviso(a, sinNivel) {
+    return '<div class="ent-aviso ' + a.d.nivel + '">' +
+      (sinNivel ? "" : '<span class="niv">' + etqNivel(a.d.nivel) + "</span>") +
+      "<b>" + a.d.id + " · " + U.esc(a.d.titulo) + "</b>" +
+      "<small>" + U.esc(a.dato) + ". " + U.esc(a.d.texto) + "</small></div>";
+  }
+
+  /* la ventana con todos: los que están hoy y, debajo, los que vigila la app
+     sin que salten, para que se vea que el silencio es silencio y no olvido */
+  function abrirAvisos() {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    var hoy = U.hoyISO(), lista = avisosOrdenados(hoy);
+    var activos = {};
+    lista.forEach(function (a) { activos[a.d.id] = 1; });
+
+    var h = "<header><h2>Avisos</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>';
+
+    if (!lista.length) {
+      h += '<div class="evo-vacio"><b>Nada que atender hoy</b>' +
+        "<small>Ninguna de tus medidas ha cruzado su umbral.</small></div>";
+    } else {
+      var porNivel = { consulta: [], atencion: [], nota: [] };
+      lista.forEach(function (a) { (porNivel[a.d.nivel] || porNivel.nota).push(a); });
+      ["consulta", "atencion", "nota"].forEach(function (n) {
+        if (!porNivel[n].length) return;
+        h += '<h3 class="av-grupo">' + etqNivel(n) + " · " + porNivel[n].length + "</h3>";
+        porNivel[n].forEach(function (a) { h += htmlAviso(a, true); });
+      });
+    }
+
+    /* los que no han saltado */
+    var callados = (P.avisos || []).filter(function (d) { return !activos[d.id]; });
+    if (callados.length) {
+      h += '<h3 class="av-grupo callados">En silencio · ' + callados.length + "</h3>" +
+        '<p class="hist-pie">Estos se vigilan solos y hoy no tienen nada que decir.</p><ul class="av-callados">';
+      callados.forEach(function (d) {
+        h += "<li><b>" + d.id + "</b> " + U.esc(d.titulo) + "</li>";
+      });
+      h += "</ul>";
+    }
+
+    h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Cerrar</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
   }
 
   /* ==================== GUÍAS DE MEDIDA ==================== */
@@ -1752,15 +1899,24 @@
     function xy(p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); }
 
     /* la serie que se lee al pasar el dedo: la marcada, o la línea más poblada */
-    var princ = null;
-    series.forEach(function (x) { if (x.tip) princ = x; });
+    var princ = null, sec = null;
+    /* Si el gráfico es una pareja —alta y baja, báscula y cinta— las dos se leen
+       juntas: enseñar solo una mitad de la tensión no dice nada. */
+    if (o.par && series.length > 1 && series[0].pts && series[0].pts.length &&
+        series[1].pts && series[1].pts.length) { princ = series[0]; sec = series[1]; }
+    if (!princ) series.forEach(function (x) { if (x.tip) princ = x; });
     if (!princ) series.forEach(function (x) { if (!x.barras && (!princ || x.pts.length > princ.pts.length)) princ = x; });
     if (!princ) princ = series[0];
+
+    function serial(ps) { return ps.map(function (x) { return x.f + ":" + x.v; }).join(","); }
 
     var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '"' +
       ' data-esc="' + [t0, t1, min, max, W, H, L, R, T, B].join("|") + '"' +
       ' data-uni="' + U.esc(o.unidadTip || o.arriba || "") + '"' +
-      ' data-pts="' + princ.pts.map(function (x) { return x.f + ":" + x.v; }).join(",") + '"' +
+      (sec ? ' data-pts2="' + serial(sec.pts) + '"' +
+             ' data-lab1="' + U.esc((o.par && o.par[0]) || "") + '"' +
+             ' data-lab2="' + U.esc((o.par && o.par[1]) || "") + '"' : "") +
+      ' data-pts="' + serial(princ.pts) + '"' +
       ' role="img" aria-label="' + U.esc(o.alt || "") + '">';
 
     (o.bandas || []).forEach(function (b) {
@@ -1896,19 +2052,16 @@
      subir, repetir, bajar o semana en blanco. Nada de esto se estima: lo que
      falta se dice que falta. */
 
+  /* la anterior es la del CALENDARIO: con la rampa en cola, dos semanas
+     seguidas pueden compartir peldaño, y la regla de «dos flojas seguidas»
+     habla de semanas vividas, no de números de rampa */
   function semanaAnteriorDe(sem) {
-    for (var i = 0; i < P.rampa.length; i++) {
-      if (P.rampa[i].n === sem.n - 1) return P.rampa[i];
-    }
-    return null;
+    return semanaDe(U.sumarDias(sem.desde, -1));
   }
 
-  function semanaSiguienteDe(sem) {
-    for (var i = 0; i < P.rampa.length; i++) {
-      if (P.rampa[i].n === sem.n + 1) return P.rampa[i];
-    }
-    return null;
-  }
+  /* el peldaño de arriba y el de abajo, que es de lo que habla el pase */
+  function semanaSiguienteDe(sem) { return peldano((sem.idx === undefined ? 0 : sem.idx) + 1); }
+  function semanaAbajoDe(sem) { return peldano(Math.max(0, (sem.idx === undefined ? 0 : sem.idx) - 1)); }
 
   /* cumplimiento: días con sesión hecha sobre días con sesión prevista */
   function cumplimientoSemana(sem, hasta) {
@@ -2001,6 +2154,69 @@
     }
     return { v: v, porque: porque, pct: pct, pctAnt: pctAnt, carga: carga,
              cump: cump, sal: sal, porAsistencia: porAsistencia, cerrada: cerrada };
+  }
+
+  /* ---------- el lunes, solo ----------
+     En cuanto una semana termina, su veredicto se calcula, se guarda y mueve
+     la cola. No hay botón que tocar: si el pase dice repetir, se repite. Se
+     recorren todos los huecos cerrados, así que da igual cuántos domingos
+     lleves sin abrir la app. */
+  function aplicarPases() {
+    if (!P.pase) return 0;
+    var reg = registroPase(), hoy = U.hoyISO(), nuevos = 0, guarda = 0;
+    var t = tramoNatural(P.rampa[0].desde);
+    while (t && guarda++ < 500) {
+      /* Se recalcula durante tres días y luego se congela: los datos del reloj
+         y del CSV llegan con retraso, y un veredicto dictado el lunes a las
+         ocho con la mitad de la semana sin sincronizar sería falso. Pasada la
+         ventana, lo dictado queda dictado aunque aparezcan datos nuevos. */
+      var fresco = !reg[t.desde] || (hoy <= U.sumarDias(t.hasta, 3));
+      if (t.hasta < hoy && fresco) {
+        var p = peldano(t.i + desfaseHasta(t.desde));
+        var sem = { n: p.n, desde: t.desde, hasta: t.hasta, carga: p.carga,
+                    talla: p.talla, criterio: p.criterio, idx: t.i + desfaseHasta(t.desde) };
+        var r = veredictoSemana(sem, t.hasta, true);
+        var des0 = desfaseHasta(t.desde);
+        var d = (P.pase.desfases || {})[r.v];
+        if (d === undefined) d = 0;
+        var desSig = des0 + d;
+        if ((t.i + 1) + desSig < 0) desSig = -(t.i + 1);   // el suelo es el primer peldaño
+        var antes = reg[t.desde];
+        var nuevo = { v: r.v, porque: r.porque, n: sem.n, carga: sem.carga,
+                      d: desSig - des0, aplicado: (antes && antes.aplicado) || hoy };
+        if (!antes || antes.v !== nuevo.v || antes.d !== nuevo.d || antes.porque !== nuevo.porque) {
+          reg[t.desde] = nuevo;
+          nuevos++;
+        }
+      }
+      if (t.hasta >= hoy) break;
+      var sig = tramoNatural(U.sumarDias(t.hasta, 1));
+      if (!sig || sig.desde === t.desde) break;
+      t = sig;
+    }
+    if (nuevos) A.guardar("entreno");
+    return nuevos;
+  }
+
+  /* el pase que dio forma a la semana en curso */
+  function paseVigente(sem) {
+    if (!sem) return null;
+    var reg = registroPase(), ant = null;
+    for (var k in reg) if (k < sem.desde && (!ant || k > ant)) ant = k;
+    return ant ? { desde: ant, r: reg[ant] } : null;
+  }
+
+  function htmlPaseAplicado(sem) {
+    var pv = paseVigente(sem);
+    if (!pv) return "";
+    var txt = (P.pase.avisoAplicado || {})[pv.r.v];
+    if (!txt) return "";
+    var clase = pv.r.v === "subir" ? "ok" : (pv.r.v === "parar" ? "parar" : "ojo");
+    return '<div class="pase-aplicado ' + clase + '" role="button" tabindex="0" data-bloque="evolucion">' +
+      '<span class="et">El pase del lunes · ' + U.esc(P.pase.veredictos[pv.r.v].n) + "</span>" +
+      "<b>" + U.esc(txt) + "</b>" +
+      "<small>Semana " + pv.r.n + ": " + U.esc(pv.r.porque) +
+      " Se aplicó solo el " + U.etiquetaFecha(pv.r.aplicado) + ".</small></div>";
   }
 
   function barraPase(pct) {
@@ -2124,10 +2340,9 @@
       h += '<p class="pase-prox">Se repite la <b>semana ' + sem.n + "</b>: misma talla y misma carga objetivo (<b>" +
         sem.carga + "</b>). La rampa se retrasa una semana y no pasa nada.</p>";
     } else if (r.v === "bajar") {
-      var prev = semanaAnteriorDe(sem);
-      h += '<p class="pase-prox">Se baja a la carga de la <b>semana ' + (prev ? prev.n : 1) + "</b> (<b>" +
-        (prev ? prev.carga : sem.carga) + "</b>) con talla <b>" +
-        U.esc(P.plantillas[prev ? prev.talla : "B"].nombre) + "</b>.</p>";
+      var prev = semanaAbajoDe(sem);
+      h += '<p class="pase-prox">Se baja a la carga de la <b>semana ' + prev.n + "</b> (<b>" +
+        prev.carga + "</b>) con talla <b>" + U.esc(P.plantillas[prev.talla].nombre) + "</b>.</p>";
     } else {
       h += '<p class="pase-prox">Semana en blanco: <b>' + U.esc(P.plantillas.S.nombre) +
         "</b> si te ves, y si no, descanso. Se retoma donde se dejó.</p>";
@@ -2188,7 +2403,7 @@
       if (gBas.length || gCin.length) {
         cuerpo1 += '<h3 class="evo-sub">Grasa: las dos fuentes</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "%", unidadTip: "%",
-          alt: "Grasa por báscula y por cinta",
+          alt: "Grasa por báscula y por cinta", par: ["báscula", "cinta"],
           explica: "Dos formas de medir lo mismo: azul la impedancia de la báscula, roja la fórmula de la cinta. " +
             "Lo que importa es si van juntas.",
           series: [{ pts: gBas, color: AZUL, ancho: 1.4, soloPuntos: gBas.length < 3 },
@@ -2385,6 +2600,7 @@
                pie: "Donde vive el músculo del ciclista. Si el peso baja y el muslo aguanta, vas bien." },
       grasa: { n: "Grasa corporal", u: "%", serie: function () { return serieSalud("grasa", v); },
                serie2: function () { return serieGrasaCinta(v); }, etq2: "por cinta",
+               par: ["báscula", "cinta"],
                pie: "Azul la báscula, roja la cinta. Mientras vayan juntas, las dos valen." },
       magra: { n: "Masa magra", u: "kg", serie: function () { return serieSalud("magra", v); },
                pie: "El indicador principal del plan: lo que se quiere es que baje el peso y ésta aguante." },
@@ -2411,7 +2627,7 @@
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.sis }; });
                  }, serie2: function () {
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.dia }; });
-                 }, etq2: "diastólica", techo: 140, etqTecho: "140",
+                 }, etq2: "diastólica", par: ["alta", "baja"], techo: 140, etqTecho: "140",
                  pie: "Azul la alta, roja la baja. Lo que se mira es la media de varios días, nunca una toma." },
       pulso: { n: "Pulso del tensiómetro", u: "ppm", serie: function () {
                  return tomasTension(v.desde, v.hasta).filter(function (t) { return t.pul; })
@@ -2478,7 +2694,7 @@
       h += '<div class="hist-graf">' + grafica({
         desde: desde, hasta: U.hoyISO(), alto: 120, arriba: d.u, lineasH: lineas,
         bandas: bandasFarmaco({ desde: desde, hasta: U.hoyISO() }),
-        alt: d.n, series: series, unidadTip: d.u,
+        alt: d.n, series: series, unidadTip: d.u, par: d.par,
         explica: "Tu serie de " + d.n + " en el tramo elegido" +
           (d.objetivo ? ", con la línea del objetivo" : "") +
           (d.techo ? " y la del límite" : "") +
@@ -2562,6 +2778,125 @@
     modal.classList.add("abierta");
   }
 
+  /* ==================== TENDENCIA Y CHISPA ====================
+     Cada métrica sabe hacia dónde es «mejor», así que de su serie sale una
+     tendencia con color: verde si va hacia donde debe, rojo si va al revés,
+     azul si está plana. Gris cuando no hay datos para decirlo o cuando el
+     corticoide manda callar. El dibujito es la misma serie en pequeño. */
+
+  var COL_TEND = { bien: "#2f6b47", mal: "#b3402f", plano: "#8aa0b5", nada: "#c7cfcb" };
+
+  /* hacia dónde es mejor que vaya cada una */
+  var MEJOR = {
+    peso: "baja", cintura: "baja", cuello: null, tobillo: null, brazo: null, muslo: null,
+    grasa: "baja", magra: "sube", vfc: "sube", fcr: "baja", sueno: "sube",
+    pt_sueno: "sube", ctl: "sube", carga: "sube", tension: "baja", pulso: null
+  };
+
+  function serieDe(clave, dias) {
+    var d = defHistoria(clave);
+    if (!d) return [];
+    var s = d.serie() || [];
+    if (dias) {
+      var corte = U.sumarDias(U.hoyISO(), -dias);
+      s = s.filter(function (x) { return x.f >= corte; });
+    }
+    return s;
+  }
+
+  /* la tendencia: media del tercio final contra la del tercio inicial */
+  function tendencia(clave, dias) {
+    var s = serieDe(clave, dias || 90);
+    /* si en la ventana corta no hay casi nada —el peso son dos pesadas, la
+       cintura una—, se mira la serie entera: lo que hay, ni más ni menos */
+    if (s.length < 3) {
+      var todo = serieDe(clave, 0);
+      if (todo.length > s.length) s = todo;
+    }
+    if (s.length < 3) {
+      /* con dos medidas todavía se puede decir algo, aunque flojo */
+      if (s.length === 2) {
+        var dif0 = s[1].v - s[0].v;
+        return calificar(clave, dif0, s[0].v, s, true);
+      }
+      return { estado: "nada", color: COL_TEND.nada, texto: s.length ? "una sola medida" : "sin datos", serie: s };
+    }
+    var n = Math.max(1, Math.round(s.length / 3));
+    var pri = 0, ult = 0, i;
+    for (i = 0; i < n; i++) pri += s[i].v;
+    for (i = s.length - n; i < s.length; i++) ult += s[i].v;
+    pri /= n; ult /= n;
+    return calificar(clave, ult - pri, pri, s, false);
+  }
+
+  /* De cuánto tiempo habla la tendencia: se dice el tramo real que se ha
+     mirado, no una ventana fija que muchas veces no es la que hay. */
+  function ventanaTexto(serie) {
+    if (!serie || serie.length < 2) return "";
+    var d = Math.round((U.desdeISO(serie[serie.length - 1].f).getTime() -
+                        U.desdeISO(serie[0].f).getTime()) / 86400000);
+    if (d <= 1) return "el mismo día";
+    if (d < 14) return "últimos " + d + " días";
+    if (d < 70) return "últimas " + Math.round(d / 7) + " semanas";
+    if (d < 400) return "últimos " + Math.round(d / 30) + " meses";
+    return "último " + (d < 730 ? "año" : Math.round(d / 365) + " años");
+  }
+
+  function calificar(clave, dif, base, serie, flojo) {
+    var mejor = MEJOR[clave], umbral = Math.abs(base) * 0.015;   // 1,5 %: menos es ruido
+    var r = { serie: serie, dif: dif, flojo: flojo, ventana: ventanaTexto(serie), n: serie.length };
+    if (Math.abs(dif) <= umbral || !mejor) {
+      r.estado = mejor ? "plano" : "neutro";
+      r.color = COL_TEND.plano;
+      r.texto = mejor ? "estable" : (dif > 0 ? "sube" : (dif < 0 ? "baja" : "estable"));
+      return r;
+    }
+    var bien = (mejor === "sube" && dif > 0) || (mejor === "baja" && dif < 0);
+    r.estado = bien ? "bien" : "mal";
+    r.color = bien ? COL_TEND.bien : COL_TEND.mal;
+    r.texto = (dif > 0 ? "subiendo" : "bajando") + (flojo ? "" : "");
+    return r;
+  }
+
+  /* El corticoide manda callar en VFC y pulso en reposo */
+  function tendenciaVisible(clave, dia) {
+    var t = tendencia(clave);
+    if ((clave === "vfc" || clave === "fcr") && Salud.conFarmaco(dia || U.hoyISO())) {
+      return { estado: "nada", color: COL_TEND.nada, texto: "con corticoide: sin lectura", serie: t.serie };
+    }
+    return t;
+  }
+
+  /* el dibujito: la misma serie, en 74×20, sin ejes ni adornos */
+  function chispa(clave, dia) {
+    var t = tendenciaVisible(clave, dia), s = t.serie || [];
+    if (s.length < 2) return '<span class="chispa vacia" title="' + U.esc(t.texto) + '"></span>';
+    var W = 74, H = 20, P = 2;
+    var min = Infinity, max = -Infinity;
+    s.forEach(function (p) { if (p.v < min) min = p.v; if (p.v > max) max = p.v; });
+    if (max - min < 1e-9) { max += 0.5; min -= 0.5; }
+    var t0 = U.desdeISO(s[0].f).getTime(), t1 = U.desdeISO(s[s.length - 1].f).getTime();
+    if (t1 <= t0) t1 = t0 + 86400000;
+    var pts = s.map(function (p) {
+      var x = P + (W - 2 * P) * ((U.desdeISO(p.f).getTime() - t0) / (t1 - t0));
+      var y = P + (H - 2 * P) * (1 - (p.v - min) / (max - min));
+      return x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    var u = s[s.length - 1];
+    var ux = P + (W - 2 * P), uy = P + (H - 2 * P) * (1 - (u.v - min) / (max - min));
+    return '<span class="chispa" title="' + U.esc(t.texto) + '">' +
+      '<svg viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '" aria-hidden="true">' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + t.color +
+      '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + ux.toFixed(1) + '" cy="' + uy.toFixed(1) + '" r="2" fill="' + t.color + '"/>' +
+      "</svg></span>";
+  }
+
+  function puntoTend(clave, dia) {
+    var t = tendenciaVisible(clave, dia);
+    return '<i class="tend-punto" style="background:' + t.color + '" title="' + U.esc(t.texto) + '"></i>';
+  }
+
   /* ==================== PINTAR ==================== */
 
   /* la barra de arriba y la pestaña activa se tiñen de azul mientras estás dentro */
@@ -2581,6 +2916,7 @@
   function pintar() {
     var cont = document.getElementById("vista-entreno");
     if (!cont || !A.estado) return;
+    aplicarPases();                         // lo primero: la cola al día antes de dibujar nada
     vestir(cont.classList.contains("activa"));
     cont.innerHTML = (bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion() : htmlPortada();
@@ -2633,8 +2969,8 @@
     var h = volver;
 
     /* franja: dos ranuras, el semáforo y los avisos */
-    var av = avisos(hoy).slice(0, 2), sem0 = (P.semaforo || {});
-    var hayConsulta = av.some(function (a) { return a.d.nivel === "consulta"; });
+    var todosAv = avisosOrdenados(hoy), av = todosAv.slice(0, 2), sem0 = (P.semaforo || {});
+    var hayConsulta = todosAv.some(function (a) { return a.d.nivel === "consulta"; });
     h += '<div class="ent-franja">';
     h += '<div class="ent-sem' + (sem0.activo ? "" : " apagado") + (hayConsulta ? " ambar" : "") + '">' +
       '<span class="et">Semáforo</span>' +
@@ -2645,16 +2981,19 @@
           ? "Hoy suave: hay un aviso de consulta sin resolver."
           : "Se activa el " + U.etiquetaFecha(sem0.desde || "2026-10-15") + ", con tres semanas sin corticoide.")) +
       "</small></div>";
-    h += '<div class="ent-avisos"><span class="et">Avisos · ' + av.length + "</span>";
-    if (!av.length) {
+    h += '<div class="ent-avisos' + (todosAv.length ? " pulsable" : "") + '"' +
+      (todosAv.length ? ' role="button" tabindex="0" data-avisos="1"' : "") + ">" +
+      '<span class="et">Avisos · ' + todosAv.length + "</span>";
+    if (!todosAv.length) {
       h += '<small class="ok">Nada que atender hoy.</small>';
     } else {
-      av.forEach(function (a) {
-        h += '<div class="ent-aviso ' + a.d.nivel + '">' +
-          '<span class="niv">' + (a.d.nivel === "consulta" ? "Consulta" : a.d.nivel === "atencion" ? "Atención" : "Nota") + "</span>" +
-          "<b>" + a.d.id + " · " + U.esc(a.d.titulo) + "</b>" +
-          "<small>" + U.esc(a.dato) + ". " + U.esc(a.d.texto) + "</small></div>";
-      });
+      av.forEach(function (a) { h += htmlAviso(a); });
+      /* el contador decía dos porque solo caben dos: el resto vive en la ventana */
+      h += '<span class="av-mas">' +
+        (todosAv.length > av.length
+          ? "y " + (todosAv.length - av.length) +
+            (todosAv.length - av.length === 1 ? " aviso más" : " avisos más") + " · tócalo para verlos todos"
+          : "Tócalo para verlo con su explicación") + "</span>";
     }
     h += "</div></div>";
 
@@ -2672,6 +3011,9 @@
           U.esc(P.plantillas[k].nombre) + "</option>";
       }).join("") +
       '</select><small class="pie">' + U.esc(pl.pie) + "</small></div></div>";
+
+    /* qué decidió el pase del lunes, y por qué esta semana es la que es */
+    h += htmlPaseAplicado(sem);
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana */
     var dia = (diaSel && semanaDe(diaSel)) ? diaSel : hoy;
@@ -2779,7 +3121,16 @@
     if (lec.length) {
       h += '<div class="tarjeta"><h2>Lo que dicen tus medidas</h2>';
       lec.forEach(function (l) {
-        h += '<div class="ent-estim"><b>' + U.esc(l.t) + "</b><small>" + U.esc(l.d) + "</small></div>";
+        var t = l.k ? tendenciaVisible(l.k, dia) : null;
+        h += '<div class="ent-estim' + (t ? " con-tend t-" + t.estado : "") + '">' +
+          (l.k ? '<div class="est-cab"><b>' + U.esc(l.t) + "</b>" + chispa(l.k, dia) + "</div>"
+               : "<b>" + U.esc(l.t) + "</b>") +
+          "<small>" + U.esc(l.d) + "</small>" +
+          (t && t.estado !== "nada" && t.estado !== "neutro"
+            ? '<em class="est-tend">' + U.esc(t.texto) +
+              (t.ventana ? " · " + U.esc(t.ventana) : "") +
+              (t.n ? " · " + t.n + (t.n === 1 ? " medida" : " medidas") : "") + "</em>" : "") +
+          "</div>";
       });
       h += "</div>";
     }
@@ -2847,7 +3198,8 @@
     if (historia && defHistoria(historia)) {
       return '<button type="button" class="ent-fila con-historia' + (apagada ? " apagada" : "") +
         '" data-historia="' + historia + '">' +
-        '<span class="n">' + U.esc(nombre) + ICONO_GRAF + "</span>" +
+        '<span class="n">' + puntoTend(historia) + U.esc(nombre) + ICONO_GRAF + "</span>" +
+        '<span class="ch">' + chispa(historia) + "</span>" +
         '<span class="v">' + (valor === null || valor === undefined ? "—" : valor) + "</span>" +
         '<span class="c">' + U.esc(contra || "") + "</span></button>";
     }
@@ -3012,6 +3364,8 @@
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
+      var ab = t.closest ? t.closest("[data-avisos]") : null;
+      if (ab) { e.preventDefault(); abrirAvisos(); return; }
       var gb = t.closest ? t.closest("[data-guia]") : null;
       if (gb) { e.preventDefault(); abrirGuia(gb.getAttribute("data-guia")); return; }
       var rg = t.closest ? t.closest("[data-rango]") : null;
@@ -3159,6 +3513,8 @@
       if (!svg || !tip) return;
       var esc = (svg.getAttribute("data-esc") || "").split("|");
       var pts = (svg.getAttribute("data-pts") || "").split(",").filter(function (x) { return x; });
+      var pts2 = (svg.getAttribute("data-pts2") || "").split(",").filter(function (x) { return x; });
+      var lab1 = svg.getAttribute("data-lab1") || "", lab2 = svg.getAttribute("data-lab2") || "";
       if (esc.length < 10 || !pts.length) return;
 
       var t0 = +esc[0], t1 = +esc[1], min = +esc[2], max = +esc[3], W = +esc[4],
@@ -3171,11 +3527,11 @@
       var t = t0 + frac * (t1 - t0);
 
       /* el punto más cercano en el tiempo */
-      var mejor = null, mejorD = Infinity;
-      pts.forEach(function (par) {
+      var mejor = null, mejorD = Infinity, iMejor = -1;
+      pts.forEach(function (par, i) {
         var c = par.split(":");
         var ms = U.desdeISO(c[0]).getTime(), d = Math.abs(ms - t);
-        if (d < mejorD) { mejorD = d; mejor = { f: c[0], v: parseFloat(c[1]), ms: ms }; }
+        if (d < mejorD) { mejorD = d; iMejor = i; mejor = { f: c[0], v: parseFloat(c[1]), ms: ms }; }
       });
       if (!mejor) return;
 
@@ -3184,7 +3540,26 @@
       var esc2 = r.width / W;                                   // unidades → píxeles
       var uni = svg.getAttribute("data-uni") || "";
 
-      tip.innerHTML = "<b>" + U.esc(num(mejor.v)) + (uni ? " " + U.esc(uni) : "") + "</b>" +
+      /* el compañero del mismo día, si lo hay: la baja junto a la alta */
+      var v2 = null;
+      if (pts2.length) {
+        /* con varias tomas el mismo día, la pareja es la de la misma posición */
+        if (pts2.length === pts.length && iMejor >= 0 &&
+            pts2[iMejor].split(":")[0] === mejor.f) {
+          v2 = parseFloat(pts2[iMejor].split(":")[1]);
+        } else {
+          pts2.forEach(function (par2) {
+            var c2 = par2.split(":");
+            if (c2[0] === mejor.f) v2 = parseFloat(c2[1]);
+          });
+        }
+      }
+      function numTip(x) { return Math.abs(x - Math.round(x)) < 0.05 ? String(Math.round(x)) : num(x); }
+      var texto = v2 !== null
+        ? (lab1 ? U.esc(lab1) + " " : "") + U.esc(numTip(mejor.v)) + " · " +
+          (lab2 ? U.esc(lab2) + " " : "") + U.esc(numTip(v2)) + (uni ? " " + U.esc(uni) : "")
+        : U.esc(numTip(mejor.v)) + (uni ? " " + U.esc(uni) : "");
+      tip.innerHTML = "<b>" + texto + "</b>" +
         "<span>" + U.esc(U.etiquetaFecha(mejor.f)) + "</span>";
       tip.style.display = "block";
       var ancho = tip.offsetWidth || 90;

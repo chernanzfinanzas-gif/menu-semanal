@@ -180,6 +180,16 @@
         bajar:   { n: "Bajar", t: "Dos semanas seguidas por debajo del 70 %, o la salud manda: se baja un peldaño y se vuelve a construir desde ahí." },
         parar:   { n: "Semana en blanco", t: "Con lesión o enfermedad no se negocia la carga: se recupera y se retoma donde se dejó, sin intentar compensar." }
       },
+      /* Cuánto avanza la rampa con cada veredicto, en peldaños. El lunes se
+         aplica solo: si el pase dice repetir, se repite. 0 = sigue la rampa;
+         -1 = se queda donde estaba; -2 = retrocede un peldaño. */
+      desfases: { subir: 0, repetir: -1, bajar: -2, parar: -1, pronto: 0 },
+      avisoAplicado: {
+        subir:   "Semana cumplida. Esta sube según la rampa.",
+        repetir: "La semana anterior se quedó corta, así que ésta repite la misma carga en vez de subir.",
+        bajar:   "Dos semanas seguidas por debajo del 70 %: se ha bajado un peldaño y se vuelve a construir desde ahí.",
+        parar:   "La semana anterior fue en blanco por salud. Se retoma donde estaba, sin compensar lo perdido."
+      },
       pesoObjetivo: [-0.5, -0.3],
       nota: "El pase mira cinco cosas y ninguna más: carga, cumplimiento, peso, recuperación y lo que dijeron tus observaciones."
     },
