@@ -6,9 +6,21 @@
 
   global.DATOS_PLAN = {
 
-    version: 3,
-    generado: "2026-09-18",
+    version: 4,
+    generado: "2026-09-19",
     titulo: "Vuelta a la forma",
+
+    /* Pulsaciones máximas: 171 MEDIDAS en la crit de Zwift del 21-feb-2025
+       (media 155, 96 % de la reserva anaeróbica gastada). Las fórmulas de edad
+       dan 168-170 y se quedan cortas, como casi siempre. Se trabaja con 175
+       hasta que aparezca una mayor en un esfuerzo real. */
+    fc: {
+      maxima: 175,
+      medida: { valor: 171, fecha: "2025-02-21", donde: "Zwift Crit Racing Club" },
+      reposo: 47,
+      z2_ppm: [120, 135],
+      nota: "Z2 calculado por reserva (Karvonen) con 175 de máxima y 47 de reposo: 55-70 % es 118-137 ppm. Mientras dure el corticoide el pulso va alto por el fármaco: manda el poder hablar."
+    },
 
     /* ---------- la rampa: cada semana, su carga y su talla ---------- */
     rampa: [
@@ -35,7 +47,7 @@
         pie: "Movimiento diario con el corticoide encima. Ritmo de poder hablar, siempre.",
         dias: {
           1: [{ t: "Fuerza A, media carga", min: 30 }, { t: "Caminar", min: 30 }],
-          2: [{ t: "Bici muy suave, por debajo de 125 ppm", min: 40 }],
+          2: [{ t: "Bici muy suave, por debajo de 120 ppm", min: 40 }],
           3: [{ t: "Caminar", min: 55 }],
           4: [{ t: "Fuerza B, media carga", min: 30 }, { t: "Caminar", min: 30 }],
           5: [{ t: "Bici suave", min: 45 }],
@@ -48,7 +60,7 @@
         pie: "La normal. De lunes a viernes en casa y en el barrio; un solo día grande el fin de semana.",
         dias: {
           1: [{ t: "Fuerza A", min: 45 }, { t: "Caminar", min: 45 }],
-          2: [{ t: "Bici Z2, 125-140 ppm", min: 75 }],
+          2: [{ t: "Bici Z2, 120-135 ppm", min: 75 }],
           3: [{ t: "Caminar a buen paso", min: 60 }, { t: "Movilidad de cuello y mandíbula", min: 15 }],
           4: [{ t: "Fuerza B", min: 45 }, { t: "Bici suave", min: 40 }],
           5: [{ t: "Bici Z2 larga", min: 90 }],
@@ -126,7 +138,8 @@
       { id: "peso",    nombre: "Peso",       unidad: "kg",   paso: 0.1, min: 35, max: 250,
         dias: [0, 1, 2, 3, 4, 5, 6], diasFijos: [1, 3, 6], ultimo: true,
         ayuda: "Al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar. " +
-               "Los días fijos son lunes, miércoles y sábado, pero si te pesas otro día, queda anotado igual." },
+               "Los días fijos son lunes, miércoles y sábado, pero si te pesas otro día, queda anotado igual. " +
+               "Lo que escribas aquí es para verlo mientras llega: cuando el dato baje de intervals, manda el suyo." },
       { id: "cintura", nombre: "Cintura",    unidad: "cm",   paso: 0.5, min: 50, max: 180,
         dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. La cinta apoyada, sin apretar. Mide dos veces y quédate con la que se repita." },
       { id: "cuello",  nombre: "Cuello",     unidad: "cm",   paso: 0.5, min: 25, max: 60,

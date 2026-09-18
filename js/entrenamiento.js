@@ -163,6 +163,15 @@
       ".ent-estim small{display:block;margin-top:4px;color:var(--gris);font-size:.8rem;line-height:1.35}",
       ".ent-estim + .ent-estim{margin-top:8px}",
       ".ent-subt{margin:16px 0 8px;font-size:1rem;color:var(--azul-hondo)}",
+      /* filas de Mi estado */
+      ".ent-fila{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde)}",
+      ".ent-fila:last-of-type{border-bottom:0}",
+      ".ent-fila .n{flex:1 1 auto;font-size:.86rem;min-width:0}",
+      ".ent-fila .v{flex:none;font-size:.95rem;font-weight:700;color:var(--azul-hondo);font-variant-numeric:tabular-nums}",
+      ".ent-fila .c{flex:none;width:118px;text-align:right;font-size:.7rem;color:var(--gris)}",
+      ".ent-fila.apagada{background:var(--gris-claro)}",
+      ".ent-fila.apagada .n,.ent-fila.apagada .v{color:var(--gris)}",
+      "@media(max-width:420px){.ent-fila .c{width:96px}}",
       /* semana */
       ".ent-navsem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}",
       ".ent-navsem h2{margin:0;flex:1;text-align:center}",
@@ -207,6 +216,127 @@
       (document.querySelector("main") || document.body).appendChild(sec);
     }
   }
+
+  /* ==================== salud.json ====================
+     Vive en el mismo repositorio privado y con la misma clave que ya usa la app
+     para sincronizarse. No se guarda dentro del estado —son 128 KB y viajarían
+     en cada sincronización—: se queda en su propia caché de este aparato. */
+
+  var Salud = {
+    CLAVE: "khb-salud-cache-v1",
+    RUTA: "datos/salud.json",
+    FRESCO_MIN: 120,          // minutos antes de volver a pedirlo
+    datos: null,
+    traidoEl: null,
+    estado: "nada",           // nada · cargando · ok · error · sin-config
+
+    cfg: function () { return (A.estado.config && A.estado.config.github) || {}; },
+    configurado: function () { var c = this.cfg(); return !!(c.usuario && c.repo && c.token); },
+
+    deB64: function (base) {
+      var bin = atob(String(base).replace(/\s/g, "")), by = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) by[i] = bin.charCodeAt(i);
+      return new TextDecoder("utf-8").decode(by);
+    },
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (j && j.datos) { this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok"; return true; }
+      } catch (e) {}
+      return false;
+    },
+
+    aCache: function () {
+      try { localStorage.setItem(this.CLAVE, JSON.stringify({ traidoEl: this.traidoEl, datos: this.datos })); }
+      catch (e) { /* si no cabe, se vive sin caché */ }
+    },
+
+    caducado: function () {
+      if (!this.traidoEl) return true;
+      return (Date.now() - new Date(this.traidoEl).getTime()) > this.FRESCO_MIN * 60000;
+    },
+
+    cargar: function (forzar, alTerminar) {
+      var self = this;
+      if (!this.configurado()) {
+        if (!this.datos) this.estado = "sin-config";          // con caché seguimos pintando lo que hay
+        if (alTerminar) alTerminar(false);
+        return;
+      }
+      if (this.estado === "cargando") return;
+      if (!forzar && this.datos && !this.caducado()) { if (alTerminar) alTerminar(false); return; }
+      this.estado = "cargando";
+      var c = this.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) {
+          if (r.status === 404) { self.estado = "error"; self.motivo = "No hay datos/salud.json en el repositorio"; throw 0; }
+          if (!r.ok) { self.estado = "error"; self.motivo = "GitHub respondió " + r.status; throw 0; }
+          return r.json();
+        })
+        .then(function (j) {
+          self.datos = JSON.parse(self.deB64(j.content));
+          self.traidoEl = new Date().toISOString();
+          self.estado = "ok";
+          self.aCache();
+          if (alTerminar) alTerminar(true);
+        })
+        .catch(function () {
+          if (self.estado !== "error") { self.estado = self.datos ? "ok" : "error"; self.motivo = "Sin conexión"; }
+          if (alTerminar) alTerminar(false);
+        });
+    },
+
+    dia: function (iso) {
+      var d = this.datos;
+      return (d && d.dias && d.dias[iso]) || null;
+    },
+
+    /* Actividades medidas de ese día. Fuente única: intervals. */
+    actividades: function (iso) {
+      var d = this.datos, fuera = [];
+      if (!d || !d.actividades) return fuera;
+      d.actividades.forEach(function (a) {
+        if (String(a.fecha || "").slice(0, 10) === iso) fuera.push(a);
+      });
+      return fuera;
+    },
+
+    base: function (campo) {
+      var p = this.datos && this.datos.meta && this.datos.meta.parametros;
+      return p ? p[campo] : null;
+    },
+
+    /* Tramo con fármaco: los hitos marcan el inicio y dura la pauta + 14 días */
+    conFarmaco: function (iso) {
+      var d = this.datos;
+      if (!d || !d.hitos) return false;
+      for (var i = 0; i < d.hitos.length; i++) {
+        var h = d.hitos[i];
+        if (h.tipo === "tratamiento_inicio" && iso >= h.fecha && iso <= U.sumarDias(h.fecha, 28)) return true;
+      }
+      return false;
+    },
+
+    /* Siembra: trae a la app los pesos de la báscula.
+       Criterio de Carlos (19-sep-2026): EL DATO ES EL DE INTERVALS. Si lo tecleado
+       a mano difiere de lo que midió la báscula, gana intervals y se corrige solo;
+       lo tecleado sirve para verlo antes de que llegue, no para discutirle. */
+    sembrarPesos: function () {
+      var d = this.datos, n = 0;
+      if (!d || !d.dias) return 0;
+      var hay = {};
+      (A.estado.pesos || []).forEach(function (p) { hay[p.f] = p.kg; });
+      Object.keys(d.dias).sort().forEach(function (f) {
+        var v = d.dias[f] && d.dias[f].peso;
+        if (!v) return;
+        if (hay[f] === undefined || Math.abs(hay[f] - v) > 0.05) { A.anotarPeso(f, v); n++; }
+      });
+      return n;
+    }
+  };
 
   /* ==================== ESTADO ==================== */
 
@@ -344,9 +474,19 @@
     return "otra";
   }
 
-  /* Solo lo que MIDIÓ el reloj (fuente garmin). Lo que apuntas a mano en el Menú
-     para calcular el gasto NO cuenta como sesión hecha. */
+  /* Solo lo que MIDIÓ el reloj. Fuente única: intervals (salud.json) cuando está
+     disponible; el fichero de Garmin importado a mano queda de respaldo. Lo que
+     se apunta en el Menú para calcular el gasto NO cuenta como sesión hecha. */
   function registradas(iso) {
+    if (Salud.datos) {
+      return Salud.actividades(iso).map(function (a) {
+        return {
+          min: Math.round(a.min_mov || a.min || 0),
+          nombre: a.nombre || a.tipo || "Actividad",
+          fam: familia((a.nombre || "") + " " + (a.tipo || ""))
+        };
+      });
+    }
     var lista = (A.estado.actividad || {})[iso] || [], fuera = [];
     lista.forEach(function (a) {
       var ex = a.extra || a;
@@ -986,6 +1126,9 @@
     h += "</select></div>";
     h += '<p class="nota-peque" style="margin-top:6px">' + U.esc(pl.pie) + "</p></div>";
 
+    /* mi estado */
+    h += htmlMiEstado(dia, semDia);
+
     /* la semana */
     var lunes = lunesVista || U.lunesDe(hoy);
     h += '<div class="tarjeta"><div class="ent-navsem">' +
@@ -1012,6 +1155,91 @@
     h += '<button type="button" class="ent-atras abajo" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
 
     return h;
+  }
+
+  /* ==================== MI ESTADO ==================== */
+
+  function hhmm(min) {
+    if (!min && min !== 0) return null;
+    var h = Math.floor(min / 60), m = Math.round(min % 60);
+    return h + "h" + (m < 10 ? "0" : "") + m;
+  }
+
+  function fila(nombre, valor, contra, apagada) {
+    return '<div class="ent-fila' + (apagada ? " apagada" : "") + '">' +
+      '<span class="n">' + U.esc(nombre) + "</span>" +
+      '<span class="v">' + (valor === null || valor === undefined ? "—" : valor) + "</span>" +
+      '<span class="c">' + U.esc(contra || "") + "</span></div>";
+  }
+
+  /* carga de la semana derivada de la serie atl */
+  function cargaSemana(lunes, hasta) {
+    var d = Salud.datos;
+    if (!d || !d.dias) return null;
+    var total = 0, hubo = false, f = lunes;
+    while (f <= hasta) {
+      var ayer = d.dias[U.sumarDias(f, -1)], hoyD = d.dias[f];
+      if (hoyD && ayer && typeof hoyD.atl === "number" && typeof ayer.atl === "number") {
+        total += ayer.atl + 7 * (hoyD.atl - ayer.atl);
+        hubo = true;
+      }
+      f = U.sumarDias(f, 1);
+    }
+    return hubo ? Math.max(0, Math.round(total)) : null;
+  }
+
+  function htmlMiEstado(dia, sem) {
+    var h = '<div class="tarjeta"><h2>Mi estado</h2>';
+
+    if (!Salud.datos) {
+      var por = Salud.estado === "sin-config"
+        ? "Para verlo aquí hace falta la sincronización con GitHub: Ajustes → Sincronizar. Es la misma clave que ya usas para los menús."
+        : (Salud.estado === "cargando" ? "Trayendo tus datos de intervals…"
+          : "No he podido traer <b>datos/salud.json</b>" + (Salud.motivo ? " (" + U.esc(Salud.motivo) + ")" : "") +
+            ". Se reintenta solo al volver a entrar.");
+      return h + '<p class="nota-peque">' + por + "</p></div>";
+    }
+
+    var d = Salud.dia(dia) || Salud.dia(U.sumarDias(dia, -1)) || {};
+    var fechaDato = Salud.dia(dia) ? dia : U.sumarDias(dia, -1);
+    var farmaco = Salud.conFarmaco(dia);
+    var baseVfc = Salud.base("base_vfc"), baseFcr = Salud.base("base_fcr");
+
+    h += '<p class="nota-peque">Automático, de intervals · datos al ' + U.etiquetaFecha(fechaDato) + "</p>";
+
+    h += fila("VFC de anoche", d.vfc ? d.vfc + " ms" : null,
+      farmaco ? "con corticoide: sin lectura" : (baseVfc ? "tu base: " + num(baseVfc) : ""), farmaco);
+    h += fila("FC en reposo", d.fcr ? d.fcr + " lpm" : null,
+      farmaco ? "con corticoide: sin lectura" : (baseFcr ? "tu base: " + num(baseFcr) : ""), farmaco);
+
+    var n1 = Salud.dia(fechaDato) || {}, n2 = Salud.dia(U.sumarDias(fechaDato, -1)) || {};
+    var s1 = hhmm(n1.sueno_min), s2 = hhmm(n2.sueno_min);
+    h += fila("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""), "tu media: 6h24");
+
+    h += fila("Body Battery al despertar", (d.body_battery || d.body_battery === 0) ? d.body_battery : null, "");
+
+    var bal = (typeof d.ctl === "number" && typeof d.atl === "number") ? d.ctl - d.atl : null;
+    h += fila("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
+      bal === null ? "" : "Balance " + signo(bal));
+
+    var cs = cargaSemana(U.lunesDe(dia), dia);
+    h += fila("Carga de la semana", cs === null ? null : cs,
+      sem ? "objetivo " + sem.carga : "");
+
+    var p = ultimoPeso(dia);
+    h += fila("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "");
+    if (d.magra) h += fila("Masa magra (báscula)", num(d.magra) + " kg", "de la impedancia: referencia");
+
+    var sis = serieMedida("sistolica", dia, 7), dias2 = serieMedida("diastolica", dia, 7);
+    h += fila("Tensión, media de la semana",
+      (sis.length && dias2.length) ? Math.round(media(sis)) + "/" + Math.round(media(dias2)) : null,
+      sis.length ? sis.length + (sis.length === 1 ? " toma" : " tomas") : "la anotas tú");
+
+    if (farmaco) {
+      h += '<p class="nota-peque" style="margin-top:10px">Las filas en gris están dentro de la pauta de ' +
+        "corticoide: el fármaco baja la VFC y sube el pulso por sí solo, así que ahí no se interpreta nada.</p>";
+    }
+    return h + "</div>";
   }
 
   /* ==================== EVENTOS ==================== */
@@ -1104,7 +1332,14 @@
     inyectarEstilos();
     inyectarHtml();
     conectar();
+    if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
     pintar();
+    Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
+      var n = Salud.sembrarPesos();
+      if (n) U.toast(n === 1 ? "1 peso traído de intervals" : n + " pesos traídos de intervals");
+      var v = document.getElementById("vista-entreno");
+      if (v && v.classList.contains("activa")) pintar();
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar);
