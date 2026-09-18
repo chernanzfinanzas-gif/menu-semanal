@@ -210,6 +210,13 @@
     return null;
   }
 
+  /* El último peso anotado hasta esa fecha (la lista viene ordenada) */
+  function ultimoPeso(iso) {
+    var l = A.estado.pesos || [], ult = null;
+    for (var i = 0; i < l.length; i++) if (l[i].f <= iso) ult = l[i];
+    return ult;
+  }
+
   /* ==================== EL PLAN: CÁLCULO ==================== */
 
   function diasEntre(a, b) { return Math.round((U.desdeISO(b) - U.desdeISO(a)) / 86400000); }
@@ -475,14 +482,22 @@
       medHoy.forEach(function (m) {
         var v = (m.id === "peso") ? pesoDe(dia) : medida(dia, m.id);
         var puesta = (v !== null && v !== undefined && v !== "");
+        var ult = (m.ultimo && !puesta) ? ultimoPeso(dia) : null;
         h += '<label class="ent-medida' + (puesta ? " puesta" : "") + '" title="' + U.esc(m.ayuda) + '">' +
           "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")</span>" +
           (m.texto
             ? '<input type="text" inputmode="numeric" placeholder="128/82" data-medida="' + m.id + '" value="' + U.esc(puesta ? v : "") + '">'
-            : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max +
-              '" data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') + "</label>";
+            : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
+              (ult ? ' placeholder="' + ult.kg + '"' : "") +
+              ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') + "</label>";
       });
       h += "</div>";
+      var up = ultimoPeso(dia);
+      if (up) {
+        h += '<p class="nota-peque" style="margin-top:8px">Último peso anotado: <b>' +
+          String(up.kg).replace(".", ",") + " kg</b>, del " + U.etiquetaFecha(up.f) +
+          (up.f === dia ? " (hoy)" : "") + ". Escribe encima para corregirlo o poner el de hoy.</p>";
+      }
       medHoy.forEach(function (m) {
         h += '<p class="nota-peque" style="margin-top:8px"><b>' + U.esc(m.nombre) + ":</b> " + U.esc(m.ayuda) + "</p>";
       });

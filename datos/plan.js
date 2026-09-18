@@ -124,7 +124,9 @@
     /* ---------- lo que se teclea ---------- */
     medidas: [
       { id: "peso",    nombre: "Peso",       unidad: "kg",   paso: 0.1, min: 35, max: 250,
-        dias: [1, 3, 6], ayuda: "Al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar." },
+        dias: [0, 1, 2, 3, 4, 5, 6], diasFijos: [1, 3, 6], ultimo: true,
+        ayuda: "Al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar. " +
+               "Los días fijos son lunes, miércoles y sábado, pero si te pesas otro día, queda anotado igual." },
       { id: "cintura", nombre: "Cintura",    unidad: "cm",   paso: 0.5, min: 50, max: 180,
         dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. Sin apretar." },
       { id: "sistolica",  nombre: "Tensión alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
