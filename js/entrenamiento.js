@@ -12,6 +12,11 @@
 
   var U = global.Util, A = global.Almacen, P = global.DATOS_PLAN;
   var DIA_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  /* el icono de «ver histórico», que abre la gráfica emergente */
+  var ICONO_GRAF = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M3 17l5-6 4 4 7-8"/></svg>';
+
   var MES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   var DIA_CORTO = ["D", "L", "M", "X", "J", "V", "S"];
   var MIN_SESION = 20;      // minutos a partir de los cuales el reloj marca el día como hecho
@@ -295,6 +300,43 @@
       "  color:var(--azul-hondo);border-radius:999px;padding:4px 11px;font:inherit;font-size:.72rem;",
       "  font-weight:600;cursor:pointer}",
       ".ent-refresco:hover{border-color:var(--azul)}",
+      /* guías de sesión */
+      ".ent-comose{margin-left:8px;border:1px solid var(--azul-borde);background:var(--azul-claro);",
+      "  color:var(--azul-hondo);border-radius:999px;padding:2px 9px;font:inherit;font-size:.68rem;",
+      "  font-weight:700;letter-spacing:.02em;cursor:pointer;vertical-align:1px}",
+      ".ent-comose:hover{border-color:var(--azul)}",
+      ".ses-reglas{margin-top:10px;padding:11px 13px;border-radius:11px;background:var(--azul-claro);",
+      "  border:1px solid var(--azul-borde)}",
+      ".ses-reglas b{display:block;font-size:.85rem;color:var(--azul-hondo);margin-bottom:4px}",
+      ".ses-reglas ul{margin:0;padding-left:18px;font-size:.86rem;line-height:1.5}",
+      ".ses-bloque{margin-top:14px}",
+      ".ses-bloque h3{display:flex;align-items:baseline;gap:8px;margin:0 0 5px;font-size:.95rem;",
+      "  color:var(--azul-hondo)}",
+      ".ses-bloque h3 .min{font-size:.7rem;font-weight:600;color:var(--gris);border:1px solid var(--borde);",
+      "  border-radius:999px;padding:1px 8px}",
+      ".ses-bloque ol{margin:0;padding-left:20px;font-size:.88rem;line-height:1.5}",
+      ".ses-bloque li{margin-bottom:4px}",
+      /* la ventanita de las gráficas */
+      ".graf-caja{position:relative}",
+      ".graf-tip{position:absolute;display:none;pointer-events:none;background:var(--azul-hondo);",
+      "  color:#fff;border-radius:8px;padding:5px 9px;font-size:.74rem;line-height:1.25;white-space:nowrap;",
+      "  box-shadow:0 2px 8px rgba(19,50,83,.25);z-index:3}",
+      ".graf-tip b{display:block;font-size:.84rem}",
+      ".graf-tip span{opacity:.75}",
+      ".graf-guia{position:absolute;display:none;top:0;bottom:16px;width:1px;background:var(--azul);",
+      "  opacity:.35;pointer-events:none;z-index:2}",
+      ".graf-pie{margin:6px 0 0;font-size:.76rem;line-height:1.45;color:var(--gris)}",
+      /* el histórico emergente */
+      ".ent-ver{margin-left:4px;border:0;background:none;color:var(--azul);cursor:pointer;padding:0 2px;",
+      "  line-height:0;vertical-align:-1px;opacity:.75}",
+      ".ent-ver:hover{opacity:1}",
+      "button.ent-fila{width:100%;text-align:left;background:none;font:inherit;cursor:pointer}",
+      "button.ent-fila:hover{background:var(--azul-claro)}",
+      "button.ent-fila .n{display:flex;align-items:center;gap:4px;color:var(--azul-hondo)}",
+      ".hist-graf{margin:10px 0 6px}",
+      ".hist-filas{border-top:1px solid var(--borde);padding-top:4px}",
+      ".hist-n{font-size:.72rem;color:var(--gris);padding:8px 0 0}",
+      ".hist-pie{margin:12px 0 0;font-size:.85rem;line-height:1.45;color:var(--gris)}",
       /* filas de Mi estado */
       ".ent-fila{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde)}",
       ".ent-fila:last-of-type{border-bottom:0}",
@@ -1709,8 +1751,17 @@
     }
     function xy(p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); }
 
-    var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' +
-      U.esc(o.alt || "") + '">';
+    /* la serie que se lee al pasar el dedo: la marcada, o la línea más poblada */
+    var princ = null;
+    series.forEach(function (x) { if (x.tip) princ = x; });
+    if (!princ) series.forEach(function (x) { if (!x.barras && (!princ || x.pts.length > princ.pts.length)) princ = x; });
+    if (!princ) princ = series[0];
+
+    var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '"' +
+      ' data-esc="' + [t0, t1, min, max, W, H, L, R, T, B].join("|") + '"' +
+      ' data-uni="' + U.esc(o.unidadTip || o.arriba || "") + '"' +
+      ' data-pts="' + princ.pts.map(function (x) { return x.f + ":" + x.v; }).join(",") + '"' +
+      ' role="img" aria-label="' + U.esc(o.alt || "") + '">';
 
     (o.bandas || []).forEach(function (b) {
       var x0 = Math.max(L, X(b.desde)), x1 = Math.min(W - R, X(b.hasta));
@@ -1795,7 +1846,9 @@
       rotuloFecha(o.desde) + "</text>";
     s += '<text x="' + (W - 1) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
       (o.hasta === U.hoyISO() ? "hoy" : rotuloFecha(o.hasta)) + "</text>";
-    return s + "</svg>";
+    return '<div class="graf-caja">' + s + '</svg>' +
+      '<div class="graf-guia"></div><div class="graf-tip"></div></div>' +
+      (o.explica ? '<p class="graf-pie">' + U.esc(o.explica) + "</p>" : "");
   }
 
   /* leyenda de una gráfica */
@@ -2124,7 +2177,9 @@
     if (pes.length) {
       cuerpo1 = grafica({
         desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112,
-        arriba: "kg", alt: "Peso y masa magra",
+        arriba: "kg", alt: "Peso y masa magra", unidadTip: "kg",
+        explica: "Cada punto, una pesada. La línea gruesa es la media de 7 días y la fina el dato del día; " +
+          "en verde, la masa magra los días que la báscula la manda.",
         series: [{ pts: pes, color: GRIS, ancho: 0.8, marcarUltimo: false },
                  { pts: med7, color: AZUL, ancho: 1.6 },
                  { pts: magra, color: VERDE, ancho: 1.3 }]
@@ -2132,8 +2187,10 @@
                     { n: "masa magra", color: VERDE }]);
       if (gBas.length || gCin.length) {
         cuerpo1 += '<h3 class="evo-sub">Grasa: las dos fuentes</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "%",
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "%", unidadTip: "%",
           alt: "Grasa por báscula y por cinta",
+          explica: "Dos formas de medir lo mismo: azul la impedancia de la báscula, roja la fórmula de la cinta. " +
+            "Lo que importa es si van juntas.",
           series: [{ pts: gBas, color: AZUL, ancho: 1.4, soloPuntos: gBas.length < 3 },
                    { pts: gCin, color: ROJO, ancho: 1.4, soloPuntos: gCin.length < 3 }]
         }) + leyenda([{ n: "báscula (impedancia)", color: AZUL }, { n: "cinta", color: ROJO }]);
@@ -2174,8 +2231,10 @@
          En tramos largos la VFC de cada noche se calla: son cientos de picos. */
       var tramoLargo = diasEntre(v.desde, v.hasta) > 200;
       cuerpo2 = grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 104, arriba: "VFC · ms",
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 104, arriba: "VFC · ms", unidadTip: "ms",
         alt: "Variabilidad de la frecuencia cardíaca",
+        explica: "La variabilidad del latido mientras duermes: cuanto más alta, más recuperado. " +
+          "La línea de puntos es tu base de primavera.",
         lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base" }] : [],
         series: (tramoLargo ? [] : [{ pts: vfc, color: "#c3d3e2", ancho: 0.7, marcarUltimo: false }])
           .concat([{ pts: vfc7, color: AZUL, ancho: 1.5 }])
@@ -2183,16 +2242,18 @@
         tramoLargo ? [] : [{ n: "cada noche", color: "#c3d3e2" }]));
       if (fcr.length) {
         cuerpo2 += '<h3 class="evo-sub">Pulso en reposo</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm",
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm", unidadTip: "lpm",
           alt: "Frecuencia cardíaca en reposo",
+          explica: "Las pulsaciones más bajas de la noche. Aquí bajar es mejorar, al revés que arriba.",
           lineasH: par.base_fcr ? [{ v: par.base_fcr, color: "#eccf9a", etq: "tu base" }] : [],
           series: [{ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr, color: AMBAR, ancho: 1.2 }]
         });
       }
       if (sue.length) {
         cuerpo2 += '<h3 class="evo-sub">Sueño</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "horas", min: 0,
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "horas", min: 0, unidadTip: "h",
           alt: "Horas de sueño por noche",
+          explica: "Horas dormidas cada noche, con la referencia de 7 h. Las dos últimas son las que pesan en el día de hoy.",
           lineasH: [{ v: 7, color: "#cfdcea", etq: "7 h" }],
           series: [{ pts: tramoLargo ? mediaMovilDias(sue, 7) : sue, color: "#7fa8cd",
                      barras: !tramoLargo, ancho: 1.2, opacidad: 0.85 }]
@@ -2215,8 +2276,10 @@
     var cuerpo3, nota3 = "";
     if (ctl.length) {
       cuerpo3 = grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "puntos", min: 0,
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "puntos", min: 0, unidadTip: "puntos",
         alt: "Forma y fatiga",
+        explica: "Azul la forma, que es la carga acumulada de seis semanas; roja la fatiga, la de una. " +
+          "Cuando la roja se queda arriba mucho tiempo, viene el parón.",
         series: [{ pts: ctl, color: AZUL, ancho: 1.5 },
                  { pts: atl, color: ROJO, ancho: diasEntre(v.desde, v.hasta) > 200 ? 0.7 : 1.1 }]
       }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
@@ -2224,6 +2287,7 @@
         cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
           desde: cs.desde, hasta: cs.hasta, alto: 92, arriba: "carga semanal · la rampa entera", min: 0,
           alt: "Carga semanal real frente al objetivo del plan",
+          explica: "Una barra clara por semana con lo que pide la rampa hasta diciembre, y encima en verde lo que llevas hecho.",
           series: [{ pts: cs.objetivos, color: "#cfdcea", barras: true, marcarUltimo: false },
                    { pts: cs.reales, color: VERDE, barras: true, marcarUltimo: false }]
         }) + leyenda([{ n: "objetivo de la rampa", color: "#cfdcea" }, { n: "lo hecho", color: VERDE }]);
@@ -2243,7 +2307,9 @@
     var cuerpo4 = "", nota4 = "";
     if (cin.length >= 2) {
       cuerpo4 += grafica({
-        desde: v.desde, hasta: v.hasta, alto: 100, arriba: "cm", alt: "Cintura",
+        desde: v.desde, hasta: v.hasta, alto: 100, arriba: "cm", alt: "Cintura", unidadTip: "cm",
+        explica: "Tu cintura medida con cinta, con dos rayas: la de tu objetivo —media altura— y la de 102 cm, " +
+          "que es el umbral de riesgo alto.",
         lineasH: [{ v: altura * 0.5, color: "#cfdcea", etq: "0,50 de tu altura" },
                   { v: 102, color: "#eccf9a", etq: "102 cm" }],
         series: [{ pts: cin, color: AZUL, ancho: 1.6, soloPuntos: cin.length < 3 }]
@@ -2257,8 +2323,9 @@
     if (wkg.length) {
       var uw = wkg[wkg.length - 1], pw = wkg[0];
       cuerpo4 += '<h3 class="evo-sub">Tu mejor sesión de cada mes</h3>' + grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "W/kg", hueco: 70,
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 92, arriba: "W/kg", hueco: 70, unidadTip: "W/kg",
         alt: "Vatios por kilo de la mejor sesión de cada mes",
+        explica: "Un punto por mes con los vatios por kilo de tu sesión más fuerte. Sube si mejora la forma o si baja el peso.",
         series: [{ pts: wkg, color: VERDE, ancho: 1.4, radio: 1.8 }]
       }) + '<p class="nota-peque" style="margin:4px 0 0">Un punto por mes: los vatios por kilo de la ' +
         "sesión más fuerte. Sube si mejora la forma o si baja el peso — por eso es la medida que junta " +
@@ -2276,6 +2343,223 @@
 
     h += volver;
     return h;
+  }
+
+  /* ==================== HISTÓRICO EMERGENTE ====================
+     Cada fila —una medida o una línea de Mi estado— puede abrir su propia
+     historia: la serie entera, la línea del objetivo y cuánto falta. Un número
+     suelto no dice si vas bien; la curva y el objetivo, sí. */
+
+  function alturaCm() {
+    return (A.estado.perfil && A.estado.perfil.altura) || (P.grasaCinta && P.grasaCinta.altura_cm) || 182;
+  }
+
+  function pesoObjetivo() {
+    var p = A.estado.perfil || {};
+    return p.pesoObjetivo || p.objetivo || (P.atleta && P.atleta.peso_objetivo_kg) || null;
+  }
+
+  function baseSalud(k) {
+    var par = (Salud.datos && Salud.datos.meta && Salud.datos.meta.parametros) || {};
+    return par[k] || null;
+  }
+
+  /* El catálogo de lo que se puede abrir. «serie» devuelve [{f,v}] y «objetivo»
+     la línea de referencia, que puede ser un techo (tensión) o una meta (peso). */
+  function defHistoria(clave) {
+    var v = { desde: "2019-01-01", hasta: U.hoyISO() };
+    var D = {
+      peso: { n: "Peso", u: "kg", serie: function () { return seriePeso(v); },
+              media: 7, objetivo: pesoObjetivo(), etqObj: "tu objetivo",
+              pie: "La línea gruesa es la media de 7 días, que es la que cuenta: el dato del día oscila más de un kilo por agua y tránsito." },
+      cintura: { n: "Cintura", u: "cm", serie: function () { return serieApp("cintura", v); },
+                 objetivo: Math.round(alturaCm() * 0.5), etqObj: "0,50 de tu altura",
+                 techo: 102, etqTecho: "102 cm · riesgo alto",
+                 pie: "El umbral de riesgo bajo es media altura. Es la medida que más se mueve con el plan." },
+      cuello: { n: "Cuello", u: "cm", serie: function () { return serieApp("cuello", v); },
+                pie: "Solo sirve para el cálculo de grasa por cinta: no es un objetivo en sí." },
+      tobillo: { n: "Tobillo", u: "cm", serie: function () { return serieApp("tobillo", v); },
+                 pie: "Mide líquido, no grasa. Lo que cuenta es el cambio respecto a tus días normales." },
+      brazo: { n: "Brazo", u: "cm", serie: function () { return serieApp("brazo", v); }, pie: "Informativo: se mueve muy poco." },
+      muslo: { n: "Muslo", u: "cm", serie: function () { return serieApp("muslo", v); },
+               pie: "Donde vive el músculo del ciclista. Si el peso baja y el muslo aguanta, vas bien." },
+      grasa: { n: "Grasa corporal", u: "%", serie: function () { return serieSalud("grasa", v); },
+               serie2: function () { return serieGrasaCinta(v); }, etq2: "por cinta",
+               pie: "Azul la báscula, roja la cinta. Mientras vayan juntas, las dos valen." },
+      magra: { n: "Masa magra", u: "kg", serie: function () { return serieSalud("magra", v); },
+               pie: "El indicador principal del plan: lo que se quiere es que baje el peso y ésta aguante." },
+      vfc: { n: "VFC", u: "ms", serie: function () { return serieSalud("vfc7", v); },
+             objetivo: baseSalud("base_vfc"), etqObj: "tu base",
+             pie: "Media de 7 noches. Dice lo que ya pasó, no lo que va a pasar." },
+      fcr: { n: "FC en reposo", u: "lpm", serie: function () { return serieSalud("fcr", v); },
+             objetivo: baseSalud("base_fcr"), etqObj: "tu base", invertido: true,
+             pie: "Cuanto más baja, mejor. Cinco pulsaciones por encima de tu base tres días seguidos es señal." },
+      sueno: { n: "Sueño", u: "h", serie: function () {
+                 return serieSalud("sueno_min", v).map(function (p) { return { f: p.f, v: p.v / 60 }; });
+               }, objetivo: 7, etqObj: "7 h",
+               pie: "Lo que predice el día siguiente son las dos últimas noches, no la media del mes." },
+      pt_sueno: { n: "Puntuación de sueño", u: "de 100", serie: function () { return serieSalud("pt_sueno", v); },
+                  objetivo: 70, etqObj: "70", pie: "La nota que pone Garmin a la noche." },
+      ctl: { n: "Forma (CTL)", u: "puntos", serie: function () { return serieSalud("ctl", v); },
+             pie: "Sube despacio y se cae rápido. Mayo de 2026 estaba en 79." },
+      carga: { n: "Carga semanal", u: "", serie: function () {
+                 var cs = seriesCargaSemanal();
+                 return cs.reales;
+               }, serie2: function () { return seriesCargaSemanal().objetivos; }, etq2: "objetivo de la rampa",
+               barras: true, pie: "Lo hecho contra lo que pedía la rampa, semana a semana." },
+      tension: { n: "Tensión", u: "mmHg", serie: function () {
+                   return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.sis }; });
+                 }, serie2: function () {
+                   return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.dia }; });
+                 }, etq2: "diastólica", techo: 140, etqTecho: "140",
+                 pie: "Azul la alta, roja la baja. Lo que se mira es la media de varios días, nunca una toma." },
+      pulso: { n: "Pulso del tensiómetro", u: "ppm", serie: function () {
+                 return tomasTension(v.desde, v.hasta).filter(function (t) { return t.pul; })
+                   .map(function (t) { return { f: t.f, v: t.pul }; });
+               }, pie: "Contraste independiente del pulso en reposo del reloj." }
+    };
+    D.sistolica = D.tension; D.diastolica = D.tension;
+    return D[clave] || null;
+  }
+
+  var rangoHist = "1a";                 // tramo elegido en las ventanas emergentes
+  var histAbierta = null;               // qué serie se está mirando ahora mismo
+
+  function abrirHistoria(clave, rango) {
+    var d = defHistoria(clave), caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!d || !caja || !modal) return;
+    if (rango) rangoHist = rango;
+    histAbierta = clave;
+    var s1 = d.serie() || [], s2 = d.serie2 ? (d.serie2() || []) : [];
+    /* el tramo recorta las dos series, igual que el selector de Evolución */
+    var corte = null;
+    for (var iR = 0; iR < RANGOS.length; iR++) if (RANGOS[iR].id === rangoHist && RANGOS[iR].d) {
+      corte = U.sumarDias(U.hoyISO(), -RANGOS[iR].d);
+    }
+    if (corte) {
+      s1 = s1.filter(function (x) { return x.f >= corte; });
+      s2 = s2.filter(function (x) { return x.f >= corte; });
+    }
+
+    var h = '<header><h2>' + U.esc(d.n) + '</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>';
+
+    h += '<div class="evo-rangos">';
+    RANGOS.forEach(function (r) {
+      h += '<button type="button" class="evo-r' + (r.id === rangoHist ? " activo" : "") +
+        '" data-histrango="' + r.id + '">' + U.esc(r.n) + "</button>";
+    });
+    h += "</div>";
+
+    if (!s1.length && !s2.length) {
+      h += '<div class="evo-vacio"><b>Sin datos de ' + U.esc(d.n.toLowerCase()) +
+        (corte ? " en este tramo" : " todavía") + "</b>" +
+        "<small>" + (corte ? "Prueba con un tramo más largo." : "Cuando haya dos medidas, aquí sale la curva.") +
+        "</small></div>";
+    } else {
+      var AZUL = "#2f5c8a", ROJO = "#b3402f", GRIS = "#8aa0b5", VERDE = "#2f6b47";
+      var lineas = [];
+      if (d.objetivo) lineas.push({ v: d.objetivo, color: "#cfdcea", etq: d.etqObj || "objetivo" });
+      if (d.techo) lineas.push({ v: d.techo, color: "#eccf9a", etq: d.etqTecho || "límite" });
+
+      var series = [];
+      if (d.media && s1.length > 3) {
+        series.push({ pts: s1, color: GRIS, ancho: 0.8, marcarUltimo: false });
+        series.push({ pts: mediaMovilDias(s1, d.media), color: AZUL, ancho: 1.6 });
+      } else {
+        series.push({ pts: s1, color: AZUL, ancho: 1.6, barras: !!d.barras,
+                      soloPuntos: !d.barras && s1.length < 3 });
+      }
+      if (s2.length) series.push({ pts: s2, color: d.barras ? "#cfdcea" : ROJO, ancho: 1.3,
+                                   barras: !!d.barras, marcarUltimo: !d.barras });
+
+      var todo = s1.concat(s2);
+      var desde = todo.length ? todo.map(function (x) { return x.f; }).sort()[0] : U.hoyISO();
+      h += '<div class="hist-graf">' + grafica({
+        desde: desde, hasta: U.hoyISO(), alto: 120, arriba: d.u, lineasH: lineas,
+        bandas: bandasFarmaco({ desde: desde, hasta: U.hoyISO() }),
+        alt: d.n, series: series, unidadTip: d.u,
+        explica: "Tu serie de " + d.n + " en el tramo elegido" +
+          (d.objetivo ? ", con la línea del objetivo" : "") +
+          (d.techo ? " y la del límite" : "") +
+          ". Pasa el dedo por encima para ver cada valor con su fecha."
+      }) + "</div>";
+
+      /* el resumen: dónde estás, hacia dónde vas y cuánto falta */
+      var ult = s1[s1.length - 1] || s2[s2.length - 1];
+      h += '<div class="hist-filas">';
+      h += fila("Último", num(ult.v) + (d.u ? " " + d.u : ""), U.etiquetaFecha(ult.f));
+      var yaDicho = {};
+      [30, 90].forEach(function (dd) {
+        var corte = U.sumarDias(U.hoyISO(), -dd), antes = null;
+        s1.forEach(function (x) { if (x.f <= corte) antes = x; });
+        if (antes) {
+          var dif = ult.v - antes.v;
+          /* si el dato más cercano a esa fecha es de mucho antes, se dice cuál
+             es de verdad: «hace 30 días» con una medida de abril sería mentir */
+          var lejos = diasEntre(antes.f, corte) > 10;
+          if (!yaDicho[antes.f]) {                       // no repetir la misma medida dos veces
+            yaDicho[antes.f] = 1;
+            h += fila(lejos ? "Anterior, del " + U.etiquetaFecha(antes.f) : "Hace " + dd + " días",
+              num(antes.v), signo(dif) + (d.u ? " " + d.u : ""));
+          }
+        }
+      });
+      if (d.objetivo) {
+        var falta = d.invertido ? ult.v - d.objetivo : d.objetivo - ult.v;
+        h += fila(d.etqObj ? d.etqObj.charAt(0).toUpperCase() + d.etqObj.slice(1) : "Objetivo",
+          num(d.objetivo) + (d.u ? " " + d.u : ""),
+          Math.abs(falta) < 0.05 ? "estás en el objetivo"
+            : (falta > 0 ? "te faltan " + num(Math.abs(falta)) : "por encima en " + num(Math.abs(falta))));
+      }
+      if (d.techo) h += fila(d.etqTecho || "Límite", num(d.techo) + (d.u ? " " + d.u : ""),
+        ult.v >= d.techo ? "por encima" : "por debajo");
+      h += '<div class="hist-n">' + (s1.length + s2.length) + " medidas guardadas</div></div>";
+    }
+
+    if (d.pie) h += '<p class="hist-pie">' + U.esc(d.pie) + "</p>";
+    h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Cerrar</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
+  }
+
+  /* ---------- guías de sesión ----------
+     Las sesiones que piden pauta llevan su «cómo se hace» al lado del nombre. */
+  function guiaDeSesion(texto) {
+    var l = P.guiasSesion || [], t = String(texto || "").toLowerCase();
+    for (var i = 0; i < l.length; i++) {
+      if (l[i].patron && t.indexOf(l[i].patron) >= 0) return l[i];
+    }
+    return null;
+  }
+
+  function abrirGuiaSesion(id) {
+    var l = P.guiasSesion || [], g = null;
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) g = l[i];
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!g || !caja || !modal) return;
+
+    var h = '<header><h2>' + U.esc(g.titulo) + '</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>';
+    if (g.entrada) h += '<p class="nota-peque evo-pie">' + U.esc(g.entrada) + "</p>";
+
+    if (g.reglas && g.reglas.length) {
+      h += '<div class="ses-reglas"><b>Antes de empezar</b><ul>';
+      g.reglas.forEach(function (r) { h += "<li>" + r + "</li>"; });
+      h += "</ul></div>";
+    }
+
+    (g.bloques || []).forEach(function (b) {
+      h += '<div class="ses-bloque"><h3>' + U.esc(b.n) +
+        (b.min ? '<span class="min">' + b.min + " min</span>" : "") + "</h3><ol>";
+      b.pasos.forEach(function (p2) { h += "<li>" + p2 + "</li>"; });
+      h += "</ol></div>";
+    });
+
+    if (g.fallos) h += '<div class="ent-fallos"><b>Lo que más falla:</b> ' + U.esc(g.fallos) + "</div>";
+    h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Entendido</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
   }
 
   /* ==================== PINTAR ==================== */
@@ -2381,7 +2665,13 @@
       "<h2>El Plan</h2>" +
       '<p class="nota-peque">' + U.etiquetaFecha(sem.desde) + " – " + U.etiquetaFecha(sem.hasta) +
         " · carga objetivo <b>" + sem.carga + "</b>" + (sem.nota ? " · " + U.esc(sem.nota) : "") + "</p></div>" +
-      '<div class="ent-racha"><b>' + racha() + "</b><span>días seguidos</span></div></div>";
+      '<div class="ent-racha"><b>' + racha() + "</b><span>días seguidos</span></div>" +
+      '<div class="ent-talla"><span class="nota-peque">Esta semana va como</span><select id="ent-talla">' +
+      ["R", "A", "B", "S"].map(function (k) {
+        return '<option value="' + k + '"' + (k === talla ? " selected" : "") + ">" +
+          U.esc(P.plantillas[k].nombre) + "</option>";
+      }).join("") +
+      '</select><small class="pie">' + U.esc(pl.pie) + "</small></div></div>";
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana */
     var dia = (diaSel && semanaDe(diaSel)) ? diaSel : hoy;
@@ -2403,7 +2693,8 @@
         : (m === "no" ? "La has marcado como no hecha." : (s.grande ? P.diaGrande.aviso : P.textos.auto));
       filas.push({
         id: id, nombre: s.t + (s.min ? " · " + s.min + " min" : ""),
-        hecho: sesionHecha(dia, s, i), ayuda: ayuda, sello: porElReloj ? "reloj" : ""
+        hecho: sesionHecha(dia, s, i), ayuda: ayuda, sello: porElReloj ? "reloj" : "",
+        guia: guiaDeSesion(s.t)
       });
     });
     tareasDelDia(dia).forEach(function (t) {
@@ -2420,6 +2711,8 @@
           '<input type="checkbox" data-check="' + f.id + '"' + (f.hecho ? " checked" : "") + ">" +
           '<span class="txt"><b>' + U.esc(f.nombre) +
             (f.sello ? '<span class="ent-sello ' + (f.claseSello || "") + '">' + U.esc(f.sello) + "</span>" : "") +
+            (f.guia ? '<button type="button" class="ent-comose" data-sesion-guia="' + f.guia.id +
+              '">cómo se hace</button>' : "") +
           "</b>" + (f.ayuda ? "<small>" + U.esc(f.ayuda) + "</small>" : "") + "</span></label></li>";
       });
       h += "</ul>";
@@ -2437,7 +2730,10 @@
       var ult = puesta ? null : ultimoValor(m.id, dia);
       var toca = tocaMedida(m, dia);
       return '<label class="ent-medida' + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
-        "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")</span>" +
+        "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")" +
+          (defHistoria(m.id) ? '<button type="button" class="ent-ver" data-historia="' + m.id +
+            '" title="Ver histórico" aria-label="Ver histórico de ' + U.esc(m.nombre) + '">' + ICONO_GRAF + "</button>" : "") +
+        "</span>" +
         (m.texto
           ? '<input type="text" inputmode="numeric" placeholder="128/82" data-medida="' + m.id + '" value="' + U.esc(puesta ? v : "") + '">'
           : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
@@ -2449,6 +2745,12 @@
     }
 
     if (P.medidas.length) {
+      /* la ayuda, antes de las casillas: se lee antes de medir, no después */
+      h += '<button type="button" class="ent-ayuda" data-guia="*">' +
+        '<span class="i">?</span>' +
+        '<span class="t"><b>Ayuda: cómo se mide cada cosa</b>' +
+        "<small>Cintura, cuello, tensión, tobillo, peso… y cómo funciona esta pantalla</small></span>" +
+        '<span class="v">›</span></button>';
       if (tocanHoy.length) {
         var faltan = 0;
         tocanHoy.forEach(function (m) {
@@ -2467,34 +2769,21 @@
         lasDemas.forEach(function (m) { h += pintaMedida(m); });
         h += "</div>";
       }
-      var lec = lecturas(dia);
-      if (lec.length) {
-        h += '<h3 class="ent-subt">Lo que dicen tus medidas</h3>';
-        lec.forEach(function (l) {
-          h += '<div class="ent-estim"><b>' + U.esc(l.t) + "</b><small>" + U.esc(l.d) + "</small></div>";
-        });
-      }
       h += htmlObs(dia);
-
       h += htmlImportarTension(dia);
+    }
+    h += "</div>";
 
-      /* una sola puerta a toda la ayuda: dentro está cada medida por separado */
-      h += '<button type="button" class="ent-ayuda" data-guia="*">' +
-        '<span class="i">?</span>' +
-        '<span class="t"><b>Ayuda: cómo se mide cada cosa</b>' +
-        "<small>Cintura, cuello, tensión, tobillo, peso… y cómo funciona esta pantalla</small></span>" +
-        '<span class="v">›</span></button>';
+    /* lo que sale de todo eso: primero la lectura del día, luego el estado */
+    var lec = lecturas(dia);
+    if (lec.length) {
+      h += '<div class="tarjeta"><h2>Lo que dicen tus medidas</h2>';
+      lec.forEach(function (l) {
+        h += '<div class="ent-estim"><b>' + U.esc(l.t) + "</b><small>" + U.esc(l.d) + "</small></div>";
+      });
+      h += "</div>";
     }
 
-    /* talla de la semana */
-    h += '<div class="ent-talla"><span class="nota-peque">Esta semana va como</span><select id="ent-talla">';
-    ["R", "A", "B", "S"].forEach(function (k) {
-      h += '<option value="' + k + '"' + (k === talla ? " selected" : "") + ">" + U.esc(P.plantillas[k].nombre) + "</option>";
-    });
-    h += "</select></div>";
-    h += '<p class="nota-peque" style="margin-top:6px">' + U.esc(pl.pie) + "</p></div>";
-
-    /* mi estado */
     h += htmlMiEstado(dia, semDia);
 
     /* la semana */
@@ -2554,7 +2843,14 @@
     return h + "h" + (m < 10 ? "0" : "") + m;
   }
 
-  function fila(nombre, valor, contra, apagada) {
+  function fila(nombre, valor, contra, apagada, historia) {
+    if (historia && defHistoria(historia)) {
+      return '<button type="button" class="ent-fila con-historia' + (apagada ? " apagada" : "") +
+        '" data-historia="' + historia + '">' +
+        '<span class="n">' + U.esc(nombre) + ICONO_GRAF + "</span>" +
+        '<span class="v">' + (valor === null || valor === undefined ? "—" : valor) + "</span>" +
+        '<span class="c">' + U.esc(contra || "") + "</span></button>";
+    }
     return '<div class="ent-fila' + (apagada ? " apagada" : "") + '">' +
       '<span class="n">' + U.esc(nombre) + "</span>" +
       '<span class="v">' + (valor === null || valor === undefined ? "—" : valor) + "</span>" +
@@ -2649,50 +2945,50 @@
     h += '<p class="nota-peque">Automático, de intervals · datos al ' + U.etiquetaFecha(fechaDato) + "</p>";
 
     h += fila("VFC de anoche", d.vfc ? d.vfc + " ms" : null,
-      farmaco ? "con corticoide: sin lectura" : (baseVfc ? "tu base: " + num(baseVfc) : ""), farmaco);
+      farmaco ? "con corticoide: sin lectura" : (baseVfc ? "tu base: " + num(baseVfc) : ""), farmaco, "vfc");
     h += fila("FC en reposo", d.fcr ? d.fcr + " lpm" : null,
-      farmaco ? "con corticoide: sin lectura" : (baseFcr ? "tu base: " + num(baseFcr) : ""), farmaco);
+      farmaco ? "con corticoide: sin lectura" : (baseFcr ? "tu base: " + num(baseFcr) : ""), farmaco, "fcr");
 
     var n1 = Salud.dia(fechaDato) || {}, n2 = Salud.dia(U.sumarDias(fechaDato, -1)) || {};
     var s1 = hhmm(n1.sueno_min), s2 = hhmm(n2.sueno_min);
-    h += fila("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""), "tu media: 6h24");
+    h += fila("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""), "tu media: 6h24", false, "sueno");
 
     /* Body Battery no baja de Garmin a intervals —no está entre los once campos
        que la integración descarga—, así que la fila solo sale los días que lo
        tienen del histórico. En su lugar, la puntuación de sueño, que sí llega. */
-    h += fila("Puntuación de sueño", (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null, "de 100, de Garmin");
+    h += fila("Puntuación de sueño", (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null, "de 100, de Garmin", false, "pt_sueno");
     if (d.body_battery || d.body_battery === 0) {
       h += fila("Body Battery al despertar", d.body_battery, "del histórico");
     }
 
     var bal = (typeof d.ctl === "number" && typeof d.atl === "number") ? d.ctl - d.atl : null;
     h += fila("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
-      bal === null ? "" : "Balance " + signo(bal));
+      bal === null ? "" : "Balance " + signo(bal), false, "ctl");
 
     var cs = cargaSemana(U.lunesDe(dia), dia);
     h += fila("Carga de la semana", cs === null ? null : cs,
-      sem ? "objetivo " + sem.carga : "");
+      sem ? "objetivo " + sem.carga : "", false, "carga");
 
     var p = ultimoPeso(dia);
-    h += fila("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "");
+    h += fila("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "", false, "peso");
 
     /* la báscula manda grasa y magra solo los días que te pesas con ella:
        se enseña la última que llegó, con su fecha, para que se vea si está vieja */
     var gBas = ultimoDeSalud("grasa", fechaDato);
     h += fila("Grasa (báscula)", gBas ? num(gBas.v) + " %" : null,
-      gBas ? "del " + U.etiquetaFecha(gBas.f) + " · por impedancia" : "aún no ha bajado ninguna de intervals");
+      gBas ? "del " + U.etiquetaFecha(gBas.f) + " · por impedancia" : "aún no ha bajado ninguna de intervals", false, "grasa");
     var mBas = ultimoDeSalud("magra", fechaDato);
-    if (mBas) h += fila("Masa magra (báscula)", num(mBas.v) + " kg", "del " + U.etiquetaFecha(mBas.f));
+    if (mBas) h += fila("Masa magra (báscula)", num(mBas.v) + " kg", "del " + U.etiquetaFecha(mBas.f), false, "magra");
     var muBas = ultimoDeSalud("musculo", fechaDato);
     if (muBas) h += fila("Músculo (báscula)", num(muBas.v) + " kg", "del " + U.etiquetaFecha(muBas.f));
     var gCin = grasaPorCinta(dia);
     if (gCin) h += fila("Grasa (cinta)", num(gCin.pct) + " %",
-      "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua");
+      "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua", false, "grasa");
 
     var mtE = mediaTension(U.sumarDias(dia, -6), dia);
     h += fila("Tensión, media de la semana",
       mtE ? Math.round(mtE.sis) + "/" + Math.round(mtE.dia) : null,
-      mtE ? mtE.n + (mtE.n === 1 ? " toma" : " tomas") : "la anotas tú");
+      mtE ? mtE.n + (mtE.n === 1 ? " toma" : " tomas") : "la anotas tú", false, "tension");
 
     if (farmaco) {
       h += '<p class="nota-peque" style="margin-top:10px">Las filas en gris están dentro de la pauta de ' +
@@ -2710,6 +3006,12 @@
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
       if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
+      var hr = t.closest ? t.closest("[data-histrango]") : null;
+      if (hr) { e.preventDefault(); abrirHistoria(histAbierta, hr.getAttribute("data-histrango")); return; }
+      var sg = t.closest ? t.closest("[data-sesion-guia]") : null;
+      if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
+      var hb = t.closest ? t.closest("[data-historia]") : null;
+      if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
       var gb = t.closest ? t.closest("[data-guia]") : null;
       if (gb) { e.preventDefault(); abrirGuia(gb.getAttribute("data-guia")); return; }
       var rg = t.closest ? t.closest("[data-rango]") : null;
@@ -2814,6 +3116,10 @@
     /* cerrar la ventana de la guía: con la × , con «Entendido» o pinchando fuera */
     var modal = document.getElementById("modal");
     if (modal) modal.addEventListener("click", function (e) {
+      /* el selector de tramo vive DENTRO de la ventana, así que se atiende aquí:
+         el manejador de la pestaña no llega hasta el modal */
+      var hr = e.target.closest ? e.target.closest("[data-histrango]") : null;
+      if (hr) { e.preventDefault(); abrirHistoria(histAbierta, hr.getAttribute("data-histrango")); return; }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarGuia(); });
@@ -2834,6 +3140,77 @@
     });
   }
 
+  /* ==================== LA VENTANITA DE LAS GRÁFICAS ====================
+     Al pasar el dedo o el ratón por una gráfica sale el valor y la fecha del
+     punto más cercano, con una guía vertical. Se engancha una sola vez y vale
+     para todas: las de Evolución, las del pase y las emergentes. */
+
+  var tipPuesto = false;
+
+  function ponerTip() {
+    if (tipPuesto) return;
+    tipPuesto = true;
+
+    function mover(e) {
+      var caja = e.target.closest ? e.target.closest(".graf-caja") : null;
+      if (!caja) { quitar(); return; }
+      var svg = caja.querySelector(".evo-svg"), tip = caja.querySelector(".graf-tip"),
+          guia = caja.querySelector(".graf-guia");
+      if (!svg || !tip) return;
+      var esc = (svg.getAttribute("data-esc") || "").split("|");
+      var pts = (svg.getAttribute("data-pts") || "").split(",").filter(function (x) { return x; });
+      if (esc.length < 10 || !pts.length) return;
+
+      var t0 = +esc[0], t1 = +esc[1], min = +esc[2], max = +esc[3], W = +esc[4],
+          H = +esc[5], L = +esc[6], R = +esc[7], T = +esc[8], B = +esc[9];
+      var r = svg.getBoundingClientRect();
+      if (!r.width) return;
+      var px = (e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0));
+      var xVb = (px - r.left) * (W / r.width);                 // píxeles → unidades del viewBox
+      var frac = (xVb - L) / (W - L - R);
+      var t = t0 + frac * (t1 - t0);
+
+      /* el punto más cercano en el tiempo */
+      var mejor = null, mejorD = Infinity;
+      pts.forEach(function (par) {
+        var c = par.split(":");
+        var ms = U.desdeISO(c[0]).getTime(), d = Math.abs(ms - t);
+        if (d < mejorD) { mejorD = d; mejor = { f: c[0], v: parseFloat(c[1]), ms: ms }; }
+      });
+      if (!mejor) return;
+
+      var xPt = L + (W - L - R) * ((mejor.ms - t0) / (t1 - t0));
+      var yPt = T + (H - T - B) * (1 - (mejor.v - min) / (max - min));
+      var esc2 = r.width / W;                                   // unidades → píxeles
+      var uni = svg.getAttribute("data-uni") || "";
+
+      tip.innerHTML = "<b>" + U.esc(num(mejor.v)) + (uni ? " " + U.esc(uni) : "") + "</b>" +
+        "<span>" + U.esc(U.etiquetaFecha(mejor.f)) + "</span>";
+      tip.style.display = "block";
+      var ancho = tip.offsetWidth || 90;
+      var x = xPt * esc2 - ancho / 2;
+      if (x < 0) x = 0;
+      if (x + ancho > r.width) x = r.width - ancho;
+      tip.style.left = x + "px";
+      tip.style.top = Math.max(0, yPt * esc2 - tip.offsetHeight - 8) + "px";
+      if (guia) {
+        guia.style.display = "block";
+        guia.style.left = (xPt * esc2) + "px";
+      }
+    }
+
+    function quitar() {
+      var t = document.querySelectorAll(".graf-tip, .graf-guia");
+      for (var i = 0; i < t.length; i++) t[i].style.display = "none";
+    }
+
+    document.addEventListener("mousemove", mover, { passive: true });
+    document.addEventListener("touchmove", mover, { passive: true });
+    document.addEventListener("touchend", quitar, { passive: true });
+    /* nada de mouseleave en captura: salta al pasar por cada hijo de la propia
+       gráfica y apagaba la ventanita al instante. Con salirse de la caja basta. */
+  }
+
   /* ==================== ARRANQUE ==================== */
 
   function arrancar() {
@@ -2842,6 +3219,7 @@
     inyectarEstilos();
     inyectarHtml();
     conectar();
+    ponerTip();
     if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
     pintar();
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy

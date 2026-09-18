@@ -184,6 +184,57 @@
       nota: "El pase mira cinco cosas y ninguna más: carga, cumplimiento, peso, recuperación y lo que dijeron tus observaciones."
     },
 
+    /* ---------- guías de sesión ----------
+       Sesiones que no se explican solas y piden pauta. Se enganchan por texto:
+       si el nombre de la sesión contiene «patron», sale el botón de la guía. */
+    guiasSesion: [
+      {
+        id: "cuello",
+        patron: "movilidad",
+        titulo: "Movilidad de cuello y mandíbula",
+        minutos: 15,
+        entrada: "Quince minutos, sentado y sin prisa. Todo despacio: aquí el rango no se gana forzando, " +
+                 "se gana repitiendo. Validada por tu fisio el 18 de septiembre.",
+        reglas: [
+          "Hasta notar <b>tensión, nunca dolor</b>. El dolor no abre rango, lo cierra.",
+          "Nada de círculos completos de cabeza ni de dejarla caer hacia atrás.",
+          "Respirando por la nariz, sin apneas.",
+          "<b>Si aparece mareo o inestabilidad, se para</b>, te sientas y lo marcas en las observaciones del día."
+        ],
+        bloques: [
+          { n: "1. Respirar y colocarse", min: 2, pasos: [
+            "Sentado, espalda apoyada, pies en el suelo.",
+            "Seis respiraciones lentas por la nariz, soltando el aire el doble de largo.",
+            "Barbilla ligeramente metida y coronilla larga, como si tiraran de ti hacia arriba." ] },
+          { n: "2. Retracción cervical", min: 2, pasos: [
+            "Sin mover la cabeza arriba o abajo, lleva la barbilla atrás —doble papada a propósito—.",
+            "Mantén 3 segundos y suelta. <b>10 repeticiones.</b>",
+            "Es el ejercicio que más corrige la cabeza adelantada de estar sentado." ] },
+          { n: "3. Rotaciones", min: 3, pasos: [
+            "Gira despacio hacia un lado hasta notar tensión. Mantén 3-5 segundos y vuelve.",
+            "<b>8 a cada lado</b>, alternando.",
+            "La mirada acompaña al giro; no adelantes la barbilla." ] },
+          { n: "4. Inclinación lateral", min: 3, pasos: [
+            "Oreja hacia el hombro, sin subir el hombro.",
+            "La mano del mismo lado, apoyada en la cabeza, solo pesa: no tira.",
+            "<b>20-30 segundos por lado, dos veces cada uno.</b>" ] },
+          { n: "5. Elevador de la escápula", min: 2, pasos: [
+            "Gira la cabeza 45° y mira hacia la axila contraria.",
+            "Mano en la nuca, peso suave. <b>20-30 segundos por lado.</b>",
+            "Es el músculo que se carga con el ordenador y con el manillar." ] },
+          { n: "6. Mandíbula", min: 3, pasos: [
+            "Punta de la lengua en el paladar, justo detrás de los dientes de arriba: abre y cierra " +
+            "despacio sin despegarla. <b>10 repeticiones.</b>",
+            "Masajea con dos dedos, en círculos, los maseteros —el músculo que se marca al apretar— " +
+            "y las sienes. <b>60-90 segundos.</b>",
+            "Termina con la boca entreabierta y la lengua suelta, 20 segundos. Ésa es la posición de " +
+            "descanso: los dientes no se tocan." ] }
+        ],
+        fallos: "Ir deprisa y forzar el final del rango. Esto no es estirar a tope una vez por semana: " +
+                "es poco y a menudo. Si un día solo te da para el bloque 2 y el 6, hazlos y marca la sesión."
+      }
+    ],
+
     /* ---------- observaciones del día ----------
        Van pegadas a las medidas, y se rellenan en un toque. No son un diario:
        son las RAZONES que explican por qué un día se sale de la raya, que es lo
