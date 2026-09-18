@@ -28,7 +28,7 @@
     { id: "plan", nombre: "El Plan", img: "iconos/khb/3-pesas-corredor.webp",
       pie: "Lo que toca hoy, con sus casillas, y la semana entera a la vista.", listo: true },
     { id: "actividad", nombre: "Actividad", img: "iconos/khb/6-zapatillas.webp",
-      pie: "Qué he hecho: carga de la semana frente al objetivo, horas y kilómetros.", listo: false },
+      pie: "Qué he hecho: el archivo entero, año por año y mes por mes, con su mini mapa.", listo: true },
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
@@ -1837,6 +1837,164 @@
     }
   };
 
+  /* ==================== ARCHIVO DE ACTIVIDADES ====================
+     La pata «Actividad» la dibuja el módulo ActividadKHB (js/actividad-khb.js),
+     que no depende de nada de este fichero: recibe los datos, se pinta en el
+     hueco que le damos y se gestiona sus propios clics. Aquí solo se le traen
+     los ficheros y se le monta.
+
+       · historico-actividad.json — de 2013 al 14-oct-2021. Repo privado, 72 KB.
+         NO CAMBIA NUNCA: esos años ya están cerrados. Caché para siempre.
+       · salud.json + salud-historico.json — del 15-oct-2021 en adelante. Ya los
+         cargan Salud e Historico; aquí solo se juntan sus actividades.
+       · rutas/index.json de la app de mapas — público, sin token. Da el nombre
+         de la ruta y su celda de geometría, que es lo que dibuja el mini mapa.
+
+     La frontera del 15 de octubre de 2021 la aplica el módulo por dentro: no
+     hay que fusionar ni quitar repetidas. */
+
+  var BASE_MAPAS = "https://chernanzfinanzas-gif.github.io/mapas-ign/";
+
+  var Archivo = {
+    CLAVE: "khb-archivo-actividad-v1",
+    RUTA: "datos/historico-actividad.json",
+    datos: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (j && j.datos) { this.datos = j.datos; this.estado = "ok"; return true; }
+      } catch (e) {}
+      return false;
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.datos || this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = JSON.parse(Salud.deB64(j.content));
+          self.estado = "ok";
+          try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        .catch(function () { self.estado = "error"; if (alTerminar) alTerminar(); });
+    }
+  };
+
+  /* El índice de rutas es público y se actualiza solo cuando Carlos archiva
+     rutas con su .bat. Se refresca cada día; si falla, se sigue con la copia. */
+  var Rutas = {
+    CLAVE: "khb-rutas-indice-v1",
+    FRESCO_H: 24,
+    datos: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+      } catch (e) { return false; }
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }   // fresco: no se pide
+      this.estado = "cargando";
+      fetch(BASE_MAPAS + "rutas/index.json", { cache: "no-cache" })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = j.rutas || [];
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE,
+              JSON.stringify({ traidoEl: self.traidoEl, datos: self.datos }));
+          } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        .catch(function () {
+          self.estado = self.datos ? "ok" : "error";     // con copia vieja se sigue
+          if (alTerminar) alTerminar();
+        });
+    }
+  };
+
+  var archivoUI = null;        // la instancia del módulo, con su año y mes abiertos
+  var geoCache = {};           // celda → geometría, para no pedirla dos veces
+
+  function actividadesJuntas() {
+    var a = (Salud.datos && Salud.datos.actividades) || [];
+    var b = (Historico.datos && Historico.datos.actividades) || [];
+    return a.concat(b);
+  }
+
+  function htmlActividad() {
+    var falta = !Archivo.datos && Archivo.estado !== "ok";
+    var aviso = "";
+    if (Archivo.estado === "sin-config") {
+      aviso = "Falta la configuración de GitHub: sin ella no puedo traer el archivo de 2013 a 2021.";
+    } else if (Archivo.estado === "error") {
+      aviso = "No he podido traer <b>datos/historico-actividad.json</b>. Se reintenta al volver a entrar.";
+    } else if (falta) {
+      aviso = "Trayendo el archivo…";
+    }
+    return '<div class="tarjeta"><h2>Actividad</h2>' +
+      '<p class="nota-peque">Todo lo que has hecho, año por año y mes por mes. ' +
+      'Hasta octubre de 2021 sale del archivo; desde entonces, de intervals, ' +
+      'y las nuevas se van añadiendo solas.</p>' +
+      (aviso ? '<p class="nota-peque">' + aviso + "</p>" : "") +
+      '<div id="ent-archivo"></div></div>';
+  }
+
+  /* Se llama después de cada pintado. El módulo conserva su año y su mes
+     abiertos porque la instancia se reaprovecha: solo cambia dónde se dibuja. */
+  function montarArchivo() {
+    var hueco = document.getElementById("ent-archivo");
+    if (!hueco) return;
+    if (!window.ActividadKHB) {
+      hueco.innerHTML = '<p class="nota-peque">No se ha cargado <b>js/actividad-khb.js</b>.</p>';
+      return;
+    }
+    if (!Salud.datos && !Archivo.datos) return;      // nada que enseñar todavía
+
+    if (!archivoUI) {
+      archivoUI = ActividadKHB.crear({
+        historico: Archivo.datos,
+        actividades: actividadesJuntas(),
+        rutas: (Rutas.datos || []),
+        traerGeo: function (celda) {
+          if (geoCache[celda]) return Promise.resolve(geoCache[celda]);
+          return fetch(BASE_MAPAS + "rutas/geo-" + celda + ".json")
+            .then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (g) { geoCache[celda] = g || {}; return geoCache[celda]; })
+            .catch(function () { return {}; });
+        }
+      });
+    }
+    archivoUI.montar(hueco);
+  }
+
+  /* Los tres ficheros del archivo, pedidos una sola vez al entrar en la pata.
+     Cada uno repinta cuando llega, así que la pantalla se va completando en
+     vez de quedarse en blanco esperando al más lento. */
+  function prepararArchivo() {
+    var repinta = function () { if (bloque === "actividad") { archivoUI = null; pintar(true); } };
+    Archivo.cargar(repinta);
+    Rutas.cargar(repinta);
+    if (!Historico.datos) Historico.cargar(repinta);
+  }
+
   function ventanaEvo() {
     var hasta = U.hoyISO(), r = null;
     for (var i = 0; i < RANGOS.length; i++) if (RANGOS[i].id === rangoEvo) r = RANGOS[i];
@@ -3192,7 +3350,9 @@
     aplicarPases();                         // lo primero: la cola al día antes de dibujar nada
     vestir(cont.classList.contains("activa"));
     cont.innerHTML = (bloque === "plan") ? htmlPlan()
-      : (bloque === "evolucion") ? htmlEvolucion() : htmlPortada();
+      : (bloque === "evolucion") ? htmlEvolucion()
+      : (bloque === "actividad") ? htmlActividad() : htmlPortada();
+    if (bloque === "actividad") montarArchivo();
     if (!mantener) window.scrollTo(0, 0);
   }
 
@@ -3831,7 +3991,11 @@
         return;
       }
       var b = t.closest ? t.closest("[data-bloque]") : null;
-      if (b) { bloque = b.getAttribute("data-bloque"); pintar(); }
+      if (b) {
+        bloque = b.getAttribute("data-bloque");
+        if (bloque === "actividad") prepararArchivo();   // pide sus ficheros al entrar
+        pintar();
+      }
     });
 
     cont.addEventListener("keydown", function (e) {

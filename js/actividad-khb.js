@@ -291,7 +291,7 @@
         dato("Duración", x.min, " min") +
         dato("Distancia", x.km != null ? num(x.km, 2) : null, " km") +
         dato("Desnivel", x.desnivel != null ? num(x.desnivel) : null, " m") +
-        dato("Carga", x.carga) +
+        (x.carga != null ? dato("Carga", x.carga) : "") +
         /* lo de abajo solo si existe: una caminata no tiene vatios y poner
            «Potencia —» es ruido, no información */
         (x.pulso != null ? dato("Pulso medio", x.pulso, " ppm") : "") +
@@ -405,7 +405,7 @@
       if (x.ruta && x.celda && traerGeo) {
         var pinta = function (geo) {
           var segs = geo && geo[x.ruta];
-          if (!segs) { fig.innerHTML = iconoSVG(x.dep) + (fig.querySelector("figcaption") ? "" : ""); pintaIcono(fig, x); return; }
+          if (!segs) { pintaIcono(fig, x); return; }   // la leyenda se respeta
           var pts = [];
           segs.forEach(function (s) { s.forEach(function (p) { pts.push(p); }); });
           dibujaTrazo(fig, pts);
@@ -421,12 +421,18 @@
       pintaIcono(fig, x);
     }
 
+    /* Si la actividad TENIA ruta y el trazo no ha llegado, no se dice «sin
+       recorrido», que seria mentira: se dice que no se ha podido traer. */
     function pintaIcono(fig, x) {
       var cap = fig.querySelector("figcaption");
       fig.innerHTML = iconoSVG(x.dep);
-      if (cap) fig.appendChild(cap);
-      else fig.insertAdjacentHTML("beforeend",
-        "<figcaption>" + NOMBRE_DEP[x.dep] + " — sin recorrido</figcaption>");
+      if (!cap) {
+        cap = document.createElement("figcaption");
+        cap.textContent = NOMBRE_DEP[x.dep] + " \u2014 sin recorrido";
+      } else if (x.ruta || x.poli) {
+        cap.textContent = (x.nombre ? x.nombre + " \u2014 " : "") + "no he podido traer el trazo";
+      }
+      fig.appendChild(cap);
     }
 
     function buscaPorClave(clave) {
