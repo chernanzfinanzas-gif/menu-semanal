@@ -351,6 +351,29 @@
       ".ent-estim.t-mal{border-left-color:#b3402f}",
       ".ent-estim.t-plano{border-left-color:#8aa0b5}",
       ".ent-estim.t-nada{border-left-color:#c7cfcb}",
+      ".ent-estim.t-exceso{border-left-color:#5b3a7e}",
+      ".ent-estim.t-exceso .est-tend{color:#5b3a7e}",
+      /* Mi estado: el mismo rectángulo, con el valor grande y la barra */
+      ".est-tarj{display:block;width:100%;text-align:left;font:inherit}",
+      "button.est-tarj{cursor:pointer;-webkit-appearance:none}",
+      "button.est-tarj:hover,button.est-tarj:focus-visible{background:#e2ebf4;outline:none}",
+      ".est-tarj .est-cab{align-items:flex-start;gap:9px}",
+      ".est-tarj .est-txt{flex:1 1 auto;min-width:0}",
+      ".est-tarj .est-txt b{display:block;line-height:1.25}",
+      ".est-tarj .est-txt small{display:block;margin-top:3px;color:var(--gris);",
+      "  font-size:.78rem;line-height:1.3}",
+      ".est-tarj .chispa{margin-top:3px}",
+      ".est-tarj .est-val{flex:none;font-size:1.2rem;font-weight:700;line-height:1.15;",
+      "  color:var(--azul-hondo);font-variant-numeric:tabular-nums}",
+      ".est-barra{margin-top:9px;height:6px;border-radius:999px;background:#dfe7ee;",
+      "  position:relative;overflow:visible}",
+      ".est-barra i{position:absolute;top:0;bottom:0;left:0;border-radius:999px}",
+      ".est-barra .marca{position:absolute;top:-3px;bottom:-3px;width:2px;",
+      "  background:var(--azul-hondo);opacity:.55;border-radius:1px}",
+      ".est-pie{display:flex;justify-content:space-between;gap:8px;margin-top:4px;",
+      "  font-size:.68rem;color:var(--gris)}",
+      ".est-pie span:nth-child(2){flex:1 1 auto;text-align:center}",
+      "@media(max-width:400px){.est-tarj .est-val{font-size:1.05rem}}",
       ".est-cab{display:flex;align-items:center;gap:10px;justify-content:space-between}",
       ".est-cab b{flex:1 1 auto;min-width:0}",
       ".est-tend{display:block;margin-top:6px;font-style:normal;font-size:.72rem;font-weight:700;",
@@ -2784,7 +2807,9 @@
      azul si está plana. Gris cuando no hay datos para decirlo o cuando el
      corticoide manda callar. El dibujito es la misma serie en pequeño. */
 
-  var COL_TEND = { bien: "#2f6b47", mal: "#b3402f", plano: "#8aa0b5", nada: "#c7cfcb" };
+  var COL_TEND = { bien: "#2f6b47", mal: "#b3402f", plano: "#8aa0b5", nada: "#c7cfcb",
+                   exceso: "#5b3a7e" };          // morado: pasarse también es pasarse
+  var MINIMO_TEND = 4;                            // medidas mínimas para pintar color
 
   /* hacia dónde es mejor que vaya cada una */
   var MEJOR = {
@@ -2813,15 +2838,19 @@
       var todo = serieDe(clave, 0);
       if (todo.length > s.length) s = todo;
     }
-    if (s.length < 3) {
-      /* con dos medidas todavía se puede decir algo, aunque flojo */
-      if (s.length === 2) {
-        var dif0 = s[1].v - s[0].v;
-        return calificar(clave, dif0, s[0].v, s, true);
-      }
-      return { estado: "nada", color: COL_TEND.nada, texto: s.length ? "una sola medida" : "sin datos", serie: s };
+    /* Con menos de cuatro medidas no se pinta color. Dos puntos separados
+       cinco meses dibujan la historia que uno quiera, y un rojo que miente una
+       vez deja de mirarse para siempre. */
+    if (s.length < MINIMO_TEND) {
+      var faltan = MINIMO_TEND - s.length;
+      return { estado: "nada", color: COL_TEND.nada, serie: s,
+               texto: !s.length ? "sin datos"
+                 : "falta" + (faltan === 1 ? " 1 medida" : "n " + faltan + " medidas") + " para decir nada" };
     }
-    var n = Math.max(1, Math.round(s.length / 3));
+    /* los tercios van de dos en dos como mínimo: con un solo punto por tercio,
+       una pesada alta un día cualquiera daría la vuelta a la tendencia */
+    var n = Math.max(2, Math.round(s.length / 3));
+    if (n * 2 > s.length) n = Math.floor(s.length / 2);
     var pri = 0, ult = 0, i;
     for (i = 0; i < n; i++) pri += s[i].v;
     for (i = s.length - n; i < s.length; i++) ult += s[i].v;
@@ -2859,12 +2888,75 @@
   }
 
   /* El corticoide manda callar en VFC y pulso en reposo */
+  /* El corticoide ya no borra la lectura: si va mal, sale en rojo y se explica
+     que el fármaco puede ser el motivo. Esconder tres semanas de caída para no
+     asustar es peor que enseñarlas con su porqué. */
   function tendenciaVisible(clave, dia) {
     var t = tendencia(clave);
     if ((clave === "vfc" || clave === "fcr") && Salud.conFarmaco(dia || U.hoyISO())) {
-      return { estado: "nada", color: COL_TEND.nada, texto: "con corticoide: sin lectura", serie: t.serie };
+      t = { estado: t.estado, color: t.color, texto: t.texto, serie: t.serie,
+            ventana: t.ventana, n: t.n, farmaco: true };
     }
     return t;
+  }
+
+  /* ---------- repartir el objetivo de la semana por días ----------
+     El objetivo semanal se prorratea: si la semana son 280, el lunes se
+     compara con lo que toca el lunes y no con 280. Pero NO a séptimos: el
+     reparto va por los minutos previstos de cada día, porque hay días de
+     descanso y porque el día grande es él solo casi un tercio de la semana.
+     Y el día grande no se da por debido hasta que el fin de semana termina:
+     el sábado por la mañana todavía te queda por delante, y cobrártelo antes
+     pintaría de rojo a quien va perfecto. */
+  function minutosDia(iso, sem, talla) {
+    var ses = sesionesDe(iso, sem, talla), m = 0, grande = false;
+    ses.forEach(function (x) {
+      if (x.grande) { grande = true; m += (P.diaGrande && P.diaGrande.minutos) || 180; }
+      else m += x.min || 0;
+    });
+    return { min: m, grande: grande };
+  }
+
+  function repartoSemana(sem, dia) {
+    var talla = tallaDe(sem), total = 0, hecho = 0, grandeVisto = false, f;
+    for (f = sem.desde; f <= sem.hasta; f = U.sumarDias(f, 1)) {
+      var d = minutosDia(f, sem, talla);
+      if (d.grande) {
+        if (grandeVisto) continue;              // el día grande es UNO, aunque salga en los dos huecos
+        grandeVisto = true;
+        total += d.min;
+        if (dia >= sem.hasta) hecho += d.min;   // solo se debe cuando la semana acaba
+      } else {
+        total += d.min;
+        if (f <= dia) hecho += d.min;
+      }
+    }
+    if (!total) return { parte: 1, cuando: "esta semana" };
+    return { parte: Math.min(1, hecho / total),
+             cuando: dia >= sem.hasta ? "en la semana entera" : "a estas alturas de la semana" };
+  }
+
+  /* La carga no tiene dirección buena: lo bueno es acercarse al objetivo. */
+  function tendenciaCarga(sem, dia) {
+    var cfg = (P.pase && P.pase.colorCarga) || { exceso: 1.15, bien: 0.95, flojo: 0.70 };
+    var cs = cargaSemana(U.lunesDe(dia), dia);
+    if (!sem || !sem.carga || cs === null) {
+      return { estado: "nada", color: COL_TEND.nada, texto: "sin datos de carga", serie: [] };
+    }
+    if (sem.criterio === "asistencia") {
+      return { estado: "nada", color: COL_TEND.nada, serie: [],
+               texto: "esta semana se juzga por días movidos, no por carga" };
+    }
+    var r = repartoSemana(sem, dia);
+    var objetivo = sem.carga * r.parte;
+    var pct = objetivo > 0 ? cs / objetivo : null;
+    if (pct === null) return { estado: "nada", color: COL_TEND.nada, texto: "sin objetivo", serie: [] };
+    var pc = Math.round(pct * 100) + " % de los " + Math.round(objetivo) +
+      " que tocarían " + r.cuando;
+    if (pct >= cfg.exceso) return { estado: "exceso", color: COL_TEND.exceso, texto: "pasándote · " + pc, serie: [], pct: pct };
+    if (pct >= cfg.bien)   return { estado: "bien",   color: COL_TEND.bien,   texto: "en objetivo · " + pc, serie: [], pct: pct };
+    if (pct >= cfg.flojo)  return { estado: "plano",  color: COL_TEND.plano,  texto: "algo corto · " + pc, serie: [], pct: pct };
+    return { estado: "mal", color: COL_TEND.mal, texto: "no llegas · " + pc, serie: [], pct: pct };
   }
 
   /* el dibujito: la misma serie, en 74×20, sin ejes ni adornos */
@@ -2890,6 +2982,80 @@
       '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' +
       '<circle cx="' + ux.toFixed(1) + '" cy="' + uy.toFixed(1) + '" r="2" fill="' + t.color + '"/>' +
       "</svg></span>";
+  }
+
+  /* ---------- la barra de referencia ----------
+     Un número solo no contesta «¿esto es mucho o poco?». La barra lo sitúa
+     entre tu peor y tu mejor de la serie, con una marca en tu base o en tu
+     objetivo, que es contra lo que de verdad se compara. */
+  function barraRef(clave, valor, t) {
+    if (valor === null || valor === undefined || isNaN(valor)) return "";
+    var d = defHistoria(clave);
+    var s = (t && t.serie && t.serie.length) ? t.serie : serieDe(clave, 90);
+    if (!s.length) return "";
+    var min = Infinity, max = -Infinity;
+    s.forEach(function (x) { if (x.v < min) min = x.v; if (x.v > max) max = x.v; });
+    if (valor < min) min = valor;
+    if (valor > max) max = valor;
+
+    var marca = null, etqM = "";
+    if (d && d.objetivo) { marca = d.objetivo; etqM = d.etqObj || "objetivo"; }
+    else if (d && d.techo) { marca = d.techo; etqM = d.etqTecho || "límite"; }
+    if (marca !== null) {                       // la marca tiene que caber dentro
+      if (marca < min) min = marca;
+      if (marca > max) max = marca;
+    }
+    var margen = (max - min) * 0.08 || 1;
+    min -= margen; max += margen;
+    if (max - min < 1e-9) return "";
+
+    /* La barra se llena SIEMPRE hacia lo bueno. Si no, llena significaría
+       «mucha VFC» (bien) en una fila y «mucho pulso» (mal) en la de al lado,
+       y una barra que cambia de sentido cada tres centímetros no se lee. */
+    var invertida = MEJOR[clave] === "baja";
+    function pos(v) {
+      var f = (v - min) / (max - min);
+      if (invertida) f = 1 - f;
+      return Math.max(0, Math.min(100, f * 100));
+    }
+    var u = d && d.u ? " " + d.u : "";
+    var izq = invertida ? max - margen : min + margen;      // izquierda: lo peor
+    var der = invertida ? min + margen : max - margen;      // derecha: lo mejor
+    return '<div class="est-barra"><i style="width:' + pos(valor).toFixed(0) + '%;background:' +
+        (t ? t.color : COL_TEND.plano) + '"></i>' +
+        (marca === null ? "" : '<span class="marca" style="left:' + pos(marca).toFixed(0) + '%"></span>') +
+      "</div>" +
+      '<div class="est-pie"><span>' + U.esc(num(izq)) + "</span>" +
+      (marca === null ? "<span></span>"
+        /* si la etiqueta ya trae el número —«7 h», «140»— no se repite */
+        : "<span>" + U.esc(/\d/.test(etqM) ? etqM : etqM + " " + num(marca)) + "</span>") +
+      "<span>" + U.esc(num(der)) + u + "</span></div>";
+  }
+
+  /* ---------- la tarjeta de Mi estado ----------
+     Mismo rectángulo que «Lo que dicen tus medidas»: barra de color a la
+     izquierda, título, el valor grande a la derecha, la barra de referencia y
+     la tendencia al pie. */
+  function tarjeta(nombre, valor, contra, clave, t, crudo) {
+    var tt = t || (clave ? tendenciaVisible(clave, U.hoyISO()) : null);
+    var est = tt ? tt.estado : "nada";
+    var abre = clave && defHistoria(clave);
+    var etiqueta = "";
+    if (tt && tt.texto) {
+      etiqueta = tt.texto +
+        (tt.ventana && tt.estado !== "nada" ? " · " + tt.ventana : "") +
+        (tt.n && tt.estado !== "nada" ? " · " + tt.n + (tt.n === 1 ? " medida" : " medidas") : "") +
+        (tt.farmaco ? " · puede ser el corticoide" : "");
+    }
+    return "<" + (abre ? 'button type="button" data-historia="' + clave + '"' : "div") +
+      ' class="ent-estim con-tend est-tarj t-' + est + (abre ? " pulsable" : "") + '">' +
+      '<div class="est-cab"><span class="est-txt"><b>' + U.esc(nombre) + "</b>" +
+        (contra ? "<small>" + U.esc(contra) + "</small>" : "") + "</span>" +
+        (clave ? chispa(clave) : "") +
+        '<span class="est-val">' + (valor === null || valor === undefined ? "—" : valor) + "</span></div>" +
+      (clave && crudo !== null && crudo !== undefined ? barraRef(clave, crudo, tt) : "") +
+      (etiqueta ? '<em class="est-tend">' + U.esc(etiqueta) + "</em>" : "") +
+      "</" + (abre ? "button" : "div") + ">";
   }
 
   function puntoTend(clave, dia) {
@@ -3296,55 +3462,65 @@
 
     h += '<p class="nota-peque">Automático, de intervals · datos al ' + U.etiquetaFecha(fechaDato) + "</p>";
 
-    h += fila("VFC de anoche", d.vfc ? d.vfc + " ms" : null,
-      farmaco ? "con corticoide: sin lectura" : (baseVfc ? "tu base: " + num(baseVfc) : ""), farmaco, "vfc");
-    h += fila("FC en reposo", d.fcr ? d.fcr + " lpm" : null,
-      farmaco ? "con corticoide: sin lectura" : (baseFcr ? "tu base: " + num(baseFcr) : ""), farmaco, "fcr");
+    h += tarjeta("VFC de anoche", d.vfc ? d.vfc + " ms" : null,
+      baseVfc ? "tu base: " + num(baseVfc) + " ms" : "", "vfc", null, d.vfc || null);
+    h += tarjeta("FC en reposo", d.fcr ? d.fcr + " lpm" : null,
+      baseFcr ? "tu base: " + num(baseFcr) + " lpm" : "", "fcr", null, d.fcr || null);
 
     var n1 = Salud.dia(fechaDato) || {}, n2 = Salud.dia(U.sumarDias(fechaDato, -1)) || {};
     var s1 = hhmm(n1.sueno_min), s2 = hhmm(n2.sueno_min);
-    h += fila("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""), "tu media: 6h24", false, "sueno");
+    h += tarjeta("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""),
+      "tu media: 6h24", "sueno", null, n1.sueno_min ? n1.sueno_min / 60 : null);
 
-    /* Body Battery no baja de Garmin a intervals —no está entre los once campos
-       que la integración descarga—, así que la fila solo sale los días que lo
-       tienen del histórico. En su lugar, la puntuación de sueño, que sí llega. */
-    h += fila("Puntuación de sueño", (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null, "de 100, de Garmin", false, "pt_sueno");
+    /* Body Battery no baja de Garmin a intervals —no está entre los campos que
+       la integración descarga—, así que solo sale los días que lo tienen del
+       histórico. En su lugar, la puntuación de sueño, que sí llega. */
+    h += tarjeta("Puntuación de sueño", (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null,
+      "de 100, de Garmin", "pt_sueno", null,
+      (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null);
     if (d.body_battery || d.body_battery === 0) {
-      h += fila("Body Battery al despertar", d.body_battery, "del histórico");
+      h += tarjeta("Body Battery al despertar", d.body_battery, "del histórico");
     }
 
     var bal = (typeof d.ctl === "number" && typeof d.atl === "number") ? d.ctl - d.atl : null;
-    h += fila("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
-      bal === null ? "" : "Balance " + signo(bal), false, "ctl");
+    h += tarjeta("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
+      bal === null ? "" : "Balance " + signo(bal) + " · el color lo manda la forma (CTL)",
+      "ctl", null, (typeof d.ctl === "number") ? d.ctl : null);
 
     var cs = cargaSemana(U.lunesDe(dia), dia);
-    h += fila("Carga de la semana", cs === null ? null : cs,
-      sem ? "objetivo " + sem.carga : "", false, "carga");
+    h += tarjeta("Carga de la semana", cs === null ? null : cs,
+      sem ? "objetivo de la semana: " + sem.carga : "", "carga", tendenciaCarga(sem, dia), null);
 
     var p = ultimoPeso(dia);
-    h += fila("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "", false, "peso");
+    h += tarjeta("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "",
+      "peso", null, p ? p.kg : null);
 
     /* la báscula manda grasa y magra solo los días que te pesas con ella:
        se enseña la última que llegó, con su fecha, para que se vea si está vieja */
     var gBas = ultimoDeSalud("grasa", fechaDato);
-    h += fila("Grasa (báscula)", gBas ? num(gBas.v) + " %" : null,
-      gBas ? "del " + U.etiquetaFecha(gBas.f) + " · por impedancia" : "aún no ha bajado ninguna de intervals", false, "grasa");
+    h += tarjeta("Grasa (báscula)", gBas ? num(gBas.v) + " %" : null,
+      gBas ? "del " + U.etiquetaFecha(gBas.f) + " · por impedancia" : "aún no ha bajado ninguna de intervals",
+      "grasa", null, gBas ? gBas.v : null);
     var mBas = ultimoDeSalud("magra", fechaDato);
-    if (mBas) h += fila("Masa magra (báscula)", num(mBas.v) + " kg", "del " + U.etiquetaFecha(mBas.f), false, "magra");
+    if (mBas) h += tarjeta("Masa magra (báscula)", num(mBas.v) + " kg",
+      "del " + U.etiquetaFecha(mBas.f), "magra", null, mBas.v);
     var muBas = ultimoDeSalud("musculo", fechaDato);
-    if (muBas) h += fila("Músculo (báscula)", num(muBas.v) + " kg", "del " + U.etiquetaFecha(muBas.f));
+    if (muBas) h += tarjeta("Músculo (báscula)", num(muBas.v) + " kg", "del " + U.etiquetaFecha(muBas.f));
     var gCin = grasaPorCinta(dia);
-    if (gCin) h += fila("Grasa (cinta)", num(gCin.pct) + " %",
-      "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua", false, "grasa");
+    if (gCin) h += tarjeta("Grasa (cinta)", num(gCin.pct) + " %",
+      "del " + U.etiquetaFecha(gCin.fecha) + " · no depende del agua", "grasa", null, gCin.pct);
 
     var mtE = mediaTension(U.sumarDias(dia, -6), dia);
-    h += fila("Tensión, media de la semana",
+    h += tarjeta("Tensión, media de la semana",
       mtE ? Math.round(mtE.sis) + "/" + Math.round(mtE.dia) : null,
-      mtE ? mtE.n + (mtE.n === 1 ? " toma" : " tomas") : "la anotas tú", false, "tension");
+      mtE ? mtE.n + (mtE.n === 1 ? " toma" : " tomas") : "la anotas tú",
+      "tension", null, mtE ? mtE.sis : null);
 
     if (farmaco) {
-      h += '<p class="nota-peque" style="margin-top:10px">Las filas en gris están dentro de la pauta de ' +
-        "corticoide: el fármaco baja la VFC y sube el pulso por sí solo, así que ahí no se interpreta nada.</p>";
+      h += '<p class="nota-peque" style="margin-top:12px">Estás dentro de la pauta de corticoide. ' +
+        "El fármaco baja la VFC y sube el pulso en reposo por sí solo, así que si esas dos salen en " +
+        "rojo, lo más probable es que sea él y no tu entrenamiento. Se ven igual porque esconderlas " +
+        "sería esconder tres semanas de datos: a partir del 29 se leen sin asterisco.</p>";
     }
     return h + "</div>";
   }

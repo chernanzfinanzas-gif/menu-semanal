@@ -130,6 +130,11 @@
         { hasta: 24, texto: "Bici: 70-85 km con puerto suave" },
         { hasta: 99, texto: "Bici: 80-100 km con desnivel" }
       ],
+      /* Cuánto pesa el día grande dentro de la semana, en minutos. Hace falta
+         para repartir el objetivo de carga por días: el día grande es él solo
+         casi un tercio de la semana, y sin esto el sábado por la mañana
+         parecería que vas cortísimo cuando vas perfecto. */
+      minutos: 180,
       aviso: "Se sale con Balance positivo. En montaña, bastones y acompañado; en bici, nunca solo.",
       imagenes: { montana: "iconos/khb/11-montana.webp", bici: "iconos/khb/10-bici.webp" }
     },
@@ -190,6 +195,12 @@
         bajar:   "Dos semanas seguidas por debajo del 70 %: se ha bajado un peldaño y se vuelve a construir desde ahí.",
         parar:   "La semana anterior fue en blanco por salud. Se retoma donde estaba, sin compensar lo perdido."
       },
+      /* El color de la fila «Carga de la semana». No es una dirección: es
+         acercarse al objetivo. Pasarse mucho tampoco es bueno —así se rompió
+         2025—, por eso el exceso tiene color propio y no verde. Se compara
+         contra el objetivo PRORRATEADO por los días transcurridos: el martes
+         llevas dos séptimos, y eso no es ir mal. */
+      colorCarga: { exceso: 1.15, bien: 0.95, flojo: 0.70 },
       pesoObjetivo: [-0.5, -0.3],
       nota: "El pase mira cinco cosas y ninguna más: carga, cumplimiento, peso, recuperación y lo que dijeron tus observaciones."
     },
