@@ -3579,6 +3579,39 @@
     /* qué decidió el pase del lunes, y por qué esta semana es la que es */
     h += htmlPaseAplicado(sem);
 
+    /* La tira de la semana va ARRIBA: es el selector de día, y elegir el día
+       es lo primero que se hace al entrar. Tenerla al final obligaba a bajar
+       toda la pantalla para mirar otro día y volver a subir. */
+    var lunes = lunesVista || U.lunesDe(hoy);
+    h += '<div class="tarjeta"><div class="ent-navsem">' +
+      '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
+      "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) + "</h2>" +
+      '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
+      "</div>" +
+      '<div class="ent-semana">';
+    for (var i = 0; i < 7; i++) {
+      var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
+      var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
+      /* Cuatro estados, y el color dice de qué habla cada uno:
+         ámbar claro = fuera del plan, no hay nada que juzgar (los días
+         anteriores al 18 de septiembre); verde = día terminado y cumplido;
+         rojo = día terminado sin cumplir; azul = lo vigente y lo que viene.
+         Hoy se queda azul aunque ya esté hecho: todavía está corriendo. */
+      var cumplido = semF && diaCumplido(f, semF, tallaDe(semF));
+      var estadoDia = !semF ? "fuera"
+        : (f > hoy ? "pend" : (f === hoy ? "pend" : (cumplido ? "ok" : "fallo")));
+      var ok = (estadoDia === "ok") || (f === hoy && cumplido);
+      h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
+        '" data-dia="' + f + '" role="button" tabindex="0">' +
+        '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
+        '<span class="q">' + (!semF ? "—" : (ss.length
+          ? U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))
+          : "descanso")) + "</span><span class=\"p\"></span></div>";
+    }
+    h += "</div>";
+    h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
+      " El fin de semana, un solo día grande: " + U.esc(textoDiaGrande(sem).toLowerCase()) + ". El otro, descanso.</p></div>";
+
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana */
     var dia = (diaSel && semanaDe(diaSel)) ? diaSel : hoy;
     var semDia = semanaDe(dia) || sem, tallaDia = tallaDe(semDia);
@@ -3727,36 +3760,6 @@
 
     h += htmlMiEstado(dia, semDia);
 
-    /* la semana */
-    var lunes = lunesVista || U.lunesDe(hoy);
-    h += '<div class="tarjeta"><div class="ent-navsem">' +
-      '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
-      "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) + "</h2>" +
-      '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
-      "</div>" +
-      '<div class="ent-semana">';
-    for (var i = 0; i < 7; i++) {
-      var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
-      var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
-      /* Cuatro estados, y el color dice de qué habla cada uno:
-         ámbar claro = fuera del plan, no hay nada que juzgar (los días
-         anteriores al 18 de septiembre); verde = día terminado y cumplido;
-         rojo = día terminado sin cumplir; azul = lo vigente y lo que viene.
-         Hoy se queda azul aunque ya esté hecho: todavía está corriendo. */
-      var cumplido = semF && diaCumplido(f, semF, tallaDe(semF));
-      var estadoDia = !semF ? "fuera"
-        : (f > hoy ? "pend" : (f === hoy ? "pend" : (cumplido ? "ok" : "fallo")));
-      var ok = (estadoDia === "ok") || (f === hoy && cumplido);
-      h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
-        '" data-dia="' + f + '" role="button" tabindex="0">' +
-        '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
-        '<span class="q">' + (!semF ? "—" : (ss.length
-          ? U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))
-          : "descanso")) + "</span><span class=\"p\"></span></div>";
-    }
-    h += "</div>";
-    h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
-      " El fin de semana, un solo día grande: " + U.esc(textoDiaGrande(sem).toLowerCase()) + ". El otro, descanso.</p></div>";
 
     /* El diario: lo marcado y lo escrito cada día de la semana. Es lo que
        contesta «¿qué lesión era?» cuando se mira esto dentro de tres meses. */
@@ -3931,11 +3934,26 @@
         m.k, null, u ? u.v : null);
     });
 
-    /* la grasa por cinta sale de cintura y cuello, así que vive aquí */
+    /* Las dos grasas van juntas y en este orden, porque solo sirven una al
+       lado de la otra: la cinta no depende del agua del cuerpo y la báscula
+       sí, así que lo que se mira no es cada número, es si se separan. */
     var gc = grasaPorCinta(dia);
-    h += tarjeta("Grasa estimada por cinta", gc ? num(gc.pct) + " %" : null,
+    var gb = ultimoDeSalud("grasa", dia);
+    h += tarjeta("Grasa por cinta", gc ? num(gc.pct) + " %" : null,
       gc ? "de la cintura y el cuello del " + U.etiquetaFecha(gc.fecha) + " · no depende del agua"
          : "hacen falta cintura y cuello", "grasaCinta", null, gc ? gc.pct : null);
+    h += tarjeta("Grasa por báscula", gb ? num(gb.v) + " %" : null,
+      gb
+        ? "del " + U.etiquetaFecha(gb.f) + " · por impedancia, se mueve con el agua" +
+          (gc ? " · " + (Math.abs(gc.pct - gb.v) < 1
+            ? "a menos de un punto de la cinta: las dos valen"
+            : num(Math.abs(gc.pct - gb.v)) + " puntos de diferencia con la cinta") : "")
+        : "aún no ha bajado ninguna de intervals",
+      "grasa", null, gb ? gb.v : null);
+    var mg = ultimoDeSalud("magra", dia);
+    if (mg) h += tarjeta("Masa magra", num(mg.v) + " kg",
+      "del " + U.etiquetaFecha(mg.f) + " · de la báscula · lo que el plan quiere que aguante",
+      "magra", null, mg.v);
     return h + "</div>";
   }
 
@@ -3992,17 +4010,10 @@
     h += tarjeta("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "",
       "peso", null, p ? p.kg : null);
 
-    /* la báscula manda grasa y magra solo los días que te pesas con ella:
-       se enseña la última que llegó, con su fecha, para que se vea si está vieja */
-    var gBas = ultimoDeSalud("grasa", fechaDato);
-    h += tarjeta("Grasa (báscula)", gBas ? num(gBas.v) + " %" : null,
-      gBas ? "del " + U.etiquetaFecha(gBas.f) + " · por impedancia" : "aún no ha bajado ninguna de intervals",
-      "grasa", null, gBas ? gBas.v : null);
-    var mBas = ultimoDeSalud("magra", fechaDato);
-    if (mBas) h += tarjeta("Masa magra (báscula)", num(mBas.v) + " kg",
-      "del " + U.etiquetaFecha(mBas.f), "magra", null, mBas.v);
-    /* grasa por cinta y tensión las tecleas tú: viven en «Lo que estoy
-       midiendo» y no se repiten aquí. Un dato en dos sitios sobra en uno. */
+    /* La grasa de la báscula y la masa magra se han ido arriba, al lado de la
+       grasa por cinta: solo dicen algo comparadas entre sí. Y la tensión la
+       tecleas tú, así que vive con lo que mides. Un dato en dos sitios sobra
+       en uno. */
 
     if (farmaco) {
       h += '<p class="nota-peque" style="margin-top:12px">Estás dentro de la pauta de corticoide. ' +
