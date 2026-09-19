@@ -1807,6 +1807,10 @@
   var rangoEvo = "6m";
   var RANGOS = [{ id: "3m", n: "3 meses", d: 92 }, { id: "6m", n: "6 meses", d: 183 },
                 { id: "1a", n: "1 año", d: 365 }, { id: "todo", n: "Todo", d: 0 }];
+  /* Los tramos de las ventanas emergentes: los mismos menos «Todo» (ver
+     abrirHistoria). salud.json trae 400 días, así que «1 año» siempre cabe
+     sin tener que traer el histórico. */
+  var RANGOS_HIST = RANGOS.filter(function (r) { return r.d > 0; });
 
   /* El histórico vive en otro fichero del mismo repositorio y son 230 KB:
      solo se pide cuando hace falta, es decir, al elegir «Todo». */
@@ -3025,6 +3029,7 @@
     var d = defHistoria(clave), caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
     if (!d || !caja || !modal) return;
     if (rango) rangoHist = rango;
+    if (!RANGOS_HIST.some(function (r) { return r.id === rangoHist; })) rangoHist = "1a";
     histAbierta = clave;
     var s1 = d.serie() || [], s2 = d.serie2 ? (d.serie2() || []) : [];
     /* el tramo recorta las dos series, igual que el selector de Evolución */
@@ -3041,7 +3046,12 @@
       '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>';
 
     h += '<div class="evo-rangos">';
-    RANGOS.forEach(function (r) {
+    /* Aquí NO se ofrece «Todo». Esta ventana es la lectura reciente de una
+       medida, y el histórico vive en un fichero aparte que sólo pide la
+       gráfica grande de Evolución: con «Todo» puesto, el eje arrancaba donde
+       empieza salud.json (agosto de 2025) y parecía que faltaban años de
+       datos que sí están. Para la serie entera, Evolución → Todo. */
+    RANGOS_HIST.forEach(function (r) {
       h += '<button type="button" class="evo-r' + (r.id === rangoHist ? " activo" : "") +
         '" data-histrango="' + r.id + '">' + U.esc(r.n) + "</button>";
     });
