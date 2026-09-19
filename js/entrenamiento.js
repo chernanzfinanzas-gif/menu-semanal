@@ -1811,7 +1811,11 @@
   /* El histórico vive en otro fichero del mismo repositorio y son 230 KB:
      solo se pide cuando hace falta, es decir, al elegir «Todo». */
   var Historico = {
-    CLAVE: "khb-salud-hist-v1",
+    /* v2 a propósito: el histórico se guarda SIN caducidad —una vez en el
+       móvil, no se vuelve a pedir nunca—, así que al rellenar `actividades`
+       en el fichero había que cambiar la clave o nadie se enteraría del
+       cambio. Subir el número es la forma de decir «esta copia ya no vale». */
+    CLAVE: "khb-salud-hist-v2",
     RUTA: "datos/salud-historico.json",
     datos: null,
     estado: "nada",
