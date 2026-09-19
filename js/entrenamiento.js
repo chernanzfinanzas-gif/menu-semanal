@@ -1815,25 +1815,33 @@
   /* El histórico vive en otro fichero del mismo repositorio y son 230 KB:
      solo se pide cuando hace falta, es decir, al elegir «Todo». */
   var Historico = {
-    /* Antes se guardaba SIN caducidad: una vez en el móvil no se volvía a
-       pedir nunca, y cada corrección del fichero obligaba a subir el número de
-       la clave aquí, a tocar index.html y a tocar sw.js, y a acordarse de
-       hacerlo. Se olvidó una vez, y 2022, 2023 y 2024 no aparecían.
-       Ahora caduca a las 24 horas, como el índice de rutas: la copia guardada
-       se usa para pintar al instante y, si es de ayer, se pide otra vez por
-       detrás. Un fichero al día no es nada, y deja de depender de la memoria. */
-    CLAVE: "khb-salud-hist-v3",
+    /* Caduca a las 24 horas, como el índice de rutas: la copia guardada se usa
+       para pintar al instante y, si es de ayer, se pide otra vez por detrás.
+       Antes se guardaba para siempre y cada corrección del fichero obligaba a
+       subir el número de la clave, tocar index.html y tocar sw.js, y a
+       acordarse de hacerlo. Se olvidó una vez, y 2022, 2023 y 2024 no salían.
+       v4: el fichero pasó a venir por columnas y ahora empieza en diciembre de
+       2019 en vez de abril de 2021. */
+    CLAVE: "khb-salud-hist-v4",
     RUTA: "datos/salud-historico.json",
     FRESCO_H: 24,
     datos: null,
     traidoEl: null,
     estado: "nada",
 
+    /* Se guarda el fichero tal como vino —por columnas— y se arma al leerlo:
+       ocupa menos de la mitad en el móvil, que es de lo que se trataba. */
+    arma: function (crudo) {
+      return { meta: crudo.meta || {}, dias: diasDeColumnas(crudo),
+               actividades: crudo.actividades || [], tension: crudo.tension || [] };
+    },
+
     deCache: function () {
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
-        if (!j || !j.datos) return false;
-        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        if (!j || (!j.crudo && !j.datos)) return false;
+        this.datos = j.crudo ? this.arma(j.crudo) : j.datos;
+        this.traidoEl = j.traidoEl; this.estado = "ok";
         return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
       } catch (e) { return false; }
     },
@@ -1850,11 +1858,12 @@
       fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
         .then(function (r) { if (!r.ok) throw 0; return r.json(); })
         .then(function (j) {
-          self.datos = JSON.parse(Salud.deB64(j.content));
+          var crudo = JSON.parse(Salud.deB64(j.content));
+          self.datos = self.arma(crudo);
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ traidoEl: self.traidoEl, datos: self.datos }));
+              JSON.stringify({ traidoEl: self.traidoEl, crudo: crudo }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -1918,6 +1927,44 @@
     }
   };
 
+  /* Los ficheros de datos vienen POR COLUMNAS: una lista por medida en vez de
+     un objeto por día. El nombre de cada dato se repetía 2.481 veces —una por
+     día— y así desaparece: las 46 medidas caben en menos de la mitad de lo que
+     ocupaban 11 del otro modo.
+     Se vuelven a armar aquí, nada más leerlos, para que ni las gráficas ni la
+     ficha se enteren del cambio. En el móvil se guarda la forma corta, que es
+     de lo que se trataba. */
+  function filasDeColumnas(cols, n) {
+    var out = [], k, i, col;
+    for (i = 0; i < n; i++) out.push({});
+    for (k in cols) {
+      col = cols[k];
+      if (!col) continue;
+      for (i = 0; i < n && i < col.length; i++) {
+        if (col[i] !== null && col[i] !== undefined) out[i][k] = col[i];
+      }
+    }
+    return out;
+  }
+
+  /* {f:[fechas], cols:{...}} → {"2019-12-03": {...}, …} */
+  function diasDeColumnas(j) {
+    if (!j || !j.cols || !j.f) return (j && j.dias) || {};   // formato viejo
+    var filas = filasDeColumnas(j.cols, j.f.length), d = {}, i;
+    for (i = 0; i < j.f.length; i++) d[j.f[i]] = filas[i];
+    return d;
+  }
+
+  /* {cols:{...}} → [ {...}, … ] */
+  function actsDeColumnas(j) {
+    if (!j) return [];
+    if (j.actividades && j.actividades.length) return j.actividades;   // formato viejo
+    if (!j.cols) return [];
+    var n = 0, k;
+    for (k in j.cols) { if (j.cols[k] && j.cols[k].length > n) n = j.cols[k].length; }
+    return filasDeColumnas(j.cols, n);
+  }
+
   /* Las actividades de 2021 a 2025 con todos sus campos.
      Vivían dentro de salud-historico.json, pero al darles los datos de la
      ficha (potencia, zonas de pulso, alturas, el tiempo que hacía) pasaron a
@@ -1936,8 +1983,9 @@
     deCache: function () {
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
-        if (!j || !j.datos) return false;
-        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        if (!j || (!j.crudo && !j.datos)) return false;
+        this.datos = j.crudo ? actsDeColumnas(j.crudo) : j.datos;
+        this.traidoEl = j.traidoEl; this.estado = "ok";
         return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
       } catch (e) { return false; }
     },
@@ -1961,11 +2009,13 @@
         })
         .then(function (j) {
           var d = JSON.parse(Salud.deB64(j.content));
-          self.datos = d.actividades || [];
+          self.datos = actsDeColumnas(d);
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
+            /* se guarda el fichero tal cual vino, por columnas: es la mitad de
+               grande que la lista ya armada, y el móvil no va sobrado */
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ traidoEl: self.traidoEl, datos: self.datos }));
+              JSON.stringify({ traidoEl: self.traidoEl, crudo: d }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -1984,23 +2034,30 @@
   var Trazos = {
     CLAVE: "khb-trazos-strava-v1",
     RUTA: "datos/trazos.json",
+    /* Antes esto se guardaba y no se volvía a pedir NUNCA: valía cuando el
+       fichero estaba hecho y quieto. Ahora el workflow le añade trazos y
+       perfiles de altura cada día, así que la copia del móvil caduca como las
+       demás. Sin esto, lo que se rellene no se vería en el teléfono. */
+    FRESCO_H: 24,
     datos: null,
+    traidoEl: null,
     estado: "nada",
 
     deCache: function () {
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
-        if (j && j.datos) { this.datos = j.datos; this.estado = "ok"; return true; }
-      } catch (e) {}
-      return false;
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+      } catch (e) { return false; }
     },
 
     cargar: function (alTerminar) {
       var self = this;
-      if (this.datos || this.estado === "cargando" || this.estado === "no-hay") {
+      if (this.estado === "cargando" || this.estado === "no-hay") {
         if (alTerminar) alTerminar(); return;
       }
-      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }   // fresco: no se pide
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
       var c = Salud.cfg();
@@ -2010,8 +2067,11 @@
         .then(function (r) { if (!r.ok) throw 0; return r.json(); })
         .then(function (j) {
           self.datos = JSON.parse(Salud.deB64(j.content));
-          self.estado = "ok";
-          try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE,
+              JSON.stringify({ datos: self.datos, traidoEl: self.traidoEl }));
+          } catch (e) {}
           if (alTerminar) alTerminar();
         })
         /* Que no exista es lo normal hoy: se marca y no se vuelve a pedir. */

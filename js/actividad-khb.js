@@ -107,6 +107,23 @@
   function dosD(n) { return (n < 10 ? "0" : "") + n; }
 
   /* Polilínea codificada de Strava → [[lat,lon],…]. Algoritmo de Google. */
+  /* El perfil de altura viene con el mismo truco que la polilínea —la
+     diferencia con el punto anterior, en letras— pero con UN número por punto
+     en vez de dos. Son los mismos puntos del trazo y repartidos por distancia
+     recorrida, así que el punto k del perfil está en el kilómetro k/N del
+     total: por eso no hace falta guardar ninguna distancia. */
+  function decodificarPerfil(txt) {
+    if (!txt) return [];
+    var alts = [], i = 0, a = 0;
+    while (i < txt.length) {
+      var b, sh = 0, res = 0;
+      do { b = txt.charCodeAt(i++) - 63; res |= (b & 0x1f) << sh; sh += 5; } while (b >= 0x20);
+      a += (res & 1) ? ~(res >> 1) : (res >> 1);
+      alts.push(a);
+    }
+    return alts;
+  }
+
   function decodificarPolilinea(txt) {
     if (!txt) return [];
     var pts = [], i = 0, lat = 0, lon = 0;
@@ -431,12 +448,16 @@
       });
     });
 
-    /* Lo que trae Strava, sólo donde no llega la colección. */
+    /* Lo que trae el fichero original del reloj. El DIBUJO sólo donde no
+       llega la colección, que dibuja mejor; el PERFIL DE ALTURA siempre, que
+       la colección guarda por dónde fue pero no a qué altura. */
     if (trazos) {
       todas.forEach(function (x) {
-        if (x.ruta || x.poli || x.fuente !== "salud") return;
+        if (x.fuente !== "salud") return;
         var t = trazos[x.id];
         if (!t) return;
+        if (t.h && !x.perfil) x.perfil = t.h;
+        if (x.ruta || x.poli) return;
         x.poli = t.p || null;
         /* El nombre de Strava suele ser mejor que el de intervals: «MTB por el
            Cerro de Almodóvar» contra «Madrid Ciclismo en ruta». */
@@ -638,6 +659,8 @@
             (lugar ? '<span class="akhb-lugar" data-pueblo="' +
                        esc(lugarDe(x.nombre) || "") + '">' + esc(lugar) + "</span>" : "") +
           "</div>" +
+          /* el perfil se rellena al pintar; si no hay alturas, ni aparece */
+          (x.perfil ? '<div class="akhb-perfil" data-perfil="1"></div>' : "") +
           "<figcaption>" +
             (esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
              : x.ruta ? esc(x.nombre || "")
@@ -856,6 +879,77 @@
       }
     }
 
+    /* ---------- el perfil de altura ----------
+       Debajo del mapa, como en la ficha de cualquier ruta. Es lo que dice si
+       los 400 metros de desnivel fueron una subida larga o doce repechos, y es
+       lo único que el mapa no cuenta.
+
+       Va contra los KILÓMETROS, que es como se lee un perfil, y eso sale
+       gratis: los puntos vienen repartidos por distancia recorrida, así que el
+       punto k está en el kilómetro k/N del total. */
+    var P_ANCHO = 380, P_ALTO = 92;
+
+    function dibujaPerfil(fig, alts, km) {
+      var caja = fig ? fig.querySelector("[data-perfil]") : null;
+      if (!caja) return;
+      if (!alts || alts.length < 3) { caja.parentNode.removeChild(caja); return; }
+
+      var min = Math.min.apply(null, alts), max = Math.max.apply(null, alts);
+      if (!isFinite(min) || !isFinite(max)) { caja.parentNode.removeChild(caja); return; }
+
+      var IZQ = 36, DER = 6, ARR = 9, ABA = 15;      /* sitio para las cifras */
+      var w = P_ANCHO - IZQ - DER, h = P_ALTO - ARR - ABA;
+      /* Suelo de 30 m en la escala vertical: sin él, un paseo llano por Madrid
+         sale dibujado como los Pirineos. Lo que se ve tiene que ser el relieve
+         que hubo, no el que cabe en el cuadro. */
+      var rango = Math.max(max - min, 30);
+      var base = (min + max) / 2 - rango / 2;
+      function X(i) { return IZQ + w * i / (alts.length - 1); }
+      function Y(a) { return ARR + h - h * (a - base) / rango; }
+
+      var linea = "", i;
+      for (i = 0; i < alts.length; i++) {
+        linea += (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(alts[i]).toFixed(1) + " ";
+      }
+      var suelo = (ARR + h).toFixed(1);
+      var area = "M" + X(0).toFixed(1) + " " + suelo + " L" + linea.substring(1) +
+                 "L" + X(alts.length - 1).toFixed(1) + " " + suelo + " Z";
+
+      /* Las marcas de kilómetro: las justas para orientarse, y redondas. */
+      var marcas = "";
+      if (km > 0) {
+        var pasos = [1, 2, 5, 10, 20, 50], paso = pasos[0];
+        for (i = 0; i < pasos.length; i++) { if (km / pasos[i] >= 3) paso = pasos[i]; }
+        for (var d = paso; d < km; d += paso) {
+          var xx = IZQ + w * d / km;
+          marcas += '<line class="akhb-p-marca" x1="' + xx.toFixed(1) + '" y1="' + ARR +
+                    '" x2="' + xx.toFixed(1) + '" y2="' + suelo + '"/>';
+          /* la cifra sólo si no se pisa con el total, que va en la esquina */
+          if (IZQ + w - xx > 44) {
+            marcas += '<text class="akhb-p-km" x="' + xx.toFixed(1) + '" y="' + (P_ALTO - 4) +
+                      '" text-anchor="middle">' + d + "</text>";
+          }
+        }
+        marcas += '<text class="akhb-p-km" x="' + (IZQ + w).toFixed(1) + '" y="' +
+                  (P_ALTO - 4) + '" text-anchor="end">' +
+                  num(km, km < 100 ? 1 : 0) + " km</text>";
+      }
+
+      caja.innerHTML =
+        '<svg class="akhb-p-svg" viewBox="0 0 ' + P_ANCHO + " " + P_ALTO + '" role="img" ' +
+          'aria-label="Perfil de altura: de ' + Math.round(min) + " a " + Math.round(max) +
+          ' metros">' +
+          '<path class="akhb-p-area" d="' + area + '"/>' +
+          '<path class="akhb-p-linea" d="' + linea.trim() + '"/>' +
+          marcas +
+          '<text class="akhb-p-alt" x="2" y="' +
+            Math.min(Math.max(Y(max) + 3.5, ARR + 7), ARR + h) + '">' + Math.round(max) + "</text>" +
+          '<text class="akhb-p-alt" x="2" y="' +
+            Math.min(Y(min) + 3.5, ARR + h) + '">' + Math.round(min) + "</text>" +
+          '<text class="akhb-p-alt akhb-p-ud" x="2" y="' + (P_ALTO - 4) + '">m</text>' +
+        "</svg>";
+    }
+
     function pintarMapas() {
       if (!estado.el) return;
       var fig = estado.el.querySelector("[data-mapa]");
@@ -863,6 +957,10 @@
       var clave = fig.getAttribute("data-mapa");
       var x = buscaPorClave(clave);
       if (!x) return;
+      /* El perfil no depende del dibujo: lo hay aunque la ruta la ponga la
+         colección, y no lo hay en el rodillo aunque Zwift invente cuestas. */
+      if (x.perfil && llevaMapa(x)) dibujaPerfil(fig, decodificarPerfil(x.perfil), x.km);
+
       if (!llevaMapa(x)) { pintaIcono(fig, x); return; }
 
       /* 1 · polilínea de Strava, si el workflow ya la trae */
