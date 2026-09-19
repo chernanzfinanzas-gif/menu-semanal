@@ -1898,6 +1898,49 @@
     }
   };
 
+  /* Los trazos rescatados de Strava, para las salidas que no tienen ruta
+     archivada en la colección. Fichero aparte y opcional: si no está, no pasa
+     nada — esas fichas salen con su icono y la leyenda «pendiente de trazo».
+     No va dentro de salud.json a propósito, que ése se carga entero al abrir
+     la app y esto sólo hace falta al entrar en Actividad. */
+  var Trazos = {
+    CLAVE: "khb-trazos-strava-v1",
+    RUTA: "datos/trazos.json",
+    datos: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (j && j.datos) { this.datos = j.datos; this.estado = "ok"; return true; }
+      } catch (e) {}
+      return false;
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.datos || this.estado === "cargando" || this.estado === "no-hay") {
+        if (alTerminar) alTerminar(); return;
+      }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = JSON.parse(Salud.deB64(j.content));
+          self.estado = "ok";
+          try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        /* Que no exista es lo normal hoy: se marca y no se vuelve a pedir. */
+        .catch(function () { self.estado = "no-hay"; if (alTerminar) alTerminar(); });
+    }
+  };
+
   /* El índice de rutas es público y se actualiza solo cuando Carlos archiva
      rutas con su .bat. Se refresca cada día; si falla, se sigue con la copia. */
   var Rutas = {
@@ -1986,9 +2029,37 @@
 
     if (!archivoUI) {
       archivoUI = ActividadKHB.crear({
+        /* El mapa de adorno del mini mapa. HIKE (OpenHikingMap) porque es
+           mundial —117 de las 703 rutas están fuera de España y el IGN se
+           acaba en la frontera— y porque a este tamaño es el que cuenta algo:
+           curvas de nivel y los nombres de los cerros. OSM estándar no sirve:
+           su servidor devuelve 403 a las apps que no están en su lista.
+           La atribución es obligatoria y va debajo del mapa. */
+        capaMapa: {
+          url: "https://tile.openmaps.fr/openhikingmap/{z}/{x}/{y}.png",
+          maxZ: 17,
+          atrib: '\u00a9 <a href="https://www.openstreetmap.org/copyright" ' +
+                 'target="_blank" rel="noopener">OpenStreetMap</a> contributors \u00b7 ' +
+                 'teselas de <a href="https://openmaps.fr/" target="_blank" ' +
+                 'rel="noopener">openmaps.fr</a>'
+        },
+        /* Los iconos de la marca, los mismos que la portada de Entrenamiento.
+           10-bici y 11-montana están en el repo pero no en la copia local de
+           iconos/khb, así que ojo si algún día se sincroniza a la inversa. */
+        iconos: {
+          sen:  "iconos/khb/11-montana.webp",
+          bici: "iconos/khb/10-bici.webp",
+          rod:  "iconos/khb/10-bici.webp",
+          fue:  "iconos/khb/3-pesas-corredor.webp",
+          and:  "iconos/khb/6-zapatillas.webp",
+          pas:  "iconos/khb/6-zapatillas.webp",
+          cor:  "iconos/khb/6-zapatillas.webp",
+          otr:  "iconos/khb/9-podio.webp"
+        },
         botonVolver: '<button type="button" class="ent-atras" data-volver="1">' +
           FLECHA + "Volver a Entrenamiento</button>",
         historico: Archivo.datos,
+        trazos: Trazos.datos,
         actividades: actividadesJuntas(),
         rutas: (Rutas.datos || []),
         traerGeo: function (celda) {
@@ -2010,6 +2081,7 @@
     var repinta = function () { if (bloque === "actividad") { archivoUI = null; pintar(true); } };
     Archivo.cargar(repinta);
     Rutas.cargar(repinta);
+    Trazos.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);
   }
 

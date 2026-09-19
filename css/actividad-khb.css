@@ -20,11 +20,15 @@
   /* LAS CUATRO FAMILIAS. Paleta validada para fondo claro (validate_palette,
      modo light): pasa banda de luminosidad, suelo de croma y separación tanto
      para daltonismo como para visión normal. Ocho colores pasaban el validador
-     pero no el ojo en una barra de 54 px, que es lo que importaba. */
-  --akhb-fam-monte: #2a78d6;
-  --akhb-fam-bici:  #4a3aa7;
-  --akhb-fam-pie:   #1baf7a;
-  --akhb-fam-sala:  #c98a1b;
+     pero no el ojo en una barra de 54 px, que es lo que importaba.
+     El rodillo entró como quinta y el rosa de antes (#e87ba4) se caía contra
+     el verde en deuteranopía —ΔE 6,1, por debajo del suelo—; con este granate
+     el peor par sube a 10,0. */
+  --akhb-fam-monte:   #2a78d6;
+  --akhb-fam-bici:    #4a3aa7;
+  --akhb-fam-rodillo: #b5446e;
+  --akhb-fam-pie:     #1baf7a;
+  --akhb-fam-sala:    #c98a1b;
   /* los deportes sueltos, que siguen usándose en iconos y textos */
   --akhb-sen:  #2a78d6;
   --akhb-pas:  #eb6834;
@@ -191,6 +195,18 @@
 .akhb-trazo, .akhb-icono { display: block; width: 100%; height: auto; aspect-ratio: 1; }
 /* sin mapa: el icono del deporte, grande y tranquilo, no un hueco */
 .akhb-icono { color: var(--akhb-gris); opacity: .38; padding: 16%; }
+/* la marca de la app, cuando se usa en vez del dibujo: centrada y con aire,
+   que no llene el cuadro como si fuera un cartel */
+/* La imagen va PRIMERA y el dibujo detrás. Mientras la imagen existe, el
+   dibujo se esconde con el selector de hermano; si la imagen no carga se
+   borra a sí misma, el selector deja de casar y el dibujo aparece solo. Sin
+   :has() ni JavaScript de por medio. */
+.akhb-marca-caja { position: relative; display: block; }
+.akhb-marca {
+  display: block; width: 72%; max-width: 240px; height: auto;
+  margin: 0 auto; padding: 13% 0; opacity: .92;
+}
+.akhb-marca + .akhb-icono { position: absolute; inset: 0; visibility: hidden; }
 /* el lugar, encima del dibujo: para saber por dónde fue sin abrir el mapa */
 .akhb-lugar {
   position: absolute; left: 4px; top: 4px; max-width: calc(100% - 8px);
@@ -235,6 +251,12 @@
 }
 @media (prefers-reduced-motion: reduce) { .akhb-chev { transition: none; } }
 
-/* escala del mini mapa: dice si son dos kilómetros o veinte */
-.akhb-escala line { stroke: var(--akhb-gris); stroke-width: .9; }
-.akhb-escala text { fill: var(--akhb-gris); font-size: 6px; font-weight: 600; }
+/* escala del mini mapa: dice si son dos kilómetros o veinte. Sobre el mapa va
+   con una cama blanca detrás, o se pierde entre las curvas de nivel. */
+.akhb-escala rect { fill: rgba(255,255,255,.82); }
+.akhb-escala line { stroke: #3a4a44; stroke-width: 2; }
+.akhb-escala text { fill: #3a4a44; font-size: 13px; font-weight: 700; }
+
+/* la atribución de las teselas: obligatoria y visible, pero discreta */
+.akhb-atrib { display: block; margin-top: 3px; font-size: 9.5px; opacity: .85; }
+.akhb-atrib a { color: inherit; }

@@ -71,16 +71,20 @@
      de ellos acababan midiendo un píxel. Se agrupan en cuatro, que es lo que
      de verdad cuenta la historia — el monte de los primeros años, la bici que
      entra en 2021, lo que se anda y lo que se hace en casa.
-     Rodillo va con bici exterior porque hoy NO sé separarlos: intervals tipó
-     los Zwift de 2022-23 como `Ride`. En cuanto llegue el campo `rodillo`,
-     sacarlo de aquí y darle familia propia es cambiar una línea. */
+     El rodillo tiene familia propia desde que se sabe cuáles son: el tipo de
+     intervals miente hasta 2024, pero el nombre y los números no. Importa que
+     se vea separado justamente porque SÍ se suma: los metros de Watopia
+     cuestan vatios y calorías, así que cuentan como esfuerzo — pero en 2025
+     son 78.311 contra 16.181 de calle y monte, y si van en el mismo color no
+     hay forma de saber cuál de los dos estás mirando. */
   var FAMILIA = {
     sen: "monte", pas: "pie", and: "pie", cor: "pie",
-    bici: "bici", rod: "bici", fue: "sala", otr: "sala"
+    bici: "bici", rod: "rodillo", fue: "sala", otr: "sala"
   };
-  var ORDEN_FAM = ["monte", "bici", "pie", "sala"];
+  var ORDEN_FAM = ["monte", "bici", "rodillo", "pie", "sala"];
   var NOMBRE_FAM = {
-    monte: "Monte", bici: "Bici y rodillo", pie: "A pie", sala: "Sala"
+    monte: "Monte", bici: "Bici en la calle", rodillo: "Rodillo",
+    pie: "A pie", sala: "Sala"
   };
   var NOMBRE_DEP = {
     sen: "Senderismo", pas: "Paseo largo", bici: "Bici exterior",
@@ -124,13 +128,37 @@
   function lugarDe(nombre) {
     var n = String(nombre || "").trim();
     if (!n) return null;
+    /* Lo que baja de intervals se llama «Senderismo en Colmenar Viejo»: la
+       primera palabra en mayúscula es el deporte, no el sitio. Si el nombre
+       empieza por un deporte, el sitio va detrás del «en». */
+    var m = /^(?:senderismo|ciclismo|carrera|caminata|marcha|paseo|ruta|excursi[óo]n|footing|trail)\b[^]*?\ben\s+(.+)$/i.exec(n);
+    if (m && m[1]) {
+      var tr0 = m[1].trim().replace(/\.$/, "");
+      if (tr0.length > 1 && !/^(?:casa|el rodillo|bici est[áa]tica)$/i.test(tr0)) return tr0;
+    }
     if (n.indexOf(".") > 0) {
       var tr = n.split(".").pop().trim();
       if (tr.length > 1) return tr;
     }
-    var pal = n.split(/\s+/);
-    if (pal.length >= 2 && /^[A-ZÁÉÍÓÚÑ]/.test(pal[0])) return pal[0];
+    /* «Béost Caminar», «Cercedilla Senderismo»: los que nombra el reloj con el
+       sitio delante y el deporte detrás. Sólo ese patrón exacto — coger la
+       primera palabra en mayúscula sin más daba «Vuelta», «La» y «Caminata»,
+       que no son sitios. Si no se sabe el pueblo, se queda la provincia sola,
+       que es verdad y no estorba. */
+    var m2 = /^([A-ZÁÉÍÓÚÑ][^\s]+(?:\s+d[eol]l?\s+[^\s]+)?)\s+(?:caminar|senderismo|ciclismo|correr|carrera|paseo|marcha)$/i.exec(n);
+    if (m2 && m2[1]) return m2[1];
     return null;
+  }
+
+  /* El rótulo del mapa: «Cazorla · Jaén», «Luchon · Francia», o sólo uno de los
+     dos si el otro no se sabe. Nunca se repite («Madrid · Madrid»). */
+  function rotuloLugar(pueblo, zona) {
+    if (pueblo && zona) {
+      var a = pueblo.toLowerCase(), b = zona.toLowerCase();
+      if (a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0) return pueblo;
+      return pueblo + " \u00b7 " + zona;
+    }
+    return pueblo || zona || null;
   }
 
   /* ---------- iconos por deporte, cuando no hay trazo ---------- */
@@ -145,8 +173,64 @@
     fue:  'M12 40 L12 60 M22 32 L22 68 M22 50 L78 50 M78 32 L78 68 M88 40 L88 60',
     cor:  'M56 14 a7 7 0 1 0 0.1 0 M52 28 L40 44 L52 56 L44 82 M40 44 L20 50 ' +
           'M52 56 L72 62 L80 84',
-    otr:  'M50 20 a30 30 0 1 0 0.1 0 M50 34 L50 52 L64 60'
+    /* «Otros» era una i dentro de un círculo, que no dice nada. Un cronómetro
+       sí: hubo una sesión y se midió, aunque no sepamos de qué fue. */
+    otr:  'M50 30 a28 28 0 1 0 0.1 0 M50 44 L50 58 L61 58 M42 14 L58 14 M50 14 L50 24'
   };
+  ICONO.pas = ICONO.and;      // un paseo largo también se hace andando
+  ICONO.sal = ICONO.fue;
+  /* LO DE DENTRO NO LLEVA MAPA, aunque traiga traza.
+     Regla de Carlos: traza y mapa para senderismo, cualquier forma de caminar
+     y la bici de fuera; icono para el rodillo y Zwift, para la sala y para lo
+     que no tenga recorrido. El «aunque traiga traza» no es un detalle: hay un
+     GPX de Zwift en la colección que acabó publicado como una ruta en las
+     islas Salomón. Dibujarlo sería mentir sobre dónde estuvo. */
+  /* ---------- dónde fue: provincia en España, país fuera ----------
+     La toponimia del mapa a veces no llega, y el nombre de la actividad muchas
+     veces tampoco dice más que «Senderismo en Cercedilla». Así que la zona se
+     saca de las coordenadas, por el punto de referencia más cercano.
+     Los puntos son las capitales de provincia, DENSIFICADAS donde Carlos anda
+     mucho, más puntos extranjeros repartidos a lo largo de las fronteras: un
+     centroide de país pierde siempre contra una capital española a 50 km, y el
+     Pirineo francés acabaría saliendo como Huesca.
+     Comprobado contra las 703 rutas de la colección: reparte como la geografía
+     que ya conocíamos, y el único disparate —16.888 km de su referencia— es el
+     GPX de Zwift colado que está publicado en las islas Salomón. */
+  var ZONAS = (function () {
+    return "*Álava|42.85|-2.67,Albacete|38.99|-1.86,Alicante|38.35|-0.48,Almería|36.84|-2.46,Asturias|43.36|-5.85,Ávila|40.66|-4.70,Badajoz|38.88|-6.97,Baleares|39.57|2.65,Barcelona|41.39|2.17,Burgos|42.34|-3.70,Cáceres|39.47|-6.37,Cádiz|36.53|-6.29,Cantabria|43.46|-3.80,Castellón|39.99|-0.04,Ciudad Real|38.99|-3.93,Córdoba|37.89|-4.78,A Coruña|43.36|-8.41,Cuenca|40.07|-2.14,Girona|41.98|2.82,Granada|37.18|-3.60,Guadalajara|40.63|-3.16,Gipuzkoa|43.32|-1.98,Huelva|37.26|-6.95,Huesca|42.14|-0.41,Jaén|37.77|-3.79,León|42.60|-5.57,Lleida|41.62|0.62,Lugo|43.01|-7.56,Madrid|40.42|-3.70,Málaga|36.72|-4.42,Murcia|37.99|-1.13,Navarra|42.81|-1.64,Ourense|42.34|-7.86,Palencia|42.01|-4.53,Las Palmas|28.12|-15.43,Pontevedra|42.43|-8.64,La Rioja|42.46|-2.45,Salamanca|40.97|-5.66,Tenerife|28.47|-16.25,Segovia|40.95|-4.12,Sevilla|37.39|-5.98,Soria|41.76|-2.47,Tarragona|41.12|1.25,Teruel|40.34|-1.11,Toledo|39.86|-4.02,Valencia|39.47|-0.38,Valladolid|41.65|-4.73,Bizkaia|43.26|-2.93,Zamora|41.50|-5.75,Zaragoza|41.65|-0.89,Madrid|40.78|-3.88,Madrid|40.55|-3.60,Segovia|40.90|-4.02,Ávila|40.65|-4.92,Segovia|41.10|-3.95,Guadalajara|41.05|-3.15,Huesca|42.65|0.15,Huesca|42.55|0.50,Asturias|43.15|-5.00,León|42.95|-6.40,Cantabria|43.15|-4.55,Jaén|37.92|-2.95,*Francia|42.79|0.59,*Francia|43.10|-0.75,*Francia|42.50|2.00,*Francia|43.60|1.44,*Francia|45.19|5.72,*Francia|48.86|2.35,*Andorra|42.51|1.52,*Portugal|41.15|-8.61,*Portugal|38.72|-9.14,*Portugal|41.55|-8.43,*Portugal|37.02|-7.93,*Portugal|40.28|-7.50,*Italia|46.07|11.12,*Italia|46.54|11.99,*Italia|45.44|9.19,*Italia|41.90|12.50,*Italia|45.07|7.69,*Suiza|46.00|7.75,*Suiza|46.52|8.05,*Suiza|46.95|7.45,*Austria|47.26|11.39,*Austria|48.21|16.37,*Eslovenia|46.06|14.51,*Eslovenia|46.38|13.84,*Eslovaquia|49.17|20.20,*Eslovaquia|48.15|17.11,*Argentina|-50.34|-72.27,*Argentina|-34.60|-58.38,*Argentina|-41.13|-71.31,*Chile|-50.99|-73.00,*Chile|-33.45|-70.67,*Marruecos|31.63|-7.99,*Alemania|48.14|11.58,*Reino Unido|51.51|-0.13".split(",").map(function (t) {
+      var p = t.split("|"), n = p[0], fuera = n.charAt(0) === "*";
+      return { n: fuera ? n.slice(1) : n, fuera: fuera,
+               la: parseFloat(p[1]), lo: parseFloat(p[2]) };
+    });
+  })();
+
+  function zonaDe(la, lo) {
+    if (la == null || lo == null) return null;
+    var mej = null, d0 = Infinity, k = Math.cos(la * Math.PI / 180);
+    for (var i = 0; i < ZONAS.length; i++) {
+      var z = ZONAS[i];
+      var a = (z.la - la), b = (z.lo - lo) * k;
+      var d = a * a + b * b;
+      if (d < d0) { d0 = d; mej = z; }
+    }
+    return mej ? mej.n : null;
+  }
+
+  /* La celda del archivo («+81_-008») es la posición redondeada a medio grado:
+     vale de sobra para saber la provincia cuando no hay trazo que mirar. */
+  function celdaACoord(c) {
+    var m = /^([+-]?\d+)_([+-]?\d+)$/.exec(String(c || ""));
+    if (!m) return null;
+    return [parseInt(m[1], 10) / 2, parseInt(m[2], 10) / 2];
+  }
+
+  var DENTRO = { rod: true, fue: true };
+  function esDeDentro(dep) { return !!DENTRO[dep]; }
+  function llevaMapa(x) {
+    if (esDeDentro(x.dep)) return false;
+    return !!(x.ruta || x.poli);
+  }
+
   function iconoSVG(dep) {
     var d = ICONO[dep] || ICONO.otr;
     return '<svg class="akhb-icono" viewBox="0 0 100 100" role="img" ' +
@@ -179,6 +263,13 @@
     return fuera;
   }
 
+  function esSala(nombre) {
+    var n = String(nombre || "").toLowerCase();
+    return n.indexOf("en sala") >= 0 || n.indexOf("zwift") >= 0 ||
+           n.indexOf("rodillo") >= 0 || n.indexOf("indoor") >= 0 ||
+           /^zrl\b/.test(n);
+  }
+
   function deSalud(acts, fechasSen) {
     var fuera = [];
     (acts || []).forEach(function (a) {
@@ -187,6 +278,34 @@
       var dep = TIPO[a.tipo] || "otr";
       /* Walk es a la vez paseo y monte: lo decide la colección de rutas */
       if (dep === "and" && fechasSen && fechasSen[f]) dep = "sen";
+      /* EL RODILLO LO DICE EL NOMBRE, NO EL TIPO. intervals tipó los Zwift de
+         2021-2023 como `Ride` y solo desde 2024 como `VirtualRide`, así que por
+         el tipo se colaban 422 sesiones de rodillo entre las de carretera. Pero
+         el nombre no miente: «Ciclismo en sala» es el nombre que pone Strava a
+         una salida con el rodillo, y «Zwift …» o «ZRL …» son de Zwift.
+         Medido en las 1.498 sesiones de bici desde el corte: 1.060 de dentro y
+         438 de carretera, y el corte por años cuadra clavado con el cambio de
+         tipo de intervals (en 2024 ya no queda ni un `Ride` de sala). */
+      if (dep === "bici" && esSala(a.nombre)) dep = "rod";
+      /* Y las que el nombre tampoco delata, porque se llaman «W060 Outdoor 240
+         TSS200» y cosas así. Se conocen por los números, y no se parecen en
+         nada a una salida de calle. Medianas medidas desde el corte:
+             con ruta archivada (calle segura)  18,0 km/h · 9,8 m/km · 92 W
+             éstas                              33,2 km/h · 0,0 m/km · 194 W
+             rodillo declarado                  31,2 km/h · 0,0 m/km · 163 W
+         Son gemelas del rodillo y no se parecen a la calle. Se exige desnivel
+         CERO —no bajo: cero— más de 15 km y más de 25 km/h, para no marcar por
+         error una salida llana de verdad. */
+      var vel = (a.min_mov > 0) ? (a.km || 0) / (a.min_mov / 60) : 0;
+      if (dep === "bici" && a.desnivel === 0 && (a.km || 0) >= 15 && vel >= 25) dep = "rod";
+      /* Y a 30 km/h de media no se va por la calle: su mediana de salida con
+         ruta archivada es 18 km/h. Caza 8 más que el desnivel cero no pilla,
+         como «W069 Tempo 3@ Team», 125 km en 182 minutos. */
+      if (dep === "bici" && vel >= 30) dep = "rod";
+      /* Y un paseo a 83 km/h es un coche. Ése se llama «Alovera Coche» y es el
+         único de las 2.465: el reloj se quedó grabando. No es una salida, así
+         que no entra en las de a pie ni pide mapa. */
+      if ((dep === "and" || dep === "sen" || dep === "pas") && vel > 20) dep = "otr";
       fuera.push({
         fecha: f, dep: dep, nombre: a.nombre || null,
         km: a.km != null ? a.km : null,
@@ -214,7 +333,24 @@
     /* Puente con la app de mapas: si se le pasa, recibe el recuadro del dibujo
        {s,o,n,e,px} y devuelve la URL de una imagen (IGN, OSM, lo que sea) para
        pintar detrás del trazo. Sin ella, el trazo va sobre fondo liso. */
-    var teselaDe = typeof o.teselaDe === "function" ? o.teselaDe : null;
+    /* La capa de fondo del mini mapa. La pone la app, no el módulo: así el
+       servidor que se usa y su atribución se deciden en un solo sitio.
+       { url:"…/{z}/{x}/{y}.png", maxZ:17, atrib:"…" }. Sin ella, el trazo va
+       sobre fondo liso, que es exactamente lo que se ve también cuando no hay
+       cobertura: las teselas no cargan y el recorrido se sigue viendo. */
+    var capaMapa = (o.capaMapa && o.capaMapa.url) ? o.capaMapa : null;
+    /* Los iconos de la app, los de la marca KHB, en vez de los dibujos del
+       módulo: { sen:"iconos/khb/11-montana.webp", … }. Si una imagen no carga
+       —sin red, o el fichero no está en el repo— cae sola al SVG de dentro,
+       que no depende de nada. */
+    var iconos = o.iconos || null;
+    /* EL PUENTE CON STRAVA. Un fichero aparte, { "<id de intervals>": { p:
+       "<polilínea>", n: "<nombre>", d: <desnivel> } }, para las salidas que no
+       tienen ruta archivada en la colección. Va suelto y se pide solo al entrar
+       en la pata, nunca dentro de salud.json, que se carga entero al abrir.
+       Manda menos que la colección: si algún día archivas el GPX de una de
+       éstas, la ruta buena gana y esto se cae solo sin limpiar nada. */
+    var trazos = o.trazos || null;
     var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
 
     /* índice de rutas por fecha, para clasificar y para el mapa de las nuevas */
@@ -244,6 +380,20 @@
       x.ruta = mejor.id; x.celda = mejor.c;
       if (!x.nombre) x.nombre = mejor.n;
     });
+
+    /* Lo que trae Strava, sólo donde no llega la colección. */
+    if (trazos) {
+      todas.forEach(function (x) {
+        if (x.ruta || x.poli || x.fuente !== "salud") return;
+        var t = trazos[x.id];
+        if (!t) return;
+        x.poli = t.p || null;
+        /* El nombre de Strava suele ser mejor que el de intervals: «MTB por el
+           Cerro de Almodóvar» contra «Madrid Ciclismo en ruta». */
+        if (t.n) x.nombre = t.n;
+        if (t.d != null && (x.desnivel == null || x.desnivel === 0)) x.desnivel = t.d;
+      });
+    }
 
     todas.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
 
@@ -299,8 +449,9 @@
                "del rodillo, la fuerza ni las caminatas.";
       }
       if (m.id === "d") {
-        return "Hasta 2021 solo de las salidas. Y desde 2022 buena parte del " +
-               "desnivel es del rodillo, que es simulado: no compara con el de monte.";
+        return "El del rodillo cuenta —subir en Watopia cuesta igual— pero va " +
+               "en su color, que desde 2023 es casi todo. Hasta 2021, solo el " +
+               "de las salidas que están en el archivo.";
       }
       if (m.id === "km") {
         return "Un kilómetro de bici no es un kilómetro de monte: por eso los " +
@@ -425,17 +576,25 @@
         (x.pot   != null ? dato("Potencia", x.pot, " W") : "") +
         (x.wkg   != null ? dato("Vatios/kg", num(x.wkg, 2)) : "") +
         (x.kcal  != null ? dato("Kcal netas", num(x.kcal)) : "");
-      var lugar = lugarDe(x.nombre);
+      /* La zona sale de la celda, que es lo que se sabe antes de pedir el
+         trazo; cuando el trazo llega, se recalcula con el centro de verdad. */
+      var cc = celdaACoord(x.celda);
+      var lugar = rotuloLugar(lugarDe(x.nombre), cc ? zonaDe(cc[0], cc[1]) : null);
       return '<div class="akhb-ficha">' +
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
           '<div class="akhb-lienzo">' +
-            (x.ruta || x.poli ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
-                              : iconoSVG(x.dep)) +
-            (lugar ? '<span class="akhb-lugar">' + esc(lugar) + "</span>" : "") +
+            (llevaMapa(x) ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
+                          : iconoHTML(x.dep)) +
+            (lugar ? '<span class="akhb-lugar" data-pueblo="' +
+                       esc(lugarDe(x.nombre) || "") + '">' + esc(lugar) + "</span>" : "") +
           "</div>" +
           "<figcaption>" +
-            (x.ruta ? esc(x.nombre || "") : x.poli ? "Trazo de Strava"
-                    : NOMBRE_DEP[x.dep] + " \u2014 sin recorrido") +
+            (esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
+             : x.ruta ? esc(x.nombre || "")
+             : x.poli ? esc(x.nombre || "Trazo de Strava")
+             /* Salió a la calle y no tenemos la línea. Decirlo así y no «sin
+                recorrido»: recorrido hubo, lo que falta es el dibujo. */
+             : NOMBRE_DEP[x.dep] + " \u2014 pendiente de trazo") +
           "</figcaption>" +
         "</figure>" +
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
@@ -508,80 +667,143 @@
     function mY(lat) { return Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)); }
     function mLat(y) { return (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180 / Math.PI; }
 
+    /* ---------- el mini mapa ----------
+       Proyección de las teselas («slippy map», Web Mercator): de grados a
+       píxeles del mundo en un zoom dado. Es la cuenta que hace Leaflet, pero
+       escrita a mano: son veinte líneas y evita cargar 140 KB de librería para
+       un dibujo de 380 px que no se puede ni arrastrar. Para lo interactivo
+       está la app de mapas. */
+    var LIENZO = 380, MARGEN = 16, TESELA = 256;
+
+    function mundoX(lon, z) { return (lon + 180) / 360 * TESELA * Math.pow(2, z); }
+    function mundoY(lat, z) {
+      var r = lat * Math.PI / 180;
+      return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * TESELA * Math.pow(2, z);
+    }
+
+    /* El zoom mayor en el que la ruta entera cabe en el cuadro. Mayor zoom =
+       más detalle, así que se busca de arriba abajo y se para en el primero
+       que entra. */
+    function zoomQueCabe(b, maxZ) {
+      for (var z = maxZ; z >= 1; z--) {
+        var dx = Math.abs(mundoX(b[3], z) - mundoX(b[1], z));
+        var dy = Math.abs(mundoY(b[0], z) - mundoY(b[2], z));
+        if (Math.max(dx, dy) <= LIENZO - 2 * MARGEN) return z;
+      }
+      return 1;
+    }
+
     function dibujaTrazo(fig, pts) {
       if (!pts || pts.length < 2) { pintaIcono(fig, { dep: "otr" }); return; }
-      var B = 128, P = 9, U = B - 2 * P;
-      var xs = [], ys = [], lats = [];
-      pts.forEach(function (p) { lats.push(p[0]); xs.push(mX(p[1])); ys.push(-mY(p[0])); });
-      var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
-      var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-      var S = Math.max(x1 - x0, y1 - y0) || 1e-9;
-      var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, esc = U / S;
 
-      function px(p) {
-        return [B / 2 + (mX(p[1]) - cx) * esc, B / 2 + (-mY(p[0]) - cy) * esc];
+      var lats = [], lons = [];
+      pts.forEach(function (p) { lats.push(p[0]); lons.push(p[1]); });
+      var b = [Math.min.apply(null, lats), Math.min.apply(null, lons),
+               Math.max.apply(null, lats), Math.max.apply(null, lons)];
+
+      var maxZ = capaMapa ? (capaMapa.maxZ || 17) : 19;
+      var z = zoomQueCabe(b, maxZ);
+      var cx = (mundoX(b[1], z) + mundoX(b[3], z)) / 2;
+      var cy = (mundoY(b[0], z) + mundoY(b[2], z)) / 2;
+      var izq = cx - LIENZO / 2, arr = cy - LIENZO / 2;
+
+      /* Las teselas van DENTRO del SVG, no en divs: así escalan con el viewBox
+         igual que el trazo. Puestas en píxeles se quedaban fuera del recorte en
+         cuanto el cuadro no medía exactamente 380. */
+      var fondo = "";
+      if (capaMapa) {
+        var n = Math.pow(2, z);
+        var t0x = Math.floor(izq / TESELA), t1x = Math.floor((izq + LIENZO) / TESELA);
+        var t0y = Math.floor(arr / TESELA), t1y = Math.floor((arr + LIENZO) / TESELA);
+        for (var tx = t0x; tx <= t1x; tx++) {
+          for (var ty = t0y; ty <= t1y; ty++) {
+            if (ty < 0 || ty >= n) continue;
+            var u = capaMapa.url
+              .replace("{z}", z)
+              .replace("{x}", ((tx % n) + n) % n)
+              .replace("{y}", ty);
+            fondo += '<image href="' + esc(u) + '" x="' + (tx * TESELA - izq).toFixed(1) +
+              '" y="' + (ty * TESELA - arr).toFixed(1) + '" width="' + TESELA +
+              '" height="' + TESELA + '"/>';
+          }
+        }
       }
+
+      function px(p) { return [mundoX(p[1], z) - izq, mundoY(p[0], z) - arr]; }
       var d = pts.map(function (p, i) {
         var q = px(p);
         return (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1);
       }).join(" ");
-      var a = px(pts[0]), b = px(pts[pts.length - 1]);
+      var a = px(pts[0]), f = px(pts[pts.length - 1]);
 
-      /* El recuadro entero, en coordenadas de la tierra: es lo que habría que
-         pedirle al servidor de mapas para que la tesela case con el trazo. */
-      var H = (S * B / U) / 2;
-      var caja = {
-        o: (cx - H) * 180 / Math.PI, e: (cx + H) * 180 / Math.PI,
-        n: mLat(-(cy - H)),          s: mLat(-(cy + H)),
-        px: B
-      };
-      var fondo = "";
-      if (teselaDe) {
-        var url = null;
-        try { url = teselaDe(caja); } catch (err) { url = null; }
-        if (url) {
-          fondo = '<image href="' + esc(url) + '" x="0" y="0" width="' + B +
-                  '" height="' + B + '" preserveAspectRatio="none"/>';
-        }
+      /* Escala: sin ella el dibujo no dice si son dos kilómetros o veinte.
+         Con el zoom real la cuenta ya no es aproximada. */
+      var la0 = (b[0] + b[2]) / 2;
+      var mPorPx = 156543.03392 * Math.cos(la0 * Math.PI / 180) / Math.pow(2, z);
+      var pasos = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000], paso = pasos[0];
+      for (var q2 = 0; q2 < pasos.length; q2++) {
+        if (pasos[q2] / mPorPx <= LIENZO * 0.32) paso = pasos[q2];
       }
-
-      /* Escala: sin ella el dibujo no dice si son dos kilómetros o veinte,
-         porque siempre se estira hasta llenar el cuadro. */
-      var la0 = (Math.min.apply(null, lats) + Math.max.apply(null, lats)) / 2;
-      var kmPorPx = (S / U) * 6378.137 * Math.cos(la0 * Math.PI / 180);
-      var pasos = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50], paso = pasos[0];
-      for (var q = 0; q < pasos.length; q++) {
-        if (pasos[q] / kmPorPx <= U * 0.42) paso = pasos[q];
-      }
-      var largo = paso / kmPorPx;
-      var esc_ = isFinite(largo) && largo > 4
+      var largo = paso / mPorPx, Y = LIENZO - 14, X = MARGEN;
+      var esc_ = isFinite(largo) && largo > 12
         ? '<g class="akhb-escala">' +
-            '<line x1="' + P + '" y1="' + (B - 5) + '" x2="' + (P + largo).toFixed(1) +
-              '" y2="' + (B - 5) + '"/>' +
-            '<line x1="' + P + '" y1="' + (B - 8) + '" x2="' + P + '" y2="' + (B - 2) + '"/>' +
-            '<line x1="' + (P + largo).toFixed(1) + '" y1="' + (B - 8) + '" x2="' +
-              (P + largo).toFixed(1) + '" y2="' + (B - 2) + '"/>' +
-            '<text x="' + (P + largo + 3).toFixed(1) + '" y="' + (B - 2.5) + '">' +
-              (paso < 1 ? (paso * 1000) + " m" : paso + " km") + "</text></g>"
+            '<rect x="' + (X - 5) + '" y="' + (Y - 11) + '" width="' + (largo + 52).toFixed(1) +
+              '" height="21" rx="4"/>' +
+            '<line x1="' + X + '" y1="' + Y + '" x2="' + (X + largo).toFixed(1) + '" y2="' + Y + '"/>' +
+            '<line x1="' + X + '" y1="' + (Y - 5) + '" x2="' + X + '" y2="' + (Y + 5) + '"/>' +
+            '<line x1="' + (X + largo).toFixed(1) + '" y1="' + (Y - 5) + '" x2="' +
+              (X + largo).toFixed(1) + '" y2="' + (Y + 5) + '"/>' +
+            '<text x="' + (X + largo + 7).toFixed(1) + '" y="' + (Y + 4) + '">' +
+              (paso < 1000 ? paso + " m" : (paso / 1000) + " km") + "</text></g>"
         : "";
 
       var lienzo = fig.querySelector(".akhb-lienzo") || fig;
       var chapa = lienzo.querySelector(".akhb-lugar");
-      /* El trazo va dos veces: blanco grueso debajo y color encima. Sobre fondo
-         blanco no se nota; sobre una tesela es lo que lo hace legible. */
+      /* El trazo va dos veces: blanco grueso debajo y color encima. Sobre el
+         mapa es lo único que lo hace legible entre curvas de nivel. */
       lienzo.innerHTML =
-        '<svg class="akhb-trazo" viewBox="0 0 ' + B + " " + B + '" role="img" ' +
+        '<svg class="akhb-trazo" viewBox="0 0 ' + LIENZO + " " + LIENZO + '" role="img" ' +
           'aria-label="Recorrido de la actividad">' + fondo +
-          '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="4.6" ' +
+          '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="7" ' +
             'stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>' +
-          '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+          '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="3.6" ' +
             'stroke-linejoin="round" stroke-linecap="round"/>' +
           '<circle cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) +
-            '" r="3.4" class="akhb-ini"/>' +
-          '<circle cx="' + b[0].toFixed(1) + '" cy="' + b[1].toFixed(1) +
-            '" r="3.4" class="akhb-fin"/>' + esc_ +
+            '" r="6" class="akhb-ini"/>' +
+          '<circle cx="' + f[0].toFixed(1) + '" cy="' + f[1].toFixed(1) +
+            '" r="6" class="akhb-fin"/>' + esc_ +
         "</svg>";
-      if (chapa) lienzo.appendChild(chapa);
+      /* La chapa se queda: la toponimia de la tesela no siempre llega a este
+         zoom, y decir la provincia o el país ahorra abrir el mapa. Ahora que
+         hay trazo, la zona se recalcula con el centro real en vez de con la
+         celda redondeada. */
+      /* Con el trazo ya se sabe dónde fue de verdad. Si la chapa no existía
+         —porque ni el nombre ni la celda decían nada, que es lo normal en las
+         que vienen de Strava— se crea ahora. */
+      var z = zonaDe((b[0] + b[2]) / 2, (b[1] + b[3]) / 2);
+      var r2 = rotuloLugar(chapa ? (chapa.getAttribute("data-pueblo") || null) : null, z);
+      if (r2) {
+        if (!chapa) {
+          chapa = document.createElement("span");
+          chapa.className = "akhb-lugar";
+        }
+        chapa.textContent = r2;
+        lienzo.appendChild(chapa);
+      } else if (chapa) {
+        lienzo.appendChild(chapa);
+      }
+
+      /* La atribución es obligatoria y tiene que verse. Va con el nombre de la
+         ruta, debajo del mapa, y solo cuando hay mapa que atribuir. */
+      if (capaMapa && capaMapa.atrib) {
+        var pie = fig.querySelector("figcaption");
+        if (pie && !pie.querySelector(".akhb-atrib")) {
+          var sp = document.createElement("span");
+          sp.className = "akhb-atrib";
+          sp.innerHTML = capaMapa.atrib;
+          pie.appendChild(sp);
+        }
+      }
     }
 
     function pintarMapas() {
@@ -591,6 +813,7 @@
       var clave = fig.getAttribute("data-mapa");
       var x = buscaPorClave(clave);
       if (!x) return;
+      if (!llevaMapa(x)) { pintaIcono(fig, x); return; }
 
       /* 1 · polilínea de Strava, si el workflow ya la trae */
       if (x.poli) { dibujaTrazo(fig, decodificarPolilinea(x.poli)); return; }
@@ -617,10 +840,25 @@
 
     /* Si la actividad TENIA ruta y el trazo no ha llegado, no se dice «sin
        recorrido», que seria mentira: se dice que no se ha podido traer. */
+    /* La imagen de la app encima del dibujo del módulo. Los dos se pintan
+       siempre: si la imagen no carga —sin red, o el fichero no está en el
+       repo— se quita sola y queda el SVG debajo, que no depende de nada.
+       Se hace así y no reemplazando el nodo porque el icono se pinta con
+       innerHTML, y el fallo puede saltar antes de que la imagen esté colgada
+       del documento: ahí `outerHTML` revienta y `remove()` no. */
+    function iconoHTML(dep) {
+      var u = iconos && (iconos[dep] || iconos.otr);
+      if (!u) return iconoSVG(dep);
+      return '<span class="akhb-marca-caja">' +
+        '<img class="akhb-marca" src="' + esc(u) + '" alt="' +
+        esc(NOMBRE_DEP[dep] || "Actividad") + '" onerror="this.remove()">' +
+        iconoSVG(dep) + "</span>";
+    }
+
     function pintaIcono(fig, x) {
       var lienzo = fig.querySelector(".akhb-lienzo") || fig;
       var chapa = lienzo.querySelector(".akhb-lugar");
-      lienzo.innerHTML = iconoSVG(x.dep);
+      lienzo.innerHTML = iconoHTML(x.dep);
       if (chapa) lienzo.appendChild(chapa);
       var cap = fig.querySelector("figcaption");
       if (cap && (x.ruta || x.poli)) {
