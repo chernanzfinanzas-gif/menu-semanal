@@ -1,173 +1,240 @@
 /* ============================================================================
    ActividadKHB — estilos del archivo navegable.
-   Todo cuelga de variables con valor de reserva, así que si la app ya define
-   sus propios tokens (--ink, --card…) los coge, y si no, se ve bien igual.
+
+   La app es SOLO CLARA: no tiene modo oscuro en ningún sitio. Así que esto
+   tampoco lo tiene. Cuando lo tenía, en un sistema puesto en oscuro el módulo
+   se volvía oscuro él solo mientras la app seguía clara, y el texto heredaba
+   la tinta oscura de la app sobre fondo oscuro: ilegible. Se hereda su paleta
+   y punto — si algún día la app tiene modo oscuro, esto lo hereda gratis.
    ========================================================================== */
 
 .akhb {
-  --akhb-ink:    var(--ink, #15181b);
-  --akhb-ink2:   var(--ink-2, #4f5761);
-  --akhb-ink3:   var(--ink-3, #7b838d);
-  --akhb-card:   var(--card, #fff);
-  --akhb-card2:  var(--card-2, #f4f3ee);
-  --akhb-linea:  var(--line, #e4e3dc);
-  --akhb-linea2: var(--line-2, #efeee8);
-  --akhb-acento: var(--s1, #2a78d6);
-  --akhb-ini:    var(--s3, #1baf7a);
-  --akhb-fin:    var(--s2, #eb6834);
-  color: var(--akhb-ink);
+  --akhb-tinta:  var(--tinta, #1f2a24);
+  --akhb-gris:   var(--gris, #667a70);
+  --akhb-suave:  var(--gris-claro, #f5f7f6);
+  --akhb-blanco: var(--blanco, #fff);
+  --akhb-borde:  var(--borde, #dfe5e2);
+  --akhb-azul:   var(--azul, #2f5c8a);
+  --akhb-hondo:  var(--azul-hondo, #133253);
+  --akhb-claro:  var(--azul-claro, #eaf0f6);
+  /* LAS CUATRO FAMILIAS. Paleta validada para fondo claro (validate_palette,
+     modo light): pasa banda de luminosidad, suelo de croma y separación tanto
+     para daltonismo como para visión normal. Ocho colores pasaban el validador
+     pero no el ojo en una barra de 54 px, que es lo que importaba. */
+  --akhb-fam-monte: #2a78d6;
+  --akhb-fam-bici:  #4a3aa7;
+  --akhb-fam-pie:   #1baf7a;
+  --akhb-fam-sala:  #c98a1b;
+  /* los deportes sueltos, que siguen usándose en iconos y textos */
+  --akhb-sen:  #2a78d6;
+  --akhb-pas:  #eb6834;
+  --akhb-bici: #4a3aa7;
+  --akhb-and:  #1baf7a;
+  --akhb-rod:  #e87ba4;
+  --akhb-fue:  #c98a1b;
+  --akhb-cor:  #008300;
+  --akhb-otr:  #8a97a5;
+  color: var(--akhb-tinta);
   font-variant-numeric: tabular-nums;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .akhb {
-    --akhb-ink: #f1f2ef; --akhb-ink2: #a8b1bb; --akhb-ink3: #7d868f;
-    --akhb-card: #1c1f24; --akhb-card2: #22262c;
-    --akhb-linea: #2c3138; --akhb-linea2: #252a31;
-    --akhb-acento: #3987e5; --akhb-ini: #199e70; --akhb-fin: #d95926;
-  }
+
+/* ---- cabecera: volver a la izquierda, medidas a la derecha ---- */
+.akhb-cabrow {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin: 0 0 12px;
 }
-:root[data-theme="dark"] .akhb {
-  --akhb-ink: #f1f2ef; --akhb-ink2: #a8b1bb; --akhb-ink3: #7d868f;
-  --akhb-card: #1c1f24; --akhb-card2: #22262c;
-  --akhb-linea: #2c3138; --akhb-linea2: #252a31;
-  --akhb-acento: #3987e5; --akhb-ini: #199e70; --akhb-fin: #d95926;
+.akhb-cabrow > .akhb-metricas { margin: 0; }
+
+/* ---- selector de medida ---- */
+/* Con qué se compara un año con otro: sesiones, horas, km, desnivel, carga.
+   Cambia la altura de las barras; los colores siguen diciendo de qué fue. */
+.akhb-metricas {
+  display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px;
+}
+.akhb-metricas button {
+  border: 1px solid var(--akhb-borde); background: var(--akhb-blanco);
+  border-radius: 999px; padding: 4px 11px; cursor: pointer;
+  font: inherit; font-size: 12px; color: var(--akhb-gris); line-height: 1.3;
+}
+.akhb-metricas button:hover { border-color: var(--akhb-azul); color: var(--akhb-hondo); }
+.akhb-metricas button.sel {
+  border-color: var(--akhb-azul); background: var(--akhb-claro);
+  color: var(--akhb-hondo); font-weight: 700;
+}
+
+/* lo que la métrica elegida no puede contar hacia atrás: se dice, no se disimula */
+.akhb-aviso {
+  margin: -4px 0 12px; font-size: 11px; line-height: 1.35;
+  color: var(--akhb-gris);
 }
 
 /* ---- tira de años ---- */
 .akhb-anios {
-  display: flex; gap: 4px; overflow-x: auto; padding: 2px 0 6px;
+  display: flex; gap: 5px; overflow-x: auto; padding: 2px 0 8px;
   scrollbar-width: thin;
 }
 .akhb-anio {
-  flex: 1 0 44px; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  border: 1px solid var(--akhb-linea); background: var(--akhb-card);
-  border-radius: 8px; padding: 6px 4px 5px; cursor: pointer;
-  font: inherit; font-size: 11px; color: var(--akhb-ink3); line-height: 1.1;
+  flex: 1 0 54px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 1px solid var(--akhb-borde); background: var(--akhb-blanco);
+  border-radius: 9px; padding: 7px 3px 6px; cursor: pointer;
+  font: inherit; font-size: 11px; color: var(--akhb-gris); line-height: 1.1;
 }
-.akhb-anio:hover { border-color: var(--akhb-ink3); }
+.akhb-anio:hover { border-color: var(--akhb-azul); }
 .akhb-anio.sel {
-  border-color: var(--akhb-acento); background: var(--akhb-card2);
-  color: var(--akhb-ink); font-weight: 600;
+  border-color: var(--akhb-azul); background: var(--akhb-claro);
+  color: var(--akhb-hondo); font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--akhb-azul);
 }
-.akhb-anio-n { font-size: 12px; }
-.akhb-anio-c { font-size: 10px; }
+.akhb-anio-n { font-size: 12.5px; font-weight: 600; color: var(--akhb-tinta); }
+.akhb-anio.sel .akhb-anio-n { color: var(--akhb-hondo); }
+.akhb-anio-c { font-size: 10.5px; }
+
+/* la barra: apilada por deporte, alta para que se vea el reparto */
 .akhb-barra {
-  display: block; width: 100%; height: 26px; position: relative;
-  background: var(--akhb-linea2); border-radius: 3px; overflow: hidden;
+  display: flex; flex-direction: column-reverse; justify-content: flex-start;
+  width: 100%; height: 88px; border-radius: 4px; overflow: hidden;
+  background: var(--akhb-suave);
 }
-.akhb-barra i {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  background: var(--akhb-ink3); border-radius: 3px;
+/* Alta a propósito: la altura es proporcional, así que un año flojo ocupa poco
+   y con una barra corta sus trozos de color se quedaban en un píxel. Sin línea
+   blanca entre trozos por lo mismo: en un trozo de 2px se comía el color. */
+.akhb-barra i { display: block; width: 100%; }
+
+/* ---- leyenda de deportes ---- */
+.akhb-leyenda {
+  display: flex; flex-wrap: wrap; gap: 4px 12px;
+  margin: 0 0 12px; font-size: 11px; color: var(--akhb-gris);
 }
-.akhb-anio.sel .akhb-barra i { background: var(--akhb-acento); }
+.akhb-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.akhb-leyenda i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
 
 /* ---- cabecera del año ---- */
 .akhb-cab {
   display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap; margin: 10px 0 2px;
+  gap: 10px; flex-wrap: wrap; margin: 6px 0 2px;
 }
-.akhb-cab h3 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
-.akhb-fuente { font-size: 11.5px; color: var(--akhb-ink3); }
+.akhb-cab h3 {
+  margin: 0; font-size: 20px; font-weight: 700;
+  letter-spacing: -.01em; color: var(--akhb-hondo);
+}
+.akhb-fuente { font-size: 11.5px; color: var(--akhb-gris); }
 
 /* ---- meses ---- */
-.akhb-meses {
-  display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 14px;
-}
+.akhb-meses { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 14px; }
 .akhb-mes {
-  border: 1px solid var(--akhb-linea); background: var(--akhb-card);
-  border-radius: 7px; padding: 4px 9px; cursor: pointer;
-  font: inherit; font-size: 12px; color: var(--akhb-ink2);
+  border: 1px solid var(--akhb-borde); background: var(--akhb-blanco);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  font: inherit; font-size: 12.5px; color: var(--akhb-tinta);
   display: inline-flex; align-items: baseline; gap: 5px;
 }
-.akhb-mes b { font-size: 10.5px; color: var(--akhb-ink3); font-weight: 600; }
-.akhb-mes:hover:not(.vacio) { border-color: var(--akhb-ink3); color: var(--akhb-ink); }
+.akhb-mes b { font-size: 11px; color: var(--akhb-gris); font-weight: 600; }
+.akhb-mes:hover:not(.vacio) { border-color: var(--akhb-azul); }
 .akhb-mes.sel {
-  border-color: var(--akhb-acento); background: var(--akhb-acento);
+  border-color: var(--akhb-azul); background: var(--akhb-azul);
   color: #fff; font-weight: 600;
 }
-.akhb-mes.sel b { color: rgba(255,255,255,.8); }
-.akhb-mes.vacio { opacity: .4; cursor: default; }
+.akhb-mes.sel b { color: rgba(255,255,255,.85); }
+.akhb-mes.vacio { opacity: .45; cursor: default; }
 .akhb-todo { font-weight: 600; }
 
 /* ---- lista ---- */
 .akhb-titmes {
-  margin: 16px 0 6px; font-size: 13px; font-weight: 700;
-  text-transform: capitalize; letter-spacing: -.01em;
+  margin: 18px 0 4px; font-size: 14px; font-weight: 700;
+  text-transform: capitalize; color: var(--akhb-hondo);
 }
 .akhb-titmes span {
-  font-weight: 400; font-size: 11.5px; color: var(--akhb-ink3);
-  text-transform: none; margin-left: 6px;
+  font-weight: 400; font-size: 12px; color: var(--akhb-gris);
+  text-transform: none; margin-left: 7px;
 }
 .akhb-lista { list-style: none; margin: 0; padding: 0; }
-.akhb-item { border-top: 1px solid var(--akhb-linea2); }
+.akhb-item { border-top: 1px solid var(--akhb-borde); }
 .akhb-item:first-child { border-top: 0; }
 .akhb-fila {
-  width: 100%; display: grid; grid-template-columns: 40px 1fr 14px;
+  width: 100%; display: grid; grid-template-columns: 6px 42px 1fr 14px;
   gap: 10px; align-items: center; text-align: left;
   border: 0; background: none; cursor: pointer; font: inherit;
-  padding: 9px 2px; color: inherit;
+  padding: 10px 2px; color: var(--akhb-tinta);
 }
-.akhb-fila:hover { background: var(--akhb-card2); }
-.akhb-dia { text-align: center; line-height: 1.05; color: var(--akhb-ink3); }
-.akhb-dia b { display: block; font-size: 15px; color: var(--akhb-ink); }
-.akhb-dia i { font-style: normal; font-size: 10px; }
+.akhb-fila:hover { background: var(--akhb-suave); }
+.akhb-tira { width: 4px; height: 30px; border-radius: 3px; }   /* color del deporte */
+.akhb-dia { text-align: center; line-height: 1.05; color: var(--akhb-gris); }
+.akhb-dia b { display: block; font-size: 16px; font-weight: 700; color: var(--akhb-tinta); }
+.akhb-dia i { font-style: normal; font-size: 10.5px; }
 .akhb-txt { min-width: 0; }
 .akhb-nom {
-  display: block; font-size: 13.5px; font-weight: 500;
+  display: block; font-size: 14px; font-weight: 600; color: var(--akhb-tinta);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.akhb-sub { display: block; font-size: 11.5px; color: var(--akhb-ink2); margin-top: 1px; }
+.akhb-sub { display: block; font-size: 12px; color: var(--akhb-gris); margin-top: 1px; }
 .akhb-chev {
-  width: 8px; height: 8px; border-right: 2px solid var(--akhb-ink3);
-  border-bottom: 2px solid var(--akhb-ink3); transform: rotate(45deg);
+  width: 8px; height: 8px; border-right: 2px solid var(--akhb-gris);
+  border-bottom: 2px solid var(--akhb-gris); transform: rotate(45deg);
   transition: transform .15s;
 }
 .akhb-fila[aria-expanded="true"] .akhb-chev { transform: rotate(225deg); }
-.akhb-fila[aria-expanded="true"] { background: var(--akhb-card2); }
+.akhb-fila[aria-expanded="true"] { background: var(--akhb-suave); }
 
 /* ---- ficha ---- */
+/* El mapa manda: es el recuerdo de la ruta. Los datos van en filas a su lado,
+   que se leen de un vistazo y aguantan cualquier número de campos. */
 .akhb-ficha {
-  background: var(--akhb-card2); border-radius: 0 0 9px 9px;
-  padding: 13px; margin-bottom: 6px;
-  display: grid; grid-template-columns: 136px 1fr; gap: 15px; align-items: start;
+  background: var(--akhb-suave); border-radius: 0 0 10px 10px;
+  padding: 14px; margin-bottom: 8px;
+  display: grid; grid-template-columns: minmax(220px, 380px) minmax(0, 1fr);
+  gap: 18px; align-items: start; justify-content: start;
 }
 .akhb-mapa {
-  margin: 0; background: var(--akhb-card); border: 1px solid var(--akhb-linea);
-  border-radius: 8px; padding: 7px; color: var(--akhb-acento);
+  margin: 0; background: var(--akhb-blanco); border: 1px solid var(--akhb-borde);
+  border-radius: 9px; padding: 8px; color: var(--akhb-azul); position: relative;
+}
+.akhb-lienzo { position: relative; }
+.akhb-trazo, .akhb-icono { display: block; width: 100%; height: auto; aspect-ratio: 1; }
+/* sin mapa: el icono del deporte, grande y tranquilo, no un hueco */
+.akhb-icono { color: var(--akhb-gris); opacity: .38; padding: 16%; }
+/* el lugar, encima del dibujo: para saber por dónde fue sin abrir el mapa */
+.akhb-lugar {
+  position: absolute; left: 4px; top: 4px; max-width: calc(100% - 8px);
+  background: rgba(255,255,255,.88); color: var(--akhb-hondo);
+  border: 1px solid var(--akhb-borde); border-radius: 5px;
+  padding: 2px 6px; font-size: 10.5px; font-weight: 600; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .akhb-mapa figcaption {
-  font-size: 10.5px; color: var(--akhb-ink3); margin-top: 5px; line-height: 1.3;
+  font-size: 10.5px; color: var(--akhb-gris); margin-top: 6px; line-height: 1.3;
 }
-.akhb-trazo, .akhb-icono { display: block; width: 100%; height: auto; }
-.akhb-icono { color: var(--akhb-ink3); opacity: .55; padding: 12%; }
-.akhb-ini { fill: var(--akhb-ini); }
-.akhb-fin { fill: var(--akhb-fin); }
+.akhb-ini { fill: #1baf7a; }
+.akhb-fin { fill: #eb6834; }
+.akhb-fondo { fill: none; stroke: var(--akhb-borde); stroke-width: .8; }
 .akhb-cargando {
   aspect-ratio: 1; display: grid; place-items: center;
-  font-size: 11px; color: var(--akhb-ink3);
+  font-size: 11px; color: var(--akhb-gris);
 }
 .akhb-kv {
-  margin: 0; display: grid; gap: 10px 14px;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  width: 100%; border-collapse: collapse; background: var(--akhb-blanco);
+  border: 1px solid var(--akhb-borde); border-radius: 10px; overflow: hidden;
 }
-.akhb-kv div { min-width: 0; }
-.akhb-kv dt {
-  font-size: 10px; color: var(--akhb-ink3);
+.akhb-kv th {
+  text-align: left; font-size: 11px; color: var(--akhb-gris); font-weight: 600;
   letter-spacing: .05em; text-transform: uppercase;
+  padding: 10px 14px; white-space: nowrap;
 }
-.akhb-kv dd { margin: 1px 0 0; font-size: 14.5px; font-weight: 600; }
-.akhb-pte { color: var(--akhb-ink3); font-weight: 400; font-size: 12px; }
+.akhb-kv td {
+  text-align: right; font-size: 16px; font-weight: 700; color: var(--akhb-tinta);
+  padding: 10px 14px; white-space: nowrap;
+}
+.akhb-kv tr + tr th, .akhb-kv tr + tr td { border-top: 1px solid var(--akhb-borde); }
+.akhb-pte { color: var(--akhb-gris); font-weight: 400; font-size: 12px; }
 
-.akhb-nada {
-  font-size: 13px; color: var(--akhb-ink2);
-  padding: 18px 2px; margin: 0;
-}
+.akhb-nada { font-size: 13px; color: var(--akhb-gris); padding: 18px 2px; margin: 0; }
 
-@media (max-width: 560px) {
-  .akhb-ficha { grid-template-columns: 1fr; }
-  .akhb-mapa { max-width: 170px; }
-  .akhb-anio { flex: 0 0 42px; }
+@media (max-width: 620px) {
+  .akhb-ficha { grid-template-columns: 1fr; gap: 14px; }
+  .akhb-mapa { max-width: 100%; }
+  .akhb-anio { flex: 0 0 46px; }
+  .akhb-barra { height: 68px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .akhb-chev { transition: none; }
-}
+@media (prefers-reduced-motion: reduce) { .akhb-chev { transition: none; } }
+
+/* escala del mini mapa: dice si son dos kilómetros o veinte */
+.akhb-escala line { stroke: var(--akhb-gris); stroke-width: .9; }
+.akhb-escala text { fill: var(--akhb-gris); font-size: 6px; font-weight: 600; }

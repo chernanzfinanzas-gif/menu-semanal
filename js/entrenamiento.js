@@ -1949,12 +1949,20 @@
     } else if (falta) {
       aviso = "Trayendo el archivo…";
     }
+    /* Sin esto no se sale del bloque: es la única puerta de vuelta, porque la
+       app no tiene barra de navegación. Va arriba y abajo, como en El Plan,
+       que el archivo de un año es largo y no se puede obligar a subir. */
+    /* El de arriba lo pinta el módulo, en la misma fila que el selector de
+       medida: ocupa una línea en vez de dos. Se lo pasamos como HTML en
+       `botonVolver` y lo recoge el mismo manejador de `[data-volver]`. */
     return '<div class="tarjeta"><h2>Actividad</h2>' +
       '<p class="nota-peque">Todo lo que has hecho, año por año y mes por mes. ' +
       'Hasta octubre de 2021 sale del archivo; desde entonces, de intervals, ' +
       'y las nuevas se van añadiendo solas.</p>' +
       (aviso ? '<p class="nota-peque">' + aviso + "</p>" : "") +
-      '<div id="ent-archivo"></div></div>';
+      '<div id="ent-archivo"></div></div>' +
+      '<button type="button" class="ent-atras abajo" data-volver="1">' +
+      FLECHA + "Volver a Entrenamiento</button>";
   }
 
   /* Se llama después de cada pintado. El módulo conserva su año y su mes
@@ -1970,6 +1978,8 @@
 
     if (!archivoUI) {
       archivoUI = ActividadKHB.crear({
+        botonVolver: '<button type="button" class="ent-atras" data-volver="1">' +
+          FLECHA + "Volver a Entrenamiento</button>",
         historico: Archivo.datos,
         actividades: actividadesJuntas(),
         rutas: (Rutas.datos || []),

@@ -52,6 +52,36 @@
     Walk: "and", Hike: "sen", Run: "cor", WeightTraining: "fue",
     Yoga: "fue", Workout: "fue", Rowing: "otr", WaterSport: "otr"
   };
+  /* Con qué se mide la altura de la barra del año. Cada una cuenta algo
+     distinto y ninguna sobra: las sesiones dicen cuántas veces saliste, las
+     horas cuánto tiempo, los kilómetros y el desnivel cuánto terreno, y la
+     carga cuánto costó. El reparto por deporte va dentro en todas. */
+  var METRICAS = [
+    { id: "n",   nom: "Sesiones",    campo: null,        dec: 0, suf: "" },
+    { id: "min", nom: "Horas",       campo: "min",       dec: 0, suf: "\u00a0h", div: 60 },
+    { id: "km",  nom: "Kilómetros",  campo: "km",        dec: 0, suf: "" },
+    { id: "d",   nom: "Desnivel",    campo: "desnivel",  dec: 0, suf: "\u00a0m" },
+    { id: "c",   nom: "Carga",       campo: "carga",     dec: 0, suf: "" }
+  ];
+
+  /* el orden manda en la barra apilada y en la leyenda */
+  var ORDEN_DEP = ["sen", "pas", "bici", "and", "rod", "fue", "cor", "otr"];
+
+  /* LAS FAMILIAS. Ocho colores en una barra de 54 px no se distinguen: cuatro
+     de ellos acababan midiendo un píxel. Se agrupan en cuatro, que es lo que
+     de verdad cuenta la historia — el monte de los primeros años, la bici que
+     entra en 2021, lo que se anda y lo que se hace en casa.
+     Rodillo va con bici exterior porque hoy NO sé separarlos: intervals tipó
+     los Zwift de 2022-23 como `Ride`. En cuanto llegue el campo `rodillo`,
+     sacarlo de aquí y darle familia propia es cambiar una línea. */
+  var FAMILIA = {
+    sen: "monte", pas: "pie", and: "pie", cor: "pie",
+    bici: "bici", rod: "bici", fue: "sala", otr: "sala"
+  };
+  var ORDEN_FAM = ["monte", "bici", "pie", "sala"];
+  var NOMBRE_FAM = {
+    monte: "Monte", bici: "Bici y rodillo", pie: "A pie", sala: "Sala"
+  };
   var NOMBRE_DEP = {
     sen: "Senderismo", pas: "Paseo largo", bici: "Bici exterior",
     and: "Caminar", rod: "Rodillo", fue: "Fuerza y sala",
@@ -86,6 +116,21 @@
       pts.push([lat / 1e5, lon / 1e5]);
     }
     return pts;
+  }
+
+  /* El lugar, para saber por dónde fue sin abrir el mapa. Los nombres de la
+     colección lo llevan tras el último punto —«Camino del Salto del Moro.
+     Cazorla»— y los que pone Garmin lo llevan delante: «Béost Caminar». */
+  function lugarDe(nombre) {
+    var n = String(nombre || "").trim();
+    if (!n) return null;
+    if (n.indexOf(".") > 0) {
+      var tr = n.split(".").pop().trim();
+      if (tr.length > 1) return tr;
+    }
+    var pal = n.split(/\s+/);
+    if (pal.length >= 2 && /^[A-ZÁÉÍÓÚÑ]/.test(pal[0])) return pal[0];
+    return null;
   }
 
   /* ---------- iconos por deporte, cuando no hay trazo ---------- */
@@ -166,6 +211,11 @@
     var o = opciones || {};
     var rutas = o.rutas || [];
     var traerGeo = typeof o.traerGeo === "function" ? o.traerGeo : null;
+    /* Puente con la app de mapas: si se le pasa, recibe el recuadro del dibujo
+       {s,o,n,e,px} y devuelve la URL de una imagen (IGN, OSM, lo que sea) para
+       pintar detrás del trazo. Sin ella, el trazo va sobre fondo liso. */
+    var teselaDe = typeof o.teselaDe === "function" ? o.teselaDe : null;
+    var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
 
     /* índice de rutas por fecha, para clasificar y para el mapa de las nuevas */
     var rutaPorFecha = {}, fechasSen = {};
@@ -209,6 +259,7 @@
     var estado = {
       anio: anios.length ? anios[anios.length - 1] : null,
       mes: null,           // null = el año entero
+      metrica: "n",        // con qué se mide la altura de las barras del año
       abierta: null,       // clave de la ficha desplegada
       el: null
     };
@@ -221,19 +272,91 @@
       return n;
     }
 
+    function metricaActual() {
+      for (var i = 0; i < METRICAS.length; i++) if (METRICAS[i].id === estado.metrica) return METRICAS[i];
+      return METRICAS[0];
+    }
+
+    /* Cuánto hubo ese año de cada deporte, en la métrica elegida. */
+    function repartoAnio(y, m) {
+      var meses = porAnio[y] || {}, r = {}, n = 0;
+      Object.keys(meses).forEach(function (k) {
+        meses[k].forEach(function (x) {
+          var v = m.campo ? x[m.campo] : 1;
+          if (v == null) return;                    // lo que no se sabe no suma
+          if (m.div) v = v / m.div;
+          var g = FAMILIA[x.dep] || "sala";
+          r[g] = (r[g] || 0) + v; n += v;
+        });
+      });
+      return { r: r, n: n };
+    }
+
+    /* Aviso honesto: hay métricas que el archivo viejo no guarda. */
+    function huecoDe(m) {
+      if (m.id === "min") {
+        return "Hasta 2021 solo de las salidas: el archivo no guarda la duración " +
+               "del rodillo, la fuerza ni las caminatas.";
+      }
+      if (m.id === "d") {
+        return "Hasta 2021 solo de las salidas. Y desde 2022 buena parte del " +
+               "desnivel es del rodillo, que es simulado: no compara con el de monte.";
+      }
+      if (m.id === "km") {
+        return "Un kilómetro de bici no es un kilómetro de monte: por eso los " +
+               "años de senderismo salen cortos aquí. Para compararlos, horas o carga.";
+      }
+      if (m.id === "c") return "La carga solo existe desde octubre de 2021: antes no había pulsómetro en el registro.";
+      return "";
+    }
+
     function htmlAnios() {
-      var max = 1;
-      anios.forEach(function (y) { max = Math.max(max, cuentaAnio(y)); });
-      return '<div class="akhb-anios" role="tablist" aria-label="Años">' +
-        anios.map(function (y) {
-          var n = cuentaAnio(y), sel = y === estado.anio;
-          return '<button type="button" role="tab" class="akhb-anio' + (sel ? " sel" : "") +
-            '" aria-selected="' + sel + '" data-anio="' + y + '">' +
-            '<span class="akhb-anio-n">' + y + "</span>" +
-            '<span class="akhb-barra"><i style="height:' +
-              Math.max(6, Math.round(n / max * 100)) + '%"></i></span>' +
-            '<span class="akhb-anio-c">' + n + "</span></button>";
-        }).join("") + "</div>";
+      var m = metricaActual(), max = 0, cache = {};
+      anios.forEach(function (y) { cache[y] = repartoAnio(y, m); max = Math.max(max, cache[y].n); });
+      if (!max) max = 1;
+
+      /* El volver y las medidas en la misma fila: ocupan una línea en vez de
+         dos, y el volver queda arriba del todo, que es donde se busca. El HTML
+         del botón lo pone la app (opción `botonVolver`); el módulo no sabe ni
+         tiene que saber a dónde vuelve. */
+      var selector = '<div class="akhb-cabrow">' +
+        (botonVolver || "<span></span>") +
+        '<div class="akhb-metricas" role="group" aria-label="Medida">' +
+        METRICAS.map(function (x) {
+          return '<button type="button" data-met="' + x.id + '" aria-pressed="' +
+            (x.id === m.id) + '"' + (x.id === m.id ? ' class="sel"' : "") + ">" +
+            x.nom + "</button>";
+        }).join("") + "</div></div>";
+
+      var tira = anios.map(function (y) {
+        var d = cache[y], sel = y === estado.anio;
+        /* la altura dice cuánto hubo ese año; los trozos, de qué. El mínimo
+           es para que un año flojo se siga pudiendo pulsar y ver de qué fue. */
+        var alto = d.n ? Math.max(7, Math.round(d.n / max * 100)) : 0;
+        var trozos = ORDEN_FAM.filter(function (g) { return d.r[g]; }).map(function (g) {
+          return '<i style="height:' + (d.r[g] / d.n * alto).toFixed(2) +
+                 '%;background:var(--akhb-fam-' + g + ')" title="' +
+                 esc(NOMBRE_FAM[g]) + ": " + num(d.r[g], 0) + '"></i>';
+        }).join("");
+        return '<button type="button" role="tab" class="akhb-anio' + (sel ? " sel" : "") +
+          '" aria-selected="' + sel + '" data-anio="' + y + '">' +
+          '<span class="akhb-anio-n">' + y + "</span>" +
+          '<span class="akhb-barra">' + trozos + "</span>" +
+          '<span class="akhb-anio-c">' + (d.n ? num(d.n, m.dec) + m.suf : "·") + "</span></button>";
+      }).join("");
+
+      var hay = {};
+      anios.forEach(function (y) { for (var g in cache[y].r) hay[g] = true; });
+      var leyenda = ORDEN_FAM.filter(function (g) { return hay[g]; }).map(function (g) {
+        return '<span><i style="background:var(--akhb-fam-' + g + ')"></i>' +
+               esc(NOMBRE_FAM[g]) + "</span>";
+      }).join("");
+
+      var aviso = huecoDe(m);
+      return selector +
+        '<div class="akhb-anios" role="tablist" aria-label="Años">' + tira + "</div>" +
+        '<div class="akhb-leyenda">' + leyenda + "</div>" +
+        (aviso ? '<p class="akhb-aviso">' + aviso + "</p>" : "");
     }
 
     function htmlMeses() {
@@ -268,6 +391,8 @@
       return '<li class="akhb-item">' +
         '<button type="button" class="akhb-fila" data-abre="' + clave + '" ' +
           'aria-expanded="' + abierta + '">' +
+          '<span class="akhb-tira" style="background:var(--akhb-fam-' +
+            (FAMILIA[x.dep] || "sala") + ')"></span>' +
           '<span class="akhb-dia"><b>' + d.getDate() + "</b>" +
             "<i>" + MES_CORTO[d.getMonth()] + "</i></span>" +
           '<span class="akhb-txt">' +
@@ -281,9 +406,11 @@
         "</li>";
     }
 
+    /* En filas, un campo vacío es una raya que ocupa una línea entera. Así que
+       lo que no se sabe no se pinta: la ficha dice lo que hay, no lo que falta. */
     function dato(et, v, suf) {
-      return '<div><dt>' + et + "</dt><dd>" +
-        (v == null ? '<span class="akhb-pte">—</span>' : v + (suf || "")) + "</dd></div>";
+      if (v == null || v === "") return "";
+      return '<tr><th scope="row">' + et + "</th><td>" + v + (suf || "") + "</td></tr>";
     }
 
     function htmlFicha(x, clave) {
@@ -298,16 +425,20 @@
         (x.pot   != null ? dato("Potencia", x.pot, " W") : "") +
         (x.wkg   != null ? dato("Vatios/kg", num(x.wkg, 2)) : "") +
         (x.kcal  != null ? dato("Kcal netas", num(x.kcal)) : "");
+      var lugar = lugarDe(x.nombre);
       return '<div class="akhb-ficha">' +
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
-          (x.ruta || x.poli ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
-                            : iconoSVG(x.dep)) +
+          '<div class="akhb-lienzo">' +
+            (x.ruta || x.poli ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
+                              : iconoSVG(x.dep)) +
+            (lugar ? '<span class="akhb-lugar">' + esc(lugar) + "</span>" : "") +
+          "</div>" +
           "<figcaption>" +
             (x.ruta ? esc(x.nombre || "") : x.poli ? "Trazo de Strava"
-                    : NOMBRE_DEP[x.dep] + " — sin recorrido") +
+                    : NOMBRE_DEP[x.dep] + " \u2014 sin recorrido") +
           "</figcaption>" +
         "</figure>" +
-        '<dl class="akhb-kv">' + campos + "</dl>" +
+        '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
       "</div>";
     }
 
@@ -351,43 +482,106 @@
           htmlMeses() +
           '<div class="akhb-cuerpo">' + htmlLista() + "</div>" +
         "</div>";
+      centraAnio();
       pintarMapas();
     }
 
+    /* En el móvil caben seis años de catorce: si no se hace esto, al entrar se
+       ve 2013 y el año en curso queda escondido a la derecha. Se mueve solo la
+       tira, no la página. */
+    function centraAnio() {
+      var tira = estado.el.querySelector(".akhb-anios");
+      if (!tira) return;
+      var chip = tira.querySelector(".akhb-anio.sel");
+      if (!chip) return;
+      var sobra = tira.scrollWidth - tira.clientWidth;
+      if (sobra <= 0) return;
+      var x = chip.offsetLeft - (tira.clientWidth - chip.offsetWidth) / 2;
+      tira.scrollLeft = Math.max(0, Math.min(sobra, x));
+    }
+
     /* ---------- mini mapa ---------- */
+    /* Web Mercator. Se proyecta así, y no con un coseno a ojo, porque es la
+       proyección de las teselas del IGN y de OSM: si algún día se pinta un mapa
+       detrás, el trazo cae donde tiene que caer sin tocar nada. */
+    function mX(lon) { return lon * Math.PI / 180; }
+    function mY(lat) { return Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)); }
+    function mLat(y) { return (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180 / Math.PI; }
+
     function dibujaTrazo(fig, pts) {
-      if (!pts || pts.length < 2) { fig.innerHTML = iconoSVG("otr") + fig.innerHTML; return; }
-      var lats = [], lons = [];
-      pts.forEach(function (p) { lats.push(p[0]); lons.push(p[1]); });
-      var la0 = (Math.min.apply(null, lats) + Math.max.apply(null, lats)) / 2;
-      var k = Math.cos(la0 * Math.PI / 180);
-      var xs = lons.map(function (v) { return v * k; }), ys = lats.map(function (v) { return -v; });
+      if (!pts || pts.length < 2) { pintaIcono(fig, { dep: "otr" }); return; }
+      var B = 128, P = 9, U = B - 2 * P;
+      var xs = [], ys = [], lats = [];
+      pts.forEach(function (p) { lats.push(p[0]); xs.push(mX(p[1])); ys.push(-mY(p[0])); });
       var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
       var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-      var w = (x1 - x0) || 1e-6, h = (y1 - y0) || 1e-6, S = Math.max(w, h), P = 9, B = 128;
-      var ox = P + (S - w) / S * (B - 2 * P) / 2, oy = P + (S - h) / S * (B - 2 * P) / 2;
+      var S = Math.max(x1 - x0, y1 - y0) || 1e-9;
+      var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, esc = U / S;
+
+      function px(p) {
+        return [B / 2 + (mX(p[1]) - cx) * esc, B / 2 + (-mY(p[0]) - cy) * esc];
+      }
       var d = pts.map(function (p, i) {
-        var X = ox + ((p[1] * k - x0) / S) * (B - 2 * P);
-        var Y = oy + ((-p[0] - y0) / S) * (B - 2 * P);
-        return (i ? "L" : "M") + X.toFixed(1) + " " + Y.toFixed(1);
+        var q = px(p);
+        return (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1);
       }).join(" ");
-      var pos = function (p) {
-        return [ox + ((p[1] * k - x0) / S) * (B - 2 * P),
-                oy + ((-p[0] - y0) / S) * (B - 2 * P)];
+      var a = px(pts[0]), b = px(pts[pts.length - 1]);
+
+      /* El recuadro entero, en coordenadas de la tierra: es lo que habría que
+         pedirle al servidor de mapas para que la tesela case con el trazo. */
+      var H = (S * B / U) / 2;
+      var caja = {
+        o: (cx - H) * 180 / Math.PI, e: (cx + H) * 180 / Math.PI,
+        n: mLat(-(cy - H)),          s: mLat(-(cy + H)),
+        px: B
       };
-      var a = pos(pts[0]), b = pos(pts[pts.length - 1]);
-      var cap = fig.querySelector("figcaption");
-      fig.innerHTML =
+      var fondo = "";
+      if (teselaDe) {
+        var url = null;
+        try { url = teselaDe(caja); } catch (err) { url = null; }
+        if (url) {
+          fondo = '<image href="' + esc(url) + '" x="0" y="0" width="' + B +
+                  '" height="' + B + '" preserveAspectRatio="none"/>';
+        }
+      }
+
+      /* Escala: sin ella el dibujo no dice si son dos kilómetros o veinte,
+         porque siempre se estira hasta llenar el cuadro. */
+      var la0 = (Math.min.apply(null, lats) + Math.max.apply(null, lats)) / 2;
+      var kmPorPx = (S / U) * 6378.137 * Math.cos(la0 * Math.PI / 180);
+      var pasos = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50], paso = pasos[0];
+      for (var q = 0; q < pasos.length; q++) {
+        if (pasos[q] / kmPorPx <= U * 0.42) paso = pasos[q];
+      }
+      var largo = paso / kmPorPx;
+      var esc_ = isFinite(largo) && largo > 4
+        ? '<g class="akhb-escala">' +
+            '<line x1="' + P + '" y1="' + (B - 5) + '" x2="' + (P + largo).toFixed(1) +
+              '" y2="' + (B - 5) + '"/>' +
+            '<line x1="' + P + '" y1="' + (B - 8) + '" x2="' + P + '" y2="' + (B - 2) + '"/>' +
+            '<line x1="' + (P + largo).toFixed(1) + '" y1="' + (B - 8) + '" x2="' +
+              (P + largo).toFixed(1) + '" y2="' + (B - 2) + '"/>' +
+            '<text x="' + (P + largo + 3).toFixed(1) + '" y="' + (B - 2.5) + '">' +
+              (paso < 1 ? (paso * 1000) + " m" : paso + " km") + "</text></g>"
+        : "";
+
+      var lienzo = fig.querySelector(".akhb-lienzo") || fig;
+      var chapa = lienzo.querySelector(".akhb-lugar");
+      /* El trazo va dos veces: blanco grueso debajo y color encima. Sobre fondo
+         blanco no se nota; sobre una tesela es lo que lo hace legible. */
+      lienzo.innerHTML =
         '<svg class="akhb-trazo" viewBox="0 0 ' + B + " " + B + '" role="img" ' +
-          'aria-label="Recorrido de la actividad">' +
+          'aria-label="Recorrido de la actividad">' + fondo +
+          '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="4.6" ' +
+            'stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>' +
           '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="2.4" ' +
             'stroke-linejoin="round" stroke-linecap="round"/>' +
           '<circle cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) +
             '" r="3.4" class="akhb-ini"/>' +
           '<circle cx="' + b[0].toFixed(1) + '" cy="' + b[1].toFixed(1) +
-            '" r="3.4" class="akhb-fin"/>' +
+            '" r="3.4" class="akhb-fin"/>' + esc_ +
         "</svg>";
-      if (cap) fig.appendChild(cap);
+      if (chapa) lienzo.appendChild(chapa);
     }
 
     function pintarMapas() {
@@ -424,15 +618,14 @@
     /* Si la actividad TENIA ruta y el trazo no ha llegado, no se dice «sin
        recorrido», que seria mentira: se dice que no se ha podido traer. */
     function pintaIcono(fig, x) {
+      var lienzo = fig.querySelector(".akhb-lienzo") || fig;
+      var chapa = lienzo.querySelector(".akhb-lugar");
+      lienzo.innerHTML = iconoSVG(x.dep);
+      if (chapa) lienzo.appendChild(chapa);
       var cap = fig.querySelector("figcaption");
-      fig.innerHTML = iconoSVG(x.dep);
-      if (!cap) {
-        cap = document.createElement("figcaption");
-        cap.textContent = NOMBRE_DEP[x.dep] + " \u2014 sin recorrido";
-      } else if (x.ruta || x.poli) {
+      if (cap && (x.ruta || x.poli)) {
         cap.textContent = (x.nombre ? x.nombre + " \u2014 " : "") + "no he podido traer el trazo";
       }
-      fig.appendChild(cap);
     }
 
     function buscaPorClave(clave) {
@@ -444,8 +637,11 @@
 
     /* ---------- clics ---------- */
     function alPulsar(e) {
-      var t = e.target.closest ? e.target.closest("[data-anio],[data-mes],[data-abre]") : null;
+      var t = e.target.closest ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met]") : null;
       if (!t || !estado.el.contains(t)) return;
+      if (t.hasAttribute("data-met")) {
+        estado.metrica = t.getAttribute("data-met"); pintar(); return;
+      }
       if (t.hasAttribute("data-anio")) {
         estado.anio = t.getAttribute("data-anio");
         estado.mes = null; estado.abierta = null; pintar(); return;
