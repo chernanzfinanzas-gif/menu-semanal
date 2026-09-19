@@ -24,6 +24,14 @@
   var diaSel = null;        // día abierto en la tarjeta; null = hoy
   var lunesVista = null;    // lunes de la semana que se enseña abajo; null = la de hoy
 
+  /* La flecha de «volver». Estaba declarada dentro de htmlEvolucion y de
+     htmlPlan, así que fuera de esas dos funciones no existía: usarla desde
+     Actividad lanzaba ReferenceError y el bloque no llegaba a pintarse. Aquí
+     arriba la ven todos. */
+  var FLECHA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M15 5l-7 7 7 7"/></svg>';
+
   var BLOQUES = [
     { id: "plan", nombre: "El Plan", img: "iconos/khb/3-pesas-corredor.webp",
       pie: "Lo que toca hoy, con sus casillas, y la semana entera a la vista.", listo: true },
