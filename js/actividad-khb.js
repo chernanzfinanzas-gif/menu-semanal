@@ -369,20 +369,66 @@
 
     var todas = deHistorico(o.historico).concat(deSalud(o.actividades, fechasSen));
 
-    /* a las nuevas, engancharles su ruta si ese día hay una y los km cuadran */
+    /* ---------- casar cada salida con su ruta archivada ----------
+       Se hace POR DÍA y una a una, no actividad por actividad.
+       El 29 de enero de 2026 hizo dos: Calp (5,59 km) y Altea (5,06 km), y
+       tenía las dos archivadas: Calp 6,49 y Altea 5,30. Buscando por separado
+       la más parecida en kilómetros, las DOS se quedaban con Altea —5,59 está
+       más cerca de 5,30 que de 6,49— y la del Peñón de Ifach no salía en
+       ningún sitio. Pasaba en 7 días y se perdían 8 rutas.
+       Ahora manda el nombre cuando coincide el sitio, los kilómetros deciden
+       el resto, y una ruta ya usada no se puede volver a usar ese día. */
+
+    var VACIAS = {
+      senderismo:1, caminar:1, ciclismo:1, carrera:1, correr:1, paseo:1, marcha:1,
+      ruta:1, en:1, de:1, del:1, la:1, el:1, los:1, las:1, por:1, a:1, y:1,
+      morning:1, afternoon:1, evening:1, lunch:1, night:1, walk:1, ride:1, hike:1, run:1
+    };
+    function palabras(t) {
+      var out = {};
+      String(t || "").toLowerCase()
+        .replace(/[^a-záéíóúüñ0-9\s]/g, " ")
+        .split(/\s+/).forEach(function (p) {
+          if (p.length > 2 && !VACIAS[p]) out[p] = true;
+        });
+      return out;
+    }
+    function mismoSitio(a, b) {
+      var A = palabras(a), B = palabras(b);
+      for (var k in A) if (B[k]) return true;
+      return false;
+    }
+
+    var porDia = {};
     todas.forEach(function (x) {
       if (x.ruta || x.fuente !== "salud") return;
-      var cand = rutaPorFecha[x.fecha];
+      (porDia[x.fecha] = porDia[x.fecha] || []).push(x);
+    });
+
+    Object.keys(porDia).forEach(function (f) {
+      var aa = porDia[f], cand = rutaPorFecha[f];
       if (!cand || !cand.length) return;
-      var mejor = cand[0];
-      if (x.km) {
-        mejor = cand.reduce(function (a, b) {
-          return Math.abs((b.km || 0) - x.km) < Math.abs((a.km || 0) - x.km) ? b : a;
+
+      /* todas las parejas posibles, con su coste. El nombre pesa más que los
+         kilómetros: si los dos dicen «Calp», es ésa y no hay más que hablar. */
+      var pares = [];
+      aa.forEach(function (x, i) {
+        cand.forEach(function (r, j) {
+          var d = (x.km && r.km != null) ? Math.abs(r.km - x.km) : 0;
+          if (x.km && r.km != null && d > 3 && !mismoSitio(x.nombre, r.n)) return;
+          pares.push({ i: i, j: j, coste: d - (mismoSitio(x.nombre, r.n) ? 10 : 0) });
         });
-        if (Math.abs((mejor.km || 0) - x.km) > 3) return;   // no se parecen: no es ésa
-      }
-      x.ruta = mejor.id; x.celda = mejor.c;
-      if (!x.nombre) x.nombre = mejor.n;
+      });
+      pares.sort(function (p, q) { return p.coste - q.coste; });
+
+      var actUsada = {}, rutaUsada = {};
+      pares.forEach(function (p) {
+        if (actUsada[p.i] || rutaUsada[p.j]) return;
+        actUsada[p.i] = rutaUsada[p.j] = true;
+        var x = aa[p.i], r = cand[p.j];
+        x.ruta = r.id; x.celda = r.c;
+        if (!x.nombre) x.nombre = r.n;
+      });
     });
 
     /* Lo que trae Strava, sólo donde no llega la colección. */
