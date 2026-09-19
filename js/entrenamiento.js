@@ -1815,27 +1815,33 @@
   /* El histórico vive en otro fichero del mismo repositorio y son 230 KB:
      solo se pide cuando hace falta, es decir, al elegir «Todo». */
   var Historico = {
-    /* v2 a propósito: el histórico se guarda SIN caducidad —una vez en el
-       móvil, no se vuelve a pedir nunca—, así que al rellenar `actividades`
-       en el fichero había que cambiar la clave o nadie se enteraría del
-       cambio. Subir el número es la forma de decir «esta copia ya no vale». */
-    CLAVE: "khb-salud-hist-v2",
+    /* Antes se guardaba SIN caducidad: una vez en el móvil no se volvía a
+       pedir nunca, y cada corrección del fichero obligaba a subir el número de
+       la clave aquí, a tocar index.html y a tocar sw.js, y a acordarse de
+       hacerlo. Se olvidó una vez, y 2022, 2023 y 2024 no aparecían.
+       Ahora caduca a las 24 horas, como el índice de rutas: la copia guardada
+       se usa para pintar al instante y, si es de ayer, se pide otra vez por
+       detrás. Un fichero al día no es nada, y deja de depender de la memoria. */
+    CLAVE: "khb-salud-hist-v3",
     RUTA: "datos/salud-historico.json",
+    FRESCO_H: 24,
     datos: null,
+    traidoEl: null,
     estado: "nada",
 
     deCache: function () {
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
-        if (j && j.datos) { this.datos = j.datos; this.estado = "ok"; return true; }
-      } catch (e) {}
-      return false;
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+      } catch (e) { return false; }
     },
 
     cargar: function (alTerminar) {
       var self = this;
-      if (this.datos || this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
-      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }   // fresco: no se pide
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
       var c = Salud.cfg();
@@ -1845,11 +1851,17 @@
         .then(function (r) { if (!r.ok) throw 0; return r.json(); })
         .then(function (j) {
           self.datos = JSON.parse(Salud.deB64(j.content));
-          self.estado = "ok";
-          try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE,
+              JSON.stringify({ traidoEl: self.traidoEl, datos: self.datos }));
+          } catch (e) {}
           if (alTerminar) alTerminar();
         })
-        .catch(function () { self.estado = "error"; if (alTerminar) alTerminar(); });
+        .catch(function () {
+          self.estado = self.datos ? "ok" : "error";     // con la copia vieja se sigue
+          if (alTerminar) alTerminar();
+        });
     }
   };
 
@@ -1903,6 +1915,64 @@
           if (alTerminar) alTerminar();
         })
         .catch(function () { self.estado = "error"; if (alTerminar) alTerminar(); });
+    }
+  };
+
+  /* Las actividades de 2021 a 2025 con todos sus campos.
+     Vivían dentro de salud-historico.json, pero al darles los datos de la
+     ficha (potencia, zonas de pulso, alturas, el tiempo que hacía) pasaron a
+     ser el 84% de aquel fichero, y la app se lo traía entero sólo para pintar
+     el peso. Ahora van aparte y sólo se piden al entrar en Actividad.
+     Si no está publicado todavía, no pasa nada: se queda en «no-hay» y las
+     actividades salen de donde salían antes. */
+  var ActHistorico = {
+    CLAVE: "khb-act-hist-v1",
+    RUTA: "datos/actividades-historico.json",
+    FRESCO_H: 24,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+      } catch (e) { return false; }
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.estado === "cargando" || this.estado === "no-hay") {
+        if (alTerminar) alTerminar(); return;
+      }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) {
+          if (r.status === 404) { self.estado = "no-hay"; throw "404"; }   // aún no publicado
+          if (!r.ok) throw 0;
+          return r.json();
+        })
+        .then(function (j) {
+          var d = JSON.parse(Salud.deB64(j.content));
+          self.datos = d.actividades || [];
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE,
+              JSON.stringify({ traidoEl: self.traidoEl, datos: self.datos }));
+          } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        .catch(function () {
+          if (self.estado !== "no-hay") self.estado = self.datos ? "ok" : "error";
+          if (alTerminar) alTerminar();
+        });
     }
   };
 
@@ -1992,10 +2062,23 @@
   var archivoUI = null;        // la instancia del módulo, con su año y mes abiertos
   var geoCache = {};           // celda → geometría, para no pedirla dos veces
 
+  /* Las actividades vienen de tres sitios y pueden solaparse: la ventana
+     reciente de salud.json, el fichero propio de 2021-2025 y —mientras dure el
+     cambio— lo que aún quede dentro de salud-historico.json. Manda la primera
+     que aparezca, que es la más reciente. */
   function actividadesJuntas() {
-    var a = (Salud.datos && Salud.datos.actividades) || [];
-    var b = (Historico.datos && Historico.datos.actividades) || [];
-    return a.concat(b);
+    var vistos = {}, out = [];
+    [(Salud.datos && Salud.datos.actividades) || [],
+     ActHistorico.datos || [],
+     (Historico.datos && Historico.datos.actividades) || []].forEach(function (lista) {
+      for (var i = 0; i < lista.length; i++) {
+        var id = lista[i] && lista[i].id;
+        if (id == null) { out.push(lista[i]); continue; }
+        if (vistos[id]) continue;
+        vistos[id] = 1; out.push(lista[i]);
+      }
+    });
+    return out;
   }
 
   function htmlActividad() {
@@ -2090,6 +2173,7 @@
     Archivo.cargar(repinta);
     Rutas.cargar(repinta);
     Trazos.cargar(repinta);
+    ActHistorico.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);
   }
 
