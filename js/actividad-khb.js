@@ -271,10 +271,14 @@
   }
 
   function deSalud(acts, fechasSen) {
-    var fuera = [];
+    var fuera = [], vistos = {};
     (acts || []).forEach(function (a) {
       var f = String(a.fecha || "").slice(0, 10);
       if (!f || f < CORTE) return;                 // antes del corte manda el puente
+      /* Las actividades llegan de dos sitios —el salud.json de la ventana y el
+         histórico— y los tramos se solapan. Sin esto, una sesión que esté en
+         los dos se cuenta dos veces. */
+      if (a.id) { if (vistos[a.id]) return; vistos[a.id] = true; }
       var dep = TIPO[a.tipo] || "otr";
       /* Walk es a la vez paseo y monte: lo decide la colección de rutas */
       if (dep === "and" && fechasSen && fechasSen[f]) dep = "sen";
