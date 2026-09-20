@@ -389,6 +389,208 @@
     return fuera;
   }
 
+  /* ============ LA SILUETA ============
+     Contorno propio, dibujado con puntos de anatomía y suavizado con curvas:
+     hombro, cintura, cadera, gemelo y pie. Es el MISMO contorno para las dos
+     vistas —una persona no cambia de forma al darse la vuelta—, lo que cambia
+     son los músculos que se pintan encima.
+     El truco está en el RECORTE: los músculos son formas sencillas (rectángulos
+     redondeados y óvalos) y el contorno del cuerpo los recorta, así cada zona
+     acaba con la forma exacta del brazo, del muslo o del costado sin tener que
+     dibujarla a mano una a una. viewBox 0 0 120 300. */
+  var CUERPO = {
+    contorno: "M60.0,6.0 C58.7,6.3 54.2,6.3 52.0,8.0 C49.8,9.7 48.0,13.0 47.0,16.0 C46.0,19.0 45.8,23.0 46.0,26.0 C46.2,29.0 47.0,31.7 48.0,34.0 C49.0,36.3 51.0,38.2 52.0,40.0 C53.0,41.8 53.7,42.8 54.0,45.0 C54.3,47.2 55.0,51.0 54.0,53.0 C53.0,55.0 50.5,55.7 48.0,57.0 C45.5,58.3 41.8,59.5 39.0,61.0 C36.2,62.5 33.3,63.8 31.0,66.0 C28.7,68.2 26.3,71.0 25.0,74.0 C23.7,77.0 23.7,80.2 23.0,84.0 C22.3,87.8 21.5,92.7 21.0,97.0 C20.5,101.3 20.3,105.5 20.0,110.0 C19.7,114.5 19.3,119.2 19.0,124.0 C18.7,128.8 18.0,134.5 18.0,139.0 C18.0,143.5 19.2,147.5 19.0,151.0 C18.8,154.5 17.2,156.5 17.0,160.0 C16.8,163.5 17.0,169.2 18.0,172.0 C19.0,174.8 21.5,177.3 23.0,177.0 C24.5,176.7 26.0,172.8 27.0,170.0 C28.0,167.2 28.5,163.2 29.0,160.0 C29.5,156.8 29.7,154.5 30.0,151.0 C30.3,147.5 30.7,143.3 31.0,139.0 C31.3,134.7 31.7,129.7 32.0,125.0 C32.3,120.3 32.5,115.7 33.0,111.0 C33.5,106.3 34.3,101.2 35.0,97.0 C35.7,92.8 36.2,89.2 37.0,86.0 C37.8,82.8 39.0,77.3 40.0,78.0 C41.0,78.7 42.2,86.0 43.0,90.0 C43.8,94.0 44.5,98.0 45.0,102.0 C45.5,106.0 45.8,110.5 46.0,114.0 C46.2,117.5 46.3,119.8 46.0,123.0 C45.7,126.2 44.5,129.7 44.0,133.0 C43.5,136.3 43.3,139.0 43.0,143.0 C42.7,147.0 42.3,151.3 42.0,157.0 C41.7,162.7 41.0,170.3 41.0,177.0 C41.0,183.7 41.5,191.7 42.0,197.0 C42.5,202.3 43.5,205.7 44.0,209.0 C44.5,212.3 45.3,213.0 45.0,217.0 C44.7,221.0 42.2,227.3 42.0,233.0 C41.8,238.7 43.3,245.7 44.0,251.0 C44.7,256.3 45.5,261.0 46.0,265.0 C46.5,269.0 47.3,271.7 47.0,275.0 C46.7,278.3 44.5,282.0 44.0,285.0 C43.5,288.0 42.2,291.5 44.0,293.0 C45.8,294.5 52.7,295.2 55.0,294.0 C57.3,292.8 58.0,289.2 58.0,286.0 C58.0,282.8 55.5,278.5 55.0,275.0 C54.5,271.5 55.2,269.7 55.0,265.0 C54.8,260.3 54.0,253.7 54.0,247.0 C54.0,240.3 54.7,231.0 55.0,225.0 C55.3,219.0 55.7,216.7 56.0,211.0 C56.3,205.3 56.7,198.0 57.0,191.0 C57.3,184.0 57.7,175.3 58.0,169.0 C58.3,162.7 58.7,156.2 59.0,153.0 C59.3,149.8 59.8,150.5 60.0,150.0 C60.2,149.5 59.8,149.5 60.0,150.0 C60.2,150.5 60.7,149.8 61.0,153.0 C61.3,156.2 61.7,162.7 62.0,169.0 C62.3,175.3 62.7,184.0 63.0,191.0 C63.3,198.0 63.7,205.3 64.0,211.0 C64.3,216.7 64.7,219.0 65.0,225.0 C65.3,231.0 66.0,240.3 66.0,247.0 C66.0,253.7 65.2,260.3 65.0,265.0 C64.8,269.7 65.5,271.5 65.0,275.0 C64.5,278.5 62.0,282.8 62.0,286.0 C62.0,289.2 62.7,292.8 65.0,294.0 C67.3,295.2 74.2,294.5 76.0,293.0 C77.8,291.5 76.5,288.0 76.0,285.0 C75.5,282.0 73.3,278.3 73.0,275.0 C72.7,271.7 73.5,269.0 74.0,265.0 C74.5,261.0 75.3,256.3 76.0,251.0 C76.7,245.7 78.2,238.7 78.0,233.0 C77.8,227.3 75.3,221.0 75.0,217.0 C74.7,213.0 75.5,212.3 76.0,209.0 C76.5,205.7 77.5,202.3 78.0,197.0 C78.5,191.7 79.0,183.7 79.0,177.0 C79.0,170.3 78.3,162.7 78.0,157.0 C77.7,151.3 77.3,147.0 77.0,143.0 C76.7,139.0 76.5,136.3 76.0,133.0 C75.5,129.7 74.3,126.2 74.0,123.0 C73.7,119.8 73.8,117.5 74.0,114.0 C74.2,110.5 74.5,106.0 75.0,102.0 C75.5,98.0 76.2,94.0 77.0,90.0 C77.8,86.0 79.0,78.7 80.0,78.0 C81.0,77.3 82.2,82.8 83.0,86.0 C83.8,89.2 84.3,92.8 85.0,97.0 C85.7,101.2 86.5,106.3 87.0,111.0 C87.5,115.7 87.7,120.3 88.0,125.0 C88.3,129.7 88.7,134.7 89.0,139.0 C89.3,143.3 89.7,147.5 90.0,151.0 C90.3,154.5 90.5,156.8 91.0,160.0 C91.5,163.2 92.0,167.2 93.0,170.0 C94.0,172.8 95.5,176.7 97.0,177.0 C98.5,177.3 101.0,174.8 102.0,172.0 C103.0,169.2 103.2,163.5 103.0,160.0 C102.8,156.5 101.2,154.5 101.0,151.0 C100.8,147.5 102.0,143.5 102.0,139.0 C102.0,134.5 101.3,128.8 101.0,124.0 C100.7,119.2 100.3,114.5 100.0,110.0 C99.7,105.5 99.5,101.3 99.0,97.0 C98.5,92.7 97.7,87.8 97.0,84.0 C96.3,80.2 96.3,77.0 95.0,74.0 C93.7,71.0 91.3,68.2 89.0,66.0 C86.7,63.8 83.8,62.5 81.0,61.0 C78.2,59.5 74.5,58.3 72.0,57.0 C69.5,55.7 67.0,55.0 66.0,53.0 C65.0,51.0 65.7,47.2 66.0,45.0 C66.3,42.8 67.0,41.8 68.0,40.0 C69.0,38.2 71.0,36.3 72.0,34.0 C73.0,31.7 73.8,29.0 74.0,26.0 C74.2,23.0 74.0,19.0 73.0,16.0 C72.0,13.0 70.2,9.7 68.0,8.0 C65.8,6.3 61.3,6.3 60.0,6.0 C58.7,5.7 61.3,5.7 60.0,6.0 Z",
+    frente: [
+      ["trapecio", "M45.0,54.0 h30.0 a6.0,6.0 0 0 1 6.0,6.0 v0.0 a6.0,6.0 0 0 1 -6.0,6.0 h-30.0 a6.0,6.0 0 0 1 -6.0,-6.0 v0.0 a6.0,6.0 0 0 1 6.0,-6.0 Z"],
+      ["hombro", "M15.0,74.0 a14.0,13.0 0 1 0 28.0,0 a14.0,13.0 0 1 0 -28.0,0 Z M77.0,74.0 a14.0,13.0 0 1 0 28.0,0 a14.0,13.0 0 1 0 -28.0,0 Z"],
+      ["pecho", "M51.0,64.0 h18.0 a13.0,13.0 0 0 1 13.0,13.0 v12.0 a13.0,13.0 0 0 1 -13.0,13.0 h-18.0 a13.0,13.0 0 0 1 -13.0,-13.0 v-12.0 a13.0,13.0 0 0 1 13.0,-13.0 Z"],
+      ["abdomen", "M57.0,102.0 h6.0 a9.0,9.0 0 0 1 9.0,9.0 v20.0 a9.0,9.0 0 0 1 -9.0,9.0 h-6.0 a9.0,9.0 0 0 1 -9.0,-9.0 v-20.0 a9.0,9.0 0 0 1 9.0,-9.0 Z"],
+      ["oblicuo", "M42.0,98.0 h1.0 a6.0,6.0 0 0 1 6.0,6.0 v32.0 a6.0,6.0 0 0 1 -6.0,6.0 h-1.0 a6.0,6.0 0 0 1 -6.0,-6.0 v-32.0 a6.0,6.0 0 0 1 6.0,-6.0 Z M77.0,98.0 h1.0 a6.0,6.0 0 0 1 6.0,6.0 v32.0 a6.0,6.0 0 0 1 -6.0,6.0 h-1.0 a6.0,6.0 0 0 1 -6.0,-6.0 v-32.0 a6.0,6.0 0 0 1 6.0,-6.0 Z"],
+      ["biceps", "M26.0,84.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v8.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-8.0 a11.0,11.0 0 0 1 11.0,-11.0 Z M92.0,84.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v8.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-8.0 a11.0,11.0 0 0 1 11.0,-11.0 Z"],
+      ["antebrazo", "M23.0,116.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v18.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-18.0 a11.0,11.0 0 0 1 11.0,-11.0 Z M95.0,116.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v18.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-18.0 a11.0,11.0 0 0 1 11.0,-11.0 Z"],
+      ["cuadriceps", "M47.0,150.0 h1.0 a10.0,10.0 0 0 1 10.0,10.0 v32.0 a10.0,10.0 0 0 1 -10.0,10.0 h-1.0 a10.0,10.0 0 0 1 -10.0,-10.0 v-32.0 a10.0,10.0 0 0 1 10.0,-10.0 Z M72.0,150.0 h1.0 a10.0,10.0 0 0 1 10.0,10.0 v32.0 a10.0,10.0 0 0 1 -10.0,10.0 h-1.0 a10.0,10.0 0 0 1 -10.0,-10.0 v-32.0 a10.0,10.0 0 0 1 10.0,-10.0 Z"],
+      ["gemelo", "M46.0,218.0 h0.0 a9.0,9.0 0 0 1 9.0,9.0 v28.0 a9.0,9.0 0 0 1 -9.0,9.0 h0.0 a9.0,9.0 0 0 1 -9.0,-9.0 v-28.0 a9.0,9.0 0 0 1 9.0,-9.0 Z M74.0,218.0 h0.0 a9.0,9.0 0 0 1 9.0,9.0 v28.0 a9.0,9.0 0 0 1 -9.0,9.0 h0.0 a9.0,9.0 0 0 1 -9.0,-9.0 v-28.0 a9.0,9.0 0 0 1 9.0,-9.0 Z"],
+    ],
+    espalda: [
+      ["trapecio", "M52.0,54.0 h16.0 a13.0,13.0 0 0 1 13.0,13.0 v10.0 a13.0,13.0 0 0 1 -13.0,13.0 h-16.0 a13.0,13.0 0 0 1 -13.0,-13.0 v-10.0 a13.0,13.0 0 0 1 13.0,-13.0 Z"],
+      ["hombro", "M15.0,74.0 a14.0,13.0 0 1 0 28.0,0 a14.0,13.0 0 1 0 -28.0,0 Z M77.0,74.0 a14.0,13.0 0 1 0 28.0,0 a14.0,13.0 0 1 0 -28.0,0 Z"],
+      ["dorsal", "M48.0,88.0 h24.0 a13.0,13.0 0 0 1 13.0,13.0 v6.0 a13.0,13.0 0 0 1 -13.0,13.0 h-24.0 a13.0,13.0 0 0 1 -13.0,-13.0 v-6.0 a13.0,13.0 0 0 1 13.0,-13.0 Z"],
+      ["lumbar", "M50.0,118.0 h20.0 a8.0,8.0 0 0 1 8.0,8.0 v0.0 a8.0,8.0 0 0 1 -8.0,8.0 h-20.0 a8.0,8.0 0 0 1 -8.0,-8.0 v0.0 a8.0,8.0 0 0 1 8.0,-8.0 Z"],
+      ["gluteo", "M51.0,132.0 h18.0 a12.0,12.0 0 0 1 12.0,12.0 v2.0 a12.0,12.0 0 0 1 -12.0,12.0 h-18.0 a12.0,12.0 0 0 1 -12.0,-12.0 v-2.0 a12.0,12.0 0 0 1 12.0,-12.0 Z"],
+      ["triceps", "M26.0,84.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v8.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-8.0 a11.0,11.0 0 0 1 11.0,-11.0 Z M92.0,84.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v8.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-8.0 a11.0,11.0 0 0 1 11.0,-11.0 Z"],
+      ["antebrazo", "M23.0,116.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v18.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-18.0 a11.0,11.0 0 0 1 11.0,-11.0 Z M95.0,116.0 h2.0 a11.0,11.0 0 0 1 11.0,11.0 v18.0 a11.0,11.0 0 0 1 -11.0,11.0 h-2.0 a11.0,11.0 0 0 1 -11.0,-11.0 v-18.0 a11.0,11.0 0 0 1 11.0,-11.0 Z"],
+      ["isquios", "M47.0,158.0 h1.0 a10.0,10.0 0 0 1 10.0,10.0 v28.0 a10.0,10.0 0 0 1 -10.0,10.0 h-1.0 a10.0,10.0 0 0 1 -10.0,-10.0 v-28.0 a10.0,10.0 0 0 1 10.0,-10.0 Z M72.0,158.0 h1.0 a10.0,10.0 0 0 1 10.0,10.0 v28.0 a10.0,10.0 0 0 1 -10.0,10.0 h-1.0 a10.0,10.0 0 0 1 -10.0,-10.0 v-28.0 a10.0,10.0 0 0 1 10.0,-10.0 Z"],
+      ["gemelo", "M46.0,218.0 h0.0 a9.0,9.0 0 0 1 9.0,9.0 v28.0 a9.0,9.0 0 0 1 -9.0,9.0 h0.0 a9.0,9.0 0 0 1 -9.0,-9.0 v-28.0 a9.0,9.0 0 0 1 9.0,-9.0 Z M74.0,218.0 h0.0 a9.0,9.0 0 0 1 9.0,9.0 v28.0 a9.0,9.0 0 0 1 -9.0,9.0 h0.0 a9.0,9.0 0 0 1 -9.0,-9.0 v-28.0 a9.0,9.0 0 0 1 9.0,-9.0 Z"],
+    ],
+  };
+
+  /* ============ DEL EJERCICIO AL MÚSCULO ============
+     No es una lista de 104 nombres: es una lista de REGLAS por palabras, en el
+     orden en que se prueban. Así un ejercicio nuevo que aparezca mañana —Garmin
+     añade nombres cada temporada— cae solo en su sitio sin tocar nada.
+     Cada regla reparte el trabajo entre músculos: un press de banca no es sólo
+     pecho, lleva tríceps y hombro delante. Los números suman 1. */
+  var MUSCULOS = [
+    // [ qué palabras, {zona: parte del trabajo} ]
+    [["curl de muñeca","estiramiento de antebrazos"], {antebrazo:1}],
+    [["curl"],                      {biceps:.75, antebrazo:.25}],
+    [["dominadas","jalón","jalon"], {dorsal:.55, biceps:.25, trapecio:.2}],
+    [["remo"],                      {dorsal:.5, trapecio:.25, biceps:.25}],
+    [["pullover"],                  {dorsal:.6, pecho:.4}],
+    [["aperturas invertidas","tirones frontales"], {hombro:.5, trapecio:.5}],
+    [["aperturas","cruce de poleas","estiramiento pectoral"], {pecho:.85, hombro:.15}],
+    [["press de banca","press inclinado","press declinado","press de pecho",
+      "press invertido","flexiones"],{pecho:.6, triceps:.25, hombro:.15}],
+    [["fondos"],                    {pecho:.45, triceps:.45, hombro:.1}],
+    [["press de hombros","press arnold"], {hombro:.7, triceps:.3}],
+    [["elevación lateral","elevacion lateral","elevación frontal","elevacion frontal",
+      "elevación con disco","elevacion con disco"], {hombro:1}],
+    [["encogimiento"],              {trapecio:1}],
+    [["tríceps","triceps","patada de tríceps","patada de triceps"], {triceps:1}],
+    [["abdominales","crunch","plancha","elevación de piernas","elevacion de piernas"],
+                                    {abdomen:.8, oblicuo:.2}],
+    [["flexión lateral","flexion lateral"], {oblicuo:1}],
+    [["extensión lumbar","extension lumbar"], {lumbar:.7, gluteo:.3}],
+    [["peso muerto"],               {lumbar:.35, gluteo:.3, isquios:.25, trapecio:.1}],
+    [["curl femoral"],              {isquios:1}],
+    [["extensión de piernas","extension de piernas"], {cuadriceps:1}],
+    [["sentadilla","prensa de piernas","zancadas","tijeras"],
+                                    {cuadriceps:.55, gluteo:.3, isquios:.15}],
+    [["gemelo","estiramiento de gemelos"], {gemelo:1}],
+    [["abducción de cadera","abduccion de cadera","balanceo de cadera",
+      "movilidad de cadera"],       {gluteo:1}]
+  ];
+  /* Lo que no encaja en ninguna regla —«Calentamiento», «sin identificar»— no se
+     pinta. Mejor un muñeco que dice menos que uno que se inventa el músculo. */
+  function zonasDe(nombre) {
+    var n = String(nombre || "").toLowerCase();
+    for (var i = 0; i < MUSCULOS.length; i++) {
+      var claves = MUSCULOS[i][0];
+      for (var j = 0; j < claves.length; j++) if (n.indexOf(claves[j]) >= 0) return MUSCULOS[i][1];
+    }
+    return null;
+  }
+
+  /* Nombre en castellano de cada zona, para la leyenda */
+  var ZONA_ES = {
+    pecho: "Pecho", hombro: "Hombros", biceps: "B\u00edceps", triceps: "Tr\u00edceps",
+    antebrazo: "Antebrazos", trapecio: "Trapecio", dorsal: "Dorsal", lumbar: "Lumbar",
+    abdomen: "Abdomen", oblicuo: "Oblicuos", gluteo: "Gl\u00fateos", cuadriceps: "Cu\u00e1driceps",
+    isquios: "Isquiotibiales", gemelo: "Gemelos"
+  };
+
+  /* Del gris al rojo. La curva no es recta a propósito: una zona trabajada a un
+     tercio del máximo tiene que VERSE roja, no quedarse en gris. */
+  function colorZona(t) {
+    var a = [228, 232, 237], b = [193, 28, 38], p = 0.2 + 0.8 * Math.pow(t, 0.65), i, s = [];
+    for (i = 0; i < 3; i++) s.push(Math.round(a[i] + (b[i] - a[i]) * p));
+    return "rgb(" + s.join(",") + ")";
+  }
+
+  var _nCuerpo = 0;
+
+  /* La mancuerna de adorno: dice «esto es fuerza» de un vistazo. Se dibuja aquí
+     en vez de reaprovechar el icono de la app porque ése es una imagen y no se
+     puede teñir; ésta lleva el color de la familia «Fuerza y sala». */
+  var PESA =
+    '<svg viewBox="0 0 64 28" aria-hidden="true">' +
+      '<rect x="2" y="7" width="7" height="14" rx="2.5"></rect>' +
+      '<rect x="10" y="3" width="8" height="22" rx="3"></rect>' +
+      '<rect x="18" y="11" width="28" height="6" rx="3"></rect>' +
+      '<rect x="46" y="3" width="8" height="22" rx="3"></rect>' +
+      '<rect x="55" y="7" width="7" height="14" rx="2.5"></rect>' +
+    "</svg>";
+
+  /* LOS MUÑECOS. El color dice en qué se gastó el esfuerzo ESE día: la zona más
+     trabajada va al rojo entero y las demás en proporción a los kilos movidos.
+     No se compara con el histórico a propósito —así ninguna ficha sale en
+     blanco—, y los kilos se reparten entre los músculos de cada ejercicio, que
+     un press de banca no es sólo pecho: lleva tríceps y hombro delante. */
+  function zonasSesion(series) {
+    var zonas = {}, k, i, z, max = 0, hay = 0;
+    for (i = 0; i < (series || []).length; i++) {
+      z = zonasDe(series[i].que);
+      if (!z) continue;
+      for (k in z) zonas[k] = (zonas[k] || 0) + (series[i].kg_total || 0) * z[k];
+    }
+    for (k in zonas) { hay = 1; if (zonas[k] > max) max = zonas[k]; }
+    return hay && max ? { zonas: zonas, max: max } : null;
+  }
+
+  /* LAS DOS FIGURAS. Van donde antes estaba el icono de la mancuerna: en una
+     sesión de pesas ese hueco sólo decía «esto es fuerza», y ahora dice en qué
+     músculos se gastó. La mancuerna se queda de marca de agua, en pequeño. */
+  function htmlFiguras(series) {
+    var r = zonasSesion(series);
+    if (!r) return "";
+    function figura(vista, titulo) {
+      var id = "akhb-c" + (++_nCuerpo), musc = "", t, p, i;
+      for (i = 0; i < CUERPO[vista].length; i++) {
+        p = CUERPO[vista][i];
+        t = (r.zonas[p[0]] || 0) / r.max;
+        if (t > 0) musc += '<path d="' + p[1] + '" fill="' + colorZona(t) + '"></path>';
+      }
+      return '<figure class="akhb-c-fig"><svg viewBox="0 0 120 300" aria-hidden="true">' +
+        '<defs><clipPath id="' + id + '"><path d="' + CUERPO.contorno + '"></path></clipPath></defs>' +
+        '<path class="akhb-c-piel" d="' + CUERPO.contorno + '"></path>' +
+        '<g clip-path="url(#' + id + ')">' + musc + "</g>" +
+        '<path class="akhb-c-linea" d="' + CUERPO.contorno + '"></path></svg>' +
+        "<figcaption>" + titulo + "</figcaption></figure>";
+    }
+    return '<div class="akhb-cuerpos">' +
+      '<span class="akhb-c-pesa" aria-hidden="true">' + PESA + "</span>" +
+      figura("frente", "Frente") + figura("espalda", "Espalda") + "</div>";
+  }
+
+  /* La leyenda, en fila y por encima de la tabla de series */
+  function htmlLeyenda(series) {
+    var r = zonasSesion(series), orden = [], k;
+    if (!r) return "";
+    for (k in r.zonas) orden.push([k, r.zonas[k]]);
+    orden.sort(function (a, b) { return b[1] - a[1]; });
+    return '<ul class="akhb-c-ley">' + orden.map(function (o) {
+      return '<li><i style="background:' + colorZona(o[1] / r.max) + '"></i>' +
+        (ZONA_ES[o[0]] || o[0]) + " <b>" + num(Math.round(o[1])) + " kg</b></li>";
+    }).join("") + "</ul>";
+  }
+
+  function htmlCuerpo(series) {
+    var zonas = {}, k, i, z, max = 0, hay = 0;
+    for (i = 0; i < series.length; i++) {
+      z = zonasDe(series[i].que);
+      if (!z) continue;
+      for (k in z) zonas[k] = (zonas[k] || 0) + (series[i].kg_total || 0) * z[k];
+    }
+    for (k in zonas) { hay = 1; if (zonas[k] > max) max = zonas[k]; }
+    if (!hay || !max) return "";
+
+    function figura(vista, titulo) {
+      var id = "akhb-c" + (++_nCuerpo), musc = "", t, p;
+      for (i = 0; i < CUERPO[vista].length; i++) {
+        p = CUERPO[vista][i];
+        t = (zonas[p[0]] || 0) / max;
+        if (t > 0) musc += '<path d="' + p[1] + '" fill="' + colorZona(t) + '"></path>';
+      }
+      return '<figure class="akhb-c-fig"><svg viewBox="0 0 120 300" aria-hidden="true">' +
+        '<defs><clipPath id="' + id + '"><path d="' + CUERPO.contorno + '"></path></clipPath></defs>' +
+        '<path class="akhb-c-piel" d="' + CUERPO.contorno + '"></path>' +
+        '<g clip-path="url(#' + id + ')">' + musc + "</g>" +
+        '<path class="akhb-c-linea" d="' + CUERPO.contorno + '"></path></svg>' +
+        "<figcaption>" + titulo + "</figcaption></figure>";
+    }
+
+    var orden = [];
+    for (k in zonas) orden.push([k, zonas[k]]);
+    orden.sort(function (a, b) { return b[1] - a[1]; });
+    var leyenda = orden.slice(0, 8).map(function (o) {
+      return '<li><i style="background:' + colorZona(o[1] / max) + '"></i>' +
+        (ZONA_ES[o[0]] || o[0]) + " <b>" + num(Math.round(o[1])) + " kg</b></li>";
+    }).join("");
+
+    return '<div class="akhb-cuerpo">' + figura("frente", "Frente") + figura("espalda", "Espalda") +
+      '<ul class="akhb-c-ley">' + leyenda + "</ul></div>";
+  }
+
   /* ---------- el objeto ---------- */
   function crear(opciones) {
     var o = opciones || {};
@@ -763,6 +965,7 @@
          supo qué ejercicio era —lleva tres códigos por serie y no coinciden—,
          y el nombre bueno llega con la siguiente exportación de Garmin. */
       var series = (fuerza && x.id) ? fuerza[x.id] : null;
+      var figuras = (series && series.length) ? htmlFiguras(series) : "";
       var tablaFuerza = "";
       if (series && series.length) {
         var tot = { series: 0, reps: 0, kg: 0, min: 0 };
@@ -778,6 +981,7 @@
         }).join("");
         tablaFuerza =
           '<div class="akhb-fuerza">' +
+            htmlLeyenda(series) +
             "<h5>" + series.length + (series.length === 1 ? " ejercicio" : " ejercicios") +
               " \u00b7 " + tot.series + " series \u00b7 " + tot.reps + " repeticiones" +
               (tot.kg ? " \u00b7 " + num(tot.kg) + " kg movidos" : "") + "</h5>" +
@@ -790,7 +994,7 @@
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
           '<div class="akhb-lienzo">' +
             (llevaMapa(x) ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
-                          : iconoHTML(x.dep)) +
+                          : (figuras || iconoHTML(x.dep))) +
             (lugar ? '<span class="akhb-lugar" data-pueblo="' +
                        esc(lugarDe(x.nombre) || "") + '">' + esc(lugar) + "</span>" : "") +
           "</div>" +
@@ -1145,6 +1349,9 @@
 
     function pintaIcono(fig, x) {
       var lienzo = fig.querySelector(".akhb-lienzo") || fig;
+      /* En una sesión de pesas el hueco lo ocupan los muñecos, no el icono.
+         Esto se llama al terminar de pintar y antes borraba lo que ya había. */
+      if (lienzo.querySelector(".akhb-cuerpos")) return;
       var chapa = lienzo.querySelector(".akhb-lugar");
       lienzo.innerHTML = iconoHTML(x.dep);
       if (chapa) lienzo.appendChild(chapa);
