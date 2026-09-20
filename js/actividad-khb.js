@@ -371,7 +371,10 @@
        en la pata, nunca dentro de salud.json, que se carga entero al abrir.
        Manda menos que la colección: si algún día archivas el GPX de una de
        éstas, la ruta buena gana y esto se cae solo sin limpiar nada. */
-    var trazos = o.trazos || null;
+    /* El fichero es {meta, trazos, sin}: la actividad está DENTRO de `trazos`,
+       no en la raíz. Se aceptan las dos formas porque antes se buscaba en la
+       raíz y no encontraba nunca nada: ni un trazo ni un perfil. */
+    var trazos = (o.trazos && o.trazos.trazos) ? o.trazos.trazos : (o.trazos || null);
     /* Las series de cada sesión de pesas, por id de actividad. Es lo único que
        intervals no guarda: sale del fichero original del reloj, y lo rellena el
        paso del FIT del workflow. Si no está, la ficha sale como antes. */
