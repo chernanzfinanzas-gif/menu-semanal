@@ -68,6 +68,22 @@
       ".ent-rn-hay ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}",
       ".ent-rn-hay li{margin:2px 0}",
       ".ent-rn-hay .nota-peque{margin:8px 0 0}",
+      /* ---- hasta dónde llega cada medida ---- */
+      ".evo-frescura{margin:18px 0 0;border:1px solid var(--azul-borde);border-radius:10px;" +
+        "padding:10px 14px;background:#fff}",
+      ".evo-frescura.toca{border-color:rgba(179,64,47,.45);border-left:4px solid #b3402f}",
+      ".evo-frescura summary{cursor:pointer;font-weight:600;color:var(--azul);font-size:.92rem}",
+      ".evo-frescura p{font-size:.88rem;line-height:1.5;margin:10px 0}",
+      ".evo-chip{background:#b3402f;color:#fff;border-radius:999px;padding:1px 8px;" +
+        "font-size:.72rem;font-weight:600;margin-left:6px;white-space:nowrap}",
+      ".evo-tabla-frescura{width:100%;border-collapse:collapse;font-size:.85rem;margin:8px 0}",
+      ".evo-tabla-frescura th{text-align:left;font-weight:600;color:var(--tenue,#7d8a99);" +
+        "font-size:.78rem;padding:4px 8px 4px 0;border-bottom:1px solid var(--azul-borde)}",
+      ".evo-tabla-frescura td{padding:5px 8px 5px 0;border-bottom:1px solid var(--azul-claro)}",
+      ".evo-tabla-frescura td:nth-child(3){color:var(--tenue,#7d8a99);font-size:.8rem}",
+      ".evo-tabla-frescura td:last-child{color:var(--tenue,#7d8a99);font-size:.8rem}",
+      ".evo-tabla-frescura tr.evo-toca td{color:#b3402f}",
+      "p.nota-peque.evo-toca{color:#b3402f}",
       /* ---- la pestaña Casos ---- */
       ".casos-filtros{margin:4px 0 14px}",
       ".casos-fila{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}",
@@ -3354,12 +3370,16 @@
 
   /* los motivos de la semana, agrupados por efecto */
   function saludSemana(sem, hasta) {
-    var r = { parar: 0, limitar: 0, vigilar: 0, agenda: 0, dias: {} };
+    /* `lesion` se cuenta aparte de `parar` aunque sea uno de los que paran:
+       una pauta médica explica la enfermedad de esos días, pero no cura una
+       rodilla. Sin este contador no se puede distinguir una cosa de la otra. */
+    var r = { parar: 0, limitar: 0, vigilar: 0, agenda: 0, lesion: 0, dias: {} };
     for (var f = sem.desde; f <= sem.hasta && f <= hasta; f = U.sumarDias(f, 1)) {
       motivosDe(f).forEach(function (v) {
         var m = motivo(v);
         if (!m || !(m.efecto in r)) return;
         r[m.efecto]++;
+        if (v === "lesion") r.lesion++;
         r.dias[f] = 1;
       });
     }
@@ -3375,6 +3395,39 @@
       if (typeof v === "number") { s += v; n++; }
     }
     return n ? { m: s / n, n: n } : null;
+  }
+
+  /* ¿ESTA SEMANA CAE DENTRO DE UNA PAUTA MÉDICA YA PREVISTA?
+
+     La regla normal —dos días de enfermedad y la semana va en blanco— existe
+     para lo que llega sin avisar. Pero cuando hay un tratamiento en el plan,
+     con sus fechas y sus sesiones rebajadas a mano, la carga de esos días YA
+     está bajada a propósito: contar además la enfermedad es castigar dos veces
+     lo mismo, y encima mueve la rampa un peldaño atrás.
+
+     Pasó de verdad el 20-sep-2026: tres días marcados durante la pauta de
+     prednisona, con las sesiones de esa semana ya puestas como «caminar suave»
+     y «fuerza a media carga». El pase dictó semana en blanco.
+
+     No se perdona la LESIÓN, que no la cura ningún calendario: sólo se
+     perdona cuando lo marcado entra dentro de las fechas del tratamiento. */
+  function tratamientoDe(sem, hasta) {
+    var fin = (hasta && hasta < sem.hasta) ? hasta : sem.hasta;
+    var t = P.tratamientos || [], i;
+    for (i = 0; i < t.length; i++) {
+      if (!t[i].desde) continue;
+      /* basta con que se solapen: una pauta que empieza el jueves ya explica
+         los días malos de ese jueves y ese viernes */
+      if (t[i].desde <= fin && (!t[i].hasta || t[i].hasta >= sem.desde)) return t[i];
+    }
+    return null;
+  }
+
+  function enTratamiento(sem, hasta) { return !!tratamientoDe(sem, hasta); }
+
+  function nombreTratamiento(sem, hasta) {
+    var t = tratamientoDe(sem, hasta);
+    return t ? (t.nombre || "un tratamiento") : "un tratamiento";
   }
 
   /* EL VEREDICTO. El orden importa: la salud manda sobre la carga. */
@@ -3404,7 +3457,7 @@
     if (!cerrada && !cump.previstos) {
       v = "pronto";
       porque = "La semana acaba de empezar.";
-    } else if (sal.parar >= 2) {
+    } else if (sal.parar >= 2 && !(sal.lesion === 0 && enTratamiento(sem, hasta))) {
       v = "parar";
       porque = "Dos días o más de lesión o enfermedad.";
     } else if (pct === null) {
@@ -3423,6 +3476,12 @@
       porque = (porAsistencia ? "Días movidos: " + cump.hechos + " de " + cump.previstos + "."
         : "Carga al " + Math.round(pct * 100) + " % del objetivo.") +
         (sal.limitar ? " Y hubo " + sal.limitar + " día" + (sal.limitar > 1 ? "s" : "") + " con lesión limitante." : "");
+    }
+    /* Si la semana cae dentro de una pauta médica ya prevista, se dice: si no,
+       el veredicto parecería que no ha visto los días marcados. */
+    if (sal.parar >= 2 && sal.lesion === 0 && enTratamiento(sem, hasta)) {
+      porque += " Hubo " + sal.parar + " días marcados, pero la semana está dentro de " +
+        nombreTratamiento(sem, hasta) + ": el plan ya venía rebajado y no se cuenta dos veces.";
     }
     return { v: v, porque: porque, pct: pct, pctAnt: pctAnt, carga: carga,
              cump: cump, sal: sal, porAsistencia: porAsistencia, cerrada: cerrada };
@@ -3624,6 +3683,154 @@
     return h;
   }
 
+  /* ==================== HASTA DÓNDE LLEGA CADA MEDIDA ====================
+
+     Dos fuentes con dos ritmos distintos, y hasta hoy no se veía cuál era
+     cuál. La mayoría de las series llegan solas cada día por intervals. Pero
+     el PULSO MÍNIMO del día sólo viene con la exportación de Garmin, que se
+     pide a mano: entre exportación y exportación esa línea se queda quieta, y
+     quien mire la gráfica sin saberlo pensará que no ha pasado nada.
+
+     Y hay una razón más para pedirla cada dos meses, que no es sólo rellenar
+     huecos: la exportación es la fuente BUENA del pulso en reposo. Intervals
+     se desvió seis latidos durante todo 2023 sin avisar, y sólo se vio al
+     comparar las dos. */
+  var CADA_DIAS_GARMIN = 60;
+  var ENLACE_GARMIN = "https://www.garmin.com/account/datamanagement/";
+
+  var MEDIDAS_FUENTE = [
+    { c: "peso",       n: "Peso",                de: "bascula" },
+    { c: "grasa",      n: "Grasa",               de: "bascula" },
+    { c: "magra",      n: "Masa magra",          de: "bascula" },
+    { c: "vfc",        n: "VFC",                 de: "intervals" },
+    { c: "fcr",        n: "Pulso en reposo",     de: "intervals" },
+    { c: "pulso_min",  n: "Pulso mínimo del día", de: "garmin" },
+    { c: "sueno_min",  n: "Sueño",               de: "intervals" },
+    { c: "pasos",      n: "Pasos",               de: "intervals" },
+    { c: "ctl",        n: "Forma y fatiga",      de: "intervals" },
+    { c: "vo2max",     n: "VO2 máx",             de: "intervals" },
+    /* No es un campo de los días: son las sesiones de sala con sus ejercicios,
+       y llegan por el mismo camino que el pulso mínimo. Se mira aparte. */
+    { c: "__fuerza",   n: "Kilos en la sala",    de: "garmin" }
+  ];
+
+  /* El último día con valor de un campo, mirando las dos fuentes. */
+  function ultimoConDato(campo) {
+    var ult = null;
+    /* los kilos no viven en los días sino en las sesiones de fuerza */
+    if (campo === "__fuerza") {
+      var ses = (Fuerza.datos && Fuerza.datos.sesiones) || null;
+      if (!ses) return null;
+      var acts = actividadesJuntas(), i, f;
+      for (i = 0; i < acts.length; i++) {
+        if (!acts[i] || !acts[i].id || !ses[acts[i].id]) continue;
+        f = String(acts[i].fecha || "").slice(0, 10);
+        if (f && (!ult || f > ult)) ult = f;
+      }
+      return ult;
+    }
+    [Historico.datos, Salud.datos].forEach(function (src) {
+      if (!src || !src.dias) return;
+      for (var f in src.dias) {
+        if (!src.dias.hasOwnProperty(f)) continue;
+        var val = src.dias[f][campo];
+        if (val == null || val === "") continue;
+        if (!ult || f > ult) ult = f;
+      }
+    });
+    return ult;
+  }
+
+  /* Los kilos son el caso raro de la tabla: que la última sesión sea de hace
+     cuatro meses NO quiere decir que falten datos — quiere decir que hace
+     cuatro meses que no pisa la sala. Lo que sí sería un hueco es que la
+     última sesión de sala del archivo no tenga sus ejercicios. Eso es lo que
+     se mira, y no el calendario. */
+  function fuerzaAlDia() {
+    var ses = (Fuerza.datos && Fuerza.datos.sesiones) || null;
+    if (!ses) return true;
+    var acts = actividadesJuntas(), ultima = null, i, a, f;
+    for (i = 0; i < acts.length; i++) {
+      a = acts[i];
+      if (!a || a.dep !== "fue" || !a.id) continue;
+      f = String(a.fecha || "").slice(0, 10);
+      if (f && (!ultima || f > ultima.f)) ultima = { f: f, id: a.id };
+    }
+    if (!ultima) return true;
+    return !!ses[ultima.id];
+  }
+
+  function diasDesde(f) {
+    if (!f) return null;
+    return diasEntre(f, U.hoyISO());
+  }
+
+  /* El aviso que va debajo de una gráfica que depende de la exportación. */
+  function avisoFrescura(campo) {
+    var ult = ultimoConDato(campo), d = diasDesde(ult);
+    if (!ult) return "";
+    var tarde = d != null && d > CADA_DIAS_GARMIN;
+    return '<p class="nota-peque' + (tarde ? " evo-toca" : "") + '" style="margin:4px 0 0">' +
+      "Este dato no llega por intervals: sólo viene con la exportación de Garmin. " +
+      "La línea acaba el <b>" + U.esc(U.etiquetaFecha(ult)) + "</b>" +
+      (d != null ? " (hace " + d + " día" + (d === 1 ? "" : "s") + ")" : "") + "." +
+      (tarde ? ' <b>Toca pedirla otra vez.</b> <a href="' + ENLACE_GARMIN +
+               '" target="_blank" rel="noopener">Exportar mis datos de Garmin</a>' : "") +
+      "</p>";
+  }
+
+  /* El panel de abajo: todas las medidas, hasta dónde llegan y de dónde vienen. */
+  function htmlFrescura() {
+    if (!Salud.datos) return "";
+    var DE = {
+      intervals: "llega sola cada día",
+      bascula:   "cuando te pesas",
+      garmin:    "sólo con la exportación de Garmin"
+    };
+    var ultGarmin = null, filas = "";
+    MEDIDAS_FUENTE.forEach(function (m) {
+      var u = ultimoConDato(m.c);
+      if (!u) return;
+      var d = diasDesde(u);
+      if (m.de === "garmin" && m.c !== "__fuerza" && (!ultGarmin || u > ultGarmin)) ultGarmin = u;
+      var esFuerza = (m.c === "__fuerza");
+      var viejo = esFuerza ? !fuerzaAlDia()
+                : (m.de === "garmin" && d != null && d > CADA_DIAS_GARMIN) ||
+                  (m.de !== "garmin" && d != null && d > 10);
+      var cuando = esFuerza
+        ? (viejo ? "faltan sesiones" : "tu última sesión")
+        : (d === 0 ? "hoy" : d === 1 ? "ayer" : "hace " + d + " días");
+      filas += "<tr" + (viejo ? ' class="evo-toca"' : "") + "><td>" + U.esc(m.n) + "</td>" +
+        "<td>" + U.esc(U.etiquetaFecha(u)) + "</td>" +
+        "<td>" + U.esc(cuando) + "</td>" +
+        "<td>" + U.esc(DE[m.de]) + "</td></tr>";
+    });
+    if (!filas) return "";
+
+    var dg = diasDesde(ultGarmin);
+    var toca = dg != null && dg > CADA_DIAS_GARMIN;
+    var cab = ultGarmin
+      ? ("<p>La última exportación de Garmin llega hasta el <b>" +
+         U.esc(U.etiquetaFecha(ultGarmin)) + "</b>, hace " + dg + " días. " +
+         (toca ? "<b>Toca pedir una nueva.</b>"
+               : "La siguiente, a partir de los " + CADA_DIAS_GARMIN + " días.") + "</p>")
+      : "";
+
+    return '<details class="evo-frescura' + (toca ? " toca" : "") + '">' +
+      "<summary>Hasta dónde llega cada medida" +
+      (toca ? ' <span class="evo-chip">toca pedir Garmin</span>' : "") + "</summary>" +
+      cab +
+      '<table class="evo-tabla-frescura"><thead><tr><th>Medida</th><th>Último dato</th>' +
+      "<th></th><th>De dónde viene</th></tr></thead><tbody>" + filas + "</tbody></table>" +
+      "<p>Pedir la exportación cada dos meses no es sólo para rellenar huecos: " +
+      "es la fuente <b>buena</b> del pulso en reposo. Intervals se desvió seis latidos " +
+      "durante todo 2023 sin avisar, y sólo se vio al comparar las dos.</p>" +
+      '<p><a href="' + ENLACE_GARMIN + '" target="_blank" rel="noopener">' +
+      "Exportar mis datos de Garmin</a> — se pide ahí y llega por correo; " +
+      "luego se rehace el histórico con ella.</p>" +
+      "</details>";
+  }
+
   function htmlEvolucion() {
     var FLECHA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
       'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -3736,6 +3943,25 @@
           series: [{ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr, color: AMBAR, ancho: 1.2 }]
         });
       }
+      /* EL PULSO MÍNIMO DEL DÍA. Va justo debajo del de reposo porque es el
+         mismo asunto sin suavizar, y la diferencia importa: el campo de
+         reposo de Garmin sólo cambia de valor el 38 % de los días —es una
+         línea base lenta— y en la gripe A de marzo de 2023 apenas se movió
+         (45 → 49) mientras el mínimo saltaba de 40 a 55. Éste es el que avisa.
+
+         No llega por intervals: sólo viene con la exportación de Garmin, así
+         que la línea se acaba donde acabó la última. Eso se dice debajo, no se
+         disimula. */
+      var pmin = serieSalud("pulso_min", v);
+      if (pmin.length) {
+        cuerpo2 += '<h3 class="evo-sub">Pulso mínimo del día</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm", unidadTip: "lpm",
+          alt: "Pulso mínimo del día",
+          explica: "El latido más bajo de todo el día, tal como lo grabó el reloj y sin suavizar. " +
+            "Reacciona antes que el de arriba: en la gripe A saltó de 40 a 55 mientras el de reposo no se movía.",
+          series: [{ pts: tramoLargo ? mediaMovilDias(pmin, 7) : pmin, color: "#7b2fbf", ancho: 1.2 }]
+        }) + avisoFrescura("pulso_min");
+      }
       if (sue.length) {
         cuerpo2 += '<h3 class="evo-sub">Sueño</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "horas", min: 0, unidadTip: "h",
@@ -3828,6 +4054,7 @@
     h += tarjetaEvo("Cintura y rendimiento", cin.length ? num(cin[cin.length - 1].v) : null, "cm",
       "La cintura es la medida que más se mueve con el plan, y la que más dice del riesgo.", cuerpo4, nota4);
 
+    h += htmlFrescura();
     h += volver;
     return h;
   }

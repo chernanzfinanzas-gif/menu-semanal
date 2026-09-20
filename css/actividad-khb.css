@@ -38,6 +38,13 @@
      son dos cosas distintas sino una parte y su todo. */
   --akhb-fam-ensal:   #2f5c8a;
   --akhb-fam-resto:   #c7d6e5;
+  /* y en la medida Kilos el reparto no es por deporte —todas son de sala— sino
+     por bloque muscular, con los mismos cuatro de siempre */
+  --akhb-fam-empuje:   #c98a1b;
+  --akhb-fam-tiron:    #2a78d6;
+  --akhb-fam-pierna:   #1baf7a;
+  --akhb-fam-centro:   #b5446e;
+  --akhb-fam-sinident: #c3ccd6;
   /* los deportes sueltos, que siguen usándose en iconos y textos */
   --akhb-sen:  #2a78d6;
   --akhb-pas:  #eb6834;
@@ -143,6 +150,36 @@
 .akhb-leg:not(.si) { opacity: .55; }
 .akhb-leg:not(.si) i { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
 .akhb-leg.si { color: var(--akhb-tinta); border-color: var(--akhb-borde); }
+/* ---- el perfil y el trazo, atados ----
+   La guía y la bolita siguen al ratón por el perfil; el punto del mismo color
+   se mueve por el recorrido de arriba. Sin transición a propósito: con ella el
+   punto va por detrás del dedo y parece que falla. */
+.akhb-p-caza { cursor: crosshair; }
+.akhb-p-guia { stroke: var(--akhb-trazo, #7b2fbf); stroke-width: 1; opacity: .5; }
+.akhb-p-bola { fill: var(--akhb-trazo, #7b2fbf); stroke: #fff; stroke-width: 1.5; }
+.akhb-p-eti {
+  font-size: 9.5px; font-weight: 700; fill: var(--akhb-hondo);
+  paint-order: stroke; stroke: #fff; stroke-width: 2.5px; stroke-linejoin: round;
+}
+.akhb-punto {
+  fill: var(--akhb-trazo, #7b2fbf); stroke: #fff; stroke-width: 2.5;
+  pointer-events: none;
+}
+
+/* ---- lo típico / lo mejor: sólo en las medidas que no se suman ---- */
+.akhb-modo {
+  display: inline-flex; gap: 0; margin: 0 0 10px;
+  border: 1px solid var(--akhb-borde); border-radius: 999px; overflow: hidden;
+}
+.akhb-modo button {
+  border: 0; background: var(--akhb-blanco); cursor: pointer;
+  font: inherit; font-size: 11.5px; color: var(--akhb-gris); padding: 4px 12px;
+}
+.akhb-modo button + button { border-left: 1px solid var(--akhb-borde); }
+.akhb-modo button.sel {
+  background: var(--akhb-claro); color: var(--akhb-hondo); font-weight: 700;
+}
+
 .akhb-leg-todas {
   border: 1px solid var(--akhb-azul); background: var(--akhb-blanco);
   color: var(--akhb-azul); border-radius: 999px; padding: 3px 10px;
@@ -195,7 +232,12 @@
   font: inherit; font-size: 12.5px; color: var(--akhb-tinta);
   display: inline-flex; align-items: baseline; gap: 5px;
 }
-.akhb-mes b { font-size: 11px; color: var(--akhb-gris); font-weight: 600; }
+.akhb-mes b {
+  font-size: 11px; color: var(--akhb-gris); font-weight: 600;
+  /* en columna para que quepa la equivalencia debajo sin ensanchar la casilla */
+  display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.2;
+}
+.akhb-mes b small { font-size: 9px; opacity: .8; font-weight: 400; white-space: nowrap; }
 .akhb-mes:hover:not(.vacio) { border-color: var(--akhb-azul); }
 .akhb-mes.sel {
   border-color: var(--akhb-azul); background: var(--akhb-azul);

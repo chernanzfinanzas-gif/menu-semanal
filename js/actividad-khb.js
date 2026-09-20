@@ -73,8 +73,69 @@
        dicho en la unidad en la que uno piensa. Un millón de pasos no significa
        nada; 3.689 km, sí. */
     { id: "p",   nom: "Pasos",       fuente: "dia", dec: 0, suf: "",
-      aparte: function (n) { return numKm(n * ZANCADA_M / 1000) + " km"; } }
+      aparte: function (n) { return numKm(n * ZANCADA_M / 1000) + " km"; } },
+    /* Los kilos movidos en la sala. No salen de la actividad sino de
+       `fuerza.json`, que guarda los ejercicios de cada sesión: es la tercera
+       procedencia, después de las actividades y los días. Es la serie que más
+       ha crecido de todas —de 61.386 kg en 2022 a más de un millón y medio en
+       2025— y no aparecía en ninguna pantalla. */
+    { id: "kg",  nom: "Kilos",       fuente: "fuerza", dec: 0, suf: "\u00a0kg" },
+    /* LAS CALORÍAS DEL EJERCICIO, no las del día: lo que costó moverse, que es
+       la mitad que se puede comparar con lo que se come.
+
+       `campo2` es la estimación, y existe porque de 2013 a 2018 el GPSMAP sólo
+       medía posición: sin ella esos seis años saldrían vacíos. Se suman las dos
+       para que el año exista, pero NO se disimula — la tarjeta dice cuánto de
+       ese año es estimado, y en esos seis lo es todo. */
+    { id: "kcal", nom: "Calorías",    fuente: "act", campo: "kcal", campo2: "kcalEst",
+      dec: 0, suf: "",
+      aparte: function (n, d) {
+        if (!d || !d.est) return "";
+        var pct = d.est / n;
+        if (pct >= 0.5) return "estimadas";
+        if (pct >= 0.02) return Math.round(pct * 100) + " % estimado";
+        return "";
+      } },
+
+    /* ---- LAS QUE NO SE SUMAN ----
+
+       Un año no tiene «potencia total»: tiene la potencia típica de ese año y
+       la mejor que se alcanzó. Así que aquí la barra del mes DEJA DE SER UN
+       TROZO de la del año, y eso se dice en pantalla en vez de dibujar una
+       mentira bonita.
+
+       Dos consecuencias más, que no son obvias:
+
+       · La barra tampoco se puede partir por familias: una mediana no se
+         apila. Se pinta de un color y la leyenda pasa a ser un filtro de
+         verdad —qué entra en el cálculo—, no un reparto.
+
+       · La barra NO empieza en cero. La velocidad a pie va de 4,2 a 5,0 km/h
+         en seis años: desde cero, los seis serían idénticos y la medida no
+         diría nada. Se dice debajo, que una escala recortada sin avisar es la
+         forma más vieja de mentir con un gráfico.
+
+       `minMin` es el suelo de duración: una sesión de diez minutos no mide
+       desempeño, mide que ese día no había tiempo. */
+    { id: "vel",  nom: "Velocidad",   fuente: "act", campo: "vel", acumula: false,
+      dec: 1, suf: "\u00a0km/h", minMin: { pie: 15, monte: 15, bici: 30, rodillo: 30, sala: 0 } },
+    { id: "pot",  nom: "Potencia",    fuente: "act", campo: "pot", acumula: false,
+      dec: 0, suf: "\u00a0W", minMin: { bici: 20, rodillo: 20, pie: 0, monte: 0, sala: 0 } },
+    { id: "ftp",  nom: "FTP",         fuente: "act", campo: "ftp", acumula: false,
+      dec: 0, suf: "\u00a0W", minMin: null }
   ];
+
+  /* Los catorce músculos son demasiados para una barra de 88 px: se agrupan en
+     los cuatro bloques de siempre. El reparto por ejercicio ya existe para los
+     muñecos de la ficha (28 reglas), así que aquí no se inventa nada: se
+     reutiliza y se suma. */
+  var BLOQUE_MUSC = {
+    pecho: "empuje", hombro: "empuje", triceps: "empuje",
+    dorsal: "tiron", trapecio: "tiron", biceps: "tiron", antebrazo: "tiron",
+    cuadriceps: "pierna", isquios: "pierna", gluteo: "pierna", gemelo: "pierna",
+    abdomen: "centro", oblicuo: "centro", lumbar: "centro"
+  };
+  var GRUPO_FUERZA = ["empuje", "tiron", "pierna", "centro", "sinident"];
 
   /* SU zancada, no la de un manual: mediana de 1.143 salidas suyas que la
      traen guardada, y sale igual a pie (0,79) que en monte (0,79). Con ella
@@ -112,10 +173,14 @@
     pie: "A pie", sala: "Sala",
     /* los pasos no se reparten en familias —un martes no tiene familia—, se
        reparten en dos: lo que quedó registrado como salida y el resto del día */
-    ensal: "En salidas", resto: "El resto del día"
+    ensal: "En salidas", resto: "El resto del día",
+    empuje: "Empuje", tiron: "Tirón", pierna: "Pierna", centro: "Centro",
+    sinident: "Sin identificar"
   };
   var GRUPO_PASOS = ["ensal", "resto"];
-  var COLOR_G = { ensal: "#2f5c8a", resto: "#c7d6e5" };
+  var COLOR_G = { ensal: "#2f5c8a", resto: "#c7d6e5",
+    empuje: "#c98a1b", tiron: "#2a78d6", pierna: "#1baf7a", centro: "#b5446e",
+    sinident: "#c3ccd6" };
   var NOMBRE_DEP = {
     sen: "Senderismo", pas: "Paseo largo", bici: "Bici exterior",
     and: "Caminar", rod: "Rodillo", fue: "Fuerza y sala",
@@ -391,6 +456,7 @@
         min: a.min_mov != null ? Math.round(a.min_mov) : null,
         carga: a.esfuerzo != null ? a.esfuerzo : null,
         pot: a.pot_norm != null ? a.pot_norm : null,
+        ftp: a.ftp_est != null ? a.ftp_est : null,
         wkg: a.w_kg != null ? a.w_kg : null,
         pulso: a.pulso_med != null ? a.pulso_med : null,
         kcal: a.kcal_netas != null ? a.kcal_netas : null,
@@ -814,6 +880,10 @@
          recordara la selección, un día abrirías la app y no entenderías por
          qué te faltan años. No se guarda en ningún sitio a propósito. */
       fam: null,
+      /* en las medidas que no se suman: «lo típico» (la mediana del tramo) o
+         «lo mejor» (el techo). Son dos preguntas distintas y la pantalla tiene
+         que decir cuál se está contestando. */
+      modo: "tipico",
       dia: null,           // el día desplegado en la lista de Pasos
       pidiendoDias: false,
       el: null
@@ -886,6 +956,7 @@
 
     /* ¿esta medida se puede ofrecer con lo que hay cargado? */
     function medidaPosible(m) {
+      if (m.fuente === "fuerza") return !!fuerza;
       if (m.fuente !== "dia") return true;
       return hayDias || !!o.traerDias;
     }
@@ -919,7 +990,11 @@
        el 90 % de las veces («enséñame solo el monte»). A partir de ahí se
        suman y se quitan. Quitar la última vuelve a encenderlas todas, que es
        la única salida que no deja la pantalla en blanco. */
-    function gruposDe(m) { return m.fuente === "dia" ? GRUPO_PASOS : ORDEN_FAM; }
+    function gruposDe(m) {
+      if (m.fuente === "dia") return GRUPO_PASOS;
+      if (m.fuente === "fuerza") return GRUPO_FUERZA;
+      return ORDEN_FAM;
+    }
 
     function activo(g) { return !estado.fam || !!estado.fam[g]; }
 
@@ -947,23 +1022,139 @@
        de años y las casillas de los meses necesitan saber, y por eso las dos
        llaman aquí en vez de sumar cada una por su cuenta. */
     function reparto(y, mm, m) {
-      return m.fuente === "dia" ? repartoDias(y, mm) : repartoActs(y, mm, m);
+      if (m.fuente === "dia") return repartoDias(y, mm);
+      if (m.fuente === "fuerza") return repartoFuerza(y, mm);
+      if (m.acumula === false) return repartoMejor(y, mm, m);
+      return repartoActs(y, mm, m);
+    }
+
+    /* ¿esta salida vale para medir desempeño? */
+    function cuentaPara(m, x) {
+      if (!m.minMin) return true;
+      var g = FAMILIA[x.dep] || "sala";
+      var tope = m.minMin[g];
+      if (tope == null) return true;
+      return (x.min || 0) >= tope;
+    }
+
+    function mediana(v) {
+      if (!v.length) return null;
+      var a = v.slice().sort(function (p, q) { return p - q; });
+      var i = Math.floor(a.length / 2);
+      return a.length % 2 ? a[i] : (a[i - 1] + a[i]) / 2;
+    }
+
+    /* Ni suma ni reparto: la mediana o el techo del tramo. `r` se queda vacío a
+       propósito —no hay nada que apilar— y `n` lleva el número que se enseña. */
+    function repartoMejor(y, mm, m) {
+      var meses = porAnio[y] || {}, v = [];
+      (mm ? [mm] : Object.keys(meses)).forEach(function (k) {
+        (meses[k] || []).forEach(function (x) {
+          if (!activo(FAMILIA[x.dep] || "sala")) return;
+          if (!cuentaPara(m, x)) return;
+          var val = x[m.campo];
+          if (val == null) return;
+          v.push(val);
+        });
+      });
+      if (!v.length) return { r: {}, n: 0, cuantas: 0 };
+      var n = (estado.modo === "mejor") ? Math.max.apply(null, v) : mediana(v);
+      return { r: {}, n: n, cuantas: v.length, valores: v };
+    }
+
+    /* Las salidas que entran en una medida de desempeño, de mejor a peor: la
+       lista de abajo contesta «¿cuáles fueron?», que es lo que uno mira
+       después de ver el techo del año. */
+    function mejoresDe(y, mm, m) {
+      var meses = porAnio[y] || {}, out = [];
+      (mm ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
+        (meses[k] || []).forEach(function (x) {
+          if (!activo(FAMILIA[x.dep] || "sala")) return;
+          if (!cuentaPara(m, x)) return;
+          if (x[m.campo] == null) return;
+          out.push(x);
+        });
+      });
+      out.sort(function (a, b) { return b[m.campo] - a[m.campo]; });
+      return out;
+    }
+
+    /* Los kilos de un tramo, repartidos por bloque muscular. Cada ejercicio
+       reparte sus kilos entre sus músculos con las mismas proporciones que
+       pintan los muñecos: un press de banca son 60 % de pecho, 25 % de tríceps
+       y 15 % de hombro, así que sus kilos se reparten igual. Lo que no encaja
+       en ninguna regla —«Calentamiento», «sin identificar»— va a su propio
+       montón y NO se reparte a ojo. */
+    function repartoFuerza(y, mm) {
+      var r = {}, n = 0;
+      if (!fuerza) return { r: r, n: n };
+      actsDeTodas(y, mm).forEach(function (x) {
+        var ej = x.id ? fuerza[x.id] : null;
+        if (!ej || !ej.length) return;
+        ej.forEach(function (e) {
+          var kg = e && e.kg_total;
+          if (!kg) return;
+          var z = zonasDe(e.que), puesto = 0, g;
+          if (z) {
+            for (var k in z) {
+              if (!z.hasOwnProperty(k)) continue;
+              g = BLOQUE_MUSC[k] || "sinident";
+              if (!activo(g)) { puesto += kg * z[k]; continue; }
+              r[g] = (r[g] || 0) + kg * z[k];
+              n += kg * z[k];
+              puesto += kg * z[k];
+            }
+            /* si una regla no sumara 1, el resto no se pierde */
+            if (kg - puesto > 0.5 && activo("sinident")) {
+              r.sinident = (r.sinident || 0) + (kg - puesto); n += kg - puesto;
+            }
+          } else if (activo("sinident")) {
+            r.sinident = (r.sinident || 0) + kg; n += kg;
+          }
+        });
+      });
+      return { r: r, n: n };
+    }
+
+    /* Como `actsDe` pero sin filtrar por familia: en los kilos el filtro va por
+       músculo, no por deporte, y aquí sólo hacen falta las sesiones de sala. */
+    function actsDeTodas(y, mm) {
+      var meses = porAnio[y] || {}, out = [];
+      (mm ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
+        (meses[k] || []).forEach(function (x) { out.push(x); });
+      });
+      return out;
+    }
+
+    /* Las sesiones de sala con kilos, para la lista de abajo. */
+    function sesionesConKilos(y, mm) {
+      if (!fuerza) return [];
+      return actsDeTodas(y, mm).filter(function (x) {
+        var ej = x.id ? fuerza[x.id] : null;
+        if (!ej || !ej.length) return false;
+        for (var i = 0; i < ej.length; i++) if (ej[i] && ej[i].kg_total) return true;
+        return false;
+      });
     }
 
     function repartoActs(y, mm, m) {
-      var meses = porAnio[y] || {}, r = {}, n = 0;
+      var meses = porAnio[y] || {}, r = {}, n = 0, est = 0;
       var claves = mm ? [mm] : Object.keys(meses);
       claves.forEach(function (k) {
         (meses[k] || []).forEach(function (x) {
           var g = FAMILIA[x.dep] || "sala";
           if (!activo(g)) return;
-          var v = m.campo ? x[m.campo] : 1;
+          var v = m.campo ? x[m.campo] : 1, estimado = false;
+          /* el campo de reserva: sólo entra donde el bueno no existe, nunca
+             encima de una medida de verdad */
+          if (v == null && m.campo2) { v = x[m.campo2]; estimado = true; }
           if (v == null) return;                    // lo que no se sabe no suma
           if (m.div) v = v / m.div;
           r[g] = (r[g] || 0) + v; n += v;
+          if (estimado) est += v;
         });
       });
-      return { r: r, n: n };
+      return { r: r, n: n, est: est };
     }
 
     function repartoDias(y, mm) {
@@ -1013,6 +1204,29 @@
                "años de senderismo salen cortos aquí. Para compararlos, horas o carga.";
       }
       if (m.id === "c") return "La carga solo existe desde octubre de 2021: antes no había pulsómetro en el registro.";
+      if (m.acumula === false) {
+        var q = (estado.modo === "mejor") ? "el mejor valor" : "la mediana";
+        return "Ésta no se suma: el año es " + q + " de sus salidas, no el total, " +
+               "así que la barra de un mes NO es un trozo de la del año. " +
+               "Y la barra no empieza en cero —con un rango estrecho, desde cero " +
+               "todos los años saldrían iguales—: compara unos con otros, no con la nada. " +
+               (m.minMin ? "Sólo cuentan las salidas largas: por debajo de un cuarto de hora " +
+                           "no se mide desempeño, se mide que no había tiempo." : "");
+      }
+      if (m.id === "kcal") {
+        return "Lo que costó moverse, no lo que gastaste en el día. De 2013 a 2018 " +
+               "el GPSMAP sólo medía posición, así que esos años son una estimación " +
+               "calibrada con 2.094 salidas tuyas medidas —caminar acierta al 8 %, " +
+               "senderismo y rodillo son un orden de magnitud—. Se suman para que el " +
+               "año exista, y la tarjeta dice cuánto de cada uno es estimado.";
+      }
+      if (m.id === "kg") {
+        return "Los kilos salen de los ejercicios de cada sesión, y ésos llegan " +
+               "con la exportación de Garmin, no solos: la serie acaba donde acabó " +
+               "la última. El reparto por músculo es el mismo que pintan los muñecos " +
+               "de la ficha — un press de banca son 60 % de pecho, 25 % de tríceps y " +
+               "15 % de hombro—, y lo que no encaja en ninguna regla no se reparte a ojo.";
+      }
       if (m.id === "p") {
         return "Los pasos empiezan en diciembre de 2019: antes no había reloj que " +
                "los contara, así que los años anteriores salen vacíos y está bien que " +
@@ -1026,6 +1240,19 @@
       var m = metricaActual(), max = 0, cache = {};
       anios.forEach(function (y) { cache[y] = reparto(y, null, m); max = Math.max(max, cache[y].n); });
       if (!max) max = 1;
+      /* En las que no se suman la barra no arranca en cero: el suelo es el peor
+         año menos un margen. Con la velocidad a pie —de 4,2 a 5,0 en seis
+         años— desde cero las seis barras serían la misma. */
+      var suelo = 0;
+      if (m.acumula === false) {
+        var vals = anios.map(function (y) { return cache[y].n; })
+                        .filter(function (v) { return v > 0; });
+        if (vals.length > 1) {
+          var lo = Math.min.apply(null, vals);
+          suelo = lo - (max - lo) * 0.25;
+          if (suelo < 0) suelo = 0;
+        }
+      }
 
       /* El volver y las medidas en la misma fila: ocupan una línea en vez de
          dos, y el volver queda arriba del todo, que es donde se busca. El HTML
@@ -1038,13 +1265,46 @@
           return '<button type="button" data-met="' + x.id + '" aria-pressed="' +
             (x.id === m.id) + '"' + (x.id === m.id ? ' class="sel"' : "") + ">" +
             x.nom + "</button>";
-        }).join("") + "</div></div>";
+        }).join("") + "</div></div>" +
+        /* Sólo aparece donde significa algo. Con Kilómetros no hay «lo mejor»:
+           el año es la suma y punto. */
+        (m.acumula === false
+          ? '<div class="akhb-modo" role="group" aria-label="Qué se enseña">' +
+            ["tipico", "mejor"].map(function (k) {
+              return '<button type="button" data-modo="' + k + '" aria-pressed="' +
+                (estado.modo === k) + '"' + (estado.modo === k ? ' class="sel"' : "") + ">" +
+                (k === "tipico" ? "lo típico" : "lo mejor") + "</button>";
+            }).join("") + "</div>"
+          : "");
 
       var tira = anios.map(function (y) {
         var d = cache[y], sel = y === estado.anio;
         /* la altura dice cuánto hubo ese año; los trozos, de qué. El mínimo
            es para que un año flojo se siga pudiendo pulsar y ver de qué fue. */
-        var alto = d.n ? Math.max(7, Math.round(d.n / max * 100)) : 0;
+        var alto = d.n
+          ? Math.max(7, Math.round((d.n - suelo) / ((max - suelo) || 1) * 100))
+          : 0;
+        if (alto > 100) alto = 100;
+        /* una mediana no se apila: un solo trozo, del color de la familia si
+           sólo queda una encendida, y neutro si hay varias mezcladas */
+        if (m.acumula === false) {
+          var solo = null, enc = 0, gi;
+          for (gi = 0; gi < ORDEN_FAM.length; gi++) {
+            if (activo(ORDEN_FAM[gi])) { enc++; solo = ORDEN_FAM[gi]; }
+          }
+          var col = (enc === 1) ? colorG(solo) : "var(--akhb-azul, #2f5c8a)";
+          var trozoUno = d.n
+            ? '<i style="height:' + alto + '%;background:' + col + '" title="' +
+              esc(m.nom) + ": " + num(d.n, m.dec) + '"></i>'
+            : "";
+          return '<button type="button" role="tab" class="akhb-anio' + (sel ? " sel" : "") +
+            '" aria-selected="' + sel + '" data-anio="' + y + '">' +
+            '<span class="akhb-anio-n">' + y + "</span>" +
+            '<span class="akhb-barra">' + trozoUno + "</span>" +
+            '<span class="akhb-anio-c">' + (d.n ? num(d.n, m.dec) + m.suf : "·") +
+            (d.cuantas ? "<small>" + d.cuantas + (d.cuantas === 1 ? " salida" : " salidas") +
+             "</small>" : "") + "</span></button>";
+        }
         var trozos = gruposDe(m).filter(function (g) { return d.r[g]; }).map(function (g) {
           return '<i style="height:' + (d.r[g] / d.n * alto).toFixed(2) +
                  '%;background:' + colorG(g) + '" title="' +
@@ -1055,7 +1315,8 @@
           '<span class="akhb-anio-n">' + y + "</span>" +
           '<span class="akhb-barra">' + trozos + "</span>" +
           '<span class="akhb-anio-c">' + (d.n ? num(d.n, m.dec) + m.suf : "·") +
-          (d.n && m.aparte ? "<small>(" + esc(m.aparte(d.n)) + ")</small>" : "") +
+          (d.n && m.aparte && m.aparte(d.n, d)
+            ? "<small>(" + esc(m.aparte(d.n, d)) + ")</small>" : "") +
           "</span></button>";
       }).join("");
 
@@ -1092,18 +1353,27 @@
       for (var i = 0; i < 12; i++) {
         var k = dosD(i + 1);
         var d = reparto(estado.anio, k, m);
-        var hay = (m.fuente === "dia") ? d.n > 0 : actsDe(estado.anio, k).length > 0;
+        var hay = (m.fuente === "dia") ? d.n > 0
+                : (m.fuente === "fuerza") ? sesionesConKilos(estado.anio, k).length > 0
+                : (m.acumula === false) ? d.n > 0
+                : actsDe(estado.anio, k).length > 0;
         var sel = estado.mes === k;
         celdas.push('<button type="button" class="akhb-mes' + (sel ? " sel" : "") +
           (hay ? "" : " vacio") + '"' + (hay ? "" : " disabled") +
           ' data-mes="' + k + '" aria-pressed="' + !!sel + '">' +
-          MES_CORTO[i] + "<b>" + (hay && d.n ? num(d.n, m.dec) + m.suf : "·") + "</b></button>");
+          MES_CORTO[i] + "<b>" + (hay && d.n ? num(d.n, m.dec) + m.suf : "·") +
+          (hay && d.n && m.aparte && m.aparte(d.n, d)
+            ? "<small>" + esc(m.aparte(d.n, d)) + "</small>" : "") +
+          "</b></button>");
       }
       var todo = reparto(estado.anio, null, m);
       return '<div class="akhb-meses">' +
         '<button type="button" class="akhb-mes akhb-todo' + (estado.mes ? "" : " sel") +
         '" data-mes="">Todo el año<b>' +
-        (todo.n ? num(todo.n, m.dec) + m.suf : "·") + "</b></button>" +
+        (todo.n ? num(todo.n, m.dec) + m.suf : "·") +
+        (todo.n && m.aparte && m.aparte(todo.n, todo)
+          ? "<small>" + esc(m.aparte(todo.n, todo)) + "</small>" : "") +
+        "</b></button>" +
         celdas.join("") + "</div>";
     }
 
@@ -1324,6 +1594,8 @@
          Pasos y abajo siguen saliendo actividades, la pantalla entera está
          hablando de una cosa menos la mitad de abajo. */
       if (metricaActual().fuente === "dia") return htmlDias();
+      if (metricaActual().fuente === "fuerza") return htmlFuerza();
+      if (metricaActual().acumula === false) return htmlMejores();
 
       var m = porAnio[estado.anio] || {};
       var meses = estado.mes ? [estado.mes] : Object.keys(m).sort();
@@ -1346,6 +1618,57 @@
                            : estado.anio) +
                (estado.fam ? " no tiene nada de lo que has dejado encendido."
                            : " no tiene ninguna actividad.") + "</p>";
+      }
+      return h;
+    }
+
+    /* ---------- la lista de una medida de desempeño ----------
+       De mejor a peor, que es lo que se pregunta después de ver el techo: no
+       «qué hice» sino «cuáles fueron». */
+    function htmlMejores() {
+      var m = metricaActual();
+      var lista = mejoresDe(estado.anio, estado.mes, m);
+      if (!lista.length) {
+        return '<p class="akhb-nada">Ninguna salida de ' +
+               (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio
+                           : estado.anio) +
+               " mide " + esc(m.nom.toLowerCase()) + " con lo que hay encendido.</p>";
+      }
+      var d = reparto(estado.anio, estado.mes, m);
+      var h = '<h4 class="akhb-titmes">' +
+        (estado.mes ? MES[parseInt(estado.mes, 10) - 1] : "El año entero") +
+        " <span>" + (estado.modo === "mejor" ? "mejor " : "mediana ") +
+        num(d.n, m.dec) + m.suf + " · " + lista.length +
+        (lista.length === 1 ? " salida" : " salidas") + "</span></h4>" +
+        '<ul class="akhb-lista">';
+      lista.forEach(function (x, i) { h += htmlFila(x, estado.anio + "-m" + i); });
+      return h + "</ul>";
+    }
+
+    /* ---------- la lista cuando la medida son los kilos ----------
+       Las sesiones de sala del tramo, con sus kilos. Al abrir una salen sus
+       ejercicios y sus muñecos, que es lo que ya hace la ficha: aquí no se
+       duplica nada. */
+    function htmlFuerza() {
+      var meses = estado.mes ? [estado.mes]
+                : Object.keys(porAnio[estado.anio] || {}).sort();
+      var h = "";
+      meses.forEach(function (mm) {
+        var lista = sesionesConKilos(estado.anio, mm);
+        if (!lista.length) return;
+        var d = repartoFuerza(estado.anio, mm);
+        h += '<h4 class="akhb-titmes">' + MES[parseInt(mm, 10) - 1] +
+             " <span>" + num(d.n, 0) + " kg · " + lista.length +
+             (lista.length === 1 ? " sesión" : " sesiones") + "</span></h4>" +
+             '<ul class="akhb-lista">';
+        lista.forEach(function (x, i) { h += htmlFila(x, estado.anio + mm + "-f" + i); });
+        h += "</ul>";
+      });
+      if (!h) {
+        return '<p class="akhb-nada">No hay sesiones de sala con kilos en ' +
+               (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio
+                           : estado.anio) +
+               ". Los kilos por ejercicio llegan con la exportación de Garmin.</p>";
       }
       return h;
     }
@@ -1522,11 +1845,20 @@
       }
 
       function px(p) { return [mundoX(p[1], z) - izq, mundoY(p[0], z) - arr]; }
-      var d = pts.map(function (p, i) {
-        var q = px(p);
+      /* Los puntos en píxeles se guardan, y con ellos la distancia acumulada:
+         es lo que permite que el perfil de abajo mueva un punto por el trazo.
+         En píxeles y no en metros porque a este tamaño la proyección no
+         deforma lo bastante para notarse, y así es una resta. */
+      var enPx = pts.map(px), acum = [0], largoTot = 0, iPx;
+      for (iPx = 1; iPx < enPx.length; iPx++) {
+        var dx = enPx[iPx][0] - enPx[iPx - 1][0], dy = enPx[iPx][1] - enPx[iPx - 1][1];
+        largoTot += Math.sqrt(dx * dx + dy * dy);
+        acum.push(largoTot);
+      }
+      var d = enPx.map(function (q, i) {
         return (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1);
       }).join(" ");
-      var a = px(pts[0]), f = px(pts[pts.length - 1]);
+      var a = enPx[0], f = enPx[enPx.length - 1];
 
       /* Escala: sin ella el dibujo no dice si son dos kilómetros o veinte.
          Con el zoom real la cuenta ya no es aproximada. */
@@ -1568,7 +1900,11 @@
             '" r="6" class="akhb-ini"/>' +
           '<circle cx="' + f[0].toFixed(1) + '" cy="' + f[1].toFixed(1) +
             '" r="6" class="akhb-fin"/>' + esc_ +
+          /* el punto que sigue al dedo por el perfil; escondido hasta que se usa */
+          '<circle class="akhb-punto" cx="0" cy="0" r="6.5" style="display:none"/>' +
         "</svg>";
+      /* Para el perfil: dónde está cada punto y cuánto se llevaba andado. */
+      fig.__traza = { pts: enPx, acum: acum, total: largoTot };
       /* La chapa se queda: la toponimia de la tesela no siempre llega a este
          zoom, y decir la provincia o el país ahorra abrir el mapa. Ahora que
          hay trazo, la zona se recalcula con el centro real en vez de con la
@@ -1670,7 +2006,112 @@
           '<text class="akhb-p-alt" x="2" y="' +
             Math.min(Y(min) + 3.5, ARR + h) + '">' + Math.round(min) + "</text>" +
           '<text class="akhb-p-alt akhb-p-ud" x="2" y="' + (P_ALTO - 4) + '">m</text>' +
+          /* lo que sigue al dedo: la guía vertical, la bolita y la etiqueta */
+          '<g class="akhb-p-lupa" style="display:none">' +
+            '<line class="akhb-p-guia" y1="' + ARR + '" y2="' + suelo + '"/>' +
+            '<circle class="akhb-p-bola" r="4"/>' +
+            '<text class="akhb-p-eti" y="' + (ARR + 7) + '"></text>' +
+          "</g>" +
+          /* transparente y por encima de todo: es quien caza el ratón */
+          '<rect class="akhb-p-caza" x="' + IZQ + '" y="' + ARR + '" width="' + w +
+            '" height="' + h + '" fill="transparent"/>' +
         "</svg>";
+
+      enchufaLupa(caja, fig, { alts: alts, km: km, IZQ: IZQ, ARR: ARR, w: w, h: h,
+                               X: X, Y: Y, suelo: suelo });
+    }
+
+    /* ---------- EL PERFIL Y EL TRAZO, ATADOS ----------
+
+       Recorrer el perfil con el ratón y ver dónde estabas en el mapa. Sale
+       casi gratis porque las dos cosas están medidas con la misma vara: los
+       puntos del perfil vienen repartidos por distancia recorrida, así que el
+       punto que está al 40 % del perfil es el que está al 40 % del camino. No
+       hace falta emparejar nada, sólo buscar en la distancia acumulada del
+       trazo —que `dibujaTrazo` deja guardada— la posición de esa fracción.
+
+       El trazo puede llegar DESPUÉS que el perfil, porque la geometría de la
+       colección se pide por red. Por eso no se guarda una referencia: se mira
+       `fig.__traza` en el momento de mover el dedo, y si aún no está, el perfil
+       funciona igual y sólo falta el punto en el mapa.
+
+       Con el dedo funciona igual que con el ratón, y se corta el desplazamiento
+       de la página mientras se arrastra encima — si no, en el móvil mover el
+       dedo por el perfil pasa la pantalla. */
+    function enchufaLupa(caja, fig, g) {
+      var svg = caja.querySelector(".akhb-p-svg");
+      var caza = caja.querySelector(".akhb-p-caza");
+      var lupa = caja.querySelector(".akhb-p-lupa");
+      if (!svg || !caza || !lupa) return;
+      var guia = lupa.querySelector(".akhb-p-guia");
+      var bola = lupa.querySelector(".akhb-p-bola");
+      var eti = lupa.querySelector(".akhb-p-eti");
+
+      /* dónde está el trazo cuando se lleva recorrida la fracción t */
+      function enElTrazo(t) {
+        var tr = fig.__traza;
+        if (!tr || !tr.pts || tr.pts.length < 2 || !tr.total) return null;
+        var meta = t * tr.total, lo = 0, hi = tr.acum.length - 1, mid;
+        while (lo < hi) {
+          mid = (lo + hi) >> 1;
+          if (tr.acum[mid] < meta) lo = mid + 1; else hi = mid;
+        }
+        if (lo === 0) return tr.pts[0];
+        var d0 = tr.acum[lo - 1], d1 = tr.acum[lo];
+        var f = (d1 > d0) ? (meta - d0) / (d1 - d0) : 0;
+        var p0 = tr.pts[lo - 1], p1 = tr.pts[lo];
+        return [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f];
+      }
+
+      function mueve(clientX) {
+        var caja2 = svg.getBoundingClientRect();
+        if (!caja2.width) return;
+        var xv = (clientX - caja2.left) / caja2.width * P_ANCHO;
+        var t = (xv - g.IZQ) / g.w;
+        if (t < 0) t = 0; else if (t > 1) t = 1;
+
+        var i = Math.round(t * (g.alts.length - 1));
+        var alt = g.alts[i];
+        var px2 = g.X(i), py = g.Y(alt);
+        guia.setAttribute("x1", px2.toFixed(1));
+        guia.setAttribute("x2", px2.toFixed(1));
+        bola.setAttribute("cx", px2.toFixed(1));
+        bola.setAttribute("cy", py.toFixed(1));
+
+        /* la etiqueta se echa al otro lado cuando se sale por la derecha */
+        var texto = Math.round(alt) + " m";
+        if (g.km > 0) texto += "  ·  " + num(t * g.km, g.km < 100 ? 1 : 0) + " km";
+        eti.textContent = texto;
+        var derecha = px2 > g.IZQ + g.w * 0.6;
+        eti.setAttribute("x", (px2 + (derecha ? -6 : 6)).toFixed(1));
+        eti.setAttribute("text-anchor", derecha ? "end" : "start");
+        lupa.style.display = "";
+
+        var q = enElTrazo(t);
+        var punto = fig.querySelector(".akhb-punto");
+        if (punto && q) {
+          punto.setAttribute("cx", q[0].toFixed(1));
+          punto.setAttribute("cy", q[1].toFixed(1));
+          punto.style.display = "";
+        }
+      }
+
+      function quita() {
+        lupa.style.display = "none";
+        var punto = fig.querySelector(".akhb-punto");
+        if (punto) punto.style.display = "none";
+      }
+
+      caza.addEventListener("mousemove", function (e) { mueve(e.clientX); });
+      caza.addEventListener("mouseleave", quita);
+      caza.addEventListener("touchstart", function (e) {
+        if (e.touches && e.touches[0]) { mueve(e.touches[0].clientX); e.preventDefault(); }
+      }, { passive: false });
+      caza.addEventListener("touchmove", function (e) {
+        if (e.touches && e.touches[0]) { mueve(e.touches[0].clientX); e.preventDefault(); }
+      }, { passive: false });
+      caza.addEventListener("touchend", quita);
+      caza.addEventListener("touchcancel", quita);
     }
 
     function pintarMapas() {
@@ -1927,7 +2368,7 @@
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest
-        ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia]") : null;
+        ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo]") : null;
       if (!t || !estado.el.contains(t)) return;
       if (t.hasAttribute("data-met")) {
         var nueva = t.getAttribute("data-met");
@@ -1944,6 +2385,11 @@
         if (metricaActual().fuente === "dia") pedirDias();
         pintar();
         return;
+      }
+      if (t.hasAttribute("data-modo")) {
+        estado.modo = t.getAttribute("data-modo");
+        estado.abierta = null;
+        pintar(); return;
       }
       if (t.hasAttribute("data-fam")) {
         var g = t.getAttribute("data-fam");
