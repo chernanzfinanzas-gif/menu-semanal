@@ -122,7 +122,20 @@
     { id: "pot",  nom: "Potencia",    fuente: "act", campo: "pot", acumula: false,
       dec: 0, suf: "\u00a0W", minMin: { bici: 20, rodillo: 20, pie: 0, monte: 0, sala: 0 } },
     { id: "ftp",  nom: "FTP",         fuente: "act", campo: "ftp", acumula: false,
-      dec: 0, suf: "\u00a0W", minMin: null }
+      dec: 0, suf: "\u00a0W", minMin: null },
+    /* LA CURVA. No es un número sino cuatro, así que la medida trae su propio
+       selector de ventana: el mejor esfuerzo de 5 s, 1 min, 5 min o 20 min.
+       Cada ventana contesta otra cosa —el sprint, el ataque, la subida, el
+       umbral— y mezclarlas en una sola barra no diría nada. */
+    { id: "cp",   nom: "Curva",       fuente: "curva", acumula: false,
+      dec: 0, suf: "\u00a0W" }
+  ];
+
+  var VENTANAS = [
+    { id: "5",    n: "5 s",    q: "el sprint" },
+    { id: "60",   n: "1 min",  q: "el ataque" },
+    { id: "300",  n: "5 min",  q: "la subida" },
+    { id: "1200", n: "20 min", q: "el umbral" }
   ];
 
   /* Los catorce músculos son demasiados para una barra de 88 px: se agrupan en
@@ -738,6 +751,7 @@
        intervals no guarda: sale del fichero original del reloj, y lo rellena el
        paso del FIT del workflow. Si no está, la ficha sale como antes. */
     var fuerza = (o.fuerza && o.fuerza.sesiones) ? o.fuerza.sesiones : (o.fuerza || null);
+    var curva = (o.curva && o.curva.curvas) ? o.curva.curvas : (o.curva || null);
     var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
     /* EL NOMBRE SE CAMBIA AQUÍ. El reloj llama «Benasque Navegar» a lo que es
        el Forau d'Aigualluts. Si la app le pasa esta función, la ficha enseña un
@@ -884,6 +898,7 @@
          «lo mejor» (el techo). Son dos preguntas distintas y la pantalla tiene
          que decir cuál se está contestando. */
       modo: "tipico",
+      vent: "300",         // la ventana de la curva: 5 min, que es la de la subida
       dia: null,           // el día desplegado en la lista de Pasos
       pidiendoDias: false,
       el: null
@@ -956,6 +971,7 @@
 
     /* ¿esta medida se puede ofrecer con lo que hay cargado? */
     function medidaPosible(m) {
+      if (m.fuente === "curva") return !!curva;
       if (m.fuente === "fuerza") return !!fuerza;
       if (m.fuente !== "dia") return true;
       return hayDias || !!o.traerDias;
@@ -1024,6 +1040,7 @@
     function reparto(y, mm, m) {
       if (m.fuente === "dia") return repartoDias(y, mm);
       if (m.fuente === "fuerza") return repartoFuerza(y, mm);
+      if (m.fuente === "curva") return repartoCurva(y, mm);
       if (m.acumula === false) return repartoMejor(y, mm, m);
       return repartoActs(y, mm, m);
     }
@@ -1060,6 +1077,43 @@
       if (!v.length) return { r: {}, n: 0, cuantas: 0 };
       var n = (estado.modo === "mejor") ? Math.max.apply(null, v) : mediana(v);
       return { r: {}, n: n, cuantas: v.length, valores: v };
+    }
+
+    /* Lo mismo que `repartoMejor` pero leyendo la curva, que vive en su propio
+       fichero y no dentro de la actividad. */
+    function repartoCurva(y, mm) {
+      var meses = porAnio[y] || {}, v = [];
+      if (!curva) return { r: {}, n: 0, cuantas: 0 };
+      (mm ? [mm] : Object.keys(meses)).forEach(function (k) {
+        (meses[k] || []).forEach(function (x) {
+          if (!activo(FAMILIA[x.dep] || "sala")) return;
+          var c = x.id ? curva[x.id] : null;
+          if (!c) return;
+          var val = c[estado.vent];
+          if (val == null) return;
+          v.push(val);
+        });
+      });
+      if (!v.length) return { r: {}, n: 0, cuantas: 0 };
+      var n = (estado.modo === "mejor") ? Math.max.apply(null, v) : mediana(v);
+      return { r: {}, n: n, cuantas: v.length, valores: v };
+    }
+
+    function conCurva(y, mm) {
+      var meses = porAnio[y] || {}, out = [];
+      if (!curva) return out;
+      (mm ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
+        (meses[k] || []).forEach(function (x) {
+          if (!activo(FAMILIA[x.dep] || "sala")) return;
+          var c = x.id ? curva[x.id] : null;
+          if (!c || c[estado.vent] == null) return;
+          out.push(x);
+        });
+      });
+      out.sort(function (a, b) {
+        return curva[b.id][estado.vent] - curva[a.id][estado.vent];
+      });
+      return out;
     }
 
     /* Las salidas que entran en una medida de desempeño, de mejor a peor: la
@@ -1204,6 +1258,18 @@
                "años de senderismo salen cortos aquí. Para compararlos, horas o carga.";
       }
       if (m.id === "c") return "La carga solo existe desde octubre de 2021: antes no había pulsómetro en el registro.";
+      if (m.fuente === "curva") {
+        var vv = null, iv;
+        for (iv = 0; iv < VENTANAS.length; iv++) if (VENTANAS[iv].id === estado.vent) vv = VENTANAS[iv];
+        return "El mejor esfuerzo que aguantaste " + (vv ? vv.n : "") + " seguidos — " +
+               (vv ? vv.q : "") + ". Sale del fichero original de cada salida y " +
+               "las ventanas con pausas no cuentan, así que dos sprints con un " +
+               "semáforo en medio no se suman. Sube semanas antes que el FTP y no " +
+               "depende de cuánto tiempo hubo esa semana: por eso es la que dice si " +
+               "estás recuperando. El año es " +
+               (estado.modo === "mejor" ? "el mejor" : "la mediana") +
+               " de sus salidas, no un total.";
+      }
       if (m.acumula === false) {
         var q = (estado.modo === "mejor") ? "el mejor valor" : "la mediana";
         return "Ésta no se suma: el año es " + q + " de sus salidas, no el total, " +
@@ -1274,6 +1340,14 @@
               return '<button type="button" data-modo="' + k + '" aria-pressed="' +
                 (estado.modo === k) + '"' + (estado.modo === k ? ' class="sel"' : "") + ">" +
                 (k === "tipico" ? "lo típico" : "lo mejor") + "</button>";
+            }).join("") + "</div>"
+          : "") +
+        (m.fuente === "curva"
+          ? '<div class="akhb-modo akhb-vent" role="group" aria-label="Ventana">' +
+            VENTANAS.map(function (v2) {
+              return '<button type="button" data-vent="' + v2.id + '" aria-pressed="' +
+                (estado.vent === v2.id) + '"' + (estado.vent === v2.id ? ' class="sel"' : "") +
+                ' title="' + esc(v2.q) + '">' + esc(v2.n) + "</button>";
             }).join("") + "</div>"
           : "");
 
@@ -1355,6 +1429,7 @@
         var d = reparto(estado.anio, k, m);
         var hay = (m.fuente === "dia") ? d.n > 0
                 : (m.fuente === "fuerza") ? sesionesConKilos(estado.anio, k).length > 0
+                : (m.fuente === "curva") ? d.n > 0
                 : (m.acumula === false) ? d.n > 0
                 : actsDe(estado.anio, k).length > 0;
         var sel = estado.mes === k;
@@ -1473,7 +1548,18 @@
           ? dato("Kcal estimadas", "≈ " + num(x.kcalEst)) : "") +
         (x.efAe != null ? dato("Efecto aeróbico", num(x.efAe, 1)) : "") +
         (x.temp != null ? dato("Temperatura", num(x.temp, 1), " °C") : "") +
-        (x.hora ? dato("Hora de inicio", x.hora) : "");
+        (x.hora ? dato("Hora de inicio", x.hora) : "") +
+        /* la curva de esa salida, si el workflow ya la leyó: cuatro cifras que
+           dicen de qué fue el día —sprint, ataque, subida o tempo largo— y que
+           ningún otro campo cuenta */
+        (function () {
+          var c = (curva && x.id) ? curva[x.id] : null;
+          if (!c) return "";
+          return VENTANAS.map(function (v2) {
+            return c[v2.id] == null ? ""
+              : dato("Mejor " + v2.n, num(c[v2.id]), " W");
+          }).join("");
+        }());
       /* La zona sale de la celda, que es lo que se sabe antes de pedir el
          trazo; cuando el trazo llega, se recalcula con el centro de verdad. */
       var cc = celdaACoord(x.celda);
@@ -1595,6 +1681,7 @@
          hablando de una cosa menos la mitad de abajo. */
       if (metricaActual().fuente === "dia") return htmlDias();
       if (metricaActual().fuente === "fuerza") return htmlFuerza();
+      if (metricaActual().fuente === "curva") return htmlCurva();
       if (metricaActual().acumula === false) return htmlMejores();
 
       var m = porAnio[estado.anio] || {};
@@ -1620,6 +1707,30 @@
                            : " no tiene ninguna actividad.") + "</p>";
       }
       return h;
+    }
+
+    /* ---------- la lista de la curva ----------
+       Las salidas ordenadas por la ventana elegida, y en cada línea las cuatro
+       cifras: se ve de un vistazo si aquel día fue un sprint o un tempo largo. */
+    function htmlCurva() {
+      var lista = conCurva(estado.anio, estado.mes);
+      if (!lista.length) {
+        return '<p class="akhb-nada">Ninguna salida de ' +
+               (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio
+                           : estado.anio) +
+               " tiene curva todavía. El workflow las va leyendo del fichero original " +
+               "a lo largo de varias pasadas.</p>";
+      }
+      var d = repartoCurva(estado.anio, estado.mes);
+      var h = '<h4 class="akhb-titmes">' +
+        (estado.mes ? MES[parseInt(estado.mes, 10) - 1] : "El año entero") +
+        " <span>" + (estado.modo === "mejor" ? "mejor " : "mediana ") + num(d.n, 0) +
+        "\u00a0W · " + lista.length + (lista.length === 1 ? " salida" : " salidas") +
+        "</span></h4><ul class=\"akhb-lista\">";
+      lista.forEach(function (x, i) {
+        h += htmlFila(x, estado.anio + "-c" + i);
+      });
+      return h + "</ul>";
     }
 
     /* ---------- la lista de una medida de desempeño ----------
@@ -2368,7 +2479,7 @@
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest
-        ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo]") : null;
+        ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent]") : null;
       if (!t || !estado.el.contains(t)) return;
       if (t.hasAttribute("data-met")) {
         var nueva = t.getAttribute("data-met");
@@ -2385,6 +2496,11 @@
         if (metricaActual().fuente === "dia") pedirDias();
         pintar();
         return;
+      }
+      if (t.hasAttribute("data-vent")) {
+        estado.vent = t.getAttribute("data-vent");
+        estado.abierta = null;
+        pintar(); return;
       }
       if (t.hasAttribute("data-modo")) {
         estado.modo = t.getAttribute("data-modo");

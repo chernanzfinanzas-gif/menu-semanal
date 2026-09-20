@@ -2288,6 +2288,56 @@
      sale del fichero original del reloj y lo rellena el paso del FIT. Fichero
      aparte y opcional, como los trazos: sólo hace falta al entrar en Actividad,
      y si no está, la ficha sale como antes. */
+  /* LA CURVA DE POTENCIA. Cuatro números por actividad —el mejor esfuerzo
+     sostenido de 5 s, 1 min, 5 min y 20 min— que escribe el workflow leyendo
+     el fichero original. Fichero aparte y opcional, como los trazos y las
+     pesas: sólo hace falta en Actividad, y si no está, todo sale como antes. */
+  var Curva = {
+    CLAVE: "khb-curva-v1",
+    RUTA: "datos/curva.json",
+    FRESCO_H: 24,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
+      } catch (e) { return false; }
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.estado === "cargando" || this.estado === "no-hay") {
+        if (alTerminar) alTerminar(); return;
+      }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = JSON.parse(Salud.deB64(j.content));
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE,
+              JSON.stringify({ sha: Firmas.de(self.RUTA), datos: self.datos, traidoEl: self.traidoEl }));
+          } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        /* El workflow la va llenando a lo largo de varias pasadas: que no esté
+           todavía es lo normal el primer día. */
+        .catch(function () { self.estado = "no-hay"; if (alTerminar) alTerminar(); });
+    }
+  };
+
   var Fuerza = {
     /* v2 y no v1 a propósito: la app ya se guardó el fichero que escribió el
        FIT, con los nombres adivinados y fecha de hoy, así que con la misma
@@ -2963,6 +3013,7 @@
           Borrado.pedir(id, modo, ruta, datos, listo);
         },
         fuerza: Fuerza.datos,
+        curva: Curva.datos,
         /* LOS DÍAS, para las medidas que no salen de las actividades (los
            pasos, y mañana las calorías). Dos fuentes: la ventana reciente
            manda, el histórico rellena lo de atrás.
@@ -3002,6 +3053,7 @@
     Trazos.cargar(repinta);
     Nombres.cargar(repinta);
     Fuerza.cargar(repinta);
+    Curva.cargar(repinta);
     ActHistorico.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);
   }

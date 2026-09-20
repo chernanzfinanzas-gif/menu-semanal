@@ -176,6 +176,10 @@
   font: inherit; font-size: 11.5px; color: var(--akhb-gris); padding: 4px 12px;
 }
 .akhb-modo button + button { border-left: 1px solid var(--akhb-borde); }
+/* el selector de ventana va pegado al de modo, un poco más apagado: el modo
+   dice CÓMO se mira y la ventana QUÉ, y se distinguen de un vistazo */
+.akhb-vent { margin-left: 6px; }
+.akhb-vent button { font-size: 11px; padding: 4px 9px; }
 .akhb-modo button.sel {
   background: var(--akhb-claro); color: var(--akhb-hondo); font-weight: 700;
 }
