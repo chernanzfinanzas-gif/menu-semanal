@@ -322,6 +322,7 @@
 
     /* ---------- persistencia ---------- */
     guardar: function (motivo) {
+      this._cacheEntreno = null;          // ver `hayEntreno`
       this.estado.actualizado = new Date().toISOString();
       try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
       this.avisar(motivo || "cambio");
@@ -381,8 +382,35 @@
 
     /* ¿Ese día hay entreno? Cuenta cualquier actividad registrada, sea la prevista o
        la que midió el reloj. Un día sin nada apuntado es un día de descanso. */
+    /* ¿Entrena ese día? Esto decide si se planifican el almuerzo y la merienda.
+
+       MIRABA UNA SOLA DE LAS TRES PROCEDENCIAS. Solo veía `estado.actividad`, o sea
+       lo apuntado a mano y lo que trajo el reloj, y NO la previsión del plan. Con un
+       día que el plan da como «Fuerza A» y «Caminar», la merienda seguía diciendo
+       «Solo los días que entrenas» — justo al revés de para lo que sirve, porque la
+       comida se prepara ANTES del día, cuando lo único que hay es la previsión.
+
+       Cuenta cualquier entreno que siga en pie: real, apuntado o previsto. NO cuenta
+       el previsto CADUCADO —día pasado que se quedó sin hacer—, porque ese día no
+       entrenó y no había que meterle merienda. El `tapada` sí cuenta: significa que la
+       previsión la sustituyó una sesión de verdad, así que entrenó igual. */
     hayEntreno: function (fecha) {
-      return (this.estado.actividad[fecha] || []).length > 0;
+      if (((this.estado.actividad || {})[fecha] || []).length > 0) return true;
+      /* `tomaActiva` se llama por cada día y cada toma —la lista de la compra de dos
+         semanas son setenta llamadas—, así que la respuesta se guarda. Se tira entera
+         en cada `guardar`. */
+      if (!this._cacheEntreno) this._cacheEntreno = {};
+      if (this._cacheEntreno[fecha] != null) return this._cacheEntreno[fecha];
+      var hay = false, lista = [];
+      try { lista = this.entrenoDelDia(fecha) || []; } catch (e) { lista = []; }
+      for (var i = 0; i < lista.length; i++) {
+        var e2 = lista[i];
+        if (e2.caducada || e2.pisada) continue;
+        if ((e2.kcal || 0) <= 0 && (e2.min || 0) <= 0) continue;
+        hay = true; break;
+      }
+      this._cacheEntreno[fecha] = hay;
+      return hay;
     },
 
     /* ¿Esa toma se planifica ese día? El almuerzo y la merienda, solo si entrena. */
