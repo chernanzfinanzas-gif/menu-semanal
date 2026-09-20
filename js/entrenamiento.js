@@ -2084,7 +2084,11 @@
      aparte y opcional, como los trazos: sólo hace falta al entrar en Actividad,
      y si no está, la ficha sale como antes. */
   var Fuerza = {
-    CLAVE: "khb-fuerza-v1",
+    /* v2 y no v1 a propósito: la app ya se guardó el fichero que escribió el
+       FIT, con los nombres adivinados y fecha de hoy, así que con la misma
+       clave no lo volvería a pedir hasta pasadas 24 h. Cambiar el nombre de la
+       caja obliga a traer el bueno la primera vez que se abre. */
+    CLAVE: "khb-fuerza-v2",
     RUTA: "datos/fuerza.json",
     FRESCO_H: 24,
     datos: null,
