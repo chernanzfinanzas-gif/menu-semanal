@@ -2323,15 +2323,21 @@
       return lista;
     },
 
-    /* GUARDAR. Se vuelve a pedir el fichero antes de escribir para llevar su
-       `sha`: si se escribiera a ciegas, GitHub rechazaría el cambio cuando el
-       workflow lo hubiera tocado mientras tanto. */
-    guardar: function (id, nombre, listo) {
+    /* GUARDAR. Se vuelve a pedir el fichero justo antes de escribir para llevar
+       su `sha`: GitHub no deja escribir sobre una versión que ya no existe.
+       Y si aun así choca —porque el workflow o tú mismo lo tocasteis en ese
+       segundo—, NO se le echa el muerto a Carlos: se vuelve a leer y se
+       reintenta solo, hasta tres veces. El nombre que escribió no se pierde. */
+    guardar: function (id, nombre, listo, intento) {
       var self = this, c = Salud.cfg();
       listo = listo || function () {};
+      intento = intento || 1;
       if (!Salud.configurado()) { listo(false, "falta la configuración"); return; }
       var cab = { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" };
-      fetch(this.url() + "?ref=" + encodeURIComponent(c.rama || "main"), { headers: cab })
+      /* sin caché: una respuesta guardada traería un `sha` viejo y el choque
+         estaría garantizado */
+      fetch(this.url() + "?ref=" + encodeURIComponent(c.rama || "main") + "&t=" + Date.now(),
+            { headers: cab, cache: "no-store" })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
           var doc = { nombres: {} }, sha = j && j.sha;
@@ -2345,24 +2351,30 @@
           var txt = JSON.stringify(doc, null, 1);
           var by = new TextEncoder().encode(txt), bin = "", i;
           for (i = 0; i < by.length; i++) bin += String.fromCharCode(by[i]);
-          return fetch(self.url(), {
-            method: "PUT", headers: cab,
-            body: JSON.stringify({
-              message: "Nombre: " + nombre,
-              content: btoa(bin), sha: sha || undefined, branch: c.rama || "main"
-            })
-          }).then(function (r) {
-            if (!r.ok) throw new Error(r.status === 409 ? "el fichero cambió mientras tanto, prueba otra vez"
-                                                        : "GitHub dice que no (" + r.status + ")");
-            self.datos = self.datos || {};
-            self.datos[String(id)] = nombre;
-            self.traidoEl = Date.now();
-            try {
-              localStorage.setItem(self.CLAVE, JSON.stringify(
-                { sha: null, traidoEl: self.traidoEl, datos: self.datos }));
-            } catch (e) {}
-            listo(true);
-          });
+          var cuerpo = { message: "Nombre: " + nombre, content: btoa(bin),
+                         branch: c.rama || "main" };
+          if (sha) cuerpo.sha = sha;
+          return fetch(self.url(), { method: "PUT", headers: cab, body: JSON.stringify(cuerpo) })
+            .then(function (r) {
+              if (r.ok) {
+                self.datos = self.datos || {};
+                self.datos[String(id)] = nombre;
+                self.traidoEl = Date.now();
+                try {
+                  localStorage.setItem(self.CLAVE, JSON.stringify(
+                    { sha: null, traidoEl: self.traidoEl, datos: self.datos }));
+                } catch (e) {}
+                listo(true);
+                return;
+              }
+              /* 409 y 422 son «tu copia es vieja»: se reintenta con la nueva */
+              if ((r.status === 409 || r.status === 422) && intento < 3) {
+                setTimeout(function () { self.guardar(id, nombre, listo, intento + 1); }, 400);
+                return;
+              }
+              throw new Error(r.status === 403 ? "la clave no puede escribir en el repositorio"
+                                               : "GitHub dice que no (" + r.status + ")");
+            });
         })
         .catch(function (e) { listo(false, (e && e.message) || "no he podido guardarlo"); });
     }
