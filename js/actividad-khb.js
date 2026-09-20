@@ -706,6 +706,12 @@
         var x = aa[p.i], r = cand[p.j];
         x.ruta = r.id; x.celda = r.c;
         if (!x.nombre) x.nombre = r.n;
+        /* SI HAY RUTA ARCHIVADA, MANDA LA RUTA. El 8-ago-2026 el reloj se
+           quedó con «Rowing» puesto de la actividad anterior, intervals lo
+           guardó así y el paseo a la Poza de Sócrates salía entre las «Otras»
+           en vez de con las de senderismo. El catálogo sabe lo que es: lo
+           curó Carlos al archivar la ruta. */
+        if (x.dep === "otr" && (r.a === "sen" || r.a === "bici")) x.dep = r.a;
       });
     });
 
