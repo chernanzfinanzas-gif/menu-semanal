@@ -1016,10 +1016,12 @@
             '<span class="akhb-nom-txt">' + esc(x.nombre || "(sin nombre)") + "</span>" +
             '<button type="button" class="akhb-nom-lapiz" data-renombra="' + clave +
               '" title="Cambiar el nombre" aria-label="Cambiar el nombre">\u270e</button>' +
+            botonBorrar(x, clave) +
           "</div>"
         : "";
       return '<div class="akhb-ficha' + (tablaFuerza ? " akhb-con-fuerza" : "") + '">' +
         editor +
+        htmlBorrar(x, clave) +
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
           '<div class="akhb-lienzo">' +
             (llevaMapa(x) ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
@@ -1040,7 +1042,6 @@
         "</figure>" +
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
-        htmlBorrar(x, clave) +
       "</div>";
     }
 
@@ -1057,11 +1058,20 @@
       return Math.abs(r.km - km) / km <= 0.05 ? r : null;
     }
 
+    /* El botón va PEGADO AL LÁPIZ, que es donde se busca: lo que se hace con
+       una actividad —cambiarle el nombre, quitarla— se hace en el mismo sitio.
+       Y no abre las opciones de golpe: primero pregunta si de verdad quieres
+       borrar, y sólo entonces enseña qué se lleva cada una. */
+    function botonBorrar(x, clave) {
+      if (!alBorrar || !x.id) return "";
+      return '<button type="button" class="akhb-nom-borrar" data-borra="' + clave +
+        '" title="Borrar esta actividad" aria-label="Borrar esta actividad">Borrar</button>';
+    }
+
+    /* el hueco donde salen la pregunta y luego las opciones, justo debajo */
     function htmlBorrar(x, clave) {
       if (!alBorrar || !x.id) return "";
-      return '<div class="akhb-borrar" data-bor="' + clave + '">' +
-        '<button type="button" class="akhb-bor-link" data-borra="' + clave + '">' +
-        "Borrar\u2026</button></div>";
+      return '<div class="akhb-borrar" data-bor="' + clave + '"></div>';
     }
 
     function htmlLista() {
@@ -1470,7 +1480,8 @@
     function pintaNombre(caja, clave, x) {
       caja.innerHTML = '<span class="akhb-nom-txt">' + esc(x.nombre || "(sin nombre)") + "</span>" +
         '<button type="button" class="akhb-nom-lapiz" data-renombra="' + clave +
-          '" title="Cambiar el nombre" aria-label="Cambiar el nombre">\u270e</button>';
+          '" title="Cambiar el nombre" aria-label="Cambiar el nombre">\u270e</button>' +
+        botonBorrar(x, clave);
     }
 
     /* ---------- borrar ----------
@@ -1478,15 +1489,29 @@
        lleva por delante cada una, con el nombre de la ruta y sus kilómetros.
        El segundo es el que manda. */
     function borrar(bot) {
-      var clave = bot.getAttribute("data-borra") || bot.getAttribute("data-borra-si") ||
-                  bot.getAttribute("data-borra-no");
+      var clave = bot.getAttribute("data-borra") || bot.getAttribute("data-borra-ver") ||
+                  bot.getAttribute("data-borra-si") || bot.getAttribute("data-borra-no");
       var caja = estado.el.querySelector('[data-bor="' + clave + '"]');
       var x = buscaPorClave(clave);
       if (!caja || !x) return;
 
-      if (bot.hasAttribute("data-borra-no")) { pintaBorrar(caja, clave); return; }
+      if (bot.hasAttribute("data-borra-no")) { caja.innerHTML = ""; return; }
 
       if (bot.hasAttribute("data-borra")) {
+        caja.innerHTML =
+          '<div class="akhb-bor-caja akhb-bor-pregunta">' +
+            "<p><b>\u00bfBorrar esta actividad?</b></p>" +
+            '<div class="akhb-bor-bots">' +
+              '<button type="button" class="akhb-bor-act" data-borra-ver="' + clave +
+                '">S\u00ed, ver qu\u00e9 se borra</button>' +
+              '<button type="button" class="akhb-bor-no" data-borra-no="' + clave +
+                '">No</button>' +
+            "</div>" +
+          "</div>";
+        return;
+      }
+
+      if (bot.hasAttribute("data-borra-ver")) {
         var r = rutaDeActividad(x);
         var arrastre = r
           ? "Se lleva tambi\u00e9n la ruta <b>" + esc(r.n || r.id) + "</b> (" +
@@ -1534,14 +1559,11 @@
       });
     }
 
-    function pintaBorrar(caja, clave) {
-      caja.innerHTML = '<button type="button" class="akhb-bor-link" data-borra="' + clave +
-        '">Borrar\u2026</button>';
-    }
 
     /* ---------- clics ---------- */
     function alPulsar(e) {
-      var b = e.target.closest ? e.target.closest("[data-borra],[data-borra-si],[data-borra-no]") : null;
+      var b = e.target.closest
+        ? e.target.closest("[data-borra],[data-borra-ver],[data-borra-si],[data-borra-no]") : null;
       if (b && estado.el.contains(b)) { e.stopPropagation(); borrar(b); return; }
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }

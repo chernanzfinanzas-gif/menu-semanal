@@ -399,20 +399,28 @@
    que se pulsa cien veces es el lápiz del nombre; esto, una vez al año. El
    rojo aparece sólo cuando ya has abierto las opciones y hay algo que
    decidir. */
-.akhb-borrar { margin: 14px 0 2px; text-align: right; }
-
-.akhb-bor-link {
-  background: none;
-  border: 0;
-  padding: 2px 4px;
-  font: inherit;
-  font-size: .82rem;
-  color: var(--tenue, #8a939c);
+/* El botón vive al lado del lápiz: lo que se hace con una actividad se hace
+   en el mismo sitio. De callado —gris, como el lápiz— y sólo se pone rojo al
+   pasar por encima. El rojo de verdad llega cuando ya has dicho que sí. */
+.akhb-nom-borrar {
+  border: 1px solid var(--akhb-borde);
+  background: var(--akhb-blanco);
+  color: var(--akhb-gris);
+  border-radius: 8px;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  height: 26px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1;
 }
-.akhb-bor-link:hover { color: #c0392b; }
+.akhb-nom-borrar:hover, .akhb-nom-borrar:focus-visible {
+  color: #c0392b; border-color: rgba(192, 57, 43, .55); outline: none;
+}
+
+/* el hueco de debajo del nombre: vacío hasta que se pulsa */
+.akhb-borrar:empty { display: none; }
+.akhb-borrar { margin: 10px 0 4px; }
 
 .akhb-bor-caja {
   text-align: left;
@@ -423,6 +431,8 @@
   background: rgba(192, 57, 43, .05);
 }
 .akhb-bor-caja p { margin: 0 0 8px; font-size: .9rem; }
+.akhb-bor-pregunta p { margin: 0; }
+.akhb-bor-pregunta .akhb-bor-bots { margin-top: 8px; }
 
 .akhb-bor-bots { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
 .akhb-bor-bots button {
