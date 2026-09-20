@@ -101,6 +101,13 @@
 .akhb-anio-n { font-size: 12.5px; font-weight: 600; color: var(--akhb-tinta); }
 .akhb-anio.sel .akhb-anio-n { color: var(--akhb-hondo); }
 .akhb-anio-c { font-size: 10.5px; }
+/* la segunda línea de la tarjeta del año: el mismo número en la unidad en la
+   que uno piensa. Va debajo y más floja para que no compita con el total. */
+.akhb-anio-c small {
+  display: block; font-size: 9.5px; color: var(--akhb-gris);
+  font-weight: 400; margin-top: 1px; white-space: nowrap;
+}
+.akhb-anio.sel .akhb-anio-c small { color: inherit; opacity: .75; }
 
 /* la barra: apilada por deporte, alta para que se vea el reparto */
 .akhb-barra {

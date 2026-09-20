@@ -69,7 +69,11 @@
     { id: "km",  nom: "Kilómetros",  fuente: "act", campo: "km",        dec: 0, suf: "" },
     { id: "d",   nom: "Desnivel",    fuente: "act", campo: "desnivel",  dec: 0, suf: "\u00a0m" },
     { id: "c",   nom: "Carga",       fuente: "act", campo: "carga",     dec: 0, suf: "" },
-    { id: "p",   nom: "Pasos",       fuente: "dia", dec: 0, suf: "" }
+    /* `aparte` es la segunda línea de la tarjeta del año: el mismo número
+       dicho en la unidad en la que uno piensa. Un millón de pasos no significa
+       nada; 3.689 km, sí. */
+    { id: "p",   nom: "Pasos",       fuente: "dia", dec: 0, suf: "",
+      aparte: function (n) { return numKm(n * ZANCADA_M / 1000) + " km"; } }
   ];
 
   /* SU zancada, no la de un manual: mediana de 1.143 salidas suyas que la
@@ -78,6 +82,12 @@
      NO se usa `km_dia` de Garmin para esto: desde 2022 mete la bici dentro y
      la zancada implícita saldría de 6 metros. */
   var ZANCADA_M = 0.79;
+
+  /* los km de un año se dicen redondos; los de un día, con un decimal, que
+     si no un paseo de 3,7 km saldría como «4» */
+  function numKm(v) {
+    return v >= 100 ? num(v, 0) : num(v, 1);
+  }
 
   /* el orden manda en la barra apilada y en la leyenda */
   var ORDEN_DEP = ["sen", "pas", "bici", "and", "rod", "fue", "cor", "otr"];
@@ -1044,7 +1054,9 @@
           '" aria-selected="' + sel + '" data-anio="' + y + '">' +
           '<span class="akhb-anio-n">' + y + "</span>" +
           '<span class="akhb-barra">' + trozos + "</span>" +
-          '<span class="akhb-anio-c">' + (d.n ? num(d.n, m.dec) + m.suf : "·") + "</span></button>";
+          '<span class="akhb-anio-c">' + (d.n ? num(d.n, m.dec) + m.suf : "·") +
+          (d.n && m.aparte ? "<small>(" + esc(m.aparte(d.n)) + ")</small>" : "") +
+          "</span></button>";
       }).join("");
 
       /* LA LEYENDA YA NO ES UN ADORNO: es el filtro. Se listan los grupos que
