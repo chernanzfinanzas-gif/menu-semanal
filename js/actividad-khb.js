@@ -347,6 +347,7 @@
       if ((dep === "and" || dep === "sen" || dep === "pas") && vel > 20) dep = "otr";
       fuera.push({
         fecha: f, dep: dep, nombre: a.nombre || null,
+        hora: String(a.fecha || "").slice(11, 16) || null,
         km: a.km != null ? a.km : null,
         desnivel: a.desnivel != null ? a.desnivel : null,
         min: a.min_mov != null ? Math.round(a.min_mov) : null,
@@ -355,6 +356,29 @@
         wkg: a.w_kg != null ? a.w_kg : null,
         pulso: a.pulso_med != null ? a.pulso_med : null,
         kcal: a.kcal_netas != null ? a.kcal_netas : null,
+        /* LO QUE YA ESTABA GUARDADO Y LA FICHA NO ENSEÑABA. De 2021 a 2025:
+           velocidad y ritmo en el 89% de las salidas, cadencia en el 87%,
+           alturas en el 85%, efecto aeróbico en el 84%, pendiente máxima en el
+           78%. Estaba todo en el fichero y la ficha pintaba ocho campos. */
+        minTotal: a.min_total != null ? Math.round(a.min_total) : null,
+        desnivelNeg: a.desnivel_neg != null ? a.desnivel_neg : null,
+        altMin: a.alt_min != null ? a.alt_min : null,
+        altMax: a.alt_max != null ? a.alt_max : null,
+        pendMax: a.pend_max != null ? a.pend_max : null,
+        pendMedia: a.pend_media != null ? a.pend_media : null,
+        vel: a.vel_kmh != null ? a.vel_kmh : null,
+        ritmo: a.ritmo != null ? a.ritmo : null,
+        pulsoMax: a.pulso_max != null ? a.pulso_max : null,
+        cadencia: a.cadencia != null ? a.cadencia : null,
+        zancada: a.zancada != null ? a.zancada : null,
+        pasos: a.pasos != null ? a.pasos : null,
+        kcalReloj: a.kcal_reloj != null ? a.kcal_reloj : null,
+        /* kcal ESTIMADAS, campo aparte a propósito: de 2013 a 2018 el GPSMAP no
+           medía más que posición. Nunca se mezclan con las del reloj. */
+        kcalEst: a.kcal_est != null ? a.kcal_est : null,
+        temp: a.temp != null ? a.temp : null,
+        efAe: a.ef_aerobico != null ? a.ef_aerobico : null,
+        trimp: a.trimp != null ? a.trimp : null,
         ruta: archivo ? (a.ruta || null) : null,
         celda: archivo ? (a.celda || null) : null,
         poli: a.poli || null,
@@ -668,18 +692,66 @@
       return '<tr><th scope="row">' + et + "</th><td>" + v + (suf || "") + "</td></tr>";
     }
 
+    /* ---------- ritmo y velocidad ----------
+       Casi siempre vienen del fichero, pero en 821 salidas del archivo no: son
+       años en los que sólo se apuntó la distancia y el tiempo. Se calculan aquí
+       —es una división— y NO se guardan en ningún sitio: un dato que sale de
+       otros dos no tiene por qué ocupar bytes en el móvil ni viajar al teléfono.
+       A pie se lee en minutos por kilómetro; en bici, en kilómetros por hora. */
+    var A_PIE = { sen: 1, and: 1, pas: 1, cor: 1 };
+
+    function ritmoDe(x) {
+      if (x.ritmo != null) return x.ritmo;
+      if (!x.km || !x.min) return null;
+      return x.min / x.km;
+    }
+    function velDe(x) {
+      if (x.vel != null) return x.vel;
+      if (!x.km || !x.min) return null;
+      return x.km / (x.min / 60);
+    }
+    /* 9,72 minutos por kilómetro se lee «9:43», no «9,72» */
+    function mmss(min) {
+      var s = Math.round(min * 60), m = Math.floor(s / 60);
+      return m + ":" + dosD(s - m * 60);
+    }
+
     function htmlFicha(x, clave) {
+      var aPie = !!A_PIE[x.dep], rit = ritmoDe(x), vel = velDe(x);
+      var parado = (x.minTotal != null && x.min != null && x.minTotal - x.min >= 2)
+        ? x.minTotal - x.min : null;
       var campos =
         dato("Duración", x.min, " min") +
+        (parado != null ? dato("Parado", parado, " min") : "") +
         dato("Distancia", x.km != null ? num(x.km, 2) : null, " km") +
+        /* el ritmo es de a pie y la velocidad de rueda: poner los dos en las dos
+           es lo que hace que una ficha se lea peor, no mejor */
+        (aPie && rit != null ? dato("Ritmo", mmss(rit), " min/km") : "") +
+        (!aPie && vel != null && x.km ? dato("Velocidad media", num(vel, 1), " km/h") : "") +
         dato("Desnivel", x.desnivel != null ? num(x.desnivel) : null, " m") +
+        (x.desnivelNeg != null ? dato("Bajada", num(x.desnivelNeg), " m") : "") +
+        (x.altMin != null && x.altMax != null
+          ? dato("Altura", num(x.altMin) + " – " + num(x.altMax), " m") : "") +
+        (x.pendMax != null ? dato("Pendiente máxima", num(x.pendMax, 1), " %") : "") +
+        (x.pendMedia != null ? dato("Pendiente media", num(x.pendMedia, 1), " %") : "") +
         (x.carga != null ? dato("Carga", x.carga) : "") +
         /* lo de abajo solo si existe: una caminata no tiene vatios y poner
            «Potencia —» es ruido, no información */
         (x.pulso != null ? dato("Pulso medio", x.pulso, " ppm") : "") +
+        (x.pulsoMax != null ? dato("Pulso máximo", x.pulsoMax, " ppm") : "") +
         (x.pot   != null ? dato("Potencia", x.pot, " W") : "") +
         (x.wkg   != null ? dato("Vatios/kg", num(x.wkg, 2)) : "") +
-        (x.kcal  != null ? dato("Kcal netas", num(x.kcal)) : "");
+        (x.cadencia != null
+          ? dato("Cadencia", num(x.cadencia), aPie ? " zancadas/min" : " rpm") : "") +
+        (x.zancada != null ? dato("Zancada", num(x.zancada, 2), " m") : "") +
+        (x.pasos != null ? dato("Pasos", num(x.pasos)) : "") +
+        (x.kcal  != null ? dato("Kcal netas", num(x.kcal)) : "") +
+        (x.kcal == null && x.kcalReloj != null ? dato("Kcal del reloj", num(x.kcalReloj)) : "") +
+        (x.kcal == null && x.kcalReloj == null && x.kcalEst != null
+          ? dato("Kcal estimadas", "≈ " + num(x.kcalEst)) : "") +
+        (x.efAe != null ? dato("Efecto aeróbico", num(x.efAe, 1)) : "") +
+        (x.temp != null ? dato("Temperatura", num(x.temp, 1), " °C") : "") +
+        (x.hora ? dato("Hora de inicio", x.hora) : "");
       /* La zona sale de la celda, que es lo que se sabe antes de pedir el
          trazo; cuando el trazo llega, se recalcula con el centro de verdad. */
       var cc = celdaACoord(x.celda);
