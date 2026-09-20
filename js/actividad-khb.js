@@ -870,15 +870,19 @@
 
       var lienzo = fig.querySelector(".akhb-lienzo") || fig;
       var chapa = lienzo.querySelector(".akhb-lugar");
-      /* El trazo va dos veces: blanco grueso debajo y color encima. Sobre el
-         mapa es lo único que lo hace legible entre curvas de nivel. */
       lienzo.innerHTML =
         '<svg class="akhb-trazo" viewBox="0 0 ' + LIENZO + " " + LIENZO + '" role="img" ' +
           'aria-label="Recorrido de la actividad">' + fondo +
-          '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="7" ' +
+          /* El trazo va dos veces: blanco grueso debajo y color encima. El color
+             es MORADO y no el azul de la app a propósito: comprobado sobre los
+             colores de OpenStreetMap, el rojo y el naranja son las carreteras,
+             el verde los parques, el azul el agua y el marrón las curvas de
+             nivel. El morado es el único tono que no se confunde con ninguno;
+             el granate chocaba con las vías y el violeta con el río. */
+          '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="9" ' +
             'stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>' +
-          '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="3.6" ' +
-            'stroke-linejoin="round" stroke-linecap="round"/>' +
+          '<path d="' + d + '" fill="none" stroke="var(--akhb-trazo, currentColor)" ' +
+            'stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>' +
           '<circle cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) +
             '" r="6" class="akhb-ini"/>' +
           '<circle cx="' + f[0].toFixed(1) + '" cy="' + f[1].toFixed(1) +

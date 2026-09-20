@@ -24,6 +24,10 @@
      El rodillo entró como quinta y el rosa de antes (#e87ba4) se caía contra
      el verde en deuteranopía —ΔE 6,1, por debajo del suelo—; con este granate
      el peor par sube a 10,0. */
+  /* El color del recorrido sobre el mapa. Morado porque es el único tono que
+     no coincide con nada de la cartografía: ni las carreteras (rojo/naranja),
+     ni los parques (verde), ni el agua (azul), ni las curvas (marrón). */
+  --akhb-trazo:       #7b2fbf;
   --akhb-fam-monte:   #2a78d6;
   --akhb-fam-bici:    #4a3aa7;
   --akhb-fam-rodillo: #b5446e;
