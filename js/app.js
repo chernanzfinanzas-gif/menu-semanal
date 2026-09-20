@@ -266,6 +266,15 @@
       var hayComido = Almacen.hayComidoAlgo(fecha);
       var kcalAct = Math.round(Almacen.kcalActividad(fecha));
       var devEj = Almacen.estado.config.devolucionEjercicio;
+      /* Lo que de verdad SUBE al objetivo, ya con la corrección de cada
+         procedencia: lo medido entero, lo estimado al 70%, lo previsto a la
+         mitad. Es el número que tiene que cuadrar con el objetivo de al lado. */
+      var subeEntreno = (function () {
+        var k = Almacen.kcalPorProcedencia(fecha);
+        var pre = typeof Almacen.estado.config.previsionEjercicio === "number"
+          ? Almacen.estado.config.previsionEjercicio : 0.50;
+        return Math.round(k.real + k.apuntado * devEj + k.previsto * pre);
+      }());
       if (typeof devEj !== "number") devEj = 0.70;
       var objetivo = Almacen.objetivoDelDia(fecha);
       var colorK = Almacen.semaforoKcal(nutr.k, objetivo);
@@ -337,7 +346,7 @@
         var defD = Math.round(Almacen.deficitDiario());
         html += '<div class="nota-tipo cadena">Gastas ≈ <b>' + Util.kcal(gastoD) + '</b> ' +
                 '(' + Util.kcal(Math.round(Almacen.gastoBase())) + ' de base' +
-                (kcalAct ? ' + ' + Math.round(kcalAct * devEj) + ' de entreno' : '') + ')' +
+                (subeEntreno ? ' + ' + Math.round(subeEntreno) + ' de entreno' : '') + ')' +
                 ' − <b>' + defD + '</b> de déficit = comer <b>' + Util.kcal(objetivo) + '</b></div>';
         if (Almacen.objetivoEnSuelo(fecha)) {
           html += '<div class="nota-tipo aviso-objetivo">Con el déficit que tienes puesto, hoy te ' +
@@ -361,9 +370,9 @@
                     '<span><b>H</b> ' + Math.round(nutr.h) + ' g</span>' +
                     /* Lo que SUBE al objetivo, no lo que quemas: si pusiera el bruto
                        no cuadraría con el objetivo de al lado y parecería un error. */
-                    (kcalAct ? '<span class="quemado" title="Quemas unas ' + kcalAct +
-                               ' kcal; al objetivo sube el ' + Math.round(devEj * 100) + '%">+' +
-                               Math.round(kcalAct * devEj) + ' del entreno</span>' : '') +
+                    (subeEntreno ? '<span class="quemado" title="Lo medido entra entero; ' +
+                               'lo estimado al ' + Math.round(devEj * 100) + '% y lo previsto a la mitad">+' +
+                               Math.round(subeEntreno) + ' del entreno</span>' : '') +
                     (hayComido
                       ? '<span class="comido-hasta">Llevas ' + Util.kcal(nutrCom.k) + '</span>'
                       : (objetivo ? '<span class="comido-hasta">Objetivo ' + Util.kcal(objetivo) + '</span>' : '')) +
@@ -434,7 +443,10 @@
 
       /* Entreno del día. Los minutos se editan aquí mismo: la previsión sirve de
          punto de partida y cada día se ajusta a lo que vaya a hacer de verdad. */
-      var actos = Almacen.estado.actividad[fecha] || [];
+      /* Tres procedencias: lo que apuntaste, lo que dice el plan y lo que midió
+         el reloj. `entrenoDelDia` las junta y marca cuál es cuál. */
+      var actos = Almacen.entrenoDelDia(fecha);
+      var kProc = Almacen.kcalPorProcedencia(fecha);
       html += '<div class="toma actividad-dia">';
       html += '<div class="titulo-toma"><span>Entreno del día</span>' +
               (!cerr && tipo !== "ruta"
@@ -445,30 +457,54 @@
       if (!actos.length) {
         html += '<div class="nota-peque">' + (cerr ? "No apuntaste nada" : "Sin entreno previsto") + '</div>';
       } else {
-        var hayReloj = actos.some(function (x) { return x.fuente === "garmin"; });
         var totalAct = 0;
-        actos.forEach(function (x, idx) {
-          var kc = Math.round(Almacen.kcalDeEntrada(x));
-          /* la ruta prevista deja de contar en cuanto hay medida del reloj */
-          var pisada = hayReloj && x.ref === "ruta";
+        actos.forEach(function (e, idx) {
+          var x = e.x || {};
+          var kc = e.kcal;
+          var pisada = e.pisada;
           if (!pisada) totalAct += kc;
-          html += '<div class="plato act' + (pisada ? " no-cuenta" : "") + '">' +
-                    '<span class="nom">' + esc(Almacen.nombreDeEntrada(x)) +
-                      (x.fuente === "garmin" ? ' <span class="etiqueta">reloj</span>' : '') +
+          /* Lo que viene del plan o de intervals NO está guardado: se calcula al
+             pintar. Por eso no lleva ni casilla de minutos ni aspa — tocarlo
+             sería apuntarlo, y entonces dejaría de seguir al plan. */
+          var virtual = !e.x;
+          var fuera = pisada || e.tapada || e.caducada;
+          if (fuera) totalAct -= kc;          // ya sumado arriba; aquí se retira
+          html += '<div class="plato act' + (fuera ? " no-cuenta" : "") +
+                    (e.clase === "previsto" ? " es-previsto" : "") +
+                    (e.clase === "real" ? " es-real" : "") + '">' +
+                    '<span class="nom">' + esc(e.n) +
+                      (e.clase === "real" ? ' <span class="etiqueta">reloj</span>' : '') +
+                      (e.clase === "previsto" && !e.tapada && !e.caducada
+                        ? ' <span class="etiqueta">del plan</span>' : '') +
+                      (e.tapada ? ' <span class="etiqueta">sustituida por lo real</span>' : '') +
+                      (e.caducada ? ' <span class="etiqueta">no se hizo</span>' : '') +
                       (x.ref === "estandar" ? ' <span class="etiqueta">previsto</span>' : '') +
                       (pisada ? ' <span class="etiqueta">ya no cuenta</span>' : '') + '</span>' +
-                    (cerr
-                      ? '<span class="min-fijo">' + x.min + '</span>'
+                    (cerr || virtual
+                      ? '<span class="min-fijo">' + e.min + '</span>'
                       : '<input type="number" class="min-act" min="0" max="900" step="5" ' +
-                        'value="' + x.min + '" data-minact="' + fecha + '|' + idx + '" ' +
+                        'value="' + e.min + '" data-minact="' + fecha + '|' + idx + '" ' +
                         (x.fuente === "garmin" ? 'title="Medido por el reloj"' : '') + '>') +
                     '<span class="sal">min · ' + kc + ' kcal</span>' +
-                    (cerr ? '' : '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>') +
+                    (cerr || virtual ? '' : '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>') +
                   '</div>';
         });
+        /* La cuenta, desglosada: cada procedencia entra con su corrección y
+           decirlo evita que el total parezca una resta arbitraria. */
         var dev = Almacen.estado.config.devolucionEjercicio;
-        html += '<div class="resumen-act">Quemas ≈ <b>' + totalAct + ' kcal</b>; al objetivo sube el ' +
-                Math.round(dev * 100) + '% (<b>' + Math.round(totalAct * dev) + ' kcal</b>)</div>';
+        var pre = typeof Almacen.estado.config.previsionEjercicio === "number"
+          ? Almacen.estado.config.previsionEjercicio : 0.50;
+        var partes = [], suben = 0;
+        if (kProc.real) { partes.push('<b>' + Math.round(kProc.real) + '</b> medidas por el reloj'); suben += kProc.real; }
+        if (kProc.previsto) { partes.push('<b>' + Math.round(kProc.previsto * pre) + '</b> del plan, todavía por hacer'); suben += kProc.previsto * pre; }
+        if (kProc.apuntado) { partes.push('<b>' + Math.round(kProc.apuntado * dev) + '</b> de lo que añadiste (el ' + Math.round(dev * 100) + '% de ' + Math.round(kProc.apuntado) + ': va por tablas y estiman de más)'); suben += kProc.apuntado * dev; }
+        html += '<div class="resumen-act">Al objetivo suben <b>' + Math.round(suben) + ' kcal</b>' +
+                (partes.length ? ': ' + partes.join(' · ') : '') +
+                (kProc.tapado ? '<br><span class="nota-peque">' + Math.round(kProc.tapado) +
+                  ' kcal previstas las sustituye lo que midió el reloj, no se suman aparte.</span>' : '') +
+                (kProc.caducado ? '<br><span class="nota-peque">' + Math.round(kProc.caducado) +
+                  ' kcal que el plan preveía y no llegaron a hacerse: ese día no cuentan.</span>' : '') +
+                '</div>';
       }
       html += '</div>';
       html += '</div>';

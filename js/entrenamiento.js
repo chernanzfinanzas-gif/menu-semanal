@@ -5736,6 +5736,119 @@
     });
   }
 
+  /* ==================== EL PUENTE CON LA COMIDA ====================
+
+     La otra mitad de la app —el menú— necesita saber dos cosas que sólo viven
+     aquí: qué te toca hacer hoy según el plan, y qué hiciste de verdad según
+     intervals. Con lo primero puede subir el objetivo de calorías por la
+     mañana; con lo segundo, corregirlo por la tarde.
+
+     Se publica como un objeto en la ventana y no metiendo el plan en el
+     almacén, porque el cálculo de qué sesión toca cada día no es una tabla:
+     depende de la semana, del desfase que llevas y de la talla que eligieras,
+     y eso es de aquí. Duplicarlo en el otro fichero era garantizar que un día
+     dijeran cosas distintas.
+
+     LAS KILOCALORÍAS NO SALEN DE UNA TABLA DE MET: salen de SUS PROPIAS
+     SALIDAS del último año. Y la diferencia no es pequeña — medido el
+     20-sep-2026, su rodillo pasó de 9,6 kcal/min de mediana histórica a 5,6 en
+     el último año: la misma hora que antes le costaba 574 kcal ahora le cuesta
+     333, porque mueve menos vatios. Una tabla fija le habría regalado un 70%
+     en cada sesión, justo en el deporte donde más entrena. */
+
+  /* De qué familia es cada deporte, para juntar sus kilocalorías por minuto.
+     El senderismo va aparte de caminar a propósito: 6,9 contra 4,9. */
+  var FAM_KCAL = {
+    and: "caminar", pas: "caminar", cor: "correr", sen: "sender",
+    bici: "bici", rod: "bici", fue: "fuerza"
+  };
+  /* Lo medido el 20-sep-2026 sobre sus salidas, por si algún día no hubiera
+     bastantes para calcularlo en caliente. No es una tabla de manual: son sus
+     propias medianas. */
+  var KCAL_MIN_BASE = { caminar: 4.9, sender: 6.9, bici: 5.6, fuerza: 5.2,
+                        correr: 4.7, movilidad: 0, otra: 4.0 };
+  var cacheTasas = null;
+
+  /* Mediana de kcal por minuto de cada familia, con SUS salidas del último año.
+     Sólo cuentan las que midió el reloj y pasan del cuarto de hora: una sesión
+     de diez minutos no mide nada, y una estimación no puede calibrar a otra. */
+  function tasasKcalMin() {
+    if (cacheTasas) return cacheTasas;
+    var por = {}, lista = actividadesJuntas(), desde = U.sumarDias(U.hoyISO(), -365);
+    lista.forEach(function (a) {
+      var f = FAM_KCAL[a.dep];
+      if (!f) return;
+      var k = a.kcal_netas, m = a.min_mov;
+      if (!k || !m || m < 15) return;
+      if (String(a.fecha || "").slice(0, 10) < desde) return;
+      (por[f] = por[f] || []).push(k / m);
+    });
+    var out = {}, f2;
+    for (f2 in KCAL_MIN_BASE) out[f2] = KCAL_MIN_BASE[f2];
+    for (f2 in por) {
+      var v = por[f2];
+      if (v.length < 5) continue;                 // con cuatro salidas no se calibra
+      v.sort(function (a, b) { return a - b; });
+      var i = Math.floor(v.length / 2);
+      out[f2] = v.length % 2 ? v[i] : (v[i - 1] + v[i]) / 2;
+      out[f2 + "_n"] = v.length;
+    }
+    cacheTasas = out;
+    return out;
+  }
+
+  /* La familia de una sesión del plan, por su texto. `familia()` mete el
+     senderismo dentro de caminar —allí le vale—, pero aquí no: cuesta un 40%
+     más y son 100 kcal de diferencia en una hora. */
+  function famDeTexto(txt) {
+    var t = String(txt || "").toLowerCase();
+    if (/sender|montañ|montan|cumbre|pico/.test(t)) return "sender";
+    var f = familia(txt);
+    if (f === "caminar") return "caminar";
+    if (f === "bici") return "bici";
+    if (f === "fuerza") return "fuerza";
+    if (f === "correr") return "correr";
+    if (f === "movilidad") return "movilidad";
+    return "otra";
+  }
+
+  global.KHBEntreno = {
+    /* Qué toca hoy según el plan, con lo que costaría. Los días fuera del plan
+       devuelven lista vacía, no ceros. */
+    previsto: function (iso) {
+      if (!P || !P.rampa) return [];
+      var sem = semanaDe(iso);
+      if (!sem) return [];
+      var tasas = tasasKcalMin();
+      return sesionesDe(iso, sem, tallaDe(sem)).map(function (s) {
+        var f = famDeTexto(s.t);
+        var min = s.min || 0;
+        return { t: s.t, min: min, fam: f, grande: !!s.grande,
+                 kcal: Math.round(min * (tasas[f] || 0)) };
+      }).filter(function (s) { return s.min > 0; });
+    },
+
+    /* Qué hiciste de verdad, según intervals. Las kilocalorías son las NETAS
+       —lo que costó moverse por encima de estar vivo— porque el objetivo del
+       día ya cuenta el metabolismo basal de esas horas. */
+    real: function (iso) {
+      if (!Salud.datos) return [];
+      return Salud.actividades(iso).map(function (a) {
+        /* La familia sale del nombre y del tipo, que es lo único que trae
+           salud.json: el deporte lo decide la app al pintar, no el fichero.
+           Hace falta para emparejar cada salida con la sesión que la esperaba. */
+        return { id: a.id, nombre: a.nombre || a.tipo || "Actividad",
+                 min: Math.round(a.min_mov || 0),
+                 kcal: (a.kcal_netas != null) ? Math.round(a.kcal_netas) : null,
+                 fam: famDeTexto((a.nombre || "") + " " + (a.tipo || "")),
+                 dep: a.dep || null };
+      });
+    },
+
+    /* Para poder enseñar de dónde sale el número, que si no parece magia. */
+    tasas: tasasKcalMin
+  };
+
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar);
   else arrancar();
 

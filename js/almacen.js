@@ -32,6 +32,13 @@
           objetivoProt: 90,    // g de proteína/día
           margenKcal: 10,      // % de holgura antes de marcar el día en rojo
 
+          /* Cuánto de lo PREVISTO por el plan se adelanta antes de hacerlo.
+             ENTERO, y no a medias, porque la previsión está para preparar la
+             comida: si sólo contara la mitad no serviría para lo que es. Lo que
+             evita que se regale un déficit no es descontarla, es que CADUCA —en
+             un día ya pasado, una previsión que nunca llegó no cuenta— y que la
+             SUSTITUYE la medida real en cuanto entra de intervals. */
+          previsionEjercicio: 1,
           /* Cuánto de lo que quemas entrenando sube al objetivo del día.
              No es 100% a propósito, y conviene saber por qué:
              (a) las tablas de MET estiman por encima de lo que mide un reloj,
@@ -693,6 +700,124 @@
       return met * 3.5 * peso / 200 * (x.min || 0);
     },
 
+    /* ==================== EL ENTRENO DEL DÍA ====================
+
+       Tres procedencias y UNA regla: lo real SUSTITUYE a lo que lo esperaba.
+
+         del plan   lo que toca hoy. Está para poder preparar la comida.
+         apuntado   lo que añades a mano porque vas a hacer algo no previsto.
+         real       lo que midió el reloj, vía intervals.
+
+       Si el plan preveía pesas por 200 kcal y la serie sale en 300, las 300
+       SUSTITUYEN a las 200: se suman 100 más, no 300 más. Y si además haces
+       algo que no estaba previsto, eso SÍ se suma entero, porque no había
+       ninguna previsión ocupando su sitio.
+
+       El emparejamiento es por FAMILIA —caminar, bici, fuerza, correr…— que es
+       lo único que se puede saber sin adivinar: salud.json no dice el deporte,
+       lo dice el nombre. Una salida real tapa una previsión de su familia, y
+       sólo una: dos paseos el mismo día tapan la previsión de caminar y el
+       segundo se suma.
+
+       LO PREVISTO CADUCA. Cuenta hoy y en los días que vienen, que es para lo
+       que sirve —saber con qué cuentas al preparar la comida—. En un día ya
+       pasado, una previsión que nunca se cumplió no es una caloría: es un
+       entreno que no hiciste, y contarla sería regalarte el déficit de ese día
+       sin enterarte. */
+
+    puenteEntreno: function () {
+      return (typeof window !== "undefined" && window.KHBEntreno) ? window.KHBEntreno : null;
+    },
+
+    /* La familia de una entrada apuntada a mano, por su actividad del catálogo. */
+    famDeActividad: function (id) {
+      var t = String(id || "").toLowerCase();
+      if (t.indexOf("sender") === 0) return "sender";
+      if (t.indexOf("caminar") === 0) return "caminar";
+      if (t.indexOf("bici") === 0) return "bici";
+      if (t.indexOf("muscula") === 0) return "fuerza";
+      if (t.indexOf("estira") === 0) return "movilidad";
+      if (t.indexOf("nata") === 0) return "otra";
+      return "otra";
+    },
+
+    /* El entreno del día, ya resuelto: qué cuenta, qué sustituye a qué y por qué.
+       Devuelve una lista en orden de lectura con `clase` y, si toca, `tapada`. */
+    entrenoDelDia: function (fecha) {
+      var self = this, pu = this.puenteEntreno();
+      var hoy = (new Date()).toISOString().slice(0, 10);
+      var pasado = fecha < hoy;
+      var out = [];
+
+      /* 1 · LO REAL. Lo que midió el reloj cuenta siempre y entero. Si ese día
+         importaste el fichero de Garmin a mano, manda lo tuyo: contar las dos
+         cosas sería contar el entreno dos veces. */
+      var guardadas = ((this.estado.actividad || {})[fecha] || []);
+      var importado = guardadas.some(function (x) { return x.fuente === "garmin"; });
+      var reales = [];
+      if (pu && !importado) {
+        (pu.real(fecha) || []).forEach(function (a) {
+          if (a.kcal == null || a.kcal <= 0) return;
+          reales.push({ n: a.nombre, min: a.min, kcal: a.kcal, fam: a.fam,
+                        clase: "real", id: a.id });
+        });
+      }
+
+      /* Cuántas salidas reales hay de cada familia: cada una tapa UNA previsión. */
+      var tapas = {};
+      reales.forEach(function (r) { tapas[r.fam] = (tapas[r.fam] || 0) + 1; });
+      guardadas.forEach(function (x) {
+        if (x.fuente !== "garmin") return;
+        var f = self.famDeActividad(x.a);
+        tapas[f] = (tapas[f] || 0) + 1;
+      });
+
+      /* 2 · LO APUNTADO A MANO. Lo tapa una salida real de su familia, igual
+         que al plan: lo escribiste porque ibas a hacerlo, y ya se midió. */
+      guardadas.forEach(function (x, idx) {
+        var f = (x.fuente === "garmin") ? self.famDeActividad(x.a) : self.famDeActividad(x.a);
+        var esReloj = x.fuente === "garmin";
+        var tapada = false;
+        if (!esReloj) {
+          if (tapas[f] > 0) { tapas[f]--; tapada = true; }
+        }
+        out.push({ x: x, idx: idx, n: self.nombreDeEntrada(x), min: x.min || 0,
+                   kcal: Math.round(self.kcalDeEntrada(x)), fam: f,
+                   clase: esReloj ? "real" : "apuntado", tapada: tapada });
+      });
+
+      /* 3 · LO PREVISTO POR EL PLAN. Lo tapa una salida real de su familia, y
+         caduca si el día ya pasó sin que llegara. */
+      if (pu) {
+        (pu.previsto(fecha) || []).forEach(function (sx) {
+          if (!sx.kcal) return;
+          var tapada = false;
+          if (tapas[sx.fam] > 0) { tapas[sx.fam]--; tapada = true; }
+          out.push({ n: sx.t, min: sx.min, kcal: sx.kcal, fam: sx.fam,
+                     clase: "previsto", tapada: tapada,
+                     caducada: !tapada && pasado });
+        });
+      }
+
+      /* Las reales van al final de la lista pero primero en la cuenta. */
+      reales.forEach(function (r) { out.push(r); });
+      return out;
+    },
+
+    /* Lo que suma cada procedencia, ya descontado lo tapado y lo caducado. */
+    kcalPorProcedencia: function (fecha) {
+      var r = { real: 0, previsto: 0, apuntado: 0, tapado: 0, caducado: 0 };
+      this.entrenoDelDia(fecha).forEach(function (e) {
+        if (e.pisada) return;
+        if (e.tapada) { r.tapado += e.kcal; return; }
+        if (e.caducada) { r.caducado += e.kcal; return; }
+        if (e.clase === "real") r.real += e.kcal;
+        else if (e.clase === "previsto") r.previsto += e.kcal;
+        else r.apuntado += e.kcal;
+      });
+      return r;
+    },
+
     /* kcal que quema la actividad registrada un día.
        La salida PLANIFICADA de un día de ruta (`ref: "ruta"`) es una estimación hecha
        con tablas de MET, que es lo mejor que se puede hacer por adelantado. En cuanto
@@ -727,7 +852,18 @@
     gastoDelDia: function (fecha) {
       var c = this.estado.config;
       var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
-      return this.gastoBase() + this.kcalActividad(fecha) * dev;
+      /* Cuánto de lo PREVISTO por el plan se adelanta antes de hacerlo. A la
+         mitad: comerse entero un entreno que aún no has hecho es la forma más
+         silenciosa de quedarse sin déficit. Cuando llega la medida del reloj,
+         la previsión se cae y cuenta lo real entero. */
+      var pre = typeof c.previsionEjercicio === "number" ? c.previsionEjercicio : 1;
+      var k = this.kcalPorProcedencia(fecha);
+      /* EL 70% ES PARA LAS TABLAS DE MET, NO PARA EL RELOJ.
+         Ese descuento existe porque «las tablas de MET estiman por encima de lo
+         que mide un reloj». Aplicárselo a una medida del reloj es descontarle
+         un 30% a un dato bueno: una ruta de 900 kcal medidas contaba 630.
+         Lo medido cuenta entero; lo estimado, descontado. */
+      return this.gastoBase() + k.real + k.apuntado * dev + k.previsto * pre;
     },
 
     /* Lo que deberías COMER ese día = lo que gastas menos el déficit programado.
@@ -737,8 +873,13 @@
     objetivoDelDia: function (fecha) {
       var c = this.estado.config;
       var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
+      var pre = typeof c.previsionEjercicio === "number" ? c.previsionEjercicio : 1;
       var gasto = this.gastoDelDia(fecha);
-      if (!this.tmb()) return (c.objetivoKcal || 0) + Math.round(this.kcalActividad(fecha) * dev);
+      if (!this.tmb()) {
+        var kk = this.kcalPorProcedencia(fecha);
+        return (c.objetivoKcal || 0) +
+               Math.round(kk.real + kk.apuntado * dev + kk.previsto * pre);
+      }
       var obj = Math.round(gasto - this.deficitDiario());
       /* Suelo de seguridad: por debajo de esto no se baja aunque lo pida el ritmo. */
       var minimo = (this.estado.perfil || {}).sexo === "m" ? 1200 : 1500;
