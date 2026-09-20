@@ -2250,6 +2250,124 @@
     }
   };
 
+  /* ==================== EL NOMBRE BUENO ====================
+     Intervals es el PUENTE por donde entra lo que graba el reloj; el nombre lo
+     ponemos nosotros. El reloj llama «Benasque Navegar» a lo que es el Forau
+     d'Aigualluts, y eso no se arregla en intervals: se arregla aquí, en la
+     propia ficha, y se guarda en `datos/nombres.json`.
+     Ese fichero manda sobre el nombre del reloj en los tres sitios donde hace
+     falta: esta app, el workflow (que lo aplica en cada pasada, así intervals
+     no lo vuelve a pisar) y el maestro, que cubre los años de antes de 2021.
+     De ahí saldrá también para App Mapas, el Excel y el catálogo de Mis Rutas:
+     un nombre, un solo sitio. */
+  var Nombres = {
+    CLAVE: "khb-nombres-v1",
+    RUTA: "datos/nombres.json",
+    FRESCO_H: 24,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
+      } catch (e) { return false; }
+    },
+
+    url: function () {
+      var c = Salud.cfg();
+      return "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA;
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      fetch(this.url() + "?ref=" + encodeURIComponent(c.rama || "main"),
+            { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          var d = JSON.parse(Salud.deB64(j.content));
+          self.datos = d.nombres || d || {};
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE, JSON.stringify(
+              { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, datos: self.datos }));
+          } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        /* que no exista todavía es normal: se trabaja sin él y se crea al
+           guardar el primero */
+        .catch(function () {
+          if (!self.datos) self.datos = {};
+          self.estado = "ok"; if (alTerminar) alTerminar();
+        });
+    },
+
+    /* pone el nombre bueno donde lo haya, sobre la lista que se le pase */
+    aplicar: function (lista) {
+      var d = this.datos, i, n;
+      if (!d || !lista) return lista;
+      for (i = 0; i < lista.length; i++) {
+        n = d[String(lista[i] && lista[i].id)];
+        if (n) lista[i].nombre = n;
+      }
+      return lista;
+    },
+
+    /* GUARDAR. Se vuelve a pedir el fichero antes de escribir para llevar su
+       `sha`: si se escribiera a ciegas, GitHub rechazaría el cambio cuando el
+       workflow lo hubiera tocado mientras tanto. */
+    guardar: function (id, nombre, listo) {
+      var self = this, c = Salud.cfg();
+      listo = listo || function () {};
+      if (!Salud.configurado()) { listo(false, "falta la configuración"); return; }
+      var cab = { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" };
+      fetch(this.url() + "?ref=" + encodeURIComponent(c.rama || "main"), { headers: cab })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          var doc = { nombres: {} }, sha = j && j.sha;
+          if (j && j.content) {
+            try { doc = JSON.parse(Salud.deB64(j.content)) || {}; } catch (e) { doc = {}; }
+          }
+          if (!doc.nombres) doc.nombres = {};
+          doc.nombres[String(id)] = nombre;
+          doc.meta = doc.meta || {};
+          doc.meta.generado = new Date().toISOString().slice(0, 10);
+          var txt = JSON.stringify(doc, null, 1);
+          var by = new TextEncoder().encode(txt), bin = "", i;
+          for (i = 0; i < by.length; i++) bin += String.fromCharCode(by[i]);
+          return fetch(self.url(), {
+            method: "PUT", headers: cab,
+            body: JSON.stringify({
+              message: "Nombre: " + nombre,
+              content: btoa(bin), sha: sha || undefined, branch: c.rama || "main"
+            })
+          }).then(function (r) {
+            if (!r.ok) throw new Error(r.status === 409 ? "el fichero cambió mientras tanto, prueba otra vez"
+                                                        : "GitHub dice que no (" + r.status + ")");
+            self.datos = self.datos || {};
+            self.datos[String(id)] = nombre;
+            self.traidoEl = Date.now();
+            try {
+              localStorage.setItem(self.CLAVE, JSON.stringify(
+                { sha: null, traidoEl: self.traidoEl, datos: self.datos }));
+            } catch (e) {}
+            listo(true);
+          });
+        })
+        .catch(function (e) { listo(false, (e && e.message) || "no he podido guardarlo"); });
+    }
+  };
+
   /* El índice de rutas es público y se actualiza solo cuando Carlos archiva
      rutas con su .bat. Se refresca cada día; si falla, se sigue con la copia. */
   var Rutas = {
@@ -2380,10 +2498,12 @@
         },
         botonVolver: '<button type="button" class="ent-atras" data-volver="1">' +
           FLECHA + "Volver a Entrenamiento</button>",
-        historico: Archivo.datos,
+        historico: Nombres.aplicar(Archivo.datos),
         trazos: Trazos.datos,
+        /* el nombre se cambia en la ficha y se guarda en datos/nombres.json */
+        alRenombrar: function (id, nombre, listo) { Nombres.guardar(id, nombre, listo); },
         fuerza: Fuerza.datos,
-        actividades: actividadesJuntas(),
+        actividades: Nombres.aplicar(actividadesJuntas()),
         rutas: (Rutas.datos || []),
         traerGeo: function (celda) {
           if (geoCache[celda]) return Promise.resolve(geoCache[celda]);
@@ -2405,6 +2525,7 @@
     Archivo.cargar(repinta);
     Rutas.cargar(repinta);
     Trazos.cargar(repinta);
+    Nombres.cargar(repinta);
     Fuerza.cargar(repinta);
     ActHistorico.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);

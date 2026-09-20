@@ -625,6 +625,11 @@
        paso del FIT del workflow. Si no está, la ficha sale como antes. */
     var fuerza = (o.fuerza && o.fuerza.sesiones) ? o.fuerza.sesiones : (o.fuerza || null);
     var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
+    /* EL NOMBRE SE CAMBIA AQUÍ. El reloj llama «Benasque Navegar» a lo que es
+       el Forau d'Aigualluts. Si la app le pasa esta función, la ficha enseña un
+       lápiz y el nombre que se escriba se guarda donde manda sobre el del
+       reloj —y de ahí sale para App Mapas, el Excel y Mis Rutas—. */
+    var alRenombrar = typeof o.alRenombrar === "function" ? o.alRenombrar : null;
 
     /* índice de rutas por fecha, para clasificar y para el mapa de las nuevas */
     var rutaPorFecha = {}, fechasSen = {};
@@ -990,7 +995,15 @@
             "</tr></thead><tbody>" + filas + "</tbody></table>" +
           "</div>";
       }
+      var editor = (alRenombrar && x.id)
+        ? '<div class="akhb-nombre" data-nom="' + clave + '">' +
+            '<span class="akhb-nom-txt">' + esc(x.nombre || "(sin nombre)") + "</span>" +
+            '<button type="button" class="akhb-nom-lapiz" data-renombra="' + clave +
+              '" title="Cambiar el nombre" aria-label="Cambiar el nombre">\u270e</button>' +
+          "</div>"
+        : "";
       return '<div class="akhb-ficha' + (tablaFuerza ? " akhb-con-fuerza" : "") + '">' +
+        editor +
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
           '<div class="akhb-lienzo">' +
             (llevaMapa(x) ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
@@ -1368,8 +1381,65 @@
       return lista[i] || null;
     }
 
+    /* ---------- cambiar el nombre ----------
+       Se edita en el sitio, sin ventanas ni pantallas nuevas: el texto se
+       convierte en una caja, se escribe y se guarda. Mientras se guarda, el
+       botón dice «guardando…»; si falla, lo dice y NO se pierde lo escrito. */
+    function renombrar(bot) {
+      var clave = bot.getAttribute("data-renombra") || bot.getAttribute("data-guarda") ||
+                  bot.getAttribute("data-cancela");
+      var caja = estado.el.querySelector('[data-nom="' + clave + '"]');
+      var x = buscaPorClave(clave);
+      if (!caja || !x) return;
+
+      if (bot.hasAttribute("data-cancela")) { pintaNombre(caja, clave, x); return; }
+
+      if (bot.hasAttribute("data-renombra")) {
+        caja.innerHTML = '<input class="akhb-nom-caja" type="text" maxlength="80" value="' +
+            esc(x.nombre || "") + '">' +
+          '<button type="button" class="akhb-nom-ok" data-guarda="' + clave + '">Guardar</button>' +
+          '<button type="button" class="akhb-nom-no" data-cancela="' + clave + '">Cancelar</button>';
+        var c = caja.querySelector("input");
+        if (c) { c.focus(); c.select(); }
+        return;
+      }
+
+      var campo = caja.querySelector("input");
+      var nuevo = campo ? campo.value.trim() : "";
+      if (!nuevo || nuevo === x.nombre) { pintaNombre(caja, clave, x); return; }
+      bot.disabled = true; bot.textContent = "guardando\u2026";
+      alRenombrar(x.id, nuevo, function (bien, fallo) {
+        if (!bien) {
+          bot.disabled = false; bot.textContent = "Guardar";
+          var av = caja.querySelector(".akhb-nom-mal");
+          if (!av) {
+            av = document.createElement("span");
+            av.className = "akhb-nom-mal";
+            caja.appendChild(av);
+          }
+          av.textContent = fallo || "no he podido guardarlo";
+          return;
+        }
+        x.nombre = nuevo;
+        pintaNombre(caja, clave, x);
+        /* el nombre sale también en la fila de arriba y en el pie del mapa */
+        var fila = estado.el.querySelector('[data-abre="' + clave + '"] .akhb-nom');
+        if (fila) fila.textContent = nuevo;
+        var cap = estado.el.querySelector('[data-mapa="' + clave + '"] figcaption');
+        if (cap && cap.textContent.indexOf("\u2014") < 0) cap.textContent = nuevo;
+      });
+    }
+
+    function pintaNombre(caja, clave, x) {
+      caja.innerHTML = '<span class="akhb-nom-txt">' + esc(x.nombre || "(sin nombre)") + "</span>" +
+        '<button type="button" class="akhb-nom-lapiz" data-renombra="' + clave +
+          '" title="Cambiar el nombre" aria-label="Cambiar el nombre">\u270e</button>';
+    }
+
     /* ---------- clics ---------- */
     function alPulsar(e) {
+      var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
+      if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met]") : null;
       if (!t || !estado.el.contains(t)) return;
       if (t.hasAttribute("data-met")) {

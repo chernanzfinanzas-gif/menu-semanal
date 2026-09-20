@@ -361,3 +361,35 @@
   .akhb-cuerpos { gap: 34px; }
   .akhb-c-pesa { width: 48px; }
 }
+
+/* ---------------- CAMBIAR EL NOMBRE ----------------
+   El reloj llama «Benasque Navegar» a lo que es el Forau d'Aigualluts. El
+   nombre bueno se escribe aquí, en la propia ficha, y desde aquí sale para las
+   demás apps. Se edita en el sitio: el texto se convierte en caja y vuelve a
+   ser texto al guardar. */
+.akhb-nombre {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 8px;
+  margin: 0 0 10px; min-height: 30px; flex-wrap: wrap;
+}
+.akhb-nom-txt { font-size: 15px; font-weight: 600; color: var(--akhb-tinta); }
+.akhb-nom-lapiz {
+  border: 1px solid var(--akhb-borde); background: var(--akhb-blanco);
+  color: var(--akhb-gris); border-radius: 8px; cursor: pointer;
+  width: 28px; height: 26px; font-size: 14px; line-height: 1; padding: 0;
+}
+.akhb-nom-lapiz:hover, .akhb-nom-lapiz:focus-visible {
+  color: var(--akhb-azul); border-color: var(--akhb-azul); outline: none;
+}
+.akhb-nom-caja {
+  flex: 1 1 240px; min-width: 200px; font: inherit; font-size: 14px;
+  padding: 5px 9px; border: 1px solid var(--akhb-azul); border-radius: 8px;
+  background: var(--akhb-blanco); color: var(--akhb-tinta);
+}
+.akhb-nom-ok, .akhb-nom-no {
+  font: inherit; font-size: 12.5px; padding: 5px 11px; border-radius: 8px;
+  cursor: pointer; border: 1px solid var(--akhb-borde);
+}
+.akhb-nom-ok { background: var(--akhb-azul); border-color: var(--akhb-azul); color: #fff; }
+.akhb-nom-ok[disabled] { opacity: .6; cursor: default; }
+.akhb-nom-no { background: var(--akhb-blanco); color: var(--akhb-gris); }
+.akhb-nom-mal { font-size: 12px; color: #b3261e; flex-basis: 100%; }
