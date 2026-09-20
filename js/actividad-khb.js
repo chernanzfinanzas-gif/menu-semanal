@@ -186,7 +186,15 @@
           'a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0 M22 68 L40 36 L58 36 L70 68 M40 36 L52 68',
     and:  'M30 16 a7 7 0 1 0 0.1 0 M34 28 L28 48 L38 58 L34 84 M28 48 L16 60 ' +
           'M38 34 L54 42 L64 34',
-    rod:  'M18 74 L82 74 M30 74 L38 40 L62 40 L70 74 M38 40 L34 26 L50 26 M62 40 L50 26',
+    /* La misma bici que `bici`, pero SUBIDA AL RODILLO: la rueda de atrás
+       sobre su pie de apoyo y la de delante sobre un alza. Antes era un
+       trapecio abstracto que no se entendía, y encima no se veía nunca porque
+       la app le pintaba encima el icono de la bici de calle: una sesión de
+       Watopia salía con la misma estampa que una salida a la sierra. */
+    rod:  'M28 62 m-13 0 a13 13 0 1 0 26 0 a13 13 0 1 0 -26 0 ' +
+          'M74 62 m-13 0 a13 13 0 1 0 26 0 a13 13 0 1 0 -26 0 ' +
+          'M28 62 L44 34 L60 34 L74 62 M44 34 L54 62 ' +
+          'M14 86 L88 86 M28 75 L20 86 M28 75 L36 86 M74 75 L74 86',
     fue:  'M12 40 L12 60 M22 32 L22 68 M22 50 L78 50 M78 32 L78 68 M88 40 L88 60',
     cor:  'M56 14 a7 7 0 1 0 0.1 0 M52 28 L40 44 L52 56 L44 82 M40 44 L20 50 ' +
           'M52 56 L72 62 L80 84',
@@ -610,6 +618,16 @@
        —sin red, o el fichero no está en el repo— cae sola al SVG de dentro,
        que no depende de nada. */
     var iconos = o.iconos || null;
+    /* Cuáles de las sesiones de rodillo fueron Zwift, en forma de bolsa
+       { "<id>": 1 } para poder preguntar sin recorrer nada. Llega desde
+       `datos/nombres.json`; si no llega, se adivina por el nombre. */
+    var zwift = null;
+    (function () {
+      var l = o.zwift, i;
+      if (!l || !l.length) return;
+      zwift = {};
+      for (i = 0; i < l.length; i++) zwift[String(l[i])] = 1;
+    }());
     /* EL PUENTE CON STRAVA. Un fichero aparte, { "<id de intervals>": { p:
        "<polilínea>", n: "<nombre>", d: <desnivel> } }, para las salidas que no
        tienen ruta archivada en la colección. Va suelto y se pide solo al entrar
@@ -1025,7 +1043,7 @@
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
           '<div class="akhb-lienzo">' +
             (llevaMapa(x) ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
-                          : (figuras || iconoHTML(x.dep))) +
+                          : (figuras || iconoHTML(x))) +
             (lugar ? '<span class="akhb-lugar" data-pueblo="' +
                        esc(lugarDe(x.nombre) || "") + '">' + esc(lugar) + "</span>" : "") +
           "</div>" +
@@ -1414,12 +1432,43 @@
        Se hace así y no reemplazando el nodo porque el icono se pinta con
        innerHTML, y el fallo puede saltar antes de que la imagen esté colgada
        del documento: ahí `outerHTML` revienta y `remove()` no. */
-    function iconoHTML(dep) {
-      var u = iconos && (iconos[dep] || iconos.otr);
+    /* ¿ESTA SESION DE RODILLO FUE ZWIFT?
+
+       No todas lo son: de las 1.380 hay 83 que son rodillo a secas, y en ésas
+       la Z naranja sería mentira. Quién es quién no se adivina aquí: viene
+       hecho de casa, en la lista `zwift` de `datos/nombres.json`, que se sacó
+       cruzando con Strava —el único sitio donde Zwift deja su firma, porque
+       por el camino de Garmin se pierde—.
+
+       Si esa lista no llegó (fichero viejo, sin configurar), se mira el
+       nombre y el tipo. Acierta en la gran mayoría, pero falla justo en las
+       que Carlos renombró a mano, así que es el plan B, no el plan A. */
+    function esZwift(x) {
+      if (!x || x.dep !== "rod") return false;
+      if (zwift) return !!zwift[String(x.id)];
+      var t = x.tipo || "";
+      return /^\s*zwift\b/i.test(x.nombre || "") ||
+             t === "VirtualRide" || t === "virtual_ride";
+    }
+
+    function iconoHTML(x) {
+      /* Poner `rod: null` en la lista de iconos de la app NO es un olvido: es
+         la forma de decir «para éste, el dibujo de dentro». Antes cualquier
+         deporte sin imagen caía en la de «otros», el podio, y no había manera
+         de pedir el SVG. */
+      var dep = (x && typeof x === "object") ? (x.dep || "otr") : (x || "otr");
+      var clave = dep;
+      if (esZwift(x) && iconos &&
+          Object.prototype.hasOwnProperty.call(iconos, "zwift") && iconos.zwift) {
+        clave = "zwift";
+      }
+      var u = iconos && (Object.prototype.hasOwnProperty.call(iconos, clave)
+                         ? iconos[clave] : iconos.otr);
       if (!u) return iconoSVG(dep);
       return '<span class="akhb-marca-caja">' +
         '<img class="akhb-marca" src="' + esc(u) + '" alt="' +
-        esc(NOMBRE_DEP[dep] || "Actividad") + '" onerror="this.remove()">' +
+        esc(clave === "zwift" ? "Zwift" : (NOMBRE_DEP[dep] || "Actividad")) +
+        '" onerror="this.remove()">' +
         iconoSVG(dep) + "</span>";
     }
 
@@ -1429,7 +1478,7 @@
          Esto se llama al terminar de pintar y antes borraba lo que ya había. */
       if (lienzo.querySelector(".akhb-cuerpos")) return;
       var chapa = lienzo.querySelector(".akhb-lugar");
-      lienzo.innerHTML = iconoHTML(x.dep);
+      lienzo.innerHTML = iconoHTML(x);
       if (chapa) lienzo.appendChild(chapa);
       var cap = fig.querySelector("figcaption");
       if (cap && (x.ruta || x.poli)) {

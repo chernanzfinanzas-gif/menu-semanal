@@ -2236,6 +2236,9 @@
     RUTA: "datos/fuerza.json",
     FRESCO_H: 24,
     datos: null,
+    /* la misma vuelta al repositorio trae dos cosas: los nombres y la lista de
+       qué sesiones de rodillo fueron Zwift, para el icono de la ficha */
+    zwift: null,
     traidoEl: null,
     estado: "nada",
 
@@ -2243,7 +2246,8 @@
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
-        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        this.datos = j.datos; this.zwift = j.zwift || null;
+        this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
       } catch (e) { return false; }
     },
@@ -2323,10 +2327,12 @@
         .then(function (j) {
           var d = JSON.parse(Salud.deB64(j.content));
           self.datos = d.nombres || d || {};
+          self.zwift = (d && d.zwift && d.zwift.length) ? d.zwift : null;
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE, JSON.stringify(
-              { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, datos: self.datos }));
+              { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl,
+                datos: self.datos, zwift: self.zwift }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -2388,7 +2394,8 @@
                 self.traidoEl = Date.now();
                 try {
                   localStorage.setItem(self.CLAVE, JSON.stringify(
-                    { sha: null, traidoEl: self.traidoEl, datos: self.datos }));
+                    { sha: null, traidoEl: self.traidoEl,
+                      datos: self.datos, zwift: self.zwift }));
                 } catch (e) {}
                 listo(true);
                 return;
@@ -2747,7 +2754,12 @@
         iconos: {
           sen:  "iconos/khb/11-montana.webp",
           bici: "iconos/khb/10-bici.webp",
-          rod:  "iconos/khb/10-bici.webp",
+          /* el rodillo NO lleva la bici de calle: `null` pide el dibujo del
+             módulo, que es la misma bici subida a su pie de apoyo */
+          rod:  null,
+          /* y si esa sesión de rodillo fue Zwift, su propio emblema. Quién lo
+             fue no se adivina: viene en la lista `zwift` de nombres.json */
+          zwift: "iconos/khb/12-zwift.webp",
           fue:  "iconos/khb/3-pesas-corredor.webp",
           and:  "iconos/khb/6-zapatillas.webp",
           pas:  "iconos/khb/6-zapatillas.webp",
@@ -2758,6 +2770,7 @@
           FLECHA + "Volver a Entrenamiento</button>",
         historico: Nombres.aplicar(Archivo.datos),
         trazos: Trazos.datos,
+        zwift: Nombres.zwift,
         /* el nombre se cambia en la ficha y se guarda en datos/nombres.json */
         alRenombrar: function (id, nombre, listo) { Nombres.guardar(id, nombre, listo); },
         /* el botón de borrar de la ficha; la ruta llega ya resuelta desde allí */
