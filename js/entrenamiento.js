@@ -1893,7 +1893,11 @@
   var BASE_MAPAS = "https://chernanzfinanzas-gif.github.io/mapas-ign/";
 
   var Archivo = {
-    CLAVE: "khb-archivo-actividad-v1",
+    /* v2 y no v1: el puente se ha rehecho desde el maestro —1.042 salidas en
+       vez de 877, con su id, su deporte y 26 campos— y viene por columnas.
+       Con la misma clave, el móvil seguiría usando para siempre la copia vieja
+       de ocho campos, que es justo la que no deja emparejar los trazos. */
+    CLAVE: "khb-archivo-actividad-v2",
     RUTA: "datos/historico-actividad.json",
     datos: null,
     estado: "nada",
@@ -1918,7 +1922,12 @@
       fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
         .then(function (r) { if (!r.ok) throw 0; return r.json(); })
         .then(function (j) {
-          self.datos = JSON.parse(Salud.deB64(j.content));
+          var crudo = JSON.parse(Salud.deB64(j.content));
+          /* El puente nuevo viene por columnas y se arma aquí, igual que el
+             resto: al módulo se le pasa una LISTA de actividades. Si lo que
+             llega es el fichero viejo {anios:…}, se pasa tal cual y el módulo
+             lo entiende igual. */
+          self.datos = crudo && crudo.cols ? actsDeColumnas(crudo) : crudo;
           self.estado = "ok";
           try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
           if (alTerminar) alTerminar();
@@ -2032,8 +2041,14 @@
      No va dentro de salud.json a propósito, que ése se carga entero al abrir
      la app y esto sólo hace falta al entrar en Actividad. */
   var Trazos = {
-    CLAVE: "khb-trazos-strava-v1",
+    /* v2: ahora son DOS ficheros y el de la caché vieja sólo tiene uno. */
+    CLAVE: "khb-trazos-strava-v2",
     RUTA: "datos/trazos.json",
+    /* Los años que no están en intervals —de 2013 a octubre de 2021— tienen su
+       propio fichero: 434 trazas con su perfil de altura, sacadas del FIT
+       original de la exportación de Garmin. No cambia nunca, porque el
+       workflow no puede tocarlo: esas salidas no existen en intervals. */
+    RUTA_ARCHIVO: "datos/trazos-historico.json",
     /* Antes esto se guardaba y no se volvía a pedir NUNCA: valía cuando el
        fichero estaba hecho y quieto. Ahora el workflow le añade trazos y
        perfiles de altura cada día, así que la copia del móvil caduca como las
@@ -2061,12 +2076,29 @@
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
       var c = Salud.cfg();
-      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
-        encodeURIComponent(c.repo) + "/contents/" + this.RUTA + "?ref=" + encodeURIComponent(c.rama || "main");
-      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
-        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
-        .then(function (j) {
-          self.datos = JSON.parse(Salud.deB64(j.content));
+      /* Los dos ficheros se piden a la vez y se juntan en uno solo: al módulo
+         le da igual de dónde salió cada traza. Si falta uno, se sigue con el
+         otro — el del archivo puede no estar publicado todavía. */
+      function trae(ruta) {
+        var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+          encodeURIComponent(c.repo) + "/contents/" + ruta + "?ref=" + encodeURIComponent(c.rama || "main");
+        return fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+          .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+          .then(function (j) { return JSON.parse(Salud.deB64(j.content)); })
+          .catch(function () { return null; });
+      }
+      Promise.all([trae(this.RUTA), trae(this.RUTA_ARCHIVO)])
+        .then(function (dd) {
+          var junto = null, k, i, d;
+          for (i = 0; i < dd.length; i++) {
+            d = dd[i];
+            if (!d) continue;
+            d = d.trazos || d;
+            junto = junto || {};
+            for (k in d) junto[k] = d[k];
+          }
+          if (!junto) { self.estado = "no-hay"; if (alTerminar) alTerminar(); return; }
+          self.datos = { trazos: junto };
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE,
@@ -2074,7 +2106,7 @@
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
-        /* Que no exista es lo normal hoy: se marca y no se vuelve a pedir. */
+        /* Que no exista ninguno de los dos: se marca y no se vuelve a pedir. */
         .catch(function () { self.estado = "no-hay"; if (alTerminar) alTerminar(); });
     }
   };

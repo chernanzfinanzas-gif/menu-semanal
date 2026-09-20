@@ -257,8 +257,16 @@
   }
 
   /* ---------- normalizar las dos fuentes a un modelo único ---------- */
-  function deHistorico(hist) {
+  function deHistorico(hist, fechasSen) {
     var fuera = [];
+    /* EL PUENTE NUEVO llega como una LISTA de actividades con los mismos
+       campos que las de después del corte —y, lo que importa, CON SU ID—, así
+       que se normaliza con el mismo código y no con éste. El formato viejo
+       {anios:{mes:[…]}} se sigue entendiendo por si la app se abre antes de
+       que el fichero nuevo esté publicado. */
+    if (hist && hist.length && typeof hist.length === "number") {
+      return deSalud(hist, fechasSen, true);
+    }
     if (!hist || !hist.anios) return fuera;
     Object.keys(hist.anios).forEach(function (anio) {
       var meses = hist.anios[anio] || {};
@@ -287,16 +295,26 @@
            /^zrl\b/.test(n);
   }
 
-  function deSalud(acts, fechasSen) {
+  /* `archivo` a true cuando lo que entra es el puente de 2013 a octubre de
+     2021. Es el MISMO modelo de datos, así que se aplican las mismas reglas
+     —el rodillo por el nombre, el coche por la velocidad—; sólo cambian dos
+     cosas: no hay corte que respetar, y la ruta ya viene emparejada del
+     maestro, que sabe más que el emparejador por día de aquí. */
+  function deSalud(acts, fechasSen, archivo) {
     var fuera = [], vistos = {};
     (acts || []).forEach(function (a) {
       var f = String(a.fecha || "").slice(0, 10);
-      if (!f || f < CORTE) return;                 // antes del corte manda el puente
+      if (!f) return;
+      if (!archivo && f < CORTE) return;           // antes del corte manda el puente
       /* Las actividades llegan de dos sitios —el salud.json de la ventana y el
          histórico— y los tramos se solapan. Sin esto, una sesión que esté en
          los dos se cuenta dos veces. */
       if (a.id) { if (vistos[a.id]) return; vistos[a.id] = true; }
-      var dep = TIPO[a.tipo] || "otr";
+      /* El puente trae el deporte ya decidido, y hace falta: de las 1.042
+         salidas de antes del corte sólo 522 tienen `tipo` —las que grabó el
+         reloj—; las de antes de 2019 salen del Excel y no lo tienen. Sin esto
+         la mitad del archivo saldría como «otras». */
+      var dep = a.dep || TIPO[a.tipo] || "otr";
       /* Walk es a la vez paseo y monte: lo decide la colección de rutas */
       if (dep === "and" && fechasSen && fechasSen[f]) dep = "sen";
       /* EL RODILLO LO DICE EL NOMBRE, NO EL TIPO. intervals tipó los Zwift de
@@ -337,10 +355,11 @@
         wkg: a.w_kg != null ? a.w_kg : null,
         pulso: a.pulso_med != null ? a.pulso_med : null,
         kcal: a.kcal_netas != null ? a.kcal_netas : null,
-        ruta: null, celda: null,
+        ruta: archivo ? (a.ruta || null) : null,
+        celda: archivo ? (a.celda || null) : null,
         poli: a.poli || null,
         stravaId: a.strava_id || null,
-        id: a.id, fuente: "salud"
+        id: a.id, fuente: archivo ? "archivo" : "salud"
       });
     });
     return fuera;
@@ -391,7 +410,7 @@
       if (r.a === "sen") fechasSen[iso] = true;
     });
 
-    var todas = deHistorico(o.historico).concat(deSalud(o.actividades, fechasSen));
+    var todas = deHistorico(o.historico, fechasSen).concat(deSalud(o.actividades, fechasSen));
 
     /* ---------- casar cada salida con su ruta archivada ----------
        Se hace POR DÍA y una a una, no actividad por actividad.
@@ -425,7 +444,11 @@
 
     var porDia = {};
     todas.forEach(function (x) {
-      if (x.ruta || x.fuente !== "salud") return;
+      /* Antes se exigía además `fuente === "salud"`, porque el puente viejo
+         traía la ruta puesta y no había nada que emparejar. El puente nuevo
+         también la trae, pero no siempre: lo que venga sin ruta entra aquí
+         venga del año que venga. */
+      if (x.ruta) return;
       (porDia[x.fecha] = porDia[x.fecha] || []).push(x);
     });
 
@@ -460,7 +483,10 @@
        la colección guarda por dónde fue pero no a qué altura. */
     if (trazos) {
       todas.forEach(function (x) {
-        if (x.fuente !== "salud") return;
+        /* Ya no se mira de dónde viene, sino si tiene id: desde que el puente
+           del archivo lo trae, los años viejos también tienen traza y perfil.
+           Los suyos salen de la exportación de Garmin, no de intervals. */
+        if (!x.id) return;
         var t = trazos[x.id];
         if (!t) return;
         if (t.h && !x.perfil) x.perfil = t.h;
