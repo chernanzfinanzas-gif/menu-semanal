@@ -24,6 +24,10 @@
   var diaSel = null;        // día abierto en la tarjeta; null = hoy
   var lunesVista = null;    // lunes de la semana que se enseña abajo; null = la de hoy
 
+  /* Casos: los dos filtros de la rejilla. null = «todos». Se quedan puestos
+     mientras dure la sesión, que es lo que uno espera al volver atrás. */
+  var casoFam = null, casoCausa = null;
+
   /* La flecha de «volver». Estaba declarada dentro de htmlEvolucion y de
      htmlPlan, así que fuera de esas dos funciones no existía: usarla desde
      Actividad lanzaba ReferenceError y el bloque no llegaba a pintarse. Aquí
@@ -40,7 +44,7 @@
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
-      pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: false }
+      pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: true }
   ];
 
   /* ==================== ESTILOS ==================== */
@@ -64,6 +68,47 @@
       ".ent-rn-hay ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}",
       ".ent-rn-hay li{margin:2px 0}",
       ".ent-rn-hay .nota-peque{margin:8px 0 0}",
+      /* ---- la pestaña Casos ---- */
+      ".casos-filtros{margin:4px 0 14px}",
+      ".casos-fila{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}",
+      ".casos-eti{font-size:.82rem;color:var(--tenue,#7d8a99);margin-right:2px}",
+      ".ent-chip{border:1px solid var(--azul-borde);background:#fff;color:var(--azul-hondo);" +
+        "border-radius:999px;padding:5px 11px;font-size:.86rem;cursor:pointer;line-height:1.2}",
+      ".ent-chip .n{opacity:.55;font-size:.78rem;margin-left:3px}",
+      ".ent-chip.si{background:var(--azul);border-color:var(--azul);color:#fff}",
+      ".ent-chip.si .n{opacity:.8}",
+      ".casos-rejilla{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}",
+      ".caso{border:1px solid var(--azul-borde);border-radius:10px;padding:13px 14px;background:#fff;" +
+        "display:flex;flex-direction:column}",
+      /* los dos de referencia llevan el filo azul: son los que hay que abrir primero */
+      ".caso.destacado{border-left:4px solid var(--azul)}",
+      ".caso.pendiente{background:var(--azul-claro);border-style:dashed}",
+      ".caso-alto{display:flex;justify-content:space-between;gap:8px;font-size:.76rem;" +
+        "text-transform:uppercase;letter-spacing:.04em;color:var(--tenue,#7d8a99)}",
+      ".caso-fam{font-weight:600;color:var(--azul)}",
+      ".caso h3{margin:6px 0 0;font-size:1.05rem;line-height:1.25}",
+      ".caso-sub{margin:1px 0 0;font-size:.9rem;color:var(--tenue,#7d8a99)}",
+      ".caso-trata{margin:9px 0 0;font-size:.92rem;line-height:1.45}",
+      ".caso-coste{display:flex;flex-wrap:wrap;gap:4px 14px;margin:10px 0 0;padding:8px 10px;" +
+        "background:var(--azul-claro);border-radius:7px;font-size:.86rem}",
+      ".caso-coste b{color:var(--azul-hondo)}",
+      ".caso-causas{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 0}",
+      ".caso-causa{border:1px solid var(--azul-borde);background:transparent;color:var(--tenue,#7d8a99);" +
+        "border-radius:999px;padding:2px 9px;font-size:.78rem;cursor:pointer}",
+      ".caso-causa.si{background:var(--azul);border-color:var(--azul);color:#fff}",
+      ".caso-pie{display:flex;align-items:center;gap:10px;margin:13px 0 0;padding-top:11px;" +
+        "border-top:1px solid var(--azul-borde);margin-top:auto}",
+      ".caso-abrir{background:var(--azul);color:#fff;border:0;border-radius:7px;padding:7px 14px;" +
+        "font-size:.9rem;cursor:pointer}",
+      ".caso-abrir[disabled]{opacity:.6;cursor:default}",
+      ".caso-pags,.caso-espera{font-size:.82rem;color:var(--tenue,#7d8a99)}",
+      ".casos-como{margin:18px 0 0;border:1px solid var(--azul-borde);border-radius:10px;" +
+        "padding:10px 14px;background:#fff}",
+      ".casos-como summary{cursor:pointer;font-weight:600;color:var(--azul);font-size:.92rem}",
+      ".casos-como ol,.casos-como ul{margin:10px 0;padding-left:20px;font-size:.9rem;line-height:1.5}",
+      ".casos-como li{margin:3px 0}",
+      ".casos-como pre{background:var(--azul-claro);border-radius:7px;padding:10px 12px;" +
+        "overflow-x:auto;font-size:.8rem;line-height:1.45;margin:6px 0}",
       "@media(max-width:767px){",
       '  #pestanas [data-vista="entreno"].activa{border-top-color:var(--azul)}',
       '  #pestanas [data-vista="entreno"] .larga{display:none}',
@@ -2290,6 +2335,130 @@
      no lo vuelve a pisar) y el maestro, que cubre los años de antes de 2021.
      De ahí saldrá también para App Mapas, el Excel y el catálogo de Mis Rutas:
      un nombre, un solo sitio. */
+  /* ==================== CASOS ====================
+
+     La cuarta pata. Aquí NO se calcula nada: los informes están escritos en
+     PDF y esto es el mueble donde viven. Dos ficheros, los dos en el
+     repositorio PRIVADO y por el mismo motivo —hablan de su covid, su gripe A
+     y su oído, y eso no entra en un repositorio público—:
+
+       `datos/casos.json`  el catálogo: una ficha por documento.
+       `documentos/*.pdf`  los folios, que se bajan con su clave al pulsar.
+
+     Los PDF no se guardan en la caché del navegador a propósito: son 4 MB y
+     se abren de uno en uno. Lo que sí se guarda es el que ya se abrió en esta
+     sesión, para que volver a él sea instantáneo. */
+  var Casos = {
+    CLAVE: "khb-casos-v1",
+    RUTA: "datos/casos.json",
+    CARPETA: "documentos/",
+    FRESCO_H: 24,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    abiertos: {},          // fichero -> URL de blob, sólo mientras dure la pestaña
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
+      } catch (e) { return false; }
+    },
+
+    url: function (ruta) {
+      var c = Salud.cfg();
+      return "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + ruta;
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      fetch(this.url(this.RUTA) + "?ref=" + encodeURIComponent(c.rama || "main"),
+            { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = JSON.parse(Salud.deB64(j.content));
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE, JSON.stringify(
+              { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, datos: self.datos }));
+          } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        /* Que todavía no esté subido es lo normal el primer día: se dice, y
+           no se vuelve a pedir hasta que se recargue la pestaña. */
+        .catch(function () { self.estado = "no-hay"; if (alTerminar) alTerminar(); });
+    },
+
+    lista: function () {
+      return (this.datos && this.datos.documentos) || [];
+    },
+
+    /* ABRIR UN FOLIO.
+
+       La pestaña del navegador se abre AQUÍ, en el mismo instante del clic, y
+       todavía vacía: si se esperase a tener el PDF, el navegador tomaría la
+       apertura por espontánea y la bloquearía. Mientras llega, esa pestaña
+       enseña una línea. Si aun así viene bloqueada, el folio se descarga, que
+       es la otra forma de tenerlo. */
+    abrir: function (fichero, listo) {
+      var self = this, c = Salud.cfg();
+      listo = listo || function () {};
+      if (!Salud.configurado()) { listo(false, "falta la configuración"); return; }
+
+      var ventana = null;
+      try {
+        ventana = window.open("", "_blank");
+        if (ventana && ventana.document) {
+          ventana.document.write('<!doctype html><meta charset="utf-8">' +
+            "<title>" + String(fichero).replace(/[<>]/g, "") + "</title>" +
+            '<body style="font:16px system-ui;padding:24px;color:#33414f">Trayendo el folio…');
+          ventana.document.close();
+        }
+      } catch (e) { ventana = null; }
+
+      function enseña(u) {
+        if (ventana) { try { ventana.location.href = u; listo(true); return; } catch (e) {} }
+        var a = document.createElement("a");
+        a.href = u; a.download = fichero;
+        document.body.appendChild(a); a.click(); a.remove();
+        listo(true, "descargado");
+      }
+
+      if (this.abiertos[fichero]) { enseña(this.abiertos[fichero]); return; }
+
+      /* `application/vnd.github.raw` devuelve el fichero tal cual. El otro
+         formato lo trae en base64 y se planta en 1 MB — el informe maestro
+         pesa 1,7 MB y no cabría. */
+      fetch(this.url(this.CARPETA + encodeURIComponent(fichero)) +
+              "?ref=" + encodeURIComponent(c.rama || "main"),
+            { headers: { "Authorization": "Bearer " + c.token,
+                         "Accept": "application/vnd.github.raw" } })
+        .then(function (r) {
+          if (r.status === 404) throw new Error("ese folio todavía no está subido al repositorio");
+          if (!r.ok) throw new Error("GitHub dice que no (" + r.status + ")");
+          return r.blob();
+        })
+        .then(function (b) {
+          var u = URL.createObjectURL(new Blob([b], { type: "application/pdf" }));
+          self.abiertos[fichero] = u;
+          enseña(u);
+        })
+        .catch(function (e) {
+          if (ventana) { try { ventana.close(); } catch (x) {} }
+          listo(false, (e && e.message) || "no he podido traerlo");
+        });
+    }
+  };
+
   var Nombres = {
     CLAVE: "khb-nombres-v1",
     RUTA: "datos/nombres.json",
@@ -4169,6 +4338,7 @@
     vestir(cont.classList.contains("activa"));
     cont.innerHTML = (bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion()
+      : (bloque === "casos") ? htmlCasos()
       : (bloque === "actividad") ? htmlActividad() : htmlPortada();
     if (bloque === "actividad") montarArchivo();
     if (!mantener) window.scrollTo(0, 0);
@@ -4238,6 +4408,234 @@
     });
 
     return h + "</div>";
+  }
+
+  /* ---------- la pestaña Casos ---------- */
+
+  var MES_C = ["ene", "feb", "mar", "abr", "may", "jun",
+               "jul", "ago", "sep", "oct", "nov", "dic"];
+
+  /* «2023-02-20» + «2023-03-20» -> «feb – mar 2023». El año se dice una vez
+     cuando es el mismo, que es como se escribe a mano. */
+  function periodoCaso(desde, hasta) {
+    function trozo(f) {
+      if (!f) return null;
+      var a = f.slice(0, 4), m = parseInt(f.slice(5, 7), 10);
+      return { a: a, m: (m >= 1 && m <= 12) ? MES_C[m - 1] : null };
+    }
+    var d = trozo(desde), h = trozo(hasta);
+    if (!d) return "";
+    if (!h) return "desde " + (d.m ? d.m + " " : "") + d.a;
+    if (d.a === h.a) {
+      if (d.m === h.m) return (d.m ? d.m + " " : "") + d.a;
+      return (d.m || "") + " – " + (h.m || "") + " " + d.a;
+    }
+    return (d.m ? d.m + " " : "") + d.a + " – " + (h.m ? h.m + " " : "") + h.a;
+  }
+
+  /* 106.5 -> «106,5». Un decimal, y sin el «,0» cuando no hace falta. */
+  function coma(v) {
+    if (v == null || v === "") return "";
+    var n = Math.round(Number(v) * 10) / 10;
+    return String(n).replace(".", ",");
+  }
+
+  function nombreFamilia(id) {
+    var f = (Casos.datos && Casos.datos.familias) || [], i;
+    for (i = 0; i < f.length; i++) if (f[i].id === id) return f[i].n;
+    return id || "";
+  }
+
+  function nombreCausa(id) {
+    var c = (Casos.datos && Casos.datos.causas) || [], i;
+    for (i = 0; i < c.length; i++) if (c[i].id === id) return c[i].n;
+    return id || "";
+  }
+
+  /* Los documentos que pasan los dos filtros. Los dos se suman: familia
+     «Episodios» + causa «Calor» son los episodios con calor, no la unión. */
+  function casosFiltrados() {
+    return Casos.lista().filter(function (x) {
+      if (casoFam && x.familia !== casoFam) return false;
+      if (casoCausa && (x.causas || []).indexOf(casoCausa) < 0) return false;
+      return true;
+    });
+  }
+
+  function chipsCasos() {
+    var fams = (Casos.datos && Casos.datos.familias) || [];
+    var todas = Casos.lista();
+    /* sólo se ofrecen las causas que alguien lleva puestas: una etiqueta que
+       no filtra nada es una etiqueta que estorba */
+    var usadas = {}, i, j, c;
+    for (i = 0; i < todas.length; i++) {
+      c = todas[i].causas || [];
+      for (j = 0; j < c.length; j++) usadas[c[j]] = 1;
+    }
+    var causas = ((Casos.datos && Casos.datos.causas) || []).filter(function (x) {
+      return usadas[x.id];
+    });
+
+    function chip(attr, valor, texto, activo, cuantos) {
+      return '<button type="button" class="ent-chip' + (activo ? " si" : "") + '" ' +
+        attr + '="' + U.esc(valor == null ? "" : valor) + '">' + U.esc(texto) +
+        (cuantos == null ? "" : ' <span class="n">' + cuantos + "</span>") + "</button>";
+    }
+
+    var h = '<div class="casos-filtros">';
+    h += '<div class="casos-fila">' + chip("data-caso-fam", "", "Todos", !casoFam, todas.length);
+    fams.forEach(function (f) {
+      var n = todas.filter(function (x) { return x.familia === f.id; }).length;
+      if (!n) return;
+      h += chip("data-caso-fam", f.id, f.n, casoFam === f.id, n);
+    });
+    h += "</div>";
+
+    if (causas.length) {
+      h += '<div class="casos-fila casos-causas">' +
+        '<span class="casos-eti">Por causa:</span>' +
+        chip("data-caso-causa", "", "Todas", !casoCausa, null);
+      causas.forEach(function (x) {
+        h += chip("data-caso-causa", x.id, x.n, casoCausa === x.id, null);
+      });
+      h += "</div>";
+    }
+    return h + "</div>";
+  }
+
+  function fichaCaso(x) {
+    var pendiente = !x.fichero;
+    var h = '<article class="caso' + (x.destacado ? " destacado" : "") +
+      (pendiente ? " pendiente" : "") + '">' +
+      '<div class="caso-alto">' +
+        '<span class="caso-fam">' + U.esc(nombreFamilia(x.familia)) + "</span>" +
+        '<span class="caso-fecha">' + U.esc(periodoCaso(x.desde, x.hasta)) + "</span>" +
+      "</div>" +
+      "<h3>" + U.esc(x.titulo || "") + "</h3>" +
+      (x.subtitulo ? '<p class="caso-sub">' + U.esc(x.subtitulo) + "</p>" : "") +
+      '<p class="caso-trata">' + U.esc(x.de_que_trata || "") + "</p>";
+
+    /* El coste es lo que hace que un caso se recuerde: qué forma había, hasta
+       dónde cayó y cuánto costó volver. */
+    var c = x.coste;
+    if (c) {
+      h += '<div class="caso-coste">' +
+        (c.forma_antes != null && c.suelo != null
+          ? "<span><b>" + coma(c.forma_antes) + "</b> → <b>" +
+            coma(c.suelo) + "</b> de forma</span>" : "") +
+        (c.dias_en_volver != null
+          ? "<span><b>" + c.dias_en_volver + "</b> días en volver</span>" : "") +
+        "</div>";
+    }
+
+    if ((x.causas || []).length) {
+      h += '<div class="caso-causas">';
+      x.causas.forEach(function (id) {
+        h += '<button type="button" class="caso-causa' + (casoCausa === id ? " si" : "") +
+          '" data-caso-causa="' + U.esc(id) + '">' + U.esc(nombreCausa(id)) + "</button>";
+      });
+      h += "</div>";
+    }
+
+    h += '<div class="caso-pie">';
+    if (pendiente) {
+      h += '<span class="caso-espera">' + U.esc(x.pendiente || "Todavía no existe") + "</span>";
+    } else {
+      h += '<button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.fichero) +
+        '">Abrir el folio</button>' +
+        (x.paginas ? '<span class="caso-pags">' + x.paginas +
+                     (x.paginas === 1 ? " pág." : " págs.") + "</span>" : "");
+    }
+    return h + "</div></article>";
+  }
+
+  function htmlCasos() {
+    var volver = '<button type="button" class="ent-atras" data-volver="1">' +
+      FLECHA + "Volver a Entrenamiento</button>";
+    var cab = '<div class="tarjeta"><h2>Casos</h2>' +
+      '<p class="nota-peque">Los episodios medidos, uno a uno, y los informes de conjunto. ' +
+      "Los folios viven en el repositorio privado y se bajan al pulsar.</p></div>";
+
+    if (Casos.estado === "sin-config") {
+      return volver + cab + '<div class="tarjeta"><p>Falta la configuración de GitHub: ' +
+        "sin ella no puedo traer ni el catálogo ni los folios.</p></div>";
+    }
+    if (Casos.estado === "no-hay") {
+      return volver + cab + '<div class="tarjeta"><p>No encuentro <b>datos/casos.json</b> ' +
+        "en el repositorio de datos. Es lo primero que hay que subir.</p></div>";
+    }
+    if (!Casos.datos) {
+      return volver + cab + '<div class="tarjeta"><p class="nota-peque">Trayendo el catálogo…</p></div>';
+    }
+
+    var lista = casosFiltrados();
+    var h = volver + cab + chipsCasos();
+    if (!lista.length) {
+      h += '<div class="tarjeta"><p>Ningún folio con esos dos filtros a la vez.</p></div>';
+    } else {
+      h += '<div class="casos-rejilla">';
+      lista.forEach(function (x) { h += fichaCaso(x); });
+      h += "</div>";
+    }
+    return h + comoAnadir();
+  }
+
+  /* Las instrucciones, plegadas y al final. Van AQUI y no en una nota aparte
+     porque es donde se necesitan: cuando estás mirando la rejilla y echas uno
+     en falta. Plegadas, para que no estorben los otros 364 días del año. */
+  function comoAnadir() {
+    var fams = ((Casos.datos && Casos.datos.familias) || [])
+      .map(function (f) { return f.id; }).join(" · ");
+    var causas = ((Casos.datos && Casos.datos.causas) || [])
+      .map(function (c) { return c.id; }).join(" · ");
+
+    var ejemplo = [
+      "{",
+      '  "id": "corticoides",',
+      '  "titulo": "Corticoides",',
+      '  "subtitulo": "Qué cambió durante la pauta",',
+      '  "familia": "episodio",',
+      '  "causas": ["infeccion"],',
+      '  "desde": "2026-09-01",',
+      '  "hasta": "2026-10-15",',
+      '  "paginas": 5,',
+      '  "fichero": "Caso corticoides septiembre 2026.pdf",',
+      '  "de_que_trata": "Dos frases diciendo qué se ve aquí dentro.",',
+      '  "coste": { "forma_antes": 48.2, "suelo": 9.4, "dias_en_volver": 120 }',
+      "}"
+    ].join("\n");
+
+    return '<details class="casos-como">' +
+      "<summary>Cómo añadir un folio nuevo</summary>" +
+      "<ol>" +
+        "<li>Guarda el PDF en <b>Menú Semanal\\informes-salud\\</b>.</li>" +
+        "<li>Súbelo al repositorio <b>privado</b>, dentro de <b>documentos/</b>. " +
+           "Nunca al público: estos folios hablan de tu salud.</li>" +
+        "<li>Abre <b>datos/casos.json</b> en GitHub, dale al lápiz y añade su ficha " +
+           "al final de la lista <b>documentos</b>, separada por una coma.</li>" +
+        "<li>Recarga la app. La pestaña se entera sola de que el catálogo cambió.</li>" +
+      "</ol>" +
+      "<p class=\"nota-peque\">La ficha, con los campos que hay:</p>" +
+      "<pre>" + U.esc(ejemplo) + "</pre>" +
+      "<ul>" +
+        "<li><b>fichero</b> — el nombre exacto del PDF, con sus espacios y sus " +
+           "tildes. Si no casa letra por letra, el botón dirá que no lo encuentra.</li>" +
+        "<li><b>familia</b> — una de: " + U.esc(fams) + "</li>" +
+        "<li><b>causas</b> — las que sean, de: " + U.esc(causas) + ". " +
+           "Los episodios casi nunca son de una sola cosa.</li>" +
+        "<li><b>coste</b> — sólo en los episodios, y sólo si está medido. Sin él, " +
+           "la ficha sale igual pero sin el recuadro azul.</li>" +
+        "<li><b>destacado: true</b> — le pone el filo azul. Para los de referencia.</li>" +
+        "<li><b>pendiente</b> — si el folio aún no existe: pon el texto de la espera " +
+           "y deja <b>fichero</b> en <b>null</b>. Sale marcado, sin botón.</li>" +
+      "</ul>" +
+      '<p class="nota-peque">O dímelo y lo hago yo: escribo el folio, lo dejo ' +
+      "preparado para subir y añado su ficha.</p>" +
+      "</details>";
+  }
+
+  function prepararCasos() {
+    Casos.cargar(function () { if (bloque === "casos") pintar(true); });
   }
 
   function htmlPlan() {
@@ -4819,10 +5217,35 @@
         pintar();
         return;
       }
+      /* Casos: los dos filtros y el botón de abrir el folio */
+      var cf = t.closest ? t.closest("[data-caso-fam]") : null;
+      if (cf) { casoFam = cf.getAttribute("data-caso-fam") || null; pintar(true); return; }
+      var cc = t.closest ? t.closest("[data-caso-causa]") : null;
+      if (cc) {
+        var vc = cc.getAttribute("data-caso-causa") || null;
+        /* pulsar la causa que ya está puesta la quita: es lo que espera
+           cualquiera al volver a tocarla */
+        casoCausa = (vc && vc === casoCausa) ? null : vc;
+        pintar(true);
+        return;
+      }
+      var cp = t.closest ? t.closest("[data-caso-pdf]") : null;
+      if (cp) {
+        var fichero = cp.getAttribute("data-caso-pdf");
+        var antes = cp.textContent;
+        cp.disabled = true; cp.textContent = "Trayendo\u2026";
+        Casos.abrir(fichero, function (ok, aviso) {
+          cp.disabled = false; cp.textContent = antes;
+          if (!ok) U.toast("No he podido abrirlo: " + (aviso || ""));
+          else if (aviso === "descargado") U.toast("Descargado: el navegador no me dejó abrir la pestaña");
+        });
+        return;
+      }
       var b = t.closest ? t.closest("[data-bloque]") : null;
       if (b) {
         bloque = b.getAttribute("data-bloque");
         if (bloque === "actividad") prepararArchivo();   // pide sus ficheros al entrar
+        if (bloque === "casos") prepararCasos();
         pintar();
       }
     });
