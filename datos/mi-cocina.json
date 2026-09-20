@@ -1,0 +1,91 @@
+{
+ "_que_es": "Los aparatos con los que se cocina en esta casa y el criterio que decide cuál usa cada plato. Quien quiera usar este asistente con su cocina, cambia este fichero y no toca nada más.",
+ "_actualizado": "2026-09-20",
+
+ "aparatos": [
+  {
+   "id": "airfryer",
+   "nombre": "Moulinex Easy Fry XL Surface",
+   "tipo": "Freidora de aire",
+   "preferencia": 1,
+   "ficha": {
+    "capacidad_l": 4,
+    "cesta": "cuadrada, 27,3 × 27,3 × 6 cm",
+    "potencia_w": 2200,
+    "temperatura_max_c": 220,
+    "resistencia": "arriba y abajo",
+    "rejilla_interior": false,
+    "precalienta": false
+   },
+   "como_transmite_el_calor": "Convección: aire caliente en movimiento.",
+   "para_que_es_buena": "Piezas enteras y verduras. Dora sin vigilancia, pero tarda: una cebolla que la sartén hace en 6-8 minutos le cuesta 16, porque el aire transmite mucho peor que el metal.",
+   "prohibiciones": [
+    "NO se precalienta. Nunca escribir un paso que diga «precalienta la freidora»: los tiempos se cuentan desde que se enciende con la comida dentro.",
+    "NO tiene rejilla. No valen los tiempos de las recetas de freidoras con rejilla, que cocinan por las dos caras a la vez. Aquí hay que dar la vuelta a media cocción y decirlo en el guion."
+   ]
+  },
+  {
+   "id": "lekue-vapor",
+   "nombre": "Lékué de microondas (vaporera, arrocera y cuecepasta)",
+   "tipo": "Vapor en microondas",
+   "preferencia": 2,
+   "ficha": {
+    "microondas_w": 800,
+    "temperatura_max_c": 100,
+    "dora": false
+   },
+   "como_transmite_el_calor": "Vapor: agua a 100 °C como mucho.",
+   "para_que_es_buena": "Cocer verdura, arroz y pasta sin estar encima y sin grasa.",
+   "tablas": {
+    "arroz": "60 g ≈ 1 ración, máximo 240 g. Redondo o bomba: 12-13 min a 800 W + 3 de reposo. Tapa siempre puesta. Nunca más de media arrocera o rebosa.",
+    "pasta": "120 g secos con 300 ml, o 240 g con 600 ml: 10 minutos en los dos casos. Sin gluten y espelta, 12 min. Ñoquis sin gluten, 8 min."
+   },
+   "prohibiciones": [
+    "NO dora nunca. Con agua dentro no se pasa de 100 °C y dorar exige 140 °C. Cualquier sofrito, caramelizado o tostado va a la sartén o a la freidora."
+   ]
+  },
+  {
+   "id": "sarten",
+   "nombre": "Sartén sobre vitrocerámica",
+   "tipo": "Sartén",
+   "preferencia": 3,
+   "como_transmite_el_calor": "Conducción: metal caliente tocando la comida.",
+   "para_que_es_buena": "Todo lo que tiene que dorarse en segundos o necesita costra por contacto, y lo que exige controlar el cuajado."
+  }
+ ],
+
+ "criterio_de_reparto": {
+  "regla_1": "Manda cómo viaja el calor. Conducción (sartén) para lo que tiene que dorarse en segundos. Convección (freidora) para piezas y verduras. Vapor (Lékué) para lo demás.",
+  "regla_2": "Manda el corte, no el aparato. El lomo en filetes finos va a la sartén, porque se seca antes de dorarse; el lomo en pieza entera va a la freidora, porque la masa aguanta los 22 minutos. Son dos recetas distintas, no una con variantes.",
+  "regla_3": "Las recetas de dos aparatos son lo normal, no la excepción.",
+  "se_quedan_en_sarten_a_proposito": [
+   "entrecot", "atún sellado", "hamburguesa", "calamar", "tortitas",
+   "huevos revueltos", "tortillas", "revueltos"
+  ],
+  "nota_calamar": "El calamar tiene solo dos puntos buenos: 2 minutos o media hora. La freidora cae justo en el intervalo en que se pone a goma."
+ },
+
+ "cabida_de_la_cesta": {
+  "_por_que_esta_aqui": "Una receta que no cabe en capa única sale mal: lo de arriba tapa el paso del aire y lo de abajo se queda crudo. Pasó de verdad con una lubina apilada sobre el tomate.",
+  "superficie_total_cm2": 745,
+  "superficie_util_en_una_capa_cm2": 630,
+  "_nota_superficie": "El borde y las esquinas de una cesta cuadrada no cuentan.",
+  "formula": "huella = gramos ÷ densidad aparente ÷ grosor del corte",
+  "huella_por_100_g": [
+   { "alimento": "Cebolla en juliana", "cm2": 208, "caben_g": 300 },
+   { "alimento": "Berenjena en rodajas de 1,5 cm", "cm2": 148, "caben_g": 430 },
+   { "alimento": "Patata en bastones", "cm2": 95, "caben_g": 665 },
+   { "alimento": "Calabacín en rodajas de 1,5 cm", "cm2": 70, "caben_g": 900 },
+   { "alimento": "Tomate en gajos", "cm2": 53, "caben_g": 1200 },
+   { "alimento": "Pescado o pollo", "cm2": 48, "caben_g": 1330 }
+  ],
+  "lo_que_llena_la_cesta": "La verdura, no la proteína. La berenjena ocupa tres veces más que el pescado a igualdad de peso. «Cabe el doble de pollo» es cierto; «cabe el doble de verdura» casi nunca.",
+  "capa_unica": "Hace falta en lo que se quiere dorado y no se remueve: pescado, patata, carne. Un sofrito que se sacude admite el doble de fondo, y eso se marca con capaUnica:false.",
+  "cuando_no_quepa": [
+   "Sacrificar el tomate: es lo que menos necesita la freidora. Fresco, o 5 minutos al final en la cesta caliente.",
+   "Nunca apilar el pescado sobre la verdura.",
+   "Para dos raciones con verdura, dos tandas: las verduras primero, tapadas con aluminio mientras se hace lo demás."
+  ],
+  "limite": "Ninguna receta debe pasar del 92 % de la cesta. Lo comprueba revisar-cabida.py."
+ }
+}

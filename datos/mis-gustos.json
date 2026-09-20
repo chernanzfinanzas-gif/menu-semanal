@@ -1,0 +1,55 @@
+{
+ "_que_es": "Lo que se come y lo que no se come en esta casa, y las reglas que ninguna receta puede saltarse. Quien quiera usar este asistente con sus gustos, cambia este fichero y no toca nada más.",
+ "_actualizado": "2026-09-20",
+
+ "raciones_por_defecto": 1,
+ "_nota_raciones": "Las recetas se escriben a 1 ración, o a 2 si el plato lo pide (una tortilla, un guiso). La compra se calcula aparte para 2 personas.",
+
+ "si": {
+  "carne": ["entrecot", "hamburguesa baja en sal", "pollo", "solomillo de cerdo", "lomo de cerdo"],
+  "pescado": [
+   "bacalao al natural sin salar", "merluza", "calamar", "salmón", "atún",
+   "lomos de lubina congelados de La Sirena"
+  ],
+  "legumbres_y_cereales": ["lentejas", "guisantes", "pasta", "arroz"],
+  "verduras": ["berenjena", "calabacín", "tomate", "cebolla", "patata", "espinacas", "brotes verdes"],
+  "otros": ["mango", "nueces", "requesón", "yogur griego", "copos de avena"]
+ },
+
+ "no": {
+  "_regla": "Estos ingredientes no entran en ninguna receta, ni como acompañamiento ni como sustituto.",
+  "lista": ["garbanzos", "pimientos", "brócoli", "judías verdes", "sardinas", "caballa", "conejo"],
+  "flojo": ["alubias (le gustan poco; solo si el plato las pide de verdad)"]
+ },
+
+ "fijos_diarios": {
+  "_que_son": "Están todos los días y no hay que proponerlos ni sustituirlos. Cuentan para la sal del día.",
+  "pan": "3 rebanadas de pan Ortiz tostado en la comida y otras 3 en la cena (0,91 g de sal entre las dos tomas: es lo más salado de su día)",
+  "desayuno": "300 ml de leche con café descafeinado",
+  "postre": "yogur griego con copos de avena"
+ },
+
+ "sal": {
+  "_la_regla_que_manda": "NUNCA se añade sal a una receta. Ni «una pizca», ni «al gusto», ni «rectificar de sal». El sabor se busca con ácido, aromáticos, especias, tostado y grasa.",
+  "tope_diario_sal_g": 4,
+  "aviso_ambar_g": 2,
+  "filosofia": "La reducción máxima que se pueda por debajo del tope.",
+  "conversion": "sal × 0,393 = sodio · sodio × 2,54 = sal",
+  "dia_de_ruta": "En día de ruta o bici larga el tope NO se aplica: sudando se pierden unos 2,1 g de sal por litro, y cuatro horas andando son 2-3 litros.",
+  "panes_sin_sal_alternativos": [
+   "Recondo integral sin sal (0,03 g/100 g, Carrefour, ~2,55 €)",
+   "Recondo blanco sin sal (0,05 g/100 g)",
+   "Hacendado integral bajo en sal (0,20 g/100 g)"
+  ]
+ },
+
+ "como_quiere_las_instrucciones": [
+  "Temperaturas y tiempos concretos, nunca «hasta que esté».",
+  "Todo tiene que terminar a la vez: se escalonan las entradas y se dice el minuto de cada una.",
+  "El porqué de cada paso, no solo el qué.",
+  "Cómo saber que está hecho sin mirar el reloj: color, olor, textura.",
+  "Decir cuándo un paso no se puede abreviar y qué se pierde si se abrevia.",
+  "Cuánto cabe, con números, siempre que se use la freidora.",
+  "Cantidades en gramos, mililitros o unidades. Nada de «un chorrito» ni «un puñado»."
+ ]
+}

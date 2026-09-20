@@ -1,0 +1,608 @@
+{
+ "_que_es": "Los ingredientes que Carlos tiene dados de alta en la app. La IA SOLO puede usar estos identificadores. Lo que haga falta y no este aqui va en ingredientesNuevos, nunca en ingredientes.",
+ "_generado_desde": "datos/ingredientes.js",
+ "_generado_el": "2026-09-20",
+ "_campos": {
+  "id": "identificador que hay que usar en la receta",
+  "n": "nombre",
+  "cat": "seccion del supermercado",
+  "u": "unidad: g, ml o ud",
+  "sal": "gramos de sal por 100 g o 100 ml",
+  "pesoUd": "gramos que pesa una unidad (solo si u es ud)",
+  "basico": "esta siempre en casa; no entra en la compra semanal"
+ },
+ "total": 77,
+ "ingredientes": [
+  {
+   "id": "ternera_entrecot",
+   "n": "Entrecot de ternera",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "ternera_picada",
+   "n": "Carne picada magra de ternera",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "hamburguesa_bajasal",
+   "n": "Hamburguesa de vacuno baja en sal (≤0,25 g/100 g)",
+   "cat": "Carnicería",
+   "u": "ud",
+   "sal": 0.25,
+   "pesoUd": 150
+  },
+  {
+   "id": "pollo_pechuga",
+   "n": "Pechuga de pollo fresca",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "cerdo_solomillo",
+   "n": "Solomillo de cerdo fresco",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "cerdo_lomo",
+   "n": "Lomo de cerdo fresco en filetes (sin adobar)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "bacalao_natural",
+   "n": "Lomo de bacalao al natural SIN SALAR (congelado)",
+   "cat": "Pescadería",
+   "u": "ud",
+   "sal": 0.16,
+   "pesoUd": 130
+  },
+  {
+   "id": "merluza_lomo",
+   "n": "Lomo de merluza fresca o congelada",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.25
+  },
+  {
+   "id": "lubina",
+   "n": "Lomos de lubina congelados sin aditivos",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.2
+  },
+  {
+   "id": "calamar_fresco",
+   "n": "Calamar fresco limpio",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.25
+  },
+  {
+   "id": "salmon_lomo",
+   "n": "Lomo de salmón fresco o congelado",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "atun_fresco",
+   "n": "Atún fresco (lomo)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "cebolla_dulce",
+   "n": "Cebolla dulce",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 150
+  },
+  {
+   "id": "ajo",
+   "n": "Ajo",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.04,
+   "pesoUd": 5,
+   "basico": true
+  },
+  {
+   "id": "patata",
+   "n": "Patata",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.02,
+   "pesoUd": 180
+  },
+  {
+   "id": "calabacin",
+   "n": "Calabacín",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.02,
+   "pesoUd": 250
+  },
+  {
+   "id": "berenjena",
+   "n": "Berenjena",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 250
+  },
+  {
+   "id": "tomate",
+   "n": "Tomate maduro",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 150
+  },
+  {
+   "id": "zanahoria",
+   "n": "Zanahoria",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.17,
+   "pesoUd": 80
+  },
+  {
+   "id": "puerro",
+   "n": "Puerro",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.05,
+   "pesoUd": 150
+  },
+  {
+   "id": "espinacas",
+   "n": "Espinacas frescas",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.2
+  },
+  {
+   "id": "brotes_verdes",
+   "n": "Brotes verdes (bolsa ensalada)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.05
+  },
+  {
+   "id": "setas",
+   "n": "Setas o champiñones frescos",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "guisantes",
+   "n": "Guisantes tiernos (congelados)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "pina_fresca",
+   "n": "Piña fresca",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 1200
+  },
+  {
+   "id": "manzana_reineta",
+   "n": "Manzana reineta o golden",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 180
+  },
+  {
+   "id": "platano",
+   "n": "Plátano",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 120
+  },
+  {
+   "id": "mango",
+   "n": "Mango",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 350
+  },
+  {
+   "id": "limon",
+   "n": "Limón",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 110
+  },
+  {
+   "id": "fruta_temporada",
+   "n": "Fruta de temporada (pera, kiwi, naranja…)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 150
+  },
+  {
+   "id": "arandanos",
+   "n": "Arándanos o frambuesas",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "albahaca",
+   "n": "Albahaca fresca",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.02
+  },
+  {
+   "id": "perejil",
+   "n": "Perejil fresco",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.14,
+   "basico": true
+  },
+  {
+   "id": "leche",
+   "n": "Leche",
+   "cat": "Lácteos y huevos",
+   "u": "ml",
+   "sal": 0.1
+  },
+  {
+   "id": "yogur_natural",
+   "n": "Yogur natural sin azúcar",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.13,
+   "pesoUd": 125
+  },
+  {
+   "id": "yogur_griego",
+   "n": "Yogur griego natural sin azúcar",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.09,
+   "pesoUd": 125
+  },
+  {
+   "id": "yogur_desnatado",
+   "n": "Yogur natural desnatado bio",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.13,
+   "pesoUd": 125
+  },
+  {
+   "id": "requeson",
+   "n": "Requesón fresco (o ricotta)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.12
+  },
+  {
+   "id": "queso_burgos_sinsal",
+   "n": "Queso fresco tipo Burgos 0% sal añadida",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "mozzarella_fresca",
+   "n": "Mozzarella fresca de bola",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.35
+  },
+  {
+   "id": "huevo",
+   "n": "Huevos",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.35,
+   "pesoUd": 55
+  },
+  {
+   "id": "pan_ortiz",
+   "n": "Pan tostado Ortiz estilo tradicional (rebanada 10,8 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 1.4,
+   "pesoUd": 10.8
+  },
+  {
+   "id": "pan_tostado_sinsal",
+   "n": "Pan tostado INTEGRAL SIN SAL (rebanada 10,8 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.03,
+   "pesoUd": 10.8
+  },
+  {
+   "id": "pan_ortiz_bajosal",
+   "n": "Pan tostado 100% integral BAJO EN SAL (rebanada 10,8 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.2,
+   "pesoUd": 10.8
+  },
+  {
+   "id": "leche_desnatada",
+   "n": "Leche desnatada",
+   "cat": "Lácteos y huevos",
+   "u": "ml",
+   "sal": 0.13,
+   "basico": true
+  },
+  {
+   "id": "pan_sin_sal",
+   "n": "Pan artesanal SIN SAL (barra o rebanadas congeladas)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.05,
+   "pesoUd": 40
+  },
+  {
+   "id": "arroz_redondo",
+   "n": "Arroz redondo o bomba",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.01,
+   "basico": true
+  },
+  {
+   "id": "pasta",
+   "n": "Pasta (macarrones, hélices, espaguetis)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.01,
+   "basico": true
+  },
+  {
+   "id": "lentejas",
+   "n": "Lentejas pardinas",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "copos_avena",
+   "n": "Copos de avena integrales",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "nueces",
+   "n": "Nueces crudas sin sal",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "aove",
+   "n": "Aceite de oliva virgen extra",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0,
+   "basico": true
+  },
+  {
+   "id": "vinagre",
+   "n": "Vinagre de manzana o balsámico",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "miel",
+   "n": "Miel pura",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0,
+   "basico": true
+  },
+  {
+   "id": "cacao_puro",
+   "n": "Cacao puro 100% desgrasado",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.05,
+   "basico": true
+  },
+  {
+   "id": "chia",
+   "n": "Semillas de chía",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.04,
+   "basico": true
+  },
+  {
+   "id": "vino_blanco",
+   "n": "Vino blanco para cocinar",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "aceite_sesamo",
+   "n": "Aceite de sésamo",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0,
+   "basico": true
+  },
+  {
+   "id": "mostaza_bajasal",
+   "n": "Mostaza a la antigua baja en sal (o semillas de mostaza)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 1,
+   "basico": true
+  },
+  {
+   "id": "cafe_desca",
+   "n": "Café descafeinado",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0,
+   "basico": true
+  },
+  {
+   "id": "datiles",
+   "n": "Dátiles sin hueso",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "orejones",
+   "n": "Orejones de albaricoque",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.03
+  },
+  {
+   "id": "pasas",
+   "n": "Pasas sultanas",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.03
+  },
+  {
+   "id": "almendras",
+   "n": "Almendras crudas sin sal",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "crema_cacahuete",
+   "n": "Crema de cacahuete 100% sin sal ni azúcar",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.02
+  },
+  {
+   "id": "sal",
+   "n": "Sal fina",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 100,
+   "basico": true
+  },
+  {
+   "id": "pimenton",
+   "n": "Pimentón de la Vera (dulce o ahumado)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.1,
+   "basico": true
+  },
+  {
+   "id": "pimienta",
+   "n": "Pimienta negra en molinillo",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "oregano",
+   "n": "Orégano seco",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.03,
+   "basico": true
+  },
+  {
+   "id": "tomillo",
+   "n": "Tomillo seco",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.014,
+   "basico": true
+  },
+  {
+   "id": "romero",
+   "n": "Romero seco",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.013,
+   "basico": true
+  },
+  {
+   "id": "laurel",
+   "n": "Laurel",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.06,
+   "basico": true
+  },
+  {
+   "id": "canela",
+   "n": "Canela en polvo",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "comino",
+   "n": "Comino molido",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.04,
+   "basico": true
+  },
+  {
+   "id": "ajo_polvo",
+   "n": "Ajo en polvo",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.06,
+   "basico": true
+  },
+  {
+   "id": "jengibre",
+   "n": "Jengibre fresco o molido",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.03,
+   "basico": true
+  },
+  {
+   "id": "eneldo",
+   "n": "Eneldo seco",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.05,
+   "basico": true
+  }
+ ]
+}

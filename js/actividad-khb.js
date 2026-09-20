@@ -372,6 +372,10 @@
        Manda menos que la colección: si algún día archivas el GPX de una de
        éstas, la ruta buena gana y esto se cae solo sin limpiar nada. */
     var trazos = o.trazos || null;
+    /* Las series de cada sesión de pesas, por id de actividad. Es lo único que
+       intervals no guarda: sale del fichero original del reloj, y lo rellena el
+       paso del FIT del workflow. Si no está, la ficha sale como antes. */
+    var fuerza = (o.fuerza && o.fuerza.sesiones) ? o.fuerza.sesiones : (o.fuerza || null);
     var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
 
     /* índice de rutas por fecha, para clasificar y para el mapa de las nuevas */
@@ -651,7 +655,37 @@
          trazo; cuando el trazo llega, se recalcula con el centro de verdad. */
       var cc = celdaACoord(x.celda);
       var lugar = rotuloLugar(lugarDe(x.nombre), cc ? zonaDe(cc[0], cc[1]) : null);
-      return '<div class="akhb-ficha">' +
+      /* ---------- las pesas ----------
+         Lo que hizo de verdad, ejercicio a ejercicio. Los kilos son el MÁXIMO
+         de la serie y el volumen es kilos por repetición sumado, que es como
+         lo cuenta Garmin. «Sin identificar» no es un hueco: es que el reloj no
+         supo qué ejercicio era —lleva tres códigos por serie y no coinciden—,
+         y el nombre bueno llega con la siguiente exportación de Garmin. */
+      var series = (fuerza && x.id) ? fuerza[x.id] : null;
+      var tablaFuerza = "";
+      if (series && series.length) {
+        var tot = { series: 0, reps: 0, kg: 0, min: 0 };
+        var filas = series.map(function (e) {
+          tot.series += e.series || 0; tot.reps += e.reps || 0;
+          tot.kg += e.kg_total || 0;   tot.min += e.min || 0;
+          return "<tr><th>" + esc(e.que || "sin identificar") + "</th>" +
+            "<td>" + (e.series != null ? e.series : "—") + "</td>" +
+            "<td>" + (e.reps != null ? e.reps : "—") + "</td>" +
+            "<td>" + (e.kg_max != null ? num(e.kg_max, 1) + " kg" : "—") + "</td>" +
+            "<td>" + (e.kg_total != null ? num(e.kg_total) + " kg" : "—") + "</td>" +
+            "<td>" + (e.min != null ? num(e.min, 1) : "—") + "</td></tr>";
+        }).join("");
+        tablaFuerza =
+          '<div class="akhb-fuerza">' +
+            "<h5>" + series.length + (series.length === 1 ? " ejercicio" : " ejercicios") +
+              " \u00b7 " + tot.series + " series \u00b7 " + tot.reps + " repeticiones" +
+              (tot.kg ? " \u00b7 " + num(tot.kg) + " kg movidos" : "") + "</h5>" +
+            '<table class="akhb-tf"><thead><tr>' +
+              "<th>Ejercicio</th><th>Series</th><th>Reps</th><th>Max</th><th>Volumen</th><th>Min</th>" +
+            "</tr></thead><tbody>" + filas + "</tbody></table>" +
+          "</div>";
+      }
+      return '<div class="akhb-ficha' + (tablaFuerza ? " akhb-con-fuerza" : "") + '">' +
         '<figure class="akhb-mapa" data-mapa="' + clave + '">' +
           '<div class="akhb-lienzo">' +
             (llevaMapa(x) ? '<div class="akhb-cargando">Trayendo el trazo…</div>'
@@ -671,6 +705,7 @@
           "</figcaption>" +
         "</figure>" +
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
+        tablaFuerza +
       "</div>";
     }
 
