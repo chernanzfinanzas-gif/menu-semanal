@@ -485,8 +485,15 @@
   var Salud = {
     CLAVE: "khb-salud-cache-v1",
     RUTA: "datos/salud.json",
-    FRESCO_MIN: 120,          // minutos antes de volver a pedirlo
+    /* Las dos horas eran el último sitio donde se esperaba por esperar: se
+       publicaban datos nuevos y este fichero —el que más se mueve, el que trae
+       lo de hoy— seguía enseñando la copia vieja. Ahora manda la HUELLA, como
+       en los otros cinco: si el fichero publicado es el mismo, no se pide
+       aunque hayan pasado días; si ha cambiado, se pide aunque acabe de
+       traerse. Las dos horas sólo se usan si no se pudo preguntar. */
+    FRESCO_MIN: 120,          // sólo cuando no hay huella (sin conexión)
     datos: null,
+    sha: null,
     traidoEl: null,
     estado: "nada",           // nada · cargando · ok · error · sin-config
 
@@ -502,17 +509,24 @@
     deCache: function () {
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
-        if (j && j.datos) { this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok"; return true; }
+        if (j && j.datos) {
+          this.datos = j.datos; this.traidoEl = j.traidoEl; this.sha = j.sha || null;
+          this.estado = "ok"; return true;
+        }
       } catch (e) {}
       return false;
     },
 
     aCache: function () {
-      try { localStorage.setItem(this.CLAVE, JSON.stringify({ traidoEl: this.traidoEl, datos: this.datos })); }
-      catch (e) { /* si no cabe, se vive sin caché */ }
+      try {
+        localStorage.setItem(this.CLAVE, JSON.stringify(
+          { traidoEl: this.traidoEl, sha: this.sha, datos: this.datos }));
+      } catch (e) { /* si no cabe, se vive sin caché */ }
     },
 
     caducado: function () {
+      var viva = Firmas.de(this.RUTA);
+      if (viva) return this.sha !== viva;          // la huella manda sobre el reloj
       if (!this.traidoEl) return true;
       return (Date.now() - new Date(this.traidoEl).getTime()) > this.FRESCO_MIN * 60000;
     },
@@ -525,6 +539,8 @@
         return;
       }
       if (this.estado === "cargando") return;
+      /* antes de decidir si hace falta pedirlo, se pregunta qué hay publicado */
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(forzar, alTerminar); }); return; }
       if (!forzar && this.datos && !this.caducado()) { if (alTerminar) alTerminar(false); return; }
       this.estado = "cargando";
       var c = this.cfg();
@@ -538,6 +554,7 @@
         })
         .then(function (j) {
           self.datos = JSON.parse(self.deB64(j.content));
+          self.sha = j.sha || Firmas.de(self.RUTA);
           self.traidoEl = new Date().toISOString();
           self.estado = "ok";
           self.aCache();
