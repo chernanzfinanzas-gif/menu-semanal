@@ -1893,26 +1893,33 @@
   var BASE_MAPAS = "https://chernanzfinanzas-gif.github.io/mapas-ign/";
 
   var Archivo = {
-    /* v2 y no v1: el puente se ha rehecho desde el maestro —1.042 salidas en
-       vez de 877, con su id, su deporte y 26 campos— y viene por columnas.
-       Con la misma clave, el móvil seguiría usando para siempre la copia vieja
-       de ocho campos, que es justo la que no deja emparejar los trazos. */
-    CLAVE: "khb-archivo-actividad-v2",
+    /* v3 y no v1: el puente se ha rehecho desde el maestro —969 salidas en vez
+       de 877, con su id, su deporte y 27 campos— y viene por columnas. Con la
+       misma clave, el móvil seguiría usando la copia vieja de ocho campos, que
+       es justo la que no deja emparejar los trazos. */
+    CLAVE: "khb-archivo-actividad-v3",
     RUTA: "datos/historico-actividad.json",
+    /* ANTES ESTO SE GUARDABA PARA SIEMPRE. Valía cuando el fichero era el
+       inventario del Excel y esos años estaban cerrados. Ya no: sale del
+       maestro y cambia cada vez que se arregla algo del archivo. Sin caducidad,
+       lo que se corrija aquí no se vería nunca en el teléfono. */
+    FRESCO_H: 24,
+    traidoEl: null,
     datos: null,
     estado: "nada",
 
     deCache: function () {
       try {
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
-        if (j && j.datos) { this.datos = j.datos; this.estado = "ok"; return true; }
-      } catch (e) {}
-      return false;
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+      } catch (e) { return false; }
     },
 
     cargar: function (alTerminar) {
       var self = this;
-      if (this.datos || this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
       if (this.deCache()) { if (alTerminar) alTerminar(); return; }
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
@@ -1928,8 +1935,11 @@
              llega es el fichero viejo {anios:…}, se pasa tal cual y el módulo
              lo entiende igual. */
           self.datos = crudo && crudo.cols ? actsDeColumnas(crudo) : crudo;
-          self.estado = "ok";
-          try { localStorage.setItem(self.CLAVE, JSON.stringify({ datos: self.datos })); } catch (e) {}
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE,
+              JSON.stringify({ datos: self.datos, traidoEl: self.traidoEl }));
+          } catch (e) {}
           if (alTerminar) alTerminar();
         })
         .catch(function () { self.estado = "error"; if (alTerminar) alTerminar(); });
@@ -2041,8 +2051,11 @@
      No va dentro de salud.json a propósito, que ése se carga entero al abrir
      la app y esto sólo hace falta al entrar en Actividad. */
   var Trazos = {
-    /* v2: ahora son DOS ficheros y el de la caché vieja sólo tiene uno. */
-    CLAVE: "khb-trazos-strava-v2",
+    /* v3: son DOS ficheros, y el 20-sep-2026 pasó esto — la app se abrió
+       cuando el segundo aún no estaba publicado, se trajo un «no existe» y lo
+       guardó 24 horas. Cambiar el nombre de la caja es lo único que obliga a
+       volver a pedirlo. */
+    CLAVE: "khb-trazos-strava-v3",
     RUTA: "datos/trazos.json",
     /* Los años que no están en intervals —de 2013 a octubre de 2021— tienen su
        propio fichero: 434 trazas con su perfil de altura, sacadas del FIT
