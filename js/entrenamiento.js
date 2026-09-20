@@ -5801,14 +5801,32 @@
      senderismo dentro de caminar —allí le vale—, pero aquí no: cuesta un 40%
      más y son 100 kcal de diferencia en una hora. */
   function famDeTexto(txt) {
-    var t = String(txt || "").toLowerCase();
+    /* Con los acentos quitados, como hace `familia()`. Sin esto «Elíptica» no
+       casaba con `eliptic` y se iba al saco de «otra» — un fallo que sólo
+       aparece con los nombres que escribe él, no con los que pone Garmin. */
+    var t = String(txt || "").toLowerCase()
+      .replace(/[áà]/g, "a").replace(/[éè]/g, "e").replace(/[íì]/g, "i")
+      .replace(/[óò]/g, "o").replace(/[úù]/g, "u");
+    /* «montañ» Y «montan»: la eñe no se toca al normalizar, así que una sola de
+       las dos dejaría fuera la mitad de los nombres. */
     if (/sender|montañ|montan|cumbre|pico/.test(t)) return "sender";
+    /* TODO LO DE GIMNASIO ES LA MISMA FAMILIA, y no por lo que trabaja sino por
+       el hueco que ocupa: si el plan pedía una sesión de sala y fuiste a la
+       sala, da igual que acabaras haciendo remo, pilates o elíptica — esa
+       sesión ya está hecha y su previsión sobra. Separarlas dejaría la
+       previsión de fuerza esperando para siempre y sumaría las dos cosas.
+       Va antes que `familia()` porque allí el remo tiene cajón propio, que le
+       sirve para marcar la casilla del plan pero no para esto. */
+    if (/remo|row|pilates|eliptic|elliptic|gimnas|maquin|circuito|funcional/.test(t)) return "fuerza";
     var f = familia(txt);
     if (f === "caminar") return "caminar";
     if (f === "bici") return "bici";
     if (f === "fuerza") return "fuerza";
     if (f === "correr") return "correr";
     if (f === "movilidad") return "movilidad";
+    /* Lo que no se reconoce cae aquí, y cae junto: una previsión sin clasificar
+       la taparía cualquier salida sin clasificar. De sus 360 actividades
+       recientes sólo caía una, y era un «Rowing» que ahora va a sala. */
     return "otra";
   }
 

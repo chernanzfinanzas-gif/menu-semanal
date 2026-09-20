@@ -300,6 +300,12 @@
         se le suman estas. No conviene el 100%: las tablas de MET estiman por encima de lo que mide
         un reloj, y devolverlo todo borra el déficit justo los días que más entrenas. 70% es lo
         habitual.</span></label>
+      <label class="campo"><span>Cuánto del entreno PREVISTO se adelanta (%)</span>
+        <input type="number" id="cfg-prevision" min="0" max="100" step="5">
+        <span class="nota-peque">Lo que el plan dice que toca hoy, antes de hacerlo. Entero (100%)
+        porque está para poder preparar la comida. No te regala el déficit: en cuanto el reloj mide
+        la sesión, la medida SUSTITUYE a la previsión, y si el día se acaba sin haberla hecho, esa
+        previsión no cuenta.</span></label>
       <button class="btn principal" id="guardar-cocina">Guardar</button>
       <p class="nota-peque" style="margin-top:10px">Las calorías y los macros son estimaciones de tablas de
         composición de alimentos, con los ingredientes crudos y el aceite que indica la receta. Sirven para

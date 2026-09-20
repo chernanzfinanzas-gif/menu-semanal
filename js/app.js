@@ -1356,6 +1356,9 @@
     $("#cfg-prot").value = c.objetivoProt;
     $("#cfg-margen").value = c.margenKcal;
     $("#cfg-devolucion").value = Math.round((c.devolucionEjercicio != null ? c.devolucionEjercicio : 0.7) * 100);
+    if ($("#cfg-prevision")) {
+      $("#cfg-prevision").value = Math.round((c.previsionEjercicio != null ? c.previsionEjercicio : 1) * 100);
+    }
     pintarEntrenoEstandar();
     pintarFueraEstimado();
     $("#gh-usuario").value = c.github.usuario || "";
@@ -1875,6 +1878,10 @@
       if (isNaN(c.margenKcal)) c.margenKcal = 10;
       var pct = parseFloat($("#cfg-devolucion").value);
       if (!isNaN(pct)) c.devolucionEjercicio = Math.min(1, Math.max(0, pct / 100));
+      if ($("#cfg-prevision")) {
+        var pct2 = parseFloat($("#cfg-prevision").value);
+        if (!isNaN(pct2)) c.previsionEjercicio = Math.min(1, Math.max(0, pct2 / 100));
+      }
       Almacen.guardar("config");
       pintarEntrenoEstandar();
       Util.toast("Ajustes guardados");

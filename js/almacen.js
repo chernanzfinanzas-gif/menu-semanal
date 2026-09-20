@@ -300,6 +300,17 @@
         if (global.console) console.log("Topes de sal actualizados a 4,0 / 2,0 g.");
       }
 
+      /* CORRECCIÓN DE UNA SOLA VEZ. Durante unos minutos del 21-sep-2026 se
+         publicó la previsión del plan al 50%, y la app guarda en su estado los
+         valores por omisión en cuanto arranca: quien abriera la app en ese rato
+         se quedó con el 0,5 grabado, y cambiar el valor por omisión ya no le
+         llega. Se sube a 1 una sola vez y se deja una marca para no volver a
+         tocarlo nunca más — si algún día lo baja a mano, se respeta. */
+      if (!e.config.v_prevision) {
+        e.config.previsionEjercicio = 1;
+        e.config.v_prevision = 1;
+      }
+      if (typeof e.config.previsionEjercicio !== "number") e.config.previsionEjercicio = 1;
       if (typeof e.config.objetivoKcal !== "number") e.config.objetivoKcal = 2000;
       if (typeof e.config.objetivoProt !== "number") e.config.objetivoProt = 90;
       if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;
