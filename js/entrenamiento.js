@@ -1812,6 +1812,73 @@
      sin tener que traer el histórico. */
   var RANGOS_HIST = RANGOS.filter(function (r) { return r.d > 0; });
 
+  /* ==================== ¿QUÉ HA CAMBIADO? ====================
+     Los ficheros de datos son gordos —el de actividades, 702 KB— y casi nunca
+     cambian, así que el móvil se guardaba una copia y no volvía a pedirla en 24
+     horas. El problema es lo que pasa cuando SÍ cambian: se publica un fichero
+     nuevo y el teléfono sigue enseñando el viejo hasta el día siguiente. Ha
+     pasado tres veces, y cada vez hubo que cambiar el nombre de la caja a mano.
+
+     Ahora se pregunta primero. GitHub dice, en UNA petición de unos pocos KB,
+     la lista de la carpeta `datos/` con la huella de cada fichero. Se comparan
+     las huellas con las de las copias guardadas y sólo se baja lo que sea
+     distinto. Se publica, se abre la app, se ve — sin caducidad y sin tocar
+     nada. Si la pregunta falla (sin conexión), se vuelve a la regla de las 24
+     horas, que es lo que había. */
+  var Firmas = {
+    CARPETA: "datos",
+    huellas: null,
+    estado: "nada",
+    esperando: [],
+
+    listo: function () { return this.estado === "ok" || this.estado === "error"; },
+
+    avisa: function () {
+      var ll = this.esperando, i;
+      this.esperando = [];
+      for (i = 0; i < ll.length; i++) { try { ll[i](); } catch (e) {} }
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.listo()) { if (alTerminar) alTerminar(); return; }
+      if (alTerminar) this.esperando.push(alTerminar);
+      if (this.estado === "pidiendo") return;
+      if (!Salud.configurado()) { this.estado = "error"; this.avisa(); return; }
+      this.estado = "pidiendo";
+      var c = Salud.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.CARPETA + "?ref=" + encodeURIComponent(c.rama || "main");
+      fetch(url, { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (lista) {
+          var m = {}, i;
+          for (i = 0; i < (lista || []).length; i++) {
+            if (lista[i] && lista[i].path && lista[i].sha) m[lista[i].path] = lista[i].sha;
+          }
+          self.huellas = m; self.estado = "ok"; self.avisa();
+        })
+        .catch(function () { self.estado = "error"; self.avisa(); });
+    },
+
+    de: function (ruta) { return this.huellas ? (this.huellas[ruta] || null) : null; },
+
+    /* ¿sirve la copia guardada? Sí, si su huella es la que hay publicada. Si no
+       se pudo preguntar, la regla vieja: vale mientras no pasen las horas. */
+    vale: function (guardada, ruta, traidoEl, horas) {
+      var viva = this.de(ruta);
+      if (viva) return guardada === viva;
+      return !!(traidoEl && (Date.now() - traidoEl) < (horas || 24) * 3600000);
+    },
+
+    /* los trazos son dos ficheros: basta con que cambie uno para volver a pedir */
+    dosValen: function (g1, g2, r1, r2, traidoEl, horas) {
+      var v1 = this.de(r1), v2 = this.de(r2);
+      if (v1 || v2) return (!v1 || g1 === v1) && (!v2 || g2 === v2);
+      return !!(traidoEl && (Date.now() - traidoEl) < (horas || 24) * 3600000);
+    }
+  };
+
   /* El histórico vive en otro fichero del mismo repositorio y son 230 KB:
      solo se pide cuando hace falta, es decir, al elegir «Todo». */
   var Historico = {
@@ -1842,13 +1909,14 @@
         if (!j || (!j.crudo && !j.datos)) return false;
         this.datos = j.crudo ? this.arma(j.crudo) : j.datos;
         this.traidoEl = j.traidoEl; this.estado = "ok";
-        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
       } catch (e) { return false; }
     },
 
     cargar: function (alTerminar) {
       var self = this;
       if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
       if (this.deCache()) { if (alTerminar) alTerminar(); return; }   // fresco: no se pide
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
@@ -1863,7 +1931,7 @@
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ traidoEl: self.traidoEl, crudo: crudo }));
+              JSON.stringify({ sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, crudo: crudo }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -1913,13 +1981,14 @@
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
-        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
       } catch (e) { return false; }
     },
 
     cargar: function (alTerminar) {
       var self = this;
       if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
       if (this.deCache()) { if (alTerminar) alTerminar(); return; }
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
@@ -1938,7 +2007,7 @@
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ datos: self.datos, traidoEl: self.traidoEl }));
+              JSON.stringify({ sha: Firmas.de(self.RUTA), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -2005,7 +2074,7 @@
         if (!j || (!j.crudo && !j.datos)) return false;
         this.datos = j.crudo ? actsDeColumnas(j.crudo) : j.datos;
         this.traidoEl = j.traidoEl; this.estado = "ok";
-        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
       } catch (e) { return false; }
     },
 
@@ -2014,6 +2083,7 @@
       if (this.estado === "cargando" || this.estado === "no-hay") {
         if (alTerminar) alTerminar(); return;
       }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
       if (this.deCache()) { if (alTerminar) alTerminar(); return; }
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
@@ -2034,7 +2104,7 @@
             /* se guarda el fichero tal cual vino, por columnas: es la mitad de
                grande que la lista ya armada, y el móvil no va sobrado */
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ traidoEl: self.traidoEl, crudo: d }));
+              JSON.stringify({ sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, crudo: d }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -2078,7 +2148,7 @@
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
-        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+        return Firmas.dosValen(j.sha, j.shaA, this.RUTA, this.RUTA_ARCHIVO, j.traidoEl, this.FRESCO_H);
       } catch (e) { return false; }
     },
 
@@ -2087,6 +2157,7 @@
       if (this.estado === "cargando" || this.estado === "no-hay") {
         if (alTerminar) alTerminar(); return;
       }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
       if (this.deCache()) { if (alTerminar) alTerminar(); return; }   // fresco: no se pide
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
@@ -2117,7 +2188,7 @@
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ datos: self.datos, traidoEl: self.traidoEl }));
+              JSON.stringify({ sha: Firmas.de(self.RUTA), shaA: Firmas.de(self.RUTA_ARCHIVO), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
@@ -2147,7 +2218,7 @@
         var j = JSON.parse(localStorage.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
-        return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
       } catch (e) { return false; }
     },
 
@@ -2156,6 +2227,7 @@
       if (this.estado === "cargando" || this.estado === "no-hay") {
         if (alTerminar) alTerminar(); return;
       }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
       if (this.deCache()) { if (alTerminar) alTerminar(); return; }   // fresco: no se pide
       if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
       this.estado = "cargando";
@@ -2169,7 +2241,7 @@
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
             localStorage.setItem(self.CLAVE,
-              JSON.stringify({ datos: self.datos, traidoEl: self.traidoEl }));
+              JSON.stringify({ sha: Firmas.de(self.RUTA), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
         })
