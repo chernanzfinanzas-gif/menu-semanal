@@ -42,6 +42,7 @@
 
   var MES = ["enero","febrero","marzo","abril","mayo","junio",
              "julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  var DIA_SEM = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
   var MES_CORTO = ["ene","feb","mar","abr","may","jun",
                    "jul","ago","sep","oct","nov","dic"];
   var CORTE = "2021-10-15";          // desde aquí manda salud.json
@@ -56,13 +57,27 @@
      distinto y ninguna sobra: las sesiones dicen cuántas veces saliste, las
      horas cuánto tiempo, los kilómetros y el desnivel cuánto terreno, y la
      carga cuánto costó. El reparto por deporte va dentro en todas. */
+  /* LAS MEDIDAS. `fuente` dice DE DÓNDE sale el número, que no es lo mismo que
+     cómo se dibuja: «act» lo suma de las actividades, «dia» de los días del
+     registro. Todo lo que dibuja —la tira, las casillas, la lista— pregunta por
+     la fuente y no sabe nada más. Las que vendrán después (potencia, ritmo,
+     velocidad ascensional) no se suman sino que se quedan con el mejor del
+     tramo: ésas traerán una fuente propia y no un `if` metido aquí dentro. */
   var METRICAS = [
-    { id: "n",   nom: "Sesiones",    campo: null,        dec: 0, suf: "" },
-    { id: "min", nom: "Horas",       campo: "min",       dec: 0, suf: "\u00a0h", div: 60 },
-    { id: "km",  nom: "Kilómetros",  campo: "km",        dec: 0, suf: "" },
-    { id: "d",   nom: "Desnivel",    campo: "desnivel",  dec: 0, suf: "\u00a0m" },
-    { id: "c",   nom: "Carga",       campo: "carga",     dec: 0, suf: "" }
+    { id: "n",   nom: "Sesiones",    fuente: "act", campo: null,        dec: 0, suf: "" },
+    { id: "min", nom: "Horas",       fuente: "act", campo: "min",       dec: 0, suf: "\u00a0h", div: 60 },
+    { id: "km",  nom: "Kilómetros",  fuente: "act", campo: "km",        dec: 0, suf: "" },
+    { id: "d",   nom: "Desnivel",    fuente: "act", campo: "desnivel",  dec: 0, suf: "\u00a0m" },
+    { id: "c",   nom: "Carga",       fuente: "act", campo: "carga",     dec: 0, suf: "" },
+    { id: "p",   nom: "Pasos",       fuente: "dia", dec: 0, suf: "" }
   ];
+
+  /* SU zancada, no la de un manual: mediana de 1.143 salidas suyas que la
+     traen guardada, y sale igual a pie (0,79) que en monte (0,79). Con ella
+     los pasos se leen en kilómetros, que es como piensa uno las distancias.
+     NO se usa `km_dia` de Garmin para esto: desde 2022 mete la bici dentro y
+     la zancada implícita saldría de 6 metros. */
+  var ZANCADA_M = 0.79;
 
   /* el orden manda en la barra apilada y en la leyenda */
   var ORDEN_DEP = ["sen", "pas", "bici", "and", "rod", "fue", "cor", "otr"];
@@ -84,8 +99,13 @@
   var ORDEN_FAM = ["monte", "bici", "rodillo", "pie", "sala"];
   var NOMBRE_FAM = {
     monte: "Monte", bici: "Bici en la calle", rodillo: "Rodillo",
-    pie: "A pie", sala: "Sala"
+    pie: "A pie", sala: "Sala",
+    /* los pasos no se reparten en familias —un martes no tiene familia—, se
+       reparten en dos: lo que quedó registrado como salida y el resto del día */
+    ensal: "En salidas", resto: "El resto del día"
   };
+  var GRUPO_PASOS = ["ensal", "resto"];
+  var COLOR_G = { ensal: "#2f5c8a", resto: "#c7d6e5" };
   var NOMBRE_DEP = {
     sen: "Senderismo", pas: "Paseo largo", bici: "Bici exterior",
     and: "Caminar", rod: "Rodillo", fue: "Fuerza y sala",
@@ -780,9 +800,96 @@
       mes: null,           // null = el año entero
       metrica: "n",        // con qué se mide la altura de las barras del año
       abierta: null,       // clave de la ficha desplegada
+      /* EL FILTRO. `null` es «todas encendidas», y arranca así SIEMPRE: si
+         recordara la selección, un día abrirías la app y no entenderías por
+         qué te faltan años. No se guarda en ningún sitio a propósito. */
+      fam: null,
+      dia: null,           // el día desplegado en la lista de Pasos
+      pidiendoDias: false,
       el: null
     };
     var cacheGeo = {};     // celda → geometría ya traída
+
+    /* ---------- los días, para las medidas que no salen de las actividades ----------
+
+       Dos fuentes y una regla: manda la ventana reciente donde exista, el
+       histórico para lo de atrás. El histórico se pide con pereza —son cientos
+       de KB— y sólo cuando alguien pulsa una medida que lo necesita. */
+    var dias = {};              // fecha -> pasos del día
+    var diasPorMes = {};        // "2025" -> { "03": [fechas] }
+    var pasosSal = {};          // fecha -> pasos dados dentro de una salida
+    var hayDias = false;
+
+    function meteDias(d, manda) {
+      if (!d) return;
+      for (var f in d) {
+        if (!d.hasOwnProperty(f)) continue;
+        var v = d[f] && d[f].pasos;
+        if (typeof v !== "number" || !v) continue;
+        if (!manda && dias[f] != null) continue;
+        dias[f] = v;
+      }
+    }
+
+    function indexaDias() {
+      diasPorMes = {};
+      for (var f in dias) {
+        if (!dias.hasOwnProperty(f)) continue;
+        var y = f.slice(0, 4), mm = f.slice(5, 7);
+        (diasPorMes[y] = diasPorMes[y] || {});
+        (diasPorMes[y][mm] = diasPorMes[y][mm] || []).push(f);
+      }
+      for (var yy in diasPorMes) {
+        for (var k in diasPorMes[yy]) diasPorMes[yy][k].sort();
+      }
+      hayDias = false;
+      for (var z in dias) { hayDias = true; break; }
+    }
+
+    /* Los pasos que SÍ quedaron dentro de una salida registrada. Sólo cuentan
+       las de a pie y de monte: los del rodillo no son pasos. */
+    (function () {
+      todas.forEach(function (x) {
+        var g = FAMILIA[x.dep] || "sala";
+        if (g !== "pie" && g !== "monte") return;
+        if (!x.pasos) return;
+        pasosSal[x.fecha] = (pasosSal[x.fecha] || 0) + x.pasos;
+      });
+    }());
+
+    meteDias(o.diasHist, false);
+    meteDias(o.dias, true);
+    indexaDias();
+
+    /* Un año puede tener días registrados y ninguna actividad —diciembre de
+       2019 es el caso—, y sin esto se caería de la tira y sus pasos no se
+       verían en ninguna parte. La tira sale de las dos cosas. */
+    function sumaAniosDeDias() {
+      var cambia = false, y;
+      for (y in diasPorMes) {
+        if (anios.indexOf(y) < 0) { anios.push(y); cambia = true; }
+      }
+      if (cambia) anios.sort();
+      if (!estado.anio && anios.length) estado.anio = anios[anios.length - 1];
+    }
+    sumaAniosDeDias();
+
+    /* ¿esta medida se puede ofrecer con lo que hay cargado? */
+    function medidaPosible(m) {
+      if (m.fuente !== "dia") return true;
+      return hayDias || !!o.traerDias;
+    }
+
+    function pedirDias() {
+      if (estado.pidiendoDias || !o.traerDias || o.diasHist) return;
+      estado.pidiendoDias = true;
+      o.traerDias(function (d) {
+        estado.pidiendoDias = false;
+        if (d) { o.diasHist = d; meteDias(d, false); indexaDias(); sumaAniosDeDias(); }
+        else { o.diasHist = {}; }
+        pintar();
+      });
+    }
 
     /* ---------- dibujo ---------- */
     function cuentaAnio(y) {
@@ -796,20 +903,89 @@
       return METRICAS[0];
     }
 
-    /* Cuánto hubo ese año de cada deporte, en la métrica elegida. */
-    function repartoAnio(y, m) {
+    /* ---------- el filtro ----------
+
+       Un clic sobre una familia apagada la ENCIENDE SOLA: es lo que se quiere
+       el 90 % de las veces («enséñame solo el monte»). A partir de ahí se
+       suman y se quitan. Quitar la última vuelve a encenderlas todas, que es
+       la única salida que no deja la pantalla en blanco. */
+    function gruposDe(m) { return m.fuente === "dia" ? GRUPO_PASOS : ORDEN_FAM; }
+
+    function activo(g) { return !estado.fam || !!estado.fam[g]; }
+
+    function alternarFam(g) {
+      if (!estado.fam) { estado.fam = {}; estado.fam[g] = 1; return; }
+      if (estado.fam[g]) {
+        delete estado.fam[g];
+        var quedan = 0, k;
+        for (k in estado.fam) if (estado.fam[k]) quedan++;
+        if (!quedan) estado.fam = null;
+        return;
+      }
+      estado.fam[g] = 1;
+    }
+
+    function colorG(g) {
+      return COLOR_G[g] ? "var(--akhb-fam-" + g + ", " + COLOR_G[g] + ")"
+                        : "var(--akhb-fam-" + g + ")";
+    }
+
+    /* ---------- de dónde sale el número ----------
+
+       `reparto(y, mm, m)`: lo que hubo en ese año (o en ese mes, si `mm` viene)
+       repartido por grupos, con el filtro ya aplicado. Es lo único que la tira
+       de años y las casillas de los meses necesitan saber, y por eso las dos
+       llaman aquí en vez de sumar cada una por su cuenta. */
+    function reparto(y, mm, m) {
+      return m.fuente === "dia" ? repartoDias(y, mm) : repartoActs(y, mm, m);
+    }
+
+    function repartoActs(y, mm, m) {
       var meses = porAnio[y] || {}, r = {}, n = 0;
-      Object.keys(meses).forEach(function (k) {
-        meses[k].forEach(function (x) {
+      var claves = mm ? [mm] : Object.keys(meses);
+      claves.forEach(function (k) {
+        (meses[k] || []).forEach(function (x) {
+          var g = FAMILIA[x.dep] || "sala";
+          if (!activo(g)) return;
           var v = m.campo ? x[m.campo] : 1;
           if (v == null) return;                    // lo que no se sabe no suma
           if (m.div) v = v / m.div;
-          var g = FAMILIA[x.dep] || "sala";
           r[g] = (r[g] || 0) + v; n += v;
         });
       });
       return { r: r, n: n };
     }
+
+    function repartoDias(y, mm) {
+      var porMes = diasPorMes[y] || {}, r = {}, n = 0;
+      var claves = mm ? [mm] : Object.keys(porMes);
+      claves.forEach(function (k) {
+        (porMes[k] || []).forEach(function (f) {
+          var tot = dias[f] || 0;
+          if (!tot) return;
+          /* el tope: si el reloj apuntó más pasos en la salida que en el día
+             entero —pasa en los días partidos—, manda el día */
+          var en = Math.min(pasosSal[f] || 0, tot);
+          if (activo("ensal")) { r.ensal = (r.ensal || 0) + en; n += en; }
+          if (activo("resto")) { r.resto = (r.resto || 0) + (tot - en); n += tot - en; }
+        });
+      });
+      return { r: r, n: n };
+    }
+
+    /* Las actividades de un tramo que pasan el filtro. Es lo que decide si una
+       casilla de mes se puede pulsar y lo que se pinta abajo. */
+    function actsDe(y, mm) {
+      var meses = porAnio[y] || {}, out = [];
+      (mm ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
+        (meses[k] || []).forEach(function (x) {
+          if (activo(FAMILIA[x.dep] || "sala")) out.push(x);
+        });
+      });
+      return out;
+    }
+
+    function kmDePasos(p) { return (p || 0) * ZANCADA_M / 1000; }
 
     /* Aviso honesto: hay métricas que el archivo viejo no guarda. */
     function huecoDe(m) {
@@ -827,12 +1003,18 @@
                "años de senderismo salen cortos aquí. Para compararlos, horas o carga.";
       }
       if (m.id === "c") return "La carga solo existe desde octubre de 2021: antes no había pulsómetro en el registro.";
+      if (m.id === "p") {
+        return "Los pasos empiezan en diciembre de 2019: antes no había reloj que " +
+               "los contara, así que los años anteriores salen vacíos y está bien que " +
+               "así sea. La parte clara es lo que andas fuera de una salida registrada, " +
+               "que desde 2022 es cerca del 70 % del total.";
+      }
       return "";
     }
 
     function htmlAnios() {
       var m = metricaActual(), max = 0, cache = {};
-      anios.forEach(function (y) { cache[y] = repartoAnio(y, m); max = Math.max(max, cache[y].n); });
+      anios.forEach(function (y) { cache[y] = reparto(y, null, m); max = Math.max(max, cache[y].n); });
       if (!max) max = 1;
 
       /* El volver y las medidas en la misma fila: ocupan una línea en vez de
@@ -842,7 +1024,7 @@
       var selector = '<div class="akhb-cabrow">' +
         (botonVolver || "<span></span>") +
         '<div class="akhb-metricas" role="group" aria-label="Medida">' +
-        METRICAS.map(function (x) {
+        METRICAS.filter(medidaPosible).map(function (x) {
           return '<button type="button" data-met="' + x.id + '" aria-pressed="' +
             (x.id === m.id) + '"' + (x.id === m.id ? ' class="sel"' : "") + ">" +
             x.nom + "</button>";
@@ -853,9 +1035,9 @@
         /* la altura dice cuánto hubo ese año; los trozos, de qué. El mínimo
            es para que un año flojo se siga pudiendo pulsar y ver de qué fue. */
         var alto = d.n ? Math.max(7, Math.round(d.n / max * 100)) : 0;
-        var trozos = ORDEN_FAM.filter(function (g) { return d.r[g]; }).map(function (g) {
+        var trozos = gruposDe(m).filter(function (g) { return d.r[g]; }).map(function (g) {
           return '<i style="height:' + (d.r[g] / d.n * alto).toFixed(2) +
-                 '%;background:var(--akhb-fam-' + g + ')" title="' +
+                 '%;background:' + colorG(g) + '" title="' +
                  esc(NOMBRE_FAM[g]) + ": " + num(d.r[g], 0) + '"></i>';
         }).join("");
         return '<button type="button" role="tab" class="akhb-anio' + (sel ? " sel" : "") +
@@ -865,34 +1047,51 @@
           '<span class="akhb-anio-c">' + (d.n ? num(d.n, m.dec) + m.suf : "·") + "</span></button>";
       }).join("");
 
-      var hay = {};
-      anios.forEach(function (y) { for (var g in cache[y].r) hay[g] = true; });
-      var leyenda = ORDEN_FAM.filter(function (g) { return hay[g]; }).map(function (g) {
-        return '<span><i style="background:var(--akhb-fam-' + g + ')"></i>' +
-               esc(NOMBRE_FAM[g]) + "</span>";
+      /* LA LEYENDA YA NO ES UN ADORNO: es el filtro. Se listan los grupos que
+         la medida sabe repartir, no los que quedan encendidos — si sólo
+         saliera lo encendido, apagar algo lo haría desaparecer y no habría
+         forma de volver a encenderlo. */
+      var leyenda = gruposDe(m).map(function (g) {
+        var si = activo(g);
+        return '<button type="button" class="akhb-leg' + (si ? " si" : "") +
+          '" data-fam="' + g + '" aria-pressed="' + si + '">' +
+          '<i style="background:' + colorG(g) + '"></i>' +
+          esc(NOMBRE_FAM[g]) + "</button>";
       }).join("");
+      var filtrando = !!estado.fam;
 
       var aviso = huecoDe(m);
+      var trayendo = (m.fuente === "dia" && estado.pidiendoDias);
       return selector +
         '<div class="akhb-anios" role="tablist" aria-label="Años">' + tira + "</div>" +
-        '<div class="akhb-leyenda">' + leyenda + "</div>" +
+        '<div class="akhb-leyenda akhb-filtro">' + leyenda +
+          (filtrando ? '<button type="button" class="akhb-leg-todas" data-fam="">' +
+                       "Todas</button>" : "") + "</div>" +
+        (trayendo ? '<p class="akhb-aviso">Trayendo los pasos de los años de atrás…</p>' : "") +
         (aviso ? '<p class="akhb-aviso">' + aviso + "</p>" : "");
     }
 
+    /* Las casillas de los meses enseñan EL VALOR DE LA MEDIDA ELEGIDA, no el
+       número de actividades. Antes ponían siempre actividades, así que con
+       Kilómetros elegido la tira de arriba hablaba de kilómetros y las casillas
+       de debajo de otra cosa, sin decirlo. */
     function htmlMeses() {
-      var m = porAnio[estado.anio] || {};
-      var celdas = [];
+      var m = metricaActual(), celdas = [];
       for (var i = 0; i < 12; i++) {
-        var k = dosD(i + 1), lista = m[k] || [], hay = lista.length > 0;
+        var k = dosD(i + 1);
+        var d = reparto(estado.anio, k, m);
+        var hay = (m.fuente === "dia") ? d.n > 0 : actsDe(estado.anio, k).length > 0;
         var sel = estado.mes === k;
         celdas.push('<button type="button" class="akhb-mes' + (sel ? " sel" : "") +
           (hay ? "" : " vacio") + '"' + (hay ? "" : " disabled") +
           ' data-mes="' + k + '" aria-pressed="' + !!sel + '">' +
-          MES_CORTO[i] + (hay ? '<b>' + lista.length + "</b>" : "<b>·</b>") + "</button>");
+          MES_CORTO[i] + "<b>" + (hay && d.n ? num(d.n, m.dec) + m.suf : "·") + "</b></button>");
       }
+      var todo = reparto(estado.anio, null, m);
       return '<div class="akhb-meses">' +
         '<button type="button" class="akhb-mes akhb-todo' + (estado.mes ? "" : " sel") +
-        '" data-mes="">Todo el año<b>' + cuentaAnio(estado.anio) + "</b></button>" +
+        '" data-mes="">Todo el año<b>' +
+        (todo.n ? num(todo.n, m.dec) + m.suf : "·") + "</b></button>" +
         celdas.join("") + "</div>";
     }
 
@@ -1109,6 +1308,11 @@
     }
 
     function htmlLista() {
+      /* Con una medida de días, abajo van DÍAS. No es un capricho: si eliges
+         Pasos y abajo siguen saliendo actividades, la pantalla entera está
+         hablando de una cosa menos la mitad de abajo. */
+      if (metricaActual().fuente === "dia") return htmlDias();
+
       var m = porAnio[estado.anio] || {};
       var meses = estado.mes ? [estado.mes] : Object.keys(m).sort();
       if (!meses.length) {
@@ -1116,7 +1320,7 @@
       }
       var h = "";
       meses.forEach(function (mm) {
-        var lista = m[mm] || [];
+        var lista = actsDe(estado.anio, mm);
         if (!lista.length) return;
         h += '<h4 class="akhb-titmes">' + MES[parseInt(mm, 10) - 1] +
              ' <span>' + lista.length + (lista.length === 1 ? " actividad" : " actividades") +
@@ -1125,10 +1329,79 @@
         h += "</ul>";
       });
       if (!h) {
-        return '<p class="akhb-nada">' + MES[parseInt(estado.mes, 10) - 1] +
-               " de " + estado.anio + " no tiene ninguna actividad.</p>";
+        return '<p class="akhb-nada">' +
+               (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio
+                           : estado.anio) +
+               (estado.fam ? " no tiene nada de lo que has dejado encendido."
+                           : " no tiene ninguna actividad.") + "</p>";
       }
       return h;
+    }
+
+    /* ---------- la lista cuando la medida son los días ---------- */
+    function htmlDias() {
+      var porMes = diasPorMes[estado.anio] || {};
+      var meses = estado.mes ? [estado.mes] : Object.keys(porMes).sort();
+      var h = "";
+      meses.forEach(function (mm) {
+        var fechas = (porMes[mm] || []).filter(function (f) {
+          var en = Math.min(pasosSal[f] || 0, dias[f] || 0);
+          /* con «el resto del día» apagado sólo tienen sentido los días que
+             tuvieron salida; con «en salidas» apagado, todos los demás */
+          if (!activo("resto") && !en) return false;
+          if (!activo("ensal") && en >= (dias[f] || 0)) return false;
+          return true;
+        });
+        if (!fechas.length) return;
+        var tot = repartoDias(estado.anio, mm).n;
+        h += '<h4 class="akhb-titmes">' + MES[parseInt(mm, 10) - 1] +
+             " <span>" + num(tot, 0) + " pasos · " + num(kmDePasos(tot), 0) +
+             " km</span></h4><ul class=\"akhb-dias\">";
+        fechas.forEach(function (f) { h += filaDia(f); });
+        h += "</ul>";
+      });
+      if (!h) {
+        return '<p class="akhb-nada">No hay pasos registrados en ' +
+               (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio
+                           : estado.anio) +
+               ". El reloj empezó a contarlos en diciembre de 2019.</p>";
+      }
+      return h;
+    }
+
+    function filaDia(f) {
+      var todo = dias[f] || 0, en = Math.min(pasosSal[f] || 0, todo);
+      /* Si has apagado una de las dos mitades, la fila enseña la que queda
+         encendida. Enseñar el día entero mientras la barra de arriba cuenta
+         sólo una parte es la forma más rápida de que dos números de la misma
+         pantalla no cuadren. */
+      var tot = (activo("ensal") ? en : 0) + (activo("resto") ? todo - en : 0);
+      var d = new Date(f + "T12:00:00");
+      var abierto = estado.dia === f;
+      var sal = todas.filter(function (x) { return x.fecha === f; });
+      var h = '<li class="akhb-dia' + (abierto ? " abierto" : "") + '">' +
+        '<button type="button" class="akhb-dia-cab" data-dia="' + f +
+          '" aria-expanded="' + abierto + '">' +
+          '<span class="akhb-dia-f"><b>' + d.getDate() + "</b> " +
+            esc(DIA_SEM[d.getDay()]) + "</span>" +
+          '<span class="akhb-dia-n">' + num(tot, 0) + " pasos</span>" +
+          '<span class="akhb-dia-km">' + num(kmDePasos(tot), 1) + " km</span>" +
+          /* la barrita dice de un vistazo cuánto de ese día quedó registrado */
+          '<span class="akhb-dia-barra" title="' + num(en, 0) + ' en salidas"><i style="width:' +
+            (todo ? (en / todo * 100).toFixed(1) : 0) + '%;background:' + colorG("ensal") +
+            '"></i></span>' +
+          '<span class="akhb-dia-sal">' +
+            (sal.length ? sal.length + (sal.length === 1 ? " salida" : " salidas") : "—") +
+          "</span>" +
+        "</button>";
+      if (abierto) {
+        h += sal.length
+          ? '<ul class="akhb-lista">' +
+            sal.map(function (x, i) { return htmlFila(x, "d" + f + "-" + i); }).join("") + "</ul>"
+          : '<p class="akhb-nada">Ese día no hay ninguna actividad registrada: ' +
+            "esos pasos son de andar por ahí.</p>";
+      }
+      return h + "</li>";
     }
 
     function fuenteDelAnio() {
@@ -1641,18 +1914,48 @@
       if (b && estado.el.contains(b)) { e.stopPropagation(); borrar(b); return; }
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
-      var t = e.target.closest ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met]") : null;
+      var t = e.target.closest
+        ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia]") : null;
       if (!t || !estado.el.contains(t)) return;
       if (t.hasAttribute("data-met")) {
-        estado.metrica = t.getAttribute("data-met"); pintar(); return;
+        var nueva = t.getAttribute("data-met");
+        if (nueva !== estado.metrica) {
+          var antes = metricaActual();
+          estado.metrica = nueva;
+          /* El filtro SOLO se reinicia si cambian los grupos. De Kilómetros a
+             Desnivel se conserva —es la misma pregunta con otra vara—, pero de
+             ahí a Pasos no: allí no hay monte ni rodillo, y heredar un «solo
+             monte» dejaría la pantalla vacía sin explicar por qué. */
+          if (metricaActual().fuente !== antes.fuente) estado.fam = null;
+          estado.dia = null;
+        }
+        if (metricaActual().fuente === "dia") pedirDias();
+        pintar();
+        return;
+      }
+      if (t.hasAttribute("data-fam")) {
+        var g = t.getAttribute("data-fam");
+        if (!g) estado.fam = null; else alternarFam(g);
+        estado.abierta = null; estado.dia = null;
+        pintar(); return;
+      }
+      if (t.hasAttribute("data-dia")) {
+        var f = t.getAttribute("data-dia");
+        estado.dia = (estado.dia === f) ? null : f;
+        pintar();
+        if (estado.dia) {
+          var nf = estado.el.querySelector('[data-dia="' + f + '"]');
+          if (nf && nf.scrollIntoView) nf.scrollIntoView({ block: "nearest" });
+        }
+        return;
       }
       if (t.hasAttribute("data-anio")) {
         estado.anio = t.getAttribute("data-anio");
-        estado.mes = null; estado.abierta = null; pintar(); return;
+        estado.mes = null; estado.abierta = null; estado.dia = null; pintar(); return;
       }
       if (t.hasAttribute("data-mes")) {
         estado.mes = t.getAttribute("data-mes") || null;
-        estado.abierta = null; pintar(); return;
+        estado.abierta = null; estado.dia = null; pintar(); return;
       }
       if (t.hasAttribute("data-abre")) {
         var c = t.getAttribute("data-abre");

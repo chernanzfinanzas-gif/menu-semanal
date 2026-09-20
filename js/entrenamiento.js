@@ -2947,6 +2947,20 @@
           Borrado.pedir(id, modo, ruta, datos, listo);
         },
         fuerza: Fuerza.datos,
+        /* LOS DÍAS, para las medidas que no salen de las actividades (los
+           pasos, y mañana las calorías). Dos fuentes: la ventana reciente
+           manda, el histórico rellena lo de atrás.
+
+           El histórico NO se carga al entrar en la pata: son cientos de KB
+           para una medida que a lo mejor nadie pulsa. Se pide sólo cuando el
+           módulo lo necesita, y mientras llega lo dice en pantalla. */
+        dias: (Salud.datos && Salud.datos.dias) || null,
+        diasHist: (Historico.datos && Historico.datos.dias) || null,
+        traerDias: function (listo) {
+          Historico.cargar(function () {
+            listo((Historico.datos && Historico.datos.dias) || {});
+          });
+        },
         actividades: Nombres.aplicar(actividadesJuntas()),
         rutas: (Rutas.datos || []),
         traerGeo: function (celda) {
