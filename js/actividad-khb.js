@@ -905,6 +905,16 @@
     };
     var cacheGeo = {};     // celda → geometría ya traída
 
+    /* clave de ficha → la actividad que se pintó con ella.
+       POR QUÉ EXISTE ESTO: cada lista inventa su propia clave —«202401-3» en
+       sesiones, «2024-m3» en las medidas de máximo, «2024-c3» en la curva,
+       «202401-f3» en fuerza, «d2024-01-06-0» en las de días— y había un único
+       lector que solo entendía la primera. Con FTP elegido, el mapa se quedaba
+       en «Trayendo el trazo…» para siempre porque la actividad no se encontraba
+       y se salía sin pintar nada. Se llena al construir la lista, así que
+       funciona con cualquier formato de clave, presente o futuro. */
+    var fichasPintadas = {};
+
     /* ---------- los días, para las medidas que no salen de las actividades ----------
 
        Dos fuentes y una regla: manda la ventana reciente donde exista, el
@@ -1462,6 +1472,7 @@
     }
 
     function htmlFila(x, clave) {
+      fichasPintadas[clave] = x;          // ver `fichasPintadas` arriba
       var d = new Date(x.fecha + "T12:00:00");
       var abierta = estado.abierta === clave;
       return '<li class="akhb-item">' +
@@ -1676,6 +1687,10 @@
     }
 
     function htmlLista() {
+      /* Se vacía en cada repintado: dos medidas distintas usan el mismo formato
+         de clave («2024-m3» lo dan FTP, velocidad y potencia), así que dejar las
+         de antes serviría la actividad equivocada. */
+      fichasPintadas = {};
       /* Con una medida de días, abajo van DÍAS. No es un capricho: si eliges
          Pasos y abajo siguen saliendo actividades, la pantalla entera está
          hablando de una cosa menos la mitad de abajo. */
@@ -1919,8 +1934,11 @@
       return 1;
     }
 
-    function dibujaTrazo(fig, pts) {
-      if (!pts || pts.length < 2) { pintaIcono(fig, { dep: "otr" }); return; }
+    function dibujaTrazo(fig, pts, act) {
+      /* Sin puntos no hay dibujo, y el hueco NO se puede quedar con el «Trayendo
+         el trazo…» puesto: se cae al icono. Con la actividad de verdad, para que
+         el pie diga qué pasó y no un genérico. */
+      if (!pts || pts.length < 2) { pintaIcono(fig, act || { dep: "otr" }); return; }
 
       var lats = [], lons = [];
       pts.forEach(function (p) { lats.push(p[0]); lons.push(p[1]); });
@@ -2231,7 +2249,9 @@
       if (!fig) return;
       var clave = fig.getAttribute("data-mapa");
       var x = buscaPorClave(clave);
-      if (!x) return;
+      /* Si no se encuentra, el hueco NO se queda con el cartel de «Trayendo el
+         trazo…» puesto, que es lo que pasaba: se pone el icono y se acabó. */
+      if (!x) { pintaIcono(fig, { dep: "otr" }); return; }
       /* El perfil no depende del dibujo: lo hay aunque la ruta la ponga la
          colección, y no lo hay en el rodillo aunque Zwift invente cuestas. */
       if (x.perfil && llevaMapa(x)) dibujaPerfil(fig, decodificarPerfil(x.perfil), x.km);
@@ -2239,7 +2259,7 @@
       if (!llevaMapa(x)) { pintaIcono(fig, x); return; }
 
       /* 1 · polilínea de Strava, si el workflow ya la trae */
-      if (x.poli) { dibujaTrazo(fig, decodificarPolilinea(x.poli)); return; }
+      if (x.poli) { dibujaTrazo(fig, decodificarPolilinea(x.poli), x); return; }
 
       /* 2 · geometría de la colección de rutas */
       if (x.ruta && x.celda && traerGeo) {
@@ -2248,13 +2268,32 @@
           if (!segs) { pintaIcono(fig, x); return; }   // la leyenda se respeta
           var pts = [];
           segs.forEach(function (s) { s.forEach(function (p) { pts.push(p); }); });
-          dibujaTrazo(fig, pts);
+          dibujaTrazo(fig, pts, x);
         };
         if (cacheGeo[x.celda]) { pinta(cacheGeo[x.celda]); return; }
+
+        /* CON RELOJ, y no es adorno: si la descarga de la celda se queda colgada
+           —red mala, fichero grande, el repo sin responder— la promesa no falla
+           nunca, y sin esto el hueco se queda con «Trayendo el trazo…» puesto
+           para siempre. Pasó el 21-sep-2026. A los 12 segundos se dice lo que
+           hay y se pinta el icono. */
+        var resuelto = false;
+        var reloj = setTimeout(function () {
+          if (resuelto) return;
+          resuelto = true;
+          if (estado.abierta === clave) pintaIcono(fig, x);
+        }, 12000);
+
         traerGeo(x.celda).then(function (geo) {
           cacheGeo[x.celda] = geo || {};
+          if (resuelto) return;                 // ya se pintó el icono al agotarse
+          resuelto = true; clearTimeout(reloj);
           if (estado.abierta === clave) pinta(cacheGeo[x.celda]);
-        })["catch"](function () { pintaIcono(fig, x); });
+        })["catch"](function () {
+          if (resuelto) return;
+          resuelto = true; clearTimeout(reloj);
+          pintaIcono(fig, x);
+        });
         return;
       }
       /* 3 · ni trazo ni geometría */
@@ -2324,8 +2363,13 @@
     }
 
     function buscaPorClave(clave) {
+      /* Lo que se pintó manda: vale para cualquier formato de clave. */
+      if (fichasPintadas[clave]) return fichasPintadas[clave];
+      /* Plan B, el de siempre, por si alguien pregunta por una ficha que no
+         está en pantalla: solo entiende el formato de la lista de sesiones. */
       var y = clave.slice(0, 4), mm = clave.slice(4, 6);
       var i = parseInt(clave.split("-")[1], 10);
+      if (!/^\d{4}$/.test(y) || !/^\d{2}$/.test(mm) || isNaN(i)) return null;
       var lista = (porAnio[y] || {})[mm] || [];
       return lista[i] || null;
     }
