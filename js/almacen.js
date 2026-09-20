@@ -589,25 +589,51 @@
       return fuera;
     },
 
-    /* Lleva un pendiente al primer día futuro que tenga esa toma libre. Se conserva la
-       marca de comprado, porque los ingredientes siguen siendo los mismos. */
+    /* Lleva un pendiente de vuelta al menú. Se conserva la marca de comprado, porque
+       los ingredientes siguen siendo los mismos.
+
+       DOS PASADAS, y la segunda importa: con la semana planificada entera, «el primer
+       día con esa toma libre» no existe, y el botón se quedaba sin hacer nada. Así que
+       si no hay hueco vacío, se pone JUNTO a lo que ya había en el primer día que no
+       vaya muy cargado. Eso sube las kcal de ese día, y está bien que las suba: si te
+       lo vas a comer, se come.
+
+       Devuelve null si no hay sitio, o { f: fecha, junto: true|false }. */
     reprogramarPendiente: function (fecha, toma, recetaId) {
-      var hoy = Util.hoyISO();
-      for (var i = 0; i < 21; i++) {
-        var f = Util.sumarDias(hoy, i);
-        var ficha = this.fichaTipoDia(f);
-        if (this.esFuera(f, toma) || ficha.mochila.indexOf(toma) >= 0) continue;
-        var d = this.estado.plan[f];
-        var yaHay = d && (d[toma] || []).length;
-        var propio = d && (d[toma] || []).indexOf(recetaId) >= 0;
-        if (yaHay && !propio) continue;
-        if (propio) continue;                       // ya está puesto ahí
-        var dia = this.asegurarDia(f);
+      var hoy = Util.hoyISO(), self = this;
+
+      function valeElDia(f) {
+        var ficha = self.fichaTipoDia(f);
+        if (self.esFuera(f, toma) || ficha.mochila.indexOf(toma) >= 0) return false;
+        var d = self.estado.plan[f];
+        if (d && (d[toma] || []).indexOf(recetaId) >= 0) return false;   // ya está puesto ahí
+        return true;
+      }
+      function ponerlo(f, junto) {
+        var dia = self.asegurarDia(f);
         dia[toma] = (dia[toma] || []).concat([recetaId]);
-        this.marcarComprado(fecha, toma, recetaId, false);
-        this.marcarComprado(f, toma, recetaId, true);
-        this.guardar("reprogramar");
-        return f;
+        self.marcarComprado(fecha, toma, recetaId, false);
+        self.marcarComprado(f, toma, recetaId, true);
+        self.guardar("reprogramar");
+        return { f: f, junto: junto };
+      }
+
+      var i, f, d;
+      /* 1ª pasada: un hueco de verdad, esa toma vacía */
+      for (i = 0; i < 21; i++) {
+        f = Util.sumarDias(hoy, i);
+        if (!valeElDia(f)) continue;
+        d = this.estado.plan[f];
+        if (d && (d[toma] || []).length) continue;
+        return ponerlo(f, false);
+      }
+      /* 2ª pasada: acompañando, en el primer día que tenga esa toma poco cargada */
+      for (i = 0; i < 21; i++) {
+        f = Util.sumarDias(hoy, i);
+        if (!valeElDia(f)) continue;
+        d = this.estado.plan[f];
+        if (d && (d[toma] || []).length >= 3) continue;
+        return ponerlo(f, true);
       }
       return null;
     },

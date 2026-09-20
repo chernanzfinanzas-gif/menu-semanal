@@ -9,6 +9,7 @@
     lunes: Util.lunesDe(Util.hoyISO()),
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
     busquedaDespensa: "",
+    verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
     ocultarComprados: false,
     verPlatosCompra: null,   // bloque de platos de Compra: null = aún no ha elegido él
@@ -215,23 +216,44 @@
     }
     $("#selector-dias").innerHTML = sel;
 
-    /* Lo comprado que no se comió y cuyo día ya pasó: está en la nevera. Ni se tira
-       ni se vuelve a comprar — se replanifica al primer hueco libre. */
+    /* Lo comprado que no se comió y cuyo día ya pasó.
+       OJO CON EL NOMBRE: esto NO es la pestaña Despensa. Allí hay una lista de
+       ingredientes que tienes en casa (`estado.despensa`), y vaciarla no toca nada de
+       aquí. Esta caja se calcula sola: plato marcado como comprado, en un día que ya
+       pasó, sin marcar como comido. Por eso «vaciar la despensa» no la limpiaba.
+       Y hacen falta TRES salidas, no una: volver al menú, darlo por comido o darlo
+       por gastado. Con una sola —y encima rota— el plato se quedaba aquí encallado. */
     var pend = Almacen.pendientesDespensa();
     var cajaP = $("#pendientes-despensa");
     if (cajaP) {
       if (!pend.length) { cajaP.style.display = "none"; cajaP.innerHTML = ""; }
       else {
-        var h = '<b>Lo compraste y no te lo comiste</b> — sigue en la despensa, ' +
-                'así que no se vuelve a pedir en la compra:<div class="lista-pend">';
-        pend.slice(0, 8).forEach(function (p) {
+        var TOPE_PEND = 8;
+        var verP = UI.verTodoPend ? pend.length : Math.min(TOPE_PEND, pend.length);
+        var h = '<b>Comprado y sin comer</b> — ' + pend.length + ' plato' +
+                (pend.length === 1 ? "" : "s") + ' de días que ya pasaron. ' +
+                'Mientras estén aquí no se vuelven a pedir en la compra:' +
+                '<div class="lista-pend">';
+        pend.slice(0, verP).forEach(function (p) {
+          var clave = p.f + '|' + p.toma + '|' + esc(p.id);
           h += '<span class="pend">' + esc(p.n) +
                ' <small>' + Util.etiquetaFecha(p.f) + ' · ' + p.toma + '</small>' +
-               '<button class="btn mini" data-reprogramar="' + p.f + '|' + p.toma + '|' + esc(p.id) + '">' +
-               'Reprogramar</button></span>';
+               '<button class="btn mini" data-reprogramar="' + clave +
+               '" title="Lo lleva al primer día futuro con esa toma libre">Reprogramar</button>' +
+               '<button class="btn mini" data-pend-comido="' + clave +
+               '" title="Sí me lo comí: cuenta en las calorías de aquel día">Me lo comí</button>' +
+               '<button class="btn mini" data-pend-fuera="' + clave +
+               '" title="Ya no queda: se gastó, se tiró o se comió otra cosa">Ya no está</button>' +
+               '</span>';
         });
         h += '</div>';
-        if (pend.length > 8) h += '<div class="nota-peque">Y ' + (pend.length - 8) + ' más.</div>';
+        if (pend.length > TOPE_PEND) {
+          h += '<div class="nota-peque"><button class="btn mini" data-pend-ver="1">' +
+               (UI.verTodoPend ? 'Ver solo los primeros ' + TOPE_PEND : 'Ver los ' + pend.length) +
+               '</button></div>';
+        }
+        h += '<div class="nota-peque"><button class="btn mini" data-pend-vaciar="1">' +
+             'Vaciar la lista: ya no queda nada de esto</button></div>';
         cajaP.innerHTML = h;
         cajaP.style.display = "";
       }
@@ -432,7 +454,11 @@
                         'data-comprado="' + fecha + '|' + t.k + '|' + esc(rid) + '">🛒</button>' +
                       '<button class="marcar' + (com ? " si" : "") + '" title="Marcar como comido" ' +
                         'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">✓</button>' +
-                      '<span class="nom" data-ficha="' + esc(rid) + '">' + esc(nombre) + '</span>' +
+                      /* El día y la toma viajan con el plato para que la ficha pueda
+                         enseñar las cantidades de los que comen ESE día, y no las de
+                         una ración suelta. */
+                      '<span class="nom" data-ficha="' + esc(rid) + '" ' +
+                        'data-ficha-dia="' + fecha + '|' + t.k + '">' + esc(nombre) + '</span>' +
                       '<span class="sal">' + Util.kcal(n.k) + ' · ' + s + '</span>' +
                       (cerr ? '' : '<button class="quitar" data-quitar="' + fecha + '|' + t.k + '|' + idx + '">×</button>') +
                     '</div>';
@@ -808,17 +834,30 @@
   }
 
   /* ==================== FICHA DE RECETA ==================== */
-  function abrirFicha(id) {
+  /* Si se abre desde un plato del menú llegan `fecha` y `toma`, y entonces las
+     cantidades se enseñan PARA LOS QUE COMEN ESE DÍA. Antes salían siempre las de la
+     receta base —normalmente una ración— y cocinando con esas cifras sales corto.
+     El factor es el mismo que usa la lista de la compra: comensales / raciones.
+     Las kcal y la sal siguen siendo POR RACIÓN, que es lo que te comes tú. */
+  function abrirFicha(id, fecha, toma) {
     var r = Almacen.receta(id);
     if (!r) return;
     var salRacion = Almacen.salReceta(r);
     var n = Almacen.nutrReceta(r);
 
+    var personas = (fecha && toma) ? Almacen.comensales(fecha, toma) : 0;
+    var base = r.raciones || 1;
+    /* Las recetas de TANDA se cocinan enteras y se reparten en porciones: escalarlas
+       por comensales no tiene sentido. */
+    var factor = (personas && !r.tanda) ? personas / base : 1;
+    var escalada = factor !== 1;
+
     var html = '<header><h2>' + esc(r.n) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
     html += '<div class="etiquetas">' +
             '<span class="etiqueta verde">' + Util.kcal(n.k) + ' / ración</span>' +
             '<span class="etiqueta verde">' + Util.sal(salRacion) + ' de sal / ración</span>' +
-            '<span class="etiqueta">' + (r.raciones || 1) + ' ración(es)</span>' +
+            '<span class="etiqueta' + (escalada ? ' raro' : '') + '">' +
+              (escalada ? 'cantidades para ' + personas : base + ' ración(es)') + '</span>' +
             '<span class="etiqueta">' + (r.min || "?") + ' min</span>' +
             (r.grupo ? '<span class="etiqueta">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
             etiquetasTool(r.tools) +
@@ -831,13 +870,23 @@
             '<div><b>' + Util.kcal(n.k).replace(" kcal", "") + '</b><span>kcal</span></div>' +
             '</div>';
 
-    html += '<h3 style="margin-top:16px">Ingredientes</h3><ul class="ingredientes">';
+    html += '<h3 style="margin-top:16px">Ingredientes</h3>';
+    if (escalada) {
+      html += '<div class="nota-peque">Cantidades para ' + personas + ' comensal' +
+              (personas === 1 ? '' : 'es') + ' — ' + Util.etiquetaFecha(fecha) + ' · ' + toma +
+              '. La receta base es de ' + base + ' ración' + (base === 1 ? '' : 'es') + '.</div>';
+    } else if (personas && r.tanda) {
+      html += '<div class="nota-peque">Receta de tanda: las cantidades son las de la tanda ' +
+              'entera, no las de una comida.</div>';
+    }
+    html += '<ul class="ingredientes">';
     (r.ing || []).forEach(function (l) {
       var ing = Almacen.ingrediente(l.i);
-      var gr = Almacen.gramosDeLinea(l) / 100;
+      var linea = escalada ? { i: l.i, c: l.c * factor } : l;
+      var gr = Almacen.gramosDeLinea(linea) / 100;
       var kc = ing ? Math.round(gr * (ing.k || 0)) : 0;
       html += '<li><span>' + esc(ing ? ing.n : l.i) + '</span><span>' +
-              Util.cantidadReceta(l.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0) +
+              Util.cantidadReceta(linea.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0) +
               (kc ? ' <em class="nota-peque">· ' + kc + ' kcal</em>' : '') + '</span></li>';
     });
     html += '</ul>';
@@ -1578,6 +1627,54 @@
       Util.toast("Salida de " + Util.horas(horas) + ": unas " + r.kcal + " kcal de más");
     });
 
+    /* La caja de «comprado y sin comer» está FUERA de #rejilla-dias, y el delegado de
+       abajo solo escucha dentro de la rejilla. Por eso el botón Reprogramar no hacía
+       nada: el clic no llegaba a ningún sitio. Aquí tiene su propio oyente. */
+    var cajaPend = $("#pendientes-despensa");
+    if (cajaPend) cajaPend.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-reprogramar],button[data-pend-comido]," +
+                               "button[data-pend-fuera],button[data-pend-ver],button[data-pend-vaciar]");
+      if (!b) return;
+
+      if (b.hasAttribute("data-pend-ver")) { UI.verTodoPend = !UI.verTodoPend; pintarMenu(); return; }
+
+      if (b.hasAttribute("data-pend-vaciar")) {
+        var lista = Almacen.pendientesDespensa();
+        if (!lista.length) return;
+        if (!confirm("Se quitan de la lista los " + lista.length + " platos, como si ya no quedara " +
+                     "nada de ellos en casa. Sus ingredientes vuelven a pedirse en la compra cuando " +
+                     "esos platos se planifiquen otra vez. ¿Seguimos?")) return;
+        lista.forEach(function (p) { Almacen.marcarComprado(p.f, p.toma, p.id, false); });
+        UI.verTodoPend = false;
+        pintarMenu();
+        Util.toast("Lista vaciada: " + lista.length + " platos");
+        return;
+      }
+
+      var clave = b.getAttribute("data-reprogramar") || b.getAttribute("data-pend-comido") ||
+                  b.getAttribute("data-pend-fuera");
+      var pr = clave.split("|");
+
+      if (b.hasAttribute("data-reprogramar")) {
+        var destino = Almacen.reprogramarPendiente(pr[0], pr[1], pr[2]);
+        pintarMenu();
+        Util.toast(!destino ? "No hay sitio en las próximas tres semanas"
+                   : destino.junto ? "Puesto el " + Util.etiquetaFecha(destino.f) +
+                                     ", junto a lo que ya había"
+                                   : "Movido al " + Util.etiquetaFecha(destino.f));
+        return;
+      }
+      if (b.hasAttribute("data-pend-comido")) {
+        Almacen.marcarComido(pr[0], pr[1], pr[2], true);
+        pintarMenu();
+        Util.toast("Apuntado como comido el " + Util.etiquetaFecha(pr[0]));
+        return;
+      }
+      Almacen.marcarComprado(pr[0], pr[1], pr[2], false);
+      pintarMenu();
+      Util.toast("Fuera de la lista");
+    });
+
     $("#rejilla-dias").addEventListener("click", function (e) {
       var tip = e.target.closest("[data-tipodia]");
       if (tip) {
@@ -1655,14 +1752,7 @@
         pintarMenu();
         return;
       }
-      var rep = e.target.closest("[data-reprogramar]");
-      if (rep) {
-        var pr = rep.getAttribute("data-reprogramar").split("|");
-        var destino = Almacen.reprogramarPendiente(pr[0], pr[1], pr[2]);
-        pintarMenu();
-        Util.toast(destino ? "Movido al " + Util.etiquetaFecha(destino) : "No hay hueco libre en 3 semanas");
-        return;
-      }
+      /* (el botón Reprogramar ya no se escucha aquí: vive en su propia caja, más arriba) */
       var com = e.target.closest("[data-comido]");
       if (com) {
         var c = com.getAttribute("data-comido").split("|");
@@ -1678,7 +1768,10 @@
         return;
       }
       var ficha = e.target.closest("[data-ficha]");
-      if (ficha) abrirFicha(ficha.getAttribute("data-ficha"));
+      if (ficha) {
+        var ctx = (ficha.getAttribute("data-ficha-dia") || "").split("|");
+        abrirFicha(ficha.getAttribute("data-ficha"), ctx[0] || null, ctx[1] || null);
+      }
     });
 
     /* --- recetas --- */
