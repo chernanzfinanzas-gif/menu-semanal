@@ -2051,11 +2051,13 @@
      No va dentro de salud.json a propósito, que ése se carga entero al abrir
      la app y esto sólo hace falta al entrar en Actividad. */
   var Trazos = {
-    /* v3: son DOS ficheros, y el 20-sep-2026 pasó esto — la app se abrió
-       cuando el segundo aún no estaba publicado, se trajo un «no existe» y lo
-       guardó 24 horas. Cambiar el nombre de la caja es lo único que obliga a
-       volver a pedirlo. */
-    CLAVE: "khb-trazos-strava-v3",
+    /* v4: la misma caja de 24 horas, otra vez. El fichero del archivo creció
+       de 163 a 238 KB al añadirle los perfiles de altura de 2013 a 2021, pero
+       el teléfono ya tenía guardada la copia de antes y no la volvió a pedir:
+       el mapa salía —lo pone la colección— y el perfil no, porque esas salidas
+       ni siquiera estaban en la copia vieja. Cambiar el nombre de la caja es
+       lo único que obliga a traerlo de nuevo. */
+    CLAVE: "khb-trazos-strava-v4",
     RUTA: "datos/trazos.json",
     /* Los años que no están en intervals —de 2013 a octubre de 2021— tienen su
        propio fichero: 434 trazas con su perfil de altura, sacadas del FIT
