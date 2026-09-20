@@ -55,6 +55,15 @@
       '#pestanas [data-vista="entreno"]{color:#7d9cbb}',
       '#pestanas [data-vista="entreno"].activa{color:var(--azul);border-bottom-color:var(--azul)}',
       '#pestanas [data-vista="entreno"] .corta{display:none}',
+      /* el aviso de rutas esperando, encima del archivo de actividad */
+      ".ent-rn{margin:10px 0 14px}",
+      ".ent-rn-ok{font-size:.85rem;color:var(--tenue,#7d8a99);margin:6px 0 12px}",
+      ".ent-rn-hay{border:1px solid rgba(45,120,190,.35);border-left:4px solid var(--azul,#2d78be);" +
+        "border-radius:8px;padding:10px 12px;background:rgba(45,120,190,.06)}",
+      ".ent-rn-hay p{margin:0 0 6px}",
+      ".ent-rn-hay ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}",
+      ".ent-rn-hay li{margin:2px 0}",
+      ".ent-rn-hay .nota-peque{margin:8px 0 0}",
       "@media(max-width:767px){",
       '  #pestanas [data-vista="entreno"].activa{border-top-color:var(--azul)}',
       '  #pestanas [data-vista="entreno"] .larga{display:none}',
@@ -2397,6 +2406,114 @@
     }
   };
 
+  /* LAS RUTAS QUE ESPERAN A SER ARCHIVADAS.
+
+     El workflow deja en `rutas-nuevas/` el GPX completo de cada salida que
+     cumple el criterio y todavía no está en la colección, y apunta aquí la
+     lista. Esto es lo que convierte el aviso en algo fiable: la app no
+     adivina nada, lee lo que hay preparado.
+
+     Se enseña SIEMPRE, aunque no haya ninguna esperando, con la fecha de la
+     última comprobación. Un aviso que sólo aparece cuando hay trabajo no
+     distingue «no hay nada» de «esto lleva tres semanas parado y no me he
+     enterado», que es justo lo que no puede pasar. */
+  var RutasNuevas = {
+    CLAVE: "khb-rutas-nuevas-v1",
+    RUTA: "datos/rutas-nuevas.json",
+    FRESCO_H: 6,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+
+    deCache: function () {
+      try {
+        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        if (!j || !j.datos) return false;
+        this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
+        return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
+      } catch (e) { return false; }
+    },
+
+    url: function () {
+      var c = Salud.cfg();
+      return "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + this.RUTA;
+    },
+
+    cargar: function (alTerminar) {
+      var self = this;
+      if (this.estado === "cargando") { if (alTerminar) alTerminar(); return; }
+      if (!Firmas.listo()) { Firmas.cargar(function () { self.cargar(alTerminar); }); return; }
+      if (this.deCache()) { if (alTerminar) alTerminar(); return; }
+      if (!Salud.configurado()) { this.estado = "sin-config"; if (alTerminar) alTerminar(); return; }
+      this.estado = "cargando";
+      var c = Salud.cfg();
+      fetch(this.url() + "?ref=" + encodeURIComponent(c.rama || "main"),
+            { headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          self.datos = JSON.parse(Salud.deB64(j.content)) || {};
+          self.estado = "ok"; self.traidoEl = Date.now();
+          try {
+            localStorage.setItem(self.CLAVE, JSON.stringify(
+              { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, datos: self.datos }));
+          } catch (e) {}
+          if (alTerminar) alTerminar();
+        })
+        /* que no exista todavía es normal: quiere decir que el paso nuevo del
+           workflow aún no ha corrido, no que algo vaya mal */
+        .catch(function () { self.estado = "no-hay"; if (alTerminar) alTerminar(); });
+    },
+
+    lista: function () { return (this.datos && this.datos.rutas) || []; },
+
+    /* cuántas horas hace de la última pasada del workflow */
+    horas: function () {
+      var g = this.datos && this.datos.meta && this.datos.meta.generado;
+      if (!g) return null;
+      var t = Date.parse(g.length <= 10 ? (g + "T12:00:00") : g);
+      if (!t) return null;
+      return (Date.now() - t) / 3600000;
+    },
+
+    cuando: function () {
+      var h = this.horas();
+      if (h === null) return "";
+      if (h < 1.5) return "hace un rato";
+      if (h < 24) return "hace " + Math.round(h) + " horas";
+      var d = Math.round(h / 24);
+      return d === 1 ? "ayer" : "hace " + d + " días";
+    },
+
+    /* El aviso, en una tarjeta propia encima del archivo. */
+    html: function () {
+      if (this.estado === "cargando" || this.estado === "nada") return "";
+      if (this.estado === "no-hay") return "";
+      var l = this.lista(), h = this.horas(), i, r, filas = [];
+      var viejo = (h !== null && h > 36);
+      if (!l.length) {
+        return '<p class="ent-rn ent-rn-ok">Rutas al día: nada pendiente' +
+          (h === null ? "" : ' \u00b7 comprobado ' + this.cuando()) +
+          (viejo ? ' \u2014 <b>y eso es mucho tiempo: mira si el workflow sigue pasando</b>' : '') +
+          "</p>";
+      }
+      for (i = 0; i < l.length && i < 6; i++) {
+        r = l[i];
+        filas.push('<li><b>' + U.esc(r.nom || "Ruta") + "</b> \u00b7 " +
+          (r.f ? (r.f.slice(6, 8) + "/" + r.f.slice(4, 6) + "/" + r.f.slice(0, 4)) : "") +
+          " \u00b7 " + (r.km || 0).toFixed(2) + " km</li>");
+      }
+      if (l.length > 6) filas.push("<li>\u2026 y " + (l.length - 6) + " m\u00e1s</li>");
+      return '<div class="ent-rn ent-rn-hay">' +
+        "<p><b>" + l.length + (l.length === 1 ? " ruta nueva" : " rutas nuevas") +
+        "</b> con su GPX listo, esperando. Pasa <b>Rutas al d\u00eda</b> en el ordenador y " +
+        "entran solas en Mis Rutas, en el Excel y en el mapa.</p>" +
+        "<ul>" + filas.join("") + "</ul>" +
+        (h === null ? "" : '<p class="nota-peque">Comprobado ' + this.cuando() + ".</p>") +
+        "</div>";
+    }
+  };
+
   /* El índice de rutas es público y se actualiza solo cuando Carlos archiva
      rutas con su .bat. Se refresca cada día; si falla, se sigue con la copia. */
   var Rutas = {
@@ -2480,6 +2597,7 @@
       'Hasta octubre de 2021 sale del archivo; desde entonces, de intervals, ' +
       'y las nuevas se van añadiendo solas.</p>' +
       (aviso ? '<p class="nota-peque">' + aviso + "</p>" : "") +
+      RutasNuevas.html() +
       '<div id="ent-archivo"></div></div>' +
       '<button type="button" class="ent-atras abajo" data-volver="1">' +
       FLECHA + "Volver a Entrenamiento</button>";
@@ -2553,6 +2671,7 @@
     var repinta = function () { if (bloque === "actividad") { archivoUI = null; pintar(true); } };
     Archivo.cargar(repinta);
     Rutas.cargar(repinta);
+    RutasNuevas.cargar(repinta);
     Trazos.cargar(repinta);
     Nombres.cargar(repinta);
     Fuerza.cargar(repinta);
