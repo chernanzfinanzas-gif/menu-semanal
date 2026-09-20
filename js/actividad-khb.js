@@ -630,6 +630,16 @@
        lápiz y el nombre que se escriba se guarda donde manda sobre el del
        reloj —y de ahí sale para App Mapas, el Excel y Mis Rutas—. */
     var alRenombrar = typeof o.alRenombrar === "function" ? o.alRenombrar : null;
+    /* BORRAR. Dos cosas distintas y por eso dos botones:
+         «Borrar la actividad» — se va del registro entero, y arrastra el GPX,
+           la fila del Excel y el trazo del mapa. No vuelve a entrar aunque
+           intervals la siga teniendo.
+         «Quitar el recorrido» — se va sólo el track: el GPX, el catálogo y el
+           mapa. La actividad SIGUE aquí con sus kilómetros y su pulso. Para
+           cuando el track salió mal pero el entrenamiento cuenta.
+       La ficha enseña ANTES de confirmar qué ruta concreta se va a quitar: el
+       emparejamiento por fecha solo ya nos engañó una vez. */
+    var alBorrar = typeof o.alBorrar === "function" ? o.alBorrar : null;
 
     /* índice de rutas por fecha, para clasificar y para el mapa de las nuevas */
     var rutaPorFecha = {}, fechasSen = {};
@@ -1030,7 +1040,28 @@
         "</figure>" +
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
+        htmlBorrar(x, clave) +
       "</div>";
+    }
+
+    /* ---------- la ruta que le toca a una actividad ----------
+       Por fecha Y por kilómetros. El 20-sep-2026, emparejando sólo por fecha,
+       «Camino de Santiago - Castrojeriz» renombró la ruta de Villarino de los
+       Aires: una era de 24,70 km y la otra de 2,13. */
+    function rutaDeActividad(x) {
+      var dia = String(x && x.fecha || "").slice(0, 10);
+      var cand = rutaPorFecha[dia] || [];
+      if (cand.length !== 1) return null;
+      var r = cand[0], km = x.km || 0;
+      if (!r.km || !km) return null;
+      return Math.abs(r.km - km) / km <= 0.05 ? r : null;
+    }
+
+    function htmlBorrar(x, clave) {
+      if (!alBorrar || !x.id) return "";
+      return '<div class="akhb-borrar" data-bor="' + clave + '">' +
+        '<button type="button" class="akhb-bor-link" data-borra="' + clave + '">' +
+        "Borrar\u2026</button></div>";
     }
 
     function htmlLista() {
@@ -1442,8 +1473,76 @@
           '" title="Cambiar el nombre" aria-label="Cambiar el nombre">\u270e</button>';
     }
 
+    /* ---------- borrar ----------
+       Nada se borra de un clic: el primero abre las opciones y enseña qué se
+       lleva por delante cada una, con el nombre de la ruta y sus kilómetros.
+       El segundo es el que manda. */
+    function borrar(bot) {
+      var clave = bot.getAttribute("data-borra") || bot.getAttribute("data-borra-si") ||
+                  bot.getAttribute("data-borra-no");
+      var caja = estado.el.querySelector('[data-bor="' + clave + '"]');
+      var x = buscaPorClave(clave);
+      if (!caja || !x) return;
+
+      if (bot.hasAttribute("data-borra-no")) { pintaBorrar(caja, clave); return; }
+
+      if (bot.hasAttribute("data-borra")) {
+        var r = rutaDeActividad(x);
+        var arrastre = r
+          ? "Se lleva tambi\u00e9n la ruta <b>" + esc(r.n || r.id) + "</b> (" +
+            (r.km || 0).toFixed(2) + " km): el GPX pasa a <b>_borradas</b>, sale del cat\u00e1logo " +
+            "y del mapa, y su fila del Excel se marca sin borrarse."
+          : "No hay ninguna ruta archivada que le corresponda sin dudas, as\u00ed que en " +
+            "Mis Rutas y en el mapa no se toca nada.";
+        caja.innerHTML =
+          '<div class="akhb-bor-caja">' +
+            "<p>" + arrastre + "</p>" +
+            '<div class="akhb-bor-bots">' +
+              '<button type="button" class="akhb-bor-act" data-borra-si="' + clave +
+                '" data-modo="actividad">Borrar la actividad</button>' +
+              (r ? '<button type="button" class="akhb-bor-ruta" data-borra-si="' + clave +
+                     '" data-modo="ruta">Quitar s\u00f3lo el recorrido</button>' : "") +
+              '<button type="button" class="akhb-bor-no" data-borra-no="' + clave +
+                '">Cancelar</button>' +
+            "</div>" +
+            '<p class="akhb-bor-pie">Dejar\u00e1 de salir aqu\u00ed en la pr\u00f3xima pasada del ' +
+            "workflow. Lo del ordenador \u2014GPX, Excel y mapa\u2014 lo hace <b>Rutas al " +
+            "d\u00eda</b>.</p>" +
+          "</div>";
+        return;
+      }
+
+      var modo = bot.getAttribute("data-modo") || "ruta";
+      var r2 = rutaDeActividad(x);
+      bot.disabled = true; bot.textContent = "guardando\u2026";
+      alBorrar(x.id, modo, r2 ? r2.id : null, function (bien, fallo) {
+        if (!bien) {
+          bot.disabled = false;
+          bot.textContent = modo === "actividad" ? "Borrar la actividad" : "Quitar s\u00f3lo el recorrido";
+          var av = caja.querySelector(".akhb-bor-mal");
+          if (!av) {
+            av = document.createElement("p");
+            av.className = "akhb-bor-mal";
+            caja.appendChild(av);
+          }
+          av.textContent = fallo || "no he podido guardarlo";
+          return;
+        }
+        caja.innerHTML = '<p class="akhb-bor-ok">' +
+          (modo === "actividad" ? "Apuntada para borrar." : "Recorrido apuntado para quitar.") +
+          " Lo dem\u00e1s se har\u00e1 al pasar <b>Rutas al d\u00eda</b>.</p>";
+      });
+    }
+
+    function pintaBorrar(caja, clave) {
+      caja.innerHTML = '<button type="button" class="akhb-bor-link" data-borra="' + clave +
+        '">Borrar\u2026</button>';
+    }
+
     /* ---------- clics ---------- */
     function alPulsar(e) {
+      var b = e.target.closest ? e.target.closest("[data-borra],[data-borra-si],[data-borra-no]") : null;
+      if (b && estado.el.contains(b)) { e.stopPropagation(); borrar(b); return; }
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met]") : null;

@@ -2406,6 +2406,106 @@
     }
   };
 
+  /* EL BOTÓN DE BORRAR.
+
+     Escribe en dos sitios del repositorio privado, y cada uno hace una cosa:
+
+       `datos/borradas.json` — la decisión permanente. Una actividad apuntada
+         ahí no vuelve a entrar en KHB en Forma aunque intervals la siga
+         teniendo. Sólo se escribe al borrar la ACTIVIDAD entera.
+       `datos/quitar.json` — el encargo para el ordenador: qué ruta hay que
+         sacar de Mis Rutas, del Excel y del mapa. Lo cumple «Rutas al día» y
+         después se retira solo de la lista.
+
+     La ruta viene ya resuelta desde la ficha, donde la viste antes de
+     confirmar. Aquí no se adivina nada. */
+  var Borrado = {
+
+    url: function (ruta) {
+      var c = Salud.cfg();
+      return "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+        encodeURIComponent(c.repo) + "/contents/" + ruta;
+    },
+
+    /* lee, cambia y escribe un fichero del repositorio, con reintento si
+       alguien lo tocó en ese segundo */
+    tocar: function (ruta, cambia, mensaje, listo, intento) {
+      var self = this, c = Salud.cfg();
+      intento = intento || 1;
+      if (!Salud.configurado()) { listo(false, "falta la configuración"); return; }
+      var cab = { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" };
+      fetch(this.url(ruta) + "?ref=" + encodeURIComponent(c.rama || "main") + "&t=" + Date.now(),
+            { headers: cab, cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          var doc = {}, sha = j && j.sha;
+          if (j && j.content) {
+            try { doc = JSON.parse(Salud.deB64(j.content)) || {}; } catch (e) { doc = {}; }
+          }
+          doc = cambia(doc);
+          var txt = JSON.stringify(doc, null, 1);
+          var by = new TextEncoder().encode(txt), bin = "", i;
+          for (i = 0; i < by.length; i++) bin += String.fromCharCode(by[i]);
+          var cuerpo = { message: mensaje, content: btoa(bin), branch: c.rama || "main" };
+          if (sha) cuerpo.sha = sha;
+          return fetch(self.url(ruta), { method: "PUT", headers: cab, body: JSON.stringify(cuerpo) })
+            .then(function (r) {
+              if (r.ok) { listo(true); return; }
+              if ((r.status === 409 || r.status === 422) && intento < 3) {
+                setTimeout(function () { self.tocar(ruta, cambia, mensaje, listo, intento + 1); }, 400);
+                return;
+              }
+              throw new Error(r.status === 403 ? "la clave no puede escribir en el repositorio"
+                                               : "GitHub dice que no (" + r.status + ")");
+            });
+        })
+        .catch(function (e) { listo(false, (e && e.message) || "no he podido guardarlo"); });
+    },
+
+    /* modo: "actividad" (se va del todo) o "ruta" (sólo el recorrido) */
+    pedir: function (id, modo, ruta, listo) {
+      var self = this;
+      listo = listo || function () {};
+      var hoy = new Date().toISOString().slice(0, 19) + "Z";
+
+      var apunta = function () {
+        self.tocar("datos/quitar.json", function (doc) {
+          doc.v = 1;
+          doc.pedidos = doc.pedidos || [];
+          var i, y = false;
+          for (i = 0; i < doc.pedidos.length; i++) {
+            if (String(doc.pedidos[i].id) === String(id)) {
+              doc.pedidos[i].modo = modo; doc.pedidos[i].ruta = ruta || null;
+              doc.pedidos[i].pedido = hoy; y = true;
+            }
+          }
+          if (!y) doc.pedidos.push({ id: String(id), modo: modo, ruta: ruta || null, pedido: hoy });
+          doc.meta = doc.meta || {};
+          doc.meta.generado = hoy;
+          return doc;
+        }, "Quitar: " + id + " (" + modo + ")", listo);
+      };
+
+      /* si se va la actividad entera, primero la decisión permanente: si
+         fallara lo segundo, al menos no vuelve a entrar */
+      if (modo === "actividad") {
+        this.tocar("datos/borradas.json", function (doc) {
+          doc.ids = doc.ids || [];
+          doc.claves = doc.claves || [];
+          if (doc.ids.indexOf(String(id)) < 0) doc.ids.push(String(id));
+          doc.meta = doc.meta || {};
+          doc.meta.generado = hoy.slice(0, 10);
+          return doc;
+        }, "Borrada: " + id, function (bien, fallo) {
+          if (!bien) { listo(false, fallo); return; }
+          apunta();
+        });
+        return;
+      }
+      apunta();
+    }
+  };
+
   /* LAS RUTAS QUE ESPERAN A SER ARCHIVADAS.
 
      El workflow deja en `rutas-nuevas/` el GPX completo de cada salida que
@@ -2649,6 +2749,8 @@
         trazos: Trazos.datos,
         /* el nombre se cambia en la ficha y se guarda en datos/nombres.json */
         alRenombrar: function (id, nombre, listo) { Nombres.guardar(id, nombre, listo); },
+        /* el botón de borrar de la ficha; la ruta llega ya resuelta desde allí */
+        alBorrar: function (id, modo, ruta, listo) { Borrado.pedir(id, modo, ruta, listo); },
         fuerza: Fuerza.datos,
         actividades: Nombres.aplicar(actividadesJuntas()),
         rutas: (Rutas.datos || []),

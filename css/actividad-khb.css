@@ -393,3 +393,51 @@
 .akhb-nom-ok[disabled] { opacity: .6; cursor: default; }
 .akhb-nom-no { background: var(--akhb-blanco); color: var(--akhb-gris); }
 .akhb-nom-mal { font-size: 12px; color: #b3261e; flex-basis: 100%; }
+
+/* ---------------------------------------------------------------- borrar
+   Va al pie de la ficha y de callado: un enlace gris, no un botón rojo. Lo
+   que se pulsa cien veces es el lápiz del nombre; esto, una vez al año. El
+   rojo aparece sólo cuando ya has abierto las opciones y hay algo que
+   decidir. */
+.akhb-borrar { margin: 14px 0 2px; text-align: right; }
+
+.akhb-bor-link {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: .82rem;
+  color: var(--tenue, #8a939c);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.akhb-bor-link:hover { color: #c0392b; }
+
+.akhb-bor-caja {
+  text-align: left;
+  border: 1px solid rgba(192, 57, 43, .35);
+  border-left: 4px solid #c0392b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(192, 57, 43, .05);
+}
+.akhb-bor-caja p { margin: 0 0 8px; font-size: .9rem; }
+
+.akhb-bor-bots { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.akhb-bor-bots button {
+  font: inherit;
+  font-size: .85rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.akhb-bor-act  { background: #c0392b; color: #fff; }
+.akhb-bor-ruta { background: transparent; color: #c0392b; border-color: rgba(192,57,43,.5); }
+.akhb-bor-no   { background: transparent; color: var(--tenue, #8a939c); border-color: rgba(128,128,128,.35); }
+.akhb-bor-bots button[disabled] { opacity: .6; cursor: default; }
+
+.akhb-bor-pie { font-size: .8rem; color: var(--tenue, #8a939c); margin: 10px 0 0 !important; }
+.akhb-bor-mal { color: #c0392b; font-size: .85rem; margin: 8px 0 0 !important; }
+.akhb-bor-ok  { font-size: .88rem; color: var(--tenue, #8a939c); text-align: left; margin: 0; }
