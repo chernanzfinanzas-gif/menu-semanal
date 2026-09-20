@@ -2462,8 +2462,12 @@
         .catch(function (e) { listo(false, (e && e.message) || "no he podido guardarlo"); });
     },
 
-    /* modo: "actividad" (se va del todo) o "ruta" (sólo el recorrido) */
-    pedir: function (id, modo, ruta, listo) {
+    /* modo: "actividad" (se va del todo) o "ruta" (sólo el recorrido).
+       `ruta` es el identificador de la ruta cuando la ficha ha podido verla
+       en el índice del mapa; para las caminatas no sale ahí, y entonces van
+       `datos` —fecha y kilómetros— y la busca el ordenador en el catálogo
+       entero, que es la lista buena. */
+    pedir: function (id, modo, ruta, datos, listo) {
       var self = this;
       listo = listo || function () {};
       var hoy = new Date().toISOString().slice(0, 19) + "Z";
@@ -2476,10 +2480,17 @@
           for (i = 0; i < doc.pedidos.length; i++) {
             if (String(doc.pedidos[i].id) === String(id)) {
               doc.pedidos[i].modo = modo; doc.pedidos[i].ruta = ruta || null;
+              doc.pedidos[i].fecha = (datos && datos.fecha) || null;
+              doc.pedidos[i].km = (datos && datos.km) || 0;
+              doc.pedidos[i].nombre = (datos && datos.nombre) || null;
               doc.pedidos[i].pedido = hoy; y = true;
             }
           }
-          if (!y) doc.pedidos.push({ id: String(id), modo: modo, ruta: ruta || null, pedido: hoy });
+          if (!y) doc.pedidos.push({ id: String(id), modo: modo, ruta: ruta || null,
+                                     fecha: (datos && datos.fecha) || null,
+                                     km: (datos && datos.km) || 0,
+                                     nombre: (datos && datos.nombre) || null,
+                                     pedido: hoy });
           doc.meta = doc.meta || {};
           doc.meta.generado = hoy;
           return doc;
@@ -2750,7 +2761,9 @@
         /* el nombre se cambia en la ficha y se guarda en datos/nombres.json */
         alRenombrar: function (id, nombre, listo) { Nombres.guardar(id, nombre, listo); },
         /* el botón de borrar de la ficha; la ruta llega ya resuelta desde allí */
-        alBorrar: function (id, modo, ruta, listo) { Borrado.pedir(id, modo, ruta, listo); },
+        alBorrar: function (id, modo, ruta, datos, listo) {
+          Borrado.pedir(id, modo, ruta, datos, listo);
+        },
         fuerza: Fuerza.datos,
         actividades: Nombres.aplicar(actividadesJuntas()),
         rutas: (Rutas.datos || []),

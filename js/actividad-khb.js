@@ -1049,13 +1049,29 @@
        Por fecha Y por kilómetros. El 20-sep-2026, emparejando sólo por fecha,
        «Camino de Santiago - Castrojeriz» renombró la ruta de Villarino de los
        Aires: una era de 24,70 km y la otra de 2,13. */
+    /* El margen es ANCHO —una cuarta parte— y no es descuido. El GPX archivado
+       suma punto a punto y el reloj filtra el temblor: «Bious Artigues a
+       Cabaña de la Hosse» mide 11,07 km en la colección y 10,36 en la ficha,
+       un 7 % de diferencia, y son la misma salida. Con el 5 % que había antes
+       no se encontraba a sí misma.
+       Aquí se puede ser ancho porque la ficha te enseña el nombre de la ruta
+       antes de que confirmes: el que decide eres tú, no la regla. Donde hay
+       que ser estrecho es en el renombrado automático del workflow, que actúa
+       sin nadie delante, y allí sigue en el 10 %. */
     function rutaDeActividad(x) {
       var dia = String(x && x.fecha || "").slice(0, 10);
       var cand = rutaPorFecha[dia] || [];
-      if (cand.length !== 1) return null;
-      var r = cand[0], km = x.km || 0;
-      if (!r.km || !km) return null;
-      return Math.abs(r.km - km) / km <= 0.05 ? r : null;
+      if (!cand.length) return null;
+      var km = x.km || 0, i, r, mejor = null, dif;
+      for (i = 0; i < cand.length; i++) {
+        r = cand[i];
+        if (!r.km || !km) continue;
+        dif = Math.abs(r.km - km) / km;
+        if (dif <= 0.25 && (!mejor || dif < mejor.dif)) mejor = { r: r, dif: dif };
+      }
+      if (mejor) return mejor.r;
+      /* sin kilómetros con los que comparar, vale si ese día hay una sola */
+      return cand.length === 1 ? cand[0] : null;
     }
 
     /* El botón va PEGADO AL LÁPIZ, que es donde se busca: lo que se hace con
@@ -1513,20 +1529,26 @@
 
       if (bot.hasAttribute("data-borra-ver")) {
         var r = rutaDeActividad(x);
+        /* El \u00edndice que ve la app es el de App Mapas, y ah\u00ed s\u00f3lo hay
+           senderismo y bici: una caminata archivada NO sale. Por eso, cuando
+           aqu\u00ed no se ve ninguna, no se afirma que no exista \u2014se dice que lo
+           mirar\u00e1 el ordenador, que s\u00ed tiene el cat\u00e1logo entero\u2014. */
         var arrastre = r
           ? "Se lleva tambi\u00e9n la ruta <b>" + esc(r.n || r.id) + "</b> (" +
             (r.km || 0).toFixed(2) + " km): el GPX pasa a <b>_borradas</b>, sale del cat\u00e1logo " +
             "y del mapa, y su fila del Excel se marca sin borrarse."
-          : "No hay ninguna ruta archivada que le corresponda sin dudas, as\u00ed que en " +
-            "Mis Rutas y en el mapa no se toca nada.";
+          : "Desde aqu\u00ed no veo ninguna ruta suya en el mapa, pero las caminatas no " +
+            "salen en ese \u00edndice. Si hay un GPX archivado de ese d\u00eda con estos " +
+            "kilómetros, <b>Rutas al d\u00eda</b> lo encontrar\u00e1 en el cat\u00e1logo y lo " +
+            "quitar\u00e1 tambi\u00e9n. Si no lo hay, no se toca nada.";
         caja.innerHTML =
           '<div class="akhb-bor-caja">' +
             "<p>" + arrastre + "</p>" +
             '<div class="akhb-bor-bots">' +
               '<button type="button" class="akhb-bor-act" data-borra-si="' + clave +
                 '" data-modo="actividad">Borrar la actividad</button>' +
-              (r ? '<button type="button" class="akhb-bor-ruta" data-borra-si="' + clave +
-                     '" data-modo="ruta">Quitar s\u00f3lo el recorrido</button>' : "") +
+              '<button type="button" class="akhb-bor-ruta" data-borra-si="' + clave +
+                '" data-modo="ruta">Quitar s\u00f3lo el recorrido</button>' +
               '<button type="button" class="akhb-bor-no" data-borra-no="' + clave +
                 '">Cancelar</button>' +
             "</div>" +
@@ -1540,7 +1562,10 @@
       var modo = bot.getAttribute("data-modo") || "ruta";
       var r2 = rutaDeActividad(x);
       bot.disabled = true; bot.textContent = "guardando\u2026";
-      alBorrar(x.id, modo, r2 ? r2.id : null, function (bien, fallo) {
+      alBorrar(x.id, modo, r2 ? r2.id : null,
+               { fecha: String(x.fecha || "").slice(0, 10), km: x.km || 0,
+                 nombre: x.nombre || "" },
+               function (bien, fallo) {
         if (!bien) {
           bot.disabled = false;
           bot.textContent = modo === "actividad" ? "Borrar la actividad" : "Quitar s\u00f3lo el recorrido";
