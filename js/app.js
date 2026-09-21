@@ -641,41 +641,87 @@
              (t ? ' · ' + esc(NOMBRE_TOOL[t] || t) : '') + '</small></button>';
     }
 
+    /* POR CATEGORÍAS PLEGADAS (22-sep-2026, Carlos): «que presente sólo las
+       categorías, y al abrir una, los platos ordenados alfabéticamente».
+
+       Antes era una lista corrida de setenta recetas con dos rótulos por medio.
+       Buscar el pescado de la cena era bajar y bajar. Ahora se ve el índice de
+       un vistazo y se abre lo que interese.
+
+       La primera va abierta, y es la que toca: en el desayuno, los desayunos;
+       en un día de ruta, lo de la mochila; y en una comida o una cena, las que
+       están pensadas para esa toma, que no son un grupo de alimentos sino un
+       atajo. Debajo, TODOS los grupos, porque una cena vale para comer y al
+       revés: el reparto por tomas es una sugerencia, no una regla. */
+    function ordenar(lista) {
+      return lista.slice().sort(function (a, b) { return a.n.localeCompare(b.n); });
+    }
+
+    function seccion(titulo, lista, abierta, aviso) {
+      if (!lista.length) return "";
+      return '<details class="grupo-selec"' + (abierta ? " open" : "") + '>' +
+               '<summary><span class="tit">' + esc(titulo) + '</span>' +
+               '<span class="cuantas">' + lista.length + '</span></summary>' +
+               (aviso ? '<p class="aviso-grupo">' + esc(aviso) + '</p>' : '') +
+               ordenar(lista).map(boton).join("") +
+             '</details>';
+    }
+
     var html = '<header><h2>Añadir a ' + toma + '</h2><button class="cerrar" data-cerrar>×</button></header>';
-    html += '<input type="text" id="filtro-selector" placeholder="Filtrar…">';
-    html += '<div class="lista-selec" id="lista-selector">';
-    if (propias.length) {
-      html += '<p class="separador-selec" data-nombre="">' + esc(rotuloA) + '</p>';
-      propias.forEach(function (r) { html += boton(r); });
-    }
-    if (caprichos.length) {
-      html += '<p class="separador-selec" data-nombre="">Caprichos \u2014 ' +
-              (Almacen.esFuera(fecha, toma)
-                ? 'esta toma es de fuera, as\u00ed que no entra en la compra'
-                : 'puesto en una toma S\u00cd entra en la lista de la compra') + '</p>';
-      caprichos.forEach(function (r) { html += boton(r); });
-    }
-    if (resto.length) {
-      html += '<p class="separador-selec" data-nombre="">' + esc(rotuloB) + '</p>';
-      resto.forEach(function (r) { html += boton(r); });
-    }
+    html += '<input type="text" id="filtro-selector" placeholder="Filtrar entre todas…">';
+    html += '<div class="lista-selec por-grupos" id="lista-selector">';
+
+    /* la preferente del bloque, abierta */
+    html += seccion(ruta ? "Para la mochila" : ("Pensadas para " + toma), propias, true,
+                    ruta ? "Se comen frías y aguantan el día" : null);
+
+    /* y después el recetario entero, por grupos de alimento */
+    var porGrupo = {};
+    todas.forEach(function (r) {
+      if (r.grupo === "capricho") return;
+      (porGrupo[r.grupo || "otros"] = porGrupo[r.grupo || "otros"] || []).push(r);
+    });
+    Object.keys(NOMBRE_GRUPO).forEach(function (g) {
+      if (g === "capricho") return;
+      html += seccion(NOMBRE_GRUPO[g], porGrupo[g] || [], false, null);
+      delete porGrupo[g];
+    });
+    Object.keys(porGrupo).sort().forEach(function (g) {
+      html += seccion(g, porGrupo[g], false, null);
+    });
+
+    html += seccion("Caprichos", caprichos, false,
+      Almacen.esFuera(fecha, toma)
+        ? "Esta toma es de fuera, así que no entra en la compra."
+        : "Puesto en una toma SÍ entra en la lista de la compra.");
+
     html += '</div>';
     abrirModal(html);
 
+    /* Al filtrar se abren solas las categorías que tengan algo y se cierran las
+       que no: si no, habría que ir abriéndolas una a una para ver si el filtro
+       ha encontrado algo dentro, que es justo lo contrario de filtrar. */
     $("#filtro-selector").addEventListener("input", function (e) {
-      var q = e.target.value.toLowerCase();
-      $$("#lista-selector button").forEach(function (b) {
-        b.style.display = b.getAttribute("data-nombre").indexOf(q) >= 0 ? "" : "none";
+      var q = e.target.value.toLowerCase().trim();
+      $$("#lista-selector .grupo-selec").forEach(function (det) {
+        var vistos = 0;
+        $$("button[data-nombre]", det).forEach(function (b) {
+          var cabe = !q || b.getAttribute("data-nombre").indexOf(q) >= 0;
+          b.style.display = cabe ? "" : "none";
+          if (cabe) vistos++;
+        });
+        det.style.display = vistos ? "" : "none";
+        if (q) det.open = true;
+        det.querySelector(".cuantas").textContent = vistos;
       });
-      /* si al filtrar un grupo se queda sin nada, escondo también su rótulo */
-      $$("#lista-selector .separador-selec").forEach(function (sep) {
-        var hay = false, n = sep.nextElementSibling;
-        while (n && n.tagName === "BUTTON") {
-          if (n.style.display !== "none") { hay = true; break; }
-          n = n.nextElementSibling;
-        }
-        sep.style.display = hay ? "" : "none";
-      });
+      if (!q) {
+        /* al vaciar el filtro se vuelve al estado de partida: sólo la primera */
+        $$("#lista-selector .grupo-selec").forEach(function (det, i) { det.open = i === 0; });
+        $$("#lista-selector .grupo-selec").forEach(function (det) {
+          det.querySelector(".cuantas").textContent =
+            $$("button[data-nombre]", det).length;
+        });
+      }
     });
     $("#lista-selector").addEventListener("click", function (e) {
       var b = e.target.closest("[data-elegir]");

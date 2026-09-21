@@ -299,6 +299,32 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .plato.capricho .nom{flex:1}
 .plato.capricho .sal{color:var(--gris); font-size:.8rem; white-space:nowrap}
 .nota-modal{margin:0 0 10px; color:var(--gris); font-size:.82rem}
+
+/* ---- el selector de platos, por categorías plegadas ---- */
+.lista-selec.por-grupos{display:block}
+.grupo-selec{border-bottom:1px solid var(--borde)}
+.grupo-selec > summary{
+  display:flex; align-items:center; gap:8px; cursor:pointer; list-style:none;
+  padding:11px 4px; font-weight:650; user-select:none;
+}
+.grupo-selec > summary::-webkit-details-marker{display:none}
+/* El triángulo lo dibujamos nosotros: el del navegador cambia de forma en cada
+   uno y aquí hay que reconocerlo de un vistazo. */
+.grupo-selec > summary::before{
+  content:"›"; display:inline-block; width:14px; color:var(--gris);
+  font-weight:700; transition:transform .15s ease;
+}
+.grupo-selec[open] > summary::before{transform:rotate(90deg)}
+.grupo-selec > summary .tit{flex:1}
+.grupo-selec > summary .cuantas{
+  color:var(--gris); font-size:.76rem; font-weight:600;
+  background:var(--gris-claro); border-radius:99px; padding:1px 8px;
+}
+.grupo-selec[open] > summary{color:var(--verde)}
+.grupo-selec .aviso-grupo{
+  margin:0 0 6px 18px; color:var(--gris); font-size:.76rem;
+}
+.grupo-selec button[data-elegir]{margin-left:18px; width:calc(100% - 18px)}
 /* La vista previa de lo que ha devuelto la IA, antes de guardar nada */
 .previo-ia{margin-top:12px; padding:12px; border:1px solid var(--verde-borde);
            border-radius:var(--radio); background:var(--verde-claro)}

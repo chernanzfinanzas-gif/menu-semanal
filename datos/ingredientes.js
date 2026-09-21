@@ -99,5 +99,88 @@ window.DATOS_INGREDIENTES = [
   { id:"comino",     n:"Comino molido",                cat:"Especias y aromáticos", u:"g", sal:0.04, k:375, p:18, g:22, h:44, basico:true },
   { id:"ajo_polvo",  n:"Ajo en polvo",                 cat:"Especias y aromáticos", u:"g", sal:0.06, k:331, p:17, g:0.7, h:73, basico:true },
   { id:"jengibre",   n:"Jengibre fresco o molido",     cat:"Especias y aromáticos", u:"g", sal:0.03, k:80, p:1.8, g:0.8, h:18, basico:true },
-  { id:"eneldo",     n:"Eneldo seco",                  cat:"Especias y aromáticos", u:"g", sal:0.05, k:305, p:20, g:4, h:55, basico:true }
+  { id:"eneldo",     n:"Eneldo seco",                  cat:"Especias y aromáticos", u:"g", sal:0.05, k:305, p:20, g:4, h:55, basico:true },
+
+  /* ---------- CAPRICHOS ----------
+     Los caprichos son platos de verdad y cuentan como todo lo demás: kcal y sal
+     reales de etiqueta. Aquí no hay juicio, hay cuentas. Sección propia para que
+     en la lista de la compra salgan juntos y al final. */
+  { id:"donut_panrico",   n:"Donut Panrico glacé (unidad 52 g)",              cat:"Caprichos", u:"ud", pesoUd:52,  sal:1.00, k:332, p:5.5, g:17,   h:38,  compra:"paquete", nota:"0,52 g de sal por donut: dos donuts llevan más sal que el pan Ortiz de todo un día" },
+  { id:"croissant",       n:"Croissant de bollería (ración 36 g)",            cat:"Caprichos", u:"ud", pesoUd:36,  sal:0.61, k:447, p:7.2, g:27,   h:43,  compra:"paquete", nota:"36 g es la ración que declara la etiqueta. Un croissant de panadería pesa el doble: si es de los grandes, pon 2" },
+  { id:"palmera_choco",   n:"Palmera de chocolate (unidad 80 g)",             cat:"Caprichos", u:"ud", pesoUd:80,  sal:0.70, k:541, p:6,   g:37,   h:46,  compra:"unidades", nota:"Dato orientativo: las palmeras de pastelería van de 80 a 115 g y de 0,6 a 1,6 g de sal por 100 g" },
+  { id:"magdalena",       n:"Magdalena redonda (unidad 29 g)",                cat:"Caprichos", u:"ud", pesoUd:29,  sal:0.17, k:433, p:4.4, g:22,   h:51,  compra:"paquete" },
+  { id:"chocolate_leche", n:"Chocolate con leche en tableta",                 cat:"Caprichos", u:"g",              sal:0.28, k:539, p:6.5, g:31,   h:57,  compra:"tableta", nota:"La porción oficial son 4 piezas = 16,7 g" },
+  { id:"chocolate_negro", n:"Chocolate negro 70% cacao",                      cat:"Caprichos", u:"g",              sal:0.10, k:531, p:11,  g:36,   h:34,  compra:"tableta", nota:"La mitad de azúcar que el de leche y casi tres veces menos sal" },
+  { id:"helado_vainilla", n:"Helado de vainilla (tarrina)",                   cat:"Caprichos", u:"g",              sal:0.11, k:195, p:2.1, g:7.5,  h:29,  compra:"tarrina", nota:"La ración de etiqueta son 50 g, que es más o menos una bola" },
+  { id:"helado_choco",    n:"Helado de chocolate (tarrina)",                  cat:"Caprichos", u:"g",              sal:0.09, k:202, p:3.3, g:8.3,  h:27,  compra:"tarrina" },
+  { id:"flan_huevo",      n:"Flan de huevo (unidad 110 g)",                   cat:"Caprichos", u:"ud", pesoUd:110, sal:0.20, k:153, p:4.9, g:4.1,  h:24,  compra:"pack" },
+  { id:"natillas",        n:"Natillas de vainilla (unidad 120 g)",            cat:"Caprichos", u:"ud", pesoUd:120, sal:0.13, k:109, p:3.1, g:2.9,  h:17.7, compra:"pack", nota:"El capricho más barato en calorías de la lista: 131 kcal" },
+  { id:"tarta_queso",     n:"Tarta de queso",                                 cat:"Caprichos", u:"g",              sal:0.40, k:227, p:8.3, g:12,   h:21.3, compra:"tarrina" },
+  { id:"patatas_bolsa",   n:"Patatas fritas de bolsa, al punto de sal",       cat:"Caprichos", u:"g",              sal:0.85, k:521, p:6.1, g:31,   h:53,  compra:"bolsa", nota:"Un puñado son 30 g: 0,25 g de sal. Menos que cinco aceitunas, aunque no lo parezca" },
+  { id:"doritos",         n:"Nachos de maíz tipo Doritos",                    cat:"Caprichos", u:"g",              sal:0.97, k:497, p:6.6, g:25.8, h:56.9, compra:"bolsa" },
+  { id:"cacahuetes_sal",  n:"Cacahuetes fritos con sal",                      cat:"Caprichos", u:"g",              sal:0.82, k:600, p:23,  g:48.1, h:14,  compra:"bolsa" },
+  { id:"aceitunas_rell",  n:"Aceitunas verdes rellenas de anchoa (unidad 4 g)", cat:"Caprichos", u:"ud", pesoUd:4, sal:2.60, k:156, p:1.5, g:15.5, h:0.1, compra:"lata", nota:"2,6 g de sal por 100 g. Cinco aceitunas son 0,5 g: la mitad de tu aviso ámbar en cinco bocados" },
+  { id:"queso_curado",    n:"Queso curado de oveja (manchego)",               cat:"Caprichos", u:"g",              sal:2.10, k:455, p:27,  g:38,   h:1.3, compra:"cuña", nota:"Una loncha de 45 g son 0,95 g de sal: como el pan Ortiz de todo el día" },
+  { id:"jamon_iberico",   n:"Jamón ibérico de bellota, loncheado",            cat:"Caprichos", u:"g",              sal:5.10, k:433, p:32.2, g:33.8, h:0.1, compra:"sobre", nota:"LO MÁS SALADO DE TODO EL CATÁLOGO: 5,1 g de sal por 100 g. 30 g ya son 1,5 g de sal" },
+  { id:"bk_whopper",      n:"Whopper de Burger King (unidad 289 g)",          cat:"Caprichos", u:"ud", pesoUd:289, sal:0.90, k:222, p:10.5, g:12.5, h:16.9, compra:"restaurante", nota:"Dato oficial de Burger King España. Uno solo son 643 kcal y 2,6 g de sal: casi dos tercios de tu día de sal" },
+  { id:"bk_aros_cebolla", n:"Aros de cebolla de Burger King (unidad 11,8 g)", cat:"Caprichos", u:"ud", pesoUd:11.8, sal:0.51, k:241, p:3.9, g:11.6, h:30.3, compra:"restaurante", nota:"Dato oficial de Burger King España. Cinco aros son 0,3 g de sal: lo menos salado de la carta" },
+
+  /* ---------- McDonald's ----------
+     OJO: estas tres cifras salen de la web de McDonald's de ESTADOS UNIDOS, que es la
+     única que publica la tabla. La española tiene el apartado vacío. Las recetas y los
+     pesos cambian de un país a otro, así que trátalas como una aproximación buena, no
+     como la etiqueta española. Y como McDonald's no publica el peso de la ración, aquí
+     «1 unidad» ES LA RACIÓN ENTERA: los valores de la columna son los de esa ración. */
+  { id:"mcd_wrap_cbo",    n:"McWrap CBO de McDonald's (unidad 243 g)",          cat:"Caprichos", u:"ud", pesoUd:243, sal:1.11, k:262, p:10.7, g:14, h:23.5, compra:"restaurante", nota:"Dato de McDonald's FRANCIA: España no publica el del CBO y el Snack Wrap americano es otro producto, mucho más pequeño. Dos fichas francesas independientes coinciden en 2,7-3,0 g de sal por wrap" },
+  { id:"mcd_patatas_med", n:"Patatas fritas medianas de McDonald's (una ración)", cat:"Caprichos", u:"ud", pesoUd:100, sal:0.66, k:320, p:5,  g:15, h:43, compra:"restaurante", nota:"Dato de McDonald's EE. UU.: 260 mg de sodio = 0,66 g de sal. Bastante menos saladas de lo que parecen" },
+  { id:"mcd_quarter",     n:"Cuarto de Libra con queso de McDonald's (una ración)", cat:"Caprichos", u:"ud", pesoUd:100, sal:2.60, k:547, p:33, g:29, h:38, compra:"restaurante", nota:"Dato OFICIAL de McDonald's España, de su propia ficha. La unidad es la ración entera" },
+  { id:"mcd_cono_helado", n:"Cono de helado de McDonald's (una ración)",     cat:"Caprichos", u:"ud", pesoUd:100, sal:0.10, k:157, p:3.8, g:3.3, h:28, compra:"restaurante", nota:"Dato OFICIAL de McDonald's España, de su propia ficha. La unidad es la ración entera" },
+  { id:"mcd_mcflurry_kitkat", n:"McFlurry KitKat de McDonald's (una ración)", cat:"Caprichos", u:"ud", pesoUd:100, sal:0.40, k:419, p:7, g:11, h:72, compra:"restaurante", nota:"Dato OFICIAL de McDonald's España. 54 g de azúcar en un vaso: el producto con más azúcar de todo el catálogo" },
+  { id:"mcd_topfries_bacon", n:"Top Fries Bacon & Cheese de McDonald's, individuales (una ración)", cat:"Caprichos", u:"ud", pesoUd:100, sal:1.50, k:423, p:12, g:22, h:42, compra:"restaurante", nota:"Dato OFICIAL de McDonald's España. 1,5 g de sal: más del doble que unas patatas normales" },
+  { id:"mcd_cheeseburger", n:"Cheeseburger de McDonald's (unidad 120 g)",     cat:"Caprichos", u:"ud", pesoUd:120, sal:1.33, k:255, p:13.3, g:10.8, h:25, compra:"restaurante", nota:"Dato OFICIAL de McDonald's España. El peso sale de cruzar sus dos columnas: 306 kcal la ración entre 254 kcal por 100 g = 120 g" },
+  { id:"bk_alita",        n:"Alita de pollo de Burger King (unidad 39 g)",      cat:"Caprichos", u:"ud", pesoUd:39, sal:2.00, k:203, p:21.2, g:12.8, h:1.2, compra:"restaurante", nota:"Dato OFICIAL de Burger King España, por UNA alita: 79 kcal y 0,78 g de sal. Pon las que te comas con el contador" },
+  { id:"cocacola_zero",   n:"Coca-Cola Zero",                                   cat:"Caprichos", u:"ml",             sal:0.02, k:0,   p:0,  g:0,  h:0,  compra:"pack", nota:"Cero calorías y prácticamente cero sal: el único capricho que no cuenta en ninguna de las dos cuentas" },
+
+  /* ---------- lo que hace falta para el batido ---------- */
+  { id:"evowhey",         n:"Proteína EvoWhey 2.0 de HSN (dosis 30 g)",       cat:"Despensa",  u:"g",              sal:0.79, k:350, p:78,  g:3.3,  h:6,   compra:"bote", nota:"Se compra en hsnstore, no en el súper. Una dosis de 30 g son 23 g de proteína y 105 kcal" },
+  { id:"leche_entera",    n:"Leche entera",                                   cat:"Lácteos y huevos", u:"ml",      sal:0.12, k:64,  p:3.3, g:3.6,  h:4.6, compra:"brick" }
+,
+
+  /* ---------- frutos secos y fruta añadidos el 22-sep ---------- */
+  { id:"pistachos_sal",   n:"Pistachos tostados con sal (grano, sin cáscara)", cat:"Despensa", u:"g", sal:0.79, k:617, p:25,   g:51,   h:10,   compra:"bolsa", nota:"Hacendado. El valor es del GRANO pelado: 100 g con cáscara son unos 53 g de grano. La sal varía muchísimo de marca a marca (de 0,7 a 3,2 g/100 g): mira la bolsa" },
+  { id:"pistachos_sinsal",n:"Pistachos tostados SIN sal (grano, sin cáscara)", cat:"Despensa", u:"g", sal:0.00, k:616, p:21.6, g:52.5, h:11,   compra:"bolsa", nota:"Hacendado 0% sal. Mismas calorías que los salados y cero sal: para ti es el cambio más barato que hay" },
+  { id:"mango_deshidratado", n:"Mango deshidratado",                          cat:"Despensa", u:"g", sal:0.23, k:317, p:2.5,  g:1.2,  h:70,   compra:"bolsa", nota:"Hacendado, sin azúcar añadido. 62 g de azúcar por 100 g: es fruta concentrada, no un snack ligero" },
+  { id:"melocoton",       n:"Melocotón",                                      cat:"Frutas y verduras", u:"ud", pesoUd:150, sal:0.00, k:39, p:0.91, g:0.25, h:9.5, compra:"unidades" },
+  { id:"albaricoque",     n:"Albaricoque",                                    cat:"Frutas y verduras", u:"ud", pesoUd:35,  sal:0.00, k:48, p:1.4,  g:0.39, h:11.1, compra:"unidades" },
+  { id:"zumo_granini",    n:"Néctar de naranja Granini (brick 200 ml)",       cat:"Despensa", u:"ml", sal:0.00, k:41, p:0.5, g:0.1, h:9.4, compra:"pack", nota:"Es NÉCTAR, no zumo exprimido: de concentrado, 50% fruta y con azúcar añadido. El brick de 200 ml son 82 kcal y 18,4 g de azúcar. El fabricante no publica proteína ni grasa" },
+
+  /* ---------- BEBIDAS ---------- */
+  { id:"cerveza",         n:"Cerveza rubia (lager, 5,5% vol)",                cat:"Caprichos", u:"ml", sal:0.00, k:47, p:0,    g:0,   h:3.5, compra:"pack", nota:"Estrella Galicia Especial. La sal es cero: el precio de la cerveza son las calorías del alcohol, no el sodio. Un tercio son 155 kcal" },
+  { id:"cerveza_sin",     n:"Cerveza SIN alcohol (0,0)",                      cat:"Caprichos", u:"ml", sal:0.00, k:21, p:0,    g:0,   h:4.7, compra:"pack", nota:"Estrella Galicia 0,0. Menos de la mitad de calorías que la normal y cero sal" },
+  { id:"fanta_nar_zero",  n:"Fanta Naranja Zero",                             cat:"Caprichos", u:"ml", sal:0.02, k:3,  p:0,    g:0,   h:0.6, compra:"pack" },
+  { id:"fanta_lim_zero",  n:"Fanta Limón Zero",                               cat:"Caprichos", u:"ml", sal:0.06, k:2,  p:0,    g:0,   h:0,   compra:"pack", nota:"Tres veces más sal que la Coca-Cola Zero: una lata son 0,20 g. Poco, pero no son intercambiables" },
+
+  /* ---------- PAPA JOHN'S (entrantes, dato oficial de España) ----------
+     Su tabla oficial da los valores por 100 g pero NO publica el peso de las
+     raciones, así que las raciones de las recetas son estimadas y están dichas. */
+  { id:"pj_pan_ajo",      n:"Pan de ajo con mozzarella de Papa John's",       cat:"Caprichos", u:"g", sal:0.47, k:232, p:8.9,  g:7.8,  h:34.4, compra:"restaurante", nota:"Dato oficial de Papa John's España. El entrante MENOS salado de su carta, casi cuatro veces menos que los palitos de mozzarella" },
+  { id:"pj_aros_cebolla", n:"Aros de cebolla de Papa John's",                 cat:"Caprichos", u:"g", sal:0.78, k:243, p:3.9,  g:12,   h:29,   compra:"restaurante" },
+  { id:"pj_patatas",      n:"Papas (patatas) de Papa John's",                 cat:"Caprichos", u:"g", sal:1.20, k:142, p:2,    g:5.5,  h:20,   compra:"restaurante", nota:"1,2 g de sal por 100 g: de los más salados de su carta pese a parecer lo más inocente" },
+  { id:"pj_alitas",       n:"Alitas de pollo de Papa John's",                 cat:"Caprichos", u:"g", sal:1.37, k:210, p:22.9, g:12.6, h:0.8,  compra:"restaurante" },
+  { id:"pj_pechuguitas",  n:"Pechuguitas de pollo de Papa John's",            cat:"Caprichos", u:"g", sal:1.39, k:206, p:16.9, g:7.4,  h:17.2, compra:"restaurante" },
+  { id:"pj_mozza_sticks", n:"Palitos de mozzarella de Papa John's",           cat:"Caprichos", u:"g", sal:1.80, k:282, p:12,   g:13,   h:28,   compra:"restaurante", nota:"1,8 g de sal por 100 g: el entrante más salado de su carta" },
+  { id:"pj_chococookie",  n:"ChocoCookie de Papa John's",                     cat:"Caprichos", u:"g", sal:0.84, k:451, p:6.8,  g:21.3, h:57.9, compra:"restaurante" },
+
+  /* ---------- TAPAS DE BAR ----------
+     ATENCIÓN: estos cinco NO tienen etiqueta, porque los hace cada bar. Los valores
+     salen de calcular la receta típica con tablas de composición (USDA) y etiquetas
+     españolas de los productos que se usan, más la sal que se añade al cocinar.
+     Son ORIENTATIVOS y la sal es la parte más incierta: entre un bar y otro puede
+     haber el doble. El rango real va en la receta de cada uno. */
+  { id:"tapa_oreja",      n:"Oreja de cerdo a la plancha (de bar)",           cat:"Caprichos", u:"g", sal:1.42, k:210, p:16,   g:16,   h:0.2,  compra:"bar", nota:"Estimado, no de etiqueta. Rango de sal en la ración entera: 1,8 a 4,3 g. La oreja de bar suele venir ya adobada, con más sal de partida" },
+  { id:"tapa_bravas",     n:"Patatas bravas (de bar)",                        cat:"Caprichos", u:"g", sal:1.02, k:192, p:2.2,  g:12.6, h:18.6, compra:"bar", nota:"Estimado, no de etiqueta. Casi toda la sal está en la SALSA: las comerciales van de 1,1 a 4,9 g/100 g. Rango de la ración: 1,5 a 6 g de sal" },
+  { id:"tapa_calamares",  n:"Calamares a la romana (de bar)",                 cat:"Caprichos", u:"g", sal:1.34, k:281, p:6.2,  g:21,   h:17.3, compra:"bar", nota:"Estimado, no de etiqueta. Aquí la sal NO la pone el cocinero: el 82% viene en el rebozado industrial. Rango de la ración: 2,8 a 4,3 g" },
+  { id:"tapa_croqueta",   n:"Croqueta de jamón de bar (unidad 33 g)",         cat:"Caprichos", u:"ud", pesoUd:33, sal:1.02, k:264, p:7.2, g:19.8, h:15.3, compra:"bar", nota:"Estimado. Por croqueta: 87 kcal y 0,34 g de sal. Cuadra con lo que midió AESAN en croquetas en España (1,3 g/100 g)" },
+  { id:"tapa_sepia",      n:"Sepia a la plancha (de bar)",                    cat:"Caprichos", u:"g", sal:2.28, k:160, p:21.4, g:7.2,  h:1.1,  compra:"bar", nota:"Estimado. LA SEPIA YA TRAE 0,93 g de sal por 100 g ANTES de salarla: es el único de estos platos salado de origen. Rango de la ración: 3,3 a 5,8 g" }
+
 ];
