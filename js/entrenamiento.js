@@ -4026,6 +4026,23 @@
     { id: "g18650706166", f: "2025-03-27", n: "Ciclismo en sala",                 kcal: 117 }
   ];
 
+  /* EL ARCHIVO VIEJO NO ESTÁ CARGADO EN EVOLUCIÓN, y las siete viven ahí.
+     `actividades-historico.json` y `salud-historico.json` se piden sólo al
+     abrir la pestaña Actividad o al elegir el rango «Todo»: son cientos de KB y
+     no se bajan por si acaso. Así que este panel los pide él, una vez, y se
+     repinta cuando llegan. Sin esto el bloque no aparecía nunca —y tampoco las
+     filas de las medidas que sólo trae la exportación de Garmin, que era el
+     mismo agujero. */
+  var pedidoArchivo = false;
+  function pedirArchivoViejo() {
+    if (pedidoArchivo) return;
+    if (ActHistorico.datos && Historico.datos) return;
+    pedidoArchivo = true;
+    var repinta = function () { pintar(); };
+    if (!ActHistorico.datos) ActHistorico.cargar(repinta);
+    if (!Historico.datos) Historico.cargar(repinta);
+  }
+
   /* Las que siguen vivas en el archivo. Si devuelve vacío, no hay nada que hacer. */
   function sobranVivas() {
     var hay = {}, vivas = [];
@@ -4124,6 +4141,7 @@
   function htmlFrescura() {
     if (!Salud.datos) return "";
     estiloLimpieza();
+    pedirArchivoViejo();
     var DE = {
       intervals: "llega sola cada día",
       bascula:   "cuando te pesas",
