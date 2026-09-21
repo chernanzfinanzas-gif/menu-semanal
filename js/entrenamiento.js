@@ -76,29 +76,15 @@
       ".mov-musc{font-size:12px;color:#6b7c8d;margin-top:2px}",
       ".mov-ojo{color:#b06a16}",
       ".mov-falta{font-size:12px;color:#b03030;margin-top:2px}",
-      /* Los bloques de la portada de Material y movimientos. Cuadrados a
-         propósito: se tocan con el pulgar y se distinguen de un vistazo. */
-      ".mv-rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));" +
-        "gap:10px;margin:12px 0}",
-      ".mv-bloque{aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;" +
-        "align-items:center;gap:4px;text-align:center;padding:14px;cursor:pointer;" +
-        "background:var(--fondo-tarjeta,#fff);border:1px solid var(--azul-borde);" +
-        "border-radius:14px;font:inherit;color:inherit}",
-      ".mv-bloque:active{transform:scale(.98)}",
-      ".mv-bloque b{font-size:1.05rem;color:var(--azul-hondo)}",
-      ".mv-dato{font-size:12px;color:#6b7c8d}",
-      ".mv-pie{font-size:12px;font-weight:600;color:var(--verde,#2e7d5b);margin-top:2px}",
       /* Las rutinas: filas anchas, que lo que importa es el nombre y cuándo. */
       ".mv-fila{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;" +
-        "padding:12px 0;border-bottom:1px solid var(--azul-borde);background:none;border-left:0;" +
-        "border-right:0;border-top:0;text-align:left;cursor:pointer;font:inherit;color:inherit}",
+        "padding:12px 0;border-bottom:1px solid var(--azul-borde);background:none;border:0;" +
+        "border-bottom:1px solid var(--azul-borde);text-align:left;cursor:pointer;" +
+        "font:inherit;color:inherit}",
       ".mv-fila:last-child{border-bottom:0}",
-      ".mv-fila-n{font-size:1.02rem}",
-      ".mv-fila-d{font-size:12px;color:#6b7c8d}",
-      ".mv-hoy{font-size:11px;text-transform:uppercase;letter-spacing:.06em;" +
-        "color:var(--verde,#2e7d5b)}",
-      "@media (prefers-color-scheme:dark){.mv-bloque{background:#1d2732}" +
-        ".mv-dato,.mv-fila-d{color:#9fb0c1}}",
+      ".mv-fila-n{font-size:1.02rem;color:var(--azul-hondo);font-weight:700}",
+      ".mv-fila-d{font-size:12px;color:var(--gris)}",
+      ".mv-hoy{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d5b}",
       "@media (prefers-color-scheme:dark){.mat-da,.mov-musc{color:#9fb0c1}}",
       /* la pestaña: azul siempre, más fuerte cuando está abierta */
       '#pestanas [data-vista="entreno"]{color:#7d9cbb}',
@@ -5141,7 +5127,14 @@
      se van a\u00f1adiendo cuando encuentre uno que le valga, y entonces aparece el
      enlace en su l\u00ednea. Uno por movimiento, no uno por sesi\u00f3n. */
   var VIDEOS = {
-    "Peso muerto rumano": "https://www.youtube.com/shorts/wfH61Y88fuo"
+    "Sentadilla goblet":     "https://www.youtube.com/shorts/2KbVt1Gl0VM",
+    "Press de banca":        "https://www.youtube.com/shorts/LDEHmb9DpO8",
+    "Remo":                  "https://www.youtube.com/shorts/X86z-3EC6iA",
+    "Plancha":               "https://www.youtube.com/shorts/ysX1CpHKGCo",
+    "Aperturas invertidas":  "https://www.youtube.com/shorts/5Yu8DTe4BAQ",
+    "Peso muerto rumano":    "https://www.youtube.com/shorts/wfH61Y88fuo",
+    "Press de hombros":      "https://www.youtube.com/shorts/mHnQ_tfbSYE",
+    "Jal\u00f3n":                "https://www.youtube.com/shorts/riFu4s62nr4"
   };
 
   /* Cuando el ejercicio se queda corto, por d\u00f3nde sigue. No es una sesi\u00f3n
@@ -5163,6 +5156,16 @@
     { n: "Larga",  q: "3-4 series y un cuarto ejercicio",
       c: "Desde la fase 1, sin corticoide" }
   ];
+
+  /* Del texto del plan («Fuerza A + caminar») a la rutina. Mira el nombre
+     completo para no confundir «Fuerza A» con «Fuerza B». */
+  function rutinaDeTexto(t) {
+    var x = String(t || "").toLowerCase();
+    for (var i = 0; i < SESIONES.length; i++) {
+      if (x.indexOf(SESIONES[i].n.toLowerCase()) >= 0) return SESIONES[i].id;
+    }
+    return null;
+  }
 
   function movPorNombre(n) {
     for (var i = 0; i < MOVIMIENTOS.length; i++) if (MOVIMIENTOS[i].n === n) return MOVIMIENTOS[i];
@@ -5206,11 +5209,15 @@
       '<p class="nota-peque">Lo que hay en casa, lo que se puede hacer con ello, ' +
       'y las rutinas que salen de ahí.</p></div>';
 
-    h += '<div class="mv-rejilla">' +
-      bloqueMV("rutinas", "Rutinas", SESIONES.length + " · A y B",
-               toca ? "Hoy toca " + toca.n : "") +
-      bloqueMV("movimientos", "Movimientos", hechos + " de " + MOVIMIENTOS.length + " a mano", "") +
-      bloqueMV("material", "Material", lista.length + " cosas", "") +
+    h += '<div class="ent-bloques">' +
+      bloqueMV("rutinas", "Rutinas", "iconos/khb/3-pesas-corredor.webp",
+               (toca ? "Hoy toca " + toca.n + ". " : "") +
+               "Fuerza A y Fuerza B: qu\u00e9 ejercicios, con qu\u00e9 peso y c\u00f3mo se hacen.") +
+      bloqueMV("movimientos", "Movimientos", "iconos/khb/7-yoga.webp",
+               hechos + " de " + MOVIMIENTOS.length + " a mano. Lo que puedes hacer con lo que tienes, " +
+               "m\u00fasculo a m\u00fasculo.") +
+      bloqueMV("material", "Material", "iconos/khb/6-zapatillas.webp",
+               lista.length + " cosas. Lo que hay en casa y qu\u00e9 permite hacer cada una.") +
       "</div>";
 
     h += '<button type="button" class="ent-atras abajo" data-volver="1">' +
@@ -5218,12 +5225,11 @@
     return h;
   }
 
-  function bloqueMV(id, titulo, dato, pie) {
-    return '<button type="button" class="mv-bloque" data-mv="' + id + '">' +
-      '<b>' + U.esc(titulo) + "</b>" +
-      '<span class="mv-dato">' + U.esc(dato) + "</span>" +
-      (pie ? '<span class="mv-pie">' + U.esc(pie) + "</span>" : "") +
-      "</button>";
+  function bloqueMV(id, titulo, img, pie) {
+    return '<button type="button" class="ent-bloque" data-mv="' + id + '">' +
+      '<img src="' + img + '" alt="" onerror="this.style.display=\'none\'">' +
+      '<span class="txt"><span class="n">' + U.esc(titulo) + "</span>" +
+      "<small>" + U.esc(pie) + "</small></span></button>";
   }
 
   /* ---------- material, por grupos ---------- */
@@ -5642,7 +5648,11 @@
         /* en las que el reloj no mide, «que decida el reloj» sería dejarla sin
            decidir para siempre: no se ofrece */
         borrable: (!aMano && (v === true || v === "no")) ? id : null,
-        guia: guiaDeSesion(s.t)
+        guia: guiaDeSesion(s.t),
+        /* Si la sesión del plan es una de las dos de fuerza, la fila lleva
+           enlace a su ficha: qué ejercicios, con qué peso y el vídeo. Es el
+           salto que faltaba entre «hoy toca Fuerza A» y saber qué hacer. */
+        rutina: rutinaDeTexto(s.t)
       });
     });
     tareasDelDia(dia).forEach(function (t) {
@@ -5661,6 +5671,8 @@
             (f.sello ? '<span class="ent-sello ' + (f.claseSello || "") + '">' + U.esc(f.sello) + "</span>" : "") +
             (f.guia ? '<button type="button" class="ent-comose" data-sesion-guia="' + f.guia.id +
               '">cómo se hace</button>' : "") +
+            (f.rutina ? '<button type="button" class="ent-comose" data-ver-rutina="' + f.rutina +
+              '">ver la rutina</button>' : "") +
           "</b>" + (f.ayuda ? "<small>" + U.esc(f.ayuda) +
             (f.borrable ? ' <button type="button" class="ent-soltar" data-soltar="' + f.borrable +
               '">que decida el reloj</button>' : "") + "</small>" : "") + "</span></label></li>";
@@ -6026,6 +6038,16 @@
       if (mvIr) { matVista = mvIr.getAttribute("data-mv"); matEditando = null; pintar(); return; }
       var mvAt = t.closest ? t.closest("[data-mv-atras]") : null;
       if (mvAt) { matVista = null; matEditando = null; pintar(); return; }
+
+      /* desde el plan, directo a la ficha de la rutina del día */
+      var verR = t.closest ? t.closest("[data-ver-rutina]") : null;
+      if (verR) {
+        bloque = "material";
+        matVista = verR.getAttribute("data-ver-rutina");
+        matEditando = null; pintar();
+        if (cont.scrollIntoView) cont.scrollIntoView({ block: "start" });
+        return;
+      }
 
       /* --- material: editar, añadir, quitar --- */
       var mNue = t.closest ? t.closest("[data-mat-nuevo]") : null;
