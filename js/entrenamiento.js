@@ -3317,14 +3317,40 @@
         '" font-size="8" fill="#667a70">' + U.esc(l.etq) + "</text>";
     });
 
+    /* ANCHO DE LAS BARRAS: UNO PARA TODAS LAS SERIES DEL MISMO DIBUJO.
+       Antes cada serie calculaba el suyo con SUS puntos, así que en la carga
+       semanal la serie del objetivo (catorce semanas) salía estrecha y la de
+       lo hecho (una semana) cuatro veces más gorda: parecían dos cosas
+       distintas cuando son la misma medida. El ancho se saca del hueco entre
+       barras de la serie más poblada y lo usan todas. */
+    var anBar = 0;
+    (function () {
+      var ref = null;
+      series.forEach(function (x) { if (x.barras && (!ref || x.pts.length > ref.pts.length)) ref = x; });
+      if (!ref) return;
+      var sep = (W - L - R) / Math.max(8, ref.pts.length), i, huecos = [];
+      for (i = 1; i < ref.pts.length; i++) huecos.push(X(ref.pts[i].f) - X(ref.pts[i - 1].f));
+      if (huecos.length) {
+        huecos.sort(function (a, b) { return a - b; });
+        sep = huecos[Math.floor(huecos.length / 2)];          // la mediana, no la media
+      }
+      anBar = Math.max(3, Math.min(sep * 0.62, 26));
+    })();
+
     series.forEach(function (se) {
       if (se.barras) {
-        var an = Math.max(3, (W - L - R) / Math.max(8, se.pts.length * 2.2));
+        var an = anBar || Math.max(3, (W - L - R) / Math.max(8, se.pts.length * 2.2));
         se.pts.forEach(function (p) {
           var y = Y(p.v), y0 = Y(Math.max(min, 0));
           s += '<rect x="' + (X(p.f) - an / 2).toFixed(1) + '" y="' + Math.min(y, y0).toFixed(1) +
             '" width="' + an.toFixed(1) + '" height="' + Math.max(1, Math.abs(y0 - y)).toFixed(1) +
             '" fill="' + se.color + '" opacity="' + (se.opacidad || 1) + '"/>';
+          /* Si detrás vienen más barras —lo hecho encima del objetivo— el techo
+             de ésta se marca con una raya, o una semana que pase del objetivo
+             lo taparía entero y se perdería justo la comparación. */
+          if (se.techo) s += '<line x1="' + (X(p.f) - an / 2).toFixed(1) + '" y1="' + y.toFixed(1) +
+            '" x2="' + (X(p.f) + an / 2).toFixed(1) + '" y2="' + y.toFixed(1) +
+            '" stroke="' + se.techo + '" stroke-width="1.2" stroke-linecap="round"/>';
         });
         return;
       }
@@ -4025,33 +4051,52 @@
           .concat([{ pts: vfc7, color: AZUL, ancho: 1.5 }])
       }) + leyenda([{ n: "media de 7 días", color: AZUL }].concat(
         tramoLargo ? [] : [{ n: "cada noche", color: "#c3d3e2" }]));
-      if (fcr.length) {
-        cuerpo2 += '<h3 class="evo-sub">Pulso en reposo</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm", unidadTip: "lpm",
-          alt: "Frecuencia cardíaca en reposo",
-          explica: "Las pulsaciones más bajas de la noche. Aquí bajar es mejorar, al revés que arriba.",
-          lineasH: par.base_fcr ? [{ v: par.base_fcr, color: "#eccf9a", etq: "tu base" }] : [],
-          series: [{ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr, color: AMBAR, ancho: 1.2 }]
-        });
-      }
-      /* EL PULSO MÍNIMO DEL DÍA. Va justo debajo del de reposo porque es el
-         mismo asunto sin suavizar, y la diferencia importa: el campo de
-         reposo de Garmin sólo cambia de valor el 38 % de los días —es una
-         línea base lenta— y en la gripe A de marzo de 2023 apenas se movió
-         (45 → 49) mientras el mínimo saltaba de 40 a 55. Éste es el que avisa.
+      /* PULSO EN REPOSO Y PULSO MÍNIMO DEL DÍA, EN LA MISMA GRÁFICA.
+         Antes iban en dos gráficas apiladas y así había que medir a ojo, entre
+         dos dibujos con escalas distintas, lo único que importa del par: cuánto
+         se separan. Juntos es el hueco entre las dos líneas y se ve solo.
+         Comparten unidad (lpm), así que compartir escala no engaña.
 
-         No llega por intervals: sólo viene con la exportación de Garmin, así
-         que la línea se acaba donde acabó la última. Eso se dice debajo, no se
-         disimula. */
+         MEDIDO sobre los 1.962 días en que existen las dos (21-sep-2026):
+         el pulso en reposo que manda intervals cambia de valor el 86 % de los
+         días y el mínimo el 84 %, los dos con un salto típico de 2 lpm; el
+         mínimo va 4-5 latidos por debajo. El campo de reposo que trae la
+         exportación de Garmin es otra cosa: sólo cambia el 38 % de los días,
+         con salto típico CERO. Es una línea base lenta y por eso no se pinta
+         aquí: no avisa de nada.
+
+         Una corrección, porque antes estaba escrito al revés: en la gripe A de
+         marzo de 2023 el que se disparó fue el de intervals (54 → 72), no el
+         mínimo, que subió un día a 55 y volvió a 46. Y ojo con ese año: en
+         2023 intervals anduvo seis latidos por encima de Garmin de enero a
+         diciembre (52,1 contra 45,7), que es justo la desviación conocida.
+
+         El mínimo no llega por intervals: sólo viene con la exportación de
+         Garmin, así que su línea se acaba donde acabó la última. Eso se dice
+         debajo, no se disimula. */
       var pmin = serieSalud("pulso_min", v);
-      if (pmin.length) {
-        cuerpo2 += '<h3 class="evo-sub">Pulso mínimo del día</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "lpm", unidadTip: "lpm",
-          alt: "Pulso mínimo del día",
-          explica: "El latido más bajo de todo el día, tal como lo grabó el reloj y sin suavizar. " +
-            "Reacciona antes que el de arriba: en la gripe A saltó de 40 a 55 mientras el de reposo no se movía.",
-          series: [{ pts: tramoLargo ? mediaMovilDias(pmin, 7) : pmin, color: "#7b2fbf", ancho: 1.2 }]
-        }) + avisoFrescura("pulso_min");
+      if (fcr.length || pmin.length) {
+        var serPulso = [];
+        if (fcr.length) serPulso.push({ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr,
+                                        color: AMBAR, ancho: 1.2 });
+        if (pmin.length) serPulso.push({ pts: tramoLargo ? mediaMovilDias(pmin, 7) : pmin,
+                                         color: "#7b2fbf", ancho: 1.2 });
+        cuerpo2 += '<h3 class="evo-sub">Pulso en reposo y pulso mínimo</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 96, arriba: "lpm", unidadTip: "lpm",
+          alt: "Pulso en reposo y pulso mínimo del día",
+          explica: "Ámbar, el pulso en reposo de cada noche; morado, el latido más bajo de todo el día, " +
+            "que suele ir cuatro o cinco latidos por debajo. Aquí bajar es mejorar, al revés que arriba. " +
+            "Lo que dice algo no es cada línea por su lado sino la distancia entre las dos: cuando se " +
+            "abren o se juntan, ahí ha pasado algo.",
+          lineasH: par.base_fcr ? [{ v: par.base_fcr, color: "#eccf9a", etq: "tu base" }] : [],
+          series: serPulso
+        }) + leyenda([{ n: "en reposo", color: AMBAR }].concat(
+          pmin.length ? [{ n: "mínimo del día", color: "#7b2fbf" }] : []));
+        if (pmin.length) cuerpo2 += avisoFrescura("pulso_min");
+        else cuerpo2 += '<p class="nota-peque" style="margin:4px 0 0">' +
+          "El <b>pulso mínimo del día</b> todavía no tiene ni un dato: no llega por intervals, " +
+          'sólo con la exportación de Garmin. <a href="' + ENLACE_GARMIN +
+          '" target="_blank" rel="noopener">Exportar mis datos de Garmin</a> y la segunda línea aparece sola.</p>';
       }
       if (sue.length) {
         cuerpo2 += '<h3 class="evo-sub">Sueño</h3>' + grafica({
@@ -4092,8 +4137,9 @@
           desde: cs.desde, hasta: cs.hasta, alto: 92, arriba: "carga semanal · la rampa entera", min: 0,
           alt: "Carga semanal real frente al objetivo del plan",
           explica: "Una barra clara por semana con lo que pide la rampa hasta diciembre, y encima en verde lo que llevas hecho.",
-          series: [{ pts: cs.objetivos, color: "#cfdcea", barras: true, marcarUltimo: false },
-                   { pts: cs.reales, color: VERDE, barras: true, marcarUltimo: false }]
+          series: [{ pts: cs.objetivos, color: "#cfdcea", barras: true, marcarUltimo: false,
+                     techo: "#8fa8bf" },
+                   { pts: cs.reales, color: VERDE, barras: true, marcarUltimo: false, tip: true }]
         }) + leyenda([{ n: "objetivo de la rampa", color: "#cfdcea" }, { n: "lo hecho", color: VERDE }]);
       }
       var u3 = ctl[ctl.length - 1], p3 = ctl[0];
@@ -4284,15 +4330,22 @@
       if (d.techo) lineas.push({ v: d.techo, color: "#eccf9a", etq: d.etqTecho || "límite" });
 
       var series = [];
-      if (d.media && s1.length > 3) {
-        series.push({ pts: s1, color: GRIS, ancho: 0.8, marcarUltimo: false });
-        series.push({ pts: mediaMovilDias(s1, d.media), color: AZUL, ancho: 1.6 });
+      /* Con barras el ORDEN importa: las dos tienen ya el mismo ancho, así que
+         la que se dibuja después tapa a la otra. Primero el objetivo (claro, con
+         su techo marcado) y encima lo hecho, que es lo que se quiere leer. */
+      if (d.barras) {
+        if (s2.length) series.push({ pts: s2, color: "#cfdcea", barras: true,
+                                     marcarUltimo: false, techo: "#8fa8bf" });
+        series.push({ pts: s1, color: AZUL, barras: true, marcarUltimo: false, tip: true });
       } else {
-        series.push({ pts: s1, color: AZUL, ancho: 1.6, barras: !!d.barras,
-                      soloPuntos: !d.barras && s1.length < 3 });
+        if (d.media && s1.length > 3) {
+          series.push({ pts: s1, color: GRIS, ancho: 0.8, marcarUltimo: false });
+          series.push({ pts: mediaMovilDias(s1, d.media), color: AZUL, ancho: 1.6 });
+        } else {
+          series.push({ pts: s1, color: AZUL, ancho: 1.6, soloPuntos: s1.length < 3 });
+        }
+        if (s2.length) series.push({ pts: s2, color: ROJO, ancho: 1.3, marcarUltimo: true });
       }
-      if (s2.length) series.push({ pts: s2, color: d.barras ? "#cfdcea" : ROJO, ancho: 1.3,
-                                   barras: !!d.barras, marcarUltimo: !d.barras });
 
       var todo = s1.concat(s2);
       var desde = todo.length ? todo.map(function (x) { return x.f; }).sort()[0] : U.hoyISO();

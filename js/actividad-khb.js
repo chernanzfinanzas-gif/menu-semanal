@@ -957,6 +957,11 @@
          que decir cuál se está contestando. */
       modo: "tipico",
       vent: "300",         // la ventana de la curva: 5 min, que es la de la subida
+      /* CÓMO SE ORDENA LA LISTA DE ABAJO. Con una medida puesta —kilómetros,
+         desnivel, tiempo— la pregunta ya no es «qué hice en marzo» sino
+         «cuáles fueron las más largas», así que manda la medida y no el
+         calendario. «fecha» devuelve el orden de siempre, por meses. */
+      orden: "valor",
       dia: null,           // el día desplegado en la lista de Pasos
       pidiendoDias: false,
       el: null
@@ -972,6 +977,54 @@
        y se salía sin pintar nada. Se llena al construir la lista, así que
        funciona con cualquier formato de clave, presente o futuro. */
     var fichasPintadas = {};
+
+    /* ---------- ir a una salida concreta ----------
+       La clave con la que se pinta una ficha es POSICIONAL («2024-03-7»), así
+       que depende de qué lista esté puesta y no sirve para guardar a qué
+       actividad apunta un banner. Esta referencia sí: el id de Strava cuando
+       lo hay, y si no la fecha con el deporte y el nombre. */
+    function refDe(x) {
+      if (!x) return "";
+      if (x.id) return "id:" + x.id;
+      return "f:" + String(x.fecha || "").slice(0, 10) + "|" + (x.dep || "") + "|" + (x.nombre || "");
+    }
+
+    /* Abre la ficha de esa salida si está entre las pintadas ahora mismo. */
+    function abrirPintada(ref) {
+      var clave = null, k;
+      for (k in fichasPintadas) {
+        if (!fichasPintadas.hasOwnProperty(k)) continue;
+        if (refDe(fichasPintadas[k]) === ref) { clave = k; break; }
+      }
+      if (!clave) return false;
+      estado.abierta = clave;
+      pintar();
+      var fila = estado.el && estado.el.querySelector('[data-abre="' + clave + '"]');
+      if (fila && fila.scrollIntoView) fila.scrollIntoView({ block: "center", behavior: "smooth" });
+      return true;
+    }
+
+    /* Pulsar el banner del récord: llevar a LA SALIDA, con su ficha abierta.
+       Primero se prueba con su mes puesto —es lo que deja la lista más corta—
+       y, si esa medida no pinta por meses, se reintenta con el año entero. */
+    function irAlRecord(ref) {
+      if (!ref) return;
+      var x = null, i;
+      for (i = 0; i < todas.length; i++) {
+        if (refDe(todas[i]) === ref) { x = todas[i]; break; }
+      }
+      if (!x) return;
+      var f = String(x.fecha || "").slice(0, 10);
+      estado.anio = f.slice(0, 4);
+      estado.mes = f.slice(5, 7);
+      estado.dia = null;
+      estado.abierta = null;
+      pintar();
+      if (abrirPintada(ref)) return;
+      estado.mes = null;
+      pintar();
+      abrirPintada(ref);
+    }
 
     /* ---------- los días, para las medidas que no salen de las actividades ----------
 
@@ -1187,18 +1240,50 @@
     /* Las salidas que entran en una medida de desempeño, de mejor a peor: la
        lista de abajo contesta «¿cuáles fueron?», que es lo que uno mira
        después de ver el techo del año. */
+    /* El número de UNA salida para la medida puesta, con los mismos apaños que
+       usa el resto: el campo de repuesto y el divisor de las horas. */
+    function valorDe(m, x) {
+      if (!m || !m.campo || !x) return null;
+      var v = x[m.campo];
+      if (v == null && m.campo2) v = x[m.campo2];
+      if (v == null) return null;
+      return m.div ? v / m.div : v;
+    }
+
     function mejoresDe(y, mm, m) {
       var meses = porAnio[y] || {}, out = [];
       (mm ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
         (meses[k] || []).forEach(function (x) {
           if (!activo(FAMILIA[x.dep] || "sala")) return;
           if (!cuentaPara(m, x)) return;
-          if (x[m.campo] == null) return;
+          if (valorDe(m, x) == null) return;
           out.push(x);
         });
       });
-      out.sort(function (a, b) { return b[m.campo] - a[m.campo]; });
+      out.sort(function (a, b) { return valorDe(m, b) - valorDe(m, a); });
       return out;
+    }
+
+    /* ¿Esta medida se puede usar para ordenar la lista? Sólo si cada salida
+       tiene un número suyo. «Sesiones» no: todas valen uno. */
+    function ordenable(m) {
+      return !!(m && m.fuente === "act" && m.campo);
+    }
+
+    /* El rótulo del botón, en cristiano y para cada medida. */
+    var ORDEN_TXT = { km: "Las más largas", d: "Las de más desnivel",
+                      min: "Las de más tiempo", c: "Las más duras",
+                      kcal: "Las de más calorías" };
+
+    function htmlOrden(m) {
+      if (!ordenable(m)) return "";
+      var porValor = estado.orden !== "fecha";
+      return '<div class="akhb-orden">' +
+        '<button type="button" class="akhb-ord' + (porValor ? " sel" : "") +
+          '" data-orden="valor">' + esc(ORDEN_TXT[m.id] || ("Las de más " + m.nom.toLowerCase())) + "</button>" +
+        '<button type="button" class="akhb-ord' + (porValor ? "" : " sel") +
+          '" data-orden="fecha">Por fecha</button>' +
+        "</div>";
     }
 
     /* Los kilos de un tramo, repartidos por bloque muscular. Cada ejercicio
@@ -1384,7 +1469,36 @@
     /* El estilo del bloque viaja DENTRO del módulo y no en la hoja de la app:
        es lo único que estrena esta versión, y así se publica un fichero en vez
        de dos y no hay manera de que una hoja desfasada lo deje sin pintar. */
+    /* El estilo del selector de orden y del puesto. Va en el módulo y no en la
+       hoja de la app, por lo mismo que el del resumen: así el módulo se puede
+       probar suelto y no hay dos ficheros que actualizar a la vez. */
+    function estiloOrden() {
+      if (document.getElementById("akhb-css-orden")) return;
+      var e = document.createElement("style");
+      e.id = "akhb-css-orden";
+      e.textContent = [
+        ".akhb-orden{display:flex;gap:8px;margin:2px 0 12px;flex-wrap:wrap}",
+        ".akhb-ord{border:1px solid var(--azul-borde,#dbe4ee);background:var(--fondo-tarjeta,#fff);" +
+          "color:var(--gris,#5b6b7c);border-radius:999px;padding:7px 14px;font:inherit;" +
+          "font-size:13px;font-weight:600;cursor:pointer}",
+        ".akhb-ord.sel{background:var(--azul-hondo,#16324f);border-color:var(--azul-hondo,#16324f);color:#fff}",
+        /* El puesto: un número pequeño delante de la fila. Sin círculo de
+           color, que ya lo lleva la tira de la familia justo al lado. */
+        /* La fila es una rejilla de cuatro columnas (tira, día, texto, flecha).
+           Con puesto son cinco, y hay que decirlo aquí: meter un hijo más sin
+           tocar la rejilla descoloca la fila entera. Se vio en la prueba. */
+        ".akhb-fila.akhb-con-puesto{grid-template-columns:6px 24px 42px 1fr 14px}",
+        ".akhb-puesto{text-align:right;font-size:13px;font-weight:800;" +
+          "color:var(--akhb-gris,#8aa0b5);font-variant-numeric:tabular-nums}",
+        "@media (prefers-color-scheme:dark){" +
+          ".akhb-ord{background:#1d2732;border-color:#2b3a49;color:#9fb0c1}" +
+          ".akhb-ord.sel{background:#e8eef5;border-color:#e8eef5;color:#16324f}}"
+      ].join("");
+      document.head.appendChild(e);
+    }
+
     function estiloResumen() {
+      estiloOrden();
       if (document.getElementById("akhb-css-resumen")) return;
       var e = document.createElement("style");
       e.id = "akhb-css-resumen";
@@ -1476,7 +1590,7 @@
         return v.length === 1 ? v[0] : null;
       }());
 
-      function casilla(rot, val, pie, anio, fam, fuerte) {
+      function casilla(rot, val, pie, anio, fam, fuerte, ref) {
         var g = fam || solaFam;
         var col = g ? colorG(g) : null;
         /* Sólo UNA tarjeta va rellena —la del récord, que es la que dice algo
@@ -1485,15 +1599,23 @@
         var est = fuerte && col
           ? "background:color-mix(in srgb, " + col + " 82%, #16324f)"
           : (col ? "background:color-mix(in srgb, " + col + " 9%, var(--fondo-tarjeta,#fff))" : "");
-        return '<' + (anio ? 'button type="button" data-anio="' + anio + '"' : "div") +
-          ' class="akhb-res-c' + (anio ? " pulsa" : "") + (fuerte && col ? " fuerte" : "") +
+        /* La del récord no lleva al año: lleva A LA SALIDA. Pulsar «212 km» y
+           que sólo cambie el selector de años deja el trabajo a medias —el
+           récord es una salida concreta y lo que se quiere es abrir su ficha—.
+           Por eso manda `ref` sobre `anio` cuando viene. */
+        var pulsable = ref || anio;
+        return '<' + (pulsable
+            ? 'button type="button" ' + (ref ? 'data-rec="' + esc(ref) + '"'
+                                             : 'data-anio="' + anio + '"')
+            : "div") +
+          ' class="akhb-res-c' + (pulsable ? " pulsa" : "") + (fuerte && col ? " fuerte" : "") +
           '"' + (est ? ' style="' + est + '"' : "") + ">" +
           '<span class="akhb-res-r">' + esc(rot) + "</span>" +
           '<b class="akhb-res-v">' + val + "</b>" +
           (pie ? '<span class="akhb-res-p">' +
                  (fam ? '<i class="akhb-res-pt" style="background:' + col + '"></i>' : "") +
                  esc(pie) + "</span>" : "") +
-          "</" + (anio ? "button" : "div") + ">";
+          "</" + (pulsable ? "button" : "div") + ">";
       }
 
       var h = '<div class="akhb-resumen">';
@@ -1517,7 +1639,8 @@
                      (fam ? fam + " · " : "") + fechaCorta(rec.x.fecha) +
                      (rec.x.nombre ? " · " + rec.x.nombre : ""),
                      String(rec.x.fecha || "").slice(0, 4),
-                     FAMILIA[rec.x.dep] || "sala", true);
+                     FAMILIA[rec.x.dep] || "sala", true,
+                     refDe(rec.x));
       } else {
         h += casilla("Récord", "—", "no se mide por salida");
       }
@@ -1713,15 +1836,17 @@
       return d.join(" · ");
     }
 
-    function htmlFila(x, clave) {
+    function htmlFila(x, clave, puesto) {
       fichasPintadas[clave] = x;          // ver `fichasPintadas` arriba
       var d = new Date(x.fecha + "T12:00:00");
       var abierta = estado.abierta === clave;
       return '<li class="akhb-item">' +
-        '<button type="button" class="akhb-fila" data-abre="' + clave + '" ' +
+        '<button type="button" class="akhb-fila' + (puesto ? " akhb-con-puesto" : "") +
+          '" data-abre="' + clave + '" ' +
           'aria-expanded="' + abierta + '">' +
           '<span class="akhb-tira" style="background:var(--akhb-fam-' +
             (FAMILIA[x.dep] || "sala") + ')"></span>' +
+          (puesto ? '<span class="akhb-puesto">' + puesto + "</span>" : "") +
           '<span class="akhb-dia"><b>' + d.getDate() + "</b>" +
             "<i>" + MES_CORTO[d.getMonth()] + "</i></span>" +
           '<span class="akhb-txt">' +
@@ -1945,13 +2070,19 @@
       if (metricaActual().fuente === "fuerza") return htmlFuerza();
       if (metricaActual().fuente === "curva") return htmlCurva();
       if (metricaActual().acumula === false) return htmlMejores();
+      /* Con una medida puesta, la lista va ordenada POR ESA MEDIDA. Elegir
+         Desnivel y bici de calle y que abajo salgan las salidas por orden de
+         calendario deja la pregunta sin contestar: lo que se quiere ver es
+         cuáles subieron más. El orden por fecha sigue a un botón de distancia. */
+      if (ordenable(metricaActual()) && estado.orden !== "fecha") return htmlPorValor();
 
       var m = porAnio[estado.anio] || {};
       var meses = estado.mes ? [estado.mes] : Object.keys(m).sort();
       if (!meses.length) {
-        return '<p class="akhb-nada">No hay actividades registradas en ' + estado.anio + ".</p>";
+        return htmlOrden(metricaActual()) +
+               '<p class="akhb-nada">No hay actividades registradas en ' + estado.anio + ".</p>";
       }
-      var h = "";
+      var h = htmlOrden(metricaActual());
       meses.forEach(function (mm) {
         var lista = actsDe(estado.anio, mm);
         if (!lista.length) return;
@@ -1969,6 +2100,29 @@
                            : " no tiene ninguna actividad.") + "</p>";
       }
       return h;
+    }
+
+    /* ---------- la lista ordenada por la medida ----------
+       Las mismas filas de siempre, pero de más a menos y con su puesto delante,
+       para que se vea de un golpe cuál fue la más dura del año. */
+    function htmlPorValor() {
+      var m = metricaActual();
+      var lista = mejoresDe(estado.anio, estado.mes, m);
+      var cab = htmlOrden(m);
+      if (!lista.length) {
+        return cab + '<p class="akhb-nada">' +
+          (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio : estado.anio) +
+          " no tiene ninguna salida con " + esc(m.nom.toLowerCase()) +
+          (estado.fam ? " de lo que has dejado encendido" : "") + ".</p>";
+      }
+      var d = reparto(estado.anio, estado.mes, m);
+      var h = cab + '<h4 class="akhb-titmes">' +
+        (estado.mes ? MES[parseInt(estado.mes, 10) - 1] : "El año entero") +
+        " <span>" + num(d.n, m.dec) + m.suf + " · " + lista.length +
+        (lista.length === 1 ? " salida" : " salidas") + "</span></h4>" +
+        '<ul class="akhb-lista">';
+      lista.forEach(function (x, i) { h += htmlFila(x, estado.anio + "-v" + i, i + 1); });
+      return h + "</ul>";
     }
 
     /* ---------- la lista de la curva ----------
@@ -2771,8 +2925,14 @@
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest
-        ? e.target.closest("[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent]") : null;
+        ? e.target.closest("[data-rec],[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent],[data-orden]") : null;
       if (!t || !estado.el.contains(t)) return;
+      if (t.hasAttribute("data-rec")) { irAlRecord(t.getAttribute("data-rec")); return; }
+      if (t.hasAttribute("data-orden")) {
+        estado.orden = t.getAttribute("data-orden");
+        estado.abierta = null;
+        pintar(); return;
+      }
       if (t.hasAttribute("data-met")) {
         var nueva = t.getAttribute("data-met");
         if (nueva !== estado.metrica) {
