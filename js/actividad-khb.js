@@ -1991,9 +1991,16 @@
          esto se calla solo. */
       function rutinaPrevistaHTML(x, series) {
         if (!series || !series.length) return "";
+        /* EL HUECO LLEGA CON TRES NOMBRES DISTINTOS y los tres significan lo
+           mismo: el reloj no supo qu\u00e9 ejercicio era. Vac\u00edo cuando el dato no
+           viene, \u00abUNKNOWN\u00bb cuando lo manda el FIT tal cual, y \u00absin
+           identificar\u00bb cuando lo escribe as\u00ed la importaci\u00f3n. El 21-sep-2026
+           esto s\u00f3lo miraba los dos primeros, y por eso el bloque no sali\u00f3
+           nunca en las sesiones que ven\u00edan del tercero. */
         var falta = series.every(function (e) {
           var q = String((e && e.que) || "").toUpperCase();
-          return !q || q === "UNKNOWN";
+          return !q || q === "UNKNOWN" ||
+                 /IDENTIFIC|DESCONOCID|SIN NOMBRE/.test(q);
         });
         if (!falta) return "";
         var E = global.KHBEntreno;
