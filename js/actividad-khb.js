@@ -349,12 +349,15 @@
     return mej ? mej.n : null;
   }
 
-  /* La celda del archivo («+81_-008») es la posición redondeada a medio grado:
-     vale de sobra para saber la provincia cuando no hay trazo que mirar. */
+  /* La celda («+80_-008») es la ESQUINA de un cuadro de medio grado, no un
+     punto. Se leía como si fuera la posición, y medio grado de desfase en un
+     borde provincial te cambia de provincia: 293 de las 732 rutas salían mal
+     —95 en Toledo siendo Madrid, 33 en Huesca siendo Francia—. Devolviendo el
+     CENTRO del cuadro bajan a 118; el resto lo arregla usar la caja. */
   function celdaACoord(c) {
     var m = /^([+-]?\d+)_([+-]?\d+)$/.exec(String(c || ""));
     if (!m) return null;
-    return [parseInt(m[1], 10) / 2, parseInt(m[2], 10) / 2];
+    return [parseInt(m[1], 10) / 2 + 0.25, parseInt(m[2], 10) / 2 + 0.25];
   }
 
   var DENTRO = { rod: true, fue: true };
@@ -796,8 +799,9 @@
     var alBorrar = typeof o.alBorrar === "function" ? o.alBorrar : null;
 
     /* índice de rutas por fecha, para clasificar y para el mapa de las nuevas */
-    var rutaPorFecha = {}, fechasSen = {};
+    var rutaPorFecha = {}, fechasSen = {}, rutaPorId = {};
     rutas.forEach(function (r) {
+      if (r.id) rutaPorId[r.id] = r;
       var f = String(r.f || "");
       if (f.length !== 8) return;
       var iso = f.slice(0, 4) + "-" + f.slice(4, 6) + "-" + f.slice(6);
@@ -891,6 +895,26 @@
         var t = trazos[x.id];
         if (!t) return;
         if (t.h && !x.perfil) x.perfil = t.h;
+        /* Un resumen de altura puede venir corrupto: una salida por Madrid
+           traía alt_min = -500 con el perfil sano entre 649 y 686. Se toca
+           SÓLO cuando el resumen se contradice a sí mismo —su rango de altura
+           es mayor que todo lo que subió y bajó junto—, que es una imposibilidad
+           física y no una discrepancia cualquiera.
+           No vale disparar con «el perfil dice otra cosa»: el perfil va
+           simplificado a 90 puntos y en montaña se queda corto, y con ese
+           criterio se estropeaban cuatro caminatas buenas. */
+        if (x.altMin != null && x.altMax != null) {
+          var sube = Math.abs(x.desnivel || 0) + Math.abs(x.desnivelNeg || 0);
+          if ((x.altMax - x.altMin) > sube + 50) {
+            var alts = x.perfil ? decodificarPerfil(x.perfil) : [];
+            if (alts.length) {
+              x.altMin = Math.min.apply(null, alts);
+              x.altMax = Math.max.apply(null, alts);
+            } else { x.altMin = null; x.altMax = null; }
+            /* la pendiente máxima salía de la misma muestra mala */
+            x.pendMax = null;
+          }
+        }
         if (x.ruta || x.poli) return;
         x.poli = t.p || null;
         /* El nombre de Strava suele ser mejor que el de intervals: «MTB por el
@@ -1599,7 +1623,12 @@
         }());
       /* La zona sale de la celda, que es lo que se sabe antes de pedir el
          trazo; cuando el trazo llega, se recalcula con el centro de verdad. */
-      var cc = celdaACoord(x.celda);
+      /* La caja de la ruta manda sobre la celda: son coordenadas de verdad,
+         con cinco decimales, en vez de un cuadro de medio grado. */
+      var rr = x.ruta ? rutaPorId[x.ruta] : null;
+      var cc = (rr && rr.b && rr.b.length === 4)
+        ? [(rr.b[0] + rr.b[2]) / 2, (rr.b[1] + rr.b[3]) / 2]
+        : celdaACoord(x.celda);
       var lugar = rotuloLugar(lugarDe(x.nombre), cc ? zonaDe(cc[0], cc[1]) : null);
       /* ---------- las pesas ----------
          Lo que hizo de verdad, ejercicio a ejercicio. Los kilos son el MÁXIMO
