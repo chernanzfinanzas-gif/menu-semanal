@@ -551,7 +551,12 @@
     // [ qué palabras, {zona: parte del trabajo} ]
     [["curl de muñeca","estiramiento de antebrazos"], {antebrazo:1}],
     [["curl"],                      {biceps:.75, antebrazo:.25}],
-    [["dominadas","jalón","jalon"], {dorsal:.55, biceps:.25, trapecio:.2}],
+    /* «Jalón a la cara» es un face pull, no un jalón de espalda: tira con los
+       codos altos hacia la cara y se lo llevan hombro y trapecio. Va antes que
+       el jalón de verdad, que si no lo captura por la palabra «jalón». */
+    [["jalón a la cara","jalon a la cara","jalones a la cara",
+      "jalón facial","jalon facial"],   {hombro:.5, trapecio:.5}],
+    [["dominadas","jalón","jalon"],     {dorsal:.55, biceps:.25, trapecio:.2}],
     /* El remo vertical NO es un remo de espalda: es un tirón al mentón, y se lo
        llevan trapecio y hombro. Va antes que «remo» o lo captura el de abajo. */
     [["remo vertical","remo al mentón","remo al menton"], {trapecio:.5, hombro:.5}],

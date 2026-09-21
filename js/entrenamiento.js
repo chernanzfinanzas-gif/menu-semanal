@@ -85,6 +85,10 @@
       ".mv-fila-n{font-size:1.02rem;color:var(--azul-hondo);font-weight:700}",
       ".mv-fila-d{font-size:12px;color:var(--gris)}",
       ".mv-hoy{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d5b}",
+      /* Los shorts son verticales: 9/16, y con tope para que quepa en pantalla. */
+      ".vid-caja{position:relative;width:100%;max-width:340px;aspect-ratio:9/16;max-height:66vh;" +
+        "margin:10px auto;border-radius:12px;overflow:hidden;background:#000}",
+      ".vid-caja iframe{position:absolute;inset:0;width:100%;height:100%;border:0}",
       "@media (prefers-color-scheme:dark){.mat-da,.mov-musc{color:#9fb0c1}}",
       /* la pestaña: azul siempre, más fuerte cuando está abierta */
       '#pestanas [data-vista="entreno"]{color:#7d9cbb}',
@@ -1916,6 +1920,10 @@
   function cerrarGuia() {
     var modal = document.getElementById("modal");
     if (modal) modal.classList.remove("abierta");
+    /* Sin esto el vídeo se queda sonando detrás de la ventana cerrada: quitar
+       la clase lo esconde, pero el iframe sigue vivo. */
+    var caja = document.getElementById("modal-caja");
+    if (caja && caja.querySelector && caja.querySelector("iframe")) caja.innerHTML = "";
   }
 
   /* ==================== EVOLUCIÓN ====================
@@ -5159,6 +5167,38 @@
 
   /* Del texto del plan («Fuerza A + caminar») a la rutina. Mira el nombre
      completo para no confundir «Fuerza A» con «Fuerza B». */
+  /* El vídeo se abre DENTRO de la app, en la ventana de siempre. Mandarlo a
+     YouTube funcionaba, pero al cerrarlo te quedabas allí y había que volver a
+     mano — y en mitad de un descanso de 75 segundos eso es la fricción que
+     hace que dejes de mirarlos. */
+  function idDeYoutube(url) {
+    var m = String(url || "").match(/(?:shorts\/|embed\/|v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    return m ? m[1] : null;
+  }
+
+  function abrirVideo(nombre) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    var url = VIDEOS[nombre];
+    if (!caja || !modal || !url) return;
+    var id = idDeYoutube(url);
+
+    var h = "<header><h2>" + U.esc(nombre) + "</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">\u00d7</button></header>';
+    if (id) {
+      h += '<div class="vid-caja"><iframe src="https://www.youtube-nocookie.com/embed/' + id +
+        '?rel=0&amp;playsinline=1" title="" frameborder="0" loading="lazy" ' +
+        'allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" ' +
+        "allowfullscreen></iframe></div>";
+    }
+    h += '<p class="nota-peque">Si no se ve aqu\u00ed es que su autor no permite incrustarlo: ' +
+      '<a href="' + U.esc(url) + '" target="_blank" rel="noopener">\u00e1brelo en YouTube</a>.</p>' +
+      '<button class="btn principal" type="button" data-cerrar-guia="1" ' +
+      'style="width:100%;margin-top:14px">Cerrar</button>';
+
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
+  }
+
   function rutinaDeTexto(t) {
     var x = String(t || "").toLowerCase();
     for (var i = 0; i < SESIONES.length; i++) {
@@ -5356,8 +5396,8 @@
 
       h += '<div class="mov-linea' + (falta.length ? " mov-no" : "") + '">' +
         '<div class="mov-n"><b>' + U.esc(m.n) + "</b>" +
-          (VIDEOS[m.n] ? ' <a href="' + U.esc(VIDEOS[m.n]) + '" target="_blank" rel="noopener"' +
-                         ' class="nota-peque">cómo se hace ↗</a>' : "") + "</div>" +
+          (VIDEOS[m.n] ? ' <button type="button" class="ent-comose" data-video="' +
+                         U.esc(m.n) + '">cómo se hace</button>' : "") + "</div>" +
         '<div class="mov-musc">' + dosis + "</div>" +
         (m.nota ? '<div class="mov-musc">' + U.esc(m.nota) + "</div>" : "") +
         (m.garmin ? '<div class="nota-peque">En el reloj: «' + U.esc(m.garmin) + "»</div>" : "") +
@@ -6038,6 +6078,9 @@
       if (mvIr) { matVista = mvIr.getAttribute("data-mv"); matEditando = null; pintar(); return; }
       var mvAt = t.closest ? t.closest("[data-mv-atras]") : null;
       if (mvAt) { matVista = null; matEditando = null; pintar(); return; }
+
+      var verV = t.closest ? t.closest("[data-video]") : null;
+      if (verV) { abrirVideo(verV.getAttribute("data-video")); return; }
 
       /* desde el plan, directo a la ficha de la rutina del día */
       var verR = t.closest ? t.closest("[data-ver-rutina]") : null;
