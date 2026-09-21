@@ -321,7 +321,16 @@
          la marca y no se vuelve a mirar. */
       if (!e.config.v_prot18) {
         var _po = (e.perfil && (e.perfil.pesoObjetivo || e.perfil.peso)) || 0;
-        if (_po && e.config.objetivoProt === Math.round(_po * 1.6)) {
+        /* Se sube en dos casos, y sólo en esos dos:
+             · lo guardado es clavado a lo que salía con 1,6 (128 con 80 kg);
+             · o sigue en el 90 de fábrica, que es el valor con el que nace la
+               app antes de que haya perfil. El 21-sep-2026 se vio que el de
+               Carlos seguía ahí —nunca llegó a pulsar «usar el sugerido»—, así
+               que la ficha le contaba la proteína contra 90 g y salía 150 %
+               cuando en realidad iba justo.
+           Cualquier otro número es uno que él puso a mano, y no se toca. */
+        if (_po && (e.config.objetivoProt === Math.round(_po * 1.6) ||
+                    e.config.objetivoProt === 90)) {
           e.config.objetivoProt = Math.round(_po * 1.8);
         }
         e.config.v_prot18 = 1;

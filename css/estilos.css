@@ -105,9 +105,12 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 @media(min-width:1040px){.rejilla-dias{grid-template-columns:1fr 1fr 1fr}}
 
 .dia{background:var(--blanco); border:1px solid var(--borde); border-radius:var(--radio); overflow:hidden; box-shadow:var(--sombra)}
-.dia > header{display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--borde)}
+/* `wrap` desde el 21-sep-2026: con el chip de la diferencia son cuatro, y en
+   la vista de semana a dos columnas el de la sal se salía del borde y quedaba
+   cortado por la mitad. Ahora baja a la línea siguiente en vez de perderse. */
+.dia > header{display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; padding:10px 12px; border-bottom:1px solid var(--borde)}
 .dia > header .nombre{font-weight:650}
-.dia > header .fecha{color:var(--gris); font-size:.78rem; flex:1}
+.dia > header .fecha{color:var(--gris); font-size:.78rem; flex:1 1 auto; min-width:0}
 .dia.hoy > header{background:var(--verde-claro)}
 .chip-sal{font-size:.74rem; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap}
 .chip-sal.verde{background:var(--verde-claro); color:var(--verde)}
@@ -250,6 +253,11 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 /* El porcentaje del objetivo, al lado de los gramos. Sin color cuando cuadra:
    si los cuatro salieran de colores, ninguno llamaría la atención. */
 .macros i{font-style:normal; font-weight:700; margin-left:2px}
+/* El rótulo que dice de qué va la fila. Sin él los cuatro números no explican
+   contra qué se comparan, y así era imposible leerlos. */
+.macros .rotulo{flex:0 0 100%; color:var(--gris); font-size:.7rem;
+                text-transform:uppercase; letter-spacing:.04em; margin-bottom:1px}
+.macros .meta{color:var(--gris); font-weight:400}
 .macros i.bien{color:var(--verde)}
 .macros i.corto{color:var(--ambar)}
 .macros i.pasa{color:var(--rojo)}

@@ -333,8 +333,11 @@
         });
         html += '<button class="btn principal mini rellenar-dia" data-completar="' + fecha + '" ' +
                 'title="Elige platos para cuadrar con las calorías del día">Completar</button>';
-        html += '<button class="btn mini" data-rellenar="' + fecha + '" ' +
-                'title="Copia lo que toque de la plantilla, sin mirar calorías">Plantilla</button>';
+        /* El botón «Plantilla» de cada día se quitó el 21-sep-2026: Carlos no hace
+           plantillas de un solo día, así que copiar la plantilla día a día no le
+           servía para nada y robaba sitio en una cabecera que ya lleva cuatro
+           chips. La semana entera se sigue rellenando desde «Copiar plantilla»,
+           arriba. El manejador de `data-rellenar` se queda por si vuelve. */
         html += '</div>';
       }
 
@@ -389,6 +392,7 @@
         html += '<div class="resumen-dia">' +
                   (objetivo ? '<div class="barra"><span class="relleno ' + colorK + '" style="width:' + pct + '%"></span></div>' : '') +
                   '<div class="macros">' +
+                    '<span class="rotulo">Lo puesto, contra el objetivo del d\u00eda</span>' +
                     macro("P", nutr.p, obj.p, "corto") +
                     macro("G", nutr.g, obj.g, "ambos") +
                     macro("H", nutr.h, obj.h, "ambos") +
@@ -399,7 +403,7 @@
                                'lo estimado al ' + Math.round(devEj * 100) + '% y lo previsto a la mitad">+' +
                                Math.round(subeEntreno) + ' del entreno</span>' : '') +
                     (hayComido
-                      ? '<span class="comido-hasta">Llevas ' + Util.kcal(nutrCom.k) + '</span>'
+                      ? '<span class="comido-hasta">Ya comido: ' + Util.kcal(nutrCom.k) + '</span>'
                       : (objetivo ? '<span class="comido-hasta">Objetivo ' + Util.kcal(objetivo) + '</span>' : '')) +
                   '</div>' +
                 '</div>';
@@ -658,8 +662,12 @@
     var cl = "bien";
     if (p < 90) cl = "corto";
     else if (p > 110 && aviso === "ambos") cl = "pasa";
-    return '<span title="objetivo ' + meta + ' g"><b>' + letra + '</b> ' + g +
-           ' g <i class="' + cl + '">' + p + '%</i></span>';
+    /* SE ENSEÑA EL OBJETIVO AL LADO, no sólo el porcentaje. Carlos, 21-sep-2026:
+       «no entiendo ese cuadro». Un «150 %» suelto no dice de qué, y encima
+       invitaba a leerlo como una nota cuando es una proporción. «135/144 g»
+       se entiende sin explicación. */
+    return '<span><b>' + letra + '</b> ' + g + '<span class="meta">/' + meta +
+           ' g</span> <i class="' + cl + '">' + p + '%</i></span>';
   }
 
   /* La sal es al revés que todo lo demás: aquí el 100 % no es la meta, es el
@@ -667,8 +675,9 @@
   function macroSal(hay, meta) {
     if (!meta) return "";
     var p = Math.round((hay || 0) / meta * 100);
-    return '<span title="aviso a partir de ' + meta + ' g"><b>Sal</b> ' + Util.sal(hay) +
-           ' <i class="' + (p > 100 ? "pasa" : "bien") + '">' + p + '%</i></span>';
+    return '<span><b>Sal</b> ' + Util.sal(hay).replace(" g", "") +
+           '<span class="meta">/' + String(meta).replace(".", ",") + ' g</span> ' +
+           '<i class="' + (p > 100 ? "pasa" : "bien") + '">' + p + '%</i></span>';
   }
 
   /* LO QUE FALTA O LO QUE SOBRA, EN LA CABECERA DEL DÍA.
