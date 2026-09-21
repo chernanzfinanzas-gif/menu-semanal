@@ -76,6 +76,29 @@
       ".mov-musc{font-size:12px;color:#6b7c8d;margin-top:2px}",
       ".mov-ojo{color:#b06a16}",
       ".mov-falta{font-size:12px;color:#b03030;margin-top:2px}",
+      /* Los bloques de la portada de Material y movimientos. Cuadrados a
+         propósito: se tocan con el pulgar y se distinguen de un vistazo. */
+      ".mv-rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));" +
+        "gap:10px;margin:12px 0}",
+      ".mv-bloque{aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;" +
+        "align-items:center;gap:4px;text-align:center;padding:14px;cursor:pointer;" +
+        "background:var(--fondo-tarjeta,#fff);border:1px solid var(--azul-borde);" +
+        "border-radius:14px;font:inherit;color:inherit}",
+      ".mv-bloque:active{transform:scale(.98)}",
+      ".mv-bloque b{font-size:1.05rem;color:var(--azul-hondo)}",
+      ".mv-dato{font-size:12px;color:#6b7c8d}",
+      ".mv-pie{font-size:12px;font-weight:600;color:var(--verde,#2e7d5b);margin-top:2px}",
+      /* Las rutinas: filas anchas, que lo que importa es el nombre y cuándo. */
+      ".mv-fila{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;" +
+        "padding:12px 0;border-bottom:1px solid var(--azul-borde);background:none;border-left:0;" +
+        "border-right:0;border-top:0;text-align:left;cursor:pointer;font:inherit;color:inherit}",
+      ".mv-fila:last-child{border-bottom:0}",
+      ".mv-fila-n{font-size:1.02rem}",
+      ".mv-fila-d{font-size:12px;color:#6b7c8d}",
+      ".mv-hoy{font-size:11px;text-transform:uppercase;letter-spacing:.06em;" +
+        "color:var(--verde,#2e7d5b)}",
+      "@media (prefers-color-scheme:dark){.mv-bloque{background:#1d2732}" +
+        ".mv-dato,.mv-fila-d{color:#9fb0c1}}",
       "@media (prefers-color-scheme:dark){.mat-da,.mov-musc{color:#9fb0c1}}",
       /* la pestaña: azul siempre, más fuerte cuando está abierta */
       '#pestanas [data-vista="entreno"]{color:#7d9cbb}',
@@ -4957,6 +4980,26 @@
   var NOMBRE_BLOQUE = { empuje: "Empujar", tiron: "Tirar", pierna: "Pierna", centro: "Centro" };
   var ORDEN_BLOQUE = ["empuje", "tiron", "pierna", "centro"];
 
+  /* Qué se está mirando dentro de Material y movimientos: null es la portada
+     con los bloques, y lo demás es una subpantalla. El material dejó de verse
+     al abrir porque es lo que menos se consulta: se mira una vez al mes. */
+  var matVista = null;   /* null | "material" | "movimientos" | "rutinas" | "A" | "B" */
+
+  /* El grupo de cada cosa se DEDUCE de lo que permite, no se guarda. Así la
+     lista que ya tiene guardada se agrupa sola, sin migrar nada. */
+  var GRUPOS_MAT = [
+    { n: "Peso libre",              da: ["mancuerna", "rusa", "lastre"] },
+    { n: "Gomas",                   da: ["tubo", "anilla", "plana", "goma"] },
+    { n: "D\u00f3nde apoyarse y anclar", da: ["apoyo", "esterilla", "alto", "anclaje", "tobillera"] }
+  ];
+  function grupoDe(m) {
+    var da = m.da || [];
+    for (var i = 0; i < GRUPOS_MAT.length; i++) {
+      for (var j = 0; j < da.length; j++) if (GRUPOS_MAT[i].da.indexOf(da[j]) >= 0) return GRUPOS_MAT[i].n;
+    }
+    return "Otros";
+  }
+
   /* estado de edición del material: null, "nuevo", o el id que se está tocando */
   var matEditando = null;
 
@@ -5067,7 +5110,7 @@
      El reparto: cada día lleva pierna, empuje y tirón —cuerpo entero— y entre
      los dos días se cubren el horizontal y el vertical de cada patrón. */
   var SESIONES = [
-    { id: "A", n: "Fuerza A", dia: 1, diaTxt: "lunes", mov: [
+    { id: "A", n: "Fuerza A", dia: 1, diaTxt: "lunes", min: 25, mov: [
       { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
       { n: "Press de banca",      s: 2, r: "12",          kg: 15, nota: "Sentado en el suelo, espalda contra la silla",
         garmin: "Press de banca inclinada con mancuernas" },
@@ -5079,7 +5122,7 @@
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
     ]},
-    { id: "B", n: "Fuerza B", dia: 4, diaTxt: "jueves", mov: [
+    { id: "B", n: "Fuerza B", dia: 4, diaTxt: "jueves", min: 25, mov: [
       { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 15,
         nota: "Bisagra de cadera: el culo atr\u00e1s, la espalda recta y la mancuerna rozando la pierna" },
       { n: "Press de hombros",    s: 2, r: "12",          kg: 15, nota: "Sin bloquear el aire",
@@ -5097,7 +5140,9 @@
   /* Los enlaces a v\u00eddeo van aqu\u00ed, por nombre de movimiento. Vac\u00edo de momento:
      se van a\u00f1adiendo cuando encuentre uno que le valga, y entonces aparece el
      enlace en su l\u00ednea. Uno por movimiento, no uno por sesi\u00f3n. */
-  var VIDEOS = {};
+  var VIDEOS = {
+    "Peso muerto rumano": "https://www.youtube.com/shorts/wfH61Y88fuo"
+  };
 
   /* Cuando el ejercicio se queda corto, por d\u00f3nde sigue. No es una sesi\u00f3n
      nueva: es el mismo hueco con m\u00e1s palanca. */
@@ -5124,89 +5169,100 @@
     return null;
   }
 
-  function htmlSesiones(s) {
-    var hoy = new Date().getDay();                 /* 0 domingo … 6 sábado */
-    var h = '<div class="tarjeta"><h3>Las dos sesiones</h3>' +
-      '<p class="nota-peque">Esta es <b>la rutina decidida</b>. Se cambia aqu\u00ed primero ' +
-      '\u2014 porque cambia por cosas de aqu\u00ed: que un peso se quede corto, que acabe ' +
-      'el corticoide, que llegue material nuevo, que empiece otra fase \u2014 y <b>despu\u00e9s ' +
-      'se copia a Garmin Connect</b>, que es lo que ejecuta el reloj. Si un d\u00eda no ' +
-      'coinciden, no hay duda de cu\u00e1l vale: es que falta pasar a Connect un cambio ' +
-      'ya decidido.</p>';
+  function htmlMaterial() {
+    var s = tengo();
+    if (matVista === "material")    return pantMaterial(s);
+    if (matVista === "movimientos") return pantMovimientos(s);
+    if (matVista === "rutinas")     return pantRutinas(s);
+    if (matVista === "A" || matVista === "B") return pantRutina(matVista, s);
+    return pantPortadaMat(s);
+  }
 
-    SESIONES.forEach(function (ses) {
-      var toca = (hoy === ses.dia);
-      h += '<h4 class="mov-tit">' + ses.n +
-           ' <span class="nota-peque">\u00b7 ' + ses.diaTxt + '</span>' +
-           (toca ? ' <b style="color:var(--verde)">\u2190 hoy</b>' : "") + "</h4>";
+  /* Cabecera común de las subpantallas: la flecha vuelve a los bloques, no al
+     plan, que es lo que uno espera cuando ha entrado dos niveles. */
+  function cabSub(titulo, bajada) {
+    return '<button type="button" class="ent-atras" data-mv-atras="1">' +
+      FLECHA + "Material y movimientos</button>" +
+      '<div class="tarjeta"><h2>' + U.esc(titulo) + "</h2>" +
+      (bajada ? '<p class="nota-peque">' + bajada + "</p>" : "") + "</div>";
+  }
+  function pieSub() {
+    return '<button type="button" class="ent-atras abajo" data-mv-atras="1">' +
+      FLECHA + "Material y movimientos</button>";
+  }
 
-      ses.mov.forEach(function (m) {
-        var mv = movPorNombre(m.n);
-        var falta = mv ? faltaPara(mv, s) : [];
-        /* La dosis en una línea: series, repeticiones y con qué. */
-        var dosis = m.s + " \u00d7 " + m.r;
-        if (m.kg)   dosis += " \u00b7 <b>" + m.kg + " kg</b>";
-        if (m.goma) dosis += " \u00b7 <b>goma de " + String(m.goma).replace(".", ",") + " kg</b>";
+  /* ---------- la portada: tres bloques y nada más ---------- */
+  function pantPortadaMat(s) {
+    var lista = mat();
+    var hechos = 0;
+    MOVIMIENTOS.forEach(function (mv) { if (!faltaPara(mv, s).length) hechos++; });
+    var hoy = new Date().getDay();
+    var toca = null;
+    SESIONES.forEach(function (x) { if (x.dia === hoy) toca = x; });
 
-        h += '<div class="mov-linea' + (falta.length ? " mov-no" : "") + '">' +
-          '<div class="mov-n"><b>' + U.esc(m.n) + "</b>" +
-            (VIDEOS[m.n] ? ' <a href="' + U.esc(VIDEOS[m.n]) + '" target="_blank" rel="noopener"' +
-                           ' class="nota-peque">c\u00f3mo se hace \u2197</a>' : "") + "</div>" +
-          '<div class="mov-musc">' + dosis + "</div>" +
-          (m.nota ? '<div class="mov-musc">' + U.esc(m.nota) + "</div>" : "") +
-          (m.garmin ? '<div class="nota-peque">En el reloj: \u00ab' + U.esc(m.garmin) + "\u00bb</div>" : "") +
-          (SIGUIENTE[m.n] ? '<div class="mov-musc">Cuando se quede corto: ' +
-                             U.esc(SIGUIENTE[m.n]) + "</div>" : "") +
-          (falta.length ? '<div class="mov-falta">Falta: ' + U.esc(falta.join(" + ")) + "</div>" : "") +
-          "</div>";
-      });
-    });
+    var h = '<button type="button" class="ent-atras" data-volver="1">' +
+      FLECHA + "Volver a Entrenamiento</button>" +
+      '<div class="tarjeta"><h2>Material y movimientos</h2>' +
+      '<p class="nota-peque">Lo que hay en casa, lo que se puede hacer con ello, ' +
+      'y las rutinas que salen de ahí.</p></div>';
 
-    /* ---- los tres niveles ---- */
-    h += '<h4 class="mov-tit">Qu\u00e9 tama\u00f1o de sesi\u00f3n</h4>';
-    NIVELES.forEach(function (nv) {
-      h += '<div class="mov-linea"><div class="mov-n"><b>' + nv.n + "</b>" +
-        '<span class="nota-peque"> \u2014 ' + U.esc(nv.q) + "</span></div>" +
-        '<div class="mov-musc">' + U.esc(nv.c) + "</div></div>";
-    });
+    h += '<div class="mv-rejilla">' +
+      bloqueMV("rutinas", "Rutinas", SESIONES.length + " · A y B",
+               toca ? "Hoy toca " + toca.n : "") +
+      bloqueMV("movimientos", "Movimientos", hechos + " de " + MOVIMIENTOS.length + " a mano", "") +
+      bloqueMV("material", "Material", lista.length + " cosas", "") +
+      "</div>";
 
-    h += '<div class="aviso" style="margin-top:12px"><b>Las tres de siempre:</b> ' +
-      'espirar en el esfuerzo y <b>nunca bloquear el aire</b>; ' +
-      'ni una repetici\u00f3n al fallo en los tres primeros meses; ' +
-      'y parar al primer s\u00edntoma de o\u00eddo. ' +
-      '<span class="nota-peque">Descanso de 1:15 entre series. Se sube peso cuando salen ' +
-      '12 repeticiones limpias en las tres series. La casilla de hecho <b>se marca sola</b> ' +
-      'cuando intervals trae la sesi\u00f3n que grabaste en el reloj.</span></div>';
-
-    h += "</div>";
+    h += '<button type="button" class="ent-atras abajo" data-volver="1">' +
+      FLECHA + "Volver a Entrenamiento</button>";
     return h;
   }
 
-  function htmlMaterial() {
-    var volver = '<button type="button" class="ent-atras" data-volver="1">' +
-      FLECHA + "Volver a Entrenamiento</button>";
-    var s = tengo();
+  function bloqueMV(id, titulo, dato, pie) {
+    return '<button type="button" class="mv-bloque" data-mv="' + id + '">' +
+      '<b>' + U.esc(titulo) + "</b>" +
+      '<span class="mv-dato">' + U.esc(dato) + "</span>" +
+      (pie ? '<span class="mv-pie">' + U.esc(pie) + "</span>" : "") +
+      "</button>";
+  }
+
+  /* ---------- material, por grupos ---------- */
+  function pantMaterial(s) {
     var lista = mat();
+    var h = cabSub("Material",
+      "Lo que hay en casa. Cada cosa dice qué permite hacer, y de ahí sale " +
+      "sola la lista de movimientos que tienes a mano.");
 
-    var h = volver +
-      '<div class="tarjeta"><h2>Material y movimientos</h2>' +
-      '<p class="nota-peque">Lo que hay en casa y lo que se puede hacer con ello. ' +
-      "Cada cosa dice qué permite, y cada movimiento qué necesita: por eso la lista " +
-      "de abajo sabe lo que hoy está a tu alcance y lo que no.</p></div>";
+    var porGrupo = {}, orden = [];
+    lista.forEach(function (m) {
+      var g = grupoDe(m);
+      if (!porGrupo[g]) { porGrupo[g] = []; orden.push(g); }
+      porGrupo[g].push(m);
+    });
 
-    /* ---- el material ---- */
-    h += '<div class="tarjeta"><h3>Lo que tengo</h3>';
-    if (!lista.length) h += '<p class="nota-peque">La lista está vacía.</p>';
-    lista.forEach(function (m) { h += htmlFichaMat(m, s); });
+    if (!lista.length) h += '<div class="tarjeta"><p class="nota-peque">La lista está vacía.</p></div>';
+    orden.forEach(function (g) {
+      h += '<div class="tarjeta"><h3>' + U.esc(g) + "</h3>";
+      porGrupo[g].forEach(function (m) { h += htmlFichaMat(m, s); });
+      h += "</div>";
+    });
+
+    h += '<div class="tarjeta">';
     if (matEditando === "nuevo") h += formMat(null);
-    else h += '<div class="fila" style="margin-top:10px">' +
+    else h += '<div class="fila">' +
       '<button type="button" class="btn" data-mat-nuevo="1">Añadir material</button></div>';
-    h += "</div>";
+    h += "</div>" + pieSub();
+    return h;
+  }
 
-    /* ---- las dos sesiones, antes del catálogo: es lo que se consulta ---- */
-    h += htmlSesiones(s);
+  /* ---------- el catálogo de movimientos ---------- */
+  function pantMovimientos(s) {
+    var hechos = 0;
+    MOVIMIENTOS.forEach(function (mv) { if (!faltaPara(mv, s).length) hechos++; });
+    var h = cabSub("Movimientos",
+      "Con lo que tienes puedes hacer <b>" + hechos + " de " + MOVIMIENTOS.length +
+      "</b>. Los que faltan dicen qué les falta.");
 
-    /* ---- los movimientos, por bloque ---- */
     var porBloque = {};
     MOVIMIENTOS.forEach(function (mv) {
       var b = bloqueDe(mv) || "otro";
@@ -5214,17 +5270,10 @@
       porBloque[b].push(mv);
     });
 
-    var hechos = 0, total = MOVIMIENTOS.length;
-    MOVIMIENTOS.forEach(function (mv) { if (!faltaPara(mv, s).length) hechos++; });
-
-    h += '<div class="tarjeta"><h3>Movimientos</h3>' +
-      '<p class="nota-peque">Con lo que tienes puedes hacer <b>' + hechos + " de " + total +
-      "</b>. Los que faltan dicen qué les falta.</p>";
-
     ORDEN_BLOQUE.concat(["otro"]).forEach(function (b) {
       var g = porBloque[b];
       if (!g || !g.length) return;
-      h += '<h4 class="mov-tit">' + (NOMBRE_BLOQUE[b] || "Sin clasificar") + "</h4>";
+      h += '<div class="tarjeta"><h3>' + (NOMBRE_BLOQUE[b] || "Sin clasificar") + "</h3>";
       g.forEach(function (mv) {
         var falta = faltaPara(mv, s);
         var musc = textoMusculos(mv.n);
@@ -5236,11 +5285,93 @@
           (falta.length ? '<div class="mov-falta">Falta: ' + U.esc(falta.join(" + ")) + "</div>" : "") +
           "</div>";
       });
+      h += "</div>";
+    });
+    return h + pieSub();
+  }
+
+  /* ---------- la lista de rutinas: nombre y cuándo, nada más ---------- */
+  function pantRutinas(s) {
+    var hoy = new Date().getDay();
+    var h = cabSub("Rutinas",
+      "Esta es <b>la rutina decidida</b>. Se cambia aquí primero — porque cambia por " +
+      "cosas de aquí: que un peso se quede corto, que acabe el corticoide, que llegue " +
+      "material nuevo, que empiece otra fase — y <b>después se copia a Garmin Connect</b>, " +
+      "que es lo que ejecuta el reloj. Si un día no coinciden, no hay duda de cuál vale: " +
+      "es que falta pasar a Connect un cambio ya decidido.");
+
+    h += '<div class="tarjeta">';
+    SESIONES.forEach(function (ses) {
+      var faltan = 0;
+      ses.mov.forEach(function (m) {
+        var mv = movPorNombre(m.n);
+        if (mv && faltaPara(mv, s).length) faltan++;
+      });
+      h += '<button type="button" class="mv-fila" data-mv="' + ses.id + '">' +
+        '<span class="mv-fila-n"><b>' + U.esc(ses.n) + "</b>" +
+          (hoy === ses.dia ? ' <b class="mv-hoy">hoy</b>' : "") + "</span>" +
+        '<span class="mv-fila-d">' + U.esc(ses.diaTxt) + " · " + ses.mov.length +
+          " ejercicios · unos " + ses.min + " min" +
+          (faltan ? " · " + faltan + " sin material" : "") + "</span></button>";
     });
     h += "</div>";
 
-    h += '<button type="button" class="ent-atras abajo" data-volver="1">' +
-      FLECHA + "Volver a Entrenamiento</button>";
+    h += '<div class="tarjeta"><h3>Qué tamaño de sesión</h3>';
+    NIVELES.forEach(function (nv) {
+      h += '<div class="mov-linea"><div class="mov-n"><b>' + nv.n + "</b>" +
+        '<span class="nota-peque"> — ' + U.esc(nv.q) + "</span></div>" +
+        '<div class="mov-musc">' + U.esc(nv.c) + "</div></div>";
+    });
+    h += "</div>";
+    return h + pieSub();
+  }
+
+  /* ---------- la ficha de una rutina ---------- */
+  function pantRutina(id, s) {
+    var ses = null;
+    SESIONES.forEach(function (x) { if (x.id === id) ses = x; });
+    if (!ses) return pantRutinas(s);
+
+    var hoy = new Date().getDay();
+    var h = '<button type="button" class="ent-atras" data-mv="rutinas">' +
+      FLECHA + "Rutinas</button>" +
+      '<div class="tarjeta"><h2>' + U.esc(ses.n) +
+      (hoy === ses.dia ? ' <b class="mv-hoy">hoy</b>' : "") + "</h2>" +
+      '<p class="nota-peque">' + U.esc(ses.diaTxt) + " · " + ses.mov.length +
+      " ejercicios · unos " + ses.min + " min · descanso de 1:15 entre series</p></div>";
+
+    h += '<div class="tarjeta">';
+    ses.mov.forEach(function (m) {
+      var mv = movPorNombre(m.n);
+      var falta = mv ? faltaPara(mv, s) : [];
+      var dosis = m.s + " × " + m.r;
+      if (m.kg)   dosis += " · <b>" + m.kg + " kg</b>";
+      if (m.goma) dosis += " · <b>goma de " + String(m.goma).replace(".", ",") + " kg</b>";
+
+      h += '<div class="mov-linea' + (falta.length ? " mov-no" : "") + '">' +
+        '<div class="mov-n"><b>' + U.esc(m.n) + "</b>" +
+          (VIDEOS[m.n] ? ' <a href="' + U.esc(VIDEOS[m.n]) + '" target="_blank" rel="noopener"' +
+                         ' class="nota-peque">cómo se hace ↗</a>' : "") + "</div>" +
+        '<div class="mov-musc">' + dosis + "</div>" +
+        (m.nota ? '<div class="mov-musc">' + U.esc(m.nota) + "</div>" : "") +
+        (m.garmin ? '<div class="nota-peque">En el reloj: «' + U.esc(m.garmin) + "»</div>" : "") +
+        (SIGUIENTE[m.n] ? '<div class="mov-musc">Cuando se quede corto: ' +
+                           U.esc(SIGUIENTE[m.n]) + "</div>" : "") +
+        (falta.length ? '<div class="mov-falta">Falta: ' + U.esc(falta.join(" + ")) + "</div>" : "") +
+        "</div>";
+    });
+    h += "</div>";
+
+    h += '<div class="aviso"><b>Las tres de siempre:</b> ' +
+      'espirar en el esfuerzo y <b>nunca bloquear el aire</b>; ' +
+      'ni una repetición al fallo en los tres primeros meses; ' +
+      'y parar al primer síntoma de oído. ' +
+      '<span class="nota-peque">Se sube peso cuando salen 12 repeticiones limpias en las ' +
+      'tres series. La casilla de hecho <b>se marca sola</b> cuando intervals trae la ' +
+      'sesión que grabaste en el reloj.</span></div>';
+
+    h += '<button type="button" class="ent-atras abajo" data-mv="rutinas">' +
+      FLECHA + "Rutinas</button>";
     return h;
   }
 
@@ -5888,7 +6019,13 @@
     cont.addEventListener("click", function (e) {
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
-      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; pintar(); return; }
+      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; matVista = null; pintar(); return; }
+
+      /* --- material y movimientos: entrar en un bloque y volver a la portada --- */
+      var mvIr = t.closest ? t.closest("[data-mv]") : null;
+      if (mvIr) { matVista = mvIr.getAttribute("data-mv"); matEditando = null; pintar(); return; }
+      var mvAt = t.closest ? t.closest("[data-mv-atras]") : null;
+      if (mvAt) { matVista = null; matEditando = null; pintar(); return; }
 
       /* --- material: editar, añadir, quitar --- */
       var mNue = t.closest ? t.closest("[data-mat-nuevo]") : null;
