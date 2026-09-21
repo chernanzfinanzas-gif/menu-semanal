@@ -4043,12 +4043,44 @@
     if (!Historico.datos) Historico.cargar(repinta);
   }
 
-  /* Las que siguen vivas en el archivo. Si devuelve vacío, no hay nada que hacer. */
+  /* BORRAR NO ES INMEDIATO, Y EL BOTÓN TIENE QUE SABERLO.
+     El botón de borrar de cualquier ficha no quita la actividad: la apunta en
+     `borradas.json` y en `quitar.json`, y quien la saca de verdad del archivo
+     es «Rutas al día» cuando pasa. Por eso el 21-sep, tras pulsar «Quitar las
+     7», las siete seguían ahí al volver a abrir: el trabajo estaba hecho y este
+     bloque no se había enterado.
+
+     Así que las pedidas se apuntan en este aparato y dejan de contar. Cuando
+     pase «Rutas al día» desaparecen del archivo y esto se apaga solo. */
+  var PEDIDAS = "khb-sobran-pedidas-v1";
+
+  function yaPedidas() {
+    try { return JSON.parse(localStorage.getItem(PEDIDAS)) || []; }
+    catch (e) { return []; }
+  }
+
+  function apuntarPedida(id) {
+    var l = yaPedidas();
+    if (l.indexOf(String(id)) < 0) l.push(String(id));
+    try { localStorage.setItem(PEDIDAS, JSON.stringify(l)); } catch (e) {}
+  }
+
+  /* Las que siguen vivas en el archivo Y no se han pedido ya. */
   function sobranVivas() {
-    var hay = {}, vivas = [];
+    var hay = {}, vivas = [], pedidas = yaPedidas();
     actividadesJuntas().forEach(function (a) { if (a && a.id != null) hay[String(a.id)] = a; });
-    SOBRAN.forEach(function (s) { if (hay[s.id]) vivas.push({ s: s, a: hay[s.id] }); });
+    SOBRAN.forEach(function (s) {
+      if (hay[s.id] && pedidas.indexOf(s.id) < 0) vivas.push({ s: s, a: hay[s.id] });
+    });
     return vivas;
+  }
+
+  /* Pedidas pero todavía en el archivo: hay que decirlo, o parece que no pasó nada. */
+  function sobranEsperando() {
+    var hay = {}, n = 0, pedidas = yaPedidas();
+    actividadesJuntas().forEach(function (a) { if (a && a.id != null) hay[String(a.id)] = 1; });
+    SOBRAN.forEach(function (s) { if (hay[s.id] && pedidas.indexOf(s.id) >= 0) n++; });
+    return n;
   }
 
   var Limpieza = {
@@ -4056,7 +4088,15 @@
 
     html: function () {
       var v = sobranVivas();
-      if (!v.length) return "";
+      if (!v.length) {
+        var esperando = sobranEsperando();
+        if (!esperando) return "";
+        return '<div class="limpieza">' +
+          "<p><b>" + esperando + (esperando === 1 ? " actividad repetida apuntada"
+                                                  : " actividades repetidas apuntadas")
+          + " para quitar.</b> Salen del archivo cuando pase <b>Rutas al día</b>; " +
+          "hasta entonces se siguen viendo.</p></div>";
+      }
       var kcal = 0, km = 0;
       v.forEach(function (x) { kcal += x.s.kcal; km += (x.a.km || 0); });
       var lis = v.map(function (x) {
@@ -4091,7 +4131,8 @@
       (function siguiente() {
         if (i >= v.length) {
           self.yendo = false;
-          self.decir("Hecho: " + v.length + " fuera. Recargando el archivo…");
+          self.decir("Hecho: " + v.length + " apuntadas. Salen del archivo al pasar " +
+                     "<b>Rutas al día</b>.");
           try { localStorage.removeItem(Salud.CLAVE); } catch (e) {}
           Salud.datos = null; Salud.sha = null;
           Salud.cargar(true, function () { pintar(); });
@@ -4108,6 +4149,7 @@
                          ". Las anteriores sí entraron.", true);
               return;
             }
+            apuntarPedida(x.s.id);
             i++;
             setTimeout(siguiente, 250);       // aire entre commits
           });
