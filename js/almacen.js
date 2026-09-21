@@ -313,6 +313,18 @@
       if (typeof e.config.previsionEjercicio !== "number") e.config.previsionEjercicio = 1;
       if (typeof e.config.objetivoKcal !== "number") e.config.objetivoKcal = 2000;
       if (typeof e.config.objetivoProt !== "number") e.config.objetivoProt = 90;
+      /* DE 1,6 A 1,8 SIN TENER QUE VOLVER A AJUSTES (21-sep-2026). El objetivo
+         guardado manda sobre la fórmula, así que cambiarla no movía el número de
+         nadie. Se sube solo, y SÓLO si lo guardado es clavado a lo que salía con
+         1,6: si Carlos lo había puesto a mano, no se toca. Una vez hecho queda
+         la marca y no se vuelve a mirar. */
+      if (!e.config.v_prot18) {
+        var _po = (e.perfil && (e.perfil.pesoObjetivo || e.perfil.peso)) || 0;
+        if (_po && e.config.objetivoProt === Math.round(_po * 1.6)) {
+          e.config.objetivoProt = Math.round(_po * 1.8);
+        }
+        e.config.v_prot18 = 1;
+      }
       if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;
       if (!e.despensa) e.despensa = {};
       if (!e.compraMarcada) e.compraMarcada = {};
@@ -1013,6 +1025,7 @@
     /* Objetivo que sale del perfil: gasto menos el déficit del ritmo elegido
        (1 kg de grasa ≈ 7.700 kcal) */
     objetivoSugerido: function () {
+      var G_PROT_KG = 1.8;
       var g = this.gastoBase();
       if (!g) return null;
       var p = this.estado.perfil || {};
@@ -1027,7 +1040,13 @@
         gasto: Math.round(g),
         deficit: Math.round(deficit),
         kcal: kcal,
-        prot: Math.round(refPeso * 1.6),
+        /* 1,8 g por kilo de PESO OBJETIVO, no del de hoy: la proteína la necesita
+           el músculo que quieres conservar, no la grasa que quieres perder. Con
+           80 kg de objetivo son 144 g al día.
+           Se subió de 1,6 a 1,8 el 21-sep-2026 a petición de Carlos. La horquilla
+           que se maneja en déficit haciendo fuerza va de 1,6 a 2,2; 1,6 era el
+           extremo bajo —el que se cumple comiendo normal— y 2,2 pedía batidos. */
+        prot: Math.round(refPeso * G_PROT_KG),
         limitado: limitado,
         semanas: (p.peso && p.pesoObjetivo && p.ritmo)
           ? Math.ceil((p.peso - p.pesoObjetivo) / p.ritmo) : null
