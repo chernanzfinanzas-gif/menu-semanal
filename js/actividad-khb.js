@@ -1389,19 +1389,39 @@
       var e = document.createElement("style");
       e.id = "akhb-css-resumen";
       e.textContent = [
-        ".akhb-resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));" +
-          "gap:10px;margin:0 0 14px}",
-        ".akhb-res-c{display:flex;flex-direction:column;gap:2px;padding:10px 12px;text-align:left;" +
-          "border:1px solid var(--azul-borde,#dbe4ee);border-radius:12px;background:transparent;" +
-          "font:inherit;color:inherit}",
-        ".akhb-res-c.pulsa{cursor:pointer}",
+        /* Tarjetas blancas con sombra, como las de Economía Doméstica: la
+           cifra manda y el rótulo se lee. Nada de bordes finos y cifras
+           pequeñas, que era lo que no se veía. */
+        ".akhb-resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));" +
+          "gap:14px;margin:0 0 16px}",
+        ".akhb-res-c{display:flex;flex-direction:column;gap:5px;padding:16px 18px;text-align:left;" +
+          "border:0;border-radius:16px;background:var(--fondo-tarjeta,#fff);font:inherit;" +
+          "color:inherit;box-shadow:0 1px 3px rgba(18,38,63,.08),0 6px 18px rgba(18,38,63,.06)}",
+        ".akhb-res-c.pulsa{cursor:pointer;transition:transform .12s,box-shadow .12s}",
+        ".akhb-res-c.pulsa:hover{transform:translateY(-2px);" +
+          "box-shadow:0 2px 6px rgba(18,38,63,.10),0 12px 26px rgba(18,38,63,.10)}",
         ".akhb-res-c.pulsa:active{transform:translateY(1px)}",
-        ".akhb-res-r{font-size:11px;text-transform:uppercase;letter-spacing:.06em;" +
-          "color:var(--gris,#6b7c8d)}",
-        ".akhb-res-v{font-size:1.5rem;line-height:1.1;color:var(--azul-hondo,#1d3c5e)}",
-        ".akhb-res-p{font-size:11.5px;color:var(--gris,#6b7c8d);line-height:1.3;" +
+        ".akhb-res-r{font-size:12px;font-weight:700;text-transform:uppercase;" +
+          "letter-spacing:.06em;color:var(--gris,#5b6b7c)}",
+        ".akhb-res-v{font-size:2.3rem;font-weight:800;line-height:1.05;letter-spacing:-.02em;" +
+          "color:var(--azul-hondo,#16324f)}",
+        ".akhb-res-u{font-size:.42em;font-weight:700;letter-spacing:0;opacity:.7;" +
+          "margin-left:1px}",
+        ".akhb-res-p{font-size:12.5px;color:var(--gris,#6b7c8d);line-height:1.35;" +
           "overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}",
-        "@media (prefers-color-scheme:dark){.akhb-res-r,.akhb-res-p{color:#9fb0c1}}"
+        ".akhb-res-pt{display:inline-block;width:8px;height:8px;border-radius:50%;" +
+          "margin-right:6px;vertical-align:baseline}",
+        /* La destacada: rellena de color, como la verde de Economía Doméstica.
+           El relleno se oscurece un 18 % sobre el color de la familia para que
+           el blanco encima tenga contraste sea cual sea el tono de partida. */
+        ".akhb-res-c.fuerte .akhb-res-r,.akhb-res-c.fuerte .akhb-res-v," +
+          ".akhb-res-c.fuerte .akhb-res-p{color:#fff}",
+        ".akhb-res-c.fuerte .akhb-res-r{opacity:.9}",
+        ".akhb-res-c.fuerte .akhb-res-p{opacity:.85}",
+        ".akhb-res-c.fuerte .akhb-res-pt{background:#fff!important;opacity:.9}",
+        "@media (prefers-color-scheme:dark){" +
+          ".akhb-res-c{background:#1d2732;box-shadow:0 1px 3px rgba(0,0,0,.4)}" +
+          ".akhb-res-v{color:#e8eef5}.akhb-res-r,.akhb-res-p{color:#9fb0c1}}"
       ].join("\n");
       document.head.appendChild(e);
     }
@@ -1442,12 +1462,37 @@
         });
       }
 
-      function casilla(rot, val, pie, anio) {
+      /* El color va en una MARCA —la barra de la izquierda y el punto del pie—,
+         nunca en la cifra: el número se lee mejor en tinta y el color se
+         reserva para decir de quién es. Y dice algo:
+
+         · con UNA familia encendida, las cuatro casillas visten su color, así
+           que de un vistazo sabes qué estás mirando;
+         · con varias, las casillas van neutras y sólo el récord lleva color:
+           el de la familia a la que pertenece. */
+      var solaFam = (function () {
+        if (!estado.fam) return null;
+        var v = Object.keys(estado.fam).filter(function (g) { return estado.fam[g]; });
+        return v.length === 1 ? v[0] : null;
+      }());
+
+      function casilla(rot, val, pie, anio, fam, fuerte) {
+        var g = fam || solaFam;
+        var col = g ? colorG(g) : null;
+        /* Sólo UNA tarjeta va rellena —la del récord, que es la que dice algo
+           con su color— y las demás quedan blancas. Es el reparto de los
+           paneles de Economía Doméstica: tres sobrias y una que canta. */
+        var est = fuerte && col
+          ? "background:color-mix(in srgb, " + col + " 82%, #16324f)"
+          : (col ? "background:color-mix(in srgb, " + col + " 9%, var(--fondo-tarjeta,#fff))" : "");
         return '<' + (anio ? 'button type="button" data-anio="' + anio + '"' : "div") +
-          ' class="akhb-res-c' + (anio ? " pulsa" : "") + '">' +
+          ' class="akhb-res-c' + (anio ? " pulsa" : "") + (fuerte && col ? " fuerte" : "") +
+          '"' + (est ? ' style="' + est + '"' : "") + ">" +
           '<span class="akhb-res-r">' + esc(rot) + "</span>" +
           '<b class="akhb-res-v">' + val + "</b>" +
-          (pie ? '<span class="akhb-res-p">' + esc(pie) + "</span>" : "") +
+          (pie ? '<span class="akhb-res-p">' +
+                 (fam ? '<i class="akhb-res-pt" style="background:' + col + '"></i>' : "") +
+                 esc(pie) + "</span>" : "") +
           "</" + (anio ? "button" : "div") + ">";
       }
 
@@ -1465,10 +1510,14 @@
 
       if (rec) {
         var fam = NOMBRE_FAM[FAMILIA[rec.x.dep] || "sala"] || "";
+        /* La familia PRIMERO y la fecha después: el nombre de una salida de
+           Zwift ocupa dos líneas enteras y, yendo delante, se comía justo lo
+           que el pie tiene que decir. Se vio en la captura de prueba. */
         h += casilla("Récord", numMet(rec.v, m),
-                     (rec.x.nombre || "") + (fam ? " · " + fam : "") +
-                     " · " + fechaCorta(rec.x.fecha),
-                     String(rec.x.fecha || "").slice(0, 4));
+                     (fam ? fam + " · " : "") + fechaCorta(rec.x.fecha) +
+                     (rec.x.nombre ? " · " + rec.x.nombre : ""),
+                     String(rec.x.fecha || "").slice(0, 4),
+                     FAMILIA[rec.x.dep] || "sala", true);
       } else {
         h += casilla("Récord", "—", "no se mide por salida");
       }
@@ -1486,10 +1535,18 @@
       return mediana(conDato.map(function (y) { return porY[y]; }));
     }
 
-    /* El número con los decimales y el sufijo de su medida. */
+    /* El número con su unidad. En las tarjetas el rótulo dice «Total», no
+       «Kilómetros», así que sin unidad el 210 se queda pelado y no se sabe de
+       qué habla. Las que ya traen sufijo lo reusan; a las que no, se les pone
+       aquí. Va en una marca aparte, más pequeña, para no restarle fuerza a la
+       cifra —que es lo que se lee de lejos. */
+    var UNIDAD_RES = { km: "km", kcal: "kcal", n: "sesiones", p: "pasos",
+                       c: "de carga", vel: "km/h", pot: "W", ftp: "W" };
     function numMet(v, m) {
       if (v == null || !isFinite(v)) return "—";
-      return num(v, m.dec || 0) + (m.suf || "");
+      var u = (m.suf || "").replace(/\u00a0/g, "").trim() || UNIDAD_RES[m.id] || "";
+      return num(v, m.dec || 0) +
+        (u ? ' <span class="akhb-res-u">' + esc(u) + "</span>" : "");
     }
 
     function fechaCorta(f) {
