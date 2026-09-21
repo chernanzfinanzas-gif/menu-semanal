@@ -4001,8 +4001,129 @@
      con columnas duplicadas y nadie sabría cuál mirar.
      La exportación de Garmin se procesa fuera, con `maestro2.py`. */
 
+  /* ==================== las siete que sobran ====================
+     En alguna fusión antigua se colaron SIETE registros de origen Garmin en un
+     archivo de 2.082. Los siete repiten salidas que ya estaban ese mismo día, y
+     los siete traen las calorías infladas: mediana de 3.033 kcal/h contra las
+     562 de los registros de intervals. El peor, el del 25-jul-2023: 17.598 kcal
+     en 510 minutos son 2.070 kcal/h, que no las quema nadie.
+
+     Que son duplicados se comprueba sumando: ese día los dos registros buenos
+     dan 139,87 km, 1.865 m y 514 min; el que sobra dice 140,52 km, 1.800 m y
+     510 min. Es el día entero grabado otra vez.
+
+     Esto NO es un detector general de calorías imposibles. Se probó y también
+     señalaba una sesión corta y legítima. Es una lista de siete, comprobada una
+     por una, y el bloque DESAPARECE SOLO cuando ya no queda ninguna: si un día
+     abres esto y no ves nada, es que está hecho. */
+  var SOBRAN = [
+    { id: "g8428499209",  f: "2022-03-09", n: "Zwift - Midweek Spring Racing",    kcal: 3448 },
+    { id: "g8478193643",  f: "2022-03-18", n: "Zwift - Tour of Watopia Stage 3",  kcal: 4722 },
+    { id: "g8807598979",  f: "2022-05-12", n: "Madrid Incidencia detectada",      kcal: 838 },
+    { id: "g13832121515", f: "2022-05-24", n: "Ciclismo en sala",                 kcal: 3352 },
+    { id: "g13832121612", f: "2022-05-24", n: "Ciclismo en sala",                 kcal: 3775 },
+    { id: "g11642521142", f: "2023-07-25", n: "La Pedriza por caminos de Tierra", kcal: 17598 },
+    { id: "g18650706166", f: "2025-03-27", n: "Ciclismo en sala",                 kcal: 117 }
+  ];
+
+  /* Las que siguen vivas en el archivo. Si devuelve vacío, no hay nada que hacer. */
+  function sobranVivas() {
+    var hay = {}, vivas = [];
+    actividadesJuntas().forEach(function (a) { if (a && a.id != null) hay[String(a.id)] = a; });
+    SOBRAN.forEach(function (s) { if (hay[s.id]) vivas.push({ s: s, a: hay[s.id] }); });
+    return vivas;
+  }
+
+  var Limpieza = {
+    yendo: false,
+
+    html: function () {
+      var v = sobranVivas();
+      if (!v.length) return "";
+      var kcal = 0, km = 0;
+      v.forEach(function (x) { kcal += x.s.kcal; km += (x.a.km || 0); });
+      var lis = v.map(function (x) {
+        return "<li>" + U.esc(U.etiquetaFecha(x.s.f)) + " · " + U.esc(x.s.n) +
+          " — <b>" + num0(x.s.kcal) + " kcal</b></li>";
+      }).join("");
+      return '<div class="limpieza">' +
+        "<p><b>" + v.length + (v.length === 1 ? " actividad repetida" : " actividades repetidas") +
+        "</b> se colaron en una fusión antigua. Cada una repite salidas que ya están " +
+        "ese mismo día, y traen las calorías infladas: entre todas suman <b>" +
+        num0(kcal) + " kcal</b> y <b>" + num0(Math.round(km)) + " km</b> que no existieron.</p>" +
+        "<ul>" + lis + "</ul>" +
+        '<button type="button" class="ent-boton" data-limpiar="1">Quitar ' +
+        (v.length === 1 ? "la repetida" : "las " + v.length) + "</button>" +
+        '<div id="limpieza-dice"></div>' +
+      "</div>";
+    },
+
+    decir: function (txt, mal) {
+      var n = document.getElementById("limpieza-dice");
+      if (n) n.innerHTML = '<p class="nota-peque' + (mal ? " evo-toca" : "") +
+        '" style="margin:8px 0 0">' + txt + "</p>";
+    },
+
+    /* De una en una y en fila: cada borrado toca dos ficheros del repositorio y
+       lanzarlos a la vez sería pelearse consigo mismo por el mismo `sha`. */
+    lanzar: function () {
+      var self = this, v = sobranVivas(), i = 0;
+      if (this.yendo || !v.length) return;
+      if (!Salud.configurado()) { this.decir("Falta la configuración de GitHub.", true); return; }
+      this.yendo = true;
+      (function siguiente() {
+        if (i >= v.length) {
+          self.yendo = false;
+          self.decir("Hecho: " + v.length + " fuera. Recargando el archivo…");
+          try { localStorage.removeItem(Salud.CLAVE); } catch (e) {}
+          Salud.datos = null; Salud.sha = null;
+          Salud.cargar(true, function () { pintar(); });
+          return;
+        }
+        var x = v[i];
+        self.decir("Quitando " + (i + 1) + " de " + v.length + ": " + U.esc(x.s.n) + "…");
+        Borrado.pedir(x.s.id, "actividad", null,
+          { fecha: x.s.f, km: x.a.km || 0, nombre: x.s.n },
+          function (bien, porque) {
+            if (!bien) {
+              self.yendo = false;
+              self.decir("Se paró en la " + (i + 1) + ": " + U.esc(porque || "no sé por qué") +
+                         ". Las anteriores sí entraron.", true);
+              return;
+            }
+            i++;
+            setTimeout(siguiente, 250);       // aire entre commits
+          });
+      })();
+    }
+  };
+
+  function num0(v) {
+    return Number(v || 0).toLocaleString("es-ES", { maximumFractionDigits: 0 });
+  }
+
+  function estiloLimpieza() {
+    if (document.getElementById("ent-css-limpieza")) return;
+    var e = document.createElement("style");
+    e.id = "ent-css-limpieza";
+    e.textContent =
+      ".limpieza{margin:14px 0 2px;padding:14px;border-radius:14px;" +
+        "background:var(--fondo-suave,#f2f6fa)}" +
+      ".limpieza p{margin:0 0 8px;font-size:13.5px;line-height:1.45}" +
+      ".limpieza ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;line-height:1.6;" +
+        "color:var(--gris,#5b6b7c)}" +
+      ".limpieza .ent-boton{border:0;border-radius:999px;padding:10px 18px;" +
+        "background:var(--azul-hondo,#16324f);color:#fff;font:inherit;font-weight:700;" +
+        "font-size:14px;cursor:pointer}" +
+      ".limpieza .ent-boton:active{transform:translateY(1px)}" +
+      "@media (prefers-color-scheme:dark){.limpieza{background:#1d2732}" +
+        ".limpieza .ent-boton{background:#e8eef5;color:#16324f}}";
+    document.head.appendChild(e);
+  }
+
   function htmlFrescura() {
     if (!Salud.datos) return "";
+    estiloLimpieza();
     var DE = {
       intervals: "llega sola cada día",
       bascula:   "cuando te pesas",
@@ -4050,6 +4171,7 @@
       "Exportar mis datos de Garmin</a> — se pide ahí y llega por correo.</p>" +
       "<p>La exportación se procesa en el ordenador con <i>maestro2.py</i>, que " +
       "rehace el histórico entero y corrige lo que intervals haya desviado.</p>" +
+      Limpieza.html() +
       "</details>";
   }
 
@@ -6348,6 +6470,10 @@
 
       var verV = t.closest ? t.closest("[data-video]") : null;
       if (verV) { abrirVideo(verV.getAttribute("data-video")); return; }
+
+      /* quitar de una vez las repetidas que se colaron en una fusión antigua */
+      var lim = t.closest ? t.closest("[data-limpiar]") : null;
+      if (lim) { e.preventDefault(); Limpieza.lanzar(); return; }
 
 
       /* desde el plan, directo a la ficha de la rutina del día */

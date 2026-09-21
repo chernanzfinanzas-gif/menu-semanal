@@ -962,6 +962,11 @@
          «cuáles fueron las más largas», así que manda la medida y no el
          calendario. «fecha» devuelve el orden de siempre, por meses. */
       orden: "valor",
+      /* Con el orden por medida, mirar sólo un año no siempre es la pregunta:
+         «cuáles son las de más desnivel» suele querer decir «de todas», no «de
+         2026». Este interruptor hace que el listado se salte el año elegido.
+         Sólo tiene sentido ordenando por la medida; por fecha no se ofrece. */
+      todosAnios: false,
       dia: null,           // el día desplegado en la lista de Pasos
       pidiendoDias: false,
       el: null
@@ -1019,6 +1024,7 @@
       estado.mes = f.slice(5, 7);
       estado.dia = null;
       estado.abierta = null;
+      estado.todosAnios = false;          // vamos a un año concreto
       pintar();
       if (abrirPintada(ref)) return;
       estado.mes = null;
@@ -1250,14 +1256,19 @@
       return m.div ? v / m.div : v;
     }
 
+    /* y = null significa TODOS los años. */
     function mejoresDe(y, mm, m) {
-      var meses = porAnio[y] || {}, out = [];
-      (mm ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
+      var out = [];
+      var anios_ = y ? [y] : Object.keys(porAnio).sort();
+      anios_.forEach(function (yy) {
+        var meses = porAnio[yy] || {};
+        (mm && y ? [mm] : Object.keys(meses).sort()).forEach(function (k) {
         (meses[k] || []).forEach(function (x) {
           if (!activo(FAMILIA[x.dep] || "sala")) return;
           if (!cuentaPara(m, x)) return;
           if (valorDe(m, x) == null) return;
           out.push(x);
+        });
         });
       });
       out.sort(function (a, b) { return valorDe(m, b) - valorDe(m, a); });
@@ -1283,6 +1294,13 @@
           '" data-orden="valor">' + esc(ORDEN_TXT[m.id] || ("Las de más " + m.nom.toLowerCase())) + "</button>" +
         '<button type="button" class="akhb-ord' + (porValor ? "" : " sel") +
           '" data-orden="fecha">Por fecha</button>' +
+        /* El tercero sólo aparece ordenando por la medida: por fecha, «todos los
+           años» sería una lista de mil salidas en orden de calendario, que no
+           contesta nada. */
+        (porValor
+          ? '<button type="button" class="akhb-ord' + (estado.todosAnios ? " sel" : "") +
+            '" data-todos="' + (estado.todosAnios ? "0" : "1") + '">Todos los años</button>'
+          : "") +
         "</div>";
     }
 
@@ -1488,6 +1506,13 @@
            Con puesto son cinco, y hay que decirlo aquí: meter un hijo más sin
            tocar la rejilla descoloca la fila entera. Se vio en la prueba. */
         ".akhb-fila.akhb-con-puesto{grid-template-columns:6px 24px 42px 1fr 14px}",
+        /* «mar 2026» no cabe en los 42 px del día: la columna se ensancha sólo
+           en las filas que llevan año. */
+        ".akhb-fila.akhb-con-puesto.akhb-con-anio{grid-template-columns:6px 24px 56px 1fr 14px}",
+        ".akhb-con-anio .akhb-dia i{white-space:nowrap;font-size:10px}",
+        ".akhb-titfam{display:flex;align-items:center;gap:7px;margin-top:18px}",
+        ".akhb-pt-fam{width:9px;height:9px;border-radius:50%;flex:0 0 auto}",
+        ".akhb-nada-peq{font-size:12.5px;color:var(--gris,#6b7c8d);margin:-2px 0 4px}",
         ".akhb-puesto{text-align:right;font-size:13px;font-weight:800;" +
           "color:var(--akhb-gris,#8aa0b5);font-variant-numeric:tabular-nums}",
         "@media (prefers-color-scheme:dark){" +
@@ -1798,6 +1823,10 @@
        Kilómetros elegido la tira de arriba hablaba de kilómetros y las casillas
        de debajo de otra cosa, sin decirlo. */
     function htmlMeses() {
+      /* Con «todos los años» puesto, los meses de UN año no filtran nada: la
+         lista se los salta. Un control que no responde es peor que no estar,
+         así que no está. */
+      if (estado.todosAnios && ordenable(metricaActual()) && estado.orden !== "fecha") return "";
       var m = metricaActual(), celdas = [];
       for (var i = 0; i < 12; i++) {
         var k = dosD(i + 1);
@@ -1836,19 +1865,21 @@
       return d.join(" · ");
     }
 
-    function htmlFila(x, clave, puesto) {
+    function htmlFila(x, clave, puesto, conAnio) {
       fichasPintadas[clave] = x;          // ver `fichasPintadas` arriba
       var d = new Date(x.fecha + "T12:00:00");
       var abierta = estado.abierta === clave;
       return '<li class="akhb-item">' +
         '<button type="button" class="akhb-fila' + (puesto ? " akhb-con-puesto" : "") +
+          (conAnio ? " akhb-con-anio" : "") +
           '" data-abre="' + clave + '" ' +
           'aria-expanded="' + abierta + '">' +
           '<span class="akhb-tira" style="background:var(--akhb-fam-' +
             (FAMILIA[x.dep] || "sala") + ')"></span>' +
           (puesto ? '<span class="akhb-puesto">' + puesto + "</span>" : "") +
           '<span class="akhb-dia"><b>' + d.getDate() + "</b>" +
-            "<i>" + MES_CORTO[d.getMonth()] + "</i></span>" +
+            "<i>" + MES_CORTO[d.getMonth()] +
+            (conAnio ? " " + d.getFullYear() : "") + "</i></span>" +
           '<span class="akhb-txt">' +
             '<span class="akhb-nom">' + esc(x.nombre || NOMBRE_DEP[x.dep] || "Actividad") + "</span>" +
             '<span class="akhb-sub">' + esc(NOMBRE_DEP[x.dep] || "") +
@@ -2107,21 +2138,67 @@
        para que se vea de un golpe cuál fue la más dura del año. */
     function htmlPorValor() {
       var m = metricaActual();
-      var lista = mejoresDe(estado.anio, estado.mes, m);
+      var todos = !!estado.todosAnios;
+      var lista = mejoresDe(todos ? null : estado.anio, estado.mes, m);
       var cab = htmlOrden(m);
+      var donde = todos ? "Ningún año"
+        : (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio : estado.anio);
       if (!lista.length) {
-        return cab + '<p class="akhb-nada">' +
-          (estado.mes ? MES[parseInt(estado.mes, 10) - 1] + " de " + estado.anio : estado.anio) +
+        return cab + '<p class="akhb-nada">' + donde +
           " no tiene ninguna salida con " + esc(m.nom.toLowerCase()) +
           (estado.fam ? " de lo que has dejado encendido" : "") + ".</p>";
       }
-      var d = reparto(estado.anio, estado.mes, m);
+      /* Con todos los años el total se suma a mano: `reparto` es de un año. */
+      var suma = 0;
+      if (todos) lista.forEach(function (x) { suma += valorDe(m, x) || 0; });
+      else suma = reparto(estado.anio, estado.mes, m).n;
+      /* CON TODOS LOS AÑOS NO SE VUELCAN LAS OCHOCIENTAS: SE HACE UN PODIO.
+         Una lista de 820 salidas en orden de desnivel no es una respuesta, es
+         un fichero. Y además mezclaría lo que no se compara: los 1.381 m de
+         Liordes y los 1.172 de una sesión de Watopia no compiten —es la misma
+         decisión de «hay un récord en casa y otro en la calle»—.
+
+         Así que van las mejores DE CADA FAMILIA, con su nombre delante. Con una
+         sola familia encendida no hay nada que separar y se enseñan más. */
+      var TOPE_VARIAS = 5, TOPE_UNA = 15;
+      if (todos) {
+        var porFam = {}, gs = [];
+        lista.forEach(function (x) {
+          var g = FAMILIA[x.dep] || "sala";
+          if (!porFam[g]) { porFam[g] = []; gs.push(g); }
+          porFam[g].push(x);
+        });
+        var tope = gs.length > 1 ? TOPE_VARIAS : TOPE_UNA;
+        var h2 = cab + '<h4 class="akhb-titmes">Todos los años <span>' +
+          num(suma, m.dec) + m.suf + " · " + lista.length +
+          (lista.length === 1 ? " salida" : " salidas") + "</span></h4>" +
+          '<p class="akhb-nada-peq">' +
+          (gs.length > 1 ? "Las " + tope + " mejores de cada familia."
+                         : "Las " + tope + " mejores.") +
+          " El resto, eligiendo un año.</p>";
+        ORDEN_FAM.forEach(function (g) {
+          var l = porFam[g];
+          if (!l || !l.length) return;
+          h2 += '<h4 class="akhb-titmes akhb-titfam">' +
+            '<span class="akhb-pt-fam" style="background:var(--akhb-fam-' + g + ')"></span>' +
+            esc(NOMBRE_FAM[g] || g) + " <span>" + l.length +
+            (l.length === 1 ? " salida" : " salidas") + "</span></h4>" +
+            '<ul class="akhb-lista">';
+          l.slice(0, tope).forEach(function (x, i) {
+            h2 += htmlFila(x, "T" + g + "-v" + i, i + 1, true);
+          });
+          h2 += "</ul>";
+        });
+        return h2;
+      }
       var h = cab + '<h4 class="akhb-titmes">' +
         (estado.mes ? MES[parseInt(estado.mes, 10) - 1] : "El año entero") +
-        " <span>" + num(d.n, m.dec) + m.suf + " · " + lista.length +
+        " <span>" + num(suma, m.dec) + m.suf + " · " + lista.length +
         (lista.length === 1 ? " salida" : " salidas") + "</span></h4>" +
         '<ul class="akhb-lista">';
-      lista.forEach(function (x, i) { h += htmlFila(x, estado.anio + "-v" + i, i + 1); });
+      lista.forEach(function (x, i) {
+        h += htmlFila(x, estado.anio + "-v" + i, i + 1, false);
+      });
       return h + "</ul>";
     }
 
@@ -2925,11 +3002,17 @@
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest
-        ? e.target.closest("[data-rec],[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent],[data-orden]") : null;
+        ? e.target.closest("[data-rec],[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent],[data-orden],[data-todos]") : null;
       if (!t || !estado.el.contains(t)) return;
       if (t.hasAttribute("data-rec")) { irAlRecord(t.getAttribute("data-rec")); return; }
       if (t.hasAttribute("data-orden")) {
         estado.orden = t.getAttribute("data-orden");
+        if (estado.orden === "fecha") estado.todosAnios = false;
+        estado.abierta = null;
+        pintar(); return;
+      }
+      if (t.hasAttribute("data-todos")) {
+        estado.todosAnios = t.getAttribute("data-todos") === "1";
         estado.abierta = null;
         pintar(); return;
       }
@@ -2977,6 +3060,9 @@
       }
       if (t.hasAttribute("data-anio")) {
         estado.anio = t.getAttribute("data-anio");
+        /* Elegir un año apaga «todos los años»: si no, pulsas 2023 y no pasa
+           nada, que es la peor respuesta que puede dar un botón. */
+        estado.todosAnios = false;
         estado.mes = null; estado.abierta = null; estado.dia = null; pintar(); return;
       }
       if (t.hasAttribute("data-mes")) {
