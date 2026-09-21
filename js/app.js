@@ -306,10 +306,16 @@
               (Almacen.esPasado(fecha) && !cerr ? " reabierto" : "") + '">';
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
               '<span class="fecha">' + Util.etiquetaFecha(fecha) + '</span>' +
+              /* LAS CALORÍAS Y LA SAL ARRIBA; LO QUE FALTA O SOBRA, SIEMPRE ABAJO.
+                 Con los tres chips en la misma fila, el salto de línea caía en
+                 un sitio distinto según lo largo que fuera cada número, y no
+                 había dos días que se leyeran igual. El separador fuerza el
+                 corte siempre en el mismo punto. */
               (tieneAlgo ? '<span class="chip-sal ' + colorK + '">' + Util.kcal(nutr.k) + '</span>' +
-                           chipDiferencia(objetivo, nutr.k, tieneAlgo) +
                            '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal' +
-                           (color === "libre" ? ' · sin tope' : '') + '</span>' : '') +
+                           (color === "libre" ? ' \u00b7 sin tope' : '') + '</span>' +
+                           '<span class="salto-chips"></span>' +
+                           chipDiferencia(objetivo, nutr.k, tieneAlgo) : '') +
               (Almacen.esPasado(fecha)
                 ? '<button class="btn mini abrir-dia solo-edicion" data-abrir="' + fecha + '">' +
                   (cerr ? 'Editar' : 'Cerrar') + '</button>'
@@ -402,10 +408,8 @@
                     (subeEntreno ? '<span class="quemado" title="Lo medido entra entero; ' +
                                'lo estimado al ' + Math.round(devEj * 100) + '% y lo previsto a la mitad">+' +
                                Math.round(subeEntreno) + ' del entreno</span>' : '') +
-                    (hayComido
-                      ? '<span class="comido-hasta">Ya comido: ' + Util.kcal(nutrCom.k) + '</span>'
-                      : (objetivo ? '<span class="comido-hasta">Objetivo ' + Util.kcal(objetivo) + '</span>' : '')) +
                   '</div>' +
+                  filaCierre(fecha, objetivo, nutr.k, nutrCom.k, cerr || Almacen.esPasado(fecha)) +
                 '</div>';
       }
 
@@ -427,10 +431,14 @@
                         '<button class="paso" data-comensales="' + fecha + '|' + t.k + '|1" ' +
                           'title="Uno más"' + (comen >= 8 ? ' disabled' : '') + '>+</button>' +
                         '</span>' +
+                        /* CON SU PALABRA AL LADO. Era un emoji al 45 % de opacidad y
+                           Carlos no lo veía: un botón que hay que adivinar no es un
+                           botón. Ahora dice «Fuera» y se lee apagado o encendido. */
                         '<button class="chip-toma fuera' + (fueraT ? " si" : "") + '" ' +
                         'data-fuera="' + fecha + '|' + t.k + '" ' +
-                        'title="' + (fueraT ? "Se come fuera de casa" : "Marcar como comida fuera de casa") +
-                        '">🍽️</button>') +
+                        'title="' + (fueraT ? "Se come fuera de casa: toca para volver a casa"
+                                            : "Marcar como comida fuera de casa") +
+                        '">\ud83c\udf7d\ufe0f <span>Fuera</span></button>') +
                 (cerr || fueraT || !activa ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
                 '</div>';
         if (fueraT) {
@@ -474,6 +482,31 @@
         html += '</div>';
       });
 
+      /* CAPRICHOS: lo que te comiste sin que estuviera previsto.
+         Va detrás de las cenas y no entre las tomas, porque no es una toma: no se
+         planifica, no tiene comensales, no se come fuera y no entra en la compra.
+         Y no lleva casilla de ✓: un capricho se apunta después de comerlo, así
+         que apuntarlo YA ES marcarlo. */
+      var caps = (dia && dia.capricho) || [];
+      html += '<div class="toma caprichos' + (caps.length ? " con-algo" : "") + '">';
+      html += '<div class="titulo-toma"><span>Caprichos</span>' +
+              (cerr ? '' : '<button class="anadir" data-capricho="' + fecha + '">+</button>') +
+              '</div>';
+      if (!caps.length) {
+        html += '<div class="nota-peque">Nada fuera de plan' + (cerr ? '' : ' \u00b7 el helado, la ca\u00f1a, el postre de un restaurante') + '</div>';
+      } else {
+        caps.forEach(function (rid, idx) {
+          var r = Almacen.receta(rid);
+          var n = r ? Almacen.nutrReceta(r) : { k: 0 };
+          html += '<div class="plato capricho">' +
+                    '<span class="nom">' + esc(r ? r.n : "(borrado)") + '</span>' +
+                    '<span class="sal">' + Util.kcal(n.k) + '</span>' +
+                    (cerr ? '' : '<button class="quitar" data-quitacap="' + fecha + '|' + idx + '">\u00d7</button>') +
+                  '</div>';
+        });
+      }
+      html += '</div>';
+
       /* Entreno del día. Los minutos se editan aquí mismo: la previsión sirve de
          punto de partida y cada día se ajusta a lo que vaya a hacer de verdad. */
       /* Tres procedencias: lo que apuntaste, lo que dice el plan y lo que midió
@@ -502,24 +535,33 @@
           var virtual = !e.x;
           var fuera = pisada || e.tapada || e.caducada;
           if (fuera) totalAct -= kc;          // ya sumado arriba; aquí se retira
-          html += '<div class="plato act' + (fuera ? " no-cuenta" : "") +
+          /* EN DOS FILAS (21-sep-2026). Arriba, de qué sesión se trata y de dónde
+             sale el dato —del plan o del reloj—; abajo, los minutos y las
+             calorías. En una sola línea el nombre de la sesión y su origen se
+             comían el sitio y los números quedaban apretados contra el borde. */
+          html += '<div class="plato act dos-filas' + (fuera ? " no-cuenta" : "") +
                     (e.clase === "previsto" ? " es-previsto" : "") +
                     (e.clase === "real" ? " es-real" : "") + '">' +
-                    '<span class="nom">' + esc(e.n) +
-                      (e.clase === "real" ? ' <span class="etiqueta">reloj</span>' : '') +
+                    '<div class="act-arriba">' +
+                      '<span class="nom">' + esc(e.n) + '</span>' +
+                      (e.clase === "real" ? '<span class="etiqueta">reloj</span>' : '') +
                       (e.clase === "previsto" && !e.tapada && !e.caducada
-                        ? ' <span class="etiqueta">del plan</span>' : '') +
-                      (e.tapada ? ' <span class="etiqueta">sustituida por lo real</span>' : '') +
-                      (e.caducada ? ' <span class="etiqueta">no se hizo</span>' : '') +
-                      (x.ref === "estandar" ? ' <span class="etiqueta">previsto</span>' : '') +
-                      (pisada ? ' <span class="etiqueta">ya no cuenta</span>' : '') + '</span>' +
-                    (cerr || virtual
-                      ? '<span class="min-fijo">' + e.min + '</span>'
-                      : '<input type="number" class="min-act" min="0" max="900" step="5" ' +
-                        'value="' + e.min + '" data-minact="' + fecha + '|' + idx + '" ' +
-                        (x.fuente === "garmin" ? 'title="Medido por el reloj"' : '') + '>') +
-                    '<span class="sal">min · ' + kc + ' kcal</span>' +
-                    (cerr || virtual ? '' : '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">×</button>') +
+                        ? '<span class="etiqueta">del plan</span>' : '') +
+                      (e.tapada ? '<span class="etiqueta">sustituida por lo real</span>' : '') +
+                      (e.caducada ? '<span class="etiqueta">no se hizo</span>' : '') +
+                      (x.ref === "estandar" ? '<span class="etiqueta">previsto</span>' : '') +
+                      (x.ref === "ruta" ? '<span class="etiqueta">salida planificada</span>' : '') +
+                      (pisada ? '<span class="etiqueta">ya no cuenta</span>' : '') +
+                    '</div>' +
+                    '<div class="act-abajo">' +
+                      (cerr || virtual
+                        ? '<span class="min-fijo">' + e.min + '</span>'
+                        : '<input type="number" class="min-act" min="0" max="900" step="5" ' +
+                          'value="' + e.min + '" data-minact="' + fecha + '|' + idx + '" ' +
+                          (x.fuente === "garmin" ? 'title="Medido por el reloj"' : '') + '>') +
+                      '<span class="sal">min \u00b7 ' + kc + ' kcal</span>' +
+                      (cerr || virtual ? '' : '<button class="quitar" data-quitaract="' + fecha + '|' + idx + '">\u00d7</button>') +
+                    '</div>' +
                   '</div>';
         });
         /* La cuenta, desglosada: cada procedencia entra con su corrección y
@@ -620,6 +662,81 @@
     });
   }
 
+  /* EL SELECTOR DE CAPRICHOS.
+     Dos caminos en la misma ventana, y ése es el punto: arriba, escribir uno
+     nuevo con su nombre y sus calorías; abajo, los que ya has apuntado alguna
+     vez, que el recetario ha ido guardando solo. La primera vez que te tomas un
+     helado lo escribes; la segunda ya está en la lista. */
+  function abrirSelectorCapricho(fecha) {
+    function pinta() {
+      var previos = Almacen.visibles()
+        .filter(function (r) { return r.grupo === "capricho"; })
+        .sort(function (a, b) { return a.n.localeCompare(b.n); });
+      var otras = Almacen.visibles()
+        .filter(function (r) { return r.grupo !== "capricho"; })
+        .sort(function (a, b) { return a.n.localeCompare(b.n); });
+
+      var html = '<header><h2>A\u00f1adir un capricho</h2>' +
+                 '<button class="cerrar" data-cerrar>\u00d7</button></header>';
+      html += '<p class="nota-modal">Lo que te comiste sin que estuviera en el plan. ' +
+              'Se apunta como comido: no hace falta marcarlo despu\u00e9s.</p>';
+      html += '<div class="nuevo-capricho">' +
+                '<input type="text" id="cap-nombre" placeholder="Helado de la playa" maxlength="46">' +
+                '<input type="number" id="cap-kcal" placeholder="kcal" min="1" max="3000" step="10">' +
+                '<button class="btn principal mini" id="cap-crear">A\u00f1adir</button>' +
+              '</div>';
+      html += '<input type="text" id="filtro-selector" placeholder="Filtrar\u2026">';
+      html += '<div class="lista-selec" id="lista-caprichos">';
+      function boton(r) {
+        var n = Almacen.nutrReceta(r);
+        return '<button data-cap="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
+               esc(r.n) + '<small>' + Util.kcal(n.k) + '</small></button>';
+      }
+      if (previos.length) {
+        html += '<p class="separador-selec" data-nombre="">Caprichos que ya has apuntado</p>';
+        previos.forEach(function (r) { html += boton(r); });
+      }
+      html += '<p class="separador-selec" data-nombre="">Del recetario</p>';
+      otras.forEach(function (r) { html += boton(r); });
+      html += '</div>';
+      abrirModal(html);
+
+      $("#filtro-selector").addEventListener("input", function (e) {
+        var q = e.target.value.toLowerCase();
+        $$("#lista-caprichos button").forEach(function (b) {
+          b.style.display = b.getAttribute("data-nombre").indexOf(q) >= 0 ? "" : "none";
+        });
+      });
+
+      function meter(rid) {
+        if (!rid) return;
+        var dia = Almacen.asegurarDia(fecha);
+        dia.capricho.push(rid);
+        Almacen.guardar("capricho");
+        cerrarModal();
+        pintarMenu();
+      }
+
+      $("#cap-crear").addEventListener("click", function () {
+        var nom = $("#cap-nombre").value, k = $("#cap-kcal").value;
+        if (!String(nom).trim() || !(Number(k) > 0)) {
+          Util.toast("Hace falta un nombre y las calor\u00edas");
+          return;
+        }
+        var id = Almacen.crearCapricho(nom, k);
+        if (!id) { Util.toast("No he podido crearlo"); return; }
+        meter(id);
+        Util.toast("Apuntado y guardado en el recetario");
+      });
+
+      $("#lista-caprichos").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-cap]");
+        if (b) meter(b.getAttribute("data-cap"));
+      });
+    }
+    pinta();
+  }
+
   /* selector de actividad */
   function abrirSelectorActividad(fecha) {
     var peso = Almacen.estado.perfil.peso;
@@ -647,6 +764,48 @@
       cerrarModal();
       pintarMenu();
     });
+  }
+
+  /* LA TERCERA FILA: LO QUE HAY QUE COMER CONTRA LO QUE HAY.
+     Cambia según el día sea pasado o esté por venir, porque la pregunta no es la
+     misma. En un día que ya pasó lo que importa es qué comiste de verdad —lo
+     marcado con el ✓ más los caprichos—; en uno que está por venir, lo que hay
+     puesto en el menú. Mismo sitio, misma forma, dos preguntas distintas.
+
+     Y la nota de marcar antes de dormir va sólo donde hace falta: en los días ya
+     pasados que aún no tienen nada marcado. En los demás sería ruido. */
+  function filaCierre(fecha, objetivo, planificado, comido, esPasado) {
+    if (!objetivo) return "";
+    var hay = esPasado ? comido : planificado;
+    var etiqueta = esPasado ? "Ya comido" : "Planificado";
+    var dif = Math.round(objetivo - hay);
+    var margen = objetivo * (Almacen.estado.config.margenKcal || 10) / 100;
+    var cl = dif > margen ? "falta" : (-dif > margen ? "sobra" : "cuadra");
+    var aviso = (esPasado && !comido)
+      ? '<span class="aviso-marcar">Marcar lo comido al final de la jornada, antes de dormir</span>'
+      : "";
+    /* LA NOTA CIERRA EL DÍA, y sólo cuando hay día que cerrar: en uno que aún no
+       ha pasado no hay nada que puntuar, y en uno pasado sin nada marcado la nota
+       sería un cero injusto — ahí lo que toca es el recordatorio de arriba. */
+    var nota = "";
+    if (esPasado && comido) {
+      var n = Almacen.notaDia(fecha);
+      if (n) {
+        nota = '<div class="nota-dia ' + n.clase + '">' +
+                 '<span class="marcador">' + n.signo + '</span>' +
+                 '<span class="puntos">' + n.nota + '</span>' +
+                 '<span class="porque">' +
+                   (n.motivos.length ? esc(n.motivos.join(" \u00b7 ")) : "el d\u00eda cuadr\u00f3") +
+                 '</span>' +
+               '</div>';
+      }
+    }
+    return '<div class="cierre-dia ' + cl + '">' +
+             '<span class="rotulo-cierre">A comer / ' + etiqueta + '</span>' +
+             '<span class="cifras"><b>' + Util.kcal(objetivo) + '</b> / <b>' +
+               Util.kcal(hay) + '</b></span>' +
+             aviso + nota +
+           '</div>';
   }
 
   /* UN MACRO CON SU PORCENTAJE DEL OBJETIVO.
@@ -1766,6 +1925,17 @@
       }
       var add = e.target.closest("[data-anadir]");
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
+      var cap = e.target.closest("[data-capricho]");
+      if (cap) { abrirSelectorCapricho(cap.getAttribute("data-capricho")); return; }
+      var qcap = e.target.closest("[data-quitacap]");
+      if (qcap) {
+        var pc = qcap.getAttribute("data-quitacap").split("|");
+        var dc = Almacen.asegurarDia(pc[0]);
+        dc.capricho.splice(parseInt(pc[1], 10), 1);
+        Almacen.guardar("capricho");
+        pintarMenu();
+        return;
+      }
       var ab = e.target.closest("[data-abrir]");
       if (ab) {
         var fa = ab.getAttribute("data-abrir");

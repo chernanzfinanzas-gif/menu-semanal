@@ -118,6 +118,9 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .chip-sal.rojo{background:var(--rojo-fondo); color:var(--rojo)}
 /* La diferencia entre lo que hay que comer y lo que hay puesto. Morado si
    faltan —hay hueco, no es un fallo—, rojo si sobran. */
+/* Corta la fila de chips: ancho entero y altura cero, así lo que venga detrás
+   empieza línea nueva sin ocupar sitio. */
+.dia > header .salto-chips{flex:0 0 100%; height:0; margin:0}
 .chip-sal.falta{background:var(--morado-fondo); color:var(--morado)}
 .chip-sal.sobra{background:var(--rojo-fondo); color:var(--rojo)}
 /* "libre": el día de ruta no tiene tope, no es que vaya bien ni que vaya mal */
@@ -209,8 +212,12 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   line-height:1.3; cursor:pointer; flex:none;
 }
 .chip-toma.raro{border-color:var(--verde); color:var(--verde); background:var(--verde-claro)}
-.chip-toma.fuera{padding:2px 7px; opacity:.45}
-.chip-toma.fuera.si{opacity:1; background:var(--ambar-fondo); border-color:var(--ambar)}
+/* «Comer fuera» con su palabra: apagado se lee, encendido canta. Antes era un
+   emoji al 45 % que había que adivinar. */
+.chip-toma.fuera{padding:3px 9px; opacity:1; color:var(--gris); background:var(--gris-claro)}
+.chip-toma.fuera span{margin-left:3px; font-weight:600}
+.chip-toma.fuera:hover{border-color:var(--ambar); color:var(--ambar)}
+.chip-toma.fuera.si{background:var(--ambar-fondo); border-color:var(--ambar); color:var(--ambar)}
 .toma.es-fuera .titulo-toma > span:first-child{color:var(--ambar)}
 .plato.estimado .nom{color:var(--gris); font-style:italic}
 .plato.estimado .sal{color:var(--ambar)}
@@ -257,6 +264,53 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
    contra qué se comparan, y así era imposible leerlos. */
 .macros .rotulo{flex:0 0 100%; color:var(--gris); font-size:.7rem;
                 text-transform:uppercase; letter-spacing:.04em; margin-bottom:1px}
+
+/* ---- la tercera fila: a comer contra lo que hay ---- */
+.cierre-dia{display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px;
+            margin-top:8px; padding-top:8px; border-top:1px solid var(--borde); font-size:.8rem}
+.cierre-dia .rotulo-cierre{color:var(--gris); font-size:.7rem;
+            text-transform:uppercase; letter-spacing:.04em}
+.cierre-dia .cifras{font-size:.95rem}
+.cierre-dia .cifras b{font-weight:700}
+.cierre-dia.cuadra .cifras b:last-child{color:var(--verde)}
+.cierre-dia.falta  .cifras b:last-child{color:var(--morado)}
+.cierre-dia.sobra  .cifras b:last-child{color:var(--rojo)}
+.cierre-dia .aviso-marcar{flex:0 0 100%; color:var(--ambar); font-size:.74rem}
+
+/* ---- la nota con la que cierra el día ---- */
+.nota-dia{flex:0 0 100%; display:flex; align-items:baseline; gap:7px; margin-top:6px}
+.nota-dia .marcador{font-weight:800; font-size:1.05rem; line-height:1;
+                    width:22px; height:22px; border-radius:99px; display:inline-flex;
+                    align-items:center; justify-content:center}
+.nota-dia .puntos{font-weight:800; font-size:1rem}
+.nota-dia .porque{color:var(--gris); font-size:.76rem; flex:1; min-width:0}
+.nota-dia.bien    .marcador{background:var(--verde-claro); color:var(--verde)}
+.nota-dia.bien    .puntos{color:var(--verde)}
+.nota-dia.regular .marcador{background:var(--ambar-fondo); color:var(--ambar)}
+.nota-dia.regular .puntos{color:var(--ambar)}
+.nota-dia.mal     .marcador{background:var(--rojo-fondo); color:var(--rojo)}
+.nota-dia.mal     .puntos{color:var(--rojo)}
+
+/* ---- caprichos ---- */
+.toma.caprichos .titulo-toma span{color:var(--gris)}
+.toma.caprichos.con-algo .titulo-toma span{color:var(--tinta)}
+.plato.capricho{display:flex; align-items:center; gap:8px; padding:7px 12px;
+                border-top:1px dashed var(--borde)}
+.plato.capricho .nom{flex:1}
+.plato.capricho .sal{color:var(--gris); font-size:.8rem; white-space:nowrap}
+.nota-modal{margin:0 0 10px; color:var(--gris); font-size:.82rem}
+.nuevo-capricho{display:flex; gap:6px; margin-bottom:10px}
+.nuevo-capricho input[type=text]{flex:1; min-width:0}
+.nuevo-capricho input[type=number]{width:84px}
+.nuevo-capricho input{padding:8px 10px; border:1px solid var(--borde); border-radius:8px}
+
+/* ---- el entreno, en dos filas ---- */
+.plato.act.dos-filas{display:block; padding:8px 12px}
+.plato.act.dos-filas .act-arriba{display:flex; align-items:baseline; flex-wrap:wrap; gap:6px}
+.plato.act.dos-filas .act-arriba .nom{font-weight:600}
+.plato.act.dos-filas .act-abajo{display:flex; align-items:center; gap:8px; margin-top:4px}
+.plato.act.dos-filas .act-abajo .sal{color:var(--gris); font-size:.82rem}
+.plato.act.dos-filas .act-abajo .quitar{margin-left:auto}
 .macros .meta{color:var(--gris); font-weight:400}
 .macros i.bien{color:var(--verde)}
 .macros i.corto{color:var(--ambar)}

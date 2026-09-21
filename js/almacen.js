@@ -27,7 +27,14 @@
              son 1.600 mg de sodio. El ámbar está mucho más abajo a propósito,
              porque su criterio es «reducir todo lo posible», no «llegar al tope». */
           limiteSal: 4.0,      // g de sal/día: por encima = rojo
-          avisoSal: 2.0,       // g de sal/día: por encima = ámbar
+          /* Subido de 2,0 a 3,5 el 21-sep-2026. Los dos son gramos de SAL, no de
+             sodio: 3,5 g de sal son 1.400 mg de sodio, dentro de la horquilla
+             de una pauta baja en sodio (1.500-2.000 mg) y bastante por debajo
+             de los 5 g de sal que la OMS da para población general. El 2,0 de
+             antes (800 mg de sodio) era más estricto que cualquier recomendación
+             publicada y dejaba el menú en rojo casi todos los días por décimas,
+             que es la forma más rápida de que un aviso deje de mirarse. */
+          avisoSal: 3.5,       // g de sal/día: por encima = ámbar
           objetivoKcal: 2000,  // kcal/día
           objetivoProt: 90,    // g de proteína/día
           margenKcal: 10,      // % de holgura antes de marcar el día en rojo
@@ -319,7 +326,14 @@
          nadie. Se sube solo, y SÓLO si lo guardado es clavado a lo que salía con
          1,6: si Carlos lo había puesto a mano, no se toca. Una vez hecho queda
          la marca y no se vuelve a mirar. */
-      if (!e.config.v_prot18) {
+      /* LA MARCA CAMBIA DE NOMBRE, y hay que contar por qué. La primera versión
+         de esta migración sólo subía el 128; al correr, dejó puesta la marca
+         `v_prot18` y se dio por hecha. Cuando al día siguiente se amplió para
+         cubrir también el 90 de fábrica —que era justo el caso de Carlos—, la
+         marca vieja ya impedía que volviera a entrar, así que el número no se
+         movía por mucho que se publicara. Una migración que se amplía necesita
+         marca nueva: la vieja dice «ya pasé», no «ya hice esto». */
+      if (!e.config.v_prot18b) {
         var _po = (e.perfil && (e.perfil.pesoObjetivo || e.perfil.peso)) || 0;
         /* Se sube en dos casos, y sólo en esos dos:
              · lo guardado es clavado a lo que salía con 1,6 (128 con 80 kg);
@@ -333,10 +347,16 @@
                     e.config.objetivoProt === 90)) {
           e.config.objetivoProt = Math.round(_po * 1.8);
         }
-        e.config.v_prot18 = 1;
+        e.config.v_prot18b = 1;
       }
       if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;
       if (typeof e.config.pctGrasa !== "number") e.config.pctGrasa = 30;
+      /* El aviso de sal guardado también manda sobre la semilla, así que sube
+         solo si está en el 2,0 de antes y nadie lo ha tocado. */
+      if (!e.config.v_sal35) {
+        if (e.config.avisoSal === 2 || e.config.avisoSal === 2.0) e.config.avisoSal = 3.5;
+        e.config.v_sal35 = 1;
+      }
       if (!e.despensa) e.despensa = {};
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.favoritos) e.favoritos = [];
@@ -498,6 +518,7 @@
         }
         (dia[toma] || []).forEach(function (id) { total += self.salReceta(self.receta(id)); });
       });
+      (dia.capricho || []).forEach(function (id) { total += self.salReceta(self.receta(id)); });
       return total;
     },
 
@@ -523,6 +544,14 @@
     nutrReceta: function (rec) {
       var vacio = { k: 0, p: 0, g: 0, h: 0 };
       if (!rec) return vacio;
+      /* UN CAPRICHO NO TIENE INGREDIENTES. Un helado de una heladería no se
+         despieza: se sabe lo que pone más o menos y poco más. Así que puede
+         traer sus valores puestos a mano, igual que `salManual` lleva haciendo
+         desde siempre con la sal. Si están, mandan. */
+      if (rec.nutrManual) {
+        return { k: rec.nutrManual.k || 0, p: rec.nutrManual.p || 0,
+                 g: rec.nutrManual.g || 0, h: rec.nutrManual.h || 0 };
+      }
       var t = { k: 0, p: 0, g: 0, h: 0 }, self = this;
       (rec.ing || []).forEach(function (l) {
         var ing = self.ingrediente(l.i);
@@ -557,7 +586,116 @@
           t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
         });
       });
+      /* LOS CAPRICHOS CUENTAN SIEMPRE, también en «sólo lo comido». Un capricho
+         se apunta DESPUÉS de comerlo —nadie planifica un helado de bar—, así que
+         pedirle además el visto sería pedir dos veces lo mismo. */
+      (dia.capricho || []).forEach(function (id) {
+        var n = self.nutrReceta(self.receta(id));
+        t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
+      });
       return t;
+    },
+
+    /* UN CAPRICHO NUEVO, creado sobre la marcha y GUARDADO EN EL RECETARIO.
+       Carlos eligió que los caprichos salieran del recetario, pero un helado de
+       una heladería no está ahí. Así que la primera vez se escribe el nombre y
+       las calorías y queda dentro, en el grupo «capricho»: la segunda vez ya se
+       elige de la lista como cualquier otro plato. Al cabo de un mes el
+       recetario sabe lo que te gusta sin que hayas tenido que catalogarlo. */
+    crearCapricho: function (nombre, kcal) {
+      nombre = String(nombre || "").trim();
+      kcal = Math.round(Number(kcal) || 0);
+      if (!nombre || kcal <= 0) return null;
+      var base = "cap_" + nombre.toLowerCase()
+        .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+        .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u").replace(/ñ/g, "n")
+        .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 32);
+      var id = base, n = 2;
+      while (this.receta(id)) { id = base + "_" + n; n++; }
+      this.estado.recetas.push({
+        id: id, n: nombre, tipo: ["capricho"], grupo: "capricho",
+        raciones: 1, min: 0, ing: [],
+        /* Sin macros: de un capricho se sabe lo que engorda, no cómo se reparte.
+           Inventarlos sería peor que dejarlos en blanco. */
+        nutrManual: { k: kcal, p: 0, g: 0, h: 0 },
+        salManual: 0,
+        nota: "Capricho apuntado a mano. Las calorías son las que pusiste tú."
+      });
+      this.guardar("capricho");
+      return id;
+    },
+
+    /* ══════════ LA NOTA DEL DÍA ══════════
+       Cierra un día ya vivido: lo previsto contra lo conseguido, en un número
+       del 0 al 100 y un signo. Carlos, 21-sep-2026: «ponderado, que la sal y la
+       proteína no sean muy castigadores a no ser que sea un consumo excesivo
+       excesivo». Así que:
+
+       · MANDAN LAS CALORÍAS. Son el 100 de partida. Dentro del margen de holgura
+         —el mismo 10 % que ya usa el resto de la app— la nota no baja nada: un
+         día no se estropea por comer doce calorías de más. A partir de ahí se
+         pierden 3 puntos por cada punto porcentual de desvío, así que un día un
+         20 % desviado se queda en 70 y hace falta irse al 43 % para llegar a 0.
+         Da igual el lado: quedarse corto adelgaza igual de mal que pasarse.
+
+       · LA PROTEÍNA SÓLO RESTA SI EL DÍA SE QUEDA CORTO DE VERDAD, por debajo
+         del 80 % del objetivo, y como mucho quita 15 puntos. Pasarse no resta
+         nada: no es un problema.
+
+       · LA SAL SÓLO RESTA POR ENCIMA DEL TECHO ROJO (4 g), no del aviso ámbar.
+         El aviso está para mirarlo, no para castigar; el techo es el que
+         significa «hoy te has pasado». Como mucho, otros 15 puntos.
+
+       Los dos juntos no pueden bajar la nota más de 30 puntos: un día que cuadra
+       en calorías nunca suspende por la sal.
+
+       `motivos` devuelve en palabras qué la bajó, que es lo que hace que la nota
+       sirva para algo. Un número sin explicación no se corrige. */
+    notaDia: function (fecha) {
+      var objetivo = this.objetivoDelDia(fecha);
+      var comido = this.nutrDia(fecha, true);
+      if (!objetivo || !comido.k) return null;
+
+      var c = this.estado.config;
+      var obj = this.objetivosMacros(fecha);
+      var motivos = [];
+
+      // ---- calorías ----
+      var desvio = Math.abs(comido.k - objetivo) / objetivo * 100;
+      var holgura = c.margenKcal || 10;
+      var nota = 100;
+      if (desvio > holgura) {
+        nota -= (desvio - holgura) * 3;
+        motivos.push((comido.k > objetivo ? "te pasaste " : "te quedaste ") +
+                     Math.round(Math.abs(comido.k - objetivo)) + " kcal");
+      }
+
+      // ---- proteína: sólo si falta de verdad ----
+      var pctProt = obj.p ? comido.p / obj.p * 100 : 100;
+      if (pctProt < 80) {
+        var castigoP = Math.min(15, (80 - pctProt) * 0.7);
+        nota -= castigoP;
+        motivos.push("poca proteína (" + Math.round(comido.p) + " de " + obj.p + " g)");
+      }
+
+      // ---- sal: sólo por encima del techo ----
+      var sal = this.salDia(fecha);
+      var techo = c.limiteSal || 4;
+      if (this.fichaTipoDia(fecha).topeSal && sal > techo) {
+        var castigoS = Math.min(15, (sal - techo) * 8);
+        nota -= castigoS;
+        motivos.push("sal por encima del techo (" + Util.sal(sal) + ")");
+      }
+
+      nota = Math.max(0, Math.min(100, Math.round(nota)));
+      return {
+        nota: nota,
+        signo: nota >= 80 ? "+" : (nota >= 55 ? "~" : "\u2212"),
+        clase: nota >= 80 ? "bien" : (nota >= 55 ? "regular" : "mal"),
+        objetivo: Math.round(objetivo),
+        comido: Math.round(comido.k),
+        motivos: motivos
+      };
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */
@@ -1182,11 +1320,16 @@
     },
     fichaTipoDia: function (fecha) { return this.TIPOS_DIA[this.tipoDia(fecha)]; },
 
-    diaVacio: function () { return { tipo: "casa", desayuno: [], almuerzo: [], comida: [], merienda: [], cena: [] }; },
+    /* `capricho` es el sexto cajón del día, y no es una toma más: no se planifica,
+       no tiene comensales, no se come fuera y no entra en la lista de la compra.
+       Es lo que te comiste sin que estuviera previsto. */
+    diaVacio: function () { return { tipo: "casa", desayuno: [], almuerzo: [], comida: [], merienda: [], cena: [], capricho: [] }; },
 
     asegurarDia: function (fecha) {
       if (!this.estado.plan[fecha]) this.estado.plan[fecha] = this.diaVacio();
       if (!this.estado.plan[fecha].tipo) this.estado.plan[fecha].tipo = "casa";
+      /* Los días guardados antes del 21-sep-2026 no traen el cajón */
+      if (!this.estado.plan[fecha].capricho) this.estado.plan[fecha].capricho = [];
       return this.estado.plan[fecha];
     },
 

@@ -1938,5 +1938,347 @@ window.DATOS_RECETAS = [
     "12 g de nueces son 78 kcal, casi una cuarta parte del plato. No las subas a ojo."
   ],
   nota:"La ensalada que no lleva mango, que eran las dos que había. Cena completa en veinte minutos."
+},
+
+/* ============================ CAPRICHOS ============================
+   Cada receta es UNA unidad: un donut, una bola, un puñado, un Whopper.
+   Para dos, se sube el contador del plato en el menú — no se duplica la receta.
+   Las cifras son de etiqueta y cuentan en el día como cualquier otro plato. */
+{
+  id:"cap_batido_evowhey", n:"Batido de proteínas EvoWhey con leche entera",
+  rev:1,
+  tipo:["desayuno","almuerzo","merienda"], grupo:"capricho", raciones:1, min:2, tools:["sin-cocinar"],
+  ing:[{i:"evowhey",c:30},{i:"leche_entera",c:250}],
+  pasos:[
+    "Una dosis rasa de EvoWhey (30 g) y 250 ml de leche entera bien fría.",
+    "Bate o agita 20 segundos. Si te queda con grumos, echa primero la leche y luego el polvo: al revés siempre se apelmaza."
+  ],
+  trucos:[
+    "265 kcal y 32 g de proteína. De capricho tiene poco: es de lo que mejor sale en proteína por caloría de todo el recetario, y con la musculación en casa te viene de cara.",
+    "Con 500 ml de leche en vez de 250 se va a 425 kcal. La leche es la que manda en el total, no el polvo.",
+    "0,54 g de sal, y 0,30 de ellos son de la leche. El polvo apenas aporta."
+  ]
+},
+{
+  id:"cap_donut", n:"Donut Panrico glacé",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"donut_panrico",c:1}],
+  pasos:["Un donut."],
+  trucos:[
+    "173 kcal y 0,52 g de sal el donut. Dos son 345 kcal y 1,04 g de sal: más sal que las seis rebanadas de pan Ortiz de todo un día (0,91 g).",
+    "La sal de la bollería no se nota al paladar porque va tapada por el azúcar. Por eso sorprende cuando la miras."
+  ]
+},
+{
+  id:"cap_croissant", n:"Croissant",
+  rev:1,
+  tipo:["desayuno","almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"croissant",c:1}],
+  pasos:["Un croissant. Si es de los congelados, 3 minutos a 160 °C en la freidora lo deja como recién hecho."],
+  trucos:[
+    "161 kcal y 0,22 g de sal por la ración de 36 g que declara la etiqueta.",
+    "Ojo con el tamaño: un croissant de panadería pesa 60-70 g, casi el doble. Si es de esos, pon 2 en el contador."
+  ]
+},
+{
+  id:"cap_palmera", n:"Palmera de chocolate",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"palmera_choco",c:1}],
+  pasos:["Una palmera de chocolate."],
+  trucos:[
+    "433 kcal y 0,56 g de sal. Es el capricho más caro en calorías de la lista después del Whopper y la tarta de queso.",
+    "El dato es orientativo: las palmeras no llevan etiqueta fija y van de 80 a 115 g según la pastelería."
+  ]
+},
+{
+  id:"cap_magdalena", n:"Magdalena",
+  rev:1,
+  tipo:["desayuno","almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"magdalena",c:1}],
+  pasos:["Una magdalena."],
+  trucos:[
+    "126 kcal y 0,05 g de sal. Es, de lejos, el capricho de bollería con menos sal: diez veces menos que un donut.",
+    "Si el capricho es por el dulce y no por el donut en concreto, esta sale mucho más barata en las dos cuentas."
+  ]
+},
+{
+  id:"cap_chocolate_leche", n:"Chocolate con leche (4 onzas)",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"chocolate_leche",c:17}],
+  pasos:["Cuatro onzas, que es la porción que marca la tableta: 17 g."],
+  trucos:[
+    "90 kcal y 0,05 g de sal. Casi todo lo que aporta es azúcar: 9 g en cuatro onzas.",
+    "Una tableta entera de 100 g son 539 kcal. La diferencia entre cuatro onzas y media tableta es de las que se hacen sin pensar."
+  ]
+},
+{
+  id:"cap_chocolate_negro", n:"Chocolate negro 70% (4 onzas)",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"chocolate_negro",c:17}],
+  pasos:["Cuatro onzas de tableta de 70% cacao: 17 g."],
+  trucos:[
+    "90 kcal, las mismas que el de leche, pero la mitad de azúcar (5 g en vez de 9) y casi tres veces menos sal.",
+    "A igualdad de calorías, cambiar de leche a negro 70% es gratis y te quita azúcar. Si el capricho es el chocolate en sí, este gana."
+  ]
+},
+{
+  id:"cap_helado_vainilla", n:"Helado de vainilla (una bola)",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"helado_vainilla",c:50}],
+  pasos:["Una bola, 50 g, que es la ración que marca la tarrina."],
+  trucos:[
+    "98 kcal y 0,06 g de sal. El capricho frío más barato de la lista.",
+    "La trampa del helado no es la bola, es la tarrina: 622 g son 1.213 kcal. Sirve en cuenco, no comas del envase."
+  ]
+},
+{
+  id:"cap_helado_choco", n:"Helado de chocolate (una bola)",
+  rev:1,
+  tipo:["almuerzo","merienda","postre"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"helado_choco",c:50}],
+  pasos:["Una bola, 50 g."],
+  trucos:["101 kcal y 0,05 g de sal. Prácticamente lo mismo que el de vainilla."]
+},
+{
+  id:"cap_flan", n:"Flan de huevo",
+  rev:1,
+  tipo:["postre","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"flan_huevo",c:1}],
+  pasos:["Un flan."],
+  trucos:["168 kcal y 0,22 g de sal, con 5,4 g de proteína. 25 g de azúcar, que es lo que tiene de capricho."]
+},
+{
+  id:"cap_natillas", n:"Natillas de vainilla",
+  rev:1,
+  tipo:["postre","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"natillas",c:1}],
+  pasos:["Una tarrina."],
+  trucos:[
+    "131 kcal y 0,16 g de sal. Es el capricho más barato en calorías de todos los de esta lista.",
+    "Para comparar: tu yogur griego con avena de postre ronda esas mismas calorías, así que cambiar uno por otro un día no mueve la cuenta."
+  ]
+},
+{
+  id:"cap_tarta_queso", n:"Tarta de queso (media tarrina)",
+  rev:1,
+  tipo:["postre","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"tarta_queso",c:90}],
+  pasos:["Media tarrina, 90 g. La tarrina entera son 180 g: pon 2 si te la comes toda."],
+  trucos:[
+    "204 kcal y 0,36 g de sal la media tarrina. Entera, 409 kcal y 0,72 g.",
+    "7,5 g de proteína en media tarrina: de los postres dulces, el que más lleva."
+  ]
+},
+{
+  id:"cap_patatas_bolsa", n:"Patatas fritas de bolsa (un puñado)",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"patatas_bolsa",c:30}],
+  pasos:["Un puñado, 30 g, que es la porción que marca la bolsa. Una bolsa grande trae seis o siete."],
+  trucos:[
+    "156 kcal y 0,25 g de sal el puñado. Sorpresa: es MENOS sal que cinco aceitunas (0,50 g) y mucha menos que una loncha de jamón ibérico (1,53 g).",
+    "El problema de las patatas no es la sal, es que nadie come 30 g. La bolsa entera de 170 g son 886 kcal y 1,45 g de sal.",
+    "Sácalas a un cuenco y guarda la bolsa. Es el único truco que funciona de verdad."
+  ]
+},
+{
+  id:"cap_doritos", n:"Nachos tipo Doritos (un puñado)",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"doritos",c:30}],
+  pasos:["Un puñado, 30 g."],
+  trucos:["149 kcal y 0,29 g de sal. Casi lo mismo que las patatas de bolsa."]
+},
+{
+  id:"cap_cacahuetes", n:"Cacahuetes fritos salados (un puñado)",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"cacahuetes_sal",c:20}],
+  pasos:["Un puñado corto, 20 g."],
+  trucos:[
+    "120 kcal y 0,16 g de sal. La menos salada de las cosas de picar.",
+    "4,6 g de proteína en el puñado. Si el capricho es salado, este es el que menos daño hace en las dos cuentas."
+  ]
+},
+{
+  id:"cap_aceitunas", n:"Aceitunas rellenas de anchoa (cinco)",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"aceitunas_rell",c:5}],
+  pasos:["Cinco aceitunas."],
+  trucos:[
+    "Solo 31 kcal, pero 0,50 g de sal: la mitad de tu aviso ámbar en cinco bocados.",
+    "Es el caso más engañoso del catálogo. No engordan nada y son de lo más salado que vas a comer en el día.",
+    "Las verdes sin rellenar en salmuera son PEORES: 4 g de sal por 100 g frente a 2,6."
+  ]
+},
+{
+  id:"cap_queso_curado", n:"Queso curado (una loncha)",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"queso_curado",c:45}],
+  pasos:["Una loncha o una cuña pequeña, 45 g."],
+  trucos:[
+    "205 kcal y 0,95 g de sal. Una sola loncha lleva tanta sal como el pan Ortiz de todo el día.",
+    "12 g de proteína, eso sí. Pero para proteína tienes el requesón y el queso de Burgos sin sal a 0,02 g."
+  ]
+},
+{
+  id:"cap_jamon_iberico", n:"Jamón ibérico de bellota (30 g)",
+  rev:1,
+  tipo:["almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"jamon_iberico",c:30}],
+  pasos:["Unas lonchas finas, 30 g en total: lo que trae un plato de tapa."],
+  trucos:[
+    "132 kcal y 1,53 g de sal. ES EL PRODUCTO MÁS SALADO DE TODO TU CATÁLOGO: 5,1 g de sal por 100 g.",
+    "Un plato de tapa se lleva el 38% de tu tope diario de sal. Dos platos y ya vas por encima del aviso ámbar sin haber comido nada más.",
+    "Si lo tomas, el resto del día tiene que ir muy limpio de sal: sin pan Ortiz, sin queso y sin aceitunas."
+  ]
+},
+{
+  id:"cap_bk_whopper", n:"Whopper de Burger King",
+  rev:1,
+  tipo:["comida","cena"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"bk_whopper",c:1}],
+  pasos:["Un Whopper, 289 g."],
+  trucos:[
+    "643 kcal y 2,6 g de sal. Las kcal son un tercio de tu día; la sal, casi dos tercios de tu tope de 4 g.",
+    "30 g de proteína, que no está mal. El problema es la sal, no la hamburguesa.",
+    "Dato oficial de Burger King España, no estimado."
+  ]
+},
+{
+  id:"cap_bk_aros", n:"Aros de cebolla de Burger King (5 ud)",
+  rev:1,
+  tipo:["comida","cena","almuerzo"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"bk_aros_cebolla",c:5}],
+  pasos:["La ración pequeña: cinco aros, 59 g."],
+  trucos:[
+    "142 kcal y 0,30 g de sal. Es lo MENOS salado de la carta de Burger King, y por mucho.",
+    "La de 13 aros son 370 kcal y 0,8 g de sal.",
+    "Si acompañas el Whopper, los aros suman poca sal. Las patatas Supreme de esa misma carta llevan 2 g: el triple que las normales."
+  ]
+}
+,
+{
+  id:"cap_mcd_wrap", n:"McWrap CBO de McDonald's",
+  rev:2,
+  tipo:["comida","cena"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_wrap_cbo",c:1}],
+  pasos:["Un McWrap CBO: pollo, bacon y cebolla."],
+  trucos:[
+    "639 kcal y 2,7 g de sal. Es el producto con MÁS CALORÍAS de todo tu catálogo de caprichos, por encima del Whopper (643 va casi empatado) y muy por encima del Cuarto de Libra (547).",
+    "2,7 g de sal son dos tercios de tu tope del día. En eso empata con el Whopper y supera al Cuarto de Libra.",
+    "No te fíes de la palabra «wrap»: suena a ligero y es lo contrario. Son 243 g y 34 g de grasa.",
+    "CIFRA FRANCESA, no española: McDonald's España no publica la del CBO. Dos fichas francesas distintas dan 2,7 y 3,0 g de sal, así que tómalo como «alrededor de 640 kcal y cerca de 3 g de sal»."
+  ]
+},
+{
+  id:"cap_mcd_patatas", n:"Patatas fritas medianas de McDonald's",
+  rev:1,
+  tipo:["comida","cena","almuerzo"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_patatas_med",c:1}],
+  pasos:["Una ración mediana."],
+  trucos:[
+    "320 kcal y 0,66 g de sal. Sorprende poco saladas para lo que saben: menos de la mitad que el wrap que las acompaña.",
+    "Las de Burger King medianas son 386 kcal y 0,7 g: prácticamente iguales."
+  ]
+},
+{
+  id:"cap_mcd_quarter", n:"Cuarto de Libra con queso de McDonald's",
+  rev:1,
+  tipo:["comida","cena"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_quarter",c:1}],
+  pasos:["Una hamburguesa."],
+  trucos:[
+    "547 kcal y 2,6 g de sal. Exactamente la misma sal que un Whopper, y cien calorías menos.",
+    "2,6 g son el 65% de tu tope del día en una sola hamburguesa. Si la tomas, el resto del día va sin pan Ortiz, sin queso y sin aceitunas.",
+    "33 g de proteína, que es lo mejor que tiene: más que un filete de pollo.",
+    "Cifra oficial de McDonald's España."
+  ]
+},
+{
+  id:"cap_cocacola_zero", n:"Coca-Cola Zero (vaso mediano)",
+  rev:1,
+  tipo:["comida","cena","almuerzo","merienda"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"cocacola_zero",c:400}],
+  pasos:["Un vaso mediano, unos 400 ml."],
+  trucos:[
+    "0 kcal y 0,04 g de sal. Es el único capricho de la lista que no mueve ninguna de las dos cuentas.",
+    "Si el menú lleva refresco, que sea este: la versión con azúcar son unas 170 kcal en el mismo vaso."
+  ]
+},
+{
+  id:"cap_mcd_menu", n:"Menú McDonald's: wrap + patatas medianas + Coca-Cola Zero",
+  rev:1,
+  tipo:["comida","cena"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_wrap_cbo",c:1},{i:"mcd_patatas_med",c:1},{i:"cocacola_zero",c:400}],
+  pasos:["El menú completo: McWrap CBO, patatas medianas y Coca-Cola Zero."],
+  trucos:[
+    "959 kcal y 3,4 g de sal. Las calorías son el 54% de tu día entero; la sal, el 85% del tope.",
+    "Un solo menú deja el día prácticamente cerrado por los dos lados: te quedan 820 kcal y 0,6 g de sal para las otras cuatro tomas. Con el pan Ortiz de comida y cena (0,91 g) ya te habrías pasado.",
+    "La sal está repartida: 2,7 g del wrap y 0,66 de las patatas. El refresco no aporta nada.",
+    "Cambiar el CBO por una cheeseburger deja el menú en 626 kcal y 2,3 g: sigue siendo mucho, pero cabe en el día.",
+    "El wrap lleva cifra francesa; las patatas, americana. España no publica ninguna de las dos."
+  ]
+},
+{
+  id:"cap_mcd_cono", n:"Cono de helado de McDonald's",
+  rev:1,
+  tipo:["postre","merienda","almuerzo"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_cono_helado",c:1}],
+  pasos:["Un cono de helado."],
+  trucos:[
+    "157 kcal y 0,1 g de sal. De los caprichos de restaurante es, con diferencia, el que menos daño hace: la mitad de calorías que las patatas medianas y veinticinco veces menos sal que el wrap.",
+    "20 g de azúcar, que es casi todo lo que aporta. Pero con 3,8 g de proteína y 3,3 de grasa, para ser un postre de restaurante está bien.",
+    "Si el capricho es McDonald's y el día va justo de sal, este es el que se puede permitir casi siempre.",
+    "Cifra oficial de McDonald's España, de su propia ficha de producto."
+  ]
+},
+{
+  id:"cap_mcd_mcflurry", n:"McFlurry KitKat de McDonald's",
+  rev:1,
+  tipo:["postre","merienda","almuerzo"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_mcflurry_kitkat",c:1}],
+  pasos:["Un McFlurry de KitKat."],
+  trucos:[
+    "419 kcal y 0,4 g de sal. Casi el triple de calorías que el cono de helado (157) por el mismo tipo de capricho.",
+    "54 g de AZÚCAR, que es el dato de verdad: el producto con más azúcar de todo tu catálogo. Son unos trece terrones en un vaso, y la recomendación de la OMS para todo el día son 25 g.",
+    "Si lo que apetece es el helado de McDonald's, el cono te da la misma cosa por 157 kcal y 20 g de azúcar. La diferencia entre los dos es de las que se notan al mes.",
+    "Cifra oficial de McDonald's España."
+  ]
+},
+{
+  id:"cap_mcd_topfries", n:"Top Fries Bacon & Cheese de McDonald's (individuales)",
+  rev:1,
+  tipo:["comida","cena","almuerzo"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_topfries_bacon",c:1}],
+  pasos:["Una ración individual."],
+  trucos:[
+    "423 kcal y 1,5 g de sal. Es lo más salado que has metido de McDonald's: el 37% de tu tope del día en un acompañamiento.",
+    "Para comparar: las patatas medianas normales son 320 kcal y 0,66 g de sal. El bacon y el queso te cuestan 100 kcal más y MÁS DEL DOBLE de sal.",
+    "Tanta sal como 30 g de jamón ibérico, que es el producto más salado de tu catálogo.",
+    "12 g de proteína y 4,1 g de fibra, eso sí. No es solo grasa.",
+    "Cifra oficial de McDonald's España."
+  ]
+},
+{
+  id:"cap_mcd_cheeseburger", n:"Cheeseburger de McDonald's",
+  rev:1,
+  tipo:["comida","cena"], grupo:"capricho", raciones:1, min:1, tools:["sin-cocinar"],
+  ing:[{i:"mcd_cheeseburger",c:1}],
+  pasos:["Una cheeseburger, 120 g."],
+  trucos:[
+    "306 kcal y 1,6 g de sal. Es la hamburguesa más pequeña de la carta y se nota: la mitad de calorías que un Cuarto de Libra (547).",
+    "En sal sale mejor parada pero no tanto: 1,6 g frente a 2,6. Sigue siendo el 40% de tu tope del día.",
+    "16 g de proteína por 306 kcal: de las hamburguesas de restaurante, la que mejor relación tiene.",
+    "Si el capricho es McDonald's y el día va cargado de sal, dos cheeseburgers (3,2 g) NO son mejor que un Cuarto de Libra (2,6 g). Una sí.",
+    "Cifra oficial de McDonald's España."
+  ]
 }
 ];

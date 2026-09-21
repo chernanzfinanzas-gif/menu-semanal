@@ -6731,7 +6731,16 @@
       if (!b) return;
       var mia = b.getAttribute("data-vista") === "entreno";
       vestir(mia);
-      if (mia) pintar();
+      if (mia) {
+        /* SIEMPRE SE ENTRA POR LA PORTADA (21-sep-2026, Carlos). Antes la
+           pestaña guardaba el último bloque abierto, así que volver a
+           Entrenamiento te dejaba en medio de Evolución o de Material, sin el
+           índice a la vista. Entrar siempre por el mismo sitio vale más que
+           ahorrarse un clic: la portada es el mapa de la pestaña. */
+        bloque = "portada";
+        diaSel = null; matEditando = null; matVista = null;
+        pintar();
+      }
     });
 
     if (A.suscribir) A.suscribir(function (motivo) {
