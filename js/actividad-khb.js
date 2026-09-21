@@ -1517,7 +1517,10 @@
         /* Aquí NO va una regla de modo oscuro: la app se queda clara aunque el
            sistema esté en oscuro, y la regla pintaba los botones invertidos
            sobre una página blanca. Mismo fallo que el recuadro de limpieza. */
-        ".akhb-nada-peq{font-size:12.5px;color:#6b7c8d;margin:-2px 0 4px}"
+        ".akhb-nada-peq{font-size:12.5px;color:#6b7c8d;margin:-2px 0 4px}",
+        ".akhb-previsto{margin-top:14px;padding-top:12px;border-top:1px dashed #dbe4ee}",
+        ".akhb-previsto h5{margin:0 0 4px;font-size:13px;color:#16324f}",
+        ".akhb-previsto p{margin:0 0 8px;font-size:12.5px;line-height:1.45;color:#6b7c8d}"
       ].join("");
       document.head.appendChild(e);
     }
@@ -1979,6 +1982,42 @@
         ? [(rr.b[0] + rr.b[2]) / 2, (rr.b[1] + rr.b[3]) / 2]
         : celdaACoord(x.celda);
       var lugar = rotuloLugar(lugarDe(x.nombre), cc ? zonaDe(cc[0], cc[1]) : null);
+      /* LA RUTINA QUE TOCABA, cuando el reloj no supo qué ejercicios eran.
+         Los nombres sólo llegan con la exportación de Garmin, cada dos meses.
+         Hasta entonces la tabla dice «sin identificar» tres veces y no cuenta
+         nada. Aquí debajo se enseña lo que el plan mandaba, DICIENDO QUE ES LO
+         PREVISTO y no lo hecho: son dos cosas distintas y no se mezclan nunca.
+         Cuando llegue la exportación, los nombres de verdad aparecen arriba y
+         esto se calla solo. */
+      function rutinaPrevistaHTML(x, series) {
+        if (!series || !series.length) return "";
+        var falta = series.every(function (e) {
+          var q = String((e && e.que) || "").toUpperCase();
+          return !q || q === "UNKNOWN";
+        });
+        if (!falta) return "";
+        var E = global.KHBEntreno;
+        if (!E || typeof E.rutinaPrevista !== "function") return "";
+        var r = E.rutinaPrevista(x.nombre);
+        if (!r || !r.mov || !r.mov.length) return "";
+        var filas = r.mov.map(function (m) {
+          var carga = m.kg ? num(m.kg, 0) + " kg"
+                    : (m.goma ? "goma de " + num(m.goma, 1) + " kg" : "\u2014");
+          return "<tr><th>" + esc(m.n) + "</th>" +
+            "<td>" + (m.s || "\u2014") + "</td>" +
+            "<td>" + esc(m.r || "\u2014") + "</td>" +
+            "<td>" + carga + "</td></tr>";
+        }).join("");
+        return '<div class="akhb-previsto">' +
+          "<h5>Lo que tocaba: " + esc(r.n) + "</h5>" +
+          "<p>El reloj no guard\u00f3 qu\u00e9 ejercicio era cada serie. Esto es " +
+          "<b>lo que manda el plan</b>, no lo que hiciste: los nombres de verdad " +
+          "llegan con la pr\u00f3xima exportaci\u00f3n de Garmin.</p>" +
+          '<table class="akhb-tf"><thead><tr>' +
+            "<th>Movimiento</th><th>Series</th><th>Reps</th><th>Carga</th>" +
+          "</tr></thead><tbody>" + filas + "</tbody></table></div>";
+      }
+
       /* ---------- las pesas ----------
          Lo que hizo de verdad, ejercicio a ejercicio. Los kilos son el MÁXIMO
          de la serie y el volumen es kilos por repetición sumado, que es como
@@ -2009,6 +2048,7 @@
             '<table class="akhb-tf"><thead><tr>' +
               "<th>Ejercicio</th><th>Series</th><th>Reps</th><th>Max</th><th>Volumen</th><th>Min</th>" +
             "</tr></thead><tbody>" + filas + "</tbody></table>" +
+            rutinaPrevistaHTML(x, series) +
           "</div>";
       }
       var editor = (alRenombrar && x.id)

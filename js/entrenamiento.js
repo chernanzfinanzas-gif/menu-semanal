@@ -6922,6 +6922,30 @@
   }
 
   global.KHBEntreno = {
+    /* LA RUTINA QUE TOCABA, para la ficha de una sesión de fuerza.
+       Los nombres de los ejercicios sólo llegan con la exportación de Garmin
+       —cada dos meses—, así que entre medias la ficha enseña tres filas que
+       dicen «sin identificar» y nada más. Con esto puede enseñar al lado lo que
+       el plan mandaba hacer, marcado como previsto, hasta que llegue lo real.
+
+       Se busca por el nombre de la actividad: «Fuerza A corta» lleva dentro
+       «Fuerza A». Si no cuadra ninguna, se devuelve null y la ficha no inventa
+       nada: no se adivina por el día de la semana, porque una sesión movida de
+       día daría la rutina equivocada con toda la seguridad del mundo. */
+    rutinaPrevista: function (nombre) {
+      var t = String(nombre || "").toLowerCase();
+      for (var i = 0; i < SESIONES.length; i++) {
+        if (t.indexOf(SESIONES[i].n.toLowerCase()) >= 0) {
+          var s = SESIONES[i];
+          return { n: s.n, min: s.min, mov: s.mov.map(function (m) {
+            return { n: m.n, s: m.s, r: m.r, kg: m.kg || null, goma: m.goma || null,
+                     nota: m.nota || "" };
+          }) };
+        }
+      }
+      return null;
+    },
+
     /* Qué toca hoy según el plan, con lo que costaría. Los días fuera del plan
        devuelven lista vacía, no ceros. */
     previsto: function (iso) {
