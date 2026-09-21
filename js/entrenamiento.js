@@ -4691,6 +4691,16 @@
        que devolverlo a la casilla equivalente del árbol nuevo. */
     setTimeout(function () {
       var y = window.scrollY || window.pageYOffset || 0;
+      /* No siempre scrollea la ventana: según el ancho, quien se mueve es un
+         contenedor de encima. Guardamos la posición de TODOS los que pueden
+         hacerlo —sobreviven al repintado, porque sólo se sustituye el interior
+         de la vista— y luego se devuelven todos. Antes sólo se guardaba la
+         ventana, y donde no era la ventana la página saltaba arriba. */
+      var pilas = [], nodo = document.getElementById("vista-entreno");
+      while (nodo) {
+        if (nodo.scrollTop) pilas.push({ el: nodo, top: nodo.scrollTop });
+        nodo = nodo.parentNode && nodo.parentNode.nodeType === 1 ? nodo.parentNode : null;
+      }
       var a = document.activeElement, clave = null, ini = null, fin = null;
       if (a && a.getAttribute) {
         /* vale cualquier ancla estable, no solo una casilla de medida */
@@ -4701,6 +4711,7 @@
       }
       pintar(true);
       window.scrollTo(0, y);
+      pilas.forEach(function (p) { try { p.el.scrollTop = p.top; } catch (e) {} });
       if (clave) {
         var n = document.querySelector(clave);
         if (n) {
@@ -4709,6 +4720,13 @@
              navegadores: si protesta, basta con tener el foco */
           try { if (ini !== null) n.setSelectionRange(ini, fin); } catch (e) {}
           window.scrollTo(0, y);
+          pilas.forEach(function (p) { try { p.el.scrollTop = p.top; } catch (e) {} });
+          /* Último recurso: si con todo eso la casilla se ha quedado fuera de
+             la pantalla, se la trae sin mover el resto. */
+          var r = n.getBoundingClientRect && n.getBoundingClientRect();
+          if (r && (r.top < 0 || r.bottom > (window.innerHeight || 0))) {
+            try { n.scrollIntoView({ block: "center" }); } catch (e) {}
+          }
         }
       }
     }, 0);
@@ -6374,6 +6392,26 @@
 
   /* ==================== ARRANQUE ==================== */
 
+  /* Al abrir la app se aterriza en El Plan, no en el menú. Es lo primero que
+     se hace por la mañana: pesarse, anotar las medidas y ver qué toca. Antes
+     había que cambiar de pestaña cada día para llegar.
+
+     Se espera a que el vídeo de bienvenida se quite solo: mientras está, la
+     portada tapa todo y cambiar de pestaña detrás no serviría de nada. */
+  function abrirEnElPlan() {
+    var vueltas = 0;
+    (function esperar() {
+      if (document.getElementById("portada") && vueltas++ < 900) {
+        return setTimeout(esperar, 100);                      // hasta un minuto y medio
+      }
+      var btn = document.querySelector('#pestanas [data-vista="entreno"]');
+      if (!btn) return;                                       // sin pestaña no hay nada que hacer
+      bloque = "plan";
+      diaSel = null;
+      btn.click();                                            // reusa el cambio de vista de siempre
+    })();
+  }
+
   function arrancar() {
     if (!U || !A || !P) return;
     if (!A.estado) { setTimeout(arrancar, 80); return; }      // esperamos a que app.js inicie el almacén
@@ -6383,6 +6421,7 @@
     ponerTip();
     if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
     pintar();
+    abrirEnElPlan();
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
       var n = Salud.sembrarPesos();
       if (n) U.toast(n === 1 ? "1 peso traído de intervals" : n + " pesos traídos de intervals");
