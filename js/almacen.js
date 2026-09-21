@@ -31,6 +31,7 @@
           objetivoKcal: 2000,  // kcal/día
           objetivoProt: 90,    // g de proteína/día
           margenKcal: 10,      // % de holgura antes de marcar el día en rojo
+          pctGrasa: 30,        // % de las calorías del día que van en grasa
 
           /* Cuánto de lo PREVISTO por el plan se adelanta antes de hacerlo.
              ENTERO, y no a medias, porque la previsión está para preparar la
@@ -326,6 +327,7 @@
         e.config.v_prot18 = 1;
       }
       if (typeof e.config.margenKcal !== "number") e.config.margenKcal = 10;
+      if (typeof e.config.pctGrasa !== "number") e.config.pctGrasa = 30;
       if (!e.despensa) e.despensa = {};
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.favoritos) e.favoritos = [];
@@ -694,6 +696,30 @@
     hayComidoAlgo: function (fecha) {
       var d = this.estado.comido[fecha];
       return !!(d && Object.keys(d).length);
+    },
+
+    /* LOS OBJETIVOS DE CADA MACRO PARA UN DÍA CONCRETO.
+       Cada uno se fija de una manera distinta, y no por capricho:
+
+       · La PROTEÍNA va en gramos y no en porcentaje, porque no depende de lo que
+         comas ese día sino del músculo que quieres conservar: 1,8 g por kilo de
+         peso objetivo. Un día que entrenas y comes 400 kcal más no necesitas más
+         proteína, necesitas más comida.
+       · La GRASA va en porcentaje de las calorías del día —30 % por defecto—,
+         que es como se maneja y como se mueve sola cuando el objetivo sube.
+       · Los HIDRATOS son LO QUE QUEDA. Si se fijaran los tres por separado, los
+         días de entreno sumarían más del 100 % y ninguno cuadraría.
+       · La SAL es el aviso ámbar (2 g), no el techo rojo (4): el criterio de
+         Carlos es reducir todo lo posible, no llegar al tope.
+
+       Devuelve gramos, no porcentajes: el porcentaje lo saca quien lo pinta. */
+    objetivosMacros: function (fecha) {
+      var c = this.estado.config;
+      var kcal = (fecha ? this.objetivoDelDia(fecha) : 0) || c.objetivoKcal || 2000;
+      var prot = c.objetivoProt || 90;
+      var grasa = Math.round(kcal * (typeof c.pctGrasa === "number" ? c.pctGrasa : 30) / 100 / 9);
+      var hid = Math.round(Math.max(0, kcal - prot * 4 - grasa * 9) / 4);
+      return { k: kcal, p: prot, g: grasa, h: hid, sal: c.avisoSal || 2 };
     },
 
     semaforoKcal: function (kcal, objetivo) {

@@ -307,6 +307,7 @@
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
               '<span class="fecha">' + Util.etiquetaFecha(fecha) + '</span>' +
               (tieneAlgo ? '<span class="chip-sal ' + colorK + '">' + Util.kcal(nutr.k) + '</span>' +
+                           chipDiferencia(objetivo, nutr.k, tieneAlgo) +
                            '<span class="chip-sal ' + color + '">' + Util.sal(sal) + ' sal' +
                            (color === "libre" ? ' · sin tope' : '') + '</span>' : '') +
               (Almacen.esPasado(fecha)
@@ -383,13 +384,15 @@
       }
 
       if (tieneAlgo) {
+        var obj = Almacen.objetivosMacros(fecha);
         var pct = objetivo ? Math.min(100, Math.round((hayComido ? nutrCom.k : nutr.k) / objetivo * 100)) : 0;
         html += '<div class="resumen-dia">' +
                   (objetivo ? '<div class="barra"><span class="relleno ' + colorK + '" style="width:' + pct + '%"></span></div>' : '') +
                   '<div class="macros">' +
-                    '<span><b>P</b> ' + Math.round(nutr.p) + ' g</span>' +
-                    '<span><b>G</b> ' + Math.round(nutr.g) + ' g</span>' +
-                    '<span><b>H</b> ' + Math.round(nutr.h) + ' g</span>' +
+                    macro("P", nutr.p, obj.p, "corto") +
+                    macro("G", nutr.g, obj.g, "ambos") +
+                    macro("H", nutr.h, obj.h, "ambos") +
+                    macroSal(sal, obj.sal) +
                     /* Lo que SUBE al objetivo, no lo que quemas: si pusiera el bruto
                        no cuadraría con el objetivo de al lado y parecería un error. */
                     (subeEntreno ? '<span class="quemado" title="Lo medido entra entero; ' +
@@ -640,6 +643,52 @@
       cerrarModal();
       pintarMenu();
     });
+  }
+
+  /* UN MACRO CON SU PORCENTAJE DEL OBJETIVO.
+     `aviso` dice por qué lado preocupa cada uno, que no es el mismo para los
+     tres: de proteína preocupa quedarse CORTO y pasarse no es problema; de
+     grasa e hidratos preocupan los dos lados, porque son el relleno de las
+     calorías. Sin esa distinción la proteína saldría en rojo justo los días
+     buenos. */
+  function macro(letra, hay, meta, aviso) {
+    var g = Math.round(hay || 0);
+    if (!meta) return '<span><b>' + letra + '</b> ' + g + ' g</span>';
+    var p = Math.round(g / meta * 100);
+    var cl = "bien";
+    if (p < 90) cl = "corto";
+    else if (p > 110 && aviso === "ambos") cl = "pasa";
+    return '<span title="objetivo ' + meta + ' g"><b>' + letra + '</b> ' + g +
+           ' g <i class="' + cl + '">' + p + '%</i></span>';
+  }
+
+  /* La sal es al revés que todo lo demás: aquí el 100 % no es la meta, es el
+     techo. Por debajo está bien y cuanto más abajo, mejor. */
+  function macroSal(hay, meta) {
+    if (!meta) return "";
+    var p = Math.round((hay || 0) / meta * 100);
+    return '<span title="aviso a partir de ' + meta + ' g"><b>Sal</b> ' + Util.sal(hay) +
+           ' <i class="' + (p > 100 ? "pasa" : "bien") + '">' + p + '%</i></span>';
+  }
+
+  /* LO QUE FALTA O LO QUE SOBRA, EN LA CABECERA DEL DÍA.
+     Pedido de Carlos el 21-sep-2026: «la diferencia entre las calorías que tengo
+     que comer y las que tengo programadas; si me faltan que esté en morado y si
+     me sobran que esté en rojo».
+
+     Compara el objetivo con lo PROGRAMADO, no con lo comido: es un aviso para
+     terminar de montar el día, no una nota de lo que hiciste — eso va al cierre.
+
+     Dentro del margen de holgura no dice ni una cosa ni la otra: dice que cuadra.
+     Sin ese margen cualquier día saldría en morado por doce calorías, y un aviso
+     que salta siempre deja de ser un aviso. */
+  function chipDiferencia(objetivo, programado, tieneAlgo) {
+    if (!tieneAlgo || !objetivo) return "";
+    var dif = Math.round(objetivo - programado);
+    var margen = objetivo * (Almacen.estado.config.margenKcal || 10) / 100;
+    if (dif > margen)  return '<span class="chip-sal falta">faltan ' + Util.kcal(dif) + '</span>';
+    if (-dif > margen) return '<span class="chip-sal sobra">sobran ' + Util.kcal(-dif) + '</span>';
+    return '<span class="chip-sal verde">cuadra</span>';
   }
 
   /* ==================== IMPORTAR DE GARMIN ==================== */

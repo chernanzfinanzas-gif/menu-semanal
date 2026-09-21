@@ -2,6 +2,10 @@
   --verde:#2f6b47; --verde-claro:#e8f2ec; --verde-borde:#cfe3d8;
   --ambar:#c98a1b; --ambar-fondo:#fdf3e0;
   --rojo:#b3402f; --rojo-fondo:#fbeceb;
+  /* El morado de «te faltan calorías». Es el mismo tono del trazo de las rutas
+     en KHB en Forma: dos apps, un color, y no choca con el verde ni con el
+     ámbar de la sal. */
+  --morado:#7b2fbf; --morado-fondo:#f3ebfb;
   --tinta:#1f2a24; --gris:#667a70; --gris-claro:#f5f7f6; --borde:#dfe5e2;
   --blanco:#ffffff; --sombra:0 1px 3px rgba(31,42,36,.10), 0 6px 18px rgba(31,42,36,.06);
   --radio:12px;
@@ -109,6 +113,10 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .chip-sal.verde{background:var(--verde-claro); color:var(--verde)}
 .chip-sal.ambar{background:var(--ambar-fondo); color:var(--ambar)}
 .chip-sal.rojo{background:var(--rojo-fondo); color:var(--rojo)}
+/* La diferencia entre lo que hay que comer y lo que hay puesto. Morado si
+   faltan —hay hueco, no es un fallo—, rojo si sobran. */
+.chip-sal.falta{background:var(--morado-fondo); color:var(--morado)}
+.chip-sal.sobra{background:var(--rojo-fondo); color:var(--rojo)}
 /* "libre": el día de ruta no tiene tope, no es que vaya bien ni que vaya mal */
 .chip-sal.libre{background:#eef1f7; color:#4a5a7a}
 
@@ -239,6 +247,12 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .resumen-dia .barra .relleno.rojo{background:var(--rojo)}
 .macros{display:flex; gap:12px; flex-wrap:wrap; font-size:.75rem; color:var(--gris)}
 .macros b{color:var(--tinta); font-weight:700}
+/* El porcentaje del objetivo, al lado de los gramos. Sin color cuando cuadra:
+   si los cuatro salieran de colores, ninguno llamaría la atención. */
+.macros i{font-style:normal; font-weight:700; margin-left:2px}
+.macros i.bien{color:var(--verde)}
+.macros i.corto{color:var(--ambar)}
+.macros i.pasa{color:var(--rojo)}
 .macros .comido-hasta{margin-left:auto; color:var(--verde); font-weight:600}
 
 .nutri-ficha{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 4px}
