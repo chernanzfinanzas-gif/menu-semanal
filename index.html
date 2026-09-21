@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=89">
-<link rel="stylesheet" href="css/actividad-khb.css?v=89">
+<link rel="stylesheet" href="css/estilos.css?v=92">
+<link rel="stylesheet" href="css/actividad-khb.css?v=92">
 </head>
 <body>
 
@@ -100,6 +100,7 @@
         <option value="cena">Cena</option>
         <option value="guarnicion">Guarnición</option>
         <option value="postre">Postre</option>
+        <option value="capricho">Capricho</option>
       </select>
       <select id="filtro-grupo">
         <option value="">Todos los grupos</option>
@@ -115,6 +116,7 @@
         <option value="desayuno">Desayunos</option>
         <option value="fruta">Fruta</option>
         <option value="postre">Postre</option>
+        <option value="capricho">Capricho</option>
       </select>
       <select id="filtro-tool">
         <option value="">Cualquier herramienta</option>
@@ -132,6 +134,7 @@
         <option value="sin-cocinar">Sin cocinar</option>
       </select>
       <button class="btn principal mini solo-edicion" id="nueva-receta">+ Nueva</button>
+      <button class="btn mini solo-edicion" id="receta-ia" title="Copia un encargo para Claude o Gemini y pega aquí su respuesta">+ Con una IA</button>
     </div>
     <div id="contador-recetas" class="nota-peque" style="margin-bottom:10px"></div>
     <div class="rejilla-recetas" id="rejilla-recetas"></div>
@@ -379,16 +382,16 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=89"></script>
-<script src="datos/recetas.js?v=89"></script>
-<script src="datos/plantillas.js?v=89"></script>
-<script src="datos/actividades.js?v=89"></script>
-<script src="datos/plan.js?v=89"></script>
-<script src="js/util.js?v=89"></script>
-<script src="js/almacen.js?v=89"></script>
-<script src="js/github.js?v=89"></script>
-<script src="js/app.js?v=89"></script>
-<script src="js/actividad-khb.js?v=89"></script>
-<script src="js/entrenamiento.js?v=89"></script>
+<script src="datos/ingredientes.js?v=92"></script>
+<script src="datos/recetas.js?v=92"></script>
+<script src="datos/plantillas.js?v=92"></script>
+<script src="datos/actividades.js?v=92"></script>
+<script src="datos/plan.js?v=92"></script>
+<script src="js/util.js?v=92"></script>
+<script src="js/almacen.js?v=92"></script>
+<script src="js/github.js?v=92"></script>
+<script src="js/app.js?v=92"></script>
+<script src="js/actividad-khb.js?v=92"></script>
+<script src="js/entrenamiento.js?v=92"></script>
 </body>
 </html>

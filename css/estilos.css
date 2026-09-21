@@ -299,6 +299,13 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .plato.capricho .nom{flex:1}
 .plato.capricho .sal{color:var(--gris); font-size:.8rem; white-space:nowrap}
 .nota-modal{margin:0 0 10px; color:var(--gris); font-size:.82rem}
+/* La vista previa de lo que ha devuelto la IA, antes de guardar nada */
+.previo-ia{margin-top:12px; padding:12px; border:1px solid var(--verde-borde);
+           border-radius:var(--radio); background:var(--verde-claro)}
+.previo-ia h3{margin:0 0 2px}
+.previo-ia p{margin:0 0 6px}
+.previo-ia .aviso{margin:8px 0}
+.previo-ia .btn{margin-top:4px}
 .nuevo-capricho{display:flex; gap:6px; margin-bottom:10px}
 .nuevo-capricho input[type=text]{flex:1; min-width:0}
 .nuevo-capricho input[type=number]{width:84px}

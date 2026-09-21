@@ -487,12 +487,37 @@
       var d = this.estado.plan[fecha];
       return !!(d && d.fuera && d.fuera.indexOf(toma) >= 0);
     },
+    /* MARCAR «FUERA» APARTA LO QUE HABÍA PLANIFICADO, no lo deja contando.
+       Desde que lo apuntado manda sobre la estimación (22-sep-2026), dejar los
+       platos ahí significaría que marcar «cenamos fuera» sigue contando la
+       tortilla que no te comiste. Y marcar fuera quiere decir justo eso: que el
+       plan de esa toma no pasó.
+
+       Se aparta, no se borra: vuelve entero al desmarcar. Así el botón sigue
+       siendo reversible y un toque por error no cuesta nada. Lo que apuntes
+       DESPUÉS —el menú del McDonald's— se queda donde está y cuenta. */
     ponerFuera: function (fecha, toma, si) {
       var d = this.asegurarDia(fecha);
       if (!d.fuera) d.fuera = [];
       var i = d.fuera.indexOf(toma);
-      if (si && i < 0) d.fuera.push(toma);
-      if (!si && i >= 0) d.fuera.splice(i, 1);
+      if (si && i < 0) {
+        d.fuera.push(toma);
+        if ((d[toma] || []).length) {
+          if (!d.guardadoFuera) d.guardadoFuera = {};
+          d.guardadoFuera[toma] = d[toma].slice();
+          d[toma] = [];
+        }
+      }
+      if (!si && i >= 0) {
+        d.fuera.splice(i, 1);
+        if (d.guardadoFuera && d.guardadoFuera[toma]) {
+          /* Sólo se devuelve el plan si no has apuntado nada mientras tanto:
+             lo que escribiste tú vale más que lo que había planificado. */
+          if (!(d[toma] || []).length) d[toma] = d.guardadoFuera[toma].slice();
+          delete d.guardadoFuera[toma];
+          if (!Object.keys(d.guardadoFuera).length) delete d.guardadoFuera;
+        }
+      }
       if (!d.fuera.length) delete d.fuera;
       this.guardar("fuera");
     },
@@ -512,6 +537,12 @@
       var total = 0, self = this;
       ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
         if (self.esFuera(fecha, toma)) {
+          /* Igual que en las calorías: lo apuntado manda sobre la estimación. */
+          var puestos = dia[toma] || [];
+          if (puestos.length) {
+            puestos.forEach(function (id) { total += self.salReceta(self.receta(id)); });
+            return;
+          }
           var e = self.estimacionFuera(toma);
           if (e) total += e.sal;
           return;                                   // fuera no se cocina: nada más que sumar
@@ -574,8 +605,21 @@
       var self = this;
       ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
         if (self.esFuera(fecha, toma)) {
-          /* Lo de fuera cuenta siempre, también en «solo lo comido»: si has marcado
-             que comes fuera es que has comido, no hay nada que tachar. */
+          /* SI SABES QUÉ COMISTE, MANDA LO QUE COMISTE. La estimación de «fuera
+             de casa» está para cuando no lo sabes —una comida de trabajo, una
+             boda—, no para tapar lo que sí puedes apuntar. Carlos, 22-sep-2026:
+             una cena en el McDonald's se marca fuera Y se apunta el menú, y lo
+             que tiene que contar es el menú.
+             Lo de fuera cuenta siempre, también en «sólo lo comido»: si has
+             marcado que comes fuera es que has comido, no hay nada que tachar. */
+          var puestos = dia[toma] || [];
+          if (puestos.length) {
+            puestos.forEach(function (id) {
+              var nn = self.nutrReceta(self.receta(id));
+              t.k += nn.k; t.p += nn.p; t.g += nn.g; t.h += nn.h;
+            });
+            return;
+          }
           var e = self.estimacionFuera(toma);
           if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
           return;
@@ -696,6 +740,37 @@
         comido: Math.round(comido.k),
         motivos: motivos
       };
+    },
+
+    /* UN INGREDIENTE PROPUESTO POR UNA IA, metido en la despensa.
+       Llega de `+ Con una IA` cuando la receta usa algo que Carlos no tenía:
+       nombre, unidad y los valores por 100 g. Se guarda igual que uno creado a
+       mano —se puede corregir después en Despensa—, con la marca `de: "ia"` por
+       si algún día quiere repasarlos todos de una vez: son los únicos valores
+       del catálogo que no ha mirado él. */
+    crearIngredienteIA: function (d) {
+      if (!d || !d.n) return null;
+      var nombre = String(d.n).trim().slice(0, 60);
+      if (!nombre) return null;
+      var base = nombre.toLowerCase()
+        .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+        .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u").replace(/ñ/g, "n")
+        .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
+      if (!base) return null;
+      var id = base, n = 2;
+      while (this.ingrediente(id)) { id = base + "_" + n; n++; }
+      function num(v, def) { var x = parseFloat(v); return isNaN(x) ? def : x; }
+      var u = (d.u === "ml" || d.u === "ud") ? d.u : "g";
+      var ing = {
+        id: id, n: nombre, cat: String(d.cat || "Despensa").slice(0, 30), u: u,
+        sal: num(d.sal, 0), k: num(d.k, 0), p: num(d.p, 0),
+        g: num(d.g, 0), h: num(d.h, 0),
+        de: "ia"
+      };
+      if (u === "ud") ing.pesoUd = num(d.pesoUd, 100);
+      this.estado.ingredientes.push(ing);
+      this.guardar("ingrediente");
+      return id;
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */

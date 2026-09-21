@@ -56,7 +56,13 @@
     "carne-roja": "Carne roja", "carne-blanca": "Carne blanca", "pescado-blanco": "Pescado blanco",
     "pescado-azul": "Pescado azul", "huevos": "Huevos", "legumbre": "Legumbre",
     "pasta-arroz": "Pasta y arroz", "verdura": "Verdura", "ensalada": "Ensalada",
-    "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre"
+    "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre",
+    /* Los caprichos nacen en la pestaña Menú, al apuntar algo fuera de plan.
+       Están aquí para que se puedan buscar y filtrar como cualquier otra
+       receta: la mayoría se toman fuera de casa —un helado, una hamburguesa—
+       pero alguno cae en casa, y en los dos casos interesa tenerlos a mano
+       para no volver a escribir las calorías cada vez. */
+    "capricho": "Capricho"
   };
   var ABREV = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
   /* Los aparatos, en el ORDEN DE PREFERENCIA de Carlos (17-sep-2026):
@@ -439,14 +445,21 @@
                         'title="' + (fueraT ? "Se come fuera de casa: toca para volver a casa"
                                             : "Marcar como comida fuera de casa") +
                         '">\ud83c\udf7d\ufe0f <span>Fuera</span></button>') +
-                (cerr || fueraT || !activa ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
+                /* EL «+» SIGUE AHÍ AUNQUE LA TOMA SEA DE FUERA. Antes desaparecía, y
+                   con él la única manera de apuntar qué habías comido en el
+                   McDonald's: sólo quedaba la estimación genérica. */
+                (cerr || !activa ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
                 '</div>';
-        if (fueraT) {
+        if (fueraT && !platos.length) {
+          /* Sin nada apuntado, la estimación por toma es lo mejor que hay. En
+             cuanto apuntes el plato, manda el plato: ver `nutrDia`. */
           var est = Almacen.estimacionFuera(t.k) || { k: 0, sal: 0 };
           html += '<div class="plato estimado">' +
                     '<span class="nom">Fuera de casa <span class="etiqueta">estimado</span></span>' +
-                    '<span class="sal">' + Util.kcal(est.k) + ' · ' + Util.sal(est.sal) + '</span>' +
+                    '<span class="sal">' + Util.kcal(est.k) + ' \u00b7 ' + Util.sal(est.sal) + '</span>' +
                   '</div>';
+          html += '<div class="nota-peque">Si sabes lo que comiste, ap\u00fantalo con el + ' +
+                  'y contar\u00e1 eso en vez de la estimaci\u00f3n. No entra en la compra.</div>';
         } else if (!platos.length) {
           /* Una toma puede estar vacía por decisión, no por descuido: el almuerzo y la
              merienda solo se hacen los días de entreno. Decirlo evita que parezca un
@@ -464,9 +477,12 @@
             html += '<div class="plato' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
                       /* Dos casillas, porque son dos cosas distintas: el carro dice que
                          los ingredientes ya están en casa; el visto, que te lo comiste. */
+                      /* En una toma de fuera no hay carro: eso no se compra, se paga
+                         allí. Dejarlo invitaba a marcarlo y no significaba nada. */
+                      (fueraT ? '' :
                       '<button class="marcar carro' + (cpr ? " si" : "") + '" ' +
                         'title="' + (cpr ? "Comprado: no se vuelve a pedir" : "Marcar como comprado") + '" ' +
-                        'data-comprado="' + fecha + '|' + t.k + '|' + esc(rid) + '">🛒</button>' +
+                        'data-comprado="' + fecha + '|' + t.k + '|' + esc(rid) + '">\ud83d\uded2</button>') +
                       '<button class="marcar' + (com ? " si" : "") + '" title="Marcar como comido" ' +
                         'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">✓</button>' +
                       /* El día y la toma viajan con el plato para que la ficha pueda
@@ -606,8 +622,16 @@
       propias = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) >= 0; });
       resto   = todas.filter(function (r) { return (r.tipo || []).indexOf(toma) < 0; });
       rotuloA = "Pensadas para " + toma;
-      rotuloB = "El resto del recetario — sírvete, las tomas son una sugerencia";
+      rotuloB = "El resto del recetario \u2014 s\u00edrvete, las tomas son una sugerencia";
     }
+    /* LOS CAPRICHOS, EN SU PROPIO APARTADO. Aquí dentro sí cuentan para la
+       compra, y esa es justo la diferencia que hay que dejar clara: el mismo
+       jamón ibérico es capricho si lo apuntas en el bloque de Caprichos —te lo
+       tomaste y ya está— y es cena si lo pones en la cena, porque entonces hay
+       que comprarlo. Salvo que la toma sea de fuera, claro: ahí se paga allí. */
+    var caprichos = todas.filter(function (r) { return r.grupo === "capricho"; });
+    propias = propias.filter(function (r) { return r.grupo !== "capricho"; });
+    resto   = resto.filter(function (r) { return r.grupo !== "capricho"; });
 
     function boton(r) {
       var t = toolsOrdenadas(r.tools)[0];
@@ -623,6 +647,13 @@
     if (propias.length) {
       html += '<p class="separador-selec" data-nombre="">' + esc(rotuloA) + '</p>';
       propias.forEach(function (r) { html += boton(r); });
+    }
+    if (caprichos.length) {
+      html += '<p class="separador-selec" data-nombre="">Caprichos \u2014 ' +
+              (Almacen.esFuera(fecha, toma)
+                ? 'esta toma es de fuera, as\u00ed que no entra en la compra'
+                : 'puesto en una toma S\u00cd entra en la lista de la compra') + '</p>';
+      caprichos.forEach(function (r) { html += boton(r); });
     }
     if (resto.length) {
       html += '<p class="separador-selec" data-nombre="">' + esc(rotuloB) + '</p>';
@@ -1168,7 +1199,7 @@
               return '<option value="' + g + '"' + (r.grupo === g ? " selected" : "") + '>' + NOMBRE_GRUPO[g] + '</option>';
             }).join("") + '</select></label>';
     html += '<label class="campo"><span>Tomas (marca las que valgan)</span><div class="fila">' +
-            ["desayuno", "almuerzo", "comida", "merienda", "cena", "guarnicion", "postre"].map(function (t) {
+            ["desayuno", "almuerzo", "comida", "merienda", "cena", "guarnicion", "postre", "capricho"].map(function (t) {
               return '<label style="font-size:.85rem"><input type="checkbox" class="ed-tipo" value="' + t + '"' +
                      ((r.tipo || []).indexOf(t) >= 0 ? " checked" : "") + '> ' + t + '</label>';
             }).join(" ") + '</div></label>';
@@ -1251,6 +1282,349 @@
       cerrarModal();
       pintarRecetas(); pintarMenu();
       Util.toast("Receta guardada");
+    });
+  }
+
+
+  /* ══════════════ TRAER UNA RECETA DE UNA IA ══════════════
+     Carlos, 22-sep-2026. El editor de recetas pide veinte campos y eso convierte
+     añadir un plato en un rato de trabajo. La idea suya es otra: que la app
+     redacte el ENCARGO —con su catálogo de ingredientes, sus aparatos y su dieta
+     dentro—, él lo pegue en Claude o en Gemini, y vuelva con la respuesta a un
+     recuadro. La app la lee y rellena la receta en el formato de la casa.
+
+     Lo que hace que esto funcione no es el prompt: es que el encargo lleve
+     DENTRO la lista de identificadores de sus ingredientes. Sin eso la IA
+     devuelve «aceite de oliva» y aquí no hay forma de saber cuál de los suyos
+     es. Con eso devuelve `aove` y la receta calcula calorías y sal sola.
+
+     Y para lo que no tenga, la IA puede proponer un ingrediente nuevo con sus
+     valores por 100 g: se crea en la despensa al guardar, y a partir de ahí ya
+     es suyo. */
+
+  function catalogoParaPrompt() {
+    return Almacen.estado.ingredientes.slice()
+      .sort(function (a, b) { return (a.cat || "").localeCompare(b.cat || "") || a.n.localeCompare(b.n); })
+      .map(function (i) { return "  " + i.id + " = " + i.n + " (" + i.u + ")"; })
+      .join("\n");
+  }
+
+  /* UNA RECETA SUYA, EN EL FORMATO DEL ENCARGO, COMO EJEMPLO.
+     Es lo que más hace por que lo que vuelva se parezca a lo que ya hay:
+     describir el formato con palabras deja mucho al aire —cuánto detalle lleva
+     un paso, si los trucos son una frase o un párrafo—, y una receta real lo
+     resuelve de un vistazo. Se coge del recetario en vivo, así que el ejemplo
+     envejece con él. */
+  function ejemploParaPrompt() {
+    var principales = { "carne-roja":1, "carne-blanca":1, "pescado-blanco":1,
+                        "pescado-azul":1, "legumbre":1, "pasta-arroz":1, "huevos":1 };
+    var buenas = Almacen.visibles().filter(function (r) {
+      return (r.ing || []).length >= 4 && (r.pasos || []).length >= 3 &&
+             (r.trucos || []).length >= 1 && principales[r.grupo] &&
+             (r.raciones || 1) >= 2 && (r.tools || []).length;
+    });
+    if (!buenas.length) return null;
+    /* El que MÁS pasos con porqué tenga: es el que mejor enseña lo que se pide.
+       Un desayuno de tres líneas cumpliría el filtro y no enseñaría nada. */
+    buenas.sort(function (a, b) {
+      function ricos(r) {
+        return (r.pasos || []).filter(function (p) { return p && p.d; }).length;
+      }
+      return ricos(b) - ricos(a) || (b.pasos || []).length - (a.pasos || []).length;
+    });
+    var r = buenas[0];
+    return JSON.stringify({
+      n: r.n, grupo: r.grupo, tipo: r.tipo || [], raciones: r.raciones || 2,
+      min: r.min || 20, tools: r.tools || [],
+      ing: (r.ing || []).map(function (l) { return { i: l.i, c: l.c }; }),
+      pasos: (r.pasos || []).map(function (p) {
+        if (typeof p === "string") return p;
+        return (typeof p.min === "number" ? p.min + " · " : "") + (p.t || "") +
+               (p.d ? " :: " + p.d : "");
+      }),
+      trucos: r.trucos || [], nota: r.nota || ""
+    }, null, 1);
+  }
+
+  function encargoReceta(plato, detalle, paraGemini) {
+    var nom = String(plato || "").trim() || "(escribe aquí el plato que quieres)";
+    var det = String(detalle || "").trim();
+    var grupos = Object.keys(NOMBRE_GRUPO).filter(function (g) { return g !== "capricho"; }).join(", ");
+    var tools = Object.keys(NOMBRE_TOOL).join(", ");
+    var c = Almacen.estado.config;
+    /* Las calorías que se le cuentan a la IA son las de un DÍA TIPO, sacadas del
+       perfil, no el objetivo fijo de fábrica ni el de hoy: el de hoy sube con lo
+       que entrenes y haría que la misma receta se pidiera distinta cada día. */
+    var sug = Almacen.objetivoSugerido ? Almacen.objetivoSugerido() : null;
+    var kDia = (sug && sug.kcal) || c.objetivoKcal || 1800;
+    var pDia = c.objetivoProt || (sug && sug.prot) || 144;
+    var t = [];
+    t.push("Necesito una receta en un formato muy concreto para mi app de menús.");
+    t.push("");
+    t.push("EL PLATO: " + nom);
+    if (det) {
+      t.push("");
+      t.push("LO QUE QUIERO QUE LLEVE, en mis palabras:");
+      t.push("  " + det.split("\n").join("\n  "));
+    }
+    t.push("");
+    t.push("QUIÉN VA A COMERLO");
+    t.push("  · Dieta BAJA EN SAL: sin sal añadida, sin caldos ni conservas saladas.");
+    t.push("    Se sazona con limón, vinagre, ajo, pimentón, hierbas y especias.");
+    t.push("    Tope del día entero: " + String(c.avisoSal || 3.5).replace(".", ",") +
+           " g de sal. Una cena no debería pasar de 1 g.");
+    t.push("  · En déficit de calorías y haciendo fuerza: unas " +
+           kDia + " kcal al día y " + pDia +
+           " g de proteína. Una comida o cena ronda las 600-700 kcal por ración");
+    t.push("    y cuanta más proteína lleve, mejor.");
+    t.push("  · Dos comensales. Da la receta para 2 raciones salvo que el plato pida otra cosa.");
+    t.push("  · Aparatos, en orden de preferencia: freidora de aire (airfryer), Lékué de");
+    t.push("    microondas (vaporera, arrocera, cuecepasta), y después sartén, cazuela y horno.");
+    t.push("    Usa la freidora y los Lékué siempre que el plato lo permita.");
+    t.push("");
+    t.push("SI LO QUE PIDO NO ENCAJA CON ESA DIETA, DÍMELO, PERO HÁZMELO IGUAL.");
+    t.push("  Quiero la receta que he pedido, no otra. Lo que sí puedes hacer es ajustar");
+    t.push("  las CANTIDADES de lo que más sal o grasa aporte para que el plato siga");
+    t.push("  siendo ese plato y se acerque a mis números —por ejemplo, menos chorizo y");
+    t.push("  más verdura—, y proponerme una alternativa más sana de algún ingrediente");
+    t.push("  suelto. Lo que NO quiero es que me cambies el plato por otro distinto.");
+    t.push("  El aviso va DESPUÉS del JSON, en texto normal, no dentro.");
+    t.push("");
+    t.push("RESPONDE CON UN JSON con esta forma exacta:");
+    t.push("");
+    t.push("{");
+    t.push('  "n": "Nombre del plato",');
+    t.push('  "grupo": "uno de: ' + grupos + '",');
+    t.push('  "tipo": ["en qué tomas vale: desayuno, almuerzo, comida, merienda, cena, guarnicion, postre"],');
+    t.push('  "raciones": 2,');
+    t.push('  "min": 25,');
+    t.push('  "tools": ["de esta lista: ' + tools + '"],');
+    t.push('  "ing": [');
+    t.push('    { "i": "identificador_de_mi_lista", "c": 200 },');
+    t.push('    { "nuevo": { "n": "Nombre del ingrediente nuevo", "u": "g", "cat": "Despensa",');
+    t.push('                 "k": 120, "p": 3, "g": 2, "h": 20, "sal": 0.05 }, "c": 50 }');
+    t.push("  ],");
+    t.push('  "pasos": ["12 · Lo que hay que hacer :: por qué se hace así", "Otro paso sin minuto"],');
+    t.push('  "trucos": ["Un consejo por línea"],');
+    t.push('  "nota": "Una línea, o cadena vacía"');
+    t.push("}");
+    t.push("");
+    t.push("REGLAS DE LOS INGREDIENTES, que es lo que suele fallar:");
+    t.push("  · `c` es la cantidad PARA TODA LA RECETA, en la unidad del ingrediente");
+    t.push("    (g, ml o ud), no por ración y sin unidades dentro del número.");
+    t.push("  · Usa SIEMPRE un identificador de mi lista si el ingrediente está.");
+    t.push("  · Sólo si de verdad no está, usa la forma `nuevo` con sus valores POR 100 g");
+    t.push("    o por 100 ml: k = calorías, p = proteína, g = grasa, h = hidratos,");
+    t.push("    sal = gramos de SAL (no de sodio). Si va por unidad, añade \"pesoUd\".");
+    t.push("  · No inventes identificadores que no estén en mi lista.");
+    t.push("  · Los valores del ingrediente nuevo, en CRUDO y de tablas de composición");
+    t.push("    de alimentos. Si dudas, di de dónde los sacas en el aviso de después.");
+    t.push("");
+    t.push("CÓMO ESCRIBIR LOS PASOS");
+    t.push("  El número del principio es el minuto del reloj de cocina contando desde que");
+    t.push("  empiezas, y lo que va detrás de `::` es el PORQUÉ del paso — lo que se");
+    t.push("  aprende cocinándolo, no lo obvio. Los dos son opcionales, pero los pasos con");
+    t.push("  minuto son los que dejan cocinar dos cosas a la vez.");
+    var ej = ejemploParaPrompt();
+    if (ej) {
+      t.push("");
+      t.push("UNA RECETA MÍA, para que veas el tono y el nivel de detalle que busco:");
+      t.push(ej);
+    }
+    t.push("");
+    t.push("MI CATÁLOGO DE INGREDIENTES (identificador = nombre (unidad)):");
+    t.push(catalogoParaPrompt());
+    t.push("");
+    if (paraGemini) {
+      t.push("IMPORTANTE: empieza la respuesta directamente con el JSON, sin texto antes,");
+      t.push("sin explicaciones y sin marcadores de código. Si tienes algo que advertirme,");
+      t.push("escríbelo DESPUÉS de la llave final.");
+    } else {
+      t.push("Dame el JSON en un bloque de código json, sin comentarios dentro, y los");
+      t.push("avisos que tengas debajo del bloque.");
+    }
+    return t.join("\n");
+  }
+
+  /* Lee lo que haya pegado. Acepta el JSON pelado, dentro de un bloque de código
+     o con cháchara alrededor: se busca la primera llave y la última, que es lo
+     que sobrevive a que una IA se ponga a explicar. */
+  function leerRespuestaIA(txt) {
+    var s = String(txt || "").trim();
+    if (!s) return { error: "No has pegado nada." };
+    var a = s.indexOf("{"), b = s.lastIndexOf("}");
+    if (a < 0 || b <= a) return { error: "Ahí dentro no veo ningún JSON." };
+    var doc;
+    try {
+      doc = JSON.parse(s.slice(a, b + 1));
+    } catch (e) {
+      return { error: "El JSON está mal formado (" + String(e.message).slice(0, 60) + ")." };
+    }
+    if (!doc || !doc.n) return { error: "Al JSON le falta el nombre del plato." };
+
+    var ing = [], nuevos = [], avisos = [];
+    (doc.ing || []).forEach(function (l) {
+      var c = parseFloat(l && l.c);
+      if (!(c > 0)) { avisos.push("una línea sin cantidad, la salto"); return; }
+      if (l.i) {
+        if (Almacen.ingrediente(l.i)) { ing.push({ i: l.i, c: c }); }
+        else { avisos.push("«" + l.i + "» no está en tu despensa y no trae datos: lo salto"); }
+        return;
+      }
+      if (l.nuevo && l.nuevo.n) {
+        nuevos.push({ d: l.nuevo, c: c });
+        return;
+      }
+      avisos.push("una línea que no dice qué ingrediente es");
+    });
+
+    return {
+      receta: {
+        n: String(doc.n).trim().slice(0, 80),
+        grupo: NOMBRE_GRUPO[doc.grupo] ? doc.grupo : "comida",
+        tipo: (Array.isArray(doc.tipo) && doc.tipo.length ? doc.tipo : ["comida"])
+              .filter(function (t) {
+                return ["desayuno","almuerzo","comida","merienda","cena","guarnicion","postre","capricho"].indexOf(t) >= 0;
+              }),
+        raciones: Math.max(1, Math.min(8, parseInt(doc.raciones, 10) || 2)),
+        min: Math.max(1, Math.min(240, parseInt(doc.min, 10) || 20)),
+        tools: (doc.tools || []).filter(function (t) { return NOMBRE_TOOL[t]; }),
+        pasos: (doc.pasos || []).map(function (x) { return String(x); }).filter(Boolean),
+        trucos: (doc.trucos || []).map(function (x) { return String(x); }).filter(Boolean),
+        nota: String(doc.nota || "").slice(0, 200)
+      },
+      ing: ing, nuevos: nuevos, avisos: avisos
+    };
+  }
+
+  function abrirRecetaIA() {
+    var html = '<header><h2>Traer una receta de una IA</h2>' +
+               '<button class="cerrar" data-cerrar>×</button></header>';
+    html += '<p class="nota-modal">El encargo ya lleva dentro tu catálogo de ingredientes, ' +
+            'tus aparatos y lo de la sal. Cópialo, pégalo en Claude o en Gemini, y trae aquí ' +
+            'su respuesta.</p>';
+    html += '<label class="campo"><span>¿Qué plato quieres?</span>' +
+            '<input type="text" id="ia-plato" placeholder="Pasta con cebolla caramelizada y chorizo"></label>';
+    html += '<label class="campo"><span>¿Qué quieres que lleve? (opcional, en tus palabras)</span>' +
+            '<textarea id="ia-detalle" style="min-height:70px" ' +
+            'placeholder="Chorizo en tacos, queso gratinado por encima y salsa de tomate en vez de boloñesa de bote, para que sea más sano"></textarea></label>';
+    html += '<div class="fila" style="margin-bottom:12px">' +
+              '<button class="btn principal mini" id="ia-claude">Copiar el encargo para Claude</button>' +
+              '<button class="btn mini" id="ia-gemini">Copiar el encargo para Gemini</button>' +
+              '<button class="btn mini" id="ia-ver">Ver el encargo</button>' +
+            '</div>';
+    html += '<label class="campo"><span>Pega aquí la respuesta</span>' +
+            '<textarea id="ia-resp" class="salida" style="min-height:170px" ' +
+            'placeholder="El JSON que te devuelva, tal cual"></textarea></label>';
+    html += '<div class="fila"><button class="btn principal" id="ia-leer">Leer la respuesta</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    html += '<div id="ia-previo"></div>';
+    abrirModal(html);
+
+    function copiar(txt, quien) {
+      function fallback() {
+        var ta = $("#ia-resp");
+        ta.value = txt; ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        ta.value = "";
+        Util.toast("Encargo para " + quien + " copiado");
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          Util.toast("Encargo para " + quien + " copiado");
+        }, fallback);
+      } else fallback();
+    }
+
+    $("#ia-claude").addEventListener("click", function () {
+      copiar(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, false), "Claude");
+    });
+    $("#ia-gemini").addEventListener("click", function () {
+      copiar(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, true), "Gemini");
+    });
+    $("#ia-ver").addEventListener("click", function () {
+      var pre = $("#ia-previo");
+      pre.innerHTML = '<label class="campo"><span>El encargo, por si lo quieres retocar</span>' +
+        '<textarea class="salida" style="min-height:220px">' +
+        esc(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, false)) + '</textarea></label>';
+    });
+
+    $("#ia-leer").addEventListener("click", function () {
+      var r = leerRespuestaIA($("#ia-resp").value);
+      var pre = $("#ia-previo");
+      if (r.error) { pre.innerHTML = '<div class="aviso">' + esc(r.error) + '</div>'; return; }
+
+      /* La cuenta de calorías y sal se hace ANTES de guardar, con los
+         ingredientes ya casados, para que él vea si la receta que le han dado
+         encaja en su día o se le va de las manos. */
+      var falsa = { raciones: r.receta.raciones, ing: r.ing.slice() };
+      var kNuevos = 0, salNuevos = 0;
+      r.nuevos.forEach(function (x) {
+        var g = x.c / 100;
+        kNuevos += g * (parseFloat(x.d.k) || 0);
+        salNuevos += g * (parseFloat(x.d.sal) || 0);
+      });
+      var n = Almacen.nutrReceta(falsa);
+      var kcal = Math.round(n.k + kNuevos / r.receta.raciones);
+      var sal = Almacen.salReceta(falsa) + salNuevos / r.receta.raciones;
+
+      var h = '<div class="previo-ia">';
+      h += '<h3>' + esc(r.receta.n) + '</h3>';
+      h += '<p class="nota-peque">' + esc(NOMBRE_GRUPO[r.receta.grupo]) + ' · ' +
+           r.receta.raciones + ' raciones · ' + r.receta.min + ' min · ' +
+           esc(r.receta.tipo.join(", ")) + '</p>';
+      h += '<p><b>' + Util.kcal(kcal) + '</b> y <b>' + Util.sal(sal) + ' de sal</b> por ración</p>';
+      h += '<p class="nota-peque">' + r.ing.length + ' ingredientes de tu despensa' +
+           (r.nuevos.length ? ' · <b>' + r.nuevos.length + ' nuevos</b> que se crearán: ' +
+             esc(r.nuevos.map(function (x) { return x.d.n; }).join(", ")) : '') + '</p>';
+      if (r.avisos.length) {
+        h += '<div class="aviso">' + r.avisos.map(esc).join("<br>") + '</div>';
+      }
+      h += '<p class="nota-peque">' + r.receta.pasos.length + ' pasos · ' +
+           r.receta.trucos.length + ' trucos</p>';
+      h += '<button class="btn principal" id="ia-guardar">Guardar la receta</button>';
+      h += '</div>';
+      pre.innerHTML = h;
+
+      $("#ia-guardar").addEventListener("click", function () {
+        /* Primero los ingredientes nuevos: si fallaran, la receta quedaría
+           apuntando a algo que no existe. */
+        var ing = r.ing.slice();
+        r.nuevos.forEach(function (x) {
+          var id = Almacen.crearIngredienteIA
+            ? Almacen.crearIngredienteIA(x.d)
+            : null;
+          if (id) ing.push({ i: id, c: x.c });
+        });
+        var base = "ia_" + r.receta.n.toLowerCase()
+          .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+          .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u").replace(/ñ/g, "n")
+          .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 34);
+        var id = base, k = 2;
+        while (Almacen.receta(id)) { id = base + "_" + k; k++; }
+        var nueva = {
+          id: id, n: r.receta.n, tipo: r.receta.tipo, grupo: r.receta.grupo,
+          raciones: r.receta.raciones, min: r.receta.min, tools: r.receta.tools,
+          ing: ing,
+          pasos: r.receta.pasos.map(function (t) {
+            var m = String(t).match(/^(\d{1,3})\s*[·.|-]\s*(.+)$/);
+            if (!m) return t;
+            var resto = m[2].split("::");
+            var paso = { min: parseInt(m[1], 10), t: resto[0].trim() };
+            if (resto.length > 1) paso.d = resto.slice(1).join("::").trim();
+            return paso;
+          }),
+          trucos: r.receta.trucos,
+          nota: r.receta.nota,
+          editado: true,
+          de: "ia"
+        };
+        Almacen.estado.recetas.push(nueva);
+        Almacen.guardar("receta");
+        cerrarModal();
+        pintarRecetas(); pintarMenu();
+        Util.toast("Receta guardada: " + nueva.n);
+      });
     });
   }
 
@@ -2011,6 +2385,7 @@
     $("#filtro-grupo").addEventListener("change", function (e) { UI.filtros.grupo = e.target.value; pintarRecetas(); });
     $("#filtro-tool").addEventListener("change", function (e) { UI.filtros.tool = e.target.value; pintarRecetas(); });
     $("#nueva-receta").addEventListener("click", function () { abrirEditor(null); });
+    $("#receta-ia").addEventListener("click", abrirRecetaIA);
     $("#rejilla-recetas").addEventListener("click", function (e) {
       var c = e.target.closest("[data-ficha]");
       if (c) abrirFicha(c.getAttribute("data-ficha"));
