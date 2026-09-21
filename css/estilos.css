@@ -618,3 +618,52 @@ body.modo-consulta .aviso-consulta{display:inline-block}
 @media (max-width:700px){
   .cuerpo-platos .linea .detalle{display:block}
 }
+
+/* ==================== UN INGREDIENTE SOLO ====================
+   La fila de crear va dentro de su categoría plegada, así que tiene que
+   leerse como parte de la lista y no como un formulario aparte. */
+.nuevo-suelto {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 8px 10px; margin: 0 0 8px;
+  background: var(--fondo-suave, #f4f4f7);
+  border-radius: 10px;
+}
+.nuevo-suelto select {
+  flex: 1 1 150px; min-width: 0;
+  padding: 7px 8px; border: 1px solid var(--borde, #d8d8e0);
+  border-radius: 8px; background: #fff; font-size: .92rem;
+}
+.nuevo-suelto input[type="number"] {
+  width: 72px; padding: 7px 8px; text-align: right;
+  border: 1px solid var(--borde, #d8d8e0); border-radius: 8px;
+  background: #fff; font-size: .92rem;
+}
+#suelto-uni { font-size: .82rem; opacity: .7; min-width: 62px; }
+.nuevo-suelto .btn { flex: 0 0 auto; }
+
+/* ==================== ORDENAR LOS CAPRICHOS ====================
+   Una fila por capricho, y las tres cosas que importan a la vista: qué es,
+   a qué ingrediente se parece y cuánto. Se decide todo de una pasada. */
+.ordenar-caps { max-height: 52vh; overflow-y: auto; margin-bottom: 12px; }
+.fila-cap {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--borde, #e6e6ec);
+}
+.fila-cap .quien { flex: 1 1 100%; display: flex; justify-content: space-between; gap: 8px; }
+.fila-cap .quien small { opacity: .6; white-space: nowrap; }
+.fila-cap select {
+  flex: 1 1 150px; min-width: 0; padding: 6px 8px;
+  border: 1px solid var(--borde, #d8d8e0); border-radius: 8px;
+  background: #fff; font-size: .9rem;
+}
+.fila-cap input[type="number"] {
+  width: 68px; padding: 6px 8px; text-align: right;
+  border: 1px solid var(--borde, #d8d8e0); border-radius: 8px;
+  background: #fff; font-size: .9rem;
+}
+.fila-cap .cap-uni { font-size: .8rem; opacity: .7; min-width: 58px; }
+.nota-modal.reordenar { margin-top: -4px; }
+button.enlace {
+  background: none; border: 0; padding: 0; font: inherit;
+  color: var(--acento, #5b4ee0); text-decoration: underline; cursor: pointer;
+}

@@ -646,6 +646,112 @@
        las calorías y queda dentro, en el grupo «capricho»: la segunda vez ya se
        elige de la lista como cualquier otro plato. Al cabo de un mes el
        recetario sabe lo que te gusta sin que hayas tenido que catalogarlo. */
+    /* UN INGREDIENTE SOLO, PUESTO COMO PLATO.
+       Una manzana en el almuerzo, 30 g de pistachos en la merienda. Hasta hoy
+       lo único que se podía apuntar sin receta era un capricho, y eso está mal
+       para esto: el capricho es lo que te comiste fuera del plan y por eso NO
+       se compra. Una manzana del almuerzo sí está planificada, así que cuenta
+       en calorías, en macros y —la diferencia que importa— EN LA LISTA DE LA
+       COMPRA.
+       Queda guardado en el recetario, así que la segunda manzana ya está hecha.
+       Y si ya existe uno igual, se reutiliza en vez de duplicarlo. */
+    crearSuelto: function (idIng, cant, tomas) {
+      var g = this.ingrediente(idIng);
+      cant = Number(cant);
+      if (!g || !(cant > 0)) return null;
+      cant = Math.round(cant * 100) / 100;
+
+      var previo = null;
+      this.estado.recetas.forEach(function (r) {
+        if (previo || r.grupo !== "suelto" || (r.ing || []).length !== 1) return;
+        if (r.ing[0].i === idIng && Math.abs(r.ing[0].c - cant) < 0.001) previo = r;
+      });
+      if (previo) {
+        if (previo.borrada) { delete previo.borrada; this.guardar("suelto"); }
+        return previo.id;
+      }
+
+      var nombre = g.n + " · " + Util.cantidadReceta(cant, g.u, g.pesoUd);
+      var base = "solo_" + String(idIng).slice(0, 26) + "_" +
+                 String(cant).replace(".", "_");
+      var id = base, n = 2;
+      while (this.receta(id)) { id = base + "_" + n; n++; }
+
+      var t = (tomas && tomas.length) ? tomas.slice() : ["almuerzo", "merienda"];
+      if (t.indexOf("almuerzo") < 0) t.push("almuerzo");
+      if (t.indexOf("merienda") < 0) t.push("merienda");
+
+      this.estado.recetas.push({
+        id: id, n: nombre, tipo: t, grupo: "suelto",
+        raciones: 1, min: 0, tools: ["sin-cocinar"],
+        llevable: true,
+        ing: [{ i: idIng, c: cant }],
+        pasos: ["Tal cual, sin preparar nada."],
+        trucos: [], nota: "Ingrediente solo. Cuenta para la lista de la compra.",
+        editado: true
+      });
+      this.guardar("suelto");
+      return id;
+    },
+
+    /* PASAR UN CAPRICHO A INGREDIENTE SOLO.
+       Se convierte EN SU SITIO, conservando el id, y eso no es un detalle: los
+       días en los que ya lo tenías apuntado siguen apuntando a él. Si se
+       borrara y se creara otro, esos días se quedarían con un plato fantasma.
+
+       Al dejar de ser capricho gana lo que un capricho no tiene: ingredientes
+       de verdad, así que a partir de aquí cuenta macros y entra en la lista de
+       la compra. Y pierde las calorías escritas a mano, que ya las calcula el
+       ingrediente. */
+    pasarASuelto: function (idReceta, idIng, cant) {
+      var r = this.receta(idReceta), g = this.ingrediente(idIng);
+      cant = Number(cant);
+      if (!r || !g || !(cant > 0)) return false;
+      r.grupo = "suelto";
+      r.tipo = ["almuerzo", "merienda"];
+      r.ing = [{ i: idIng, c: Math.round(cant * 100) / 100 }];
+      r.raciones = r.raciones || 1;
+      r.min = 0;
+      r.tools = ["sin-cocinar"];
+      r.llevable = true;
+      r.pasos = ["Tal cual, sin preparar nada."];
+      r.nota = "Ingrediente solo. Cuenta para la lista de la compra.";
+      r.editado = true;
+      delete r.nutrManual;
+      delete r.salManual;
+      this.guardar("suelto");
+      return true;
+    },
+
+    /* A QUÉ INGREDIENTE SE PARECE ESTE NOMBRE.
+       Sirve para rellenar solo la pantalla de ordenar caprichos: «Pistachos»
+       encuentra «Pistachos crudos» sin que él tenga que buscarlo. No acierta
+       siempre, y por eso lo que propone se ve y se puede cambiar antes de
+       aplicar nada. */
+    pareceIngrediente: function (nombre) {
+      var n = String(nombre || "").toLowerCase()
+        .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+        .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u");
+      if (!n) return null;
+      var mejor = null, mejorLargo = 0;
+      this.estado.ingredientes.forEach(function (g) {
+        var m = String(g.n).toLowerCase()
+          .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+          .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u");
+        /* Se comparan palabras de 4 letras o más: «de», «sin» o «con» casarían
+           media despensa con cualquier cosa. */
+        m.split(/[^a-z0-9]+/).forEach(function (p) {
+          if (p.length < 4 || p.length <= mejorLargo) return;
+          if (n.indexOf(p) >= 0) { mejor = g.id; mejorLargo = p.length; }
+        });
+        n.split(/[^a-z0-9]+/).forEach(function (p) {
+          if (p.length < 4 || p.length <= mejorLargo) return;
+          if (m.indexOf(p) >= 0) { mejor = g.id; mejorLargo = p.length; }
+        });
+      });
+      return mejor;
+    },
+
     crearCapricho: function (nombre, kcal) {
       nombre = String(nombre || "").trim();
       kcal = Math.round(Number(kcal) || 0);

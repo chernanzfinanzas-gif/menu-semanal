@@ -62,7 +62,12 @@
        receta: la mayoría se toman fuera de casa —un helado, una hamburguesa—
        pero alguno cae en casa, y en los dos casos interesa tenerlos a mano
        para no volver a escribir las calorías cada vez. */
-    "capricho": "Capricho"
+    "capricho": "Capricho",
+    /* Los ingredientes solos —una manzana, 30 g de pistachos— son platos de
+       pleno derecho: se planifican, cuentan macros y se compran. Lo que no son
+       es una receta, y por eso van en su propio grupo en vez de repartidos por
+       Fruta y Despensa, donde se perderían entre los platos de verdad. */
+    "suelto": "Ingredientes solos"
   };
   var ABREV = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
   /* Los aparatos, en el ORDEN DE PREFERENCIA de Carlos (17-sep-2026):
@@ -630,8 +635,9 @@
        tomaste y ya está— y es cena si lo pones en la cena, porque entonces hay
        que comprarlo. Salvo que la toma sea de fuera, claro: ahí se paga allí. */
     var caprichos = todas.filter(function (r) { return r.grupo === "capricho"; });
-    propias = propias.filter(function (r) { return r.grupo !== "capricho"; });
-    resto   = resto.filter(function (r) { return r.grupo !== "capricho"; });
+    function niCapNiSuelto(r) { return r.grupo !== "capricho" && r.grupo !== "suelto"; }
+    propias = propias.filter(niCapNiSuelto);
+    resto   = resto.filter(niCapNiSuelto);
 
     function boton(r) {
       var t = toolsOrdenadas(r.tools)[0];
@@ -675,14 +681,47 @@
     html += seccion(ruta ? "Para la mochila" : ("Pensadas para " + toma), propias, true,
                     ruta ? "Se comen frías y aguantan el día" : null);
 
+    /* UN INGREDIENTE SOLO (22-sep-2026, Carlos): «los pistachos, los cacahuetes,
+       la manzana… ahora aparecen en caprichos y deberían estar en meriendas y
+       almuerzos como ingredientes que se pueden comer solos».
+       Tenía razón y el fallo era de diseño: lo único que se podía apuntar sin
+       receta era un capricho, y un capricho NO entra en la lista de la compra.
+       Una manzana del almuerzo sí hay que comprarla. Así que aquí se elige el
+       ingrediente y la cantidad, se planifica como cualquier plato y se compra.
+       Va abierta cuando el bloque es de almuerzo o merienda, que es donde se
+       come algo suelto; en una cena, cerrada. */
+    var sueltos = todas.filter(function (r) { return r.grupo === "suelto"; });
+    var esPicoteo = toma === "almuerzo" || toma === "merienda";
+    html += '<details class="grupo-selec" data-fijo="1"' +
+              (esPicoteo && !propias.length ? " open" : "") + '>' +
+            '<summary><span class="tit">Un ingrediente solo</span>' +
+            '<span class="cuantas">' + sueltos.length + '</span></summary>' +
+            '<p class="aviso-grupo">Una manzana, 30 g de pistachos. Cuenta las ' +
+            'calorías y va a la lista de la compra.</p>' +
+            '<div class="nuevo-suelto">' +
+              '<select id="suelto-ing">' +
+              Almacen.estado.ingredientes.slice()
+                .sort(function (a, b) { return a.n.localeCompare(b.n); })
+                .map(function (g) {
+                  return '<option value="' + esc(g.id) + '" data-u="' + esc(g.u) + '"' +
+                         ' data-peso="' + (g.pesoUd || 0) + '">' + esc(g.n) + '</option>';
+                }).join("") +
+              '</select>' +
+              '<input type="number" id="suelto-cant" step="0.25" min="0" value="1">' +
+              '<span id="suelto-uni">ud</span>' +
+              '<button class="btn principal mini" id="suelto-add">Añadir</button>' +
+            '</div>' +
+            ordenar(sueltos).map(boton).join("") +
+            '</details>';
+
     /* y después el recetario entero, por grupos de alimento */
     var porGrupo = {};
     todas.forEach(function (r) {
-      if (r.grupo === "capricho") return;
+      if (r.grupo === "capricho" || r.grupo === "suelto") return;
       (porGrupo[r.grupo || "otros"] = porGrupo[r.grupo || "otros"] || []).push(r);
     });
     Object.keys(NOMBRE_GRUPO).forEach(function (g) {
-      if (g === "capricho") return;
+      if (g === "capricho" || g === "suelto") return;
       html += seccion(NOMBRE_GRUPO[g], porGrupo[g] || [], false, null);
       delete porGrupo[g];
     });
@@ -704,6 +743,7 @@
     $("#filtro-selector").addEventListener("input", function (e) {
       var q = e.target.value.toLowerCase().trim();
       $$("#lista-selector .grupo-selec").forEach(function (det) {
+        if (det.getAttribute("data-fijo")) return;   // la de crear uno solo no se filtra
         var vistos = 0;
         $$("button[data-nombre]", det).forEach(function (b) {
           var cabe = !q || b.getAttribute("data-nombre").indexOf(q) >= 0;
@@ -716,26 +756,56 @@
       });
       if (!q) {
         /* al vaciar el filtro se vuelve al estado de partida: sólo la primera */
-        $$("#lista-selector .grupo-selec").forEach(function (det, i) { det.open = i === 0; });
+        $$("#lista-selector .grupo-selec").forEach(function (det, i) {
+          if (!det.getAttribute("data-fijo")) det.open = i === 0;
+        });
         $$("#lista-selector .grupo-selec").forEach(function (det) {
           det.querySelector(".cuantas").textContent =
             $$("button[data-nombre]", det).length;
         });
       }
     });
-    $("#lista-selector").addEventListener("click", function (e) {
-      var b = e.target.closest("[data-elegir]");
-      if (!b) return;
+    /* La casilla de cantidad cambia de sentido según el ingrediente: 1 ud de
+       manzana, 30 g de pistachos. Que lo diga la casilla evita el error de
+       poner 30 manzanas, que es exactamente el que se cometería. */
+    function ajustarSuelto() {
+      var sel = $("#suelto-ing");
+      var op = sel.options[sel.selectedIndex];
+      var u = op.getAttribute("data-u");
+      var peso = parseFloat(op.getAttribute("data-peso")) || 0;
+      $("#suelto-uni").textContent = u === "ud" ? (peso ? "ud (" + peso + " g)" : "ud") : u;
+      var c = $("#suelto-cant");
+      c.step = u === "ud" ? "0.25" : "5";
+      c.value = u === "ud" ? 1 : 30;
+    }
+    $("#suelto-ing").addEventListener("change", ajustarSuelto);
+    ajustarSuelto();
+
+    function meter(idReceta) {
       var dia = Almacen.asegurarDia(fecha);
-      /* Si la toma estaba VACÍA, es que está montando esa comida desde cero, así que
-         el yogur y el pan entran con el plato. Si ya había algo, no se tocan: puede
-         que los haya quitado él a propósito y resucitarlos sería pelearse con él. */
       var estabaVacia = !(dia[toma] || []).length;
-      dia[toma].push(b.getAttribute("data-elegir"));
+      dia[toma].push(idReceta);
       if (estabaVacia) Almacen.ponerFijos(fecha);
       Almacen.guardar("plato");
       cerrarModal();
       pintarMenu();
+    }
+
+    $("#suelto-add").addEventListener("click", function () {
+      var id = Almacen.crearSuelto($("#suelto-ing").value,
+                                   parseFloat($("#suelto-cant").value), [toma]);
+      if (!id) { Util.toast("Pon una cantidad"); return; }
+      meter(id);
+    });
+
+    $("#lista-selector").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-elegir]");
+      if (!b) return;
+      /* Si la toma estaba VACÍA, es que está montando esa comida desde cero, así que
+         el yogur y el pan entran con el plato. Si ya había algo, no se tocan: puede
+         que los haya quitado él a propósito y resucitarlos sería pelearse con él.
+         (Eso lo hace `meter`, que comparten los dos caminos.) */
+      meter(b.getAttribute("data-elegir"));
     });
   }
 
@@ -744,6 +814,113 @@
      nuevo con su nombre y sus calorías; abajo, los que ya has apuntado alguna
      vez, que el recetario ha ido guardando solo. La primera vez que te tomas un
      helado lo escribes; la segunda ya está en la lista. */
+  /* ORDENAR LOS CAPRICHOS (22-sep-2026, Carlos): «los caprichos que has puesto
+     de esos productos, sácalos de ahí y ponlos como ingredientes sueltos en
+     meriendas y almuerzos».
+
+     Tenía razón: unos pistachos o una manzana no son un capricho. El capricho
+     es lo que te comes fuera del plan y por eso NO se compra; esto se
+     planifica y hay que comprarlo. El fallo fue de diseño, no suyo: hasta hoy
+     el único sitio donde se podía apuntar algo sin receta era Caprichos.
+
+     Y se arregla en UNA pantalla, no uno a uno: la app propone a qué
+     ingrediente se parece cada nombre y con qué cantidad, él corrige lo que
+     esté mal y le da una vez a aplicar. Lo que no encuentre ingrediente se
+     queda como capricho y no molesta. */
+  function abrirOrdenarCaprichos(volverA) {
+    var caps = Almacen.visibles()
+      .filter(function (r) { return r.grupo === "capricho"; })
+      .sort(function (a, b) { return a.n.localeCompare(b.n); });
+
+    var html = '<header><h2>Ordenar los caprichos</h2>' +
+               '<button class="cerrar" data-cerrar>×</button></header>';
+    if (!caps.length) {
+      html += '<p class="nota-modal">No tienes ninguno apuntado.</p>';
+      abrirModal(html);
+      return;
+    }
+    html += '<p class="nota-modal">Lo que de verdad sea un ingrediente —unos ' +
+            'pistachos, una manzana— pasa a almuerzos y meriendas, cuenta ' +
+            'proteína y macros, y entra en la lista de la compra. Lo que sea ' +
+            'un capricho de verdad déjalo como está.</p>';
+
+    var opciones = Almacen.estado.ingredientes.slice()
+      .sort(function (a, b) { return a.n.localeCompare(b.n); });
+
+    html += '<div class="ordenar-caps">';
+    caps.forEach(function (r) {
+      var sug = Almacen.pareceIngrediente(r.n);
+      var g = sug ? Almacen.ingrediente(sug) : null;
+      var kcal = Almacen.nutrReceta(r).k;
+      /* La cantidad que se propone sale de las calorías que él escribió en su
+         día: si apuntó «Pistachos 180 kcal» y el pistacho tiene 560 por 100 g,
+         eran 32 g. Es mejor punto de partida que un 30 fijo, y él lo ve. */
+      var cant = 1;
+      if (g) {
+        if (g.u === "ud") cant = 1;
+        else if (kcal > 0 && g.k > 0) cant = Math.max(5, Math.round(kcal / g.k * 100 / 5) * 5);
+        else cant = 30;
+      }
+      html += '<div class="fila-cap" data-id="' + esc(r.id) + '">' +
+                '<div class="quien"><b>' + esc(r.n) + '</b>' +
+                  '<small>' + Util.kcal(kcal) + '</small></div>' +
+                '<select class="cap-ing">' +
+                  '<option value="">Sigue siendo un capricho</option>' +
+                  '<option value="__nuevo">\u2795 No est\u00e1 en mi despensa: crearlo\u2026</option>' +
+                  opciones.map(function (x) {
+                    return '<option value="' + esc(x.id) + '" data-u="' + esc(x.u) + '"' +
+                           ' data-peso="' + (x.pesoUd || 0) + '"' +
+                           (x.id === sug ? " selected" : "") + '>' + esc(x.n) + '</option>';
+                  }).join("") +
+                '</select>' +
+                '<input type="number" class="cap-cant" min="0" step="1" value="' + cant + '">' +
+                '<span class="cap-uni">' + (g ? (g.u === "ud" ? "ud" : g.u) : "") + '</span>' +
+              '</div>';
+    });
+    html += '</div>';
+    html += '<div class="fila"><button class="btn principal" id="cap-aplicar">' +
+            'Pasar los marcados a ingredientes</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    $$(".fila-cap .cap-ing").forEach(function (sel) {
+      sel.addEventListener("change", function () {
+        var fila = sel.closest(".fila-cap");
+        if (sel.value === "__nuevo") {
+          /* Se sale a crear el ingrediente y se vuelve aquí con él ya elegido.
+             Lo que estuviera marcado en las demás filas se vuelve a proponer
+             solo, que es de donde salía. */
+          var nom = fila.querySelector(".quien b").textContent;
+          abrirIngrediente(null, nom, function () { abrirOrdenarCaprichos(volverA); });
+          return;
+        }
+        var op = sel.options[sel.selectedIndex];
+        var u = op.getAttribute("data-u") || "";
+        var peso = parseFloat(op.getAttribute("data-peso")) || 0;
+        fila.querySelector(".cap-uni").textContent =
+          !sel.value ? "" : (u === "ud" ? (peso ? "ud (" + peso + " g)" : "ud") : u);
+        var c = fila.querySelector(".cap-cant");
+        if (sel.value) c.value = u === "ud" ? 1 : 30;
+      });
+    });
+
+    $("#cap-aplicar").addEventListener("click", function () {
+      var hechos = 0;
+      $$(".fila-cap").forEach(function (fila) {
+        var idIng = fila.querySelector(".cap-ing").value;
+        if (!idIng || idIng === "__nuevo") return;
+        var cant = parseFloat(fila.querySelector(".cap-cant").value);
+        if (Almacen.pasarASuelto(fila.getAttribute("data-id"), idIng, cant)) hechos++;
+      });
+      cerrarModal();
+      pintarMenu(); pintarRecetas(); pintarCompra();
+      Util.toast(hechos
+        ? hechos + (hechos === 1 ? " ha pasado" : " han pasado") + " a ingredientes solos"
+        : "No has marcado ninguno");
+      if (volverA) abrirSelectorCapricho(volverA);
+    });
+  }
+
   function abrirSelectorCapricho(fecha) {
     function pinta() {
       var previos = Almacen.visibles()
@@ -757,6 +934,11 @@
                  '<button class="cerrar" data-cerrar>\u00d7</button></header>';
       html += '<p class="nota-modal">Lo que te comiste sin que estuviera en el plan. ' +
               'Se apunta como comido: no hace falta marcarlo despu\u00e9s.</p>';
+      if (previos.length) {
+        html += '<p class="nota-modal reordenar">\u00bfAlguno de \u00e9stos no es un capricho, ' +
+                'sino algo que planificas y compras? ' +
+                '<button class="enlace" id="cap-ordenar">Ordenarlos</button></p>';
+      }
       html += '<div class="nuevo-capricho">' +
                 '<input type="text" id="cap-nombre" placeholder="Helado de la playa" maxlength="46">' +
                 '<input type="number" id="cap-kcal" placeholder="kcal" min="1" max="3000" step="10">' +
@@ -793,6 +975,9 @@
         cerrarModal();
         pintarMenu();
       }
+
+      var bo = $("#cap-ordenar");
+      if (bo) bo.addEventListener("click", function () { abrirOrdenarCaprichos(fecha); });
 
       $("#cap-crear").addEventListener("click", function () {
         var nom = $("#cap-nombre").value, k = $("#cap-kcal").value;
@@ -1348,10 +1533,178 @@
      valores por 100 g: se crea en la despensa al guardar, y a partir de ahí ya
      es suyo. */
 
+  /* ==================== EL PERFIL DE COCINA, FUERA DEL CÓDIGO ====================
+     `datos/mi-cocina.json` y `datos/mis-gustos.json` no están aquí dentro a
+     propósito. El día que esto se le dé a otra persona se cambian esos dos
+     ficheros y no se toca una línea de código; si vivieran en el encargo,
+     separarlos entonces costaría diez veces más que nacerlos separados.
+
+     Se piden una sola vez, la primera vez que se abre el encargo, y si no
+     llegan el encargo se monta igual con lo mínimo — un fallo de red no puede
+     dejarle sin poder pedir una receta. */
+
+  var PERFIL = { cocina: null, gustos: null, pedido: null, falta: false };
+
+  function cargarPerfil() {
+    if (PERFIL.pedido) return PERFIL.pedido;
+    function traer(f) {
+      return fetch(f).then(function (r) { return r.ok ? r.json() : null; })
+                     .catch(function () { return null; });
+    }
+    PERFIL.pedido = Promise.all([traer("datos/mi-cocina.json"),
+                                 traer("datos/mis-gustos.json")])
+      .then(function (x) {
+        PERFIL.cocina = x[0]; PERFIL.gustos = x[1];
+        PERFIL.falta = !x[0] || !x[1];
+        return PERFIL;
+      });
+    return PERFIL.pedido;
+  }
+
+  /* Las fichas de los aparatos se escriben solas desde el JSON: si mañana añade
+     un campo al fichero, sale en el encargo sin tocar esto. Lo único que hay
+     aquí es cómo se lee cada campo en castellano. */
+  var ETIQ_FICHA = {
+    capacidad_l: ["capacidad", " l"], cesta: ["cesta", ""],
+    potencia_w: ["potencia", " W"], temperatura_max_c: ["temperatura máxima", " °C"],
+    resistencia: ["resistencia", ""], rejilla_interior: ["rejilla interior", ""],
+    precalienta: ["se precalienta", ""], microondas_w: ["microondas", " W"],
+    dora: ["dora", ""]
+  };
+
+  function leerFicha(f) {
+    var out = [];
+    Object.keys(f || {}).forEach(function (k) {
+      var e = ETIQ_FICHA[k] || [k.replace(/_/g, " "), ""];
+      var v = f[k];
+      if (v === true) v = "sí";
+      else if (v === false) v = "NO";
+      else v = String(v) + e[1];
+      out.push(e[0] + " " + v);
+    });
+    return out.join(", ");
+  }
+
+  function bloqueCocina() {
+    var c = PERFIL.cocina, t = [];
+    if (!c) {
+      return ["MI COCINA",
+              "  Freidora de aire, Lékué de microondas (vaporera, arrocera, cuecepasta),",
+              "  sartén, cazuela y horno. Usa la freidora y los Lékué siempre que se pueda.",
+              "  La freidora NO se precalienta y NO tiene rejilla."];
+    }
+    t.push("MI COCINA — estos son los aparatos que tengo, no hay más, y van en este orden.");
+    (c.aparatos || []).slice().sort(function (a, b) {
+      return (a.preferencia || 9) - (b.preferencia || 9);
+    }).forEach(function (a) {
+      t.push("");
+      t.push("  " + (a.preferencia || "·") + ". " + a.nombre + " — " + a.tipo);
+      var f = leerFicha(a.ficha);
+      if (f) t.push("     " + f);
+      if (a.como_transmite_el_calor) t.push("     " + a.como_transmite_el_calor);
+      if (a.para_que_es_buena) t.push("     Para qué es buena: " + a.para_que_es_buena);
+      Object.keys(a.tablas || {}).forEach(function (k) {
+        t.push("     " + k.toUpperCase() + ": " + a.tablas[k]);
+      });
+      (a.prohibiciones || []).forEach(function (p) {
+        t.push("     PROHIBIDO: " + p);
+      });
+    });
+    var cr = c.criterio_de_reparto || {};
+    var reglas = Object.keys(cr).filter(function (k) { return /^regla/.test(k); });
+    if (reglas.length) {
+      t.push("");
+      t.push("  CÓMO SE REPARTE UN PLATO ENTRE LOS APARATOS");
+      reglas.forEach(function (k) { t.push("     · " + cr[k]); });
+    }
+    if ((cr.se_quedan_en_sarten_a_proposito || []).length) {
+      t.push("     · Esto se queda en sartén a propósito, no lo pases a la freidora: " +
+             cr.se_quedan_en_sarten_a_proposito.join(", ") + ".");
+    }
+    if (cr.nota_calamar) t.push("     · " + cr.nota_calamar);
+
+    var cb = c.cabida_de_la_cesta;
+    if (cb) {
+      t.push("");
+      t.push("  CUÁNTO CABE EN LA CESTA DE LA FREIDORA — dilo con números en la receta.");
+      if (cb.superficie_util_en_una_capa_cm2) {
+        t.push("     Superficie útil en una sola capa: " +
+               cb.superficie_util_en_una_capa_cm2 + " cm². " + (cb._nota_superficie || ""));
+      }
+      (cb.huella_por_100_g || []).forEach(function (h) {
+        t.push("     · " + h.alimento + ": " + h.cm2 + " cm² por cada 100 g — caben " +
+               h.caben_g + " g.");
+      });
+      if (cb.lo_que_llena_la_cesta) t.push("     " + cb.lo_que_llena_la_cesta);
+      if (cb.capa_unica) t.push("     Capa única: " + cb.capa_unica);
+      (cb.cuando_no_quepa || []).forEach(function (x) { t.push("     Si no cabe: " + x); });
+      if (cb.limite) {
+        t.push("     " + String(cb.limite).replace(/\s*Lo comprueba [^.]*\.?/, "").trim());
+      }
+    }
+    return t;
+  }
+
+  function bloqueGustos(topeSal) {
+    var g = PERFIL.gustos, t = [];
+    if (!g) {
+      return ["LO QUE COMO",
+              "  Dieta BAJA EN SAL: nunca se añade sal, ni una pizca ni al gusto.",
+              "  Tope del día entero: " + String(topeSal).replace(".", ",") + " g de sal."];
+    }
+    var s = g.sal || {};
+    t.push("LA SAL — es la regla que manda por encima de todas.");
+    if (s._la_regla_que_manda) t.push("  " + s._la_regla_que_manda);
+    t.push("  Tope del día entero: " + String(topeSal).replace(".", ",") + " g de sal" +
+           (s.aviso_ambar_g ? " (a partir de " + String(s.aviso_ambar_g).replace(".", ",") +
+            " g ya voy justo)" : "") + ". Una cena no debería pasar de 1 g.");
+    if (s.filosofia) t.push("  " + s.filosofia);
+    t.push("  Nada de caldos de pastilla, conservas saladas, embutido salado ni quesos curados");
+    t.push("  salvo que el plato que te he pedido sea precisamente eso.");
+
+    t.push("");
+    t.push("LO QUE COMO");
+    Object.keys(g.si || {}).forEach(function (k) {
+      if (k.charAt(0) === "_") return;
+      t.push("  · " + k.replace(/_/g, " ") + ": " + (g.si[k] || []).join(", "));
+    });
+    var no = g.no || {};
+    if ((no.lista || []).length) {
+      t.push("");
+      t.push("LO QUE NO COMO — " + (no._regla || "no entran en ninguna receta."));
+      t.push("  " + no.lista.join(", ") + ".");
+    }
+    if ((no.flojo || []).length) t.push("  Flojo: " + no.flojo.join(", ") + ".");
+
+    var fj = g.fijos_diarios;
+    if (fj) {
+      t.push("");
+      t.push("LO QUE YA COMO TODOS LOS DÍAS — " + (fj._que_son || ""));
+      Object.keys(fj).forEach(function (k) {
+        if (k.charAt(0) === "_") return;
+        t.push("  · " + fj[k]);
+      });
+    }
+
+    if ((g.como_quiere_las_instrucciones || []).length) {
+      t.push("");
+      t.push("CÓMO QUIERO QUE ESTÉN ESCRITAS LAS INSTRUCCIONES");
+      g.como_quiere_las_instrucciones.forEach(function (x) { t.push("  · " + x); });
+    }
+    return t;
+  }
+
   function catalogoParaPrompt() {
     return Almacen.estado.ingredientes.slice()
       .sort(function (a, b) { return (a.cat || "").localeCompare(b.cat || "") || a.n.localeCompare(b.n); })
-      .map(function (i) { return "  " + i.id + " = " + i.n + " (" + i.u + ")"; })
+      /* El peso de la pieza va DENTRO del catálogo a propósito: lo que más
+         falla es que la IA ponga «400» de berenjena pensando en gramos cuando
+         la berenjena se cuenta por unidades. Si ve «1 ud ≈ 250 g» al lado, lo
+         convierte sola. */
+      .map(function (i) {
+        return "  " + i.id + " = " + i.n + " (" + i.u +
+               (i.u === "ud" && i.pesoUd ? ", 1 ud ≈ " + i.pesoUd + " g" : "") + ")";
+      })
       .join("\n");
   }
 
@@ -1413,20 +1766,27 @@
       t.push("LO QUE QUIERO QUE LLEVE, en mis palabras:");
       t.push("  " + det.split("\n").join("\n  "));
     }
+    /* Las raciones las manda `mis-gustos.json`, no el código: el recetario está
+       escrito a 1 ración y la compra multiplica aparte por los que sean. */
+    var racDef = (PERFIL.gustos && PERFIL.gustos.raciones_por_defecto) || 2;
+    var topeSal = parseFloat(c.avisoSal) ||
+                  (PERFIL.gustos && PERFIL.gustos.sal && PERFIL.gustos.sal.tope_diario_sal_g) || 4;
     t.push("");
     t.push("QUIÉN VA A COMERLO");
-    t.push("  · Dieta BAJA EN SAL: sin sal añadida, sin caldos ni conservas saladas.");
-    t.push("    Se sazona con limón, vinagre, ajo, pimentón, hierbas y especias.");
-    t.push("    Tope del día entero: " + String(c.avisoSal || 3.5).replace(".", ",") +
-           " g de sal. Una cena no debería pasar de 1 g.");
     t.push("  · En déficit de calorías y haciendo fuerza: unas " +
            kDia + " kcal al día y " + pDia +
            " g de proteína. Una comida o cena ronda las 600-700 kcal por ración");
     t.push("    y cuanta más proteína lleve, mejor.");
-    t.push("  · Dos comensales. Da la receta para 2 raciones salvo que el plato pida otra cosa.");
-    t.push("  · Aparatos, en orden de preferencia: freidora de aire (airfryer), Lékué de");
-    t.push("    microondas (vaporera, arrocera, cuecepasta), y después sartén, cazuela y horno.");
-    t.push("    Usa la freidora y los Lékué siempre que el plato lo permita.");
+    t.push("  · Escribe la receta para " + racDef + " " +
+           (racDef === 1 ? "ración" : "raciones") +
+           " salvo que el plato pida otra cosa (una tortilla, un guiso).");
+    if (PERFIL.gustos && PERFIL.gustos._nota_raciones) {
+      t.push("    " + PERFIL.gustos._nota_raciones);
+    }
+    t.push("");
+    bloqueGustos(topeSal).forEach(function (l) { t.push(l); });
+    t.push("");
+    bloqueCocina().forEach(function (l) { t.push(l); });
     t.push("");
     t.push("SI LO QUE PIDO NO ENCAJA CON ESA DIETA, DÍMELO, PERO HÁZMELO IGUAL.");
     t.push("  Quiero la receta que he pedido, no otra. Lo que sí puedes hacer es ajustar");
@@ -1442,9 +1802,11 @@
     t.push('  "n": "Nombre del plato",');
     t.push('  "grupo": "uno de: ' + grupos + '",');
     t.push('  "tipo": ["en qué tomas vale: desayuno, almuerzo, comida, merienda, cena, guarnicion, postre"],');
-    t.push('  "raciones": 2,');
+    t.push('  "raciones": ' + racDef + ',');
     t.push('  "min": 25,');
     t.push('  "tools": ["de esta lista: ' + tools + '"],');
+    t.push('  "cesta": ["ids de lo que va a la cesta de la freidora A LA VEZ"],');
+    t.push('  "capaUnica": true,');
     t.push('  "ing": [');
     t.push('    { "i": "identificador_de_mi_lista", "c": 200 },');
     t.push('    { "nuevo": { "n": "Nombre del ingrediente nuevo", "u": "g", "cat": "Despensa",');
@@ -1455,9 +1817,15 @@
     t.push('  "nota": "Una línea, o cadena vacía"');
     t.push("}");
     t.push("");
+    t.push("`cesta` y `capaUnica` SÓLO si la receta usa la freidora: qué va dentro a la vez,");
+    t.push("y si tiene que ir en una sola capa sin tocarse. Si no hay freidora, déjalos fuera.");
+    t.push("");
     t.push("REGLAS DE LOS INGREDIENTES, que es lo que suele fallar:");
     t.push("  · `c` es la cantidad PARA TODA LA RECETA, en la unidad del ingrediente");
     t.push("    (g, ml o ud), no por ración y sin unidades dentro del número.");
+    t.push("  · OJO CON LAS UNIDADES: lo que en mi lista va en `ud` se cuenta por piezas.");
+    t.push("    Media berenjena es 0.5, no 125. Al lado de cada uno te pongo lo que pesa");
+    t.push("    una pieza para que puedas hacer la cuenta.");
     t.push("  · Usa SIEMPRE un identificador de mi lista si el ingrediente está.");
     t.push("  · Sólo si de verdad no está, usa la forma `nuevo` con sus valores POR 100 g");
     t.push("    o por 100 ml: k = calorías, p = proteína, g = grasa, h = hidratos,");
@@ -1474,7 +1842,9 @@
     var ej = ejemploParaPrompt();
     if (ej) {
       t.push("");
-      t.push("UNA RECETA MÍA, para que veas el tono y el nivel de detalle que busco:");
+      t.push("UNA RECETA MÍA, para que veas el tono y el nivel de detalle que busco.");
+      t.push("Fíjate en el formato y en cómo están escritos los pasos, no en el número de");
+      t.push("raciones: ésa lleva las que pedía el plato.");
       t.push(ej);
     }
     t.push("");
@@ -1537,18 +1907,104 @@
         tools: (doc.tools || []).filter(function (t) { return NOMBRE_TOOL[t]; }),
         pasos: (doc.pasos || []).map(function (x) { return String(x); }).filter(Boolean),
         trucos: (doc.trucos || []).map(function (x) { return String(x); }).filter(Boolean),
-        nota: String(doc.nota || "").slice(0, 200)
+        nota: String(doc.nota || "").slice(0, 200),
+        /* Sólo tienen sentido si la receta pasa por la freidora. */
+        cesta: Array.isArray(doc.cesta) ? doc.cesta.map(String) : [],
+        capaUnica: doc.capaUnica !== false
       },
       ing: ing, nuevos: nuevos, avisos: avisos
     };
   }
 
+  /* ¿CABE EN LA CESTA? — la comprobación que antes estaba en un script suelto.
+     Vive aquí porque el sitio donde tiene que saltar es ANTES de guardar, y
+     aquí es donde se guarda. Las medidas salen de `mi-cocina.json`, no de
+     este código: si mañana mide la huella de otro alimento, lo añade al
+     fichero y esto lo usa sin tocar nada.
+
+     Lo que se mide es la huella de lo que va a la cesta A LA VEZ, que es lo
+     que dice el campo `cesta`. Lo que no esté medido no se inventa: se cuenta
+     aparte y se dice cuántos son, porque un «cabe» calculado sobre la mitad de
+     los ingredientes es peor que no decir nada. */
+  function sinTildes(t) {
+    return String(t || "").toLowerCase()
+      .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+      .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u");
+  }
+
+  function revisarCabida(cesta, ing, capaUnica) {
+    var cb = PERFIL.cocina && PERFIL.cocina.cabida_de_la_cesta;
+    if (!cb || !cesta || !cesta.length) return null;
+    var util = cb.superficie_util_en_una_capa_cm2 || 630;
+    var tope = 92;
+    var m = String(cb.limite || "").match(/(\d{1,3})\s*%/);
+    if (m) tope = parseInt(m[1], 10);
+
+    /* De «Cebolla en juliana» nos quedamos con «cebolla»; de «Pescado o pollo»,
+       con las dos palabras. Es lo que permite casar el alimento medido con el
+       nombre del ingrediente de su despensa, que nunca es idéntico. */
+    var tabla = (cb.huella_por_100_g || []).map(function (h) {
+      var base = sinTildes(h.alimento).split(" en ")[0];
+      return { claves: base.split(" o ").map(function (x) { return x.trim(); }),
+               cm2: h.cm2, alimento: h.alimento };
+    });
+
+    var cm2 = 0, medidos = [], sinMedir = [];
+    cesta.forEach(function (id) {
+      var g = Almacen.ingrediente(id);
+      var linea = null;
+      ing.forEach(function (l) { if (l.i === id) linea = l; });
+      if (!g || !linea) return;
+      /* Media despensa se cuenta por unidades —una berenjena, dos patatas—, así
+         que hay que pasarlo a gramos con el peso de la pieza antes de medir
+         nada. Sin esto «400» de berenjena se leía como 400 berenjenas. */
+      var gr;
+      if (g.u === "g") gr = linea.c;
+      else if (g.u === "ud" && g.pesoUd) gr = linea.c * g.pesoUd;
+      else return;                                   // los ml no ocupan cesta
+      var nom = sinTildes(g.n);
+      var h = null;
+      tabla.forEach(function (t) {
+        if (h) return;
+        t.claves.forEach(function (k) { if (!h && k && nom.indexOf(k) >= 0) h = t; });
+      });
+      /* «Pescado o pollo» es una clase, no un alimento: «Lomos de lubina
+         congelados» no lleva la palabra pescado dentro. Lo resuelve el pasillo
+         del súper, que sí lo sabe. */
+      if (!h && /Pescader|Carnicer|Congelados/.test(g.cat || "")) {
+        tabla.forEach(function (t) {
+          if (h) return;
+          if (t.claves.indexOf("pescado") >= 0 || t.claves.indexOf("pollo") >= 0) h = t;
+        });
+      }
+      if (!h) { sinMedir.push(g.n); return; }
+      cm2 += (gr / 100) * h.cm2;
+      medidos.push(g.n);
+    });
+
+    if (!medidos.length) return null;
+    /* Si no hace falta capa única, el fondo admite el doble: se sacude. */
+    var sitio = util * (capaUnica === false ? 2 : 1);
+    var pc = Math.round((cm2 / sitio) * 100);
+    return { pc: pc, tope: tope, pasa: pc <= tope, sinMedir: sinMedir,
+             capaUnica: capaUnica !== false };
+  }
+
   function abrirRecetaIA() {
+    /* Se piden ya los dos ficheros del perfil, para que estén cuando pulse
+       copiar. Si tardan, el botón espera; si no llegan, avisa y sigue. */
+    cargarPerfil().then(function () {
+      var av = $("#ia-falta");
+      if (av) av.style.display = PERFIL.falta ? "" : "none";
+    });
     var html = '<header><h2>Traer una receta de una IA</h2>' +
                '<button class="cerrar" data-cerrar>×</button></header>';
     html += '<p class="nota-modal">El encargo ya lleva dentro tu catálogo de ingredientes, ' +
-            'tus aparatos y lo de la sal. Cópialo, pégalo en Claude o en Gemini, y trae aquí ' +
-            'su respuesta.</p>';
+            'tu cocina con las medidas de la cesta, lo que comes y lo que no, y la regla de ' +
+            'la sal. Cópialo, pégalo en Claude o en Gemini, y trae aquí su respuesta.</p>';
+    html += '<div class="aviso" id="ia-falta" style="display:none">No he podido leer ' +
+            'tu cocina ni tus gustos (datos/mi-cocina.json y datos/mis-gustos.json). ' +
+            'El encargo sale igual, pero más corto: repásalo antes de mandarlo.</div>';
     html += '<label class="campo"><span>¿Qué plato quieres?</span>' +
             '<input type="text" id="ia-plato" placeholder="Pasta con cebolla caramelizada y chorizo"></label>';
     html += '<label class="campo"><span>¿Qué quieres que lleve? (opcional, en tus palabras)</span>' +
@@ -1582,18 +2038,23 @@
       } else fallback();
     }
 
-    $("#ia-claude").addEventListener("click", function () {
+    /* Nada de montar el encargo antes de tener el perfil: sin él saldría el texto
+       corto de emergencia y él no notaría la diferencia hasta leer la receta. */
+    function conPerfil(fn) {
+      return function () { cargarPerfil().then(fn); };
+    }
+    $("#ia-claude").addEventListener("click", conPerfil(function () {
       copiar(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, false), "Claude");
-    });
-    $("#ia-gemini").addEventListener("click", function () {
+    }));
+    $("#ia-gemini").addEventListener("click", conPerfil(function () {
       copiar(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, true), "Gemini");
-    });
-    $("#ia-ver").addEventListener("click", function () {
+    }));
+    $("#ia-ver").addEventListener("click", conPerfil(function () {
       var pre = $("#ia-previo");
       pre.innerHTML = '<label class="campo"><span>El encargo, por si lo quieres retocar</span>' +
         '<textarea class="salida" style="min-height:220px">' +
         esc(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, false)) + '</textarea></label>';
-    });
+    }));
 
     $("#ia-leer").addEventListener("click", function () {
       var r = leerRespuestaIA($("#ia-resp").value);
@@ -1614,17 +2075,44 @@
       var kcal = Math.round(n.k + kNuevos / r.receta.raciones);
       var sal = Almacen.salReceta(falsa) + salNuevos / r.receta.raciones;
 
+      /* UNA RECETA DE 25.000 kcal NO ES UNA RECETA: es una cantidad mal puesta,
+         casi siempre un ingrediente que va por unidades al que le han puesto
+         los gramos. Vale más decirlo aquí que descubrirlo en el menú. */
+      var disparate = kcal > 1400 || sal > 4;
+
       var h = '<div class="previo-ia">';
       h += '<h3>' + esc(r.receta.n) + '</h3>';
       h += '<p class="nota-peque">' + esc(NOMBRE_GRUPO[r.receta.grupo]) + ' · ' +
            r.receta.raciones + ' raciones · ' + r.receta.min + ' min · ' +
            esc(r.receta.tipo.join(", ")) + '</p>';
       h += '<p><b>' + Util.kcal(kcal) + '</b> y <b>' + Util.sal(sal) + ' de sal</b> por ración</p>';
+      if (disparate) {
+        h += '<div class="aviso">Eso no cuadra para una ración. Casi siempre es un ' +
+             'ingrediente que va por UNIDADES al que le han puesto los gramos ' +
+             '(«400» de berenjena son 400 berenjenas, no 400 g). Revisa las ' +
+             'cantidades antes de guardarla.</div>';
+      }
       h += '<p class="nota-peque">' + r.ing.length + ' ingredientes de tu despensa' +
            (r.nuevos.length ? ' · <b>' + r.nuevos.length + ' nuevos</b> que se crearán: ' +
              esc(r.nuevos.map(function (x) { return x.d.n; }).join(", ")) : '') + '</p>';
       if (r.avisos.length) {
         h += '<div class="aviso">' + r.avisos.map(esc).join("<br>") + '</div>';
+      }
+
+      /* LA CESTA, ANTES DE GUARDAR. Es el error que ya pasó de verdad una vez:
+         una lubina apilada sobre el tomate, el aire sin pasar, lo de abajo
+         crudo. Más vale saberlo ahora que a mitad de cena. */
+      var cab = revisarCabida(r.receta.cesta, r.ing, r.receta.capaUnica);
+      if (cab) {
+        h += '<div class="' + (cab.pasa ? "nota-peque" : "aviso") + '">' +
+             'En la cesta de la freidora ocupa el <b>' + cab.pc + ' %</b>' +
+             (cab.capaUnica ? " en capa única" : " a dos alturas, removiendo") +
+             (cab.pasa ? " (el tope son " + cab.tope + " %)."
+                       : ". <b>Se pasa del " + cab.tope + " %</b>: hazlo en dos tandas o baja la verdura.") +
+             (cab.sinMedir.length
+               ? ' No tengo la huella medida de: ' + esc(cab.sinMedir.join(", ")) + '.'
+               : '') +
+             '</div>';
       }
       h += '<p class="nota-peque">' + r.receta.pasos.length + ' pasos · ' +
            r.receta.trucos.length + ' trucos</p>';
@@ -1665,6 +2153,10 @@
           editado: true,
           de: "ia"
         };
+        if (r.receta.cesta.length) {
+          nueva.cesta = r.receta.cesta.filter(function (id) { return Almacen.ingrediente(id); });
+          nueva.capaUnica = r.receta.capaUnica;
+        }
         Almacen.estado.recetas.push(nueva);
         Almacen.guardar("receta");
         cerrarModal();
@@ -1675,10 +2167,14 @@
   }
 
   /* ==================== EDITOR DE INGREDIENTE ==================== */
-  function abrirIngrediente(id) {
+  /* `nombrePrevio` y `alGuardar` los usa la pantalla de ordenar caprichos: si
+     unos pistachos no están en la despensa, se crean desde allí sin perder el
+     hilo y se vuelve a la lista con el ingrediente ya hecho. */
+  function abrirIngrediente(id, nombrePrevio, alGuardar) {
     var nuevo = !id;
     var g = nuevo
-      ? { id: "", n: "", cat: "Frutas y verduras", u: "g", sal: 0, k: 0, p: 0, g: 0, h: 0 }
+      ? { id: "", n: String(nombrePrevio || ""), cat: "Frutas y verduras", u: "g",
+          sal: 0, k: 0, p: 0, g: 0, h: 0 }
       : JSON.parse(JSON.stringify(Almacen.ingrediente(id)));
     if (!g) return;
 
@@ -1739,6 +2235,7 @@
       cerrarModal();
       pintarDespensa(); pintarMenu();
       Util.toast("Ingrediente guardado");
+      if (alGuardar) alGuardar(res.id);
     });
   }
 
