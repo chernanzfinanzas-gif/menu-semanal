@@ -552,11 +552,27 @@
     [["curl de muñeca","estiramiento de antebrazos"], {antebrazo:1}],
     [["curl"],                      {biceps:.75, antebrazo:.25}],
     [["dominadas","jalón","jalon"], {dorsal:.55, biceps:.25, trapecio:.2}],
+    /* El remo vertical NO es un remo de espalda: es un tirón al mentón, y se lo
+       llevan trapecio y hombro. Va antes que «remo» o lo captura el de abajo. */
+    [["remo vertical","remo al mentón","remo al menton"], {trapecio:.5, hombro:.5}],
     [["remo"],                      {dorsal:.5, trapecio:.25, biceps:.25}],
     [["pullover"],                  {dorsal:.6, pecho:.4}],
-    [["aperturas invertidas","tirones frontales"], {hombro:.5, trapecio:.5}],
-    [["aperturas","cruce de poleas","estiramiento pectoral"], {pecho:.85, hombro:.15}],
-    [["press de banca","press inclinado","press declinado","press de pecho",
+    /* Garmin escribe «Apertura» en singular y «Aperturas» en plural para el
+       mismo gesto, así que la clave va en singular: como se busca por trozo de
+       texto, el singular caza los dos. Y las INVERSAS van antes que las de
+       pecho, porque «apertura inversa» contiene «apertura». */
+    [["apertura inversa","apertura trasera","apertura invertida","aperturas invertidas",
+      "tirones frontales","tirón facial","tiron facial","face pull"],
+                                    {hombro:.5, trapecio:.5}],
+    [["apertura","cruce de poleas","estiramiento pectoral"], {pecho:.85, hombro:.15}],
+    /* Al inclinarte, parte del trabajo del pecho se va al hombro. Estaba metido
+       en el saco del press plano, que le daba el reparto del banco horizontal. */
+    [["press inclinado","press de banca inclinada","press en banca inclinada"],
+                                    {pecho:.45, hombro:.35, triceps:.2}],
+    /* Tumbado en el suelo el codo topa antes, el recorrido se corta y entra más
+       tríceps. Antes no existía y salía sin músculos. */
+    [["press en suelo","press en el suelo"], {pecho:.5, triceps:.35, hombro:.15}],
+    [["press de banca","press declinado","press de pecho",
       "press invertido","flexiones"],{pecho:.6, triceps:.25, hombro:.15}],
     [["fondos"],                    {pecho:.45, triceps:.45, hombro:.1}],
     [["press de hombros","press arnold"], {hombro:.7, triceps:.3}],

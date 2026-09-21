@@ -4892,11 +4892,12 @@
     plana:     "Bandas planas",
     tobillera: "Tobilleras",
     apoyo:     "Apoyo firme a 40 cm",
+    alto:      "Anclaje alto",
     barra:     "Barra de dominadas",
     esterilla: "Esterilla"
   };
   var ORDEN_CAP = ["mancuerna", "rusa", "tubo", "anclaje", "anilla", "plana",
-                   "tobillera", "apoyo", "barra", "esterilla"];
+                   "tobillera", "apoyo", "alto", "barra", "esterilla"];
 
   /* El inventario levantado con Carlos el 21-sep-2026. Se siembra UNA vez; a
      partir de ahí manda lo que él tenga guardado, porque lo puede editar. */
@@ -4911,7 +4912,8 @@
     { id: "plana", n: "Bandas planas",      d: "5 · 7 · 9 · 11 kg", da: ["plana"] },
     { id: "silla", n: "Silla ergonómica de rodillas", d: "bloqueada en la habitación de entrenar — press y empuje de cadera", da: ["apoyo"] },
     { id: "sofa",  n: "Sofá",               d: "el otro apoyo a la altura buena", da: ["apoyo"] },
-    { id: "este",  n: "Esterilla",          d: "", da: ["esterilla"] }
+    { id: "este",  n: "Esterilla",          d: "", da: ["esterilla"] },
+    { id: "anil",  n: "Anillas de la terraza", d: "anclajes de escalada en el muro — falta una barra o unas anillas que colgar", da: ["alto"] }
   ];
 
   /* `pide` es una lista de GRUPOS: dentro de un grupo vale cualquiera, y hay que
@@ -4928,7 +4930,7 @@
     /* ---- tirón ---- */
     { n: "Remo",                  pide: [["tubo"], ["anclaje"]], nota: "El que más kilos te deja mover" },
     { n: "Remo a una mano",       pide: [["mancuerna"], ["apoyo"]], nota: "Rodilla y mano en el apoyo" },
-    { n: "Jalón",                 pide: [["tubo"], ["anclaje"]], nota: "Anclaje alto" },
+    { n: "Jalón",                 pide: [["tubo"], ["alto", "anclaje"]], nota: "Mejor desde las anillas que desde la puerta" },
     { n: "Dominadas",             pide: [["barra"]], nota: "Con banda de anilla para asistir" },
     { n: "Aperturas invertidas",  pide: [["tubo", "plana"]], bl: "tiron", nota: "El face pull: hombro y trapecio" },
     { n: "Curl de bíceps",        pide: [["mancuerna", "tubo"]], nota: "" },
@@ -5056,6 +5058,119 @@
       "</div></div>";
   }
 
+
+  /* ---- LAS DOS SESIONES ----
+     No llevan su propia lista de ejercicios: NOMBRAN movimientos del catálogo
+     de arriba. Así heredan solas de qué material dependen y si hoy se pueden
+     hacer, y el día que entren las anillas la sesión B cambia sin tocar nada.
+
+     El reparto: cada día lleva pierna, empuje y tirón —cuerpo entero— y entre
+     los dos días se cubren el horizontal y el vertical de cada patrón. */
+  var SESIONES = [
+    { id: "A", n: "Fuerza A", dia: 1, diaTxt: "lunes", mov: [
+      { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
+      { n: "Press de banca",      s: 2, r: "12",          kg: 15, nota: "Sentado en el suelo, espalda contra la silla",
+        garmin: "Press de banca inclinada con mancuernas" },
+      { n: "Remo",                s: 2, r: "12",          goma: 9,
+        nota: "Tubo en el anclaje de la puerta",
+        garmin: "Remo con goma el\u00e1stica" },
+      { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
+      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: 4.5,
+        nota: "Goma en el anclaje, de pie",
+        garmin: "Apertura inversa con polea a un solo brazo y de pie" }
+    ]},
+    { id: "B", n: "Fuerza B", dia: 4, diaTxt: "jueves", mov: [
+      { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 15,
+        nota: "Bisagra de cadera: el culo atr\u00e1s, la espalda recta y la mancuerna rozando la pierna" },
+      { n: "Press de hombros",    s: 2, r: "12",          kg: 15, nota: "Sin bloquear el aire",
+        garmin: "Press de hombros con mancuernas" },
+      { n: "Jal\u00f3n",              s: 2, r: "12",          goma: 9,
+        nota: "Anclaje alto de la puerta",
+        garmin: "Jal\u00f3n lateral con goma el\u00e1stica" },
+      { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
+      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: 4.5,
+        nota: "Goma en el anclaje, de pie",
+        garmin: "Apertura inversa con polea a un solo brazo y de pie" }
+    ]}
+  ];
+
+  /* Los enlaces a v\u00eddeo van aqu\u00ed, por nombre de movimiento. Vac\u00edo de momento:
+     se van a\u00f1adiendo cuando encuentre uno que le valga, y entonces aparece el
+     enlace en su l\u00ednea. Uno por movimiento, no uno por sesi\u00f3n. */
+  var VIDEOS = {};
+
+  var NIVELES = [
+    { n: "Corta",  q: "2 series, mitad de carga",
+      c: "Semana S, día malo, y mientras dure el corticoide" },
+    { n: "Normal", q: "3 series de 8-12, con 2-3 repeticiones en la recámara",
+      c: "Semana A" },
+    { n: "Larga",  q: "3-4 series y un cuarto ejercicio",
+      c: "Desde la fase 1, sin corticoide" }
+  ];
+
+  function movPorNombre(n) {
+    for (var i = 0; i < MOVIMIENTOS.length; i++) if (MOVIMIENTOS[i].n === n) return MOVIMIENTOS[i];
+    return null;
+  }
+
+  function htmlSesiones(s) {
+    var hoy = new Date().getDay();                 /* 0 domingo … 6 sábado */
+    var h = '<div class="tarjeta"><h3>Las dos sesiones</h3>' +
+      '<p class="nota-peque">Esta es <b>la rutina decidida</b>. Se cambia aqu\u00ed primero ' +
+      '\u2014 porque cambia por cosas de aqu\u00ed: que un peso se quede corto, que acabe ' +
+      'el corticoide, que llegue material nuevo, que empiece otra fase \u2014 y <b>despu\u00e9s ' +
+      'se copia a Garmin Connect</b>, que es lo que ejecuta el reloj. Si un d\u00eda no ' +
+      'coinciden, no hay duda de cu\u00e1l vale: es que falta pasar a Connect un cambio ' +
+      'ya decidido.</p>';
+
+    SESIONES.forEach(function (ses) {
+      var toca = (hoy === ses.dia);
+      h += '<h4 class="mov-tit">' + ses.n +
+           ' <span class="nota-peque">\u00b7 ' + ses.diaTxt + '</span>' +
+           (toca ? ' <b style="color:var(--verde)">\u2190 hoy</b>' : "") + "</h4>";
+
+      ses.mov.forEach(function (m) {
+        var mv = movPorNombre(m.n);
+        var falta = mv ? faltaPara(mv, s) : [];
+        /* La dosis en una línea: series, repeticiones y con qué. */
+        var dosis = m.s + " \u00d7 " + m.r;
+        if (m.kg)   dosis += " \u00b7 <b>" + m.kg + " kg</b>";
+        if (m.goma) dosis += " \u00b7 <b>goma de " + String(m.goma).replace(".", ",") + " kg</b>";
+
+        h += '<div class="mov-linea' + (falta.length ? " mov-no" : "") + '">' +
+          '<div class="mov-n"><b>' + U.esc(m.n) + "</b>" +
+            (VIDEOS[m.n] ? ' <a href="' + U.esc(VIDEOS[m.n]) + '" target="_blank" rel="noopener"' +
+                           ' class="nota-peque">c\u00f3mo se hace \u2197</a>' : "") + "</div>" +
+          '<div class="mov-musc">' + dosis + "</div>" +
+          (m.nota ? '<div class="mov-musc">' + U.esc(m.nota) + "</div>" : "") +
+          (m.garmin ? '<div class="nota-peque">En el reloj: \u00ab' + U.esc(m.garmin) + "\u00bb</div>" : "") +
+          (SIGUIENTE[m.n] ? '<div class="mov-musc">Cuando se quede corto: ' +
+                             U.esc(SIGUIENTE[m.n]) + "</div>" : "") +
+          (falta.length ? '<div class="mov-falta">Falta: ' + U.esc(falta.join(" + ")) + "</div>" : "") +
+          "</div>";
+      });
+    });
+
+    /* ---- los tres niveles ---- */
+    h += '<h4 class="mov-tit">Qu\u00e9 tama\u00f1o de sesi\u00f3n</h4>';
+    NIVELES.forEach(function (nv) {
+      h += '<div class="mov-linea"><div class="mov-n"><b>' + nv.n + "</b>" +
+        '<span class="nota-peque"> \u2014 ' + U.esc(nv.q) + "</span></div>" +
+        '<div class="mov-musc">' + U.esc(nv.c) + "</div></div>";
+    });
+
+    h += '<div class="aviso" style="margin-top:12px"><b>Las tres de siempre:</b> ' +
+      'espirar en el esfuerzo y <b>nunca bloquear el aire</b>; ' +
+      'ni una repetici\u00f3n al fallo en los tres primeros meses; ' +
+      'y parar al primer s\u00edntoma de o\u00eddo. ' +
+      '<span class="nota-peque">Descanso de 1:15 entre series. Se sube peso cuando salen ' +
+      '12 repeticiones limpias en las tres series. La casilla de hecho <b>se marca sola</b> ' +
+      'cuando intervals trae la sesi\u00f3n que grabaste en el reloj.</span></div>';
+
+    h += "</div>";
+    return h;
+  }
+
   function htmlMaterial() {
     var volver = '<button type="button" class="ent-atras" data-volver="1">' +
       FLECHA + "Volver a Entrenamiento</button>";
@@ -5076,6 +5191,9 @@
     else h += '<div class="fila" style="margin-top:10px">' +
       '<button type="button" class="btn" data-mat-nuevo="1">Añadir material</button></div>';
     h += "</div>";
+
+    /* ---- las dos sesiones, antes del catálogo: es lo que se consulta ---- */
+    h += htmlSesiones(s);
 
     /* ---- los movimientos, por bloque ---- */
     var porBloque = {};
