@@ -1,9 +1,9 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v80";
+var CACHE = "menu-semanal-v81";
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=80",
-  "./js/util.js?v=80", "./js/almacen.js?v=80", "./js/github.js?v=80", "./js/app.js?v=80",
-  "./datos/ingredientes.js?v=80", "./datos/recetas.js?v=80", "./datos/plantillas.js?v=80", "./datos/actividades.js?v=80", "./datos/plan.js?v=80", "./js/entrenamiento.js?v=80", "./js/actividad-khb.js?v=80", "./css/actividad-khb.css?v=80",
+  "./", "./index.html", "./css/estilos.css?v=81",
+  "./js/util.js?v=81", "./js/almacen.js?v=81", "./js/github.js?v=81", "./js/app.js?v=81",
+  "./datos/ingredientes.js?v=81", "./datos/recetas.js?v=81", "./datos/plantillas.js?v=81", "./datos/actividades.js?v=81", "./datos/plan.js?v=81", "./js/entrenamiento.js?v=81", "./js/actividad-khb.js?v=81", "./css/actividad-khb.css?v=81",
   "./iconos/khb/1-arbol-pulso.webp", "./iconos/khb/2-frutas-tenedor.webp", "./iconos/khb/3-pesas-corredor.webp", "./iconos/khb/4-agua.webp", "./iconos/khb/5-sueno.webp", "./iconos/khb/6-zapatillas.webp", "./iconos/khb/7-yoga.webp", "./iconos/khb/8-recetario.webp", "./iconos/khb/9-podio.webp", "./iconos/khb/10-bici.webp", "./iconos/khb/11-montana.webp", "./media/cartel-h.webp", "./media/cartel-v.webp", "./manifest.webmanifest", "./iconos/icono.svg"
 ];
 

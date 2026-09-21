@@ -572,7 +572,11 @@
       var b = document.createElement("button");
       b.setAttribute("data-vista", "entreno");
       b.innerHTML = ICONO + '<span class="larga">Entrenamiento</span><span class="corta">Entreno</span>';
-      nav.insertBefore(b, nav.querySelector('[data-vista="ajustes"]') || null);
+      /* LA PRIMERA DE LA BARRA, decisión de Carlos del 21-sep-2026: el orden es
+         Entrenamiento · Recetas · Menú · Despensa · Compra · Ajustes, de lo que
+         se mira a diario a lo que se toca de vez en cuando. Antes se metía
+         delante de «Ajustes», que la dejaba la penúltima. */
+      nav.insertBefore(b, nav.firstElementChild || null);
     }
     if (!document.getElementById("vista-entreno")) {
       var sec = document.createElement("section");

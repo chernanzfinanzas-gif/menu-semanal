@@ -1507,11 +1507,14 @@
     $("#semana-siguiente").addEventListener("click", function () { UI.lunes = Util.sumarDias(UI.lunes, 7); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
     $("#ir-hoy").addEventListener("click", function () { UI.lunes = Util.lunesDe(Util.hoyISO()); UI.diaActivo = diaPorDefecto(); pintarMenu(); });
 
-    $("#importar-garmin").addEventListener("click", function () { $("#fichero-garmin").click(); });
-    $("#fichero-garmin").addEventListener("change", function (e) {
-      if (e.target.files && e.target.files.length) importarGarmin(e.target.files);
-      e.target.value = "";
-    });
+    /* El botón «Importar de Garmin» se quitó el 21-sep-2026. Servía para meter
+       a mano el .tcx o el .csv de UNA actividad exportada de Garmin Connect y
+       sacarle las calorías; desde que las actividades llegan solas de intervals
+       todos los días no hacía falta, y se confundía con la exportación grande
+       de cada dos meses, que no pasa por aquí sino por `maestro2.py`.
+       El código que lee esos ficheros —leerTCX, leerCSV, importarGarmin— se ha
+       dejado donde estaba, sin nadie que lo llame: si algún día hace falta
+       volver a meter una actividad suelta, basta con devolver el botón. */
 
     $("#selector-dias").addEventListener("click", function (e) {
       var b = e.target.closest("[data-dia]");
