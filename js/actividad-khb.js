@@ -575,7 +575,12 @@
                                     {cuadriceps:.55, gluteo:.3, isquios:.15}],
     [["gemelo","estiramiento de gemelos"], {gemelo:1}],
     [["abducción de cadera","abduccion de cadera","balanceo de cadera",
-      "movilidad de cadera"],       {gluteo:1}]
+      "movilidad de cadera"],       {gluteo:1}],
+    /* No estaba, y entra en el catálogo de movimientos de casa: apoyando la
+       espalda en el sofá es el mejor ejercicio de glúteo que se puede hacer
+       sin material. Varias grafías porque no sé con cuál lo llamará Garmin. */
+    [["empuje de cadera","puente de gluteo","puente de glúteo","hip thrust"],
+                                    {gluteo:.6, isquios:.25, lumbar:.15}]
   ];
   /* Lo que no encaja en ninguna regla —«Calentamiento», «sin identificar»— no se
      pinta. Mejor un muñeco que dice menos que uno que se inventa el músculo. */
@@ -2612,6 +2617,14 @@
     crear: crear,
     decodificarPolilinea: decodificarPolilinea,
     CORTE: CORTE,
-    NOMBRE_DEP: NOMBRE_DEP
+    NOMBRE_DEP: NOMBRE_DEP,
+    /* El vocabulario de músculos se SACA FUERA a propósito: el catálogo de
+       movimientos de la pestaña Entrenamiento pregunta por aquí en vez de
+       llevar su propia tabla. Así no hay dos verdades — y si un movimiento
+       aparece sin músculos en el catálogo, eso mismo avisa de que el reloj
+       tampoco lo va a saber clasificar cuando llegue del FIT. */
+    zonasDe: zonasDe,
+    ZONA_ES: ZONA_ES,
+    BLOQUE_MUSC: BLOQUE_MUSC
   };
 })(this);

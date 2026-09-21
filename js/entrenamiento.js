@@ -44,7 +44,9 @@
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
-      pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: true }
+      pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: true },
+    { id: "material", nombre: "Material y movimientos", img: "iconos/khb/7-yoga.webp",
+      pie: "Lo que hay en casa y qué se puede hacer con ello, músculo a músculo.", listo: true }
   ];
 
   /* ==================== ESTILOS ==================== */
@@ -55,6 +57,26 @@
     s.id = "estilos-entreno";
     s.textContent = [
       ":root{--azul:#2f5c8a;--azul-hondo:#133253;--azul-claro:#eaf0f6;--azul-borde:#cfdcea}",
+      /* ---- material y movimientos ---- */
+      ".mat-linea{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;" +
+        "padding:9px 0;border-bottom:1px solid var(--azul-borde)}",
+      ".mat-linea:last-of-type{border-bottom:0}",
+      ".mat-txt{flex:1;min-width:0}",
+      ".mat-da{font-size:12px;color:#6b7c8d;margin-top:2px}",
+      ".mat-bot{display:flex;gap:6px;flex-shrink:0}",
+      ".mat-form{background:var(--azul-claro);border:1px solid var(--azul-borde);" +
+        "border-radius:10px;padding:12px;margin:8px 0}",
+      ".mat-caps{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px}",
+      ".mat-cap{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400}",
+      ".mov-tit{margin:16px 0 6px;color:var(--azul-hondo);font-size:14px;" +
+        "text-transform:uppercase;letter-spacing:.04em}",
+      ".mov-linea{padding:8px 0;border-bottom:1px solid var(--azul-borde)}",
+      ".mov-linea:last-child{border-bottom:0}",
+      ".mov-no{opacity:.5}",
+      ".mov-musc{font-size:12px;color:#6b7c8d;margin-top:2px}",
+      ".mov-ojo{color:#b06a16}",
+      ".mov-falta{font-size:12px;color:#b03030;margin-top:2px}",
+      "@media (prefers-color-scheme:dark){.mat-da,.mov-musc{color:#9fb0c1}}",
       /* la pestaña: azul siempre, más fuerte cuando está abierta */
       '#pestanas [data-vista="entreno"]{color:#7d9cbb}',
       '#pestanas [data-vista="entreno"].activa{color:var(--azul);border-bottom-color:var(--azul)}',
@@ -4632,6 +4654,7 @@
     cont.innerHTML = (bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion()
       : (bloque === "casos") ? htmlCasos()
+      : (bloque === "material") ? htmlMaterial()
       : (bloque === "actividad") ? htmlActividad() : htmlPortada();
     if (bloque === "actividad") montarArchivo();
     if (!mantener) window.scrollTo(0, 0);
@@ -4840,6 +4863,295 @@
                      (x.paginas === 1 ? " pág." : " págs.") + "</span>" : "");
     }
     return h + "</div></article>";
+  }
+
+
+  /* ==================== MATERIAL Y MOVIMIENTOS ====================
+
+     Dos listas que se hablan: el material dice QUÉ PERMITE y cada movimiento
+     dice QUÉ NECESITA. De ahí sale lo único que hace útil un inventario dentro
+     de una app —si no, es una lista que se mira una vez—: la pantalla marca qué
+     se puede hacer hoy y qué no, y el día que entre un banco se encienden solos
+     la búlgara, el empuje de cadera y el press inclinado.
+
+     El material SE EDITA y vive en el estado de la app, así que viaja con la
+     sincronización. Los movimientos NO se editan: son vocabulario, y su gracia
+     es justamente que no cambie.
+
+     Los nombres de los movimientos son los del catálogo de Garmin, y los
+     músculos NO se declaran aquí: se le preguntan a `ActividadKHB.zonasDe`, que
+     es la misma función que pinta los muñecos con lo que llega del reloj. Si un
+     movimiento sale sin músculos, es que tampoco se va a clasificar solo. */
+
+  var CAPACIDAD = {
+    mancuerna: "Mancuernas",
+    rusa:      "Pesa rusa",
+    tubo:      "Tubos con asas",
+    anclaje:   "Anclaje de puerta",
+    anilla:    "Bandas de anilla",
+    plana:     "Bandas planas",
+    tobillera: "Tobilleras",
+    apoyo:     "Apoyo firme a 40 cm",
+    barra:     "Barra de dominadas",
+    esterilla: "Esterilla"
+  };
+  var ORDEN_CAP = ["mancuerna", "rusa", "tubo", "anclaje", "anilla", "plana",
+                   "tobillera", "apoyo", "barra", "esterilla"];
+
+  /* El inventario levantado con Carlos el 21-sep-2026. Se siembra UNA vez; a
+     partir de ahí manda lo que él tenga guardado, porque lo puede editar. */
+  var MATERIAL_BASE = [
+    { id: "manc",  n: "Mancuernas",         d: "2×10 · 2×7,5 · 2×3 · 2×2 kg", da: ["mancuerna"] },
+    { id: "rusa6", n: "Pesa rusa de 6 kg",  d: "", da: ["rusa"] },
+    { id: "rusa4", n: "Pesa rusa de 4 kg",  d: "", da: ["rusa"] },
+    { id: "tubos", n: "Tubos con asas",     d: "4,5 · 9 · 13,5 · 18 · 23 kg, acoplables hasta 68", da: ["tubo"] },
+    { id: "ancl",  n: "Anclaje de puerta",  d: "del juego de tubos", da: ["anclaje"] },
+    { id: "tobi",  n: "Tobilleras",         d: "del juego de tubos", da: ["tobillera"] },
+    { id: "anill", n: "Bandas de anilla",   d: "amarilla · roja 7-16 · negra 11-29 · morada 16-39 · verde 23-57 kg", da: ["anilla"] },
+    { id: "plana", n: "Bandas planas",      d: "5 · 7 · 9 · 11 kg", da: ["plana"] },
+    { id: "silla", n: "Silla ergonómica de rodillas", d: "bloqueada en la habitación de entrenar — press y empuje de cadera", da: ["apoyo"] },
+    { id: "sofa",  n: "Sofá",               d: "el otro apoyo a la altura buena", da: ["apoyo"] },
+    { id: "este",  n: "Esterilla",          d: "", da: ["esterilla"] }
+  ];
+
+  /* `pide` es una lista de GRUPOS: dentro de un grupo vale cualquiera, y hay que
+     cumplir todos los grupos. Vacío = solo hace falta el suelo. */
+  var MOVIMIENTOS = [
+    /* ---- empuje ---- */
+    { n: "Press de banca",        pide: [["mancuerna"], ["apoyo"]], nota: "Espalda apoyada, cadera en el suelo" },
+    { n: "Flexiones",             pide: [], nota: "Las manos altas lo hacen más fácil" },
+    { n: "Press de hombros",      pide: [["mancuerna", "tubo"]], nota: "De pie o sentado" },
+    { n: "Elevación lateral",     pide: [["mancuerna", "plana"]], nota: "Con poco peso sobra" },
+    { n: "Fondos",                pide: [["apoyo"]], nota: "Manos atrás en el borde" },
+    { n: "Extensión de tríceps",  pide: [["mancuerna", "tubo"]], nota: "" },
+
+    /* ---- tirón ---- */
+    { n: "Remo",                  pide: [["tubo"], ["anclaje"]], nota: "El que más kilos te deja mover" },
+    { n: "Remo a una mano",       pide: [["mancuerna"], ["apoyo"]], nota: "Rodilla y mano en el apoyo" },
+    { n: "Jalón",                 pide: [["tubo"], ["anclaje"]], nota: "Anclaje alto" },
+    { n: "Dominadas",             pide: [["barra"]], nota: "Con banda de anilla para asistir" },
+    { n: "Aperturas invertidas",  pide: [["tubo", "plana"]], bl: "tiron", nota: "El face pull: hombro y trapecio" },
+    { n: "Curl de bíceps",        pide: [["mancuerna", "tubo"]], nota: "" },
+    { n: "Encogimiento de hombros", pide: [["mancuerna"]], nota: "" },
+
+    /* ---- pierna ---- */
+    { n: "Sentadilla goblet",     pide: [["mancuerna", "rusa"]], nota: "El peso al pecho" },
+    { n: "Sentadilla con banda",  pide: [["anilla"]], nota: "Pisada: poco abajo, mucho arriba" },
+    { n: "Sentadilla búlgara",    pide: [["apoyo"]], nota: "El pie de atrás solo se apoya" },
+    { n: "Zancadas",              pide: [], nota: "Con mancuernas si sobra" },
+    { n: "Peso muerto rumano",    pide: [["mancuerna", "rusa", "anilla"]], nota: "Bisagra de cadera, espalda recta" },
+    { n: "Peso muerto a una pierna", pide: [["mancuerna", "rusa"]], nota: "Duplica la carga sin añadir peso" },
+    { n: "Empuje de cadera",      pide: [["apoyo"]], nota: "Espalda en el sofá, peso en la cadera" },
+    { n: "Abducción de cadera",   pide: [["plana", "anilla"]], nota: "Glúteo medio: la rodilla en las bajadas" },
+    { n: "Elevación de gemelos",  pide: [["mancuerna", "rusa"]], nota: "" },
+
+    /* ---- centro ---- */
+    { n: "Plancha",               pide: [], nota: "" },
+    { n: "Elevación de piernas",  pide: [], nota: "" },
+    { n: "Flexión lateral",       pide: [["mancuerna", "rusa"]], nota: "" },
+    { n: "Extensión lumbar",      pide: [], nota: "" }
+  ];
+
+  var NOMBRE_BLOQUE = { empuje: "Empujar", tiron: "Tirar", pierna: "Pierna", centro: "Centro" };
+  var ORDEN_BLOQUE = ["empuje", "tiron", "pierna", "centro"];
+
+  /* estado de edición del material: null, "nuevo", o el id que se está tocando */
+  var matEditando = null;
+
+  function mat() {
+    var e = ent();
+    /* LA TRAMPA DEL ESTADO GUARDADO, otra vez: sembrar solo «si no existe» no
+       alcanza a quien ya tiene un estado creado. Por eso va con marca de versión. */
+    if (!e.v_material) {
+      if (!e.material || !e.material.length) {
+        e.material = MATERIAL_BASE.map(function (x) {
+          return { id: x.id, n: x.n, d: x.d, da: x.da.slice() };
+        });
+      }
+      e.v_material = 1;
+      A.guardar("entreno");
+    }
+    if (!e.material) e.material = [];
+    return e.material;
+  }
+
+  function tengo() {
+    var s = {};
+    mat().forEach(function (m) { (m.da || []).forEach(function (c) { s[c] = true; }); });
+    return s;
+  }
+
+  /* ¿se puede hacer este movimiento con lo que hay? y si no, qué falta */
+  function faltaPara(mov, s) {
+    var falta = [];
+    (mov.pide || []).forEach(function (grupo) {
+      for (var i = 0; i < grupo.length; i++) if (s[grupo[i]]) return;
+      falta.push(grupo.map(function (c) { return CAPACIDAD[c] || c; }).join(" o "));
+    });
+    return falta;
+  }
+
+  /* Los músculos los pone el módulo de actividad, no esta tabla. */
+  function musculosDe(nombre) {
+    var akhb = global.ActividadKHB;
+    if (!akhb || !akhb.zonasDe) return null;
+    return akhb.zonasDe(nombre);
+  }
+  /* `mv.bl` gana cuando está puesto. Existe por el face pull: reparte mitad
+     hombro y mitad trapecio, o sea mitad empuje y mitad tirón, y el empate lo
+     resolvía el orden de las claves. Es un movimiento de tirar y se dice aquí,
+     sin tocar el mapa de músculos, que es de otra cosa. */
+  function bloqueDe(mv) {
+    if (mv && mv.bl) return mv.bl;
+    var nombre = (mv && mv.n) || mv;
+    var z = musculosDe(nombre), akhb = global.ActividadKHB;
+    if (!z || !akhb || !akhb.BLOQUE_MUSC) return null;
+    var suma = {}, mejor = null, alto = 0;
+    Object.keys(z).forEach(function (k) {
+      var b = akhb.BLOQUE_MUSC[k];
+      if (!b) return;
+      suma[b] = (suma[b] || 0) + z[k];
+      if (suma[b] > alto) { alto = suma[b]; mejor = b; }
+    });
+    return mejor;
+  }
+  function textoMusculos(nombre) {
+    var z = musculosDe(nombre), akhb = global.ActividadKHB;
+    if (!z) return "";
+    var es = (akhb && akhb.ZONA_ES) || {};
+    return Object.keys(z).sort(function (a, b) { return z[b] - z[a]; })
+      .map(function (k) { return (es[k] || k) + " " + Math.round(z[k] * 100) + "%"; })
+      .join(" · ");
+  }
+
+  function htmlFichaMat(m, s) {
+    if (matEditando === m.id) return formMat(m);
+    var da = (m.da || []).map(function (c) { return CAPACIDAD[c] || c; }).join(" · ");
+    return '<div class="mat-linea">' +
+      '<div class="mat-txt"><b>' + U.esc(m.n) + "</b>" +
+        (m.d ? '<span class="nota-peque"> — ' + U.esc(m.d) + "</span>" : "") +
+        (da ? '<div class="mat-da">Permite: ' + U.esc(da) + "</div>" : "") +
+      "</div>" +
+      '<div class="mat-bot">' +
+        '<button type="button" class="btn mini" data-mat-edita="' + U.esc(m.id) + '">Editar</button>' +
+        '<button type="button" class="btn mini" data-mat-borra="' + U.esc(m.id) + '">Quitar</button>' +
+      "</div></div>";
+  }
+
+  function formMat(m) {
+    var da = (m && m.da) || [];
+    var cajas = ORDEN_CAP.map(function (c) {
+      return '<label class="mat-cap"><input type="checkbox" data-mat-cap="' + c + '"' +
+        (da.indexOf(c) >= 0 ? " checked" : "") + "> " + CAPACIDAD[c] + "</label>";
+    }).join("");
+    return '<div class="mat-form">' +
+      '<label class="campo"><span>Qué es</span>' +
+        '<input type="text" id="mat-n" value="' + U.esc((m && m.n) || "") + '" placeholder="Banco regulable"></label>' +
+      '<label class="campo"><span>Detalle</span>' +
+        '<input type="text" id="mat-d" value="' + U.esc((m && m.d) || "") + '" placeholder="hasta 200 kg, inclinable"></label>' +
+      '<div class="campo"><span>Qué permite</span><div class="mat-caps">' + cajas + "</div></div>" +
+      '<div class="fila">' +
+        '<button type="button" class="btn principal" data-mat-guarda="1">Guardar</button>' +
+        '<button type="button" class="btn" data-mat-cancela="1">Cancelar</button>' +
+      "</div></div>";
+  }
+
+  function htmlMaterial() {
+    var volver = '<button type="button" class="ent-atras" data-volver="1">' +
+      FLECHA + "Volver a Entrenamiento</button>";
+    var s = tengo();
+    var lista = mat();
+
+    var h = volver +
+      '<div class="tarjeta"><h2>Material y movimientos</h2>' +
+      '<p class="nota-peque">Lo que hay en casa y lo que se puede hacer con ello. ' +
+      "Cada cosa dice qué permite, y cada movimiento qué necesita: por eso la lista " +
+      "de abajo sabe lo que hoy está a tu alcance y lo que no.</p></div>";
+
+    /* ---- el material ---- */
+    h += '<div class="tarjeta"><h3>Lo que tengo</h3>';
+    if (!lista.length) h += '<p class="nota-peque">La lista está vacía.</p>';
+    lista.forEach(function (m) { h += htmlFichaMat(m, s); });
+    if (matEditando === "nuevo") h += formMat(null);
+    else h += '<div class="fila" style="margin-top:10px">' +
+      '<button type="button" class="btn" data-mat-nuevo="1">Añadir material</button></div>';
+    h += "</div>";
+
+    /* ---- los movimientos, por bloque ---- */
+    var porBloque = {};
+    MOVIMIENTOS.forEach(function (mv) {
+      var b = bloqueDe(mv) || "otro";
+      if (!porBloque[b]) porBloque[b] = [];
+      porBloque[b].push(mv);
+    });
+
+    var hechos = 0, total = MOVIMIENTOS.length;
+    MOVIMIENTOS.forEach(function (mv) { if (!faltaPara(mv, s).length) hechos++; });
+
+    h += '<div class="tarjeta"><h3>Movimientos</h3>' +
+      '<p class="nota-peque">Con lo que tienes puedes hacer <b>' + hechos + " de " + total +
+      "</b>. Los que faltan dicen qué les falta.</p>";
+
+    ORDEN_BLOQUE.concat(["otro"]).forEach(function (b) {
+      var g = porBloque[b];
+      if (!g || !g.length) return;
+      h += '<h4 class="mov-tit">' + (NOMBRE_BLOQUE[b] || "Sin clasificar") + "</h4>";
+      g.forEach(function (mv) {
+        var falta = faltaPara(mv, s);
+        var musc = textoMusculos(mv.n);
+        h += '<div class="mov-linea' + (falta.length ? " mov-no" : "") + '">' +
+          '<div class="mov-n"><b>' + U.esc(mv.n) + "</b>" +
+            (mv.nota ? '<span class="nota-peque"> — ' + U.esc(mv.nota) + "</span>" : "") + "</div>" +
+          (musc ? '<div class="mov-musc">' + U.esc(musc) + "</div>"
+                : '<div class="mov-musc mov-ojo">Sin músculos asignados: el reloj tampoco lo sabrá clasificar</div>') +
+          (falta.length ? '<div class="mov-falta">Falta: ' + U.esc(falta.join(" + ")) + "</div>" : "") +
+          "</div>";
+      });
+    });
+    h += "</div>";
+
+    h += '<button type="button" class="ent-atras abajo" data-volver="1">' +
+      FLECHA + "Volver a Entrenamiento</button>";
+    return h;
+  }
+
+  /* ---- edición del material ---- */
+  function guardarMat() {
+    var caja = document.querySelector(".mat-form");
+    if (!caja) return;
+    var n = String((caja.querySelector("#mat-n") || {}).value || "").trim();
+    if (!n) { U.toast("Ponle un nombre"); return; }
+    var d = String((caja.querySelector("#mat-d") || {}).value || "").trim();
+    var da = [], cajas = caja.querySelectorAll("[data-mat-cap]");
+    for (var k = 0; k < cajas.length; k++) {
+      if (cajas[k].checked) da.push(cajas[k].getAttribute("data-mat-cap"));
+    }
+    var lista = mat();
+    if (matEditando === "nuevo") {
+      lista.push({ id: "m" + Date.now().toString(36), n: n, d: d, da: da });
+    } else {
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].id === matEditando) { lista[i].n = n; lista[i].d = d; lista[i].da = da; break; }
+      }
+    }
+    matEditando = null;
+    A.guardar("entreno");
+    pintar();
+    U.toast("Guardado");
+  }
+
+  function borrarMat(id) {
+    var lista = mat();
+    for (var i = 0; i < lista.length; i++) {
+      if (lista[i].id === id) {
+        if (!confirm("¿Quitar «" + lista[i].n + "» del material?")) return;
+        lista.splice(i, 1);
+        A.guardar("entreno");
+        pintar();
+        U.toast("Quitado");
+        return;
+      }
+    }
   }
 
   function htmlCasos() {
@@ -5447,7 +5759,19 @@
     cont.addEventListener("click", function (e) {
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
-      if (volver) { bloque = "portada"; diaSel = null; pintar(); return; }
+      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; pintar(); return; }
+
+      /* --- material: editar, añadir, quitar --- */
+      var mNue = t.closest ? t.closest("[data-mat-nuevo]") : null;
+      if (mNue) { matEditando = "nuevo"; pintar(); return; }
+      var mEdi = t.closest ? t.closest("[data-mat-edita]") : null;
+      if (mEdi) { matEditando = mEdi.getAttribute("data-mat-edita"); pintar(); return; }
+      var mCan = t.closest ? t.closest("[data-mat-cancela]") : null;
+      if (mCan) { matEditando = null; pintar(); return; }
+      var mGua = t.closest ? t.closest("[data-mat-guarda]") : null;
+      if (mGua) { guardarMat(); return; }
+      var mBor = t.closest ? t.closest("[data-mat-borra]") : null;
+      if (mBor) { borrarMat(mBor.getAttribute("data-mat-borra")); return; }
       var hr = t.closest ? t.closest("[data-histrango]") : null;
       if (hr) { e.preventDefault(); abrirHistoria(histAbierta, hr.getAttribute("data-histrango")); return; }
       var sg = t.closest ? t.closest("[data-sesion-guia]") : null;
