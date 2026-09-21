@@ -472,24 +472,11 @@
           html += '<div class="nota-peque">' +
                   (!activa ? "Solo los días que entrenas" : "—") + '</div>';
         } else {
-          /* Un mismo plato repetido en la toma es CANTIDAD, no dos platos distintos:
-             dos donuts, dos bolas de helado. Se agrupa por receta y se pinta con un
-             contador «− ×2 +»; las kcal y la sal se multiplican, porque si te comes
-             dos, son dos. El plan sigue siendo una lista de ids repetidos, así que no
-             hay nada que migrar y lo ya guardado funciona igual. */
-          var grupos = [], dondeVa = {};
           platos.forEach(function (rid, idx) {
-            if (dondeVa[rid] === undefined) { dondeVa[rid] = grupos.length; grupos.push({ rid: rid, idxs: [] }); }
-            grupos[dondeVa[rid]].idxs.push(idx);
-          });
-          grupos.forEach(function (gr) {
-            var rid = gr.rid;
-            var veces = gr.idxs.length;
-            var idx = gr.idxs[gr.idxs.length - 1];   // el último: el que quita el «−»
             var r = Almacen.receta(rid);
             var nombre = r ? r.n : "(receta borrada)";
             var n = r ? Almacen.nutrReceta(r) : { k: 0 };
-            var s = r ? Util.sal((r ? Almacen.salReceta(r) : 0) * veces) : "";
+            var s = r ? Util.sal(Almacen.salReceta(r)) : "";
             var com = Almacen.estaComido(fecha, t.k, rid);
             var cpr = Almacen.estaComprado(fecha, t.k, rid);
             html += '<div class="plato' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
@@ -508,20 +495,8 @@
                          una ración suelta. */
                       '<span class="nom" data-ficha="' + esc(rid) + '" ' +
                         'data-ficha-dia="' + fecha + '|' + t.k + '">' + esc(nombre) + '</span>' +
-                      /* Con una sola ración solo se ofrece el «+», que es lo que hay que
-                         descubrir. En cuanto hay dos aparece el «− ×N +» entero. */
-                      (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
-                        '<span class="grupo-cantidad' + (veces > 1 ? " varias" : "") + '">' +
-                          (veces > 1
-                            ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">−</button>' +
-                              '<span class="cuantos" title="' + veces + ' raciones">×' + veces + '</span>'
-                            : '') +
-                          '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
-                            'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
-                        '</span>') +
-                      '<span class="sal">' + Util.kcal(n.k * veces) + ' · ' + s + '</span>' +
-                      (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
-                        'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">×</button>') +
+                      '<span class="sal">' + Util.kcal(n.k) + ' · ' + s + '</span>' +
+                      (cerr ? '' : '<button class="quitar" data-quitar="' + fecha + '|' + t.k + '|' + idx + '">×</button>') +
                     '</div>';
           });
         }
@@ -541,33 +516,13 @@
       if (!caps.length) {
         html += '<div class="nota-peque">Nada fuera de plan' + (cerr ? '' : ' \u00b7 el helado, la ca\u00f1a, el postre de un restaurante') + '</div>';
       } else {
-        /* Aquí el contador es todavía más natural que en las tomas: los caprichos
-           van de dos en dos más que de uno en uno. Dos donuts, dos cañas. */
-        var gcaps = [], dondeCap = {};
         caps.forEach(function (rid, idx) {
-          if (dondeCap[rid] === undefined) { dondeCap[rid] = gcaps.length; gcaps.push({ rid: rid, idxs: [] }); }
-          gcaps[dondeCap[rid]].idxs.push(idx);
-        });
-        gcaps.forEach(function (gc) {
-          var rid = gc.rid;
-          var veces = gc.idxs.length;
-          var idx = gc.idxs[gc.idxs.length - 1];
           var r = Almacen.receta(rid);
           var n = r ? Almacen.nutrReceta(r) : { k: 0 };
           html += '<div class="plato capricho">' +
                     '<span class="nom">' + esc(r ? r.n : "(borrado)") + '</span>' +
-                    (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
-                      '<span class="grupo-cantidad' + (veces > 1 ? " varias" : "") + '">' +
-                        (veces > 1
-                          ? '<button class="paso" data-menoscap="' + fecha + '|' + idx + '" title="Uno menos">−</button>' +
-                            '<span class="cuantos" title="' + veces + '">×' + veces + '</span>'
-                          : '') +
-                        '<button class="paso" data-mascap="' + fecha + '|' + esc(rid) + '" ' +
-                          'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
-                      '</span>') +
-                    '<span class="sal">' + Util.kcal(n.k * veces) + '</span>' +
-                    (cerr ? '' : '<button class="quitar" data-quitacaptodo="' + fecha + '|' + esc(rid) + '" ' +
-                      'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
+                    '<span class="sal">' + Util.kcal(n.k) + '</span>' +
+                    (cerr ? '' : '<button class="quitar" data-quitacap="' + fecha + '|' + idx + '">\u00d7</button>') +
                   '</div>';
         });
       }
@@ -2035,6 +1990,34 @@
              capaUnica: capaUnica !== false };
   }
 
+  /* EL BORRADOR DEL ENCARGO (22-sep-2026, Carlos): «he entrado, copiado dos de
+     las líneas, y al volver se había ido todo; lo he tenido que copiar y pegar
+     otra vez».
+
+     Y es que pedir la receta obliga a SALIR de la app: copias el encargo, te
+     vas a la IA, vuelves y pegas. Esa ida y vuelta es el flujo normal, no una
+     excepción, así que la ventana no puede empezar en blanco cada vez.
+
+     Se guarda en su propia llave, aparte del resto: se escribe a cada tecla y
+     no tiene por qué despertar la sincronización con GitHub cada vez. Y todo
+     va envuelto en try porque en el móvil, con el almacenamiento lleno o en
+     una pestaña privada, esto revienta — y quedarse sin poder pedir una receta
+     por no poder guardar un borrador sería absurdo. */
+  var LLAVE_BORRADOR = "asistente-ia-borrador";
+
+  function leerBorrador() {
+    try {
+      var t = localStorage.getItem(LLAVE_BORRADOR);
+      return t ? JSON.parse(t) : null;
+    } catch (e) { return null; }
+  }
+  function guardarBorrador(b) {
+    try { localStorage.setItem(LLAVE_BORRADOR, JSON.stringify(b)); } catch (e) {}
+  }
+  function borrarBorrador() {
+    try { localStorage.removeItem(LLAVE_BORRADOR); } catch (e) {}
+  }
+
   function abrirRecetaIA() {
     /* Se piden ya los dos ficheros del perfil, para que estén cuando pulse
        copiar. Si tardan, el botón espera; si no llegan, avisa y sigue. */
@@ -2042,6 +2025,8 @@
       var av = $("#ia-falta");
       if (av) av.style.display = PERFIL.falta ? "" : "none";
     });
+    var bor = leerBorrador() || { plato: "", detalle: "", resp: "" };
+
     var html = '<header><h2>Traer una receta de una IA</h2>' +
                '<button class="cerrar" data-cerrar>×</button></header>';
     html += '<p class="nota-modal">El encargo ya lleva dentro tu catálogo de ingredientes, ' +
@@ -2051,10 +2036,12 @@
             'tu cocina ni tus gustos (datos/mi-cocina.json y datos/mis-gustos.json). ' +
             'El encargo sale igual, pero más corto: repásalo antes de mandarlo.</div>';
     html += '<label class="campo"><span>¿Qué plato quieres?</span>' +
-            '<input type="text" id="ia-plato" placeholder="Pasta con cebolla caramelizada y chorizo"></label>';
+            '<input type="text" id="ia-plato" value="' + esc(bor.plato || "") + '" ' +
+            'placeholder="Pasta con cebolla caramelizada y chorizo"></label>';
     html += '<label class="campo"><span>¿Qué quieres que lleve? (opcional, en tus palabras)</span>' +
             '<textarea id="ia-detalle" style="min-height:70px" ' +
-            'placeholder="Chorizo en tacos, queso gratinado por encima y salsa de tomate en vez de boloñesa de bote, para que sea más sano"></textarea></label>';
+            'placeholder="Chorizo en tacos, queso gratinado por encima y salsa de tomate en vez de boloñesa de bote, para que sea más sano">' +
+            esc(bor.detalle || "") + '</textarea></label>';
     html += '<div class="fila" style="margin-bottom:12px">' +
               '<button class="btn principal mini" id="ia-claude">Copiar el encargo para Claude</button>' +
               '<button class="btn mini" id="ia-gemini">Copiar el encargo para Gemini</button>' +
@@ -2062,18 +2049,46 @@
             '</div>';
     html += '<label class="campo"><span>Pega aquí la respuesta</span>' +
             '<textarea id="ia-resp" class="salida" style="min-height:170px" ' +
-            'placeholder="El JSON que te devuelva, tal cual"></textarea></label>';
+            'placeholder="El JSON que te devuelva, tal cual">' + esc(bor.resp || "") + '</textarea></label>';
+    /* DOS BOTONES DE LIMPIAR Y NO UNO, porque son dos cosas distintas
+       (Carlos, 22-sep-2026): pedir OTRA VERSIÓN del mismo plato —menos chorizo,
+       menos queso— es lo normal, y ahí el plato y el detalle se quedan; sólo
+       hay que vaciar el recuadro de pegar. Empezar de cero es para otro plato. */
     html += '<div class="fila"><button class="btn principal" id="ia-leer">Leer la respuesta</button>' +
+            '<button class="btn" id="ia-vaciar" title="Deja el recuadro libre para pegar otra versión">Vaciar el recuadro</button>' +
+            ((bor.plato || bor.detalle || bor.resp)
+              ? '<button class="btn" id="ia-limpiar">Empezar de cero</button>' : '') +
             '<button class="btn" data-cerrar>Cancelar</button></div>';
     html += '<div id="ia-previo"></div>';
     abrirModal(html);
 
+    /* Se guarda lo escrito a cada tecla. Sin esperas ni botón de guardar: el
+       momento en el que se pierde es justo cuando se sale de la app, y ahí ya
+       no hay ocasión de preguntar nada. */
+    function apuntar() {
+      guardarBorrador({
+        plato: $("#ia-plato").value,
+        detalle: $("#ia-detalle").value,
+        resp: $("#ia-resp").value
+      });
+    }
+    ["#ia-plato", "#ia-detalle", "#ia-resp"].forEach(function (sel) {
+      $(sel).addEventListener("input", apuntar);
+    });
+
     function copiar(txt, quien) {
+      /* ANTES ESTE APAÑO ESCRIBÍA EN EL RECUADRO DE LA RESPUESTA Y LO VACIABA
+         después, así que copiar el encargo te borraba lo que hubieras pegado.
+         Ahora usa un recuadro suyo, invisible, que se tira al acabar. */
       function fallback() {
-        var ta = $("#ia-resp");
-        ta.value = txt; ta.select();
+        var ta = document.createElement("textarea");
+        ta.value = txt;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
         try { document.execCommand("copy"); } catch (e) {}
-        ta.value = "";
+        document.body.removeChild(ta);
         Util.toast("Encargo para " + quien + " copiado");
       }
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -2101,10 +2116,38 @@
         esc(encargoReceta($("#ia-plato").value, $("#ia-detalle").value, false)) + '</textarea></label>';
     }));
 
+    $("#ia-vaciar").addEventListener("click", function () {
+      var ta = $("#ia-resp");
+      ta.value = "";
+      $("#ia-previo").innerHTML = "";
+      apuntar();
+      ta.focus();
+    });
+
+    var bl = $("#ia-limpiar");
+    if (bl) bl.addEventListener("click", function () {
+      borrarBorrador();
+      cerrarModal();
+      abrirRecetaIA();
+    });
+
     $("#ia-leer").addEventListener("click", function () {
       var r = leerRespuestaIA($("#ia-resp").value);
       var pre = $("#ia-previo");
-      if (r.error) { pre.innerHTML = '<div class="aviso">' + esc(r.error) + '</div>'; return; }
+      /* LO QUE SALE, SALE DEBAJO DEL TODO, y el recuadro de pegar la respuesta
+         es alto: al pulsar «Leer la respuesta» el resultado aparecía fuera de
+         la pantalla y parecía que el botón no hacía nada (Carlos, 22-sep-2026:
+         «pulso y no pasa nada»). Así que después de pintarlo, se va a verlo. */
+      function asomarse() {
+        try { pre.scrollIntoView({ behavior: "smooth", block: "end" }); } catch (e) {
+          pre.scrollIntoView(false);
+        }
+      }
+      if (r.error) {
+        pre.innerHTML = '<div class="aviso">' + esc(r.error) + '</div>';
+        asomarse();
+        return;
+      }
 
       /* La cuenta de calorías y sal se hace ANTES de guardar, con los
          ingredientes ya casados, para que él vea si la receta que le han dado
@@ -2164,6 +2207,7 @@
       h += '<button class="btn principal" id="ia-guardar">Guardar la receta</button>';
       h += '</div>';
       pre.innerHTML = h;
+      asomarse();
 
       $("#ia-guardar").addEventListener("click", function () {
         /* Primero los ingredientes nuevos: si fallaran, la receta quedaría
@@ -2204,6 +2248,9 @@
         }
         Almacen.estado.recetas.push(nueva);
         Almacen.guardar("receta");
+        /* La receta ya está dentro: el borrador ha cumplido y se tira, para que
+           la próxima vez la ventana abra limpia. */
+        borrarBorrador();
         cerrarModal();
         pintarRecetas(); pintarMenu();
         Util.toast("Receta guardada: " + nueva.n);
@@ -2889,57 +2936,6 @@
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
       var cap = e.target.closest("[data-capricho]");
       if (cap) { abrirSelectorCapricho(cap.getAttribute("data-capricho")); return; }
-      /* Contador de cantidad. En las tomas y en los caprichos funciona igual:
-         «+» mete otra ración del mismo plato, «−» quita la última, «×» las quita
-         todas. Todo sobre las mismas listas de ids que ya había. */
-      var mas = e.target.closest("[data-mas]");
-      if (mas) {
-        var pm = mas.getAttribute("data-mas").split("|");
-        var dm = Almacen.estado.plan[pm[0]];
-        if (dm && dm[pm[1]]) { dm[pm[1]].push(pm[2]); Almacen.guardar("plato"); pintarMenu(); }
-        return;
-      }
-      var menos = e.target.closest("[data-menos]");
-      if (menos) {
-        var pn = menos.getAttribute("data-menos").split("|");
-        var dn = Almacen.estado.plan[pn[0]];
-        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); Almacen.guardar("plato"); pintarMenu(); }
-        return;
-      }
-      var quitarT = e.target.closest("[data-quitartodo]");
-      if (quitarT) {
-        var qt = quitarT.getAttribute("data-quitartodo").split("|");
-        var dt = Almacen.estado.plan[qt[0]];
-        if (dt && dt[qt[1]]) {
-          dt[qt[1]] = dt[qt[1]].filter(function (x) { return x !== qt[2]; });
-          Almacen.guardar("plato"); pintarMenu();
-        }
-        return;
-      }
-      var masCap = e.target.closest("[data-mascap]");
-      if (masCap) {
-        var pmc = masCap.getAttribute("data-mascap").split("|");
-        var dmc = Almacen.asegurarDia(pmc[0]);
-        dmc.capricho.push(pmc[1]);
-        Almacen.guardar("capricho"); pintarMenu();
-        return;
-      }
-      var menosCap = e.target.closest("[data-menoscap]");
-      if (menosCap) {
-        var pnc = menosCap.getAttribute("data-menoscap").split("|");
-        var dnc = Almacen.asegurarDia(pnc[0]);
-        dnc.capricho.splice(parseInt(pnc[1], 10), 1);
-        Almacen.guardar("capricho"); pintarMenu();
-        return;
-      }
-      var quitaCapT = e.target.closest("[data-quitacaptodo]");
-      if (quitaCapT) {
-        var qct = quitaCapT.getAttribute("data-quitacaptodo").split("|");
-        var dct = Almacen.asegurarDia(qct[0]);
-        dct.capricho = dct.capricho.filter(function (x) { return x !== qct[1]; });
-        Almacen.guardar("capricho"); pintarMenu();
-        return;
-      }
       var qcap = e.target.closest("[data-quitacap]");
       if (qcap) {
         var pc = qcap.getAttribute("data-quitacap").split("|");
