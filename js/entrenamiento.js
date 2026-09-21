@@ -5099,6 +5099,17 @@
      enlace en su l\u00ednea. Uno por movimiento, no uno por sesi\u00f3n. */
   var VIDEOS = {};
 
+  /* Cuando el ejercicio se queda corto, por d\u00f3nde sigue. No es una sesi\u00f3n
+     nueva: es el mismo hueco con m\u00e1s palanca. */
+  var SIGUIENTE = {
+    "Sentadilla goblet":   "Sentadilla b\u00falgara, o con banda pisada",
+    "Peso muerto rumano":  "Peso muerto a una pierna",
+    "Jal\u00f3n":              "Dominadas asistidas, cuando haya de d\u00f3nde colgarse",
+    "Press de banca":      "M\u00e1s peso; y si falta, un cuarto ejercicio",
+    "Press de hombros":    "M\u00e1s peso",
+    "Remo":                "Tubo m\u00e1s duro, o dos acoplados"
+  };
+
   var NIVELES = [
     { n: "Corta",  q: "2 series, mitad de carga",
       c: "Semana S, día malo, y mientras dure el corticoide" },
