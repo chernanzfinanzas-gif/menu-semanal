@@ -2710,7 +2710,7 @@
 
     /* lee, cambia y escribe un fichero del repositorio, con reintento si
        alguien lo tocó en ese segundo */
-    tocar: function (ruta, cambia, mensaje, listo, intento) {
+    tocar: function (ruta, cambia, mensaje, listo, intento, compacto) {
       var self = this, c = Salud.cfg();
       intento = intento || 1;
       if (!Salud.configurado()) { listo(false, "falta la configuración"); return; }
@@ -2724,7 +2724,10 @@
             try { doc = JSON.parse(Salud.deB64(j.content)) || {}; } catch (e) { doc = {}; }
           }
           doc = cambia(doc);
-          var txt = JSON.stringify(doc, null, 1);
+          /* salud.json y el histórico se guardan COMPACTOS: con sangrado de 1
+             el histórico pasa de 568 KB a más del doble, y es un fichero que el
+             móvil se baja entero. Los ficheros pequeños siguen legibles. */
+          var txt = compacto ? JSON.stringify(doc) : JSON.stringify(doc, null, 1);
           var by = new TextEncoder().encode(txt), bin = "", i;
           for (i = 0; i < by.length; i++) bin += String.fromCharCode(by[i]);
           var cuerpo = { message: mensaje, content: btoa(bin), branch: c.rama || "main" };
@@ -2733,7 +2736,9 @@
             .then(function (r) {
               if (r.ok) { listo(true); return; }
               if ((r.status === 409 || r.status === 422) && intento < 3) {
-                setTimeout(function () { self.tocar(ruta, cambia, mensaje, listo, intento + 1); }, 400);
+                setTimeout(function () {
+                  self.tocar(ruta, cambia, mensaje, listo, intento + 1, compacto);
+                }, 400);
                 return;
               }
               throw new Error(r.status === 403 ? "la clave no puede escribir en el repositorio"
@@ -3104,15 +3109,87 @@
   }
 
   /* serie de un campo de salud.json; el histórico se suma si está cargado */
+  /* ==================== quién manda en cada campo ====================
+     La regla general es que lo reciente pisa a lo histórico: `salud.json` trae
+     lo de hoy y el histórico lo de atrás, y donde se solapan gana el reciente.
+
+     PARA EL PULSO EN REPOSO ES AL REVÉS, y está medido. Comparando mes a mes
+     las dos series en los 1.962 días que comparten:
+
+       · de abr-2021 a oct-2022  las dos coinciden (±1 lpm)
+       · de NOV-2022 a DIC-2023  intervals marca entre 4 y 10 lpm MÁS
+       · de ene-2024 en adelante vuelven a coincidir (±0,5 lpm)
+
+     Un bloque de catorce meses con principio y final no es ruido: es que
+     durante esa temporada el número venía de otro sitio —Carlos recuerda una
+     app de VFC que tomaba el pulso con la cámara del móvil—. Y encaja: la serie
+     de VFC empieza en sep-2022, dos meses antes de que se abra la diferencia, y
+     tiene un agujero en ene-feb 2024 (65 % y 69 % de cobertura) justo cuando se
+     cierra, que es la pinta de un relevo.
+
+     El árbitro de cuál es la buena ya se usó el 20-sep: el pulso mínimo, que
+     viene crudo del reloj. Garmin cuadra todos los años; intervals se va seis
+     latidos en 2023. Así que en `fcr` MANDA EL HISTÓRICO (Garmin) donde lo
+     haya, e intervals sólo rellena de la exportación en adelante.
+
+     Sólo `fcr`. `pt_sueno` y `sueno_min` también discrepaban, pero ahí no hay
+     árbitro que diga cuál acierta, así que se quedan como estaban. */
+  var MANDA_GARMIN = { fcr: 1 };
+
+  /* ==================== la VFC de la app no cuenta ====================
+     La serie de VFC empieza el 6-sep-2022, y hasta principios de 2024 no la
+     medía el reloj: la tomaba una app con la cámara del móvil. No es la misma
+     medida y no se pueden pegar una detrás de otra.
+
+     No hace falta creerse la memoria de nadie, porque se ve en el dato. El
+     salto típico de una noche a la siguiente, mes a mes:
+
+       sep-2022 → ene-2024 ····· entre 8 y 29,5 ms
+       feb-2024 → hoy ·········· entre 2 y 8, casi siempre 4-6
+
+     Una lectura con la cámara cada mañana rebota veinte milisegundos; la media
+     de toda la noche del reloj se mueve cinco. Son dos aparatos, no dos rachas.
+     Y la frontera cuadra con la otra costura: el pulso en reposo de intervals
+     iba 4-10 lpm por encima del de Garmin de nov-2022 a dic-2023, y vuelve a su
+     sitio en enero de 2024.
+
+     La fecha exacta del relevo se ve mirando los días, no los meses, y el mes
+     engañaba: el corte está el 12 DE FEBRERO DE 2024.
+
+       31-ene  82  (−24)   ┐
+        1-feb 142  (+60)   │ todavía la app
+        2-feb 117  (−25)   ┘
+        3 al 11 de febrero: NUEVE DÍAS SIN UN SOLO DATO ← el relevo
+       12-feb  74  (−43)   ┐
+       13-feb  71   (−3)   │ ya el reloj: saltos de 1 a 8
+       14-feb  63   (−8)   ┘  y ni un hueco más
+
+     Poner el corte en el 1 de febrero, como se hizo primero, dejaba colarse dos
+     lecturas de cámara de 142 y 117 ms justo al principio de la serie buena —y
+     ahí, siendo las primeras, habrían mandado en la escala del dibujo.
+
+     Así que la VFC anterior al 12-feb-2024 NO SE PINTA. Está en el fichero, pero
+     la app no la enseña ni la promedia: un número que no significa lo mismo,
+     puesto en la misma línea, es peor que no tener número.
+
+     La media de 7 días arrastra una semana, así que esa empieza una semana más
+     tarde: si no, las siete primeras vendrían con la app dentro. */
+  var VFC_DESDE   = "2024-02-12";
+  var DESDE_CUANDO = { vfc: VFC_DESDE, vfc7: "2024-02-19" };
+
   function serieSalud(campo, v) {
     var vistos = {}, out = [];
-    [Historico.datos, Salud.datos].forEach(function (src) {
+    var fuentes = MANDA_GARMIN[campo] ? [Salud.datos, Historico.datos]
+                                      : [Historico.datos, Salud.datos];
+    var corte = DESDE_CUANDO[campo] || null;
+    fuentes.forEach(function (src) {
       if (!src || !src.dias) return;
       for (var f in src.dias) {
         if (f < v.desde || f > v.hasta) continue;
+        if (corte && f < corte) continue;        // lo de la app, fuera
         var val = src.dias[f][campo];
         if (val === undefined || val === null || val === "") continue;
-        vistos[f] = val;                         // lo reciente manda sobre lo histórico
+        vistos[f] = val;                         // gana la última fuente de la lista
       }
     });
     for (var f2 in vistos) out.push({ f: f2, v: vistos[f2] });
@@ -3504,11 +3581,25 @@
   }
 
   /* media de un campo de salud.json en el tramo de la semana */
+  /* El valor de un campo en UN día, con la regla de arriba. Se usa desde las
+     tarjetas del día y desde las medias, para que la ficha no diga un número y
+     la gráfica otro en la misma fecha. */
+  function valorDia(campo, iso) {
+    if (DESDE_CUANDO[campo] && iso < DESDE_CUANDO[campo]) return null;
+    var pri = MANDA_GARMIN[campo] ? Historico.datos : Salud.datos;
+    var seg = MANDA_GARMIN[campo] ? Salud.datos : Historico.datos;
+    var v = pri && pri.dias && pri.dias[iso] ? pri.dias[iso][campo] : null;
+    if (v === undefined || v === null || v === "") {
+      v = seg && seg.dias && seg.dias[iso] ? seg.dias[iso][campo] : null;
+    }
+    return (v === undefined || v === "") ? null : v;
+  }
+
   function mediaSalud(campo, desde, hasta) {
-    var s = 0, n = 0, d = Salud.datos;
-    if (!d || !d.dias) return null;
+    var s = 0, n = 0;
+    if (!Salud.datos || !Salud.datos.dias) return null;
     for (var f = desde; f <= hasta; f = U.sumarDias(f, 1)) {
-      var v = d.dias[f] && d.dias[f][campo];
+      var v = valorDia(campo, f);
       if (typeof v === "number") { s += v; n++; }
     }
     return n ? { m: s / n, n: n } : null;
@@ -3823,6 +3914,10 @@
     { c: "fcr",        n: "Pulso en reposo",     de: "intervals" },
     { c: "pulso_min",  n: "Pulso mínimo del día", de: "garmin" },
     { c: "sueno_min",  n: "Sueño",               de: "intervals" },
+    /* Los dos que se estrenan hoy. Sólo llegan con la exportación, así que si no
+       salen en esta tabla nadie se entera de que se están quedando viejos. */
+    { c: "body_battery_min", n: "Body Battery",   de: "garmin" },
+    { c: "estres",     n: "Estrés",              de: "garmin" },
     { c: "pasos",      n: "Pasos",               de: "intervals" },
     { c: "ctl",        n: "Forma y fatiga",      de: "intervals" },
     { c: "vo2max",     n: "VO2 máx",             de: "intervals" },
@@ -3897,6 +3992,15 @@
   }
 
   /* El panel de abajo: todas las medidas, hasta dónde llegan y de dónde vienen. */
+  /* NO HAY BOTÓN DE IMPORTAR DESDE LA APP, y es a propósito.
+     El 21-sep se montó uno que leía un `garmin-dias.json` y lo fundía aquí. Se
+     quitó el mismo día: `maestro2.py` ya hace esa importación, la hace mejor
+     —los metros subidos y los minutos de intensidad salían mal en la versión
+     rápida— y usa otros nombres de columna (`vo2max_bici`, `body_battery_min`,
+     `spo2`). Dos importadores con dos vocabularios habrían dejado el histórico
+     con columnas duplicadas y nadie sabría cuál mirar.
+     La exportación de Garmin se procesa fuera, con `maestro2.py`. */
+
   function htmlFrescura() {
     if (!Salud.datos) return "";
     var DE = {
@@ -3943,8 +4047,9 @@
       "es la fuente <b>buena</b> del pulso en reposo. Intervals se desvió seis latidos " +
       "durante todo 2023 sin avisar, y sólo se vio al comparar las dos.</p>" +
       '<p><a href="' + ENLACE_GARMIN + '" target="_blank" rel="noopener">' +
-      "Exportar mis datos de Garmin</a> — se pide ahí y llega por correo; " +
-      "luego se rehace el histórico con ella.</p>" +
+      "Exportar mis datos de Garmin</a> — se pide ahí y llega por correo.</p>" +
+      "<p>La exportación se procesa en el ordenador con <i>maestro2.py</i>, que " +
+      "rehace el histórico entero y corrige lo que intervals haya desviado.</p>" +
       "</details>";
   }
 
@@ -4113,11 +4218,97 @@
         nota2 = "El tramo sombreado es el del corticoide: <b>ahí no se interpreta nada</b>, " +
           "porque el fármaco baja la VFC y sube el pulso por sí solo.";
       }
+      /* Por qué la VFC empieza en 2024 y no en 2022, dicho donde se ve. */
+      if (v.desde < VFC_DESDE) {
+        nota2 += (nota2 ? " " : "") +
+          "La VFC arranca el <b>12 de febrero de 2024</b>, que es cuando empezó a medirla el reloj. " +
+          "Lo de antes lo tomaba una app con la cámara del móvil —saltaba veinte milisegundos " +
+          "de una noche a otra, contra los cinco de ahora— y no es la misma medida, así que " +
+          "no se pinta.";
+      }
     } else {
       cuerpo2 = sinDatos("Sin datos de recuperación en este tramo");
     }
     h += tarjetaEvo("Recuperación", vfc7.length ? num(vfc7[vfc7.length - 1].v) : null, "ms",
       "La VFC dice lo que ya pasó; el sueño y la carga dicen lo que va a pasar.", cuerpo2, nota2);
+
+    /* ---------- 2b. batería y estrés ----------
+       Dos series que llevaban 2.476 días bajadas y sin pintar. Van juntas
+       porque son la misma pregunta por los dos lados: cuánto te queda en el
+       depósito y cuánto te lo están vaciando.
+
+       LA BATERÍA SE PINTA POR EL MÍNIMO, NO POR EL MÁXIMO. El máximo dice a
+       qué hora te levantaste; el mínimo dice si el día te vació. Y aquí el
+       mínimo tiene un suelo: Garmin no baja de 5, así que un 5 no es «casi
+       vacío», es «vacío y no sabemos cuánto más». Por eso hay una raya en el 5
+       y se cuenta cuántos días la tocan: esa cuenta dice más que la media.
+
+       EL ESTRÉS trae dos números por día: el de todo el día y el de mientras
+       duermes. El de la noche es el que vale, porque el del día se ensucia con
+       el entreno —pedalear sube el estrés de Garmin sin que pase nada malo—.
+       Medido: en el covid de junio de 2024 el del día saltó de 37 a 62 el 17,
+       antes de que nada más se moviera.
+
+       No llegan por intervals: sólo con la exportación de Garmin. Se dice
+       debajo. */
+    var bbMax = serieSalud("body_battery", v), bbMin = serieSalud("body_battery_min", v);
+    var bbCar = serieSalud("bb_carga", v), bbGas = serieSalud("bb_gasto", v);
+    var est = serieSalud("estres", v), estN = serieSalud("sueno_estres", v);
+    if (bbMin.length || est.length) {
+      var cuerpoB = "", notaB = "";
+      var largoB = diasEntre(v.desde, v.hasta) > 200;
+      if (bbMin.length) {
+        cuerpoB += grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 96, arriba: "batería",
+          min: 0, unidadTip: "",
+          alt: "Body Battery, lo más alto y lo más bajo de cada día",
+          /* Sin raya en el 5: la propia línea morada está ahí pegada casi todos
+             los días y las dos juntas no se distinguían. Lo del suelo se dice
+             con palabras en la nota, que además lo cuenta. */
+          explica: "Verde, con cuánta batería llegaste a lo más alto del día; morado, a cuánto " +
+            "bajaste. La morada se pega al fondo porque Garmin no baja de 5: ahí ya no mide.",
+          series: [{ pts: largoB ? mediaMovilDias(bbMax, 7) : bbMax, color: VERDE, ancho: 1.2 },
+                   { pts: largoB ? mediaMovilDias(bbMin, 7) : bbMin, color: "#7b2fbf", ancho: 1.2 }]
+        }) + leyenda([{ n: "lo más alto del día", color: VERDE },
+                      { n: "lo más bajo", color: "#7b2fbf" }]);
+        /* La cuenta de días en el suelo: es lo que de verdad se lee aquí. */
+        var suelo = 0;
+        bbMin.forEach(function (p) { if (p.v <= 5) suelo++; });
+        var pc = bbMin.length ? Math.round(100 * suelo / bbMin.length) : 0;
+        notaB = "En este tramo la batería llegó al suelo <b>" + suelo + " de " + bbMin.length +
+          " días</b> (" + pc + " %).";
+        if (bbCar.length && bbGas.length) {
+          var mc = bbCar.reduce(function (t, p) { return t + p.v; }, 0) / bbCar.length;
+          var mg = bbGas.reduce(function (t, p) { return t + p.v; }, 0) / bbGas.length;
+          notaB += " Cargas <b>" + num(mc, 0) + "</b> durmiendo y gastas <b>" + num(mg, 0) +
+            "</b> despierto, de media" +
+            (Math.abs(mc - mg) < 3 ? ": empatas, pero empatas saliendo del suelo."
+             : mc > mg ? ": repones más de lo que gastas." : ": gastas más de lo que repones.");
+        }
+      }
+      if (est.length || estN.length) {
+        cuerpoB += '<h3 class="evo-sub">Estrés</h3>' + grafica({
+          /* Sin 0-100 forzado: el estrés se mueve entre 23 y 66 y con la escala
+             entera se quedaba aplastado contra el suelo, que es lo que le pasaba
+             al sueño antes. La escala la pone el dato. */
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "estrés",
+          unidadTip: "",
+          alt: "Estrés medio del día y de la noche",
+          explica: "El de la noche es el que vale: el del día sube con el entreno sin que pase " +
+            "nada malo. En el covid de junio de 2024 el del día saltó de 37 a 62 antes de que " +
+            "se moviera ninguna otra cosa.",
+          series: (est.length ? [{ pts: largoB ? mediaMovilDias(est, 7) : est,
+                                   color: "#c3d3e2", ancho: 1 }] : [])
+            .concat(estN.length ? [{ pts: largoB ? mediaMovilDias(estN, 7) : estN,
+                                     color: ROJO, ancho: 1.3 }] : [])
+        }) + leyenda((est.length ? [{ n: "todo el día", color: "#c3d3e2" }] : [])
+          .concat(estN.length ? [{ n: "durmiendo", color: ROJO }] : []));
+      }
+      cuerpoB += avisoFrescura(bbMin.length ? "body_battery_min" : "estres");
+      var ultBB = bbMin.length ? bbMin[bbMin.length - 1].v : null;
+      h += tarjetaEvo("Batería y estrés", ultBB === null ? null : num(ultBB, 0), "de 100",
+        "Cuánto te queda en el depósito y cuánto te lo están vaciando.", cuerpoB, notaB);
+    }
 
     /* ---------- 3. forma, fatiga y carga contra la rampa ---------- */
     var ctl = serieSalud("ctl", v), atl = serieSalud("atl", v);
@@ -6090,10 +6281,15 @@
 
     h += '<p class="nota-peque">Automático, de intervals · datos al ' + U.etiquetaFecha(fechaDato) + "</p>";
 
-    h += tarjeta("VFC de anoche", d.vfc ? d.vfc + " ms" : null,
-      baseVfc ? "tu base: " + num(baseVfc) + " ms" : "", "vfc", null, d.vfc || null);
-    h += tarjeta("FC en reposo", d.fcr ? d.fcr + " lpm" : null,
-      baseFcr ? "tu base: " + num(baseFcr) + " lpm" : "", "fcr", null, d.fcr || null);
+    var vfcDia = valorDia("vfc", fechaDato);
+    h += tarjeta("VFC de anoche", vfcDia ? vfcDia + " ms" : null,
+      baseVfc ? "tu base: " + num(baseVfc) + " ms" : "", "vfc", null, vfcDia || null);
+    /* Por `valorDia` y no por `d.fcr`: en los días que cubre la exportación
+       manda el de Garmin, y si la tarjeta leyera el otro diría un número
+       distinto del que pinta la gráfica en esa misma fecha. */
+    var fcrDia = valorDia("fcr", fechaDato);
+    h += tarjeta("FC en reposo", fcrDia ? fcrDia + " lpm" : null,
+      baseFcr ? "tu base: " + num(baseFcr) + " lpm" : "", "fcr", null, fcrDia || null);
 
     var n1 = Salud.dia(fechaDato) || {}, n2 = Salud.dia(U.sumarDias(fechaDato, -1)) || {};
     var s1 = hhmm(n1.sueno_min), s2 = hhmm(n2.sueno_min);
@@ -6152,6 +6348,7 @@
 
       var verV = t.closest ? t.closest("[data-video]") : null;
       if (verV) { abrirVideo(verV.getAttribute("data-video")); return; }
+
 
       /* desde el plan, directo a la ficha de la rutina del día */
       var verR = t.closest ? t.closest("[data-ver-rutina]") : null;
