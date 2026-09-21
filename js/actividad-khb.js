@@ -895,6 +895,14 @@
         var t = trazos[x.id];
         if (!t) return;
         if (t.h && !x.perfil) x.perfil = t.h;
+        /* LA REGLA DE LA SALA. Los kilómetros y el desnivel de dentro SE QUEDAN:
+           subir un 8 % en Zwift significa que el rodillo aprieta de verdad y que
+           los vatios son de verdad, y borrarlos dejaría el chip de kilómetros
+           con el 9 % de lo que pedalea. Lo que no significa nada es la ALTURA
+           ABSOLUTA: Watopia numera sus alturas a su gusto y hay sesiones de 7 a
+           1.047 m con bajada cero. Ahí no se pierde información al quitarla,
+           porque no la había. */
+        if (esDeDentro(x.dep)) { x.altMin = null; x.altMax = null; }
         /* Un resumen de altura puede venir corrupto: una salida por Madrid
            traía alt_min = -500 con el perfil sano entre 649 y 686. Se toca
            SÓLO cuando el resumen se contradice a sí mismo —su rango de altura
@@ -1360,6 +1368,133 @@
                "que desde 2022 es cerca del 70 % del total.";
       }
       return "";
+    }
+
+    /* ---------- EL RESUMEN, SOBRE LAS BARRAS ----------
+       Cuatro cifras de toda la serie, y SIGUE AL FILTRO DE FAMILIAS. Ésa es la
+       decisión que lo hace honesto: «hay un récord en casa y otro en la calle».
+       Pulsas Bici de calle y el récord son los 212 km de Arganda–Aranjuez;
+       pulsas Rodillo y es el de Zwift. No compiten entre sí, porque no son lo
+       mismo: 87 de cada 100 kilómetros suyos son de rodillo, y sin partir, el
+       chip de kilómetros sólo habla de Watopia.
+
+       Cuando están todas encendidas —que es como arranca siempre— el total vale,
+       pero el récord volvería a ser el de dentro. Por eso el récord DICE DE
+       QUIÉN ES: así ni el arranque engaña. */
+    /* El estilo del bloque viaja DENTRO del módulo y no en la hoja de la app:
+       es lo único que estrena esta versión, y así se publica un fichero en vez
+       de dos y no hay manera de que una hoja desfasada lo deje sin pintar. */
+    function estiloResumen() {
+      if (document.getElementById("akhb-css-resumen")) return;
+      var e = document.createElement("style");
+      e.id = "akhb-css-resumen";
+      e.textContent = [
+        ".akhb-resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));" +
+          "gap:10px;margin:0 0 14px}",
+        ".akhb-res-c{display:flex;flex-direction:column;gap:2px;padding:10px 12px;text-align:left;" +
+          "border:1px solid var(--azul-borde,#dbe4ee);border-radius:12px;background:transparent;" +
+          "font:inherit;color:inherit}",
+        ".akhb-res-c.pulsa{cursor:pointer}",
+        ".akhb-res-c.pulsa:active{transform:translateY(1px)}",
+        ".akhb-res-r{font-size:11px;text-transform:uppercase;letter-spacing:.06em;" +
+          "color:var(--gris,#6b7c8d)}",
+        ".akhb-res-v{font-size:1.5rem;line-height:1.1;color:var(--azul-hondo,#1d3c5e)}",
+        ".akhb-res-p{font-size:11.5px;color:var(--gris,#6b7c8d);line-height:1.3;" +
+          "overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}",
+        "@media (prefers-color-scheme:dark){.akhb-res-r,.akhb-res-p{color:#9fb0c1}}"
+      ].join("\n");
+      document.head.appendChild(e);
+    }
+
+    function htmlResumen() {
+      estiloResumen();
+      var m = metricaActual();
+      if (m.fuente === "curva") return "";        // la curva ya tiene su bloque
+
+      var porY = {}, tot = 0, conDato = [];
+      anios.forEach(function (y) {
+        var d = reparto(y, null, m);
+        porY[y] = d.n || 0;
+        if (porY[y] > 0) { tot += porY[y]; conDato.push(y); }
+      });
+      if (!conDato.length) return "";
+
+      var mejorA = conDato[0], peorA = conDato[0];
+      conDato.forEach(function (y) {
+        if (porY[y] > porY[mejorA]) mejorA = y;
+        if (porY[y] < porY[peorA]) peorA = y;
+      });
+
+      /* El récord: la salida concreta con el número más alto, entre las que
+         pasan el filtro Y el suelo de duración de esa medida. */
+      var rec = null, cuentan = 0;
+      if (m.fuente === "act" && m.campo) {
+        anios.forEach(function (y) {
+          actsDe(y).forEach(function (x) {
+            if (!cuentaPara(m, x)) return;
+            var v = x[m.campo];
+            if (v == null && m.campo2) v = x[m.campo2];
+            if (v == null) return;
+            cuentan++;
+            if (m.div) v = v / m.div;
+            if (!rec || v > rec.v) rec = { v: v, x: x };
+          });
+        });
+      }
+
+      function casilla(rot, val, pie, anio) {
+        return '<' + (anio ? 'button type="button" data-anio="' + anio + '"' : "div") +
+          ' class="akhb-res-c' + (anio ? " pulsa" : "") + '">' +
+          '<span class="akhb-res-r">' + esc(rot) + "</span>" +
+          '<b class="akhb-res-v">' + val + "</b>" +
+          (pie ? '<span class="akhb-res-p">' + esc(pie) + "</span>" : "") +
+          "</" + (anio ? "button" : "div") + ">";
+      }
+
+      var h = '<div class="akhb-resumen">';
+      if (m.acumula === false) {
+        h += casilla("Lo normal", numMet(medianaAnios(conDato, porY), m), "la mediana");
+        h += casilla("De cuánto a cuánto",
+                     numMet(porY[peorA], m) + " – " + numMet(porY[mejorA], m),
+                     "del peor año al mejor");
+      } else {
+        h += casilla("Total", numMet(tot, m), "");
+        h += casilla("Media al año", numMet(tot / conDato.length, m),
+                     conDato.length + (conDato.length === 1 ? " año" : " años"));
+      }
+
+      if (rec) {
+        var fam = NOMBRE_FAM[FAMILIA[rec.x.dep] || "sala"] || "";
+        h += casilla("Récord", numMet(rec.v, m),
+                     (rec.x.nombre || "") + (fam ? " · " + fam : "") +
+                     " · " + fechaCorta(rec.x.fecha),
+                     String(rec.x.fecha || "").slice(0, 4));
+      } else {
+        h += casilla("Récord", "—", "no se mide por salida");
+      }
+
+      if (m.acumula === false) {
+        h += casilla("Cuántas cuentan", String(cuentan), "pasan el mínimo");
+      } else {
+        h += casilla("Mejor año", numMet(porY[mejorA], m), String(mejorA), String(mejorA));
+      }
+      return h + "</div>";
+    }
+
+    /* La mediana de los años con dato, para las que no se suman. */
+    function medianaAnios(conDato, porY) {
+      return mediana(conDato.map(function (y) { return porY[y]; }));
+    }
+
+    /* El número con los decimales y el sufijo de su medida. */
+    function numMet(v, m) {
+      if (v == null || !isFinite(v)) return "—";
+      return num(v, m.dec || 0) + (m.suf || "");
+    }
+
+    function fechaCorta(f) {
+      var t = String(f || "").slice(0, 10).split("-");
+      return t.length === 3 ? t[2] + "-" + t[1] + "-" + t[0] : String(f || "");
     }
 
     function htmlAnios() {
@@ -1931,6 +2066,7 @@
       if (!estado.el) return;
       estado.el.innerHTML =
         '<div class="akhb">' +
+          htmlResumen() +
           htmlAnios() +
           '<div class="akhb-cab"><h3>' + estado.anio + "</h3>" +
             '<span class="akhb-fuente">' + fuenteDelAnio() + "</span></div>" +
