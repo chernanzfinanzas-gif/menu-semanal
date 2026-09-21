@@ -4123,18 +4123,21 @@
     if (document.getElementById("ent-css-limpieza")) return;
     var e = document.createElement("style");
     e.id = "ent-css-limpieza";
+    /* SIN `prefers-color-scheme`. La app se queda CLARA aunque el sistema esté
+       en oscuro, así que una regla de modo oscuro aquí pinta el recuadro negro
+       sobre una página blanca y el texto se pierde. Pasó el 21-sep con este
+       bloque, y ya había pasado antes con las tarjetas del resumen. Colores
+       fijos, los mismos que usa el resto. */
     e.textContent =
       ".limpieza{margin:14px 0 2px;padding:14px;border-radius:14px;" +
-        "background:var(--fondo-suave,#f2f6fa)}" +
-      ".limpieza p{margin:0 0 8px;font-size:13.5px;line-height:1.45}" +
+        "background:#f4f7fa;border:1px solid #dbe4ee;color:#22303c}" +
+      ".limpieza p{margin:0 0 8px;font-size:13.5px;line-height:1.45;color:#22303c}" +
       ".limpieza ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;line-height:1.6;" +
-        "color:var(--gris,#5b6b7c)}" +
+        "color:#5b6b7c}" +
       ".limpieza .ent-boton{border:0;border-radius:999px;padding:10px 18px;" +
-        "background:var(--azul-hondo,#16324f);color:#fff;font:inherit;font-weight:700;" +
+        "background:#16324f;color:#fff;font:inherit;font-weight:700;" +
         "font-size:14px;cursor:pointer}" +
-      ".limpieza .ent-boton:active{transform:translateY(1px)}" +
-      "@media (prefers-color-scheme:dark){.limpieza{background:#1d2732}" +
-        ".limpieza .ent-boton{background:#e8eef5;color:#16324f}}";
+      ".limpieza .ent-boton:active{transform:translateY(1px)}";
     document.head.appendChild(e);
   }
 

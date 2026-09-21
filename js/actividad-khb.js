@@ -1496,10 +1496,10 @@
       e.id = "akhb-css-orden";
       e.textContent = [
         ".akhb-orden{display:flex;gap:8px;margin:2px 0 12px;flex-wrap:wrap}",
-        ".akhb-ord{border:1px solid var(--azul-borde,#dbe4ee);background:var(--fondo-tarjeta,#fff);" +
-          "color:var(--gris,#5b6b7c);border-radius:999px;padding:7px 14px;font:inherit;" +
+        ".akhb-ord{border:1px solid #dbe4ee;background:#fff;" +
+          "color:#5b6b7c;border-radius:999px;padding:7px 14px;font:inherit;" +
           "font-size:13px;font-weight:600;cursor:pointer}",
-        ".akhb-ord.sel{background:var(--azul-hondo,#16324f);border-color:var(--azul-hondo,#16324f);color:#fff}",
+        ".akhb-ord.sel{background:#16324f;border-color:#16324f;color:#fff}",
         /* El puesto: un número pequeño delante de la fila. Sin círculo de
            color, que ya lo lleva la tira de la familia justo al lado. */
         /* La fila es una rejilla de cuatro columnas (tira, día, texto, flecha).
@@ -1512,12 +1512,12 @@
         ".akhb-con-anio .akhb-dia i{white-space:nowrap;font-size:10px}",
         ".akhb-titfam{display:flex;align-items:center;gap:7px;margin-top:18px}",
         ".akhb-pt-fam{width:9px;height:9px;border-radius:50%;flex:0 0 auto}",
-        ".akhb-nada-peq{font-size:12.5px;color:var(--gris,#6b7c8d);margin:-2px 0 4px}",
         ".akhb-puesto{text-align:right;font-size:13px;font-weight:800;" +
           "color:var(--akhb-gris,#8aa0b5);font-variant-numeric:tabular-nums}",
-        "@media (prefers-color-scheme:dark){" +
-          ".akhb-ord{background:#1d2732;border-color:#2b3a49;color:#9fb0c1}" +
-          ".akhb-ord.sel{background:#e8eef5;border-color:#e8eef5;color:#16324f}}"
+        /* Aquí NO va una regla de modo oscuro: la app se queda clara aunque el
+           sistema esté en oscuro, y la regla pintaba los botones invertidos
+           sobre una página blanca. Mismo fallo que el recuadro de limpieza. */
+        ".akhb-nada-peq{font-size:12.5px;color:#6b7c8d;margin:-2px 0 4px}"
       ].join("");
       document.head.appendChild(e);
     }
@@ -1558,9 +1558,10 @@
         ".akhb-res-c.fuerte .akhb-res-r{opacity:.9}",
         ".akhb-res-c.fuerte .akhb-res-p{opacity:.85}",
         ".akhb-res-c.fuerte .akhb-res-pt{background:#fff!important;opacity:.9}",
-        "@media (prefers-color-scheme:dark){" +
-          ".akhb-res-c{background:#1d2732;box-shadow:0 1px 3px rgba(0,0,0,.4)}" +
-          ".akhb-res-v{color:#e8eef5}.akhb-res-r,.akhb-res-p{color:#9fb0c1}}"
+        /* Fuera la regla de modo oscuro, por lo mismo: la app no cambia de
+           tema, así que sólo servía para poner tarjetas negras en una página
+           blanca cuando el sistema del que mira está en oscuro. */
+        ".akhb-res-c{color:#22303c}"
       ].join("\n");
       document.head.appendChild(e);
     }
