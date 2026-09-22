@@ -5035,8 +5035,20 @@
                pie: "Lo que predice el día siguiente son las dos últimas noches, no la media del mes." },
       pt_sueno: { n: "Puntuación de sueño", u: "de 100", dias: 14, serie: function () { return serieSalud("pt_sueno", v); },
                   objetivo: 70, etqObj: "70", pie: "La nota que pone Garmin a la noche." },
-      ctl: { n: "Forma (CTL)", u: "puntos", dias: 42, serie: function () { return serieSalud("ctl", v); },
-             pie: "Sube despacio y se cae rápido. Mayo de 2026 estaba en 79." },
+      /* CON LA FATIGA DEBAJO (22-sep-2026, Carlos: «la gráfica de carga ctl y
+         fatiga no trae la fatiga, sólo el ctl»). Y era verdad: la tarjeta de Mi
+         Estado se llama «Forma y fatiga» y da los dos números, pero la ventana
+         que se abría al pulsarla sólo pedía la forma. Las dos van juntas
+         porque lo que se lee no es ninguna de las dos por separado: es el
+         HUECO entre ellas, que es el balance. */
+      ctl: { n: "Forma y fatiga", u: "puntos", dias: 42,
+             serie: function () { return serieSalud("ctl", v); },
+             serie2: function () { return serieSalud("atl", v); },
+             etq2: "fatiga", par: ["forma", "fatiga"],
+             pie: "Azul la forma (CTL), roja la fatiga (ATL). La forma sube despacio y se cae " +
+                  "rápido; la fatiga hace lo contrario. Lo que importa es la distancia entre las " +
+                  "dos: con la roja por encima de la azul estás cargado, y con la roja muy por " +
+                  "debajo has perdido forma descansando. Mayo de 2026 tenías la forma en 79." },
       carga: { n: "Carga semanal", u: "", serie: function () {
                  var cs = seriesCargaSemanal();
                  return cs.reales;
