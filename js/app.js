@@ -491,9 +491,14 @@
             var r = Almacen.receta(rid);
             var nombre = r ? r.n : "(receta borrada)";
             var n = r ? Almacen.nutrReceta(r) : { k: 0 };
-            var s = r ? Util.sal((r ? Almacen.salReceta(r) : 0) * veces) : "";
+            var s = "";
             var com = Almacen.estaComido(fecha, t.k, rid);
             var cpr = Almacen.estaComprado(fecha, t.k, rid);
+            /* LO QUE COMISTE DE VERDAD. Sin corrección el factor son las veces
+               que esté puesto; con corrección, lo que diga ella, que ya es el
+               total de esa toma. */
+            var real = Almacen.cantidadReal(fecha, t.k, rid);
+            var fac = Almacen.factorPlato(fecha, t.k, rid, veces);
             html += '<div class="plato' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
                       /* Dos casillas, porque son dos cosas distintas: el carro dice que
                          los ingredientes ya están en casa; el visto, que te lo comiste. */
@@ -521,7 +526,17 @@
                           '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                             'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
                         '</span>') +
-                      '<span class="sal">' + Util.kcal(n.k * veces) + ' · ' + s + '</span>' +
+                      '<span class="sal">' + Util.kcal(n.k * fac) + ' · ' +
+                        (r ? Util.sal(Almacen.salReceta(r) * fac) : "") + '</span>' +
+                      /* El botón de la cantidad real sale cuando el plato está comido:
+                         antes de comértelo no hay nada que corregir. Si ya hay
+                         corrección se ve el dato, no un icono. */
+                      (cerr || !com ? '' :
+                        '<button class="marcar peso' + (real ? " si" : "") + '" ' +
+                          'title="' + (real ? "Comiste " + esc(Util.numero ? Util.numero(real.c) : real.c) + " " + esc(real.u === "rac" ? "raciones" : real.u) + " — tocar para cambiarlo" : "¿Cuánto comiste de verdad?") + '" ' +
+                          'data-real="' + fecha + '|' + t.k + '|' + esc(rid) + '">' +
+                          (real ? esc(String(real.c) + (real.u === "rac" ? " r" : " " + real.u)) : "⚖") +
+                        '</button>') +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">×</button>') +
                     '</div>';
@@ -724,9 +739,10 @@
     html += '<input type="text" id="filtro-selector" placeholder="Filtrar entre todas…">';
     html += '<div class="lista-selec por-grupos" id="lista-selector">';
 
-    /* la preferente del bloque, abierta */
-    html += seccion(ruta ? "Para la mochila" : ("Pensadas para " + toma), propias, true,
-                    ruta ? "Se comen frías y aguantan el día" : null);
+    /* la preferente del bloque; se compone ahora y se coloca más abajo, porque
+       en un almuerzo o una merienda lo primero no son las recetas. */
+    var bloquePreferente = seccion(ruta ? "Para la mochila" : ("Pensadas para " + toma), propias, true,
+                    ruta ? "Se comen fr\u00edas y aguantan el d\u00eda" : null);
 
     /* UN INGREDIENTE SOLO (22-sep-2026, Carlos): «los pistachos, los cacahuetes,
        la manzana… ahora aparecen en caprichos y deberían estar en meriendas y
@@ -739,13 +755,23 @@
        come algo suelto; en una cena, cerrada. */
     var sueltos = todas.filter(function (r) { return r.grupo === "suelto"; });
     var esPicoteo = toma === "almuerzo" || toma === "merienda";
-    html += '<details class="grupo-selec" data-fijo="1"' +
-              (esPicoteo && !propias.length ? " open" : "") + '>' +
+    var catalogo = Almacen.estado.ingredientes || [];
+    /* ABIERTO Y EL PRIMERO EN ALMUERZO Y MERIENDA (Carlos, 22-sep-2026: «si
+       quiero añadir nuez sola al almuerzo no me aparece como opción»).
+       Sí aparecía, pero plegado y con un contador que decía «2» —los dos
+       sueltos que ya había usado—, así que parecía que solo había dos cosas.
+       Ahora el contador dice cuántos ingredientes hay de verdad, que es lo que
+       se puede elegir, y en un picoteo se abre solo. */
+    var bloqueSueltos = '<details class="grupo-selec" data-fijo="1"' +
+              (esPicoteo ? " open" : "") + '>' +
             '<summary><span class="tit">Un ingrediente solo</span>' +
-            '<span class="cuantas">' + sueltos.length + '</span></summary>' +
-            '<p class="aviso-grupo">Una manzana, 30 g de pistachos. Cuenta las ' +
+            '<span class="cuantas">' + catalogo.length + '</span></summary>' +
+            '<p class="aviso-grupo">Cualquiera del cat\u00e1logo: un pl\u00e1tano, 20 g de nueces, ' +
+            'un yogur. Escribe para buscarlo, pon la cantidad y A\u00f1adir. Cuenta las ' +
             'calorías y va a la lista de la compra.</p>' +
             '<div class="nuevo-suelto">' +
+              '<input type="text" id="suelto-buscar" placeholder="Buscar ingrediente\u2026" ' +
+                'style="flex:1 1 100%; margin-bottom:6px">' +
               '<select id="suelto-ing">' +
               Almacen.estado.ingredientes.slice()
                 .sort(function (a, b) { return a.n.localeCompare(b.n); })
@@ -758,8 +784,14 @@
               '<span id="suelto-uni">ud</span>' +
               '<button class="btn principal mini" id="suelto-add">Añadir</button>' +
             '</div>' +
+            (sueltos.length ? '<p class="aviso-grupo">Los que ya has usado antes:</p>' : '') +
             ordenar(sueltos).map(boton).join("") +
             '</details>';
+
+    /* El orden: en un almuerzo o una merienda, primero el ingrediente solo;
+       en una comida o una cena, primero las recetas. */
+    html += esPicoteo ? (bloqueSueltos + bloquePreferente)
+                      : (bloquePreferente + bloqueSueltos);
 
     /* y después el recetario entero, por grupos de alimento */
     var porGrupo = {};
@@ -826,6 +858,23 @@
       c.value = u === "ud" ? 1 : 30;
     }
     $("#suelto-ing").addEventListener("change", ajustarSuelto);
+
+    /* Ciento ochenta y dos opciones en un desplegable de móvil son muchas.
+       Se escriben tres letras y se queda lo que las lleve; al quedar uno solo,
+       se selecciona él, que es lo que uno espera. */
+    $("#suelto-buscar").addEventListener("input", function (e) {
+      var q = sinTildes(e.target.value.trim().toLowerCase());
+      var sel = $("#suelto-ing"), visibles = [];
+      Array.prototype.forEach.call(sel.options, function (o) {
+        var vale = !q || sinTildes(o.textContent.toLowerCase()).indexOf(q) >= 0;
+        o.hidden = !vale;
+        if (vale) visibles.push(o);
+      });
+      if (visibles.length && (sel.selectedIndex < 0 || sel.options[sel.selectedIndex].hidden)) {
+        sel.value = visibles[0].value;
+        ajustarSuelto();
+      }
+    });
     ajustarSuelto();
 
     function meter(idReceta) {
@@ -2051,6 +2100,23 @@
      una pestaña privada, esto revienta — y quedarse sin poder pedir una receta
      por no poder guardar un borrador sería absurdo. */
   var LLAVE_BORRADOR = "asistente-ia-borrador";
+  var LLAVE_BORRADOR_ING = "asistente-ia-borrador-ingrediente";
+
+  /* El mismo salvavidas que tienen las recetas, para los ingredientes. Pegar la
+     respuesta de una IA y perderla por cerrar la ventana sin querer es de las
+     cosas que más rabia dan, y no cuesta nada evitarlo. */
+  function leerBorradorIng() {
+    try {
+      var t = localStorage.getItem(LLAVE_BORRADOR_ING);
+      return t ? JSON.parse(t) : null;
+    } catch (e) { return null; }
+  }
+  function guardarBorradorIng(b) {
+    try { localStorage.setItem(LLAVE_BORRADOR_ING, JSON.stringify(b)); } catch (e) {}
+  }
+  function borrarBorradorIng() {
+    try { localStorage.removeItem(LLAVE_BORRADOR_ING); } catch (e) {}
+  }
 
   function leerBorrador() {
     try {
@@ -2402,6 +2468,12 @@
     var f = UI.filtros;
     var lista = Almacen.estado.recetas.filter(function (r) {
       if (r.oculta) return false;                       // retirada: no se ofrece
+      /* Los «ingredientes solos» no son recetas y no pintan nada en el recetario:
+         cada cantidad distinta crea uno —nueces 20 g, nueces 30 g— y en unos meses
+         serían cien fichas tapando las recetas de verdad. Siguen existiendo y
+         siguen saliendo en el selector del menú, que es donde sirven; aquí lo
+         que se mira es el ingrediente, en la fila de abajo. */
+      if (r.grupo === "suelto") return false;
       if (f.toma && (r.tipo || []).indexOf(f.toma) < 0) return false;
       if (f.grupo && r.grupo !== f.grupo) return false;
       if (f.tool === "__preferidas") {
@@ -2546,19 +2618,32 @@
   }
 
   function abrirIngredienteIA(nombrePrevio) {
+    var bor = leerBorradorIng() || { nombre: "", resp: "" };
+    if (nombrePrevio) bor.nombre = nombrePrevio;
     var html = '<header><h2>Ingrediente con una IA</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
     html += '<p class="nota-peque">Escribe el producto, copia el encargo, p\u00e9galo en Claude o en Gemini, ' +
             'y trae aqu\u00ed su respuesta. Lo que llegue se puede corregir despu\u00e9s como cualquier ingrediente.</p>';
     html += '<label class="campo"><span>Producto</span><input type="text" id="ii-nombre" value="' +
-            esc(nombrePrevio || "") + '" placeholder="Yogur griego Hacendado 0%, tarrina 125 g"></label>';
+            esc(bor.nombre || "") + '" placeholder="Yogur griego Hacendado 0%, tarrina 125 g"></label>';
     html += '<div class="fila"><button class="btn" id="ii-copiar">Copiar el encargo</button>' +
             '<button class="btn" id="ii-ver">Ver el encargo</button></div>';
     html += '<textarea id="ii-encargo" rows="6" style="display:none; width:100%; margin:10px 0"></textarea>';
     html += '<label class="campo" style="margin-top:12px"><span>Pega aqu\u00ed su respuesta</span>' +
-            '<textarea id="ii-respuesta" rows="8" placeholder="Aqu\u00ed va el JSON que te devuelva"></textarea></label>';
+            '<textarea id="ii-respuesta" rows="8" placeholder="Aqu\u00ed va el JSON que te devuelva">' +
+            esc(bor.resp || "") + '</textarea></label>';
     html += '<div class="fila"><button class="btn principal" id="ii-anadir">A\u00f1adir al cat\u00e1logo</button>' +
             '<button class="btn" data-cerrar>Cancelar</button></div>';
     abrirModal(html);
+
+    /* Se apunta a cada tecla. El momento en el que esto se pierde es justo
+       cuando cierras la ventana, y ahí ya no hay ocasión de preguntar nada. */
+    function apuntarIng() {
+      guardarBorradorIng({ nombre: $("#ii-nombre").value, resp: $("#ii-respuesta").value });
+    }
+    ["#ii-nombre", "#ii-respuesta"].forEach(function (sel) {
+      $(sel).addEventListener("input", apuntarIng);
+    });
+    if (bor.resp) Util.toast("Recuperado lo que ten\u00edas escrito");
 
     function texto() { return encargoIngrediente($("#ii-nombre").value.trim()); }
     $("#ii-copiar").addEventListener("click", function () {
@@ -2602,13 +2687,81 @@
         return;
       }
       Almacen.guardar("ingrediente");
+      borrarBorradorIng();          /* ya está dentro: el borrador ha cumplido */
       cerrarModal();
-      UI.filtrosIng.texto = ""; UI.filtrosIng.cat = "";
+      UI.filtrosIng.texto = ""; UI.filtrosIng.cat = ""; UI.filtrosIng.clase = "";
       pintarRecetas(); pintarDespensa();
       Util.toast(puestos.length + (puestos.length === 1 ? " ingrediente a\u00f1adido" : " ingredientes a\u00f1adidos") +
                  (repetidos.length ? " (" + repetidos.length + " ya los ten\u00edas)" : ""));
       /* Se abre el primero para que lo repases: son valores que no has mirado t\u00fa. */
       if (puestos.length === 1) abrirIngrediente(puestos[0]);
+    });
+  }
+
+  /* ---------- CUÁNTO COMISTE DE VERDAD ----------
+     Al planificar va la ración estándar, que es lo razonable: nadie sabe el
+     lunes lo que va a pesar el plátano del jueves. Pero al comértelo sí lo
+     sabes, y la diferencia no es pequeña: un plátano de 104 g en vez de 120 y
+     20 g de nueces en vez de 30 son 79 kcal en un solo almuerzo.
+
+     Lo que se apunta aquí vive en el DÍA. No toca la receta, ni el plan, ni la
+     lista de la compra: compraste un plátano entero, te comieras 104 g o 120. */
+  function abrirCantidadReal(fecha, toma, rid) {
+    var rec = Almacen.receta(rid);
+    if (!rec) return;
+    var u = Almacen.unidadReal(rec);
+    var prev = Almacen.cantidadPrevista(rec);
+    var real = Almacen.cantidadReal(fecha, toma, rid);
+    var veces = ((Almacen.estado.plan[fecha] || {})[toma] || []).filter(function (x) { return x === rid; }).length || 1;
+    var previsto = prev * veces;
+    var nUna = Almacen.nutrReceta(rec);
+    var salUna = Almacen.salReceta(rec);
+
+    var etiqueta = u === "rac" ? "raciones" : u;
+    var html = '<header><h2>\u00bfCu\u00e1nto comiste?</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
+    html += '<p class="nota-peque"><strong>' + esc(rec.n) + '</strong><br>' +
+            'Previsto: ' + esc(String(Math.round(previsto * 100) / 100)) + ' ' + esc(etiqueta) +
+            (veces > 1 ? ' (' + veces + ' raciones)' : '') + ' \u00b7 ' +
+            Util.kcal(nUna.k * veces) + ' \u00b7 ' + Util.sal(salUna * veces) + ' de sal</p>';
+    html += '<label class="campo"><span>Lo que comiste de verdad (' + esc(etiqueta) + ')</span>' +
+            '<input type="number" id="cr-cant" min="0" step="' + (u === "rac" ? "0.25" : "1") + '" value="' +
+            esc(String(real ? real.c : Math.round(previsto * 100) / 100)) + '"></label>';
+    html += '<div id="cr-cuenta" class="nota-peque"></div>';
+    html += '<div class="fila"><button class="btn principal" id="cr-guardar">Guardar</button>' +
+            (real ? '<button class="btn" id="cr-quitar">Volver a lo previsto</button>' : '') +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    html += '<p class="nota-peque">Esto solo cambia las calor\u00edas y la sal de este d\u00eda. ' +
+            'Ni la receta, ni los otros d\u00edas, ni la lista de la compra: el pl\u00e1tano lo ' +
+            'compraste entero.</p>';
+    abrirModal(html);
+
+    function pintarCuenta() {
+      var c = parseFloat(String($("#cr-cant").value).replace(",", "."));
+      var caja = $("#cr-cuenta");
+      if (!(c >= 0)) { caja.textContent = ""; return; }
+      var f = u === "rac" ? c : (prev > 0 ? c / prev : 1);
+      var dk = nUna.k * f - nUna.k * veces;
+      var ds = salUna * f - salUna * veces;
+      caja.innerHTML = 'Quedar\u00eda en <strong>' + Util.kcal(nUna.k * f) + '</strong> y ' +
+        Util.sal(salUna * f) + ' de sal' +
+        (Math.abs(dk) >= 1 ? ' \u2014 ' + (dk > 0 ? '+' : '') + Math.round(dk) + ' kcal' : '') +
+        (Math.abs(ds) >= 0.01 ? ' y ' + (ds > 0 ? '+' : '') + Util.sal(ds) : '') +
+        ' respecto a lo previsto.';
+    }
+    $("#cr-cant").addEventListener("input", pintarCuenta);
+    pintarCuenta();
+
+    $("#cr-guardar").addEventListener("click", function () {
+      var c = parseFloat(String($("#cr-cant").value).replace(",", "."));
+      if (!(c >= 0)) { Util.toast("Pon una cantidad"); return; }
+      Almacen.ponerCantidadReal(fecha, toma, rid, c);
+      cerrarModal(); pintarMenu();
+      Util.toast("Apuntado: " + c + " " + etiqueta);
+    });
+    if ($("#cr-quitar")) $("#cr-quitar").addEventListener("click", function () {
+      Almacen.ponerCantidadReal(fecha, toma, rid, null);
+      cerrarModal(); pintarMenu();
+      Util.toast("Vuelve a contar lo previsto");
     });
   }
 
@@ -3292,6 +3445,12 @@
         return;
       }
       /* (el botón Reprogramar ya no se escucha aquí: vive en su propia caja, más arriba) */
+      var rl = e.target.closest("[data-real]");
+      if (rl) {
+        var rr = rl.getAttribute("data-real").split("|");
+        abrirCantidadReal(rr[0], rr[1], rr[2]);
+        return;
+      }
       var com = e.target.closest("[data-comido]");
       if (com) {
         var c = com.getAttribute("data-comido").split("|");

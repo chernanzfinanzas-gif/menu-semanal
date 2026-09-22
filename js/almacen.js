@@ -137,6 +137,11 @@
         comido: {},            // { "YYYY-MM-DD": { comida:["receta_id", …] } }  lo que se comió de verdad
         comprado: {},          // igual, pero lo que ya está COMPRADO (no se vuelve a pedir)
         despensa: {},          // { ingredienteId: true }  -> ya lo tengo en casa
+        real: {},              /* { fecha: { toma: { recetaId: {c, u} } } }
+                                  LO QUE COMISTE DE VERDAD, cuando no fue lo previsto.
+                                  Vive en el día, nunca en la receta ni en el plan: que
+                                  hoy el plátano pesara 104 g no puede cambiar el
+                                  plátano de mañana ni la ficha del plátano. */
         compraMarcada: {},     // { ingredienteId: true }  -> ya comprado / tachado
         favoritos: [],
         sync: { sha: null, ultima: null }
@@ -427,6 +432,7 @@
         e.config.v_sal35 = 1;
       }
       if (!e.despensa) e.despensa = {};
+      if (!e.real) e.real = {};
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.favoritos) e.favoritos = [];
       if (!e.sync) e.sync = { sha: null, ultima: null };
@@ -609,14 +615,20 @@
           /* Igual que en las calorías: lo apuntado manda sobre la estimación. */
           var puestos = dia[toma] || [];
           if (puestos.length) {
-            puestos.forEach(function (id) { total += self.salReceta(self.receta(id)); });
+            var gf = self.agrupar(puestos);
+            gf.orden.forEach(function (id) {
+              total += self.salReceta(self.receta(id)) * self.factorPlato(fecha, toma, id, gf.veces[id]);
+            });
             return;
           }
           var e = self.estimacionFuera(toma);
           if (e) total += e.sal;
           return;                                   // fuera no se cocina: nada más que sumar
         }
-        (dia[toma] || []).forEach(function (id) { total += self.salReceta(self.receta(id)); });
+        var g = self.agrupar(dia[toma]);
+        g.orden.forEach(function (id) {
+          total += self.salReceta(self.receta(id)) * self.factorPlato(fecha, toma, id, g.veces[id]);
+        });
       });
       (dia.capricho || []).forEach(function (id) { total += self.salReceta(self.receta(id)); });
       return total;
@@ -683,9 +695,11 @@
              marcado que comes fuera es que has comido, no hay nada que tachar. */
           var puestos = dia[toma] || [];
           if (puestos.length) {
-            puestos.forEach(function (id) {
+            var gf = self.agrupar(puestos);
+            gf.orden.forEach(function (id) {
               var nn = self.nutrReceta(self.receta(id));
-              t.k += nn.k; t.p += nn.p; t.g += nn.g; t.h += nn.h;
+              var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
+              t.k += nn.k * f; t.p += nn.p * f; t.g += nn.g * f; t.h += nn.h * f;
             });
             return;
           }
@@ -693,10 +707,12 @@
           if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
           return;
         }
-        (dia[toma] || []).forEach(function (id) {
+        var g = self.agrupar(dia[toma]);
+        g.orden.forEach(function (id) {
           if (soloComido && !self.estaComido(fecha, toma, id)) return;
           var n = self.nutrReceta(self.receta(id));
-          t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
+          var f = self.factorPlato(fecha, toma, id, g.veces[id]);
+          t.k += n.k * f; t.p += n.p * f; t.g += n.g * f; t.h += n.h * f;
         });
       });
       /* LOS CAPRICHOS CUENTAN SIEMPRE, también en «sólo lo comido». Un capricho
@@ -972,6 +988,78 @@
         ingredientes: (this.estado.ingredientes || []).filter(function (x) { return mio(x, base.ing); }),
         recetas: (this.estado.recetas || []).filter(function (x) { return mio(x, base.rec) && !x.borrada; })
       };
+    },
+
+    /* ---------- LO QUE COMISTE DE VERDAD, EN CANTIDAD ----------
+       Al planificar se pone la ración estándar, que es lo razonable. Pero el
+       plátano pesó 104 g y las nueces fueron 20: son 79 kcal de diferencia en un
+       solo picoteo, y en una semana de almuerzos eso es medio día de déficit.
+
+       La corrección SUSTITUYE la aportación entera de ese plato en esa toma,
+       también si estaba puesto dos veces: has dicho exactamente cuánto comiste.
+       Y no toca la lista de la compra: compraste un plátano entero, no 104 g. */
+
+    /* En qué se mide la corrección: un producto de un solo ingrediente se corrige
+       en gramos o mililitros; una receta de varias cosas, en raciones, porque
+       nadie pesa cada ingrediente de unas lentejas. */
+    unidadReal: function (rec) {
+      if (!rec || (rec.ing || []).length !== 1) return "rac";
+      var g = this.ingrediente(rec.ing[0].i);
+      if (!g) return "rac";
+      return g.u === "ml" ? "ml" : "g";
+    },
+
+    /* Lo previsto, en esa misma unidad. */
+    cantidadPrevista: function (rec) {
+      if (this.unidadReal(rec) === "rac") return 1;
+      return this.gramosDeLinea(rec.ing[0]);
+    },
+
+    cantidadReal: function (fecha, toma, recetaId) {
+      var d = this.estado.real && this.estado.real[fecha];
+      var t = d && d[toma];
+      return (t && t[recetaId]) || null;
+    },
+
+    ponerCantidadReal: function (fecha, toma, recetaId, c) {
+      if (!this.estado.real) this.estado.real = {};
+      var r = this.estado.real;
+      if (c === null || !(Number(c) >= 0)) {
+        if (r[fecha] && r[fecha][toma]) {
+          delete r[fecha][toma][recetaId];
+          if (!Object.keys(r[fecha][toma]).length) delete r[fecha][toma];
+          if (!Object.keys(r[fecha]).length) delete r[fecha];
+        }
+      } else {
+        if (!r[fecha]) r[fecha] = {};
+        if (!r[fecha][toma]) r[fecha][toma] = {};
+        r[fecha][toma][recetaId] = { c: Number(c), u: this.unidadReal(this.receta(recetaId)) };
+      }
+      this.guardar("real");
+    },
+
+    /* POR CUÁNTO SE MULTIPLICA ese plato en ese día. Sin corrección, por las
+       veces que esté puesto. Con corrección, por lo que diga la corrección, que
+       ya es el total. */
+    factorPlato: function (fecha, toma, recetaId, veces) {
+      var real = this.cantidadReal(fecha, toma, recetaId);
+      if (!real) return veces || 1;
+      var rec = this.receta(recetaId);
+      if (!rec) return veces || 1;
+      if (this.unidadReal(rec) === "rac") return real.c;
+      var prev = this.cantidadPrevista(rec);
+      return prev > 0 ? (real.c / prev) : (veces || 1);
+    },
+
+    /* Los ids de una toma agrupados: { rid: veces }. Lo usan las sumas del día
+       para poder aplicar un factor por PLATO y no por cada repetición. */
+    agrupar: function (lista) {
+      var m = {}, orden = [];
+      (lista || []).forEach(function (id) {
+        if (m[id] === undefined) { m[id] = 0; orden.push(id); }
+        m[id]++;
+      });
+      return { veces: m, orden: orden };
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */

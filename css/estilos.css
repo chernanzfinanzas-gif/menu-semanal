@@ -364,6 +364,13 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 }
 .marcar:hover{border-color:var(--verde); color:var(--verde-borde)}
 .marcar.si{background:var(--verde); border-color:var(--verde); color:#fff}
+/* LA CANTIDAD REAL. Sale al marcar un plato como comido y aguanta un texto
+   corto dentro —«104 g»—, así que no puede ser un círculo fijo como el visto. */
+.marcar.peso{width:auto; min-width:26px; padding:0 7px; font-size:.72rem;
+  letter-spacing:-.01em; white-space:nowrap; opacity:.55; color:var(--gris)}
+.marcar.peso:hover{opacity:1; color:var(--verde-borde)}
+.marcar.peso.si{opacity:1; background:transparent; color:var(--verde-borde);
+  border-color:var(--verde); font-weight:600}
 .plato.comido .nom{color:var(--gris)}
 
 .toma{padding:8px 12px; border-bottom:1px dashed var(--borde)}
