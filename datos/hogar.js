@@ -51,7 +51,7 @@ window.DATOS_HOGAR = [
   { id:"bolsas_de_cierre_zip", n:"Bolsas de cierre zip", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
   { id:"servilletas_de_papel", n:"Servilletas de papel", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
   /* ---------- ASEO ---------- */
-  { id:"gel_de_ducha", n:"Gel de ducha", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
+  { id:"gel_de_ducha", n:"Deliplus Gel de Ba\u00f1o \u00c1mbar y Vetiver, botella 750 ml (Mercadona)", rev:2, cat:"Aseo", cajon:"super" },
   { id:"champu", n:"Champú", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"acondicionador", n:"Acondicionador", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"desodorante", n:"Dove Men +Care Clean Comfort aerosol 72 h", rev:2, cat:"Aseo", cajon:"amazon", nota:"También compras el Rexona Men Advanced Protection 72 h" },
