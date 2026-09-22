@@ -4788,9 +4788,32 @@
                pie: "En un adulto es casi una constante. Sirve de control de la báscula: si baila, la medición de ese día no vale." },
       magra: { n: "Masa magra", u: "kg", dias: 120, serie: function () { return serieSalud("magra", v); },
                pie: "El indicador principal del plan: lo que se quiere es que baje el peso y ésta aguante." },
-      vfc: { n: "VFC", u: "ms", dias: 30, serie: function () { return serieSalud("vfc7", v); },
+      /* LA MISMA LECTURA QUE EN EVOLUCIÓN (22-sep-2026, Carlos: «los cambios de
+         la gráfica de Evolución, ¿pueden llevarse a la emergente de El Plan?»).
+         Dos dibujos de la misma medida que se leen distinto es peor que no
+         tener el segundo: se mira el de El Plan, se ve una línea dentro de lo
+         normal, y en Evolución la misma semana está en naranja. Así que la
+         emergente usa la franja, los puntos de color y la línea de cada noche,
+         exactamente igual. `serie` sigue siendo la media de 7 noches porque de
+         ella salen el «último», el «hace 30 días» y el resto del resumen. */
+      vfc: { n: "VFC", u: "ms", dias: 30,
+             /* La media de 7 noches sale de `vfcConFranja`, que es la misma
+                cuenta que usa Evolución: la de intervals cuando existe y la
+                calculada cuando no. Antes se pedía `vfc7` a secas y, en los
+                días en que ese campo no llega, la ventana decía «sin datos»
+                teniendo las noches delante. */
+             serie: function () {
+               var n = serieSalud("vfc", { desde: U.sumarDias(v.desde, -(VFC_VENTANA + 30)), hasta: v.hasta });
+               var fr = vfcConFranja(n, v.desde, v.hasta);
+               if (fr) return fr.puntos.map(function (p) { return { f: p.f, v: p.v }; });
+               return serieSalud("vfc7", v);
+             },
+             conFranja: true, noches: function (w) { return serieSalud("vfc", w); },
              objetivo: baseSalud("base_vfc"), etqObj: "tu base",
-             pie: "Media de 7 noches. Dice lo que ya pasó, no lo que va a pasar." },
+             pie: "La franja gris es lo normal EN TI, el rango central de tus últimas " + VFC_VENTANA +
+                  " noches. Cada punto es la media de 7 noches: verde dentro de la franja, naranja " +
+                  "por debajo y rojo cuando se aleja. La línea de guiones es la VFC de cada noche, " +
+                  "que es el dato del que sale todo lo demás. Dice lo que ya pasó, no lo que va a pasar." },
       /* CON EL PULSO MÍNIMO DEL DÍA DEBAJO (22-sep-2026, Carlos: «quiero ver si
          hay alteraciones»). Las dos en la misma ventana y no en dos, porque lo
          que avisa no es ninguna de las dos por su lado: es CUÁNTO SE SEPARAN.
@@ -4903,15 +4926,51 @@
 
       var todo = s1.concat(s2);
       var desde = todo.length ? todo.map(function (x) { return x.f; }).sort()[0] : U.hoyISO();
+
+      /* LA VFC SE PINTA COMO EN EVOLUCIÓN: franja, puntos de color y noches.
+         La cola de días de más es para que el primer día del tramo ya tenga
+         franja; si no, la emergente empezaría siempre en blanco, que es justo
+         donde se mira primero. */
+      var opFranja = null, leyFranja = "";
+      if (d.conFranja && d.noches) {
+        var noches = d.noches({ desde: U.sumarDias(desde, -(VFC_VENTANA + 30)), hasta: U.hoyISO() });
+        var frH = vfcConFranja(noches, desde, U.hoyISO());
+        if (frH) {
+          var COLORH = { verde: VFC_VERDE, naranja: VFC_NARANJA, rojo: VFC_ROJO_C, gris: "#9aa8a2" };
+          var nochesTramo = noches.filter(function (x) { return x.f >= desde; });
+          var cabenH = diasEntre(desde, U.hoyISO()) <= 100;
+          series = [];
+          if (cabenH) series.push({ pts: nochesTramo, color: "#8d9a94", ancho: 1,
+                                    guiones: true, marcarUltimo: false });
+          ["gris", "verde", "naranja", "rojo"].forEach(function (e) {
+            var pts = frH.puntos.filter(function (x) { return x.e === e; });
+            if (pts.length) series.push({ pts: pts, color: COLORH[e], soloPuntos: true,
+                                          radio: cabenH ? 2.4 : 1.4, marcarUltimo: false });
+          });
+          opFranja = { sup: frH.sup, inf: frH.inf, color: "#dfe4e2", opacidad: 0.85 };
+          lineas = [];              // con franja, la raya de la base sobra y ensucia
+          leyFranja = leyenda([
+            { n: "equilibrada", color: VFC_VERDE },
+            { n: "desequilibrada", color: VFC_NARANJA },
+            { n: "baja", color: VFC_ROJO_C },
+            { n: "lo normal en ti", color: "#dfe4e2" }
+          ].concat(cabenH ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : []));
+        }
+      }
+
       h += '<div class="hist-graf">' + grafica({
         desde: desde, hasta: U.hoyISO(), alto: 120, arriba: d.u, lineasH: lineas,
         bandas: bandasFarmaco({ desde: desde, hasta: U.hoyISO() }),
+        franja: opFranja,
         alt: d.n, series: series, unidadTip: d.u, par: d.par,
-        explica: "Tu serie de " + d.n + " en el tramo elegido" +
-          (d.objetivo ? ", con la línea del objetivo" : "") +
-          (d.techo ? " y la del límite" : "") +
-          ". Pasa el dedo por encima para ver cada valor con su fecha."
-      }) + "</div>";
+        explica: opFranja
+          ? "Cada punto es la media de 7 noches; la franja, lo normal en ti. " +
+            "Pasa el dedo por encima para ver cada valor con su fecha."
+          : "Tu serie de " + d.n + " en el tramo elegido" +
+            (d.objetivo ? ", con la línea del objetivo" : "") +
+            (d.techo ? " y la del límite" : "") +
+            ". Pasa el dedo por encima para ver cada valor con su fecha."
+      }) + leyFranja + "</div>";
 
       /* el resumen: dónde estás, hacia dónde vas y cuánto falta */
       var ult = s1[s1.length - 1] || s2[s2.length - 1];
