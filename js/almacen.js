@@ -1213,6 +1213,77 @@
       return fuera;
     },
 
+    /* ================= LO QUE PUEDES GASTAR =================
+       Lo primero que sale al añadir un plato: lo que YA está en casa y está
+       libre. El orden lo manda lo perecedero —nevera y frutero primero—, porque
+       sin fechas de caducidad el sitio donde se guarda algo ya dice lo que corre
+       prisa. (Carlos, 22-sep-2026.)
+
+       Dos cosas distintas:
+         PRODUCTOS  lo que se come tal cual y está libre. Se reconoce porque el
+                    ingrediente tiene `racion`: alguien ya dijo cuánto es una vez.
+         RECETAS    las que gastan algo FRESCO que quede libre —solo nevera y
+                    frutero—, la que más gasta primero. Con el arroz o el aceite
+                    no se ofrece nada: no corren prisa y saldría medio recetario. */
+
+    URGENTES: ["nevera", "frutero"],
+
+    loQuePuedesGastar: function (toma) {
+      var self = this, comp = this.comprometidoTodo();
+      var orden = {}, i;
+      for (i = 0; i < this.SITIOS.length; i++) orden[this.SITIOS[i].k] = i;
+
+      /* lo libre, por ingrediente */
+      var libres = {};
+      (this.estado.ingredientes || []).forEach(function (g) {
+        if (g.oculta) return;
+        var sitio = self.sitioDe(g);
+        if (!sitio) return;
+        var c = self.stockDe(g.id) - (comp[g.id] || 0);
+        if (c > 0.0001) libres[g.id] = { c: c, sitio: sitio, g: g };
+      });
+
+      /* --- productos listos para comer tal cual --- */
+      var productos = [];
+      Object.keys(libres).forEach(function (id) {
+        var x = libres[id];
+        if (x.g.racion == null) return;              // no es algo que se coma solo
+        var cant = Math.min(x.g.racion, x.c);
+        if (!(cant > 0)) return;
+        productos.push({ id: id, n: x.g.n, u: x.g.u, pesoUd: x.g.pesoUd,
+                         sitio: x.sitio, libre: x.c, racion: cant });
+      });
+      productos.sort(function (a, b) {
+        if (orden[a.sitio] !== orden[b.sitio]) return orden[a.sitio] - orden[b.sitio];
+        return a.n.localeCompare(b.n);
+      });
+
+      /* --- recetas que gastan lo fresco --- */
+      var recetas = [];
+      this.visibles().forEach(function (r) {
+        if (r.grupo === "suelto") return;            // eso ya sale como producto
+        if (toma && (r.tipo || []).length && (r.tipo || []).indexOf(toma) < 0 && !r.llevable) {
+          /* no se descarta: las tomas son una sugerencia. Solo baja de orden. */
+        }
+        var gasta = 0, cuales = [];
+        (r.ing || []).forEach(function (l) {
+          var x = libres[l.i];
+          if (!x || self.URGENTES.indexOf(x.sitio) < 0) return;
+          gasta += Math.min(l.c, x.c);
+          cuales.push(x.g.n);
+        });
+        if (!gasta) return;
+        recetas.push({ id: r.id, n: r.n, gasta: gasta, cuales: cuales,
+                       propia: (r.tipo || []).indexOf(toma) >= 0 });
+      });
+      recetas.sort(function (a, b) {
+        if (a.propia !== b.propia) return a.propia ? -1 : 1;
+        return b.gasta - a.gasta;
+      });
+
+      return { productos: productos.slice(0, 14), recetas: recetas.slice(0, 8) };
+    },
+
     /* ---------- registro de lo que se come de verdad ---------- */
     estaComido: function (fecha, toma, recetaId) {
       var d = this.estado.comido[fecha];

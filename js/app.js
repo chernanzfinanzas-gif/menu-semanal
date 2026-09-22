@@ -735,6 +735,37 @@
              '</details>';
     }
 
+    /* ---------- YA LO TIENES EN CASA ----------
+       Lo primero de todo, porque es lo que hay que gastar antes de comprar más.
+       Arriba las recetas que se llevan lo fresco —lo de la nevera y el frutero,
+       que es lo que se estropea— y debajo los productos que se comen tal cual.
+       Todo esto sale de lo LIBRE, no del stock: lo que ya está prometido a otro
+       plato no se puede prometer dos veces. */
+    var tengo = Almacen.loQuePuedesGastar(toma);
+    var bloqueCasa = "";
+    if (tengo.productos.length || tengo.recetas.length) {
+      bloqueCasa = '<details class="grupo-selec" data-fijo="1" open>' +
+        '<summary><span class="tit">Ya lo tienes en casa</span>' +
+        '<span class="cuantas">' + (tengo.productos.length + tengo.recetas.length) + '</span></summary>' +
+        '<p class="aviso-grupo">Lo libre de la despensa, empezando por lo que antes se estropea.</p>';
+      bloqueCasa += tengo.recetas.map(function (r) {
+        var rec = Almacen.receta(r.id);
+        return '<button data-elegir="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
+               esc(r.n) + '<small>gasta ' + esc(r.cuales.slice(0, 3).join(", ")) +
+               (rec ? ' \u00b7 ' + Util.sal(Almacen.salReceta(rec)) + ' de sal \u00b7 ' + (rec.min || "?") + ' min' : '') +
+               '</small></button>';
+      }).join("");
+      bloqueCasa += tengo.productos.map(function (x) {
+        var g = Almacen.ingrediente(x.id);
+        var n = g ? Almacen.nutrReceta({ ing: [{ i: x.id, c: x.racion }] }) : { k: 0 };
+        return '<button data-casa="' + esc(x.id) + '|' + x.racion + '" data-nombre="' + esc(x.n.toLowerCase()) + '">' +
+               esc(x.n) + ' \u00b7 ' + esc(Util.cantidadReceta(x.racion, x.u, x.pesoUd)) +
+               '<small>' + esc(Almacen.nombreSitio(x.sitio)) + ' \u00b7 te quedan ' +
+               esc(Util.cantidadReceta(x.libre, x.u, x.pesoUd)) + ' \u00b7 ' + Util.kcal(n.k) + '</small></button>';
+      }).join("");
+      bloqueCasa += '</details>';
+    }
+
     var html = '<header><h2>Añadir a ' + toma + '</h2><button class="cerrar" data-cerrar>×</button></header>';
     html += '<input type="text" id="filtro-selector" placeholder="Filtrar entre todas…">';
     html += '<div class="lista-selec por-grupos" id="lista-selector">';
@@ -790,8 +821,8 @@
 
     /* El orden: en un almuerzo o una merienda, primero el ingrediente solo;
        en una comida o una cena, primero las recetas. */
-    html += esPicoteo ? (bloqueSueltos + bloquePreferente)
-                      : (bloquePreferente + bloqueSueltos);
+    html += bloqueCasa + (esPicoteo ? (bloqueSueltos + bloquePreferente)
+                                    : (bloquePreferente + bloqueSueltos));
 
     /* y después el recetario entero, por grupos de alimento */
     var porGrupo = {};
@@ -895,6 +926,15 @@
     });
 
     $("#lista-selector").addEventListener("click", function (e) {
+      /* Un producto de la despensa entra como \u00abingrediente solo\u00bb con la cantidad
+         que quede libre, hasta su raci\u00f3n. */
+      var casa = e.target.closest("[data-casa]");
+      if (casa) {
+        var par = casa.getAttribute("data-casa").split("|");
+        var idc = Almacen.crearSuelto(par[0], parseFloat(par[1]), [toma]);
+        if (idc) meter(idc);
+        return;
+      }
       var b = e.target.closest("[data-elegir]");
       if (!b) return;
       /* Si la toma estaba VACÍA, es que está montando esa comida desde cero, así que
