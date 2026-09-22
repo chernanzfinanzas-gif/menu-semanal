@@ -2829,6 +2829,73 @@
     });
   }
 
+  /* ---------- PONER MARCAS EN TANDA ----------
+     Una línea sin marca no es comprable en Amazon, y son decenas. Ir una a una
+     desde la lista es el trabajo por elemento que hace que un sistema se
+     abandone, así que se piden todas de una vez: la app junta las que faltan y
+     tú solo escribes lo que compras. Lo que dejes en blanco se queda como está.
+
+     Se ofrecen SOLO las de Amazon: en el súper ya sabes cuál coger y ponerles
+     marca no sirve de nada. */
+  function faltanMarcas() {
+    var fuera = [];
+    (compraActual ? compraActual.secciones : []).forEach(function (sec) {
+      sec.lineas.forEach(function (l) {
+        if (l.cajon === "amazon" && !l.producto) {
+          fuera.push({ tipo: "ing", id: l.id, n: l.nombre, pista: l.envase
+            ? "envase de " + Util.cantidadReceta(l.envase, l.unidad, l.pesoUd) : "" });
+        }
+      });
+    });
+    (compraActual ? compraActual.basicos : []).forEach(function (l) {
+      if (l.cajon === "amazon" && !l.producto) {
+        fuera.push({ tipo: "ing", id: l.id, n: l.nombre, pista: l.envase
+          ? "envase de " + Util.cantidadReceta(l.envase, l.unidad, l.pesoUd) : "" });
+      }
+    });
+    var hg = Almacen.compraHogar();
+    hg.amazon.forEach(function (x) {
+      if (x.pendiente) fuera.push({ tipo: "hogar", id: x.id, n: x.n, pista: x.cat });
+    });
+    return fuera;
+  }
+
+  function abrirMarcas(lista, alCerrar) {
+    if (!lista.length) { Util.toast("No falta ninguna marca en esta compra"); return; }
+    var html = '<header><h2>Poner marcas</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
+    html += '<p class="nota-peque">Escribe el producto que compras t\u00fa, con marca y formato. ' +
+            'Es lo que se copia a Amazon. <b>Lo que dejes en blanco se queda como est\u00e1</b>, ' +
+            'as\u00ed que puedes hacerlo en varias veces.</p>';
+    lista.forEach(function (x) {
+      html += '<label class="campo"><span>' + esc(x.n) + (x.pista ? ' \u00b7 ' + esc(x.pista) : '') + '</span>' +
+              '<input type="text" data-marca="' + esc(x.tipo) + '|' + esc(x.id) + '" ' +
+              'placeholder="marca y formato"></label>';
+    });
+    html += '<div class="fila" style="position:sticky; bottom:0; background:var(--blanco); padding-top:10px">' +
+            '<button class="btn principal" id="mk-guardar">Guardar</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    $("#mk-guardar").addEventListener("click", function () {
+      var n = 0;
+      $$("#modal [data-marca]").forEach(function (c) {
+        var v = c.value.trim();
+        if (!v) return;
+        var par = c.getAttribute("data-marca").split("|");
+        if (par[0] === "hogar") Almacen.guardarHogar(par[1], { n: v });
+        else {
+          var g = Almacen.ingrediente(par[1]);
+          if (g) { g.producto = v; g.editado = true; }
+        }
+        n++;
+      });
+      if (n) Almacen.guardar("ingrediente");
+      cerrarModal();
+      if (alCerrar) alCerrar();
+      Util.toast(n ? (n === 1 ? "1 marca puesta" : n + " marcas puestas") : "Nada que guardar");
+    });
+  }
+
   /* ==================== HOGAR ====================
      Limpieza, menaje, aseo y mascota. Sin cantidades ni cuentas: se marca lo que
      falta y entra en la lista de la compra. Cada línea ES el producto, con marca
@@ -2991,11 +3058,29 @@
       $("#platos-compra").innerHTML = "";
       return;
     }
+    var sinMarca = 0;
+    datos.secciones.forEach(function (sec) {
+      sec.lineas.forEach(function (l) { if (l.cajon === "amazon" && !l.producto) sinMarca++; });
+    });
+    datos.basicos.forEach(function (l) { if (l.cajon === "amazon" && !l.producto) sinMarca++; });
+    hogar.amazon.forEach(function (x) { if (x.pendiente) sinMarca++; });
+    var bm = $("#compra-marcas");
+    if (bm) {
+      bm.hidden = !sinMarca;
+      bm.textContent = "Poner marcas (" + sinMarca + ")";
+    }
     $("#compra-resumen").textContent =
       (totalLineas - pedidos) + " por pedir de " + totalLineas +
       (pedidos ? " \u00b7 " + pedidos + " ya pedidos" : "") +
       (totalHogar ? " \u00b7 " + totalHogar + " de casa" : "");
-    pintarPlatosCompra(r);
+    /* EL BLOQUE DE \u00abLOS PLATOS DE ESTE RANGO\u00bb SE RETIRA (22-sep-2026).
+       Carlos lo par\u00f3 el 17 porque no le convenc\u00eda c\u00f3mo informaba \u2014dec\u00eda \u00ab0 de 64
+       comprados\u00bb y a la vez \u00ab33 platos con todos los ingredientes\u00bb\u2014 y la auditor\u00eda
+       encontr\u00f3 el porqu\u00e9: era una de las TRES contabilidades que med\u00edan lo mismo sin
+       hablarse. Ahora hay una sola, la despensa, y esto sobra. La maquinaria se
+       queda por debajo, sin pantalla, por si alg\u00fan d\u00eda se quiere recuperar. */
+    var pc = $("#platos-compra");
+    if (pc) pc.innerHTML = "";
 
     function bloqueHogar(lista) {
       if (!lista.length) return "";
@@ -3135,27 +3220,63 @@
       '</div>';
   }
 
+  /* EL TEXTO QUE SE PASA A AMAZON. Tiene que ser COMPRABLE, no informativo:
+     por eso manda el producto con marca y formato, y no el nombre del ingrediente.
+     Separado por cajones, porque lo del súper no se pide por internet, y con lo
+     de casa dentro de su cajón. Las líneas que aún no tienen marca salen avisadas:
+     más vale que se vea el hueco que mandar un pedido a medias. */
   function textoCompra(soloPendientes) {
     if (!compraActual) return "";
-    /* El rango que se imprime tiene que ser el que se ha CALCULADO, no la semana que
-       esté abierta en Menú. Salía «semana del 14 al 20» con las cantidades de jueves
-       a domingo, y los números no cuadraban con el título. */
     var rr = Almacen.rangoCompra(UI.cuandoCompra);
-    var out = "LISTA DE LA COMPRA — del " + Util.etiquetaFecha(rr.desde) + " al " +
-              Util.etiquetaFecha(rr.hasta) + " de " + Util.desdeISO(rr.hasta).getFullYear() +
-              " (" + rr.dias + (rr.dias === 1 ? " día" : " días") +
-              ", " + (Almacen.estado.config.personas || 1) + " personas)\n\n";
-    compraActual.secciones.forEach(function (s) {
-      var lineas = s.lineas.filter(function (l) { return soloPendientes ? (!l.enCasa && !l.marcado) : true; });
-      if (!lineas.length) return;
-      out += s.nombre.toUpperCase() + "\n";
-      lineas.forEach(function (l) { out += "  - " + l.nombre + ": " + l.texto + "\n"; });
-      out += "\n";
+    var pendiente = function (l) { return soloPendientes ? !l.marcado : true; };
+
+    var caj = { amazon: [], super: [] };
+    compraActual.secciones.forEach(function (sec) {
+      sec.lineas.filter(pendiente).forEach(function (l) {
+        caj[l.cajon === "amazon" ? "amazon" : "super"].push({ sec: sec.nombre, l: l });
+      });
     });
-    var bas = compraActual.basicos.filter(function (l) { return soloPendientes ? (!l.enCasa && !l.marcado) : true; });
-    if (bas.length) {
-      out += "REVISAR DESPENSA\n";
-      bas.forEach(function (l) { out += "  - " + l.nombre + ": " + l.texto + "\n"; });
+    compraActual.basicos.filter(pendiente).forEach(function (l) {
+      caj[l.cajon === "amazon" ? "amazon" : "super"].push({ sec: "B\u00e1sicos de despensa", l: l });
+    });
+    var hogar = Almacen.compraHogar();
+
+    var out = "LISTA DE LA COMPRA \u2014 del " + Util.etiquetaFecha(rr.desde) + " al " +
+              Util.etiquetaFecha(rr.hasta) + " de " + Util.desdeISO(rr.hasta).getFullYear() +
+              " (" + rr.dias + (rr.dias === 1 ? " d\u00eda" : " d\u00edas") +
+              ", " + (Almacen.estado.config.personas || 1) + " personas)\n";
+
+    var sinMarca = 0;
+    [["amazon", "AMAZON"], ["super", "S\u00daPER"]].forEach(function (par) {
+      var k = par[0], lista = caj[k], hg = (hogar[k] || []);
+      if (!lista.length && !hg.length) return;
+      out += "\n===== " + par[1] + " =====\n";
+      var sec = "";
+      lista.forEach(function (x) {
+        if (x.sec !== sec) { sec = x.sec; out += "\n" + sec.toUpperCase() + "\n"; }
+        var nombre = x.l.producto || x.l.nombre;
+        if (!x.l.producto && k === "amazon") { nombre += "  [FALTA LA MARCA]"; sinMarca++; }
+        out += "  - " + nombre + ": " + x.l.texto + "\n";
+      });
+      if (hg.length) {
+        out += "\nCASA\n";
+        hg.forEach(function (x) {
+          var n = x.n + (x.pendiente && k === "amazon" ? "  [FALTA LA MARCA]" : "");
+          if (x.pendiente && k === "amazon") sinMarca++;
+          out += "  - " + n + (x.c > 1 ? " \u00d7" + x.c : "") +
+                 (x.suplente ? "   (si no hay: " + x.suplente + ")" : "") + "\n";
+        });
+      }
+    });
+
+    var rec = Almacen.recadosPendientes();
+    if (rec.length) {
+      out += "\n===== PENDIENTE DE OTRAS VECES =====\n";
+      rec.forEach(function (x) { out += "  - " + x.n + (x.c > 1 ? " \u00d7" + x.c : "") + "\n"; });
+    }
+    if (sinMarca) {
+      out += "\n(" + sinMarca + (sinMarca === 1 ? " l\u00ednea no tiene marca todav\u00eda" : " l\u00edneas no tienen marca todav\u00eda") +
+             ": ah\u00ed hace falta elegir producto.)\n";
     }
     return out;
   }
@@ -3975,13 +4096,17 @@
       var rec = e.target.closest("[data-recado]");
       if (rec) { Almacen.quitarRecado(rec.getAttribute("data-recado")); pintarCompra(); }
     });
+    $("#compra-marcas").addEventListener("click", function () {
+      abrirMarcas(faltanMarcas(), function () { pintarCompra(); pintarHogar(); });
+    });
     $("#compra-copiar").addEventListener("click", function () {
       var texto = textoCompra(true);
       if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function () { Util.toast("Lista copiada"); });
       else Util.toast("Copia manualmente desde «Preparar compra»");
     });
     $("#compra-para-claude").addEventListener("click", function () {
-      var texto = "Claude, haz esta compra en Amazon por mí.\n\n" + textoCompra(true);
+      var texto = "Claude, haz por m\u00ed la parte de AMAZON de esta compra. Lo del S\u00daPER " +
+                  "no lo pidas: eso lo compro yo.\n\n" + textoCompra(true);
       abrirModal('<header><h2>Compra para pasarme</h2><button class="cerrar" data-cerrar>×</button></header>' +
         '<p class="nota-peque">Copia este texto y pégamelo en el chat: abro Amazon en tu navegador y voy añadiendo los productos al carrito.</p>' +
         '<textarea class="salida" id="texto-claude">' + esc(texto) + '</textarea>' +
