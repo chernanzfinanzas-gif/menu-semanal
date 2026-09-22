@@ -1409,16 +1409,17 @@
        Amazon · Súper · Suscripción. Es una propiedad del PRODUCTO, y vale igual
        para la comida y para lo de casa.
 
-       Por defecto se deduce de dónde se guarda, sin tener que rellenar 158 fichas:
-       lo del ARMARIO —arroz, pasta, conservas, café, bebidas— es justo lo que
-       Amazon trae bien, y lo demás —nevera, frutero, panera, congelador— se compra
-       en el súper. Cualquier ingrediente puede llevar su `cajon` y entonces manda
-       el suyo: el pan sin sal es de Ahorramás y no va a estar en Amazon nunca. */
+       POR DEFECTO, AMAZON. Carlos compra casi todo en Amazon Fresh, fresco
+       incluido (22-sep-2026). Antes el reparto era al revés —solo el armario a
+       Amazon— y estaba del revés: con Fresh, la carne y la verdura también
+       necesitan marca y formato, porque ese nombre es el que viaja al pedido.
+
+       Lo que NO se compra ahí lleva su `cajon` escrito y entonces manda el suyo:
+       el pan sin sal es de Ahorramás y no va a estar en Amazon nunca. */
     cajonDe: function (id) {
       var g = typeof id === "string" ? this.ingrediente(id) : id;
-      if (!g) return "super";
-      if (g.cajon) return g.cajon;
-      return this.sitioDe(g) === "armario" ? "amazon" : "super";
+      if (!g) return "amazon";
+      return g.cajon || "amazon";
     },
 
     /* ---------- ESTADOS DE UNA LÍNEA DE LA COMPRA ----------
