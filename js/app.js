@@ -12,6 +12,8 @@
     fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
     filaDesp: "comida",     /* qué se lista en la Despensa: comida u hogar */
     busquedaHogar: "",
+    sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
+    buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
     cajonHogar: "",
     busquedaDespensa: "",
     verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
@@ -3290,41 +3292,60 @@
      Y solo se enseña LO QUE HAY. Una nevera tiene ocho cosas, no las veintinueve
      que podría tener; para añadir algo que aparezca, el buscador de arriba.
      Una revisión corta es una revisión que se repite. */
+  /* ==================== LA DESPENSA ====================
+     Pensada para CONTARLA CON EL MÓVIL EN LA MANO, delante del armario abierto.
+     De ahí las decisiones de esta pantalla, que no son estéticas:
+
+       · UN SITIO ABIERTO CADA VEZ. Cinco sitios abiertos son un kilómetro de
+         página; contando, solo miras uno.
+       · EL BUSCADOR, DENTRO DE CADA SITIO Y ACOTADO A ÉL. Estás delante del
+         armario: no te puede ofrecer el pescado de la nevera. Y no hay que subir
+         a lo alto de la página para añadir algo que acabas de ver.
+       · LAS UNIDADES, CON − Y +. Seis yogures se cuentan con el dedo, no
+         tecleando; los gramos sí se teclean.
+       · AL CAMBIAR UNA CIFRA NO SE REHACE LA LISTA, solo esa línea. Rehacerla
+         te devolvía al principio y perdías dónde ibas.
+       · TODO MÁS GRANDE en el móvil: se toca de pie y con una mano. */
+  function detalleStock(x) {
+    if (x.pte) return '<span style="color:var(--ambar)">Sabemos que lo tienes, pero no cu\u00e1nto: pon la cifra</span>';
+    var d;
+    if (x.comprometido > 0) {
+      d = 'comprometido ' + esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd)) +
+          ' \u00b7 <b>libre ' + esc(Util.cantidadReceta(x.libre, x.u, x.pesoUd)) + '</b>';
+    } else {
+      d = x.c > 0 ? 'todo libre' : 'no queda';
+    }
+    if (x.envase) d += ' \u00b7 envase de ' + esc(Util.cantidadReceta(x.envase, x.u, x.pesoUd));
+    return d;
+  }
+
+  function lineaStockHTML(x) {
+    var uni = x.u === "ud" ? (x.c === 1 ? "unidad" : "uds") : x.u;
+    return '<div class="linea linea-stock' + (x.c > 0 ? "" : " hecha") + '" data-fila="' + esc(x.id) + '">' +
+      '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
+      '<div class="detalle">' + detalleStock(x) + '</div></div>' +
+      (x.u === "ud" ? '<button class="btn mini paso-stock" data-menos-stock="' + esc(x.id) + '">\u2212</button>' : '') +
+      '<input type="number" class="stock-cant" data-stock="' + esc(x.id) + '" inputmode="decimal" ' +
+        'min="0" step="' + (x.u === "ud" ? "1" : "10") + '" value="' + (x.c || 0) + '">' +
+      (x.u === "ud" ? '<button class="btn mini paso-stock" data-mas-stock="' + esc(x.id) + '">+</button>' : '') +
+      '<span class="uni-stock nota-peque">' + esc(uni) + '</span>' +
+      '<button class="btn mini" data-cero="' + esc(x.id) + '" title="Se ha acabado o estaba caducado">0</button>' +
+      '</div>';
+  }
+
   function pintarDespensa() {
     var cont = $("#rejilla-despensa");
     if (!cont) return;
     var q = sinTildes((UI.busquedaDespensa || "").trim().toLowerCase());
-    var html = "";
+    var hoy = Util.hoyISO(), html = "", algo = false;
 
-    /* --- lo que el buscador encuentra y todavía no está en la despensa --- */
-    if (q) {
-      var fuera = (Almacen.estado.ingredientes || []).filter(function (g) {
-        if (g.oculta) return false;
-        if (!Almacen.sitioDe(g)) return false;                 // no se guarda en casa
-        if (Almacen.fichaStock(g.id)) return false;            // ya está puesto
-        return sinTildes(g.n.toLowerCase()).indexOf(q) >= 0;
-      }).slice(0, 12);
-      if (fuera.length) {
-        html += '<div class="grupo-selec" style="padding:10px 12px; margin-bottom:12px">' +
-                '<p class="aviso-grupo" style="margin-top:0">A\u00f1adir a la despensa:</p>';
-        fuera.forEach(function (g) {
-          html += '<div class="linea"><div class="datos"><div class="nombre">' + esc(g.n) + '</div>' +
-                  '<div class="detalle">' + esc(Almacen.nombreSitio(Almacen.sitioDe(g))) + '</div></div>' +
-                  '<button class="btn mini principal" data-poner="' + esc(g.id) + '">A\u00f1adir</button></div>';
-        });
-        html += '</div>';
-      }
-    }
-
-    /* --- los sitios, en orden de la prisa que corre cada uno --- */
-    var hoy = Util.hoyISO(), algo = false;
     Almacen.SITIOS.forEach(function (sitio) {
       var lista = Almacen.loQueHayEn(sitio.k);
-      if (q) {
-        lista = lista.filter(function (x) { return sinTildes(x.n.toLowerCase()).indexOf(q) >= 0; });
-      }
-      if (!lista.length) return;
-      algo = true;
+      if (q) lista = lista.filter(function (x) { return sinTildes(x.n.toLowerCase()).indexOf(q) >= 0; });
+      var abierto = q ? true : (UI.sitioAbierto === sitio.k);
+      if (lista.length) algo = true;
+      if (q && !lista.length) return;
+
       var f = (Almacen.estado.stockSitios || {})[sitio.k];
       var dias = f ? Util.diasEntre(f, hoy) : null;
       var cuando = f
@@ -3332,44 +3353,61 @@
         : "sin contar todav\u00eda";
       var viejo = (dias === null || dias > 7);
 
-      html += '<details class="grupo-selec" open>' +
+      html += '<details class="grupo-selec sitio-desp"' + (abierto ? " open" : "") +
+                ' data-sitio="' + esc(sitio.k) + '">' +
                 '<summary><span class="tit">' + esc(sitio.n) + '</span>' +
-                '<span class="cuantas">' + lista.length + '</span></summary>' +
+                '<span class="cuantas">' + (lista.length || "\u2014") + '</span></summary>' +
                 '<p class="aviso-grupo"' + (viejo ? ' style="color:var(--ambar)"' : '') + '>' +
-                  esc(cuando) + ' \u00b7 <button class="btn mini" data-contado="' + sitio.k + '">Repasado, est\u00e1 al d\u00eda</button></p>';
+                  esc(cuando) + ' \u00b7 <button class="btn mini" data-contado="' + esc(sitio.k) + '">Repasado</button></p>';
 
-      lista.forEach(function (x) {
-        var uni = x.u === "ud" ? (x.c === 1 ? "unidad" : "unidades") : x.u;
-        var detalle;
-        if (x.pte) {
-          detalle = '<span style="color:var(--ambar)">Sabemos que lo tienes, pero no cu\u00e1nto: pon la cifra</span>';
-        } else if (x.comprometido > 0) {
-          detalle = 'comprometido ' + esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd)) +
-                    ' \u00b7 <b>libre ' + esc(Util.cantidadReceta(x.libre, x.u, x.pesoUd)) + '</b>';
+      lista.forEach(function (x) { html += lineaStockHTML(x); });
+
+      /* el buscador de este sitio, acotado a lo que se guarda aquí */
+      var qs = sinTildes((UI.buscaSitio[sitio.k] || "").trim().toLowerCase());
+      html += '<div class="anadir-sitio">' +
+              '<input type="text" data-buscasitio="' + esc(sitio.k) + '" value="' + esc(UI.buscaSitio[sitio.k] || "") +
+              '" placeholder="A\u00f1adir algo de ' + esc(sitio.n.toLowerCase()) + '\u2026">';
+      if (qs) {
+        var fuera = (Almacen.estado.ingredientes || []).filter(function (g) {
+          if (g.oculta) return false;
+          if (Almacen.sitioDe(g) !== sitio.k) return false;
+          if (Almacen.fichaStock(g.id)) return false;
+          return sinTildes(g.n.toLowerCase()).indexOf(qs) >= 0;
+        }).slice(0, 8);
+        if (fuera.length) {
+          fuera.forEach(function (g) {
+            html += '<button class="btn mini sug-sitio" data-poner="' + esc(g.id) + '">' + esc(g.n) + '</button>';
+          });
         } else {
-          detalle = 'todo libre';
+          html += '<span class="nota-peque">Nada con ese nombre aqu\u00ed. Si es algo nuevo, dalo de alta en Recetario \u2192 Ingredientes.</span>';
         }
-        if (x.envase) detalle += ' \u00b7 envase de ' + esc(Util.cantidadReceta(x.envase, x.u, x.pesoUd));
-        html += '<div class="linea linea-stock' + (x.c > 0 ? "" : " hecha") + '">' +
-                  '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
-                  '<div class="detalle">' + detalle + '</div></div>' +
-                  '<input type="number" class="stock-cant" data-stock="' + esc(x.id) + '" ' +
-                    'min="0" step="' + (x.u === "ud" ? "1" : "10") + '" value="' + (x.c || 0) + '" ' +
-                    'style="width:82px; text-align:right">' +
-                  '<span class="nota-peque" style="min-width:52px">' + esc(uni) + '</span>' +
-                  '<button class="btn mini" data-cero="' + esc(x.id) + '" title="Se ha acabado o estaba caducado">0</button>' +
-                  '<button class="btn mini solo-edicion" data-editaring="' + esc(x.id) + '">Valores</button>' +
-                '</div>';
-      });
-      html += '</details>';
+      }
+      html += '</div></details>';
     });
 
-    if (!algo) {
-      html += '<div class="vacio">' + (q
-        ? 'Nada con ese nombre.'
-        : 'La despensa est\u00e1 vac\u00eda. Busca arriba lo que tengas en casa y ponle la cantidad: es la foto de la que sale todo lo dem\u00e1s.') + '</div>';
+    if (!algo && !q) {
+      html += '<div class="vacio">La despensa est\u00e1 vac\u00eda. Abre un sitio y busca dentro lo que tengas: ' +
+              'es la foto de la que sale todo lo dem\u00e1s.</div>';
+    } else if (q && !html) {
+      html += '<div class="vacio">Nada con ese nombre.</div>';
     }
     cont.innerHTML = html;
+  }
+
+  /* Refresca SOLO una línea. Rehacer la lista entera mientras cuentas te manda
+     al principio de la página, y con cincuenta líneas eso es insoportable. */
+  function refrescarLineaStock(id) {
+    var fila = document.querySelector('[data-fila="' + id + '"]');
+    if (!fila) return;
+    var sitio = Almacen.sitioDe(id);
+    var x = null;
+    Almacen.loQueHayEn(sitio).forEach(function (y) { if (y.id === id) x = y; });
+    if (!x) { pintarDespensa(); return; }
+    var det = fila.querySelector(".detalle");
+    if (det) det.innerHTML = detalleStock(x);
+    var campo = fila.querySelector("[data-stock]");
+    if (campo && document.activeElement !== campo) campo.value = x.c || 0;
+    fila.classList.toggle("hecha", !(x.c > 0));
   }
 
   /* ==================== VISTA: AJUSTES ==================== */
@@ -4146,20 +4184,51 @@
       if (ed) abrirHogar(ed.getAttribute("data-edithogar"));
     });
     $("#buscar-despensa").addEventListener("input", function (e) { UI.busquedaDespensa = e.target.value; pintarDespensa(); });
+    $("#rejilla-despensa").addEventListener("input", function (e) {
+      var bs = e.target.closest("[data-buscasitio]");
+      if (bs) {
+        var k = bs.getAttribute("data-buscasitio");
+        UI.buscaSitio[k] = bs.value;
+        UI.sitioAbierto = k;
+        var pos = bs.selectionStart;
+        pintarDespensa();
+        var nuevo = document.querySelector('[data-buscasitio="' + k + '"]');
+        if (nuevo) { nuevo.focus(); try { nuevo.setSelectionRange(pos, pos); } catch (err) {} }
+      }
+    });
     $("#rejilla-despensa").addEventListener("change", function (e) {
       var st = e.target.closest("[data-stock]");
       if (!st) return;
-      Almacen.ponerStock(st.getAttribute("data-stock"), parseFloat(String(st.value).replace(",", ".")));
-      /* El repintado espera un instante: \u00abchange\u00bb salta al salir del campo, y
-         rehacer la lista dentro de ese mismo momento deja al navegador buscando
-         un nodo que ya no est\u00e1. */
-      setTimeout(function () { pintarDespensa(); pintarCompra(); }, 0);
+      var id = st.getAttribute("data-stock");
+      Almacen.ponerStock(id, parseFloat(String(st.value).replace(",", ".")));
+      setTimeout(function () { refrescarLineaStock(id); }, 0);
     });
+    $("#rejilla-despensa").addEventListener("toggle", function (e) {
+      var d = e.target.closest("details[data-sitio]");
+      if (!d) return;
+      if (d.open) UI.sitioAbierto = d.getAttribute("data-sitio");
+      else if (UI.sitioAbierto === d.getAttribute("data-sitio")) UI.sitioAbierto = "";
+    }, true);
     $("#rejilla-despensa").addEventListener("click", function (e) {
+      var paso = e.target.closest("[data-mas-stock]") || e.target.closest("[data-menos-stock]");
+      if (paso) {
+        var idp = paso.getAttribute("data-mas-stock") || paso.getAttribute("data-menos-stock");
+        var suma = paso.hasAttribute("data-mas-stock") ? 1 : -1;
+        var nueva = Almacen.stockDe(idp) + suma;
+        if (nueva < 0) nueva = 0;
+        Almacen.ponerStock(idp, nueva);
+        var campo = document.querySelector('[data-stock="' + idp + '"]');
+        if (campo) campo.value = nueva;
+        refrescarLineaStock(idp);
+        return;
+      }
       var cero = e.target.closest("[data-cero]");
       if (cero) {
-        Almacen.ponerStock(cero.getAttribute("data-cero"), 0);
-        pintarDespensa(); pintarCompra(); return;
+        var idc = cero.getAttribute("data-cero");
+        Almacen.ponerStock(idc, 0);
+        var c2 = document.querySelector('[data-stock="' + idc + '"]');
+        if (c2) c2.value = 0;
+        refrescarLineaStock(idc); return;
       }
       var poner = e.target.closest("[data-poner]");
       if (poner) {
@@ -4170,7 +4239,10 @@
         if (!Almacen.estado.stock) Almacen.estado.stock = {};
         Almacen.estado.stock[id] = { c: 0, f: null, pte: true };
         Almacen.guardar("stock");
+        var sitio2 = Almacen.sitioDe(id);
         UI.busquedaDespensa = "";
+        UI.buscaSitio[sitio2] = "";
+        UI.sitioAbierto = sitio2;
         var buscador = $("#buscar-despensa");
         if (buscador) buscador.value = "";
         pintarDespensa();
