@@ -1935,7 +1935,11 @@
      datos se dice qué falta y cuándo habrá, nunca se pinta una línea inventada. */
 
   var rangoEvo = "6m";
-  var RANGOS = [{ id: "3m", n: "3 meses", d: 92 }, { id: "6m", n: "6 meses", d: 183 },
+  /* «1 mes» se añadió el 22-sep-2026 con la VFC de franja: es la vista de
+     cuatro semanas del reloj, que es la que Carlos tiene en el ojo, y la única
+     en la que la línea de cada noche se lee de verdad. */
+  var RANGOS = [{ id: "1m", n: "1 mes", d: 31 },
+                { id: "3m", n: "3 meses", d: 92 }, { id: "6m", n: "6 meses", d: 183 },
                 { id: "1a", n: "1 año", d: 365 }, { id: "todo", n: "Todo", d: 0 }];
   /* Los tramos de las ventanas emergentes: los mismos menos «Todo» (ver
      abrirHistoria). salud.json trae 400 días, así que «1 año» siempre cabe
@@ -3310,6 +3314,89 @@
   /* ---------- el dibujo ----------
      SVG a mano, sin librerías: una rejilla, las bandas, las líneas y el último
      punto marcado. El viewBox escala solo al ancho del móvil. */
+  /* ======================= LA VFC COMO LA ENSEÑA EL RELOJ =======================
+     Pedido por Carlos el 22-sep-2026: «la VFC se podría representar así, con
+     media y bandas; estoy acostumbrado a este formato».
+
+     Son tres cosas encima del mismo dibujo:
+       · la FRANJA gris — lo que es normal EN ÉL, no en la población;
+       · un PUNTO por día con la media de 7 noches, coloreado según caiga dentro
+         o fuera de la franja;
+       · la LÍNEA DE GUIONES con la VFC de cada noche, que es el dato crudo del
+         que sale todo lo demás.
+
+     La franja no viene dada por ninguna fuente: se calcula aquí. Es el rango
+     central —del percentil 25 al 75— de las últimas VFC_VENTANA noches. Con
+     120 días sale lo mismo que enseña el reloj: comprobado contra su pantalla
+     del 14-sep-2026, que decía media de 7 días 48 ms y referencia 50-62 ms;
+     aquí salen 48,3 ms y 50-60. Con 60 o 90 días la franja queda un par de
+     milisegundos más estrecha.
+
+     El umbral del rojo también está medido contra esa misma pantalla: el reloj
+     puso rojo el 16, 17 y 18 de septiembre —donde la media caía al 93 % y al
+     92 % del suelo de la franja— y naranja el 13, 14 y 15, que se quedaban en
+     el 95-97 %. El corte en 0,94 los separa a todos. */
+  var VFC_VENTANA = 120;        // noches que miran atrás para decidir qué es normal en él
+  var VFC_MINIMO = 40;          // por debajo de tantas noches no se pinta franja: mentiría
+  var VFC_ROJO = 0.94;          // del suelo de la franja para abajo, ya no es «desequilibrada»
+  var VFC_VERDE = "#4a9e5c", VFC_NARANJA = "#e08a2e", VFC_ROJO_C = "#c0392b";
+
+  function percentilOrd(v, p) {
+    if (!v.length) return null;
+    var idx = (v.length - 1) * p / 100, a = Math.floor(idx), b = Math.min(a + 1, v.length - 1);
+    return v[a] + (v[b] - v[a]) * (idx - a);
+  }
+
+  /* Devuelve, por cada día del tramo pedido, la franja y la media de 7 noches
+     ya clasificada. `diario` tiene que venir CON COLA: los VFC_VENTANA días
+     anteriores al tramo, o los primeros meses saldrían sin franja. */
+  function vfcConFranja(diario, desde, hasta) {
+    var porFecha = {}, fechas = [];
+    diario.forEach(function (p) {
+      if (typeof p.v === "number" && p.v > 0) { porFecha[p.f] = p.v; fechas.push(p.f); }
+    });
+    if (!fechas.length) return null;
+
+    var sup = [], inf = [], puntos = [], f = desde;
+    var tope = hasta < fechas[fechas.length - 1] ? hasta : fechas[fechas.length - 1];
+    var guardas = 0;
+    while (f <= tope && guardas++ < 4000) {
+      /* media de 7 noches: la de intervals cuando existe, y si no la de aquí.
+         Se prefiere la suya para que dos sitios de la app no digan dos números
+         distintos del mismo día. */
+      var m7 = valorDia("vfc7", f);
+      if (!(typeof m7 === "number" && m7 > 0)) {
+        var v7 = [], i;
+        for (i = 0; i < 7; i++) {
+          var k = U.sumarDias(f, -i);
+          if (porFecha[k] !== undefined) v7.push(porFecha[k]);
+        }
+        m7 = v7.length >= 4 ? v7.reduce(function (a, b) { return a + b; }, 0) / v7.length : null;
+      }
+
+      var ventana = [];
+      for (var j = 1; j <= VFC_VENTANA; j++) {
+        var k2 = U.sumarDias(f, -j);
+        if (porFecha[k2] !== undefined) ventana.push(porFecha[k2]);
+      }
+      if (ventana.length >= VFC_MINIMO) {
+        ventana.sort(function (a, b) { return a - b; });
+        var lo = percentilOrd(ventana, 25), hi = percentilOrd(ventana, 75);
+        inf.push({ f: f, v: lo });
+        sup.push({ f: f, v: hi });
+        if (m7 !== null) {
+          var estado = m7 >= lo ? "verde" : (m7 >= lo * VFC_ROJO ? "naranja" : "rojo");
+          puntos.push({ f: f, v: m7, e: estado });
+        }
+      } else if (m7 !== null) {
+        puntos.push({ f: f, v: m7, e: "gris" });
+      }
+      f = U.sumarDias(f, 1);
+    }
+    if (!puntos.length) return null;
+    return { sup: sup, inf: inf, puntos: puntos };
+  }
+
   function grafica(o) {
     /* el margen derecho guarda sitio para los números de la escala: si no,
        el punto del último dato se les monta encima */
@@ -3321,6 +3408,12 @@
        una noche suelta de 18,9 h aplastaba el resto de la gráfica contra el suelo. */
     var todos = [];
     series.forEach(function (s) { s.pts.forEach(function (p) { todos.push(p.v); }); });
+    /* La franja cuenta para la escala: si no, la banda de referencia se salía
+       por arriba y se veía cortada justo donde hay que mirar. */
+    if (o.franja) {
+      (o.franja.sup || []).forEach(function (p) { todos.push(p.v); });
+      (o.franja.inf || []).forEach(function (p) { todos.push(p.v); });
+    }
     todos.sort(function (a, b) { return a - b; });
     function pct(q) { return todos[Math.min(todos.length - 1, Math.max(0, Math.round((todos.length - 1) * q)))]; }
     var min = pct(0.02), max = pct(0.98);
@@ -3388,6 +3481,18 @@
       if (b.etq && (x1 - x0) > 26) s += '<text x="' + ((x0 + x1) / 2).toFixed(1) + '" y="' + (T + 7) +
         '" text-anchor="middle" font-size="8" fill="#667a70">' + U.esc(b.etq) + "</text>";
     });
+
+    /* LA FRANJA DE REFERENCIA — el «valor normal en ti» pintado como zona y no
+       como una raya. Es como lo enseña el reloj y como Carlos está acostumbrado
+       a leerlo: no importa el número, importa si el punto cae dentro o fuera.
+       Va la primera, debajo de todo, para que las líneas se vean encima. */
+    if (o.franja && (o.franja.sup || []).length > 1) {
+      var sup = o.franja.sup, inf = o.franja.inf || [];
+      var arriba = sup.map(function (p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); });
+      var abajo = inf.slice().reverse().map(function (p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); });
+      s += '<polygon points="' + arriba.concat(abajo).join(" ") + '" fill="' +
+           (o.franja.color || "#dfe4e2") + '" opacity="' + (o.franja.opacidad || 0.75) + '"/>';
+    }
 
     (o.lineasH || []).forEach(function (l) {
       var y = Y(l.v).toFixed(1);
@@ -4335,16 +4440,70 @@
          pero no significan lo mismo, y juntos se aplastaban en una cinta.
          En tramos largos la VFC de cada noche se calla: son cientos de picos. */
       var tramoLargo = diasEntre(v.desde, v.hasta) > 200;
-      cuerpo2 = grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 104, arriba: "VFC · ms", unidadTip: "ms",
-        alt: "Variabilidad de la frecuencia cardíaca",
-        explica: "La variabilidad del latido mientras duermes: cuanto más alta, más recuperado. " +
-          "La línea de puntos es tu base de primavera.",
-        lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base" }] : [],
-        series: (tramoLargo ? [] : [{ pts: vfc, color: "#c3d3e2", ancho: 0.7, marcarUltimo: false }])
-          .concat([{ pts: vfc7, color: AZUL, ancho: 1.5 }])
-      }) + leyenda([{ n: "media de 7 días", color: AZUL }].concat(
-        tramoLargo ? [] : [{ n: "cada noche", color: "#c3d3e2" }]));
+
+      /* CON FRANJA Y PUNTOS DE COLOR, COMO EL RELOJ. La cola de VFC_VENTANA
+         días de más no se dibuja: hace falta para que el primer día del tramo
+         ya tenga franja en vez de empezar en blanco. */
+      var vfcCola = serieSalud("vfc", { desde: U.sumarDias(v.desde, -(VFC_VENTANA + 30)), hasta: v.hasta });
+      var fr = vfcConFranja(vfcCola, v.desde, v.hasta);
+
+      if (fr) {
+        function deColor(e) {
+          return fr.puntos.filter(function (p) { return p.e === e; });
+        }
+        var COLOR = { verde: VFC_VERDE, naranja: VFC_NARANJA, rojo: VFC_ROJO_C, gris: "#9aa8a2" };
+        var ser = [];
+        /* La línea de cada noche, en guiones: es el dato crudo y va detrás.
+           Se calla pasados los 70 días, que es más o menos hasta donde se
+           distinguen los picos: a seis meses son doscientas rayas y tapan la
+           franja, que es lo que hay que mirar. El reloj la enseña sólo en la
+           vista de cuatro semanas, por lo mismo. */
+        var cabenNoches = diasEntre(v.desde, v.hasta) <= 100;
+        if (cabenNoches) ser.push({ pts: vfc, color: "#8d9a94", ancho: 1,
+                                    guiones: true, marcarUltimo: false });
+        ["gris", "verde", "naranja", "rojo"].forEach(function (e) {
+          var pts = deColor(e);
+          if (pts.length) ser.push({ pts: pts, color: COLOR[e], soloPuntos: true,
+                                     radio: tramoLargo ? 1.1 : 2.2, marcarUltimo: false });
+        });
+        var ult = fr.puntos[fr.puntos.length - 1];
+        var ultInf = fr.inf.length ? fr.inf[fr.inf.length - 1].v : null;
+        var ultSup = fr.sup.length ? fr.sup[fr.sup.length - 1].v : null;
+
+        cuerpo2 = grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 118, arriba: "VFC · ms", unidadTip: "ms",
+          alt: "Variabilidad de la frecuencia cardíaca con su franja de referencia",
+          explica: "La variabilidad del latido mientras duermes: cuanto más alta, más recuperado. " +
+            "La franja gris es lo normal EN TI —el rango central de tus últimas " + VFC_VENTANA +
+            " noches—, no lo normal en la población. Cada punto es la media de 7 noches: " +
+            "verde dentro de la franja, naranja por debajo y rojo cuando se aleja. " +
+            "Lo que se mira es si el punto entra o sale, no el número.",
+          franja: { sup: fr.sup, inf: fr.inf, color: "#dfe4e2", opacidad: 0.85 },
+          series: ser
+        }) + leyenda([
+          { n: "equilibrada", color: VFC_VERDE },
+          { n: "desequilibrada", color: VFC_NARANJA },
+          { n: "baja", color: VFC_ROJO_C },
+          { n: "lo normal en ti", color: "#dfe4e2" }
+        ].concat(cabenNoches ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : []));
+
+        if (ult && ultInf !== null) {
+          cuerpo2 += '<p class="nota-peque" style="margin:4px 0 0">Ahora mismo: <b>' +
+            num(ult.v) + " ms</b> de media de 7 noches, con lo normal en ti entre <b>" +
+            Math.round(ultInf) + "</b> y <b>" + Math.round(ultSup) + " ms</b>.</p>";
+        }
+      } else {
+        cuerpo2 = grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 104, arriba: "VFC · ms", unidadTip: "ms",
+          alt: "Variabilidad de la frecuencia cardíaca",
+          explica: "La variabilidad del latido mientras duermes: cuanto más alta, más recuperado. " +
+            "Todavía no hay noches suficientes para dibujar tu franja de referencia.",
+          lineasH: par.base_vfc ? [{ v: par.base_vfc, color: "#cfdcea", etq: "tu base" }] : [],
+          series: (tramoLargo ? [] : [{ pts: vfc, color: "#c3d3e2", ancho: 0.7, marcarUltimo: false }])
+            .concat([{ pts: vfc7, color: AZUL, ancho: 1.5 }])
+        }) + leyenda([{ n: "media de 7 días", color: AZUL }].concat(
+          tramoLargo ? [] : [{ n: "cada noche", color: "#c3d3e2" }]));
+      }
       /* PULSO EN REPOSO Y PULSO MÍNIMO DEL DÍA, EN LA MISMA GRÁFICA.
          Antes iban en dos gráficas apiladas y así había que medir a ojo, entre
          dos dibujos con escalas distintas, lo único que importa del par: cuánto
@@ -4632,9 +4791,24 @@
       vfc: { n: "VFC", u: "ms", dias: 30, serie: function () { return serieSalud("vfc7", v); },
              objetivo: baseSalud("base_vfc"), etqObj: "tu base",
              pie: "Media de 7 noches. Dice lo que ya pasó, no lo que va a pasar." },
+      /* CON EL PULSO MÍNIMO DEL DÍA DEBAJO (22-sep-2026, Carlos: «quiero ver si
+         hay alteraciones»). Las dos en la misma ventana y no en dos, porque lo
+         que avisa no es ninguna de las dos por su lado: es CUÁNTO SE SEPARAN.
+         Medido sobre los 1.962 días en que existen las dos, el mínimo va 4-5
+         latidos por debajo; cuando esa distancia se cierra, el cuerpo está
+         trabajando de noche.
+         El mínimo sólo llega con la exportación de Garmin, que se baja cada dos
+         meses, así que su línea se acaba donde acabó la última descarga. Eso se
+         dice en el pie, no se disimula. */
       fcr: { n: "FC en reposo", u: "lpm", dias: 30, serie: function () { return serieSalud("fcr", v); },
+             serie2: function () { return serieSalud("pulso_min", v); },
+             etq2: "mínimo del día", par: ["en reposo", "mínimo del día"],
              objetivo: baseSalud("base_fcr"), etqObj: "tu base", invertido: true,
-             pie: "Cuanto más baja, mejor. Cinco pulsaciones por encima de tu base tres días seguidos es señal." },
+             pie: "Azul el pulso en reposo, roja el latido más bajo de todo el día. " +
+                  "Cuanto más bajas, mejor: cinco por encima de tu base tres días seguidos es señal. " +
+                  "La roja suele ir cuatro o cinco latidos por debajo de la azul: " +
+                  "lo que dice algo es la distancia entre las dos. Sólo llega con la exportación de Garmin, " +
+                  "así que se corta en la última que bajaste." },
       sueno: { n: "Sueño", u: "h", dias: 14, serie: function () {
                  return serieSalud("sueno_min", v).map(function (p) { return { f: p.f, v: p.v / 60 }; });
                }, objetivo: 7, etqObj: "7 h",
