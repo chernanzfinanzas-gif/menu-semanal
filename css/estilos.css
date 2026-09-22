@@ -419,10 +419,25 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .linea.hecha .nombre{text-decoration:line-through}
 .linea.en-casa{background:var(--gris-claro)}
 
-/* ---------- despensa ---------- */
-.rejilla-despensa{display:grid; grid-template-columns:1fr; gap:6px}
-@media(min-width:640px){.rejilla-despensa{grid-template-columns:1fr 1fr}}
-@media(min-width:980px){.rejilla-despensa{grid-template-columns:1fr 1fr 1fr}}
+/* ---------- despensa ----------
+   Una columna siempre: la despensa va por sitios de la casa, y un sitio es un
+   bloque que se abre y se cierra, no una tarjeta suelta que quepa al lado de otra. */
+.rejilla-despensa{display:block}
+
+/* LA LÍNEA DE STOCK. Aquí el detalle NO es un adorno: «comprometido 1.800 ml ·
+   libre 200 ml» es el dato por el que se abre esta pantalla. La regla general
+   del móvil lo esconde —y en la lista de la compra está bien escondido—, así
+   que aquí se repone. (Carlos, 22-sep-2026: «apenas se ve».) */
+.linea-stock{flex-wrap:wrap; row-gap:6px}
+.linea-stock .datos{flex:1 1 100%}
+.rejilla-despensa .linea-stock .detalle{display:block}   /* más específico que la regla del móvil, que va después en el fichero */
+.linea-stock .stock-cant{flex:none}
+.linea-stock.hecha{opacity:.65}
+.linea-stock.hecha .nombre{text-decoration:none}
+@media(min-width:520px){
+  .linea-stock{flex-wrap:nowrap}
+  .linea-stock .datos{flex:1 1 auto}
+}
 
 /* ---------- ventana modal ---------- */
 .modal{position:fixed; inset:0; background:rgba(31,42,36,.45); display:none; align-items:flex-end; justify-content:center; z-index:60}

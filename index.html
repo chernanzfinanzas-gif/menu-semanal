@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=110">
-<link rel="stylesheet" href="css/actividad-khb.css?v=110">
+<link rel="stylesheet" href="css/estilos.css?v=111">
+<link rel="stylesheet" href="css/actividad-khb.css?v=111">
 </head>
 <body>
 
@@ -204,13 +204,14 @@
   <section class="vista" id="vista-despensa">
     <div class="cabecera-vista">
       <img src="iconos/khb/4-agua.webp" alt="" width="52" height="52">
-      <div><h2>Despensa</h2><span class="nota-peque">Lo que ya tienes en casa y los valores de cada alimento</span></div>
+      <div><h2>Despensa</h2><span class="nota-peque">Lo que hay en casa, por sitios, con su cantidad</span></div>
     </div>
-    <div class="aviso">Marca lo que ya tienes en casa: desaparecerá de la lista de la compra hasta que lo desmarques.</div>
+    <div class="aviso">Repasa un sitio y pon las cifras: ésa es la foto de la que sale todo lo demás.
+      Lo que está comprometido por el menú ya no cuenta como libre, y lo libre es lo único que se puede
+      planificar. Esto nunca te impide nada: avisa, no manda.</div>
     <div class="fila" style="margin-bottom:12px">
-      <input type="text" id="buscar-despensa" placeholder="Buscar ingrediente…" style="flex:1; min-width:180px">
-      <button class="btn principal mini solo-edicion" id="nuevo-ingrediente">+ Nuevo</button>
-      <button class="btn mini solo-edicion" id="despensa-vaciar">Desmarcar todo</button>
+      <input type="text" id="buscar-despensa" placeholder="Buscar para añadir a la despensa…" style="flex:1; min-width:180px">
+      <button class="btn mini solo-edicion" id="despensa-vaciar">Vaciar entera</button>
     </div>
     <div class="rejilla-despensa" id="rejilla-despensa"></div>
   </section>
@@ -436,17 +437,17 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=110"></script>
-<script src="datos/recetas.js?v=110"></script>
-<script src="datos/nuevos.js?v=110"></script>
-<script src="datos/plantillas.js?v=110"></script>
-<script src="datos/actividades.js?v=110"></script>
-<script src="datos/plan.js?v=110"></script>
-<script src="js/util.js?v=110"></script>
-<script src="js/almacen.js?v=110"></script>
-<script src="js/github.js?v=110"></script>
-<script src="js/app.js?v=110"></script>
-<script src="js/actividad-khb.js?v=110"></script>
-<script src="js/entrenamiento.js?v=110"></script>
+<script src="datos/ingredientes.js?v=111"></script>
+<script src="datos/recetas.js?v=111"></script>
+<script src="datos/nuevos.js?v=111"></script>
+<script src="datos/plantillas.js?v=111"></script>
+<script src="datos/actividades.js?v=111"></script>
+<script src="datos/plan.js?v=111"></script>
+<script src="js/util.js?v=111"></script>
+<script src="js/almacen.js?v=111"></script>
+<script src="js/github.js?v=111"></script>
+<script src="js/app.js?v=111"></script>
+<script src="js/actividad-khb.js?v=111"></script>
+<script src="js/entrenamiento.js?v=111"></script>
 </body>
 </html>

@@ -137,6 +137,13 @@
         comido: {},            // { "YYYY-MM-DD": { comida:["receta_id", …] } }  lo que se comió de verdad
         comprado: {},          // igual, pero lo que ya está COMPRADO (no se vuelve a pedir)
         despensa: {},          // { ingredienteId: true }  -> ya lo tengo en casa
+        stock: {},             /* { ingredienteId: { c: cantidad, f: "AAAA-MM-DD" } }
+                                  LO QUE HAY EN CASA, en la unidad del ingrediente, con la
+                                  fecha en que se confirmó a mano. Sustituye al sí/no de
+                                  `despensa`, que no servía para saber si llegaba. */
+        stockSitios: {},       /* { sitio: "AAAA-MM-DD" } — cuándo se contó cada sitio
+                                  de la casa por última vez. Cada uno va por su cuenta:
+                                  la nevera se repasa cada semana y el armario, no. */
         real: {},              /* { fecha: { toma: { recetaId: {c, u} } } }
                                   LO QUE COMISTE DE VERDAD, cuando no fue lo previsto.
                                   Vive en el día, nunca en la receta ni en el plan: que
@@ -432,6 +439,16 @@
         e.config.v_sal35 = 1;
       }
       if (!e.despensa) e.despensa = {};
+      if (!e.stock) e.stock = {};
+      if (!e.stockSitios) e.stockSitios = {};
+      /* LO QUE HABÍA MARCADO CON EL SÍ/NO VIEJO no se tira: pasa a stock como
+         «esto lo tienes, pero no sé cuánto». Cuenta como cero —más vale que la
+         lista lo pida de más a que te quedes sin ello— y sale el primero en la
+         revisión, para que la primera cuenta empiece por ahí. */
+      Object.keys(e.despensa || {}).forEach(function (id) {
+        if (e.stock[id]) return;
+        e.stock[id] = { c: 0, f: null, pte: true };
+      });
       if (!e.real) e.real = {};
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.favoritos) e.favoritos = [];
@@ -439,7 +456,12 @@
     },
 
     /* ---------- persistencia ---------- */
+    _sello: 0,
+    _compCache: null,
+    _compSello: -1,
+
     guardar: function (motivo) {
+      this._sello++;              /* invalida la cuenta de lo comprometido */
       this._cacheEntreno = null;          // ver `hayEntreno`
       this.estado.actualizado = new Date().toISOString();
       try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
@@ -1060,6 +1082,135 @@
         m[id]++;
       });
       return { veces: m, orden: orden };
+    },
+
+    /* ================= LA DESPENSA CON CANTIDADES =================
+       Tres números, y solo el primero se guarda:
+
+         STOCK        lo que hay en casa ahora mismo.
+         COMPROMETIDO lo que piden los platos ya planificados de hoy en adelante
+                      y todavía sin comer. NO SE GUARDA, SE CALCULA.
+         LIBRE        stock − comprometido. Es lo único que se puede planificar.
+
+       Que el compromiso no se guarde es la decisión que sostiene todo esto.
+       Guardarlo obligaría a acordarse de devolverlo en cinco sitios —al borrar un
+       plato, al cambiar de día, al marcar la toma como fuera, al vaciar la semana,
+       al cambiar la cantidad— y el día que uno de los cinco fallara, el número
+       empezaría a mentir sin avisar. Calculándolo no hay nada que devolver.
+
+       El stock NO BLOQUEA NADA. Sugiere. Nunca impide planificar algo. */
+
+    /* DÓNDE ESTÁ EN LA CASA, que no es lo mismo que la sección del súper.
+       La sección es la ruta del supermercado y sirve para la lista de la compra;
+       para repasar, lo que hace falta es esto: tú no abres «Lácteos y huevos»,
+       abres la nevera. El orden es el de la prisa que corre cada cosa. */
+    SITIOS: [
+      { k: "nevera",     n: "Nevera",     cats: ["Lácteos y huevos", "Carnicería", "Pescadería", "Charcutería y quesos"] },
+      { k: "frutero",    n: "Frutero",    cats: ["Frutas y verduras"] },
+      { k: "congelador", n: "Congelador", cats: ["Congelados"] },
+      { k: "panera",     n: "Panera",     cats: ["Panadería"] },
+      { k: "armario",    n: "Armario",    cats: ["Despensa", "Especias y aromáticos", "Aperitivos y frutos secos", "Dulces", "Bebidas"] }
+    ],
+
+    sitioDe: function (id) {
+      var g = typeof id === "string" ? this.ingrediente(id) : id;
+      if (!g) return null;
+      var cat = g.cat, fuera = null;
+      this.SITIOS.forEach(function (s) { if (!fuera && s.cats.indexOf(cat) >= 0) fuera = s.k; });
+      return fuera;           // null = no se guarda en casa (restaurante y bar)
+    },
+    nombreSitio: function (k) {
+      var n = k;
+      this.SITIOS.forEach(function (s) { if (s.k === k) n = s.n; });
+      return n;
+    },
+
+    /* ---------- stock ---------- */
+    fichaStock: function (id) { return (this.estado.stock || {})[id] || null; },
+    stockDe: function (id) {
+      var f = this.fichaStock(id);
+      return f && f.c > 0 ? f.c : 0;
+    },
+    /* Escribir la cifra es confirmarla: se sella con la fecha de hoy y deja de
+       estar pendiente. Cero no se borra —«hoy no queda» es un dato—, pero sí se
+       limpia si nunca se había contado. */
+    ponerStock: function (id, c) {
+      if (!this.estado.stock) this.estado.stock = {};
+      c = Number(c);
+      if (!(c >= 0)) { delete this.estado.stock[id]; }
+      else this.estado.stock[id] = { c: Math.round(c * 100) / 100, f: Util.hoyISO() };
+      var sitio = this.sitioDe(id);
+      if (sitio) {
+        if (!this.estado.stockSitios) this.estado.stockSitios = {};
+        this.estado.stockSitios[sitio] = Util.hoyISO();
+      }
+      this.guardar("stock");
+    },
+
+    /* ---------- comprometido ----------
+       Se calcula de una vez para todos los ingredientes y se guarda en caché
+       hasta el siguiente guardado: preguntarlo ingrediente a ingrediente
+       recorrería el plan entero ciento ochenta veces. */
+    comprometidoTodo: function () {
+      if (this._compCache && this._compSello === this._sello) return this._compCache;
+      var self = this, hoy = Util.hoyISO(), fuera = {}, tandas = {};
+      Object.keys(this.estado.plan || {}).forEach(function (fecha) {
+        if (fecha < hoy) return;                       // el pasado no compromete nada
+        var dia = self.estado.plan[fecha];
+        if (!dia) return;
+        ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
+          if (self.esFuera(fecha, toma)) return;       // lo de fuera no sale de tu despensa
+          if (!self.tomaActiva(fecha, toma)) return;
+          var personas = self.comensales(fecha, toma);
+          var g = self.agrupar(dia[toma]);
+          g.orden.forEach(function (rid) {
+            if (self.estaComido(fecha, toma, rid)) return;   // ya comido: ya descontado
+            var rec = self.receta(rid);
+            if (!rec) return;
+            var raciones = personas * g.veces[rid];
+            if (rec.tanda) { tandas[rid] = (tandas[rid] || 0) + raciones; return; }
+            var factor = raciones / (rec.raciones || 1);
+            (rec.ing || []).forEach(function (l) {
+              fuera[l.i] = (fuera[l.i] || 0) + l.c * factor;
+            });
+          });
+        });
+      });
+      /* Una tanda se hace entera aunque solo se coma una porción: compromete
+         tandas completas, igual que la compra las pide completas. */
+      Object.keys(tandas).forEach(function (rid) {
+        var rec = self.receta(rid);
+        if (!rec) return;
+        var n = Math.ceil(tandas[rid] / (rec.raciones || 1)) || 1;
+        (rec.ing || []).forEach(function (l) { fuera[l.i] = (fuera[l.i] || 0) + l.c * n; });
+      });
+      this._compCache = fuera;
+      this._compSello = this._sello;
+      return fuera;
+    },
+    comprometido: function (id) { return this.comprometidoTodo()[id] || 0; },
+    libre: function (id) {
+      var l = this.stockDe(id) - this.comprometido(id);
+      return l > 0 ? l : 0;
+    },
+
+    /* Lo que hay en un sitio de la casa, con su cuenta hecha. */
+    loQueHayEn: function (sitio) {
+      var self = this, comp = this.comprometidoTodo(), fuera = [];
+      (this.estado.ingredientes || []).forEach(function (g) {
+        if (g.oculta) return;
+        if (self.sitioDe(g) !== sitio) return;
+        var f = self.fichaStock(g.id);
+        if (!f) return;
+        var c = f.c > 0 ? f.c : 0;
+        if (!c && !f.pte) return;             // sin nada y ya contado: no estorba
+        fuera.push({ id: g.id, n: g.n, u: g.u, pesoUd: g.pesoUd, envase: g.envase,
+                     c: c, f: f.f, pte: !!f.pte,
+                     comprometido: comp[g.id] || 0,
+                     libre: Math.max(0, c - (comp[g.id] || 0)) });
+      });
+      fuera.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      return fuera;
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */
