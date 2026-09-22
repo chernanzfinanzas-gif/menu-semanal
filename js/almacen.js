@@ -2677,6 +2677,7 @@
           id: id,
           nombre: ing.n,
           producto: ing.producto || "",
+          suplente: ing.suplente || "",
           cantidad: comprar,
           pide: pide,
           hay: hay,

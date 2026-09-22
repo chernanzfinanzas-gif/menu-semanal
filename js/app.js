@@ -2468,6 +2468,11 @@
             'placeholder="Arroz redondo SOS, paquete de 1 kg">' +
             '<span class="nota-peque" style="font-weight:400">Es lo que se copia a Amazon. Sin marca, ' +
             'la l\u00ednea no es comprable ah\u00ed \u2014 en el s\u00faper da igual, t\u00fa ya sabes cu\u00e1l coger.</span></label>';
+    html += '<label class="campo"><span>Si no hay, este otro (opcional)</span>' +
+            '<input type="text" id="ig-suplente" value="' + esc(g.suplente || "") + '" ' +
+            'placeholder="Carbonell Virgen Extra 1 L">' +
+            '<span class="nota-peque" style="font-weight:400">Tu segunda opci\u00f3n. Sale escrita debajo ' +
+            'en la lista y en el pedido, para no tener que buscarla cuando falte la primera.</span></label>';
     html += '<div class="fila">' +
       '<label class="campo" style="flex:1 1 150px"><span>Envase (' + esc(g.u || "g") + ' por unidad de venta)</span>' +
         '<input type="number" id="ig-envase" min="0" step="1" value="' + (g.envase != null ? g.envase : "") + '">' +
@@ -2507,6 +2512,8 @@
       if (racion > 0) res.racion = racion;
       var prod = $("#ig-producto").value.trim();
       if (prod) res.producto = prod;
+      var sup = $("#ig-suplente").value.trim();
+      if (sup) res.suplente = sup;
       var env = parseFloat(String($("#ig-envase").value).replace(",", "."));
       if (env > 0) res.envase = env;
       var caj = $("#ig-cajon").value;
@@ -3207,6 +3214,7 @@
     if (l.recetas && l.recetas.length) {
       porque += " \u00b7 " + esc(l.recetas.slice(0, 2).join(", ")) + (l.recetas.length > 2 ? "\u2026" : "");
     }
+    if (l.suplente) porque += " \u00b7 si no hay: " + esc(l.suplente);
     return '<div class="' + clases + '">' +
       '<input type="checkbox" data-marcar="' + esc(l.id) + '"' + (l.marcado ? " checked" : "") + ' title="Pedido">' +
       '<div class="datos"><div class="nombre">' + esc(nombre) +
@@ -3258,7 +3266,8 @@
         if (x.sec !== sec) { sec = x.sec; out += "\n" + sec.toUpperCase() + "\n"; }
         var nombre = x.l.producto || x.l.nombre;
         if (!x.l.producto && k === "amazon") { nombre += "  [FALTA LA MARCA]"; sinMarca++; }
-        out += "  - " + nombre + ": " + x.l.texto + "\n";
+        out += "  - " + nombre + ": " + x.l.texto +
+               (x.l.suplente ? "   (si no hay: " + x.l.suplente + ")" : "") + "\n";
       });
       if (hg.length) {
         out += "\nCASA\n";

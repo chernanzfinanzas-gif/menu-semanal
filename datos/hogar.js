@@ -43,7 +43,7 @@ window.DATOS_HOGAR = [
   { id:"film_transparente", n:"Film transparente", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
   { id:"papel_de_horno", n:"Papel de horno", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
   { id:"papel_para_freidora_de_aire", n:"Papel para freidora de aire", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true, nota:"Los redondos con agujeros, del tamaño de tu cesta" },
-  { id:"papel_de_cocina", n:"Papel de cocina", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
+  { id:"papel_de_cocina", n:"Scottex Megarollo Papel de cocina, 3 rollos", rev:2, cat:"Menaje", cajon:"amazon" },
   { id:"bolsas_de_congelacion", n:"Bolsas de congelación", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
   { id:"bolsas_de_cierre_zip", n:"Bolsas de cierre zip", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
   { id:"servilletas_de_papel", n:"Servilletas de papel", rev:1, cat:"Menaje", cajon:"amazon", pendiente:true },
@@ -59,16 +59,16 @@ window.DATOS_HOGAR = [
   { id:"cuchillas_de_afeitar", n:"Cuchillas de afeitar", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"espuma_o_gel_de_afeitar", n:"Espuma o gel de afeitar", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"crema_hidratante_corporal", n:"Crema hidratante corporal", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
-  { id:"papel_higienico", n:"Papel higiénico", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true, nota:"De los que compensa comprar en paquete grande" },
+  { id:"papel_higienico", n:"Scottex Megarollo Papel Higiénico Seco, 12 rollos", rev:2, cat:"Aseo", cajon:"amazon" },
   { id:"panuelos_de_papel", n:"Pañuelos de papel", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"bastoncillos", n:"Bastoncillos", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"jabon_de_manos", n:"Jabón de manos", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true },
   { id:"protector_solar", n:"Protector solar", rev:1, cat:"Aseo", cajon:"amazon", pendiente:true, nota:"De temporada: para las rutas" },
   /* ---------- MASCOTA ---------- */
-  { id:"pienso_del_gato", n:"Pienso del gato", rev:1, cat:"Mascota", cajon:"suscripcion", pendiente:true, nota:"En suscripción, cada 6 meses" },
-  { id:"arena_del_gato", n:"Arena del gato", rev:1, cat:"Mascota", cajon:"suscripcion", pendiente:true, nota:"En suscripción, cada 6 meses" },
-  { id:"comida_humeda_del_gato", n:"Comida húmeda del gato", rev:1, cat:"Mascota", cajon:"amazon", pendiente:true },
-  { id:"snacks_del_gato", n:"Snacks del gato", rev:1, cat:"Mascota", cajon:"amazon", pendiente:true },
-  { id:"bolsas_para_recoger_la_arena", n:"Bolsas para recoger la arena", rev:1, cat:"Mascota", cajon:"amazon", pendiente:true },
-  { id:"antiparasitario", n:"Antiparasitario", rev:1, cat:"Mascota", cajon:"amazon", pendiente:true }
+  { id:"pienso_del_gato", n:"Pienso del gato", rev:3, cat:"Mascota", cajon:"amazon", oculta:true, nota:"Retirado: el gato solo come lata" },
+  { id:"arena_del_gato", n:"Vitakraft Magic Clean Classic, arena no aglomerante, 4,2 kg", rev:2, cat:"Mascota", cajon:"suscripcion", nota:"Suscripción de Amazon: 4 bolsas cada 6 semanas" },
+  { id:"comida_humeda_del_gato", n:"Purina Gourmet Gold Mousse, caja 96 × 85 g", rev:2, cat:"Mascota", cajon:"suscripcion", nota:"Suscripción de Amazon: 1 caja cada 6 semanas" },
+  { id:"snacks_del_gato", n:"Snacks del gato", rev:2, cat:"Mascota", cajon:"amazon", oculta:true, nota:"Retirado: no los toma" },
+  { id:"bolsas_para_recoger_la_arena", n:"Biokat's bolsas XXL de polietileno para la bandeja", rev:2, cat:"Mascota", cajon:"suscripcion", nota:"Suscripción de Amazon: 1 paquete cada 6 semanas" },
+  { id:"antiparasitario", n:"Antiparasitario", rev:2, cat:"Mascota", cajon:"amazon", oculta:true, nota:"Retirado: no lo usa" }
 ];
