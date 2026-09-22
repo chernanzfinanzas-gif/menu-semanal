@@ -1,4 +1,4 @@
 /* TUS NOVEDADES — lo escribe la app sola. No editar a mano: se reescribe.
-   0 ingredientes y 0 recetas creados o corregidos por ti.
-   Última vez: 22/9/2026, 11:53:02 */
-window.DATOS_NUEVOS = {"ingredientes":[],"recetas":[]};
+   1 ingredientes y 0 recetas creados o corregidos por ti.
+   Última vez: 22/9/2026, 12:24:29 */
+window.DATOS_NUEVOS = {"ingredientes":[{"id":"agua_con_gas_con_sodastream_cl","n":"Agua con gas con SodaStream Classics limón zero (bebida prep","cat":"Bebidas","u":"ml","sal":0.02,"k":0,"p":0,"g":0,"h":0,"de":"ia","racion":750,"nota":"Etiqueta española del bote de 440 ml de SodaStream Iberia, columna de bebida YA DILUIDA según sus instrucciones. Por 100 ml: 1 kJ (0 kcal), 0 g de grasa, 0 g de hidratos, 0 g de azúcares, 0 g de proteína y 0,02 g de sal. Tu botella de 750 ml son 0,15 g de sal, menos del 4% de tu tope del día, y calorías cero a efectos prácticos. Endulzado con sucralosa y estevia, y lleva vitaminas E, B3, B6 y D3 a","tocado":"2026-09-22T10:24:29.473Z"}],"recetas":[]};
