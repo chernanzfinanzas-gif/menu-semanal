@@ -1,5 +1,9 @@
 /* almacen.js — estado de la aplicación, cálculos y persistencia local */
 (function (global) {
+
+  /* Qué venía del catálogo grande, apuntado antes de mezclar `datos/nuevos.js`.
+     Sirve para saber qué es tuyo y qué es mío sin tener que marcarlo a mano. */
+  var SEMILLA_BASE = null;
   "use strict";
 
   var CLAVE = "asistente-alimentacion-v1";
@@ -122,6 +126,28 @@
     },
 
     reparar: function () {
+      /* ---------- TUS NOVEDADES ----------
+         `datos/nuevos.js` trae lo que has creado o corregido tú desde la app y
+         que la app subió al repositorio. Se mezcla con la semilla ANTES de nada,
+         así que entra por el mismo camino que todo lo demás: alta por id y
+         sustitución por `rev`. Antes de mezclar se apunta qué venía del catálogo
+         grande, y eso es lo que luego distingue lo tuyo de lo mío. */
+      if (!SEMILLA_BASE) {
+        SEMILLA_BASE = { ing: {}, rec: {} };
+        (global.DATOS_INGREDIENTES || []).forEach(function (x) { SEMILLA_BASE.ing[x.id] = JSON.stringify(x); });
+        (global.DATOS_RECETAS || []).forEach(function (x) { SEMILLA_BASE.rec[x.id] = JSON.stringify(x); });
+        var nv = global.DATOS_NUEVOS || {};
+        [["ingredientes", "DATOS_INGREDIENTES"], ["recetas", "DATOS_RECETAS"]].forEach(function (par) {
+          var lista = global[par[1]] || (global[par[1]] = []);
+          var pos = {};
+          lista.forEach(function (x, i) { pos[x.id] = i; });
+          (nv[par[0]] || []).forEach(function (x) {
+            if (!x || !x.id) return;
+            if (pos[x.id] != null) lista[pos[x.id]] = x; else lista.push(x);
+          });
+        });
+      }
+
       var e = this.estado;
       if (!e.config) e.config = this.estadoInicial().config;
       if (!e.config.github) e.config.github = { usuario: "", repo: "", rama: "main", token: "" };
@@ -231,6 +257,31 @@
       if (refrescadas.length) {
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
         if (global.console) console.log("Recetas actualizadas: " + refrescadas.join(", "));
+      }
+
+      /* ---------- LO QUE HAS CORREGIDO DESDE OTRO APARATO ----------
+         Un ingrediente que ya tenías y que cambiaste en el móvil no puede entrar
+         por `rev`: el `rev` es mío, de cuando mejoro el catálogo, y no sabe nada
+         de tus correcciones. Entra por `tocado`, que es la hora a la que lo
+         guardaste: gana el último que lo tocó, igual que todo lo demás en esta
+         app. En el aparato donde lo escribiste la hora es la misma, así que ahí
+         no se toca nada. */
+      var nvz = global.DATOS_NUEVOS || {};
+      var corregidos = [];
+      [["ingredientes", "ingredientes"], ["recetas", "recetas"]].forEach(function (par) {
+        var porId = {};
+        (nvz[par[0]] || []).forEach(function (x) { if (x && x.id && x.tocado) porId[x.id] = x; });
+        (e[par[1]] || []).forEach(function (x, i) {
+          var n = porId[x.id];
+          if (!n) return;
+          if (String(x.tocado || "") >= String(n.tocado)) return;
+          e[par[1]][i] = JSON.parse(JSON.stringify(n));
+          corregidos.push(n.n);
+        });
+      });
+      if (corregidos.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Tus correcciones traídas: " + corregidos.join(", "));
       }
 
       /* Los topes de sal viejos (2,0 y 1,5) venían de confundir miligramos de sodio
@@ -877,6 +928,30 @@
       this.estado.ingredientes.push(ing);
       this.guardar("ingrediente");
       return id;
+    },
+
+    /* LO QUE HAS CREADO O CORREGIDO TÚ.
+       Es exactamente lo que sube a `datos/nuevos.js` del repositorio público:
+       los ingredientes y recetas que no venían en el catálogo grande, más los
+       que venían pero has corregido (`editado`) y los que propuso una IA
+       (`de:"ia"`). Nada más: el plan, la despensa, las medidas y el peso viajan
+       aparte, al repositorio privado, por `github.js`. */
+    novedades: function () {
+      var base = SEMILLA_BASE || { ing: {}, rec: {} };
+      /* Es tuyo si no venía en el catálogo grande, o si venía y lo has cambiado.
+         Lo segundo se mira COMPARANDO, no por la marca `editado`: si no, un
+         ingrediente que corregiste hace meses y que ya absorbí en el catálogo
+         seguiría subiendo una copia idéntica para siempre. */
+      function mio(x, dic) {
+        if (!x || !x.id) return false;
+        var base = dic[x.id];
+        if (base === undefined) return true;
+        return JSON.stringify(x) !== base;
+      }
+      return {
+        ingredientes: (this.estado.ingredientes || []).filter(function (x) { return mio(x, base.ing); }),
+        recetas: (this.estado.recetas || []).filter(function (x) { return mio(x, base.rec) && !x.borrada; })
+      };
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */

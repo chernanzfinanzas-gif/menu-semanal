@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=102">
-<link rel="stylesheet" href="css/actividad-khb.css?v=102">
+<link rel="stylesheet" href="css/estilos.css?v=103">
+<link rel="stylesheet" href="css/actividad-khb.css?v=103">
 </head>
 <body>
 
@@ -138,6 +138,18 @@
     </div>
     <div id="contador-recetas" class="nota-peque" style="margin-bottom:10px"></div>
     <div class="rejilla-recetas" id="rejilla-recetas"></div>
+
+    <div class="cabecera-vista" style="margin-top:28px">
+      <div><h2>Ingredientes</h2><span class="nota-peque">La pieza de abajo del todo: una receta es una suma de éstos. Aquí se ven sus calorías y su sal, y se dan de alta los nuevos</span></div>
+    </div>
+    <div class="filtros">
+      <input type="text" id="buscar-ingrediente" placeholder="Buscar ingrediente…">
+      <select id="filtro-seccion"><option value="">Todas las secciones</option></select>
+      <button class="btn principal mini solo-edicion" id="nuevo-ingrediente">+ Nuevo</button>
+      <button class="btn mini solo-edicion" id="ingrediente-ia" title="Copia un encargo para Claude o Gemini y pega aquí su respuesta">+ Con una IA</button>
+    </div>
+    <div id="contador-ingredientes" class="nota-peque" style="margin-bottom:10px"></div>
+    <div class="rejilla-recetas" id="rejilla-ingredientes"></div>
   </section>
 
   <!-- ===================== COMPRA ===================== -->
@@ -362,6 +374,32 @@
       </div>
     </div>
 
+    <div class="tarjeta">
+      <h2>Subir lo que creas al catálogo público</h2>
+      <p class="nota-peque">Cada vez que guardas una receta o un ingrediente, lo tuyo sube solo al fichero
+        <code>datos/nuevos.js</code> del repositorio de la app. Ese fichero es tuyo y de nadie más: la app
+        no escribe nunca en <code>recetas.js</code> ni en <code>ingredientes.js</code>, así que no hay forma
+        de que una publicación te borre lo que has escrito. Usa una clave distinta de la de arriba, con
+        permiso solo sobre este repositorio.</p>
+      <div id="estado-catalogo" class="sync"></div>
+      <label class="campo"><span>Usuario de GitHub</span><input type="text" id="cat-usuario" placeholder="carlos"></label>
+      <label class="campo"><span>Repositorio de la app</span><input type="text" id="cat-repo" placeholder="menu-semanal"></label>
+      <label class="campo"><span>Rama</span><input type="text" id="cat-rama" placeholder="main"></label>
+      <label class="campo"><span>Clave del catálogo (token)</span>
+        <div class="fila-clave">
+          <input type="password" id="cat-token" placeholder="github_pat_…">
+          <button type="button" class="btn mini" id="cat-ver">Ver</button>
+        </div>
+        <span class="nota-peque" style="font-weight:400; margin-top:4px; display:block">Se guarda solo en este
+          aparato y nunca viaja al repositorio.</span>
+      </label>
+      <div class="fila">
+        <button class="btn principal" id="cat-guardar">Guardar y subir</button>
+        <button class="btn" id="cat-probar">Probar conexión</button>
+        <button class="btn" id="cat-subir">Subir ahora</button>
+      </div>
+    </div>
+
     <div class="tarjeta solo-edicion">
       <h2>Copia de seguridad</h2>
       <div class="fila">
@@ -382,16 +420,17 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=102"></script>
-<script src="datos/recetas.js?v=102"></script>
-<script src="datos/plantillas.js?v=102"></script>
-<script src="datos/actividades.js?v=102"></script>
-<script src="datos/plan.js?v=102"></script>
-<script src="js/util.js?v=102"></script>
-<script src="js/almacen.js?v=102"></script>
-<script src="js/github.js?v=102"></script>
-<script src="js/app.js?v=102"></script>
-<script src="js/actividad-khb.js?v=102"></script>
-<script src="js/entrenamiento.js?v=102"></script>
+<script src="datos/ingredientes.js?v=103"></script>
+<script src="datos/recetas.js?v=103"></script>
+<script src="datos/nuevos.js?v=103"></script>
+<script src="datos/plantillas.js?v=103"></script>
+<script src="datos/actividades.js?v=103"></script>
+<script src="datos/plan.js?v=103"></script>
+<script src="js/util.js?v=103"></script>
+<script src="js/almacen.js?v=103"></script>
+<script src="js/github.js?v=103"></script>
+<script src="js/app.js?v=103"></script>
+<script src="js/actividad-khb.js?v=103"></script>
+<script src="js/entrenamiento.js?v=103"></script>
 </body>
 </html>

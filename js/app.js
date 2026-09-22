@@ -8,6 +8,7 @@
     vista: "menu",
     lunes: Util.lunesDe(Util.hoyISO()),
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
+    filtrosIng: { texto: "", cat: "" },
     busquedaDespensa: "",
     verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
@@ -2307,6 +2308,15 @@
   /* `nombrePrevio` y `alGuardar` los usa la pantalla de ordenar caprichos: si
      unos pistachos no están en la despensa, se crean desde allí sin perder el
      hilo y se vuelve a la lista con el ingrediente ya hecho. */
+  /* LAS SECCIONES DEL SÚPER, en el orden en que se recorre.
+     Es el único sitio donde vive esa lista: la compra se ordena por ella y el
+     alta de ingredientes la ofrece tal cual. «Restaurante y bar» no es una
+     sección de verdad: es la marca de lo que NO se compra en ningún sitio. */
+  var SECCIONES = ["Frutas y verduras", "Carnicería", "Pescadería", "Charcutería y quesos",
+                   "Lácteos y huevos", "Panadería", "Congelados", "Despensa",
+                   "Aperitivos y frutos secos", "Dulces", "Bebidas", "Especias y aromáticos",
+                   "Restaurante y bar"];
+
   function abrirIngrediente(id, nombrePrevio, alGuardar) {
     var nuevo = !id;
     var g = nuevo
@@ -2315,8 +2325,8 @@
       : JSON.parse(JSON.stringify(Almacen.ingrediente(id)));
     if (!g) return;
 
-    var cats = ["Frutas y verduras", "Carnicería", "Pescadería", "Congelados",
-                "Lácteos y huevos", "Panadería", "Despensa", "Especias y aromáticos"];
+    var cats = SECCIONES.slice();
+    if (g.cat && cats.indexOf(g.cat) < 0) cats.unshift(g.cat);
 
     var html = '<header><h2>' + (nuevo ? "Nuevo ingrediente" : esc(g.n)) + '</h2>' +
                '<button class="cerrar" data-cerrar>×</button></header>';
@@ -2341,6 +2351,13 @@
                  '<input type="number" id="ig-' + p[0] + '" min="0" step="' + p[2] + '" value="' +
                  (g[p[0]] != null ? g[p[0]] : 0) + '"></label>';
         }).join("") + '</div>';
+    html += '<div class="fila">' +
+      '<label class="campo" style="flex:1 1 150px"><span>Raci\u00f3n habitual (' + esc(g.u || "g") + ')</span>' +
+        '<input type="number" id="ig-racion" min="0" step="0.5" value="' + (g.racion != null ? g.racion : "") + '">' +
+        '<span class="nota-peque" style="font-weight:400">Lo que sueles tomar de una vez: un pl\u00e1tano, 30 g de pistachos. Se usa al apuntarlo en una toma.</span></label>' +
+      '<label class="campo" style="flex:2 1 260px"><span>Nota</span>' +
+        '<input type="text" id="ig-nota" value="' + esc(g.nota || "") + '" placeholder="Marca, formato, d\u00f3nde lo compras\u2026"></label>' +
+      '</div>';
     html += '<label style="font-size:.85rem; display:block; margin-bottom:12px">' +
             '<input type="checkbox" id="ig-basico"' + (g.basico ? " checked" : "") + '> ' +
             'Es un básico de despensa (va aparte en la lista de la compra)</label>';
@@ -2360,7 +2377,10 @@
       var peso = parseFloat($("#ig-peso").value);
       if (res.u === "ud" && peso > 0) res.pesoUd = peso;
       if ($("#ig-basico").checked) res.basico = true;
-      if (g.nota) res.nota = g.nota;
+      var racion = parseFloat(String($("#ig-racion").value).replace(",", "."));
+      if (racion > 0) res.racion = racion;
+      var nota = $("#ig-nota").value.trim();
+      if (nota) res.nota = nota; else if (g.nota) res.nota = g.nota;
       if (g.compra) res.compra = g.compra;
       res.editado = true;          /* a partir de ahora manda el tuyo: no lo piso */
 
@@ -2370,7 +2390,7 @@
       else Almacen.estado.ingredientes.push(res);
       Almacen.guardar("ingrediente");
       cerrarModal();
-      pintarDespensa(); pintarMenu();
+      pintarDespensa(); pintarMenu(); pintarRecetas();
       Util.toast("Ingrediente guardado");
       if (alGuardar) alGuardar(res.id);
     });
@@ -2414,6 +2434,158 @@
                etiquetasTool(r.tools) +
              '</div></div>';
     }).join("") || '<div class="vacio">No hay recetas con esos filtros.</div>';
+    pintarIngredientes();
+  }
+
+  /* ---------- LA FILA DE INGREDIENTES, debajo de la de recetas ----------
+     Una receta es una suma de ingredientes, así que el ingrediente es la pieza
+     de abajo del todo y merece su propio buscador. Además es donde se ven de un
+     vistazo las dos cifras que importan en esta casa: las calorías y la sal por
+     cada 100 g. */
+  function pintarIngredientes() {
+    var rej = $("#rejilla-ingredientes");
+    if (!rej) return;
+    var f = UI.filtrosIng;
+    var lista = (Almacen.estado.ingredientes || []).filter(function (x) {
+      if (f.cat && x.cat !== f.cat) return false;
+      if (f.texto) {
+        var q = sinTildes(f.texto.toLowerCase());
+        if (sinTildes((x.n || "").toLowerCase()).indexOf(q) < 0 &&
+            sinTildes((x.nota || "").toLowerCase()).indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+    lista.sort(function (a, b) { return (a.n || "").localeCompare(b.n || ""); });
+
+    var sel = $("#filtro-seccion");
+    if (sel && !sel.dataset.listo) {
+      var hay = {};
+      (Almacen.estado.ingredientes || []).forEach(function (x) { if (x.cat) hay[x.cat] = true; });
+      var orden = SECCIONES.filter(function (c) { return hay[c]; })
+        .concat(Object.keys(hay).filter(function (c) { return SECCIONES.indexOf(c) < 0; }));
+      sel.innerHTML = '<option value="">Todas las secciones</option>' +
+        orden.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join("");
+      sel.dataset.listo = "1";
+    }
+
+    $("#contador-ingredientes").textContent =
+      lista.length + " ingredientes" + (f.cat || f.texto ? " (de " + (Almacen.estado.ingredientes || []).length + ")" : "");
+
+    rej.innerHTML = lista.map(function (x) {
+      var u = x.u === "ud" ? "unidad" : ("100 " + (x.u || "g"));
+      var racion = x.racion != null
+        ? Util.cantidadReceta(x.racion, x.u, x.pesoUd)
+        : "";
+      var base = x.u === "ud" ? (x.pesoUd || 100) / 100 : 1;
+      return '<div class="receta" data-ingrediente="' + esc(x.id) + '">' +
+             '<h3>' + esc(x.n) + '</h3>' +
+             '<div class="nota-peque">' + Util.kcal((x.k || 0) * base) + ' \u00b7 ' +
+               Util.sal((x.sal || 0) * base) + ' sal \u00b7 por ' + esc(u) + '</div>' +
+             '<div class="etiquetas">' +
+               (x.cat ? '<span class="etiqueta verde">' + esc(x.cat) + '</span>' : '') +
+               (racion ? '<span class="etiqueta">Raci\u00f3n: ' + esc(racion) + '</span>' : '') +
+               (x.basico ? '<span class="etiqueta">B\u00e1sico</span>' : '') +
+               (x.de === "ia" ? '<span class="etiqueta">De una IA</span>' : '') +
+             '</div></div>';
+    }).join("") || '<div class="vacio">No hay ingredientes con esos filtros.</div>';
+  }
+
+  /* ---------- EL ENCARGO PARA LA IA ----------
+     Mismo camino que el de las recetas: se copia un texto, se pega en Claude o
+     en Gemini, y su respuesta se pega aquí. Lo importante del encargo es que
+     PIDE LA SAL, que es el dato que las tablas nutricionales suelen esconder
+     detrás del sodio, y que exige decir de dónde sale cada cifra. */
+  function encargoIngrediente(nombre) {
+    return "Eres mi ayudante de cocina. Necesito la ficha de un alimento para una dieta BAJA EN SAL.\n\n" +
+      "ALIMENTO: " + (nombre || "(escribe aqu\u00ed el producto, con marca y formato si lo sabes)") + "\n\n" +
+      "Dame SOLO un bloque JSON, sin texto alrededor, con esta forma exacta:\n\n" +
+      '{\n' +
+      '  "n": "nombre claro, con marca y formato si lo tiene",\n' +
+      '  "cat": "una de: ' + SECCIONES.join(" | ") + '",\n' +
+      '  "u": "g | ml | ud",\n' +
+      '  "pesoUd": 0,\n' +
+      '  "racion": 0,\n' +
+      '  "k": 0, "p": 0, "g": 0, "h": 0, "sal": 0,\n' +
+      '  "nota": "de d\u00f3nde sale el dato y qu\u00e9 conviene saber al comprarlo"\n' +
+      '}\n\n' +
+      "REGLAS, importantes:\n" +
+      "1. k, p, g, h y sal son SIEMPRE por 100 g o 100 ml del producto, aunque se mida en unidades.\n" +
+      "2. sal en GRAMOS DE SAL, no en sodio. Si la etiqueta da sodio en mg, multiplica por 0,00254.\n" +
+      "3. Si se mide en unidades (u:\"ud\"), pon en pesoUd lo que pesa UNA, en gramos.\n" +
+      "4. racion = lo que se toma de una vez, en la unidad de arriba (un pl\u00e1tano: 1; pistachos: 30).\n" +
+      "5. \"Restaurante y bar\" es para lo que se paga hecho y NUNCA se compra en una tienda:\n" +
+      "   hamburguesas de cadena, tapas, pizza de pedido. Lo del congelador NO va ah\u00ed.\n" +
+      "6. Prioriza la etiqueta espa\u00f1ola real del producto. Si no la encuentras, dilo en la nota\n" +
+      "   y usa una tabla de composici\u00f3n, diciendo cu\u00e1l. No te inventes cifras.\n" +
+      "7. Si no sabes un valor, pon 0 y expl\u00edcalo en la nota. Prefiero un hueco a un n\u00famero falso.\n\n" +
+      "Puedes darme varios alimentos de una vez: entonces devuelve {\"ingredientes\": [ ... ]}.";
+  }
+
+  function abrirIngredienteIA(nombrePrevio) {
+    var html = '<header><h2>Ingrediente con una IA</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
+    html += '<p class="nota-peque">Escribe el producto, copia el encargo, p\u00e9galo en Claude o en Gemini, ' +
+            'y trae aqu\u00ed su respuesta. Lo que llegue se puede corregir despu\u00e9s como cualquier ingrediente.</p>';
+    html += '<label class="campo"><span>Producto</span><input type="text" id="ii-nombre" value="' +
+            esc(nombrePrevio || "") + '" placeholder="Yogur griego Hacendado 0%, tarrina 125 g"></label>';
+    html += '<div class="fila"><button class="btn" id="ii-copiar">Copiar el encargo</button>' +
+            '<button class="btn" id="ii-ver">Ver el encargo</button></div>';
+    html += '<textarea id="ii-encargo" rows="6" style="display:none; width:100%; margin:10px 0"></textarea>';
+    html += '<label class="campo" style="margin-top:12px"><span>Pega aqu\u00ed su respuesta</span>' +
+            '<textarea id="ii-respuesta" rows="8" placeholder="Aqu\u00ed va el JSON que te devuelva"></textarea></label>';
+    html += '<div class="fila"><button class="btn principal" id="ii-anadir">A\u00f1adir al cat\u00e1logo</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    function texto() { return encargoIngrediente($("#ii-nombre").value.trim()); }
+    $("#ii-copiar").addEventListener("click", function () {
+      var t = texto();
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () {
+        Util.toast("Encargo copiado: p\u00e9galo en Claude o en Gemini");
+      }); else { $("#ii-encargo").style.display = "block"; $("#ii-encargo").value = t; $("#ii-encargo").select(); }
+    });
+    $("#ii-ver").addEventListener("click", function () {
+      var c = $("#ii-encargo");
+      c.style.display = c.style.display === "none" ? "block" : "none";
+      c.value = texto();
+    });
+
+    $("#ii-anadir").addEventListener("click", function () {
+      var txt = $("#ii-respuesta").value;
+      var i = txt.indexOf("{"), f = txt.lastIndexOf("}");
+      if (i < 0 || f <= i) { Util.toast("No encuentro el JSON en esa respuesta"); return; }
+      var d;
+      try { d = JSON.parse(txt.slice(i, f + 1)); }
+      catch (e) { Util.toast("Ese JSON tiene alg\u00fan error y no se puede leer"); return; }
+      var lista = Array.isArray(d) ? d : (Array.isArray(d.ingredientes) ? d.ingredientes : [d]);
+      var puestos = [], repetidos = [];
+      lista.forEach(function (x) {
+        if (!x || !x.n) return;
+        var ya = null;
+        (Almacen.estado.ingredientes || []).forEach(function (y) {
+          if (!ya && sinTildes((y.n || "").toLowerCase()) === sinTildes(String(x.n).toLowerCase())) ya = y;
+        });
+        if (ya) { repetidos.push(x.n); return; }
+        var id = Almacen.crearIngredienteIA(x);
+        if (!id) return;
+        var g = Almacen.ingrediente(id);
+        var racion = parseFloat(x.racion);
+        if (g && racion > 0) g.racion = racion;
+        if (g && x.nota) g.nota = String(x.nota).slice(0, 400);
+        puestos.push(id);
+      });
+      if (!puestos.length) {
+        Util.toast(repetidos.length ? "Ya ten\u00edas: " + repetidos.join(", ") : "No he sacado ning\u00fan ingrediente de ah\u00ed");
+        return;
+      }
+      Almacen.guardar("ingrediente");
+      cerrarModal();
+      UI.filtrosIng.texto = ""; UI.filtrosIng.cat = "";
+      pintarRecetas(); pintarDespensa();
+      Util.toast(puestos.length + (puestos.length === 1 ? " ingrediente a\u00f1adido" : " ingredientes a\u00f1adidos") +
+                 (repetidos.length ? " (" + repetidos.length + " ya los ten\u00edas)" : ""));
+      /* Se abre el primero para que lo repases: son valores que no has mirado t\u00fa. */
+      if (puestos.length === 1) abrirIngrediente(puestos[0]);
+    });
   }
 
   /* ==================== VISTA: COMPRA ==================== */
@@ -2681,6 +2853,13 @@
     }
     pintarEntrenoEstandar();
     pintarFueraEstimado();
+    if (!c.catalogo) c.catalogo = {};
+    if ($("#cat-usuario")) {
+      $("#cat-usuario").value = c.catalogo.usuario || c.github.usuario || "";
+      $("#cat-repo").value = c.catalogo.repo || "";
+      $("#cat-rama").value = c.catalogo.rama || "main";
+      $("#cat-token").value = c.catalogo.token || "";
+    }
     $("#gh-usuario").value = c.github.usuario || "";
     $("#gh-repo").value = c.github.repo || "";
     $("#gh-rama").value = c.github.rama || "main";
@@ -3122,6 +3301,24 @@
       if (c) abrirFicha(c.getAttribute("data-ficha"));
     });
 
+    /* --- la fila de ingredientes, debajo de la de recetas --- */
+    $("#buscar-ingrediente").addEventListener("input", function (e) {
+      UI.filtrosIng.texto = e.target.value; pintarIngredientes();
+    });
+    $("#filtro-seccion").addEventListener("change", function (e) {
+      UI.filtrosIng.cat = e.target.value; pintarIngredientes();
+    });
+    $("#nuevo-ingrediente").addEventListener("click", function () {
+      abrirIngrediente(null, UI.filtrosIng.texto || "");
+    });
+    $("#ingrediente-ia").addEventListener("click", function () {
+      abrirIngredienteIA(UI.filtrosIng.texto || "");
+    });
+    $("#rejilla-ingredientes").addEventListener("click", function (e) {
+      var c = e.target.closest("[data-ingrediente]");
+      if (c) abrirIngrediente(c.getAttribute("data-ingrediente"));
+    });
+
     /* --- modal --- */
     $("#modal").addEventListener("click", function (e) {
       if (e.target.id === "modal" || e.target.closest("[data-cerrar]")) { cerrarModal(); return; }
@@ -3420,6 +3617,26 @@
       }
       if (hecho) campo.type = tipo;
     });
+    /* --- el catálogo público: repositorio y clave aparte --- */
+    if ($("#cat-guardar")) {
+      $("#cat-guardar").addEventListener("click", function () {
+        var c = Almacen.estado.config;
+        if (!c.catalogo) c.catalogo = {};
+        c.catalogo.usuario = $("#cat-usuario").value.trim();
+        c.catalogo.repo = $("#cat-repo").value.trim();
+        c.catalogo.rama = $("#cat-rama").value.trim() || "main";
+        c.catalogo.token = $("#cat-token").value.trim();
+        Almacen.guardar("config");
+        if (global.Catalogo) Catalogo.subir(true);
+        else Util.toast("Guardado");
+      });
+      $("#cat-ver").addEventListener("click", function () {
+        var campo = $("#cat-token");
+        campo.type = campo.type === "password" ? "text" : "password";
+      });
+      $("#cat-probar").addEventListener("click", function () { if (global.Catalogo) Catalogo.probar(); });
+      $("#cat-subir").addEventListener("click", function () { if (global.Catalogo) Catalogo.subir(true); });
+    }
     $("#gh-probar").addEventListener("click", function () { Sync.probar(); });
     $("#gh-subir").addEventListener("click", function () { Sync.guardar(); });
     $("#gh-bajar").addEventListener("click", function () {

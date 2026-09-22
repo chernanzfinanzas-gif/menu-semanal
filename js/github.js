@@ -4,6 +4,7 @@
   "use strict";
 
   var RUTA = "datos/estado.json";
+  var RUTA_CATALOGO = "datos/nuevos.js";
 
   function b64(texto) {
     var bytes = new TextEncoder().encode(texto), bin = "";
@@ -271,6 +272,197 @@
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", vigilarVuelta);
   } else { vigilarVuelta(); }
+
+
+  /* ==================================================================
+     EL CATÁLOGO PÚBLICO
+     ==================================================================
+     Hasta hoy, una receta que escribías en el móvil subía dentro del estado,
+     al repositorio PRIVADO, y a la base de datos de verdad —`datos/recetas.js`
+     del repositorio público— no llegaba nunca. Por eso la app decía 164 recetas
+     y el repositorio decía otra cosa.
+
+     Ahora, cada vez que guardas una receta o un ingrediente, lo tuyo sube solo
+     a `datos/nuevos.js`. Ese fichero es TUYO y de nadie más: la app no escribe
+     jamás en `recetas.js` ni en `ingredientes.js`, y el .bat no escribe jamás
+     en `nuevos.js`. Un escritor por fichero. Así no hay forma de pisarse.
+
+     Antes de escribir se lee lo que hay en el repositorio y se funde: si has
+     creado algo en el móvil y otra cosa en el ordenador, suben las dos. */
+
+  function ficheroCatalogo(d) {
+    return "/* TUS NOVEDADES \u2014 lo escribe la app sola. No editar a mano: se reescribe.\n" +
+           "   " + (d.ingredientes || []).length + " ingredientes y " + (d.recetas || []).length +
+           " recetas creados o corregidos por ti.\n" +
+           "   \u00daltima vez: " + new Date().toLocaleString("es-ES") + " */\n" +
+           "window.DATOS_NUEVOS = " + JSON.stringify(d) + ";\n";
+  }
+
+  function leerFicheroCatalogo(txt) {
+    var p = String(txt || "").indexOf("DATOS_NUEVOS");
+    if (p < 0) return { ingredientes: [], recetas: [] };
+    var i = txt.indexOf("{", p), f = txt.lastIndexOf("}");
+    if (i < 0 || f <= i) return { ingredientes: [], recetas: [] };
+    var d;
+    try { d = JSON.parse(txt.slice(i, f + 1)); } catch (e) { d = {}; }
+    return { ingredientes: d.ingredientes || [], recetas: d.recetas || [] };
+  }
+
+  var Catalogo = {
+    ocupado: false,
+    temporizador: null,
+
+    cfg: function () { return (Almacen.estado.config && Almacen.estado.config.catalogo) || {}; },
+    configurado: function () {
+      var c = this.cfg();
+      return !!(c.usuario && c.repo && c.token);
+    },
+    indicar: function (texto, clase) {
+      var el = document.getElementById("estado-catalogo");
+      if (!el) return;
+      el.textContent = texto;
+      el.className = "sync " + (clase || "");
+    },
+
+    api: function (metodo, cuerpo) {
+      var c = this.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+                encodeURIComponent(c.repo) + "/contents/" + RUTA_CATALOGO;
+      if (metodo === "GET") url += "?ref=" + encodeURIComponent(c.rama || "main");
+      return fetch(url, {
+        method: metodo,
+        headers: {
+          "Authorization": "Bearer " + c.token,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined
+      });
+    },
+
+    /* Lo que hay ahora mismo en el repositorio, con su sha. Si el fichero no
+       existe todavía, se devuelve vacío y se creará en la primera subida. */
+    leerRemoto: function () {
+      return this.api("GET").then(function (r) {
+        if (r.status === 404) return { datos: { ingredientes: [], recetas: [] }, sha: null };
+        if (!r.ok) throw new Error("GitHub respondió " + r.status);
+        return r.json().then(function (j) {
+          return { datos: leerFicheroCatalogo(deB64(j.content)), sha: j.sha };
+        });
+      });
+    },
+
+    /* Sube si hay algo que subir. Devuelve una promesa con true si escribió. */
+    subir: function (avisar) {
+      var self = this;
+      if (!this.configurado()) { this.indicar("Sin configurar", ""); return Promise.resolve(false); }
+      if (this.ocupado) {
+        clearTimeout(this.temporizador);
+        this.temporizador = setTimeout(function () { self.subir(avisar); }, 2500);
+        return Promise.resolve(false);
+      }
+      this.ocupado = true;
+      this.indicar("Subiendo tus novedades\u2026", "trabajando");
+      return this.leerRemoto().then(function (r) {
+        var mio = Almacen.novedades();
+        /* EL SELLO DE LA HORA. Lo que ha cambiado respecto a lo que hay en el
+           repositorio se sella con la hora de ahora; lo que no ha cambiado
+           conserva la suya. Así el otro aparato sabe cuál de las dos versiones
+           es la nueva sin tener que adivinarlo, y un fichero que no ha cambiado
+           sigue siendo idéntico y no se sube por nada. */
+        var deAlli = {}, ahora = new Date().toISOString();
+        r.datos.ingredientes.forEach(function (x) { if (x && x.id) deAlli[x.id] = x; });
+        r.datos.recetas.forEach(function (x) { if (x && x.id) deAlli[x.id] = x; });
+        function sinSello(x) {
+          var c = JSON.parse(JSON.stringify(x)); delete c.tocado; return JSON.stringify(c);
+        }
+        function sellar(lista) {
+          return lista.map(function (x) {
+            var c = JSON.parse(JSON.stringify(x));
+            var ant = deAlli[c.id];
+            c.tocado = (ant && sinSello(ant) === sinSello(c) && ant.tocado) ? ant.tocado : ahora;
+            return c;
+          });
+        }
+        mio = { ingredientes: sellar(mio.ingredientes), recetas: sellar(mio.recetas) };
+        /* El de aquí manda en lo que esté en los dos; lo que solo esté allí se
+           conserva, que puede venir de otro aparato. */
+        var junto = {
+          ingredientes: fusionarListas(r.datos.ingredientes, mio.ingredientes, true),
+          recetas: fusionarListas(r.datos.recetas, mio.recetas, true)
+        };
+        if (JSON.stringify(r.datos) === JSON.stringify(junto)) {
+          self.ocupado = false;
+          self.indicar("Al d\u00eda (" + junto.recetas.length + " recetas, " +
+                       junto.ingredientes.length + " ingredientes)", "ok");
+          if (avisar) Util.toast("El cat\u00e1logo ya estaba al d\u00eda");
+          return false;
+        }
+        var cuerpo = {
+          message: "Cat\u00e1logo: " + junto.ingredientes.length + " ingredientes y " +
+                   junto.recetas.length + " recetas tuyas",
+          content: b64(ficheroCatalogo(junto)),
+          branch: self.cfg().rama || "main"
+        };
+        if (r.sha) cuerpo.sha = r.sha;
+        return self.api("PUT", cuerpo).then(function (r2) {
+          self.ocupado = false;
+          if (r2.status === 409 || r2.status === 422) {
+            /* Alguien escribió entre la lectura y la escritura: se reintenta,
+               y al reintentar se vuelve a leer y a fundir. Nunca se pisa. */
+            self.indicar("Juntando con el otro aparato\u2026", "trabajando");
+            return self.subir(avisar);
+          }
+          if (!r2.ok) throw new Error("GitHub respondi\u00f3 " + r2.status);
+          self.indicar("Subido (" + junto.recetas.length + " recetas, " +
+                       junto.ingredientes.length + " ingredientes)", "ok");
+          if (avisar) Util.toast("Cat\u00e1logo actualizado en el repositorio");
+          return true;
+        });
+      }).catch(function (e) {
+        self.ocupado = false;
+        self.indicar("No se pudo subir", "error");
+        console.warn("Cat\u00e1logo:", e);
+        if (avisar) Util.toast("No se pudo subir el cat\u00e1logo");
+        return false;
+      });
+    },
+
+    programar: function () {
+      var self = this;
+      if (!this.configurado()) return;
+      clearTimeout(this.temporizador);
+      this.indicar("Novedades sin subir", "pendiente");
+      this.temporizador = setTimeout(function () { self.subir(false); }, 4000);
+    },
+
+    probar: function () {
+      var c = this.cfg();
+      if (!this.configurado()) { Util.toast("Faltan datos del cat\u00e1logo"); return; }
+      fetch("https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" + encodeURIComponent(c.repo), {
+        headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" }
+      }).then(function (r) {
+        if (r.ok) { Util.toast("Conexi\u00f3n correcta con el cat\u00e1logo"); }
+        else if (r.status === 401) Util.toast("La clave del cat\u00e1logo no vale");
+        else if (r.status === 404) Util.toast("No encuentro ese repositorio");
+        else Util.toast("GitHub respondi\u00f3 " + r.status);
+      }).catch(function () { Util.toast("Sin conexi\u00f3n con GitHub"); });
+    }
+  };
+
+  /* EL ENGANCHE: cada vez que el almacén guarda una receta o un ingrediente,
+     se programa la subida. Se espera unos segundos para no subir cuatro veces
+     mientras escribes. */
+  if (global.Almacen && Almacen.suscribir) {
+    Almacen.suscribir(function (motivo) {
+      var m = String(motivo || "");
+      if (m === "receta" || m === "ingrediente" || m === "suelto" || m === "capricho") {
+        Catalogo.programar();
+      }
+    });
+  }
+
+  global.Catalogo = Catalogo;
 
   global.Sync = Sync;
 })(window);
