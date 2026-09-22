@@ -8,7 +8,8 @@
     vista: "menu",
     lunes: Util.lunesDe(Util.hoyISO()),
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
-    filtrosIng: { texto: "", cat: "" },
+    filtrosIng: { texto: "", cat: "", clase: "" },
+    fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
     busquedaDespensa: "",
     verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
@@ -2446,8 +2447,14 @@
     var rej = $("#rejilla-ingredientes");
     if (!rej) return;
     var f = UI.filtrosIng;
+    var mios = {};
+    if (f.clase === "mios") Almacen.novedades().ingredientes.forEach(function (x) { mios[x.id] = true; });
     var lista = (Almacen.estado.ingredientes || []).filter(function (x) {
       if (f.cat && x.cat !== f.cat) return false;
+      if (f.clase === "mios" && !mios[x.id]) return false;
+      if (f.clase === "basicos" && !x.basico) return false;
+      if (f.clase === "racion" && x.racion == null) return false;
+      if (f.clase === "fuera" && x.cat !== "Restaurante y bar") return false;
       if (f.texto) {
         var q = sinTildes(f.texto.toLowerCase());
         if (sinTildes((x.n || "").toLowerCase()).indexOf(q) < 0 &&
@@ -2469,7 +2476,7 @@
     }
 
     $("#contador-ingredientes").textContent =
-      lista.length + " ingredientes" + (f.cat || f.texto ? " (de " + (Almacen.estado.ingredientes || []).length + ")" : "");
+      lista.length + " ingredientes" + (f.cat || f.texto || f.clase ? " (de " + (Almacen.estado.ingredientes || []).length + ")" : "");
 
     rej.innerHTML = lista.map(function (x) {
       var u = x.u === "ud" ? "unidad" : ("100 " + (x.u || "g"));
@@ -2488,6 +2495,23 @@
                (x.de === "ia" ? '<span class="etiqueta">De una IA</span>' : '') +
              '</div></div>';
     }).join("") || '<div class="vacio">No hay ingredientes con esos filtros.</div>';
+  }
+
+  /* QUÉ FILA SE ESTÁ MIRANDO: recetas o ingredientes.
+     Las dos listas no caben una debajo de otra: con 75 recetas delante, la fila
+     de ingredientes quedaba enterrada y no se encontraba. Se enseña una cada
+     vez, y se entra siempre por recetas. */
+  function ponerFila(cual) {
+    UI.fila = (cual === "ingredientes") ? "ingredientes" : "recetas";
+    var br = $("#bloque-recetas"), bi = $("#bloque-ingredientes");
+    if (br) br.hidden = UI.fila !== "recetas";
+    if (bi) bi.hidden = UI.fila !== "ingredientes";
+    $$("#selector-fila [data-fila]").forEach(function (b) {
+      b.classList.toggle("principal", b.getAttribute("data-fila") === UI.fila);
+    });
+    pintarRecetas();
+    var foco = $(UI.fila === "recetas" ? "#buscar-receta" : "#buscar-ingrediente");
+    if (foco && !esMovil()) foco.focus();
   }
 
   /* ---------- EL ENCARGO PARA LA IA ----------
@@ -3302,6 +3326,13 @@
     });
 
     /* --- la fila de ingredientes, debajo de la de recetas --- */
+    $("#selector-fila").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-fila]");
+      if (b) ponerFila(b.getAttribute("data-fila"));
+    });
+    $("#filtro-ing-clase").addEventListener("change", function (e) {
+      UI.filtrosIng.clase = e.target.value; pintarIngredientes();
+    });
     $("#buscar-ingrediente").addEventListener("input", function (e) {
       UI.filtrosIng.texto = e.target.value; pintarIngredientes();
     });

@@ -265,13 +265,27 @@
       if (ahora - ultima < 20000) return;      // sin agobiar a la API
       ultima = ahora;
       if (Sync.configurado() && !Sync.ocupado) Sync.cargar();
+      /* Y si se quedó algo tuyo sin subir —el móvil sin cobertura al guardar—,
+         se reintenta aquí. Solo cuando hay algo pendiente: si no, sería una
+         consulta a GitHub cada vez que vuelves a la pestaña, para nada. */
+      if (Catalogo.pendiente && Catalogo.configurado() && !Catalogo.ocupado) Catalogo.subir(false);
     }
     document.addEventListener("visibilitychange", mirar);
     window.addEventListener("focus", mirar);
   }
+  /* AL ABRIR LA APP se mira una vez si lo tuyo está en el repositorio. Cubre el
+     caso de cerrar la app antes de que le diera tiempo a subir: en cuanto la
+     vuelves a abrir con cobertura, sube. Si no hay nada que subir no escribe
+     nada, solo lee. */
+  function alAbrir() {
+    vigilarVuelta();
+    setTimeout(function () {
+      if (Catalogo.configurado() && !Catalogo.ocupado) Catalogo.subir(false);
+    }, 6000);
+  }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", vigilarVuelta);
-  } else { vigilarVuelta(); }
+    document.addEventListener("DOMContentLoaded", alAbrir);
+  } else { alAbrir(); }
 
 
   /* ==================================================================
@@ -311,6 +325,10 @@
   var Catalogo = {
     ocupado: false,
     temporizador: null,
+    /* Hay algo tuyo que todavía no ha llegado al repositorio. Se pone al guardar
+       y solo se quita cuando la subida ha ido bien. Es lo que permite reintentar
+       sin preguntarle a GitHub cada dos por tres. */
+    pendiente: false,
 
     cfg: function () { return (Almacen.estado.config && Almacen.estado.config.catalogo) || {}; },
     configurado: function () {
@@ -408,6 +426,7 @@
           self.ocupado = false;
           self.indicar("Al d\u00eda (" + junto.recetas.length + " recetas, " +
                        junto.ingredientes.length + " ingredientes)", "ok");
+          self.pendiente = false;
           if (avisar) Util.toast("El cat\u00e1logo ya estaba al d\u00eda");
           return false;
         }
@@ -427,6 +446,7 @@
             return self.subir(avisar);
           }
           if (!r2.ok) throw new Error("GitHub respondi\u00f3 " + r2.status);
+          self.pendiente = false;
           self.indicar("Subido (" + junto.recetas.length + " recetas, " +
                        junto.ingredientes.length + " ingredientes)", "ok");
           if (avisar) Util.toast("Cat\u00e1logo actualizado en el repositorio");
@@ -445,6 +465,7 @@
       var self = this;
       if (!this.configurado()) return;
       clearTimeout(this.temporizador);
+      this.pendiente = true;
       this.indicar("Novedades sin subir", "pendiente");
       this.temporizador = setTimeout(function () { self.subir(false); }, 4000);
     },

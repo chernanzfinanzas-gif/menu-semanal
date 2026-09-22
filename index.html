@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=104">
-<link rel="stylesheet" href="css/actividad-khb.css?v=104">
+<link rel="stylesheet" href="css/estilos.css?v=105">
+<link rel="stylesheet" href="css/actividad-khb.css?v=105">
 </head>
 <body>
 
@@ -89,6 +89,13 @@
       <img src="iconos/khb/8-recetario.webp" alt="" width="52" height="52">
       <div><h2>Recetario</h2><span class="nota-peque">Busca por ingrediente, por toma o por herramienta</span></div>
     </div>
+
+    <div class="filtros" id="selector-fila" style="margin-bottom:4px">
+      <button class="btn mini principal" data-fila="recetas">Recetas</button>
+      <button class="btn mini" data-fila="ingredientes">Ingredientes</button>
+    </div>
+
+    <div id="bloque-recetas">
     <div class="filtros">
       <input type="text" id="buscar-receta" placeholder="Buscar receta o ingrediente…">
       <select id="filtro-toma">
@@ -138,18 +145,27 @@
     </div>
     <div id="contador-recetas" class="nota-peque" style="margin-bottom:10px"></div>
     <div class="rejilla-recetas" id="rejilla-recetas"></div>
-
-    <div class="cabecera-vista" style="margin-top:28px">
-      <div><h2>Ingredientes</h2><span class="nota-peque">La pieza de abajo del todo: una receta es una suma de éstos. Aquí se ven sus calorías y su sal, y se dan de alta los nuevos</span></div>
     </div>
+
+    <div id="bloque-ingredientes" hidden>
+    <p class="nota-peque" style="margin:0 0 8px">La pieza de abajo del todo: una receta es una suma de éstos.
+      Aquí se ven sus calorías y su sal por 100 g, y se dan de alta los nuevos.</p>
     <div class="filtros">
       <input type="text" id="buscar-ingrediente" placeholder="Buscar ingrediente…">
       <select id="filtro-seccion"><option value="">Todas las secciones</option></select>
+      <select id="filtro-ing-clase">
+        <option value="">Todos</option>
+        <option value="mios">Los que he añadido yo</option>
+        <option value="basicos">Básicos de despensa</option>
+        <option value="racion">Con ración definida</option>
+        <option value="fuera">Los que no se compran (restaurante y bar)</option>
+      </select>
       <button class="btn principal mini solo-edicion" id="nuevo-ingrediente">+ Nuevo</button>
       <button class="btn mini solo-edicion" id="ingrediente-ia" title="Copia un encargo para Claude o Gemini y pega aquí su respuesta">+ Con una IA</button>
     </div>
     <div id="contador-ingredientes" class="nota-peque" style="margin-bottom:10px"></div>
     <div class="rejilla-recetas" id="rejilla-ingredientes"></div>
+    </div>
   </section>
 
   <!-- ===================== COMPRA ===================== -->
@@ -420,17 +436,17 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=104"></script>
-<script src="datos/recetas.js?v=104"></script>
-<script src="datos/nuevos.js?v=104"></script>
-<script src="datos/plantillas.js?v=104"></script>
-<script src="datos/actividades.js?v=104"></script>
-<script src="datos/plan.js?v=104"></script>
-<script src="js/util.js?v=104"></script>
-<script src="js/almacen.js?v=104"></script>
-<script src="js/github.js?v=104"></script>
-<script src="js/app.js?v=104"></script>
-<script src="js/actividad-khb.js?v=104"></script>
-<script src="js/entrenamiento.js?v=104"></script>
+<script src="datos/ingredientes.js?v=105"></script>
+<script src="datos/recetas.js?v=105"></script>
+<script src="datos/nuevos.js?v=105"></script>
+<script src="datos/plantillas.js?v=105"></script>
+<script src="datos/actividades.js?v=105"></script>
+<script src="datos/plan.js?v=105"></script>
+<script src="js/util.js?v=105"></script>
+<script src="js/almacen.js?v=105"></script>
+<script src="js/github.js?v=105"></script>
+<script src="js/app.js?v=105"></script>
+<script src="js/actividad-khb.js?v=105"></script>
+<script src="js/entrenamiento.js?v=105"></script>
 </body>
 </html>
