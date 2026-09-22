@@ -472,11 +472,24 @@
           html += '<div class="nota-peque">' +
                   (!activa ? "Solo los días que entrenas" : "—") + '</div>';
         } else {
+          /* Un mismo plato repetido en la toma es CANTIDAD, no dos platos distintos:
+             dos donuts, dos bolas de helado. Se agrupa por receta y se pinta con un
+             contador «− ×2 +»; las kcal y la sal se multiplican, porque si te comes
+             dos, son dos. El plan sigue siendo una lista de ids repetidos, así que no
+             hay nada que migrar y lo ya guardado funciona igual. */
+          var grupos = [], dondeVa = {};
           platos.forEach(function (rid, idx) {
+            if (dondeVa[rid] === undefined) { dondeVa[rid] = grupos.length; grupos.push({ rid: rid, idxs: [] }); }
+            grupos[dondeVa[rid]].idxs.push(idx);
+          });
+          grupos.forEach(function (gr) {
+            var rid = gr.rid;
+            var veces = gr.idxs.length;
+            var idx = gr.idxs[gr.idxs.length - 1];   // el último: el que quita el «−»
             var r = Almacen.receta(rid);
             var nombre = r ? r.n : "(receta borrada)";
             var n = r ? Almacen.nutrReceta(r) : { k: 0 };
-            var s = r ? Util.sal(Almacen.salReceta(r)) : "";
+            var s = r ? Util.sal((r ? Almacen.salReceta(r) : 0) * veces) : "";
             var com = Almacen.estaComido(fecha, t.k, rid);
             var cpr = Almacen.estaComprado(fecha, t.k, rid);
             html += '<div class="plato' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
@@ -495,8 +508,20 @@
                          una ración suelta. */
                       '<span class="nom" data-ficha="' + esc(rid) + '" ' +
                         'data-ficha-dia="' + fecha + '|' + t.k + '">' + esc(nombre) + '</span>' +
-                      '<span class="sal">' + Util.kcal(n.k) + ' · ' + s + '</span>' +
-                      (cerr ? '' : '<button class="quitar" data-quitar="' + fecha + '|' + t.k + '|' + idx + '">×</button>') +
+                      /* Con una sola ración solo se ofrece el «+», que es lo que hay que
+                         descubrir. En cuanto hay dos aparece el «− ×N +» entero. */
+                      (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
+                        '<span class="grupo-cantidad' + (veces > 1 ? " varias" : "") + '">' +
+                          (veces > 1
+                            ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">−</button>' +
+                              '<span class="cuantos" title="' + veces + ' raciones">×' + veces + '</span>'
+                            : '') +
+                          '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                            'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
+                        '</span>') +
+                      '<span class="sal">' + Util.kcal(n.k * veces) + ' · ' + s + '</span>' +
+                      (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                        'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">×</button>') +
                     '</div>';
           });
         }
@@ -516,13 +541,33 @@
       if (!caps.length) {
         html += '<div class="nota-peque">Nada fuera de plan' + (cerr ? '' : ' \u00b7 el helado, la ca\u00f1a, el postre de un restaurante') + '</div>';
       } else {
+        /* Aquí el contador es todavía más natural que en las tomas: los caprichos
+           van de dos en dos más que de uno en uno. Dos donuts, dos cañas. */
+        var gcaps = [], dondeCap = {};
         caps.forEach(function (rid, idx) {
+          if (dondeCap[rid] === undefined) { dondeCap[rid] = gcaps.length; gcaps.push({ rid: rid, idxs: [] }); }
+          gcaps[dondeCap[rid]].idxs.push(idx);
+        });
+        gcaps.forEach(function (gc) {
+          var rid = gc.rid;
+          var veces = gc.idxs.length;
+          var idx = gc.idxs[gc.idxs.length - 1];
           var r = Almacen.receta(rid);
           var n = r ? Almacen.nutrReceta(r) : { k: 0 };
           html += '<div class="plato capricho">' +
                     '<span class="nom">' + esc(r ? r.n : "(borrado)") + '</span>' +
-                    '<span class="sal">' + Util.kcal(n.k) + '</span>' +
-                    (cerr ? '' : '<button class="quitar" data-quitacap="' + fecha + '|' + idx + '">\u00d7</button>') +
+                    (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
+                      '<span class="grupo-cantidad' + (veces > 1 ? " varias" : "") + '">' +
+                        (veces > 1
+                          ? '<button class="paso" data-menoscap="' + fecha + '|' + idx + '" title="Uno menos">−</button>' +
+                            '<span class="cuantos" title="' + veces + '">×' + veces + '</span>'
+                          : '') +
+                        '<button class="paso" data-mascap="' + fecha + '|' + esc(rid) + '" ' +
+                          'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
+                      '</span>') +
+                    '<span class="sal">' + Util.kcal(n.k * veces) + '</span>' +
+                    (cerr ? '' : '<button class="quitar" data-quitacaptodo="' + fecha + '|' + esc(rid) + '" ' +
+                      'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
                   '</div>';
         });
       }
@@ -2936,6 +2981,57 @@
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
       var cap = e.target.closest("[data-capricho]");
       if (cap) { abrirSelectorCapricho(cap.getAttribute("data-capricho")); return; }
+      /* Contador de cantidad. En las tomas y en los caprichos funciona igual:
+         «+» mete otra ración del mismo plato, «−» quita la última, «×» las quita
+         todas. Todo sobre las mismas listas de ids que ya había. */
+      var mas = e.target.closest("[data-mas]");
+      if (mas) {
+        var pm = mas.getAttribute("data-mas").split("|");
+        var dm = Almacen.estado.plan[pm[0]];
+        if (dm && dm[pm[1]]) { dm[pm[1]].push(pm[2]); Almacen.guardar("plato"); pintarMenu(); }
+        return;
+      }
+      var menos = e.target.closest("[data-menos]");
+      if (menos) {
+        var pn = menos.getAttribute("data-menos").split("|");
+        var dn = Almacen.estado.plan[pn[0]];
+        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); Almacen.guardar("plato"); pintarMenu(); }
+        return;
+      }
+      var quitarT = e.target.closest("[data-quitartodo]");
+      if (quitarT) {
+        var qt = quitarT.getAttribute("data-quitartodo").split("|");
+        var dt = Almacen.estado.plan[qt[0]];
+        if (dt && dt[qt[1]]) {
+          dt[qt[1]] = dt[qt[1]].filter(function (x) { return x !== qt[2]; });
+          Almacen.guardar("plato"); pintarMenu();
+        }
+        return;
+      }
+      var masCap = e.target.closest("[data-mascap]");
+      if (masCap) {
+        var pmc = masCap.getAttribute("data-mascap").split("|");
+        var dmc = Almacen.asegurarDia(pmc[0]);
+        dmc.capricho.push(pmc[1]);
+        Almacen.guardar("capricho"); pintarMenu();
+        return;
+      }
+      var menosCap = e.target.closest("[data-menoscap]");
+      if (menosCap) {
+        var pnc = menosCap.getAttribute("data-menoscap").split("|");
+        var dnc = Almacen.asegurarDia(pnc[0]);
+        dnc.capricho.splice(parseInt(pnc[1], 10), 1);
+        Almacen.guardar("capricho"); pintarMenu();
+        return;
+      }
+      var quitaCapT = e.target.closest("[data-quitacaptodo]");
+      if (quitaCapT) {
+        var qct = quitaCapT.getAttribute("data-quitacaptodo").split("|");
+        var dct = Almacen.asegurarDia(qct[0]);
+        dct.capricho = dct.capricho.filter(function (x) { return x !== qct[1]; });
+        Almacen.guardar("capricho"); pintarMenu();
+        return;
+      }
       var qcap = e.target.closest("[data-quitacap]");
       if (qcap) {
         var pc = qcap.getAttribute("data-quitacap").split("|");

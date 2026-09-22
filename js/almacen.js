@@ -2059,12 +2059,20 @@
           marcado: !!self.estado.compraMarcada[id],
           nota: ing.nota || ""
         };
+        /* Lo de restaurante y bar no se compra en ningún sitio: cuenta en las
+           calorías y en la sal del día, pero no tiene nada que hacer en una
+           lista de la compra. */
+        if (ing.cat === "Restaurante y bar") return;
         if (ing.basico) { basicos.push(linea); return; }
         if (!secciones[ing.cat]) secciones[ing.cat] = [];
         secciones[ing.cat].push(linea);
       });
 
-      var orden = ["Frutas y verduras", "Carnicería", "Pescadería", "Congelados", "Lácteos y huevos", "Panadería", "Despensa", "Especias y aromáticos"];
+      /* El orden en que se recorre el súper. Lo que no esté aquí sale al final,
+         así que una sección nueva no se pierde: solo queda mal colocada. */
+      var orden = ["Frutas y verduras", "Carnicería", "Pescadería", "Charcutería y quesos",
+                   "Lácteos y huevos", "Panadería", "Congelados", "Despensa",
+                   "Aperitivos y frutos secos", "Dulces", "Bebidas", "Especias y aromáticos"];
       var salida = [];
       orden.forEach(function (cat) {
         if (secciones[cat]) {
