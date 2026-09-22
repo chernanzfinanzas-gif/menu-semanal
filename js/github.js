@@ -467,7 +467,12 @@
       clearTimeout(this.temporizador);
       this.pendiente = true;
       this.indicar("Novedades sin subir", "pendiente");
-      this.temporizador = setTimeout(function () { self.subir(false); }, 4000);
+      /* 30 segundos, no 4 (Carlos, 22-sep-2026: cuatro guardados seguidos hacían
+         cuatro commits y cuatro despliegues de Pages, y Pages iba cancelando los
+         anteriores). Con media horita de margen se juntan en uno solo. Lo
+         guardado no corre peligro por esperar: está en el aparato desde el
+         primer momento, y si cierras antes de que suba, sube al volver a abrir. */
+      this.temporizador = setTimeout(function () { self.subir(false); }, 30000);
     },
 
     probar: function () {
