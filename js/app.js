@@ -10,6 +10,9 @@
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
     filtrosIng: { texto: "", cat: "", clase: "" },
     fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
+    filaDesp: "comida",     /* qué se lista en la Despensa: comida u hogar */
+    busquedaHogar: "",
+    cajonHogar: "",
     busquedaDespensa: "",
     verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
     diaActivo: null,        // índice 0-6; en móvil se muestra un solo día
@@ -2806,6 +2809,121 @@
     });
   }
 
+  /* ==================== HOGAR ====================
+     Limpieza, menaje, aseo y mascota. Sin cantidades ni cuentas: se marca lo que
+     falta y entra en la lista de la compra. Cada línea ES el producto, con marca
+     y formato, porque es ese nombre el que viaja a Amazon. Las que vienen de
+     fábrica traen un nombre genérico y salen avisando de que les falta la marca. */
+  function ponerFilaDespensa(cual) {
+    UI.filaDesp = (cual === "hogar") ? "hogar" : "comida";
+    var bc = $("#bloque-desp-comida"), bh = $("#bloque-desp-hogar");
+    if (bc) bc.hidden = UI.filaDesp !== "comida";
+    if (bh) bh.hidden = UI.filaDesp !== "hogar";
+    $$("#selector-despensa [data-desp]").forEach(function (b) {
+      b.classList.toggle("principal", b.getAttribute("data-desp") === UI.filaDesp);
+    });
+    if (UI.filaDesp === "hogar") pintarHogar(); else pintarDespensa();
+  }
+
+  function pintarHogar() {
+    var cont = $("#rejilla-hogar");
+    if (!cont) return;
+    var q = sinTildes((UI.busquedaHogar || "").trim().toLowerCase());
+    var todo = (Almacen.estado.hogarLista || []).filter(function (x) {
+      if (x.oculta) return false;
+      if (UI.cajonHogar && (x.cajon || "amazon") !== UI.cajonHogar) return false;
+      if (q && sinTildes((x.n + " " + (x.generico || "")).toLowerCase()).indexOf(q) < 0) return false;
+      return true;
+    });
+    var html = "", faltan = 0;
+    Almacen.APARTADOS.forEach(function (ap) {
+      var lista = todo.filter(function (x) { return x.cat === ap.k; });
+      if (!lista.length) return;
+      lista.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      var marcados = lista.filter(function (x) { return Almacen.faltaHogar(x.id); }).length;
+      faltan += marcados;
+      html += '<details class="grupo-selec"' + (marcados || q ? " open" : "") + '>' +
+                '<summary><span class="tit">' + esc(ap.n) + '</span>' +
+                '<span class="cuantas">' + (marcados ? marcados + " / " + lista.length : lista.length) + '</span></summary>';
+      lista.forEach(function (x) {
+        var falta = Almacen.faltaHogar(x.id);
+        var cajon = x.cajon || "amazon";
+        var det = esc(Almacen.nombreCajon(cajon));
+        if (cajon === "suscripcion") det += ' \u00b7 llega sola';
+        if (x.suplente) det += ' \u00b7 si no hay: ' + esc(x.suplente);
+        if (x.pendiente) det = '<span style="color:var(--ambar)">Ponle tu marca y formato</span> \u00b7 ' + det;
+        else if (x.generico) det = esc(x.generico) + ' \u00b7 ' + det;
+        html += '<div class="linea linea-hogar' + (falta ? " en-casa" : "") + '">' +
+                  '<input type="checkbox" data-falta="' + esc(x.id) + '"' + (falta ? " checked" : "") +
+                    ' title="Me falta: a la lista de la compra">' +
+                  '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
+                  '<div class="detalle">' + det + '</div></div>' +
+                  (falta ? '<input type="number" class="stock-cant" data-hcant="' + esc(x.id) + '" min="1" step="1" ' +
+                           'value="' + Almacen.cantidadHogar(x.id) + '" style="width:62px; text-align:right" title="Cu\u00e1ntos">' : '') +
+                  '<button class="btn mini solo-edicion" data-edithogar="' + esc(x.id) + '">Editar</button>' +
+                '</div>';
+      });
+      html += '</details>';
+    });
+    cont.innerHTML = html || '<div class="vacio">Nada con esos filtros.</div>';
+    var av = $("#hogar-resumen");
+    if (av) av.textContent = faltan ? (faltan === 1 ? "1 cosa marcada para la compra" : faltan + " cosas marcadas para la compra") : "";
+  }
+
+  /* La ficha de un producto de Hogar. Es donde una línea genérica se convierte
+     en la tuya: le pones marca y formato y deja de estar pendiente. */
+  function abrirHogar(id) {
+    var nuevo = !id;
+    var x = nuevo ? { id: "", n: "", cat: "Limpieza", cajon: "amazon", suplente: "" }
+                  : Almacen.hogarDe(id);
+    if (!x) return;
+    var html = '<header><h2>' + (nuevo ? "Producto nuevo" : "Producto") + '</h2>' +
+               '<button class="cerrar" data-cerrar>\u00d7</button></header>';
+    if (!nuevo && x.pendiente) {
+      html += '<p class="nota-peque" style="color:var(--ambar)">Esta l\u00ednea viene de la plantilla y a\u00fan es ' +
+              'gen\u00e9rica. P\u00f3nle la marca y el formato que compras t\u00fa: es ese nombre el que se copia a Amazon.</p>';
+    }
+    html += '<label class="campo"><span>Producto, con marca y formato</span>' +
+            '<input type="text" id="hg-n" value="' + esc(x.n) + '" placeholder="Champ\u00fa Head &amp; Shoulders Classic 400 ml"></label>';
+    html += '<label class="campo"><span>Si no hay, este otro (opcional)</span>' +
+            '<input type="text" id="hg-sup" value="' + esc(x.suplente || "") + '" placeholder="Champ\u00fa Pantene 400 ml"></label>';
+    html += '<div class="fila">' +
+      '<label class="campo" style="flex:1 1 150px"><span>Apartado</span><select id="hg-cat">' +
+        Almacen.APARTADOS.map(function (a2) {
+          return '<option value="' + esc(a2.k) + '"' + (x.cat === a2.k ? " selected" : "") + '>' + esc(a2.n) + '</option>';
+        }).join("") + '</select></label>' +
+      '<label class="campo" style="flex:1 1 150px"><span>D\u00f3nde se compra</span><select id="hg-cajon">' +
+        Almacen.CAJONES.map(function (c) {
+          return '<option value="' + esc(c.k) + '"' + ((x.cajon || "amazon") === c.k ? " selected" : "") + '>' + esc(c.n) + '</option>';
+        }).join("") + '</select></label></div>';
+    html += '<p class="nota-peque"><b>Suscripci\u00f3n</b> no sale nunca en la lista: llega sola. Si se acaba antes ' +
+            'de tiempo, m\u00e1rcalo como que falta y esa vez sale por Amazon.</p>';
+    html += '<div class="fila"><button class="btn principal" id="hg-guardar">Guardar</button>' +
+            (nuevo ? '' : '<button class="btn" id="hg-borrar">Quitar de la lista</button>') +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    $("#hg-guardar").addEventListener("click", function () {
+      var n = $("#hg-n").value.trim();
+      if (!n) { Util.toast("Ponle nombre al producto"); return; }
+      if (nuevo) {
+        var id2 = Almacen.crearHogar(n, $("#hg-cat").value, $("#hg-cajon").value);
+        if (id2) Almacen.guardarHogar(id2, { suplente: $("#hg-sup").value.trim() });
+      } else {
+        Almacen.guardarHogar(x.id, { n: n, suplente: $("#hg-sup").value.trim(),
+                                     cat: $("#hg-cat").value, cajon: $("#hg-cajon").value });
+      }
+      cerrarModal(); pintarHogar(); pintarCompra();
+      Util.toast("Guardado");
+    });
+    var bb = $("#hg-borrar");
+    if (bb) bb.addEventListener("click", function () {
+      if (!confirm("\u00bfQuitar \u00ab" + x.n + "\u00bb de la lista?")) return;
+      Almacen.borrarHogar(x.id);
+      cerrarModal(); pintarHogar(); pintarCompra();
+    });
+  }
+
   /* ==================== VISTA: COMPRA ==================== */
   var compraActual = null;
 
@@ -3714,6 +3832,31 @@
     });
 
     /* --- despensa --- */
+    $("#selector-despensa").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-desp]");
+      if (b) ponerFilaDespensa(b.getAttribute("data-desp"));
+    });
+    $("#buscar-hogar").addEventListener("input", function (e) { UI.busquedaHogar = e.target.value; pintarHogar(); });
+    $("#filtro-hogar-cajon").addEventListener("change", function (e) { UI.cajonHogar = e.target.value; pintarHogar(); });
+    $("#hogar-nuevo").addEventListener("click", function () { abrirHogar(null); });
+    $("#rejilla-hogar").addEventListener("change", function (e) {
+      var f = e.target.closest("[data-falta]");
+      if (f) {
+        Almacen.marcarFaltaHogar(f.getAttribute("data-falta"), f.checked, 1);
+        setTimeout(function () { pintarHogar(); pintarCompra(); }, 0);
+        return;
+      }
+      var c = e.target.closest("[data-hcant]");
+      if (c) {
+        var n = parseInt(c.value, 10);
+        Almacen.marcarFaltaHogar(c.getAttribute("data-hcant"), true, n > 0 ? n : 1);
+        setTimeout(function () { pintarHogar(); pintarCompra(); }, 0);
+      }
+    });
+    $("#rejilla-hogar").addEventListener("click", function (e) {
+      var ed = e.target.closest("[data-edithogar]");
+      if (ed) abrirHogar(ed.getAttribute("data-edithogar"));
+    });
     $("#buscar-despensa").addEventListener("input", function (e) { UI.busquedaDespensa = e.target.value; pintarDespensa(); });
     $("#rejilla-despensa").addEventListener("change", function (e) {
       var st = e.target.closest("[data-stock]");

@@ -124,6 +124,13 @@
         ingredientes: JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || [])),
         recetas: JSON.parse(JSON.stringify(global.DATOS_RECETAS || [])),
         plantillas: JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || [])),
+        hogarLista: JSON.parse(JSON.stringify(global.DATOS_HOGAR || [])),
+                               /* LIMPIEZA, MENAJE, ASEO Y MASCOTA. Catálogo aparte del de
+                                  comida a propósito: no tiene calorías ni entra en una
+                                  receta, y meterlo con los ingredientes obligaría a que
+                                  cada cuenta del menú tuviera que saltarse estas líneas. */
+        hogar: {},             /* { hogarId: { falta: true, c: 2 } } — lo que marcas que
+                                  te falta. Es del día a día, no del catálogo. */
         perfil: {
           sexo: "h",           // "h" | "m"
           edad: null, altura: null, peso: null, pesoObjetivo: null,
@@ -235,7 +242,8 @@
          Solo da de alta lo que falta por id: nunca pisa ni borra nada suyo. */
       var altas = [];
       [["ingredientes", global.DATOS_INGREDIENTES], ["recetas", global.DATOS_RECETAS],
-       ["plantillas", global.DATOS_PLANTILLAS], ["actividades", global.DATOS_ACTIVIDADES]
+       ["plantillas", global.DATOS_PLANTILLAS], ["actividades", global.DATOS_ACTIVIDADES],
+       ["hogarLista", global.DATOS_HOGAR]
       ].forEach(function (par) {
         var clave = par[0], datos = par[1] || [];
         if (!e[clave]) return;
@@ -440,6 +448,8 @@
       }
       if (!e.despensa) e.despensa = {};
       if (!e.stock) e.stock = {};
+      if (!e.hogar) e.hogar = {};
+      if (!e.hogarLista) e.hogarLista = JSON.parse(JSON.stringify(global.DATOS_HOGAR || []));
       if (!e.stockSitios) e.stockSitios = {};
       /* LO QUE HABÍA MARCADO CON EL SÍ/NO VIEJO no se tira: pasa a stock como
          «esto lo tienes, pero no sé cuánto». Cuenta como cero —más vale que la
@@ -1282,6 +1292,112 @@
       });
 
       return { productos: productos.slice(0, 14), recetas: recetas.slice(0, 8) };
+    },
+
+    /* ================= HOGAR =================
+       Limpieza, menaje de cocina, aseo y mascota. La línea ES el producto, con
+       su marca y su formato: lo que viaja a Amazon es ese nombre, así que una
+       línea sin marca no es comprable. Las que vienen de fábrica traen un nombre
+       genérico y `pendiente:true`; al ponerles marca dejan de estar pendientes y
+       el genérico se guarda debajo para poder reconocerlas dentro de seis meses.
+
+       Nada de stock aquí: estas listas son manuales, marcas lo que te falta y ya.
+       Llevar el inventario de las bayetas es trabajo que no paga. */
+
+    APARTADOS: [
+      { k: "Limpieza", n: "Limpieza" },
+      { k: "Menaje",   n: "Menaje de cocina" },
+      { k: "Aseo",     n: "Aseo" },
+      { k: "Mascota",  n: "Mascota" }
+    ],
+    CAJONES: [
+      { k: "amazon",      n: "Amazon" },
+      { k: "super",       n: "Súper" },
+      { k: "suscripcion",  n: "Suscripción" }
+    ],
+    nombreCajon: function (k) {
+      var n = k;
+      this.CAJONES.forEach(function (c) { if (c.k === k) n = c.n; });
+      return n;
+    },
+
+    hogarDe: function (id) {
+      var fuera = null;
+      (this.estado.hogarLista || []).forEach(function (x) { if (x.id === id) fuera = x; });
+      return fuera;
+    },
+    faltaHogar: function (id) {
+      var m = (this.estado.hogar || {})[id];
+      return !!(m && m.falta);
+    },
+    cantidadHogar: function (id) {
+      var m = (this.estado.hogar || {})[id];
+      return (m && m.c > 0) ? m.c : 1;
+    },
+    /* Marcar que falta. Un producto de suscripción marcado «si lo necesitas
+       ahora» sale esa vez por Amazon sin dejar de ser de suscripción. */
+    marcarFaltaHogar: function (id, si, c) {
+      if (!this.estado.hogar) this.estado.hogar = {};
+      if (si) this.estado.hogar[id] = { falta: true, c: (c > 0 ? c : 1) };
+      else delete this.estado.hogar[id];
+      this.guardar("hogar");
+    },
+    /* Editar la línea: al ponerle marca deja de ser genérica. El nombre de
+       fábrica se queda como `generico` para poder reconocerla. */
+    guardarHogar: function (id, datos) {
+      var x = this.hogarDe(id);
+      if (!x) return false;
+      if (datos.n && datos.n !== x.n) {
+        if (x.pendiente && !x.generico) x.generico = x.n;
+        x.n = String(datos.n).slice(0, 90);
+        delete x.pendiente;
+      }
+      if (datos.suplente !== undefined) {
+        if (datos.suplente) x.suplente = String(datos.suplente).slice(0, 90);
+        else delete x.suplente;
+      }
+      if (datos.cajon) x.cajon = datos.cajon;
+      if (datos.cat) x.cat = datos.cat;
+      x.editado = true;
+      this.guardar("hogar");
+      return true;
+    },
+    crearHogar: function (n, cat, cajon) {
+      n = String(n || "").trim().slice(0, 90);
+      if (!n) return null;
+      var id = "hg_" + Date.now().toString(36);
+      if (!this.estado.hogarLista) this.estado.hogarLista = [];
+      this.estado.hogarLista.push({ id: id, n: n, rev: 1,
+        cat: cat || "Limpieza", cajon: cajon || "amazon", editado: true });
+      this.guardar("hogar");
+      return id;
+    },
+    borrarHogar: function (id) {
+      var x = this.hogarDe(id);
+      if (!x) return;
+      x.oculta = true; x.editado = true;     /* se retira, no se borra */
+      delete (this.estado.hogar || {})[id];
+      this.guardar("hogar");
+    },
+    /* Lo de Hogar que hay que comprar, repartido por cajón. La suscripción no
+       sale nunca: llega sola. */
+    compraHogar: function () {
+      var self = this, fuera = { amazon: [], super: [] };
+      (this.estado.hogarLista || []).forEach(function (x) {
+        if (x.oculta) return;
+        if (!self.faltaHogar(x.id)) return;
+        var cajon = x.cajon === "super" ? "super" : "amazon";   /* suscripción marcada = Amazon esta vez */
+        fuera[cajon].push({ id: x.id, n: x.n, cat: x.cat, suplente: x.suplente || "",
+                            c: self.cantidadHogar(x.id), pendiente: !!x.pendiente,
+                            suscripcion: x.cajon === "suscripcion" });
+      });
+      ["amazon", "super"].forEach(function (k) {
+        fuera[k].sort(function (a, b) {
+          if (a.cat !== b.cat) return String(a.cat).localeCompare(String(b.cat));
+          return a.n.localeCompare(b.n);
+        });
+      });
+      return fuera;
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */

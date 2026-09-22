@@ -432,6 +432,15 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .linea-stock{flex-wrap:wrap; row-gap:6px}
 .linea-stock .datos{flex:1 1 100%}
 .rejilla-despensa .linea-stock .detalle{display:block}   /* más específico que la regla del móvil, que va después en el fichero */
+
+/* ---------- hogar ----------
+   Lo mismo: el cajón —Amazon, Súper, Suscripción— y el aviso de «pónle tu marca»
+   son el dato de la línea, no un adorno. */
+#rejilla-hogar .linea-hogar .detalle{display:block}
+.linea-hogar{flex-wrap:wrap; row-gap:6px}
+.linea-hogar .datos{flex:1 1 60%}
+.linea-hogar.en-casa{background:var(--verde-claro); border-color:var(--verde-borde)}
+@media(min-width:520px){ .linea-hogar{flex-wrap:nowrap} .linea-hogar .datos{flex:1 1 auto} }
 .linea-stock .stock-cant{flex:none}
 .linea-stock.hecha{opacity:.65}
 .linea-stock.hecha .nombre{text-decoration:none}
