@@ -412,6 +412,19 @@
       "  background:var(--azul-claro);border:1px solid var(--azul-borde);color:var(--azul-hondo)}",
       /* evolución: las series largas */
       ".evo-rangos{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}",
+      /* el interruptor de las noches: mismo botón, pero suelto bajo la leyenda */
+      ".evo-rangos.noches{margin:6px 0 2px}",
+      /* el panel de la noche: una fila por medida, con el rótulo a la izquierda
+         y todas las gráficas empezando en la misma x para que la columna valga */
+      ".panel-noche{margin:0 0 4px}",
+      ".fila-noche{display:grid;grid-template-columns:82px 1fr;align-items:center;gap:8px;margin:0 0 2px}",
+      ".fila-noche>b{font-size:.72rem;font-weight:600;color:#3d554a;text-align:right;line-height:1.15}",
+      ".fila-noche>b small{display:block;font-weight:400;color:#8a9a92;font-size:.66rem}",
+      ".fila-noche .graf-caja{margin:0}",
+      ".fila-noche .graf-pie{display:none}",
+      ".sin-noche{font-size:.7rem;color:#a4b0aa;font-style:italic;margin:6px 0;line-height:1.35}",
+      ".fechas-noche{display:flex;justify-content:space-between;font-size:.72rem;color:#667a70;margin:0}",
+      ".noches-vfc{font-size:.78rem}",
       ".evo-r{border:1px solid var(--borde);background:#fff;color:var(--gris);border-radius:999px;",
       "  padding:6px 13px;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}",
       ".evo-r.activo{background:var(--azul);border-color:var(--azul);color:#fff}",
@@ -3341,6 +3354,28 @@
   var VFC_ROJO = 0.94;          // del suelo de la franja para abajo, ya no es «desequilibrada»
   var VFC_VERDE = "#4a9e5c", VFC_NARANJA = "#e08a2e", VFC_ROJO_C = "#c0392b";
 
+  /* EL INTERRUPTOR DE LAS NOCHES (22-sep-2026, Carlos: «me falta la línea de
+     medias nocturnas»). Y tenía razón, aunque estuviera escrita: se dibujaba
+     sola sólo hasta los 100 días, y las dos gráficas ABREN más arriba —
+     Evolución en 6 meses y la emergente en 1 año—, así que en la pantalla que
+     se ve al entrar no salía nunca.
+     Arreglarlo subiendo el límite habría sido peor: a un año son trescientas
+     rayas y tapan la franja, que es lo que hay que mirar. Así que se hace como
+     en el reloj: un botón que la enseña y la esconde, y que recuerda lo que
+     elegiste. `null` significa «decide tú», que es lo de antes. */
+  var VFC_NOCHES = null;          // null = automático · true = siempre · false = nunca
+
+  function tocanNoches(dias) {
+    if (VFC_NOCHES !== null) return VFC_NOCHES;
+    return dias <= 100;
+  }
+
+  function botonNoches(dias) {
+    var puesto = tocanNoches(dias);
+    return '<button type="button" class="evo-r noches-vfc' + (puesto ? " activo" : "") +
+      '" data-noches="1">' + (puesto ? "Ocultar" : "Ver") + " las medias nocturnas</button>";
+  }
+
   function percentilOrd(v, p) {
     if (!v.length) return null;
     var idx = (v.length - 1) * p / 100, a = Math.floor(idx), b = Math.min(a + 1, v.length - 1);
@@ -3350,7 +3385,12 @@
   /* Devuelve, por cada día del tramo pedido, la franja y la media de 7 noches
      ya clasificada. `diario` tiene que venir CON COLA: los VFC_VENTANA días
      anteriores al tramo, o los primeros meses saldrían sin franja. */
-  function vfcConFranja(diario, desde, hasta) {
+  /* La misma cuenta vale para cualquier medida que se lea «dentro o fuera de
+     lo normal en mí»: la VFC y, desde el 22-sep-2026, la nota de sueño. Lo
+     único que cambia es de dónde sale la media de 7 días —la VFC tiene la suya
+     ya calculada en `vfc7` y la nota no— y hacia dónde es peor: en las dos
+     bajar es peor, así que por ahora no hace falta más. */
+  function vfcConFranja(diario, desde, hasta, campoMedia7) {
     var porFecha = {}, fechas = [];
     diario.forEach(function (p) {
       if (typeof p.v === "number" && p.v > 0) { porFecha[p.f] = p.v; fechas.push(p.f); }
@@ -3364,7 +3404,7 @@
       /* media de 7 noches: la de intervals cuando existe, y si no la de aquí.
          Se prefiere la suya para que dos sitios de la app no digan dos números
          distintos del mismo día. */
-      var m7 = valorDia("vfc7", f);
+      var m7 = campoMedia7 === null ? null : valorDia(campoMedia7 || "vfc7", f);
       if (!(typeof m7 === "number" && m7 > 0)) {
         var v7 = [], i;
         for (i = 0; i < 7; i++) {
@@ -3589,10 +3629,14 @@
         '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
     }
     s += '<text x="' + L + '" y="7" font-size="8" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
-    s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="8" fill="#667a70">' +
-      rotuloFecha(o.desde) + "</text>";
-    s += '<text x="' + (W - 1) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
-      (o.hasta === U.hoyISO() ? "hoy" : rotuloFecha(o.hasta)) + "</text>";
+    /* `fechas:false` para las filas apiladas del panel de la noche: repetir
+       «23 marzo … hoy» cinco veces era ruido, y el eje es el mismo en todas. */
+    if (o.fechas !== false) {
+      s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="8" fill="#667a70">' +
+        rotuloFecha(o.desde) + "</text>";
+      s += '<text x="' + (W - 1) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
+        (o.hasta === U.hoyISO() ? "hoy" : rotuloFecha(o.hasta)) + "</text>";
+    }
     return '<div class="graf-caja">' + s + '</svg>' +
       '<div class="graf-guia"></div><div class="graf-tip"></div></div>' +
       (o.explica ? '<p class="graf-pie">' + U.esc(o.explica) + "</p>" : "");
@@ -4458,8 +4502,12 @@
            distinguen los picos: a seis meses son doscientas rayas y tapan la
            franja, que es lo que hay que mirar. El reloj la enseña sólo en la
            vista de cuatro semanas, por lo mismo. */
-        var cabenNoches = diasEntre(v.desde, v.hasta) <= 100;
-        if (cabenNoches) ser.push({ pts: vfc, color: "#8d9a94", ancho: 1,
+        var diasV = diasEntre(v.desde, v.hasta);
+        var cabenNoches = tocanNoches(diasV);
+        /* En tramos largos se afina y se aclara: con trescientas noches la
+           raya gorda es una mancha, pero fina todavía deja ver la forma. */
+        if (cabenNoches) ser.push({ pts: vfc, color: "#8d9a94",
+                                    ancho: diasV > 200 ? 0.5 : 1,
                                     guiones: true, marcarUltimo: false });
         ["gris", "verde", "naranja", "rojo"].forEach(function (e) {
           var pts = deColor(e);
@@ -4485,7 +4533,8 @@
           { n: "desequilibrada", color: VFC_NARANJA },
           { n: "baja", color: VFC_ROJO_C },
           { n: "lo normal en ti", color: "#dfe4e2" }
-        ].concat(cabenNoches ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : []));
+        ].concat(cabenNoches ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : [])) +
+          '<div class="evo-rangos noches">' + botonNoches(diasV) + "</div>";
 
         if (ult && ultInf !== null) {
           cuerpo2 += '<p class="nota-peque" style="margin:4px 0 0">Ahora mismo: <b>' +
@@ -4562,6 +4611,154 @@
         }) + '<p class="nota-peque" style="margin:4px 0 0">' +
           (tramoLargo ? "En tramos largos, la media móvil de siete noches." : "Una barra por noche.") + "</p>";
       }
+      /* ========== LAS TRES TARJETAS DEL SUEÑO (22-sep-2026) ==========
+         Vienen de una pregunta suya: «¿qué fase fijamos como la buena?». La
+         respuesta de manual es el sueño profundo. Medido sobre sus 1.300
+         noches desde 2023, en él NO se sostiene:
+
+           parte de la noche   con su VFC   con su pulso mínimo
+           profundo               +0,03          −0,04
+           REM                    +0,05          −0,22
+           dormido en total       +0,06          −0,20
+           nota de Garmin         +0,25          −0,41
+
+         El profundo sale en cero, y no por falta de recorrido: su media de 30
+         noches va de 37 a 72 minutos. Sencillamente, cuando sube no pasa nada.
+         Así que no se fija ninguna fase como «la buena»: se enseñan las dos que
+         importan y se deja que él vea cuál se mueve.
+
+         (Hay una casilla que correlaciona mucho más, el estrés nocturno, −0,44
+         con la VFC. Se descarta a propósito: Garmin lo calcula A PARTIR de la
+         VFC, así que pintarla sería dibujar la VFC contra sí misma.)
+
+         OJO CON LA FUENTE: las fases NO llegan con la sincronización de cada
+         noche —comprobado en salud.json, que sólo trae el total dormido, la
+         nota, la respiración y el Body Battery—. Vienen con la exportación de
+         Garmin que se pide cada dos meses, así que estas tarjetas se acaban
+         donde acabó la última descarga. Eso se dice, no se disimula. */
+      var prof = serieSalud("sueno_profundo", v), rem = serieSalud("sueno_rem", v);
+      var totS = serieSalud("sueno_min", v);
+      if (prof.length > 10 && rem.length > 10) {
+        /* En PORCENTAJE de la noche y no en minutos: si una noche duermes
+           cinco horas y otra ocho, los minutos de cada fase suben solos sin
+           que la noche sea mejor. El porcentaje dice cómo repartiste lo que
+           dormiste, que es lo que se quiere mirar. */
+        var porTot = {};
+        totS.forEach(function (p) { if (p.v > 0) porTot[p.f] = p.v; });
+        function enPorciento(serie) {
+          var out = [];
+          serie.forEach(function (p) {
+            if (porTot[p.f]) out.push({ f: p.f, v: 100 * p.v / porTot[p.f] });
+          });
+          return out;
+        }
+        var pPro = enPorciento(prof), pRem = enPorciento(rem);
+        var mPro = mediaMovilDias(pPro, 30), mRem = mediaMovilDias(pRem, 30);
+        /* La línea de cada noche sólo cuando se distingue: a seis meses son
+           ciento ochenta picos y tapan la media, que es lo que hay que leer. */
+        var finos = diasEntre(v.desde, v.hasta) <= 120;
+        cuerpo2 += '<h3 class="evo-sub">En qué se te va la noche</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 100, arriba: "% de la noche",
+          unidadTip: "%", alt: "Reparto de las fases del sueño",
+          explica: "Cuánto de cada noche es sueño profundo y cuánto REM, en porcentaje y no en " +
+            "minutos: así una noche larga y una corta se comparan igual. La línea fina es cada " +
+            "noche; la gruesa, la media de 30.",
+          series: (finos ? [{ pts: pPro, color: "#b9cbdd", ancho: 0.5, marcarUltimo: false },
+                            { pts: pRem, color: "#e2c89a", ancho: 0.5, marcarUltimo: false }] : [])
+            .concat([{ pts: mPro, color: AZUL, ancho: 2 },
+                     { pts: mRem, color: "#b3762f", ancho: 2 }])
+        }) + leyenda([{ n: "profundo", color: AZUL }, { n: "REM", color: "#b3762f" }]);
+        if (mPro.length && mRem.length) {
+          cuerpo2 += '<p class="nota-peque" style="margin:4px 0 0">Ahora mismo: <b>' +
+            num(mPro[mPro.length - 1].v) + " %</b> de profundo y <b>" +
+            num(mRem[mRem.length - 1].v) + " %</b> de REM, en media de 30 noches. " +
+            "Tu media desde 2023 es 13,3 % y 14,4 %." +
+            "</p>";
+        }
+        cuerpo2 += avisoFrescura("sueno_profundo");
+      }
+
+      /* LA NOTA DE LA NOCHE, leída como la VFC. Es la que mejor acompaña a su
+         recuperación —0,41 contra el pulso mínimo, diez veces más que
+         cualquier fase suelta—, y hasta hoy no se pintaba en ninguna parte. */
+      var notaS = serieSalud("pt_sueno", v);
+      /* El listón va en las noches del TRAMO, no en las de la franja: la franja
+         se saca de la cola de 150 días que se pide aparte, así que en «1 mes»
+         —treinta noches— también sale. Antes pedía 40 y la tarjeta desaparecía
+         justo en el tramo que más se mira. */
+      if (notaS.length > 5) {
+        var colaN = serieSalud("pt_sueno", { desde: U.sumarDias(v.desde, -(VFC_VENTANA + 30)), hasta: v.hasta });
+        var frN = vfcConFranja(colaN, v.desde, v.hasta, null);
+        if (frN) {
+          var COLN = { verde: VFC_VERDE, naranja: VFC_NARANJA, rojo: VFC_ROJO_C, gris: "#9aa8a2" };
+          var serN = [];
+          ["gris", "verde", "naranja", "rojo"].forEach(function (e) {
+            var pts = frN.puntos.filter(function (x) { return x.e === e; });
+            if (pts.length) serN.push({ pts: pts, color: COLN[e], soloPuntos: true,
+                                        radio: diasEntre(v.desde, v.hasta) > 200 ? 1.1 : 2.2,
+                                        marcarUltimo: false });
+          });
+          cuerpo2 += '<h3 class="evo-sub">La nota de la noche</h3>' + grafica({
+            desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 100, arriba: "de 100",
+            unidadTip: "", alt: "Puntuación de sueño con su franja de referencia",
+            explica: "La nota que Garmin pone a cada noche, leída igual que la VFC: media de 7 " +
+              "noches y franja con lo normal en ti. De todo lo que mide el reloj mientras duermes, " +
+              "es lo que mejor acompaña a tu recuperación.",
+            franja: { sup: frN.sup, inf: frN.inf, color: "#dfe4e2", opacidad: 0.85 },
+            series: serN
+          }) + leyenda([
+            { n: "dentro", color: VFC_VERDE },
+            { n: "por debajo", color: VFC_NARANJA },
+            { n: "baja", color: VFC_ROJO_C },
+            { n: "lo normal en ti", color: "#dfe4e2" }
+          ]);
+        }
+      }
+
+      /* LA NOCHE, DÍA A DÍA (idea suya, 22-sep-2026): todas las medidas de la
+         noche una debajo de otra y con el MISMO eje de fechas.
+         No se mezclan en una sola gráfica a propósito: una nota sobre 100, un
+         porcentaje de oxígeno, respiraciones por minuto y un número de veces
+         no comparten escala, y juntarlas obligaría a inventar una. Apiladas y
+         alineadas se lee lo que él quería: la COLUMNA, o sea qué hizo cada
+         medida la misma noche. */
+      var LAS_DE_LA_NOCHE = [
+        { c: "pt_sueno",     n: "Nota de sueño", u: "de 100",       col: AZUL },
+        { c: "body_battery", n: "Body Battery",  u: "al despertar", col: "#3f8f6b" },
+        { c: "respiracion",  n: "Respiración",   u: "resp./min",    col: "#7b5ea7" },
+        { c: "sueno_veces",  n: "Despertares",   u: "veces",        col: AMBAR, barras: true },
+        { c: "spo2_noche",   n: "Saturación",    u: "% de O₂", col: ROJO,
+          vacio: "sin datos todavía — la pulsioximetría nocturna se activó el 17 de septiembre; " +
+                 "aparecerá con la próxima exportación de Garmin" }
+      ];
+      var filasNoche = "", hayAlguna = false;
+      LAS_DE_LA_NOCHE.forEach(function (m) {
+        var pts = serieSalud(m.c, v);
+        filasNoche += '<div class="fila-noche"><b>' + U.esc(m.n) + "<small>" + U.esc(m.u) + "</small></b>";
+        if (!pts.length) {
+          filasNoche += '<p class="sin-noche">' + U.esc(m.vacio || "sin datos en este tramo") + "</p></div>";
+          return;
+        }
+        hayAlguna = true;
+        filasNoche += grafica({
+          desde: v.desde, hasta: v.hasta, alto: 40, arriba: "", unidadTip: m.u,
+          alt: m.n, ajustarFin: false, fechas: false,
+          series: [{ pts: pts, color: m.col, ancho: 1.1, barras: !!m.barras,
+                     opacidad: 0.85, marcarUltimo: !m.barras }]
+        }) + "</div>";
+      });
+      if (hayAlguna) {
+        cuerpo2 += '<h3 class="evo-sub">La noche, día a día</h3>' +
+          '<p class="graf-pie" style="margin:0 0 6px">Todas las medidas de la noche con el mismo ' +
+          'eje de fechas. No se mezclan en una sola línea a propósito: son unidades distintas y ' +
+          'juntarlas sería inventar. Lo que se lee aquí es la columna — qué hizo cada medida la ' +
+          'misma noche.</p><div class="panel-noche">' + filasNoche +
+          '<div class="fila-noche"><b></b><p class="fechas-noche"><span>' +
+          U.esc(U.etiquetaFecha(v.desde)) + "</span><span>" +
+          (v.hasta === U.hoyISO() ? "hoy" : U.esc(U.etiquetaFecha(v.hasta))) +
+          "</span></p></div></div>";
+      }
+
       if (bandas.length) {
         nota2 = "El tramo sombreado es el del corticoide: <b>ahí no se interpreta nada</b>, " +
           "porque el fármaco baja la VFC y sube el pulso por sí solo.";
@@ -4938,9 +5135,11 @@
         if (frH) {
           var COLORH = { verde: VFC_VERDE, naranja: VFC_NARANJA, rojo: VFC_ROJO_C, gris: "#9aa8a2" };
           var nochesTramo = noches.filter(function (x) { return x.f >= desde; });
-          var cabenH = diasEntre(desde, U.hoyISO()) <= 100;
+          var diasH = diasEntre(desde, U.hoyISO());
+          var cabenH = tocanNoches(diasH);
           series = [];
-          if (cabenH) series.push({ pts: nochesTramo, color: "#8d9a94", ancho: 1,
+          if (cabenH) series.push({ pts: nochesTramo, color: "#8d9a94",
+                                    ancho: diasH > 200 ? 0.5 : 1,
                                     guiones: true, marcarUltimo: false });
           ["gris", "verde", "naranja", "rojo"].forEach(function (e) {
             var pts = frH.puntos.filter(function (x) { return x.e === e; });
@@ -4954,7 +5153,8 @@
             { n: "desequilibrada", color: VFC_NARANJA },
             { n: "baja", color: VFC_ROJO_C },
             { n: "lo normal en ti", color: "#dfe4e2" }
-          ].concat(cabenH ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : []));
+          ].concat(cabenH ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : [])) +
+            '<div class="evo-rangos noches">' + botonNoches(diasH) + "</div>";
         }
       }
 
@@ -6799,6 +6999,15 @@
       if (mBor) { borrarMat(mBor.getAttribute("data-mat-borra")); return; }
       var hr = t.closest ? t.closest("[data-histrango]") : null;
       if (hr) { e.preventDefault(); abrirHistoria(histAbierta, hr.getAttribute("data-histrango")); return; }
+      /* El interruptor de las noches vale para las dos gráficas: si está
+         abierta la emergente se repinta ella, y si no, la de Evolución. */
+      var nb = t.closest ? t.closest("[data-noches]") : null;
+      if (nb) {
+        e.preventDefault();
+        VFC_NOCHES = !nb.classList.contains("activo");
+        if (histAbierta) abrirHistoria(histAbierta, rangoHist); else pintar();
+        return;
+      }
       var sg = t.closest ? t.closest("[data-sesion-guia]") : null;
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
       var hb = t.closest ? t.closest("[data-historia]") : null;
@@ -6954,6 +7163,13 @@
          el manejador de la pestaña no llega hasta el modal */
       var hr = e.target.closest ? e.target.closest("[data-histrango]") : null;
       if (hr) { e.preventDefault(); abrirHistoria(histAbierta, hr.getAttribute("data-histrango")); return; }
+      var nb2 = e.target.closest ? e.target.closest("[data-noches]") : null;
+      if (nb2) {
+        e.preventDefault();
+        VFC_NOCHES = !nb2.classList.contains("activo");
+        if (histAbierta) abrirHistoria(histAbierta, rangoHist);
+        return;
+      }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarGuia(); });

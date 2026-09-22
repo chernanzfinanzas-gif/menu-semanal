@@ -667,23 +667,3 @@ button.enlace {
   background: none; border: 0; padding: 0; font: inherit;
   color: var(--acento, #5b4ee0); text-decoration: underline; cursor: pointer;
 }
-
-
-/* ---------- contador de cantidad por plato (v99) ----------
-   Dos donuts son un plato con ×2, no dos líneas iguales. Vale igual para los
-   platos de las tomas y para los caprichos del día. */
-.grupo-cantidad{display:inline-flex; align-items:center; gap:2px; flex:none}
-.grupo-cantidad .paso{
-  border:1px solid var(--borde); background:var(--blanco); color:var(--gris);
-  width:20px; height:20px; line-height:1; border-radius:6px; padding:0; font-size:.86rem;
-}
-.grupo-cantidad .paso:hover{border-color:var(--verde); color:var(--verde)}
-.grupo-cantidad .paso[disabled]{opacity:.35; cursor:default}
-.plato .cuantos{font-size:.78rem; font-weight:650; color:var(--verde); min-width:20px; text-align:center}
-/* con una sola ración el «+» queda tenue: está, pero no distrae */
-.grupo-cantidad:not(.varias) .paso{opacity:.35}
-.plato:hover .grupo-cantidad .paso{opacity:1}
-@media (max-width:700px){
-  .grupo-cantidad .paso{width:26px; height:26px; font-size:1rem}
-  .grupo-cantidad:not(.varias) .paso{opacity:.6}
-}
