@@ -4,6 +4,24 @@
   /* Qué venía del catálogo grande, apuntado antes de mezclar `datos/nuevos.js`.
      Sirve para saber qué es tuyo y qué es mío sin tener que marcarlo a mano. */
   var SEMILLA_BASE = null;
+
+  /* COMPARAR DOS FICHAS SIN QUE EL ORDEN DE LOS CAMPOS MIENTA.
+     El 22-sep-2026 la primera subida se llevó 34 ingredientes y 36 recetas que
+     no habían cambiado en nada: se comparó el texto tal cual, y {n, sal} no es
+     la misma cadena que {sal, n} aunque digan lo mismo. Aquí se ordenan las
+     claves antes de comparar, y se ignora `tocado`, que es la hora y no el dato. */
+  function canon(x) {
+    if (x === null || typeof x !== "object") return JSON.stringify(x === undefined ? null : x);
+    if (Array.isArray(x)) return "[" + x.map(canon).join(",") + "]";
+    var ks = Object.keys(x).sort(), partes = [];
+    for (var i = 0; i < ks.length; i++) {
+      if (ks[i] === "tocado") continue;
+      if (x[ks[i]] === undefined) continue;
+      partes.push(JSON.stringify(ks[i]) + ":" + canon(x[ks[i]]));
+    }
+    return "{" + partes.join(",") + "}";
+  }
+
   "use strict";
 
   var CLAVE = "asistente-alimentacion-v1";
@@ -134,8 +152,8 @@
          grande, y eso es lo que luego distingue lo tuyo de lo mío. */
       if (!SEMILLA_BASE) {
         SEMILLA_BASE = { ing: {}, rec: {} };
-        (global.DATOS_INGREDIENTES || []).forEach(function (x) { SEMILLA_BASE.ing[x.id] = JSON.stringify(x); });
-        (global.DATOS_RECETAS || []).forEach(function (x) { SEMILLA_BASE.rec[x.id] = JSON.stringify(x); });
+        (global.DATOS_INGREDIENTES || []).forEach(function (x) { SEMILLA_BASE.ing[x.id] = canon(x); });
+        (global.DATOS_RECETAS || []).forEach(function (x) { SEMILLA_BASE.rec[x.id] = canon(x); });
         var nv = global.DATOS_NUEVOS || {};
         [["ingredientes", "DATOS_INGREDIENTES"], ["recetas", "DATOS_RECETAS"]].forEach(function (par) {
           var lista = global[par[1]] || (global[par[1]] = []);
@@ -936,6 +954,8 @@
        que venían pero has corregido (`editado`) y los que propuso una IA
        (`de:"ia"`). Nada más: el plan, la despensa, las medidas y el peso viajan
        aparte, al repositorio privado, por `github.js`. */
+    canon: canon,
+
     novedades: function () {
       var base = SEMILLA_BASE || { ing: {}, rec: {} };
       /* Es tuyo si no venía en el catálogo grande, o si venía y lo has cambiado.
@@ -946,7 +966,7 @@
         if (!x || !x.id) return false;
         var base = dic[x.id];
         if (base === undefined) return true;
-        return JSON.stringify(x) !== base;
+        return canon(x) !== base;
       }
       return {
         ingredientes: (this.estado.ingredientes || []).filter(function (x) { return mio(x, base.ing); }),

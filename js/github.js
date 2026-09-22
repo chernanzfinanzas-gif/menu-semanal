@@ -373,9 +373,9 @@
         var deAlli = {}, ahora = new Date().toISOString();
         r.datos.ingredientes.forEach(function (x) { if (x && x.id) deAlli[x.id] = x; });
         r.datos.recetas.forEach(function (x) { if (x && x.id) deAlli[x.id] = x; });
-        function sinSello(x) {
-          var c = JSON.parse(JSON.stringify(x)); delete c.tocado; return JSON.stringify(c);
-        }
+        /* La misma comparación honrada que usa el almacén: por contenido, no por
+           el orden en que estén escritos los campos. */
+        function sinSello(x) { return Almacen.canon(x); }
         function sellar(lista) {
           return lista.map(function (x) {
             var c = JSON.parse(JSON.stringify(x));
@@ -387,9 +387,22 @@
         mio = { ingredientes: sellar(mio.ingredientes), recetas: sellar(mio.recetas) };
         /* El de aquí manda en lo que esté en los dos; lo que solo esté allí se
            conserva, que puede venir de otro aparato. */
+        /* QUÉ SE CONSERVA DE LO QUE YA HABÍA ALLÍ.
+           Lo que este aparato no tiene todavía: vendrá de otro y no se toca.
+           Lo que este aparato SÍ tiene y ya no cuenta como novedad —porque el
+           catálogo grande lo absorbió— se suelta: su sitio es `recetas.js`, no
+           aquí. Así el fichero se limpia solo en vez de crecer para siempre. */
+        var tengo = {}, esMio = {};
+        (Almacen.estado.ingredientes || []).forEach(function (x) { tengo[x.id] = true; });
+        (Almacen.estado.recetas || []).forEach(function (x) { tengo[x.id] = true; });
+        mio.ingredientes.forEach(function (x) { esMio[x.id] = true; });
+        mio.recetas.forEach(function (x) { esMio[x.id] = true; });
+        function conservar(lista) {
+          return lista.filter(function (x) { return x && x.id && !esMio[x.id] && !tengo[x.id]; });
+        }
         var junto = {
-          ingredientes: fusionarListas(r.datos.ingredientes, mio.ingredientes, true),
-          recetas: fusionarListas(r.datos.recetas, mio.recetas, true)
+          ingredientes: fusionarListas(conservar(r.datos.ingredientes), mio.ingredientes, true),
+          recetas: fusionarListas(conservar(r.datos.recetas), mio.recetas, true)
         };
         if (JSON.stringify(r.datos) === JSON.stringify(junto)) {
           self.ocupado = false;
