@@ -433,6 +433,17 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .linea-stock .datos{flex:1 1 100%}
 .rejilla-despensa .linea-stock .detalle{display:block}   /* más específico que la regla del móvil, que va después en el fichero */
 
+/* ---------- la compra ----------
+   El cajón —Amazon o Súper— manda sobre la sección del súper: primero se decide
+   dónde se compra y luego en qué orden se recorre. Y el detalle de la línea
+   —«el menú pide 300 g · tienes 1 kg»— es la razón de la línea, no un adorno. */
+.cajon-compra{
+  margin:20px 0 8px; font-size:1rem; color:var(--verde); letter-spacing:.01em;
+  border-bottom:2px solid var(--verde-borde); padding-bottom:4px;
+}
+.cajon-compra:first-child{margin-top:4px}
+#lista-compra .linea .detalle{display:block}
+
 /* ---------- hogar ----------
    Lo mismo: el cajón —Amazon, Súper, Suscripción— y el aviso de «pónle tu marca»
    son el dato de la línea, no un adorno. */

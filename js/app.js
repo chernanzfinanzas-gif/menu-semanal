@@ -2461,6 +2461,20 @@
                  '<input type="number" id="ig-' + p[0] + '" min="0" step="' + p[2] + '" value="' +
                  (g[p[0]] != null ? g[p[0]] : 0) + '"></label>';
         }).join("") + '</div>';
+    html += '<label class="campo"><span>Tu producto: marca y formato</span>' +
+            '<input type="text" id="ig-producto" value="' + esc(g.producto || "") + '" ' +
+            'placeholder="Arroz redondo SOS, paquete de 1 kg">' +
+            '<span class="nota-peque" style="font-weight:400">Es lo que se copia a Amazon. Sin marca, ' +
+            'la l\u00ednea no es comprable ah\u00ed \u2014 en el s\u00faper da igual, t\u00fa ya sabes cu\u00e1l coger.</span></label>';
+    html += '<div class="fila">' +
+      '<label class="campo" style="flex:1 1 150px"><span>Envase (' + esc(g.u || "g") + ' por unidad de venta)</span>' +
+        '<input type="number" id="ig-envase" min="0" step="1" value="' + (g.envase != null ? g.envase : "") + '">' +
+        '<span class="nota-peque" style="font-weight:400">Lo que entra en casa al comprar uno. Vac\u00edo = se compra al peso.</span></label>' +
+      '<label class="campo" style="flex:1 1 130px"><span>D\u00f3nde se compra</span><select id="ig-cajon">' +
+        '<option value="">Como toque (' + esc(Almacen.nombreCajon(Almacen.cajonDe(g.id || g))) + ')</option>' +
+        Almacen.CAJONES.map(function (c) {
+          return '<option value="' + esc(c.k) + '"' + (g.cajon === c.k ? " selected" : "") + '>' + esc(c.n) + '</option>';
+        }).join("") + '</select></label></div>';
     html += '<div class="fila">' +
       '<label class="campo" style="flex:1 1 150px"><span>Raci\u00f3n habitual (' + esc(g.u || "g") + ')</span>' +
         '<input type="number" id="ig-racion" min="0" step="0.5" value="' + (g.racion != null ? g.racion : "") + '">' +
@@ -2489,6 +2503,12 @@
       if ($("#ig-basico").checked) res.basico = true;
       var racion = parseFloat(String($("#ig-racion").value).replace(",", "."));
       if (racion > 0) res.racion = racion;
+      var prod = $("#ig-producto").value.trim();
+      if (prod) res.producto = prod;
+      var env = parseFloat(String($("#ig-envase").value).replace(",", "."));
+      if (env > 0) res.envase = env;
+      var caj = $("#ig-cajon").value;
+      if (caj) res.cajon = caj;
       var nota = $("#ig-nota").value.trim();
       if (nota) res.nota = nota; else if (g.nota) res.nota = g.nota;
       if (g.compra) res.compra = g.compra;
@@ -2928,51 +2948,107 @@
   var compraActual = null;
 
   function pintarCompra() {
-    /* La compra tiene SU PROPIO rango, no el de la pestaña Menú. Antes salía para la
-       semana que estuvieras mirando —que nadie podía adivinar— y en la semana en curso
-       incluía los platos de los días que ya te habías comido. */
+    /* La compra tiene SU PROPIO rango, no el de la pestaña Menú. */
     var r = Almacen.rangoCompra(UI.cuandoCompra);
     var datos = Almacen.generarCompra(r.desde, r.dias, { saltarComido: true });
     compraActual = datos;
     var pers = Almacen.estado.config.personas || 1;
     $("#compra-cuando").value = UI.cuandoCompra;
-    $("#compra-rango").textContent = Util.etiquetaFecha(r.desde) + " – " + Util.etiquetaFecha(r.hasta) +
-                                     " · " + r.dias + (r.dias === 1 ? " día" : " días");
+    $("#compra-rango").textContent = Util.etiquetaFecha(r.desde) + " \u2013 " + Util.etiquetaFecha(r.hasta) +
+                                     " \u00b7 " + r.dias + (r.dias === 1 ? " d\u00eda" : " d\u00edas");
     $("#compra-personas").textContent = pers === 1 ? "1 persona" : pers + " personas";
 
-    var totalLineas = 0, pendientes = 0;
-    datos.secciones.forEach(function (s) {
-      s.lineas.forEach(function (l) { totalLineas++; if (!l.enCasa && !l.marcado) pendientes++; });
-    });
+    pintarRecados();
 
-    if (!totalLineas) {
-      $("#compra-resumen").textContent = "No hay menú planificado en esas fechas. Ve a Menú y dale a " +
-        "«Completar la semana», o cambia el rango aquí arriba.";
+    var hogar = Almacen.compraHogar();
+    var visible = function (l) { return UI.ocultarComprados ? !l.marcado : true; };
+
+    /* --- reparto por cajón: Amazon y Súper --- */
+    var caj = { amazon: [], super: [] };
+    datos.secciones.forEach(function (sec) {
+      var por = { amazon: [], super: [] };
+      sec.lineas.forEach(function (l) { por[l.cajon === "amazon" ? "amazon" : "super"].push(l); });
+      ["amazon", "super"].forEach(function (k) {
+        var ls = por[k].filter(visible);
+        if (ls.length) caj[k].push({ nombre: sec.nombre, lineas: ls });
+      });
+    });
+    var basAmazon = datos.basicos.filter(function (l) { return l.cajon === "amazon"; }).filter(visible);
+    var basSuper  = datos.basicos.filter(function (l) { return l.cajon !== "amazon"; }).filter(visible);
+    if (basAmazon.length) caj.amazon.push({ nombre: "Revisa la despensa (b\u00e1sicos)", lineas: basAmazon, basico: true });
+    if (basSuper.length)  caj.super.push({ nombre: "Revisa la despensa (b\u00e1sicos)", lineas: basSuper, basico: true });
+
+    var totalLineas = 0, pedidos = 0;
+    datos.secciones.forEach(function (sec) {
+      sec.lineas.forEach(function (l) { totalLineas++; if (l.marcado) pedidos++; });
+    });
+    var totalHogar = hogar.amazon.length + hogar.super.length;
+
+    if (!totalLineas && !totalHogar) {
+      $("#compra-resumen").textContent = "Nada que comprar: o no hay men\u00fa planificado en esas fechas, " +
+        "o lo que hace falta ya est\u00e1 en la despensa.";
       $("#lista-compra").innerHTML = "";
       $("#platos-compra").innerHTML = "";
       return;
     }
-    $("#compra-resumen").textContent = "Quedan " + pendientes + " productos por comprar de " + totalLineas + ".";
+    $("#compra-resumen").textContent =
+      (totalLineas - pedidos) + " por pedir de " + totalLineas +
+      (pedidos ? " \u00b7 " + pedidos + " ya pedidos" : "") +
+      (totalHogar ? " \u00b7 " + totalHogar + " de casa" : "");
     pintarPlatosCompra(r);
 
-    var visible = function (l) { return UI.ocultarComprados ? (!l.marcado && !l.enCasa) : true; };
-    var html = "";
-    datos.secciones.forEach(function (s) {
-      var lineas = s.lineas.filter(visible);
-      if (!lineas.length) return;
-      html += '<div class="seccion-compra"><h3>' + esc(s.nombre) + '</h3>';
-      lineas.forEach(function (l) { html += lineaCompraHTML(l); });
-      html += '</div>';
-    });
-    var basicos = datos.basicos.filter(visible);
-    if (basicos.length) {
-      html += '<div class="seccion-compra"><h3>Revisa la despensa (básicos)</h3>';
-      basicos.forEach(function (l) { html += lineaCompraHTML(l, true); });
-      html += '</div>';
+    function bloqueHogar(lista) {
+      if (!lista.length) return "";
+      var h = '<div class="seccion-compra"><h3>Casa</h3>';
+      lista.forEach(function (x) {
+        var ped = Almacen.estaPedido(x.id);
+        h += '<div class="linea' + (ped ? " hecha" : "") + '">' +
+             '<input type="checkbox" data-marcar="' + esc(x.id) + '"' + (ped ? " checked" : "") +
+               ' title="Pedido">' +
+             '<div class="datos"><div class="nombre">' + esc(x.n) +
+               (x.pendiente ? ' <span class="etiqueta">sin marca</span>' : '') +
+               (x.suscripcion ? ' <span class="etiqueta">suscripci\u00f3n</span>' : '') + '</div>' +
+             '<div class="detalle">' + esc(x.cat) +
+               (x.suplente ? ' \u00b7 si no hay: ' + esc(x.suplente) : '') + '</div></div>' +
+             '<span class="cant">\u00d7' + x.c + '</span></div>';
+      });
+      return h + '</div>';
     }
-    if (!html) html = '<div class="vacio">Todo comprado. Buen trabajo.</div>';
+
+    var html = "";
+    [["amazon", "Amazon"], ["super", "S\u00faper"]].forEach(function (par) {
+      var k = par[0];
+      var secs = caj[k], hg = hogar[k] || [];
+      if (!secs.length && !hg.length) return;
+      html += '<h2 class="cajon-compra">' + esc(par[1]) + '</h2>';
+      secs.forEach(function (sec) {
+        html += '<div class="seccion-compra"><h3>' + esc(sec.nombre) + '</h3>';
+        sec.lineas.forEach(function (l) { html += lineaCompraHTML(l, sec.basico); });
+        html += '</div>';
+      });
+      html += bloqueHogar(hg);
+    });
+
+    if (!html) html = '<div class="vacio">Todo pedido. Cuando llegue, dale a \u00abHa llegado\u00bb.</div>';
     $("#lista-compra").innerHTML = html;
-    $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar comprados";
+    $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar pedidos";
+  }
+
+  /* LA LISTA DE RECADOS: lo que se pidió y no llegó, o no había. Se queda aquí
+     hasta que se resuelva; no vuelve sola a la lista grande. */
+  function pintarRecados() {
+    var cont = $("#lista-recados");
+    if (!cont) return;
+    var lista = Almacen.recadosPendientes();
+    if (!lista.length) { cont.innerHTML = ""; return; }
+    var h = '<div class="seccion-compra" style="border-color:var(--ambar)">' +
+            '<h3 style="color:var(--ambar)">Pendiente de buscar en otro sitio (' + lista.length + ')</h3>';
+    lista.forEach(function (x) {
+      h += '<div class="linea"><div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
+           '<div class="detalle">' + (x.c > 1 ? x.c + " \u00b7 " : "") + 'desde el ' + esc(Util.etiquetaFecha(x.f)) + '</div></div>' +
+           '<button class="btn mini" data-recado="' + esc(x.id) + '">Ya lo tengo</button></div>';
+    });
+    cont.innerHTML = h + '</div>';
   }
 
   /* ---------- los PLATOS de la compra ----------
@@ -3034,14 +3110,28 @@
   }
 
   function lineaCompraHTML(l, basico) {
-    var clases = "linea" + (l.marcado ? " hecha" : "") + (l.enCasa ? " en-casa" : "");
+    /* Arriba lo que se compra —el producto y cuántos envases— y debajo, en gris,
+       la razón: lo que pide el menú y lo que ya tienes. La lista se lee como un
+       pedido, que es lo que tiene que ser para poder pasarla a Amazon. */
+    var nombre = l.producto || l.nombre;
+    var clases = "linea" + (l.marcado ? " hecha" : "");
+    var porque = "el men\u00fa pide " + esc(l.pidePlan);
+    if (l.hay > 0) porque += " \u00b7 tienes " + esc(Util.cantidadReceta(l.hay, l.unidad, l.pesoUd));
+    if (l.recetas && l.recetas.length) {
+      porque += " \u00b7 " + esc(l.recetas.slice(0, 2).join(", ")) + (l.recetas.length > 2 ? "\u2026" : "");
+    }
     return '<div class="' + clases + '">' +
-      '<input type="checkbox" data-marcar="' + esc(l.id) + '"' + (l.marcado ? " checked" : "") + ' title="Marcar como comprado">' +
-      '<div class="datos"><div class="nombre">' + esc(l.nombre) + (l.enCasa ? ' <span class="etiqueta">ya en casa</span>' : '') + '</div>' +
-      '<div class="detalle">' + esc(l.recetas.slice(0, 3).join(" · ")) + (l.recetas.length > 3 ? " …" : "") +
-      (l.nota ? ' — ' + esc(l.nota) : '') + '</div></div>' +
+      '<input type="checkbox" data-marcar="' + esc(l.id) + '"' + (l.marcado ? " checked" : "") + ' title="Pedido">' +
+      '<div class="datos"><div class="nombre">' + esc(nombre) +
+        /* El aviso de que falta la marca solo tiene sentido en Amazon: en el s\u00faper
+           ya sabes cu\u00e1l coger. Y es un bot\u00f3n, porque el sitio donde se pone la marca
+           es justo este, cuando la tienes delante. */
+        (l.producto || l.cajon !== "amazon" ? '' :
+          ' <button class="etiqueta" data-marcaring="' + esc(l.id) + '" ' +
+          'title="Ponle tu marca y formato">ponle marca</button>') + '</div>' +
+      '<div class="detalle">' + porque + (l.nota ? ' \u2014 ' + esc(l.nota) : '') + '</div></div>' +
       '<span class="cant">' + esc(l.texto) + '</span>' +
-      '<button class="btn mini" data-encasa="' + esc(l.id) + '">' + (l.enCasa ? "Comprar" : "Lo tengo") + '</button>' +
+      '<button class="btn mini" data-encasa="' + esc(l.id) + '" title="Ya lo tienes: no lo pidas">Lo tengo</button>' +
       '</div>';
   }
 
@@ -3763,14 +3853,65 @@
       UI.cuandoCompra = e.target.value;
       pintarCompra();
     });
-    $("#compra-hecha").addEventListener("click", function () {
-      var r = Almacen.rangoCompra(UI.cuandoCompra);
-      if (!confirm("¿Dar por comprado todo lo planificado del " + Util.etiquetaFecha(r.desde) +
-                   " al " + Util.etiquetaFecha(r.hasta) + "?\n\nEsos platos dejarán de pedirse en la " +
-                   "lista. Lo que luego no te comas se queda en «pendiente en la despensa».")) return;
-      var n = Almacen.marcarRangoComprado(r.desde, r.dias, true);
-      pintarCompra();
-      Util.toast(n ? "Marcados " + n + " platos como comprados" : "Ya estaba todo marcado");
+    /* HA LLEGADO LA COMPRA.
+       Lo normal es que todo lo pedido haya llegado, así que no se repasa nada:
+       se confirma y ya. Solo se marcan las EXCEPCIONES, y al marcar una puedes
+       decir cuántos llegaron, que con Amazon partiendo los envíos pasa. Lo que
+       no llegue se va a la lista de recados. */
+    $("#compra-confirmar").addEventListener("click", function () {
+      var lineas = [];
+      (compraActual ? compraActual.secciones : []).forEach(function (sec) {
+        sec.lineas.forEach(function (l) { if (l.marcado) lineas.push(l); });
+      });
+      (compraActual ? compraActual.basicos : []).forEach(function (l) { if (l.marcado) lineas.push(l); });
+      var hg = Almacen.compraHogar();
+      var casa = hg.amazon.concat(hg.super).filter(function (x) { return Almacen.estaPedido(x.id); });
+
+      if (!lineas.length && !casa.length) {
+        Util.toast("No hay nada pedido: tacha primero lo que hayas encargado");
+        return;
+      }
+
+      var html = '<header><h2>Ha llegado la compra</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
+      html += '<p class="nota-peque">Todo lo pedido entra en casa. <b>Marca solo lo que no haya venido.</b></p>';
+      var pinta = function (id, nombre, cuantos, esHogar) {
+        return '<div class="linea">' +
+          '<input type="checkbox" data-falto="' + esc(id) + '" title="No ha llegado">' +
+          '<div class="datos"><div class="nombre">' + esc(nombre) + '</div>' +
+          '<div class="detalle">' + (cuantos > 1 ? "pediste " + cuantos : "") + '</div></div>' +
+          (esHogar || cuantos <= 1 ? '' :
+            '<input type="number" class="stock-cant" data-llegaron="' + esc(id) + '" min="0" max="' + cuantos +
+            '" step="1" value="0" style="width:62px; text-align:right" title="Cu\u00e1ntos llegaron">') +
+          '</div>';
+      };
+      if (lineas.length) {
+        html += '<p class="aviso-grupo">Comida</p>';
+        lineas.forEach(function (l) { html += pinta(l.id, l.producto || l.nombre, l.envases || 1, false); });
+      }
+      if (casa.length) {
+        html += '<p class="aviso-grupo">Casa</p>';
+        casa.forEach(function (x) { html += pinta(x.id, x.n, x.c, true); });
+      }
+      html += '<div class="fila" style="margin-top:14px">' +
+              '<button class="btn principal" id="cf-ok">Ha llegado todo lo dem\u00e1s</button>' +
+              '<button class="btn" data-cerrar>Cancelar</button></div>';
+      abrirModal(html);
+
+      $("#cf-ok").addEventListener("click", function () {
+        var faltas = {}, faltasHogar = {};
+        $$("#modal [data-falto]").forEach(function (c) {
+          if (!c.checked) return;
+          var id = c.getAttribute("data-falto");
+          var n = document.querySelector('[data-llegaron="' + id + '"]');
+          faltas[id] = n ? (parseInt(n.value, 10) || 0) : 0;
+          faltasHogar[id] = true;
+        });
+        var res = Almacen.confirmarCompra(lineas, faltas);
+        Almacen.confirmarHogar(casa.map(function (x) { return x.id; }), faltasHogar);
+        cerrarModal(); pintarCompra(); pintarDespensa();
+        Util.toast("Entraron " + res.entraron + " en la despensa" +
+                   (res.recados ? " \u00b7 " + res.recados + " a recados" : ""));
+      });
     });
     $("#compra-recalcular").addEventListener("click", pintarCompra);
     $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
@@ -3798,19 +3939,41 @@
     $("#lista-compra").addEventListener("click", function (e) {
       var enc = e.target.closest("[data-encasa]");
       if (enc) {
+        /* «Lo tengo» no es una casilla aparte: es decirle a la despensa que ya hay
+           lo que hace falta. Así hay UNA contabilidad y no tres. */
         var id = enc.getAttribute("data-encasa");
-        if (Almacen.estado.despensa[id]) delete Almacen.estado.despensa[id];
-        else Almacen.estado.despensa[id] = true;
-        Almacen.guardar("despensa"); pintarCompra();
+        var l = null;
+        (compraActual ? compraActual.secciones : []).forEach(function (sec) {
+          sec.lineas.forEach(function (x) { if (x.id === id) l = x; });
+        });
+        (compraActual ? compraActual.basicos : []).forEach(function (x) { if (x.id === id) l = x; });
+        if (l) {
+          Almacen.ponerStock(id, Math.max(Almacen.stockDe(id), l.pide));
+          pintarCompra();
+          Util.toast("Apuntado en la despensa: ya no se pide");
+        }
+        return;
+      }
+      var rec = e.target.closest("[data-recado]");
+      if (rec) { Almacen.quitarRecado(rec.getAttribute("data-recado")); pintarCompra(); return; }
+      var mk = e.target.closest("[data-marcaring]");
+      if (mk) {
+        abrirIngrediente(mk.getAttribute("data-marcaring"), "", function () { pintarCompra(); });
+        return;
       }
     });
     $("#lista-compra").addEventListener("change", function (e) {
       var m = e.target.closest("[data-marcar]");
       if (m) {
-        var id = m.getAttribute("data-marcar");
-        if (m.checked) Almacen.estado.compraMarcada[id] = true; else delete Almacen.estado.compraMarcada[id];
-        Almacen.guardar("compra"); pintarCompra();
+        /* Tachar es PEDIR, no recibir. Lo que entra en casa entra al confirmar
+           la llegada. Vale igual para la comida y para lo de casa. */
+        Almacen.ponerPedido(m.getAttribute("data-marcar"), m.checked);
+        setTimeout(pintarCompra, 0);
       }
+    });
+    $("#lista-recados").addEventListener("click", function (e) {
+      var rec = e.target.closest("[data-recado]");
+      if (rec) { Almacen.quitarRecado(rec.getAttribute("data-recado")); pintarCompra(); }
     });
     $("#compra-copiar").addEventListener("click", function () {
       var texto = textoCompra(true);

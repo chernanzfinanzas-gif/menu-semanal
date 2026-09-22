@@ -156,7 +156,11 @@
                                   Vive en el día, nunca en la receta ni en el plan: que
                                   hoy el plátano pesara 104 g no puede cambiar el
                                   plátano de mañana ni la ficha del plátano. */
-        compraMarcada: {},     // { ingredienteId: true }  -> ya comprado / tachado
+        compraMarcada: {},     /* { ingredienteId: true } -> PEDIDO (tachado en la lista).
+                                  Tachar es pedir, no recibir: lo que entra en casa entra
+                                  al confirmar la llegada. */
+        recados: {},           /* { id: { c, f, tipo } } — lo que falló y hay que buscar
+                                  en otro sitio. Se queda aquí hasta que se resuelva. */
         favoritos: [],
         sync: { sha: null, ultima: null }
       };
@@ -461,6 +465,7 @@
       });
       if (!e.real) e.real = {};
       if (!e.compraMarcada) e.compraMarcada = {};
+      if (!e.recados) e.recados = {};
       if (!e.favoritos) e.favoritos = [];
       if (!e.sync) e.sync = { sha: null, ultima: null };
     },
@@ -1398,6 +1403,95 @@
         });
       });
       return fuera;
+    },
+
+    /* ================= LOS CAJONES DE LA COMPRA =================
+       Amazon · Súper · Suscripción. Es una propiedad del PRODUCTO, y vale igual
+       para la comida y para lo de casa.
+
+       Por defecto se deduce de dónde se guarda, sin tener que rellenar 158 fichas:
+       lo del ARMARIO —arroz, pasta, conservas, café, bebidas— es justo lo que
+       Amazon trae bien, y lo demás —nevera, frutero, panera, congelador— se compra
+       en el súper. Cualquier ingrediente puede llevar su `cajon` y entonces manda
+       el suyo: el pan sin sal es de Ahorramás y no va a estar en Amazon nunca. */
+    cajonDe: function (id) {
+      var g = typeof id === "string" ? this.ingrediente(id) : id;
+      if (!g) return "super";
+      if (g.cajon) return g.cajon;
+      return this.sitioDe(g) === "armario" ? "amazon" : "super";
+    },
+
+    /* ---------- ESTADOS DE UNA LÍNEA DE LA COMPRA ----------
+       por pedir → pedido → comprado, y «falta» como excepción.
+       Tachar es PEDIR, no recibir: lo que entra en casa entra al confirmar. */
+    estaPedido: function (id) { return !!this.estado.compraMarcada[id]; },
+    ponerPedido: function (id, si) {
+      if (si) this.estado.compraMarcada[id] = true;
+      else delete this.estado.compraMarcada[id];
+      this.guardar("compra");
+    },
+
+    /* CONFIRMAR LA COMPRA. Lo normal es que todo haya llegado: solo se pasan las
+       excepciones. `faltas` es { ingredienteId: cuantosEnvasesLlegaron }.
+       Lo que llega sube el stock; lo que no, se va a la lista de recados. */
+    confirmarCompra: function (lineas, faltas) {
+      var self = this;
+      faltas = faltas || {};
+      if (!this.estado.recados) this.estado.recados = {};
+      var entraron = 0, aRecados = 0;
+      (lineas || []).forEach(function (l) {
+        if (!self.estaPedido(l.id)) return;
+        var pedidos = l.envases || 1;
+        var llegaron = (faltas[l.id] === undefined) ? pedidos : Math.max(0, Number(faltas[l.id]) || 0);
+        if (llegaron > 0) {
+          var g = self.ingrediente(l.id);
+          var cuanto = g && g.envase ? g.envase * llegaron : l.cantidad;
+          var f = self.fichaStock(l.id);
+          var ahora = (f && f.c > 0 ? f.c : 0) + cuanto;
+          self.estado.stock[l.id] = { c: Math.round(ahora * 100) / 100, f: Util.hoyISO() };
+          entraron++;
+        }
+        if (llegaron < pedidos) {
+          self.estado.recados[l.id] = { c: pedidos - llegaron, f: Util.hoyISO(), tipo: "comida" };
+          aRecados++;
+        }
+        delete self.estado.compraMarcada[l.id];
+      });
+      this.guardar("compra");
+      return { entraron: entraron, recados: aRecados };
+    },
+
+    /* Lo de Hogar, al confirmar: no hay stock que subir, solo se quita la marca
+       o se manda a recados. */
+    confirmarHogar: function (ids, faltas) {
+      var self = this;
+      faltas = faltas || {};
+      if (!this.estado.recados) this.estado.recados = {};
+      (ids || []).forEach(function (id) {
+        if (faltas[id]) {
+          var x = self.hogarDe(id);
+          self.estado.recados[id] = { c: self.cantidadHogar(id), f: Util.hoyISO(),
+                                      tipo: "hogar", n: x ? x.n : id };
+        }
+        delete (self.estado.hogar || {})[id];
+      });
+      this.guardar("hogar");
+    },
+
+    recadosPendientes: function () {
+      var self = this, fuera = [];
+      Object.keys(this.estado.recados || {}).forEach(function (id) {
+        var r = self.estado.recados[id];
+        var n = r.n;
+        if (!n) { var g = self.ingrediente(id); n = g ? g.n : id; }
+        fuera.push({ id: id, n: n, c: r.c, f: r.f, tipo: r.tipo || "comida" });
+      });
+      fuera.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      return fuera;
+    },
+    quitarRecado: function (id) {
+      delete (this.estado.recados || {})[id];
+      this.guardar("compra");
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */
@@ -2569,14 +2663,36 @@
       Object.keys(acumulado).forEach(function (id) {
         var ing = self.ingrediente(id);
         if (!ing) return;
+        /* LO QUE HACE FALTA MENOS LO QUE HAY. Y luego, redondeado al envase:
+           en la tienda no venden 340 g de arroz, venden bolsas de kilo. */
+        var pide = acumulado[id].cantidad;
+        var hay = self.stockDe(id);
+        var falta = pide - hay;
+        if (falta <= 0.0001 && !self.estado.compraMarcada[id]) return;   // cubierto: no se pide
+        if (falta < 0) falta = 0;
+        var envases = ing.envase > 0 ? Math.ceil(falta / ing.envase) : 0;
+        var comprar = envases > 0 ? envases * ing.envase : falta;
         var linea = {
           id: id,
           nombre: ing.n,
-          cantidad: acumulado[id].cantidad,
+          producto: ing.producto || "",
+          cantidad: comprar,
+          pide: pide,
+          hay: hay,
+          envase: ing.envase || 0,
+          envases: envases,
+          cajon: self.cajonDe(ing),
           unidad: ing.u,
-          texto: Util.formatearCantidad(acumulado[id].cantidad, ing.u),
+          texto: envases > 0
+            ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd))
+            : Util.formatearCantidad(comprar, ing.u),
+          pesoUd: ing.pesoUd || 0,
+          /* Lo que pide el menú se enseña SIN redondear: `formatearCantidad` redondea
+             a decenas porque está pensado para lo que se compra, y con ella dos gramos
+             de ajo en polvo salían como «0 g». */
+          pidePlan: Util.cantidadReceta(pide, ing.u, ing.pesoUd),
           recetas: Object.keys(acumulado[id].recetas),
-          enCasa: !!self.estado.despensa[id],
+          enCasa: hay > 0,
           marcado: !!self.estado.compraMarcada[id],
           nota: ing.nota || ""
         };

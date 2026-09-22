@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=113">
-<link rel="stylesheet" href="css/actividad-khb.css?v=113">
+<link rel="stylesheet" href="css/estilos.css?v=115">
+<link rel="stylesheet" href="css/actividad-khb.css?v=115">
 </head>
 <body>
 
@@ -172,7 +172,7 @@
   <section class="vista" id="vista-compra">
     <div class="cabecera-vista">
       <img src="iconos/khb/1-arbol-pulso.webp" alt="" width="52" height="52">
-      <div><h2>La compra</h2><span class="nota-peque">Lo que hace falta esta semana, por secciones del súper</span></div>
+      <div><h2>La compra</h2><span class="nota-peque">Lo que hace falta menos lo que ya tienes, repartido por dónde se compra</span></div>
     </div>
     <div class="tarjeta">
       <div class="fila entre">
@@ -190,12 +190,13 @@
           <button class="btn mini" id="compra-ocultar">Ocultar comprados</button>
           <button class="btn mini" id="compra-recalcular">Recalcular</button>
           <button class="btn mini" id="compra-copiar">Copiar lista</button>
-          <button class="btn mini" id="compra-hecha" title="Da por comprado todo lo de este rango: no volverá a pedirlo">Ya la he comprado</button>
+          <button class="btn mini" id="compra-confirmar" title="Ha llegado la compra: lo pedido entra en casa">Ha llegado</button>
           <button class="btn principal mini" id="compra-para-claude">Preparar compra</button>
         </div>
       </div>
     </div>
     <div class="aviso" id="compra-resumen"></div>
+    <div id="lista-recados"></div>
     <div id="platos-compra"></div>
     <div id="lista-compra"></div>
   </section>
@@ -462,18 +463,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=113"></script>
-<script src="datos/recetas.js?v=113"></script>
-<script src="datos/nuevos.js?v=113"></script>
-<script src="datos/hogar.js?v=113"></script>
-<script src="datos/plantillas.js?v=113"></script>
-<script src="datos/actividades.js?v=113"></script>
-<script src="datos/plan.js?v=113"></script>
-<script src="js/util.js?v=113"></script>
-<script src="js/almacen.js?v=113"></script>
-<script src="js/github.js?v=113"></script>
-<script src="js/app.js?v=113"></script>
-<script src="js/actividad-khb.js?v=113"></script>
-<script src="js/entrenamiento.js?v=113"></script>
+<script src="datos/ingredientes.js?v=115"></script>
+<script src="datos/recetas.js?v=115"></script>
+<script src="datos/nuevos.js?v=115"></script>
+<script src="datos/hogar.js?v=115"></script>
+<script src="datos/plantillas.js?v=115"></script>
+<script src="datos/actividades.js?v=115"></script>
+<script src="datos/plan.js?v=115"></script>
+<script src="js/util.js?v=115"></script>
+<script src="js/almacen.js?v=115"></script>
+<script src="js/github.js?v=115"></script>
+<script src="js/app.js?v=115"></script>
+<script src="js/actividad-khb.js?v=115"></script>
+<script src="js/entrenamiento.js?v=115"></script>
 </body>
 </html>
