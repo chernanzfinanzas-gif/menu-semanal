@@ -780,7 +780,11 @@
       }
       if (this.esPasado(fecha)) {
         if (!this.estado.corregido) this.estado.corregido = {};
-        this.estado.corregido[fecha] = Util.hoyISO();
+        /* Con HORA, no solo el día (23-sep-2026). El desempate entre dos aparatos
+           que corrigen el mismo día necesita más resolución que la fecha, y la
+           cabecera sigue leyendo bien: coge los caracteres 8-9 y 5-6, que en
+           "2026-09-23T12:31:07.000Z" siguen siendo el día y el mes. */
+        this.estado.corregido[fecha] = new Date().toISOString();
       }
     },
 

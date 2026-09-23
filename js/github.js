@@ -90,6 +90,32 @@
     var junto = fusionar(local, remoto, remotoManda);
     junto.actualizado = (local.actualizado || "") > (remoto.actualizado || "")
       ? local.actualizado : remoto.actualizado;
+
+    /* ── LOS DÍAS CORREGIDOS A MANO NO SE PISAN (23-sep-2026) ──────────────
+       Aquí se perdieron los días 21 y 22 de septiembre. Dos cosas se juntan:
+       un SOLO sello de tiempo (`actualizado`) decide quién manda en TODO el
+       estado, y la lista de platos de una toma es un array de textos, así que
+       `fusionarListas` devuelve una lista entera o la otra, sin unir plato a
+       plato. Resultado: un aparato con la hora un segundo más nueva, aunque no
+       supiera nada de la corrección, borraba el día completo. Sobrevivían
+       `fotos`, `comido` y `corregido` —son objetos, fusión profunda— y por eso
+       quedaba el sello «Corregido a mano el 23/09» anunciando una corrección
+       que ya no estaba.
+       La regla: si un día lleva marca de corrección manual, su plan lo pone el
+       lado que lo corrigió MÁS TARDE, pase lo que pase con el sello global.
+       Una corrección a mano es lo más deliberado que hay en la app: nunca la
+       puede tirar un reloj. */
+    var corrL = local.corregido || {}, corrR = remoto.corregido || {};
+    var dias = {}, f;
+    for (f in corrL) if (Object.prototype.hasOwnProperty.call(corrL, f)) dias[f] = 1;
+    for (f in corrR) if (Object.prototype.hasOwnProperty.call(corrR, f)) dias[f] = 1;
+    Object.keys(dias).forEach(function (dia) {
+      var manda = String(corrL[dia] || "") >= String(corrR[dia] || "") ? local : remoto;
+      if (manda.plan && manda.plan[dia]) {
+        if (!junto.plan) junto.plan = {};
+        junto.plan[dia] = JSON.parse(JSON.stringify(manda.plan[dia]));
+      }
+    });
     if (!junto.config) junto.config = {};
     if (!junto.config.github) junto.config.github = {};
     junto.config.github.token = token;
