@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=149">
-<link rel="stylesheet" href="css/actividad-khb.css?v=149">
+<link rel="stylesheet" href="css/estilos.css?v=150">
+<link rel="stylesheet" href="css/actividad-khb.css?v=150">
 </head>
 <body>
 
@@ -401,6 +401,9 @@
       <label class="campo"><span>Usuario de GitHub</span><input type="text" id="gh-usuario" placeholder="carlos"></label>
       <label class="campo"><span>Nombre del repositorio</span><input type="text" id="gh-repo" placeholder="menu-semanal"></label>
       <label class="campo"><span>Rama</span><input type="text" id="gh-rama" placeholder="main"></label>
+      <p class="aviso" id="gh-aviso-pausa" hidden>Sincronización <b>en pausa</b> en este aparato:
+        no sube ni baja nada, y por tanto no puede pisar lo que tengas en el otro. Tu clave sigue
+        guardada aquí. Cuando quieras volver, dale a «Reanudar sincronización».</p>
       <label class="campo"><span>Clave personal (token)</span>
         <div class="fila-clave">
           <input type="password" id="gh-token" placeholder="github_pat_…">
@@ -413,6 +416,7 @@
       <div class="fila">
         <button class="btn principal" id="gh-guardar">Guardar y conectar</button>
         <button class="btn" id="gh-probar">Probar conexión</button>
+        <button class="btn" id="gh-pausa">Pausar sincronización</button>
         <button class="btn" id="gh-subir">Subir ahora</button>
         <button class="btn" id="gh-bajar">Traer del repositorio</button>
       </div>
@@ -464,18 +468,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=149"></script>
-<script src="datos/recetas.js?v=149"></script>
-<script src="datos/nuevos.js?v=149"></script>
-<script src="datos/hogar.js?v=149"></script>
-<script src="datos/plantillas.js?v=149"></script>
-<script src="datos/actividades.js?v=149"></script>
-<script src="datos/plan.js?v=149"></script>
-<script src="js/util.js?v=149"></script>
-<script src="js/almacen.js?v=149"></script>
-<script src="js/github.js?v=149"></script>
-<script src="js/app.js?v=149"></script>
-<script src="js/actividad-khb.js?v=149"></script>
-<script src="js/entrenamiento.js?v=149"></script>
+<script src="datos/ingredientes.js?v=150"></script>
+<script src="datos/recetas.js?v=150"></script>
+<script src="datos/nuevos.js?v=150"></script>
+<script src="datos/hogar.js?v=150"></script>
+<script src="datos/plantillas.js?v=150"></script>
+<script src="datos/actividades.js?v=150"></script>
+<script src="datos/plan.js?v=150"></script>
+<script src="js/util.js?v=150"></script>
+<script src="js/almacen.js?v=150"></script>
+<script src="js/github.js?v=150"></script>
+<script src="js/app.js?v=150"></script>
+<script src="js/actividad-khb.js?v=150"></script>
+<script src="js/entrenamiento.js?v=150"></script>
 </body>
 </html>

@@ -160,8 +160,16 @@
 
     cfg: function () { return Almacen.estado.config.github || {}; },
 
+    /* PAUSA (23-sep-2026, idea de Carlos: «¿no es mejor pausarla por botón
+       guardando los datos en la app?»). Antes, para dejar de sincronizar había
+       que BORRAR el token y volver a pegarlo después, con el riesgo de perderlo.
+       Con la pausa la clave se queda donde está y la app simplemente no habla
+       con GitHub: no sube, no baja, no puede pisar nada. */
+    enPausa: function () { return !!this.cfg().pausada; },
+
     configurado: function () {
       var c = this.cfg();
+      if (c.pausada) return false;
       return !!(c.usuario && c.repo && c.token);
     },
 
@@ -244,6 +252,7 @@
 
     guardar: function () {
       var self = this;
+      if (this.enPausa()) { this.indicar("Sincronización en pausa", ""); return Promise.resolve(false); }
       if (!this.configurado()) { this.indicar("Solo en este dispositivo", ""); return Promise.resolve(false); }
       if (this.ocupado) { clearTimeout(this.temporizador); this.temporizador = setTimeout(function(){ self.guardar(); }, 2000); return Promise.resolve(false); }
       this.ocupado = true;

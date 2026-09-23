@@ -3703,6 +3703,17 @@
     $("#gh-repo").value = c.github.repo || "";
     $("#gh-rama").value = c.github.rama || "main";
     $("#gh-token").value = c.github.token || "";
+    pintarPausaSync();
+  }
+
+  /* El botón de pausa y el cartel que lo acompaña. */
+  function pintarPausaSync() {
+    var b = $("#gh-pausa"), av = $("#gh-aviso-pausa");
+    if (!b) return;
+    var p = !!(Almacen.estado.config.github || {}).pausada;
+    b.textContent = p ? "Reanudar sincronización" : "Pausar sincronización";
+    b.classList.toggle("principal", p);
+    if (av) av.hidden = !p;
   }
 
   /* Lo que se estima al comer fuera: una línea por toma, kcal y sal editables. */
@@ -4642,6 +4653,20 @@
       Util.toast(this.checked
         ? "Este aparato queda en modo consulta"
         : "Este aparato vuelve a poder editarlo todo");
+    });
+
+    $("#gh-pausa").addEventListener("click", function () {
+      var g = Almacen.estado.config.github;
+      g.pausada = !g.pausada;
+      Almacen.guardar("config");
+      pintarPausaSync();
+      if (g.pausada) {
+        Sync.indicar("Sincronización en pausa", "");
+        Util.toast("En pausa: este aparato no sube ni baja nada. La clave sigue guardada.");
+      } else {
+        Util.toast("Sincronización reanudada");
+        Sync.cargar();
+      }
     });
 
     $("#gh-ver").addEventListener("click", function () {
