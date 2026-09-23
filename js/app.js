@@ -2490,12 +2490,12 @@
         }).join("") + '</div>';
     html += '<label class="campo"><span>Tu producto: marca y formato</span>' +
             '<input type="text" id="ig-producto" value="' + esc(g.producto || "") + '" ' +
-            'placeholder="Arroz redondo SOS, paquete de 1 kg">' +
+            'placeholder="marca + formato, p. ej. \u00absopa de sobre Gallina Blanca, caja de 6\u00bb">' +
             '<span class="nota-peque" style="font-weight:400">Es lo que se copia a Amazon. Sin marca, ' +
             'la l\u00ednea no es comprable ah\u00ed \u2014 en el s\u00faper da igual, t\u00fa ya sabes cu\u00e1l coger.</span></label>';
     html += '<label class="campo"><span>Si no hay, este otro (opcional)</span>' +
             '<input type="text" id="ig-suplente" value="' + esc(g.suplente || "") + '" ' +
-            'placeholder="Carbonell Virgen Extra 1 L">' +
+            'placeholder="otra marca del mismo producto">' +
             '<span class="nota-peque" style="font-weight:400">Tu segunda opci\u00f3n. Sale escrita debajo ' +
             'en la lista y en el pedido, para no tener que buscarla cuando falte la primera.</span></label>';
     html += '<div class="fila">' +
@@ -3116,12 +3116,9 @@
     var pc = $("#platos-compra");
     if (pc) pc.innerHTML = "";
 
-    function bloqueHogar(lista) {
-      if (!lista.length) return "";
-      var h = '<div class="seccion-compra"><h3>Casa</h3>';
-      lista.forEach(function (x) {
+    function lineaHogarHTML(x) {
         var ped = Almacen.estaPedido(x.id);
-        h += '<div class="linea' + (ped ? " hecha" : "") + '">' +
+        return '<div class="linea' + (ped ? " hecha" : "") + '">' +
              '<input type="checkbox" data-marcar="' + esc(x.id) + '"' + (ped ? " checked" : "") +
                ' title="Pedido">' +
              '<div class="datos"><div class="nombre">' + esc(x.n) +
@@ -3130,7 +3127,12 @@
              '<div class="detalle">' + esc(x.cat) +
                (x.suplente ? ' \u00b7 si no hay: ' + esc(x.suplente) : '') + '</div></div>' +
              '<span class="cant">\u00d7' + x.c + '</span></div>';
-      });
+    }
+
+    function bloqueHogar(lista) {
+      if (!lista.length) return "";
+      var h = '<div class="seccion-compra"><h3>Casa</h3>';
+      lista.forEach(function (x) { h += lineaHogarHTML(x); });
       return h + '</div>';
     }
 
@@ -3140,6 +3142,34 @@
       var secs = caj[k], hg = hogar[k] || [];
       if (!secs.length && !hg.length) return;
       html += '<h2 class="cajon-compra">' + esc(par[1]) + '</h2>';
+      /* EL SÚPER SE AGRUPA POR TIENDA, NO POR SECCIÓN (23-sep-2026). Porque no es
+         un súper: son cuatro sitios distintos —Mercadona, Primaprix, Ahorramás y
+         DIA— y lo que hace falta al salir de casa es saber qué coger en cada uno.
+         Ordenarlo por sección de supermercado, con seis artículos repartidos entre
+         cuatro tiendas, no servía para nada. */
+      if (k === "super") {
+        var porTienda = {};
+        function cajon(t) { return (porTienda[t] = porTienda[t] || { comida: [], casa: [] }); }
+        secs.forEach(function (sec) {
+          sec.lineas.forEach(function (l) { cajon(l.tienda || "Sin tienda asignada").comida.push(l); });
+        });
+        hg.forEach(function (x) { cajon(x.tienda || "Sin tienda asignada").casa.push(x); });
+        Object.keys(porTienda).sort().forEach(function (nom) {
+          var g = porTienda[nom];
+          if (g.comida.length) {
+            html += '<div class="seccion-compra"><h3>' + esc(nom) + '</h3>';
+            g.comida.forEach(function (l) { html += lineaCompraHTML(l, false); });
+            html += '</div>';
+          }
+          if (g.casa.length) {
+            html += '<div class="seccion-compra"><h3>' + esc(nom) +
+                    (g.comida.length ? ' \u00b7 casa' : '') + '</h3>';
+            g.casa.forEach(function (x) { html += lineaHogarHTML(x); });
+            html += '</div>';
+          }
+        });
+        return;
+      }
       secs.forEach(function (sec) {
         html += '<div class="seccion-compra"><h3>' + esc(sec.nombre) + '</h3>';
         sec.lineas.forEach(function (l) { html += lineaCompraHTML(l, sec.basico); });
@@ -3287,8 +3317,14 @@
       if (!lista.length && !hg.length) return;
       out += "\n===== " + par[1] + " =====\n";
       var sec = "";
+      /* En el Súper el encabezado es la TIENDA, no la sección: la lista se lee
+         yendo de tienda en tienda, no recorriendo pasillos de un supermercado. */
+      if (k === "super") lista = lista.slice().sort(function (a, b) {
+        return String(a.l.tienda || "zzz").localeCompare(String(b.l.tienda || "zzz"));
+      });
       lista.forEach(function (x) {
-        if (x.sec !== sec) { sec = x.sec; out += "\n" + sec.toUpperCase() + "\n"; }
+        var cab = k === "super" ? (x.l.tienda || "Sin tienda asignada") : x.sec;
+        if (cab !== sec) { sec = cab; out += "\n" + sec.toUpperCase() + "\n"; }
         var nombre = x.l.producto || x.l.nombre;
         if (!x.l.producto && k === "amazon") { nombre += "  [FALTA LA MARCA]"; sinMarca++; }
         out += "  - " + nombre + ": " + x.l.texto +

@@ -181,8 +181,20 @@
          grande, y eso es lo que luego distingue lo tuyo de lo mío. */
       if (!SEMILLA_BASE) {
         SEMILLA_BASE = { ing: {}, rec: {} };
-        (global.DATOS_INGREDIENTES || []).forEach(function (x) { SEMILLA_BASE.ing[x.id] = canon(x); });
-        (global.DATOS_RECETAS || []).forEach(function (x) { SEMILLA_BASE.rec[x.id] = canon(x); });
+        SEMILLA_BASE.ingObj = {}; SEMILLA_BASE.recObj = {};
+        /* Copia intacta del catalogo publicado. Tres lineas mas abajo, las copias
+           guardadas del movil se escriben ENCIMA de DATOS_INGREDIENTES, asi que a
+           partir de ahi el catalogo bueno ya no existe en memoria: esta solo aqui.
+           Sin esto, comparar «tu copia» con «el catalogo» era comparar una cosa
+           consigo misma, y por eso el trabajo de marcas no llegaba a la pantalla. */
+        (global.DATOS_INGREDIENTES || []).forEach(function (x) {
+          SEMILLA_BASE.ing[x.id] = canon(x);
+          SEMILLA_BASE.ingObj[x.id] = JSON.parse(JSON.stringify(x));
+        });
+        (global.DATOS_RECETAS || []).forEach(function (x) {
+          SEMILLA_BASE.rec[x.id] = canon(x);
+          SEMILLA_BASE.recObj[x.id] = JSON.parse(JSON.stringify(x));
+        });
         var nv = global.DATOS_NUEVOS || {};
         [["ingredientes", "DATOS_INGREDIENTES"], ["recetas", "DATOS_RECETAS"]].forEach(function (par) {
           var lista = global[par[1]] || (global[par[1]] = []);
@@ -275,7 +287,8 @@
          compra Carlos): hay que SUSTITUIR, y para eso está `rev`. Lo que él haya
          corregido en Despensa lleva `editado` y no se toca nunca. */
       var ingSemilla = {};
-      (global.DATOS_INGREDIENTES || []).forEach(function (x) { if (x.rev) ingSemilla[x.id] = x; });
+      var _catIng = (SEMILLA_BASE && SEMILLA_BASE.ingObj) || {};
+      Object.keys(_catIng).forEach(function (k) { if (_catIng[k].rev) ingSemilla[k] = _catIng[k]; });
       var ingRefrescados = [];
       e.ingredientes.forEach(function (ing, i) {
         var nuevo = ingSemilla[ing.id];
@@ -293,7 +306,8 @@
          app le subo el campo `rev`, y aquí sustituyo la copia guardada por la nueva.
          Nunca toco una receta con `editado`: esa es tuya y manda sobre la mía. */
       var recSemilla = {};
-      (global.DATOS_RECETAS || []).forEach(function (r) { if (r.rev) recSemilla[r.id] = r; });
+      var _catRec = (SEMILLA_BASE && SEMILLA_BASE.recObj) || {};
+      Object.keys(_catRec).forEach(function (k) { if (_catRec[k].rev) recSemilla[k] = _catRec[k]; });
       var refrescadas = [];
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
@@ -338,6 +352,8 @@
          no se toca nada. */
       var nvz = global.DATOS_NUEVOS || {};
       var corregidos = [];
+      var _catIng2 = { ingredientes: (SEMILLA_BASE && SEMILLA_BASE.ingObj) || {},
+                       recetas:      (SEMILLA_BASE && SEMILLA_BASE.recObj) || {} };
       [["ingredientes", "ingredientes"], ["recetas", "recetas"]].forEach(function (par) {
         var porId = {};
         (nvz[par[0]] || []).forEach(function (x) { if (x && x.id && x.tocado) porId[x.id] = x; });
@@ -345,6 +361,12 @@
           var n = porId[x.id];
           if (!n) return;
           if (String(x.tocado || "") >= String(n.tocado)) return;
+          /* Si el catalogo va por delante de esa copia, manda el catalogo (23-sep-2026).
+             Una copia se marcaba como «tuya» solo por no coincidir —aunque no la
+             hubieras tocado— y desde entonces ganaba siempre, por vieja que fuese.
+             Lo que editas a mano lleva `editado` y no lo toca nadie, como siempre. */
+          var s = _catIng2[par[1]][x.id];
+          if (s && !x.editado && (s.rev || 0) > (n.rev || 0)) return;
           e[par[1]][i] = JSON.parse(JSON.stringify(n));
           corregidos.push(n.n);
         });
@@ -1466,7 +1488,8 @@
     CAJONES: [
       { k: "amazon",      n: "Amazon" },
       { k: "super",       n: "Súper" },
-      { k: "suscripcion",  n: "Suscripción" }
+      { k: "suscripcion",  n: "Suscripción" },
+      { k: "aparte",      n: "Compra aparte" }
     ],
     nombreCajon: function (k) {
       var n = k;
@@ -1539,9 +1562,11 @@
       (this.estado.hogarLista || []).forEach(function (x) {
         if (x.oculta) return;
         if (!self.faltaHogar(x.id)) return;
+        if (x.cajon === "aparte") return;                       /* se pide por su cuenta */
         var cajon = x.cajon === "super" ? "super" : "amazon";   /* suscripción marcada = Amazon esta vez */
         fuera[cajon].push({ id: x.id, n: x.n, cat: x.cat, suplente: x.suplente || "",
                             c: self.cantidadHogar(x.id), pendiente: !!x.pendiente,
+                            tienda: x.tienda || "",
                             suscripcion: x.cajon === "suscripcion" });
       });
       ["amazon", "super"].forEach(function (k) {
@@ -1564,9 +1589,39 @@
 
        Lo que NO se compra ahí lleva su `cajon` escrito y entonces manda el suyo:
        el pan sin sal es de Ahorramás y no va a estar en Amazon nunca. */
+    /* La SEMILLA del catálogo, por id. Hace falta para dos campos que son míos y
+       no tuyos: dónde se compra algo no es una corrección de etiqueta. */
+    semillaIng: function (id) {
+      if (!this._semIng) {
+        this._semIng = {};
+        var c = (SEMILLA_BASE && SEMILLA_BASE.ingObj) || null;
+        if (c) { Object.keys(c).forEach(function (k) { this._semIng[k] = c[k]; }, this); }
+        else (global.DATOS_INGREDIENTES || []).forEach(function (x) { if (x && x.id) this._semIng[x.id] = x; }, this);
+      }
+      return this._semIng[id] || null;
+    },
+
+    /* EN QUÉ TIENDA, cuando el cajón es «super». Nunca se edita a mano en la app,
+       así que manda siempre la semilla: si tú corregiste una ficha en el móvil el
+       22-sep, tu versión no puede saber nada de un campo que nació el 23. */
+    tiendaDe: function (id) {
+      var g = typeof id === "string" ? this.ingrediente(id) : id;
+      var s = this.semillaIng(g ? g.id : id);
+      return (g && g.tienda) || (s && s.tienda) || "";
+    },
+
     cajonDe: function (id) {
       var g = typeof id === "string" ? this.ingrediente(id) : id;
       if (!g) return "amazon";
+      /* EL CAJÓN «APARTE» MANDA DESDE LA SEMILLA, y solo ése (23-sep-2026). Nació
+         hoy, así que ninguna ficha guardada puede llevarlo elegido a mano: si la
+         semilla lo dice, es mío y es nuevo. Sin esto, un ingrediente que hubieras
+         corregido antes —el Evowhey, sin ir más lejos— conservaría su cajón viejo
+         y se colaría en la lista de Súper, que es justo lo que queremos evitar.
+         Los demás cajones NO se tocan: ahí mandas tú, que puedes cambiarlos en la
+         ficha del ingrediente. */
+      var s = this.semillaIng(g.id);
+      if (s && s.cajon === "aparte") return "aparte";
       return g.cajon || "amazon";
     },
 
@@ -2836,6 +2891,7 @@
           envase: ing.envase || 0,
           envases: envases,
           cajon: self.cajonDe(ing),
+          tienda: self.tiendaDe(ing),
           unidad: ing.u,
           texto: envases > 0
             ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd))
@@ -2854,6 +2910,14 @@
            calorías y en la sal del día, pero no tiene nada que hacer en una
            lista de la compra. */
         if (ing.cat === "Restaurante y bar") return;
+        /* NI LA SUSCRIPCIÓN NI LO QUE SE PIDE APARTE (23-sep-2026). La suscripción
+           llega sola cada seis semanas; lo de «aparte» —la proteína y los geles de
+           HSN, las barritas de Decathlon— lo pide Carlos por su cuenta cuando ve
+           que se le acaba. Los dos cuentan en las calorías y en la sal del día,
+           pero no pintan nada en una lista de la compra. Hasta hoy la regla era
+           «si no es Amazon, es Súper», así que el café en grano y los sabores de
+           SodaStream salían en la lista de Súper cada vez que el menú los usaba. */
+        if (linea.cajon === "suscripcion" || linea.cajon === "aparte") return;
         if (ing.basico) { basicos.push(linea); return; }
         if (!secciones[ing.cat]) secciones[ing.cat] = [];
         secciones[ing.cat].push(linea);

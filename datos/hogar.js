@@ -39,7 +39,7 @@ window.DATOS_HOGAR = [
   { id:"bayetas", n:"Vileda Bayetas multiuso", rev:4, cat:"Limpieza", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026, pendiente de confirmar. Sin formato concreto: el tamaño se elige al pedir.", pendiente:false },
   { id:"estropajos", n:"Scotch-Brite Estropajos con esponja", rev:4, cat:"Limpieza", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026, pendiente de confirmar. Sin formato concreto: el tamaño se elige al pedir.", pendiente:false },
   { id:"guantes_de_fregar", n:"Vileda Guantes de fregar", rev:4, cat:"Limpieza", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026, pendiente de confirmar. Sin formato concreto: el tamaño se elige al pedir.", pendiente:false },
-  { id:"ambientador", n:"AMBAR Zen Fortaleza Ámbar & Cedro, ambientador mikado", rev:5, cat:"Limpieza", cajon:"super", nota:"SE COMPRA EN PRIMAPRIX, 23-sep-2026. Si no hay, está en Amazon pero NO en Fresh: sería otro pedido, así que va a la lista de Súper y no a la de Amazon. Aromas: cardamomo, iris, pino y pachulí. Incluye flor decorativa.", pendiente:false },
+  { id:"ambientador", n:"AMBAR Zen Fortaleza Ámbar & Cedro, ambientador mikado", rev:6, cat:"Limpieza", cajon:"super", nota:"SE COMPRA EN PRIMAPRIX, 23-sep-2026. Si no hay, está en Amazon pero NO en Fresh: sería otro pedido, así que va a la lista de Súper y no a la de Amazon. Aromas: cardamomo, iris, pino y pachulí. Incluye flor decorativa.", pendiente:false, tienda:"Primaprix" },
   { id:"gel_wc_desinfectante", n:"Sanicentro Gel WC Desinfectante Frescor", rev:3, cat:"Limpieza", cajon:"amazon", nota:"Ficha creada el 23-sep-2026: este producto estaba metido en la casilla del AMBIENTADOR, donde no pintaba nada. Es el tercer producto de váter, junto al Bref de cesta y el WC Net de tuberías.", pendiente:false },
   /* ---------- MENAJE DE COCINA ---------- */
   { id:"papel_de_aluminio", n:"by Amazon Papel de aluminio, 30 m × 30 cm", rev:4, cat:"Menaje", cajon:"amazon", pendiente:false },
@@ -52,7 +52,7 @@ window.DATOS_HOGAR = [
   { id:"bolsas_de_cierre_zip", n:"Albal Bolsas con cierre zip", rev:4, cat:"Menaje", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026, pendiente de confirmar. Sin formato concreto: el tamaño se elige al pedir.", pendiente:false },
   { id:"servilletas_de_papel", n:"Colhogar Servilletas de papel", rev:4, cat:"Menaje", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026, pendiente de confirmar. Sin formato concreto: el tamaño se elige al pedir.", pendiente:false },
   /* ---------- ASEO ---------- */
-  { id:"gel_de_ducha", n:"Deliplus Gel de Ba\u00f1o \u00c1mbar y Vetiver, botella 750 ml (Mercadona)", rev:4, cat:"Aseo", cajon:"super", pendiente:false },
+  { id:"gel_de_ducha", n:"Deliplus Gel de Ba\u00f1o \u00c1mbar y Vetiver, botella 750 ml (Mercadona)", rev:5, cat:"Aseo", cajon:"super", pendiente:false, tienda:"Mercadona" },
   { id:"champu", n:"Dove Men +Care Champú Fortificante", rev:4, cat:"Aseo", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026 SIN base: si usas otra por un motivo concreto, cámbiala. Aquí equivocarse cuesta dinero.", pendiente:false },
   { id:"acondicionador", n:"Dove Men +Care Acondicionador Fortificante", rev:4, cat:"Aseo", cajon:"amazon", nota:"Marca propuesta el 23-sep-2026 SIN base: si usas otra por un motivo concreto, cámbiala. Aquí equivocarse cuesta dinero.", pendiente:false },
   { id:"desodorante", n:"Dove Men +Care Clean Comfort aerosol 72 h", rev:4, cat:"Aseo", cajon:"amazon", nota:"También compras el Rexona Men Advanced Protection 72 h", pendiente:false },
