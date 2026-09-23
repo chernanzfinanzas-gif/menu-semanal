@@ -1267,6 +1267,19 @@
                ". Tienes Deshacer al lado de Completar.");
   }
 
+  /* TODOS LOS CAMINOS QUE VACÍAN UNA TOMA PASAN POR AQUÍ (23-sep-2026).
+     El primer intento sólo marcó uno de los tres botones que quitan platos, y
+     Carlos lo volvió a sufrir: la ✕ de cada plato es `data-quitartodo`, no
+     `data-quitar`, y el «−» del contador es un tercero. Si la toma se queda
+     vacía por cualquiera de ellos, queda anotado y los fijos no vuelven solos. */
+  function tocarYGuardarToma(fecha, toma) {
+    var d = Almacen.estado.plan[fecha];
+    if (d && !(d[toma] || []).length) Almacen.marcarVaciada(fecha, toma, true);
+    Almacen.tocarDia(fecha);
+    Almacen.guardar("plato");
+    pintarMenu();
+  }
+
   function deshacerVaciado(fecha) {
     var dia = Almacen.asegurarDia(fecha), g = dia.guardadoVaciar;
     if (!g) return;
@@ -4031,7 +4044,7 @@
       if (menos) {
         var pn = menos.getAttribute("data-menos").split("|");
         var dn = Almacen.estado.plan[pn[0]];
-        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); Almacen.tocarDia(pn[0]); Almacen.guardar("plato"); pintarMenu(); }
+        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); tocarYGuardarToma(pn[0], pn[1]); }
         return;
       }
       var quitarT = e.target.closest("[data-quitartodo]");
@@ -4040,8 +4053,7 @@
         var dt = Almacen.estado.plan[qt[0]];
         if (dt && dt[qt[1]]) {
           dt[qt[1]] = dt[qt[1]].filter(function (x) { return x !== qt[2]; });
-          Almacen.tocarDia(qt[0]);
-          Almacen.guardar("plato"); pintarMenu();
+          tocarYGuardarToma(qt[0], qt[1]);
         }
         return;
       }
@@ -4147,13 +4159,7 @@
       if (quitar) {
         var q = quitar.getAttribute("data-quitar").split("|");
         var dia = Almacen.estado.plan[q[0]];
-        if (dia && dia[q[1]]) {
-          dia[q[1]].splice(+q[2], 1);
-          /* Si le has quitado el último, es que quieres esa toma vacía: que no
-             se vuelva a llenar sola en cuanto pongas otro plato. */
-          if (!dia[q[1]].length) Almacen.marcarVaciada(q[0], q[1], true);
-          Almacen.tocarDia(q[0]); Almacen.guardar("plato"); pintarMenu();
-        }
+        if (dia && dia[q[1]]) { dia[q[1]].splice(+q[2], 1); tocarYGuardarToma(q[0], q[1]); }
         return;
       }
       var ficha = e.target.closest("[data-ficha]");
