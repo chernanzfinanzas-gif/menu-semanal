@@ -43,6 +43,11 @@
       pie: "Qué he hecho: el archivo entero, año por año y mes por mes, con su mini mapa.", listo: true },
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
+    /* Va el CUARTO a propósito: Carlos lo quiso al lado de El Plan, Actividad y
+       Evolución, en una fila, y Casos y Material debajo. Con la rejilla de
+       cuatro columnas eso sale solo. */
+    { id: "rampa", nombre: "Rampa de Entreno", img: "iconos/khb/10-bici.webp",
+      pie: "A dónde va el plan y por qué: la rampa, la curva prevista y los puntos clave.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
       pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: true },
     { id: "material", nombre: "Material y movimientos", img: "iconos/khb/7-yoga.webp",
@@ -174,6 +179,7 @@
       /* índice de bloques */
       ".ent-bloques{display:grid;grid-template-columns:1fr;gap:10px}",
       "@media(min-width:620px){.ent-bloques{grid-template-columns:1fr 1fr}}",
+      "@media(min-width:980px){.ent-bloques{grid-template-columns:repeat(4,1fr)}}",
       ".ent-bloque{display:flex;gap:15px;align-items:center;text-align:left;width:100%;font:inherit;color:inherit;",
       "  cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--azul-borde);",
       "  background:linear-gradient(180deg,#fff 0%,#eef3f8 100%);",
@@ -448,6 +454,59 @@
       ".pase-prox{margin:4px 0 0;font-size:.9rem;line-height:1.5;padding:11px 13px;border-radius:11px;",
       "  background:var(--azul-claro);border:1px solid var(--azul-borde);color:var(--azul-hondo)}",
       /* evolución: las series largas */
+      /* ---- Rampa de Entreno (23-sep-2026) ---- */
+      ".ramp-datos{display:flex;gap:9px;flex-wrap:wrap}",
+      ".ramp-dato{flex:1 1 118px;background:var(--azul-claro);border:1px solid var(--azul-borde);",
+      "  border-radius:10px;padding:8px 11px}",
+      ".ramp-dato span{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;",
+      "  font-weight:700;color:var(--gris)}",
+      ".ramp-dato b{display:block;font-size:1.28rem;line-height:1.2;color:var(--azul-hondo);",
+      "  font-variant-numeric:tabular-nums}",
+      ".ramp-dato.v b{color:var(--verde)}",
+      ".ramp-svg{display:block;width:100%;height:auto;overflow:visible;max-width:100%}",
+      ".ramp-sub{margin:13px 0 3px;font-size:.82rem;font-weight:700;color:var(--azul-hondo)}",
+      ".ramp-sub small{font-weight:400;color:var(--gris)}",
+      ".ramp-aviso{margin-top:10px;background:var(--ambar-fondo);border:1px solid #efd9a8;",
+      "  border-radius:10px;padding:9px 12px;font-size:.82rem;line-height:1.5}",
+      ".ramp-aviso b{color:#8a6110}",
+      ".ramp-aviso.mal{background:var(--rojo-fondo);border-color:#e8c3bd}",
+      ".ramp-aviso.mal b{color:var(--rojo)}",
+      /* la tabla puede desbordar en movil: se desliza sola en vez de apretarse */
+      ".ramp-tabla{overflow-x:auto;-webkit-overflow-scrolling:touch}",
+      ".ramp-tabla table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:380px}",
+      ".ramp-tabla th{text-align:left;font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;",
+      "  color:var(--gris);font-weight:700;padding:0 8px 5px 0;border-bottom:1px solid var(--borde);white-space:nowrap}",
+      ".ramp-tabla td{padding:5px 8px 5px 0;border-bottom:1px solid #f1f4f6;white-space:nowrap}",
+      ".ramp-tabla td.d,.ramp-tabla th.d{text-align:right;font-variant-numeric:tabular-nums}",
+      ".ramp-tabla td.b{font-weight:700;color:var(--azul-hondo)}",
+      ".ramp-tabla td.g{color:var(--gris)}",
+      ".ramp-tabla td.t{color:var(--gris);font-size:.78rem}",
+      ".ramp-tabla tr.desc{background:var(--verde-claro)}",
+      ".ramp-tabla tr.desc td.b{color:var(--verde)}",
+      ".ramp-tabla tr.ahora td{box-shadow:inset 0 -2px 0 var(--azul)}",
+      ".ramp-tabla tr.sep td{text-align:center;color:var(--gris);font-size:.73rem;font-style:italic;",
+      "  padding:7px 0;background:#fafbfc}",
+      ".ramp-regla{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f4f6}",
+      ".ramp-regla:last-child{border-bottom:0}",
+      ".ramp-regla>b{flex:none;width:22px;height:22px;border-radius:50%;background:var(--azul);",
+      "  color:#fff;display:flex;align-items:center;justify-content:center;font-size:.76rem}",
+      ".ramp-regla p{margin:0;font-size:.86rem;line-height:1.5}",
+      ".ramp-regla p em{font-style:normal;color:var(--azul-hondo);font-weight:600}",
+      ".ramp-pases{display:grid;grid-template-columns:1fr;gap:8px}",
+      "@media(min-width:640px){.ramp-pases{grid-template-columns:1fr 1fr}}",
+      ".ramp-pase{border:1px solid var(--borde);border-left:4px solid var(--borde);border-radius:9px;",
+      "  padding:8px 11px;font-size:.83rem}",
+      ".ramp-pase b{color:var(--azul-hondo)}",
+      ".ramp-pase .f{color:var(--gris);font-size:.74rem;margin-left:6px}",
+      ".ramp-pase .v{display:inline-block;margin-left:7px;font-weight:700;font-size:.76rem}",
+      ".ramp-pase small{display:block;color:var(--gris);margin-top:3px;line-height:1.4}",
+      ".ramp-pase em{display:inline-block;margin-top:4px;font-style:normal;font-size:.72rem;",
+      "  font-weight:700;color:var(--gris)}",
+      ".ramp-pase.subir{border-left-color:var(--verde)} .ramp-pase.subir .v{color:var(--verde)}",
+      ".ramp-pase.repetir{border-left-color:var(--ambar)} .ramp-pase.repetir .v{color:var(--ambar)}",
+      ".ramp-pase.bajar,.ramp-pase.parar{border-left-color:var(--rojo)}",
+      ".ramp-pase.bajar .v,.ramp-pase.parar .v{color:var(--rojo)}",
+      ".ramp-chat{display:inline-block;text-decoration:none;text-align:center}",
       ".evo-rangos{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}",
       /* el interruptor de las noches: mismo botón, pero suelto bajo la leyenda */
       ".evo-rangos.noches{margin:6px 0 2px}",
@@ -5830,6 +5889,7 @@
     vestir(cont.classList.contains("activa"));
     cont.innerHTML = (bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion()
+      : (bloque === "rampa") ? htmlRampa()
       : (bloque === "casos") ? htmlCasos()
       : (bloque === "material") ? htmlMaterial()
       : (bloque === "actividad") ? htmlActividad() : htmlPortada();
@@ -5919,6 +5979,245 @@
     });
 
     return h + "</div>";
+  }
+
+  /* ======================= RAMPA DE ENTRENO =======================
+     Una página donde mirar lo relevante del plan (Carlos, 23-sep-2026):
+     dónde estás, a dónde va la rampa, cómo se espera que vaya la curva, por qué
+     se eligió esta pendiente y qué hay que hacer en cada fecha.
+
+     Todo se CALCULA de `datos/plan.js` y de salud.json. Nada está escrito a
+     mano: si mañana cambia la rampa, esta página cambia sola. Era el problema
+     de tener el porqué en comentarios dentro de los ficheros — ahí no lo ve
+     nadie, y se queda viejo sin que se note. */
+
+  var RAMPA_SEMANAS = 41;         // hasta julio de 2027, que es lo que se proyecta
+
+  /* Lo que cuesta una sesión, con los ritmos MEDIDOS del plan. */
+  function costeSesion(s) {
+    var r = (P.ritmos || {})[familia(s.t)];
+    if (!r || !(s.min > 0)) return 0;
+    return (s.min / 60) * (r.v || 0);
+  }
+
+  /* El calendario entero de la rampa: cada semana con su carga, su talla, lo que
+     cuesta su plantilla y el factor por el que habría que escalar las sesiones. */
+  function calendarioRampa() {
+    var out = [], f = P.rampa[0].desde;
+    for (var i = 0; i < RAMPA_SEMANAS; i++) {
+      var p = peldano(i);
+      var dias = (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
+      var hasta = U.sumarDias(f, dias - 1);
+      /* lo que cuesta su plantilla esos días, para saber cuánto hay que escalar */
+      var coste = 0, minutos = 0, dia;
+      for (var d = 0; d < dias; d++) {
+        dia = U.sumarDias(f, d);
+        sesionesDe(dia, { n: p.n, desde: f, hasta: hasta }, p.talla).forEach(function (x) {
+          coste += costeSesion(x);
+          if (costeSesion(x) > 0) minutos += x.min || 0;
+        });
+      }
+      out.push({ n: p.n, desde: f, hasta: hasta, dias: dias, carga: p.carga,
+                 talla: p.talla, nota: p.nota, coste: coste, minutos: minutos,
+                 factor: coste > 0 ? p.carga / coste : 1,
+                 descarga: /descarga/i.test(p.nota || "") });
+      f = U.sumarDias(hasta, 1);
+    }
+    return out;
+  }
+
+  /* La curva: CTL a 42 días y ATL a 7, igual que intervals. Se arranca del
+     último dato REAL que haya, no de cero: si no, la proyección empieza en un
+     sitio donde no estás. */
+  function curvaPrevista(cal) {
+    var hoy = U.hoyISO();
+    var ctl = valorDia("ctl", hoy), atl = valorDia("atl", hoy);
+    if (ctl === null || ctl === undefined) ctl = 10;
+    if (atl === null || atl === undefined) atl = ctl;
+    var ser = [];
+    cal.forEach(function (sem) {
+      for (var d = 0; d < sem.dias; d++) {
+        var iso = U.sumarDias(sem.desde, d), carga = 0;
+        sesionesDe(iso, { n: sem.n, desde: sem.desde, hasta: sem.hasta }, sem.talla)
+          .forEach(function (x) { carga += costeSesion(x) * sem.factor; });
+        /* los días ya vividos llevan lo que de verdad midió el reloj */
+        if (iso <= hoy) {
+          var real = cargaSemana(iso, iso);
+          if (real !== null) carga = real;
+        }
+        ctl += (carga - ctl) / 42;
+        atl += (carga - atl) / 7;
+        ser.push({ f: iso, c: carga, ctl: ctl, atl: atl, fo: ctl - atl });
+      }
+    });
+    return ser;
+  }
+
+  /* El dibujo de la curva. Dos paneles: carga+CTL+ATL arriba, balance abajo con
+     sus bandas, que es donde se ve si el plan te mete en sobreentrenamiento. */
+  function svgCurva(ser) {
+    if (!ser.length) return "";
+    var W = 1000, H = 190, HF = 96, n = ser.length;
+    var mx = 1;
+    ser.forEach(function (x) { mx = Math.max(mx, x.c, x.ctl, x.atl); });
+    function X(i) { return 36 + i * (W - 46) / (n - 1); }
+    function Y(v) { return H - (v / mx) * (H - 10); }
+    var barras = "", ctl = "", atl = "", forma = "", meses = "";
+    var fmin = -40, fmax = 25;
+    function Yf(v) { return 6 + (fmax - v) / (fmax - fmin) * (HF - 16); }
+    ser.forEach(function (x, i) {
+      if (x.c > 0) barras += '<rect x="' + (X(i) - 1.1).toFixed(1) + '" y="' + Y(x.c).toFixed(1) +
+        '" width="2.2" height="' + (H - Y(x.c)).toFixed(1) + '" fill="#dbe3f2"/>';
+      ctl += X(i).toFixed(1) + "," + Y(x.ctl).toFixed(1) + " ";
+      atl += X(i).toFixed(1) + "," + Y(x.atl).toFixed(1) + " ";
+      forma += X(i).toFixed(1) + "," + Yf(Math.max(fmin, Math.min(fmax, x.fo))).toFixed(1) + " ";
+      if (x.f.slice(8) === "01") {
+        meses += '<line x1="' + X(i).toFixed(0) + '" y1="0" x2="' + X(i).toFixed(0) + '" y2="' + H +
+          '" stroke="#e3e9ef" stroke-dasharray="2 4"/><text x="' + (X(i) + 3).toFixed(0) +
+          '" y="' + (H + 13) + '" font-size="9" fill="#8a97a3">' + MES_C[+x.f.slice(5, 7) - 1] + "</text>";
+      }
+    });
+    var area = "36," + H + " " + ctl + X(n - 1).toFixed(1) + "," + H;
+    var min = ser.reduce(function (a, x) { return Math.min(a, x.fo); }, 0);
+    var rojos = ser.filter(function (x) { return x.fo < -30; }).length;
+    return '<svg class="ramp-svg" viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' +
+      '<line x1="36" y1="' + H + '" x2="' + (W - 8) + '" y2="' + H + '" stroke="#d6dde4"/>' +
+      meses + barras +
+      '<polygon points="' + area + '" fill="#dcecf7" opacity=".9"/>' +
+      '<polyline points="' + atl + '" fill="none" stroke="#5b3fa8" stroke-width="1" opacity=".8"/>' +
+      '<polyline points="' + ctl + '" fill="none" stroke="#4fb3e8" stroke-width="2.3"/>' +
+      "</svg>" +
+      leyenda([{ n: "forma (CTL)", color: "#4fb3e8" }, { n: "fatiga (ATL)", color: "#5b3fa8" },
+               { n: "carga del día", color: "#dbe3f2" }]) +
+      '<p class="ramp-sub">Balance <small>— la banda roja es sobreentrenamiento</small></p>' +
+      '<svg class="ramp-svg" viewBox="0 0 ' + W + " " + HF + '" preserveAspectRatio="xMidYMid meet">' +
+      '<rect x="36" y="' + Yf(25).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(5) - Yf(25)).toFixed(0) + '" fill="#fdf6e6"/>' +
+      '<rect x="36" y="' + Yf(5).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(-10) - Yf(5)).toFixed(0) + '" fill="#eaf2fb"/>' +
+      '<rect x="36" y="' + Yf(-10).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(-30) - Yf(-10)).toFixed(0) + '" fill="#eaf6ec"/>' +
+      '<rect x="36" y="' + Yf(-30).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(-40) - Yf(-30)).toFixed(0) + '" fill="#fbeceb"/>' +
+      '<text x="30" y="' + (Yf(5) + 3).toFixed(0) + '" font-size="9" fill="#93a3b0" text-anchor="end">+5</text>' +
+      '<text x="30" y="' + (Yf(-30) + 3).toFixed(0) + '" font-size="9" fill="#93a3b0" text-anchor="end">−30</text>' +
+      '<polyline points="' + forma + '" fill="none" stroke="#3f7ea8" stroke-width="1.4"/>' +
+      "</svg>" +
+      '<div class="ramp-aviso' + (rojos ? " mal" : "") + '">' +
+        (rojos
+          ? "Ojo: el plan te mete <b>" + rojos + " días</b> en zona de sobreentrenamiento."
+          : "Lo más bajo que llega el balance es <b>" + num(min, 0) + "</b>, y el rojo empieza en −30: " +
+            "<b>cero días en zona de sobreentrenamiento</b> en los " + ser.length + " de la proyección. " +
+            "Y no es entrenando menos, es repartiendo la carga dentro de la semana y bajando de verdad cada cuarta.") +
+      "</div>";
+  }
+
+  function htmlRampa() {
+    if (!P || !P.rampa) return sinDatos("No hay plan cargado");
+    var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
+    var h = volver;
+    var hoy = U.hoyISO(), cal = calendarioRampa();
+    var sem = null, i;
+    for (i = 0; i < cal.length; i++) if (hoy >= cal[i].desde && hoy <= cal[i].hasta) sem = cal[i];
+
+    /* ---- dónde estás hoy ---- */
+    var ctl = valorDia("ctl", hoy), atl = valorDia("atl", hoy);
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Dónde estás hoy</h2></div>' +
+      '<p class="nota-peque evo-pie">' +
+        (sem ? "Semana " + sem.n + " de la rampa · del " + fechaCorta(sem.desde) + " al " +
+               fechaCorta(sem.hasta) + " · talla " + sem.talla +
+               (sem.descarga ? " · DESCARGA" : "")
+             : "Hoy no caes dentro de la rampa.") + "</p>" +
+      '<div class="ramp-datos">' +
+        ramoDato("Forma (CTL)", ctl === null ? "—" : num(ctl, 0), "") +
+        ramoDato("Fatiga (ATL)", atl === null ? "—" : num(atl, 0), "") +
+        ramoDato("Balance", (ctl === null || atl === null) ? "—" :
+                 (ctl - atl >= 0 ? "+" : "") + num(ctl - atl, 0),
+                 (ctl !== null && atl !== null && ctl - atl >= 0) ? "v" : "") +
+        (sem ? ramoDato("Objetivo semana", num(sem.carga, 0), "") : "") +
+      "</div></div>";
+
+    /* ---- la curva ---- */
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Cómo va a ir la curva</h2></div>' +
+      '<p class="nota-peque evo-pie">Proyección día a día hasta el final de la rampa. ' +
+      'Los días ya vividos llevan lo que midió el reloj; los que vienen, lo que pide el plan. ' +
+      'CTL a 42 días y ATL a 7, como intervals.</p>' +
+      svgCurva(curvaPrevista(cal)) + "</div>";
+
+    /* ---- la rampa ---- */
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>La rampa</h2></div>' +
+      '<p class="nota-peque evo-pie">Las semanas en verde son descargas. No son opcionales: son lo que ' +
+      'faltaba en 2025, y por eso llegó noviembre.</p><div class="ramp-tabla"><table>' +
+      "<tr><th>Sem</th><th>Desde</th><th>Talla</th><th class=\"d\">Objetivo</th>" +
+      "<th class=\"d\">Sesiones</th><th class=\"d\">Horas</th></tr>";
+    cal.forEach(function (x, k) {
+      if (k > 16 && !x.descarga && k % 4 !== 0 && k !== cal.length - 1) return;
+      if (k === 17) h += '<tr class="sep"><td colspan="6">· · · sigue subiendo hasta el techo · · ·</td></tr>';
+      h += '<tr class="' + (x.descarga ? "desc" : "") + (hoy >= x.desde && hoy <= x.hasta ? " ahora" : "") + '">' +
+        '<td class="d">' + x.n + "</td><td>" + fechaCorta(x.desde) + '</td><td class="t">' + x.talla + "</td>" +
+        '<td class="d b">' + num(x.carga, 0) + "</td>" +
+        '<td class="d t">' + (Math.abs(x.factor - 1) < 0.06 ? "tal cual"
+            : (x.factor < 1 ? "−" : "+") + Math.round(Math.abs(x.factor - 1) * 100) + "%") + "</td>" +
+        '<td class="d g">' + num(x.minutos * x.factor / 60, 1) + " h</td></tr>";
+    });
+    h += "</table></div></div>";
+
+    /* ---- cómo está construida ---- */
+    var rc = (P.ritmos || {}).caminar || {}, rb = (P.ritmos || {}).bici || {};
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Cómo está construida</h2></div>' +
+      '<p class="nota-peque evo-pie">Tres reglas, y las tres salen de medir, no de suponer.</p>' +
+      regla(1, "Se parte de lo que <em>cuestan de verdad</em> las sesiones, medido contra tu reloj: " +
+               "caminar te sale a <em>" + num(rc.v || 0, 0) + " puntos por hora</em> y la bici a " +
+               num(rb.v || 0, 0) + ". Los ritmos se vuelven a medir cada pocas semanas.") +
+      regla(2, "Las semanas de construcción <em>suben</em>, y cada cuarta <em>baja de verdad</em>, " +
+               "sobre la última de construcción y no sobre el acumulado — si no, dos descargas " +
+               "seguidas se comen la una a la otra y la rampa se desinfla sola.") +
+      regla(3, "Las sesiones <em>se escalan desde el objetivo</em>: la talla dice la forma —qué " +
+               "haces cada día y en qué proporción— y los minutos salen de la carga de esa " +
+               "semana. Es la columna «Sesiones» de la tabla de arriba.") +
+      "</div>";
+
+    /* ---- las revisiones del domingo ---- */
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Revisiones del domingo</h2></div>' +
+      '<p class="nota-peque evo-pie">El pase se dicta solo al cerrar cada semana y queda aquí. ' +
+      'Se recalcula durante tres días por si el reloj llega tarde, y después se congela.</p>';
+    var reg = registroPase(), claves = Object.keys(reg).sort().reverse();
+    if (!claves.length) {
+      h += '<p class="nota-peque">Todavía no se ha cerrado ninguna semana.</p>';
+    } else {
+      h += '<div class="ramp-pases">';
+      claves.slice(0, 12).forEach(function (k) {
+        var r = reg[k];
+        h += '<div class="ramp-pase ' + U.esc(r.v || "") + '">' +
+          "<b>Semana " + (r.n || "?") + "</b>" +
+          '<span class="f">' + fechaCorta(k) + "</span>" +
+          '<span class="v">' + U.esc(((P.pase && P.pase.veredictos && P.pase.veredictos[r.v]) || {}).n || r.v || "") + "</span>" +
+          (r.porque ? '<small>' + U.esc(r.porque) + "</small>" : "") +
+          (r.d ? '<em>' + (r.d > 0 ? "+" : "") + r.d + " peldaño" + (Math.abs(r.d) > 1 ? "s" : "") + "</em>" : "") +
+          "</div>";
+      });
+      h += "</div>";
+    }
+    h += "</div>";
+
+    /* ---- hablar del plan ---- */
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Hablar del plan</h2></div>' +
+      '<p class="nota-peque evo-pie">Abre el proyecto para discutir la rampa, cambiar la pendiente o ' +
+      'revisar lo que sea con los datos delante.</p>' +
+      '<a class="btn principal ramp-chat" href="' + PROYECTO_URL + '" target="_blank" rel="noopener">' +
+      'Abrir el proyecto y hablar del plan</a></div>';
+
+    return h;
+  }
+
+  var PROYECTO_URL = "https://claude.ai/project/01a0ae2e-e01a-7148-a7cb-8a976a092827";
+
+  function ramoDato(rot, valor, clase) {
+    return '<div class="ramp-dato ' + (clase || "") + '"><span>' + U.esc(rot) + "</span><b>" +
+      U.esc(String(valor)) + "</b></div>";
+  }
+  function regla(n, txt) {
+    return '<div class="ramp-regla"><b>' + n + "</b><p>" + txt + "</p></div>";
+  }
+  function fechaCorta(iso) {
+    if (!iso) return "";
+    return (+iso.slice(8)) + " " + MES_C[+iso.slice(5, 7) - 1];
   }
 
   /* ---------- la pestaña Casos ---------- */
