@@ -36,6 +36,10 @@
       try { guardado = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { guardado = null; }
       this.estado = guardado && guardado.v ? guardado : this.estadoInicial();
       this.reparar();
+      /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
+         recarga se volvería a congelar contra unas recetas que quizá hayan
+         cambiado entretanto, que es justo lo que esto viene a evitar. */
+      if (this._fotosNuevas) { try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {} }
       return this.estado;
     },
 
@@ -143,6 +147,8 @@
         plan: {},              // { "YYYY-MM-DD": { desayuno:[], almuerzo:[], comida:[], merienda:[], cena:[] } }
         comido: {},            // { "YYYY-MM-DD": { comida:["receta_id", …] } }  lo que se comió de verdad
         comprado: {},          // igual, pero lo que ya está COMPRADO (no se vuelve a pedir)
+        fotos: {},             // { "YYYY-MM-DD": { recetaId: {n,r,k,p,g,h,s} } }  la foto de lo comido
+        corregido: {},         // { "YYYY-MM-DD": "YYYY-MM-DD" }  día pasado retocado a mano, y cuándo
         despensa: {},          // { ingredienteId: true }  -> ya lo tengo en casa
         stock: {},             /* { ingredienteId: { c: cantidad, f: "AAAA-MM-DD" } }
                                   LO QUE HAY EN CASA, en la unidad del ingrediente, con la
@@ -464,10 +470,16 @@
         e.stock[id] = { c: 0, f: null, pte: true };
       });
       if (!e.real) e.real = {};
+      if (!e.fotos) e.fotos = {};
+      if (!e.corregido) e.corregido = {};
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.recados) e.recados = {};
       if (!e.favoritos) e.favoritos = [];
       if (!e.sync) e.sync = { sha: null, ultima: null };
+      /* EL CIERRE DEL DÍA: todo día ya pasado se congela aquí. Ver «la foto de
+         lo comido» más abajo. Se hace al final, cuando el recetario ya está
+         completo, y no guarda: de eso se encarga quien haya llamado. */
+      this._fotosNuevas = this.congelarPasado();
     },
 
     /* ---------- persistencia ---------- */
@@ -642,6 +654,116 @@
       return e ? { k: e.k || 0, sal: e.sal || 0, p: e.p || 0, g: e.g || 0, h: e.h || 0 } : null;
     },
 
+    /* ---------- LA FOTO DE LO COMIDO: EL PASADO NO SE REESCRIBE ----------
+       Una ficha de día guarda IDS de recetas, no platos. Mientras la receta no
+       cambie da lo mismo, pero el 22-sep-2026 pasó lo que tenía que pasar: ocho
+       recetas conservaron su id y cambiaron de contenido —«Zanahorias a la miel»
+       pasó a ser berenjena— y las fichas de los días YA COMIDOS se reescribieron
+       solas. Carlos había apuntado zanahoria y al día siguiente ponía berenjena.
+
+       La solución es la de cualquier contabilidad: cuando un plato pasa de plan
+       a HECHO se le hace una FOTO —el nombre y los cinco números por ración— y
+       desde ese momento ese día lee la foto y no la receta. Cambiar una receta
+       cambia el futuro; lo comido queda como fue.
+
+       La foto se toma en tres momentos:
+         · al marcar el ✓ de comido,
+         · al arrancar, para todo día ya pasado que aún no la tenga (el cierre),
+         · al tocar un día pasado con «Editar», para lo que se añada.
+       Y NUNCA se pisa una foto ya hecha: en eso consiste todo. */
+    fotoPlato: function (fecha, id) {
+      var d = this.estado.fotos && this.estado.fotos[fecha];
+      var f = d && d[id];
+      return (f && typeof f.k === "number") ? f : null;
+    },
+
+    /* Los valores POR RACIÓN de un plato EN ESE DÍA: la foto si la hay, la
+       receta de hoy si no. Todo lo que suma un día pasa por aquí. */
+    nutrEn: function (fecha, id) {
+      var f = this.fotoPlato(fecha, id);
+      if (f) return { k: f.k || 0, p: f.p || 0, g: f.g || 0, h: f.h || 0 };
+      return this.nutrReceta(this.receta(id));
+    },
+    salEn: function (fecha, id) {
+      var f = this.fotoPlato(fecha, id);
+      if (f) return f.s || 0;
+      return this.salReceta(this.receta(id));
+    },
+    /* El nombre que tenía el plato ESE día. Sirve además para los platos
+       borrados del recetario: la foto los sigue nombrando. */
+    nombreEn: function (fecha, id) {
+      var f = this.fotoPlato(fecha, id);
+      if (f && f.n) return f.n;
+      var r = this.receta(id);
+      return r ? r.n : "";
+    },
+    /* ¿este día está congelado? (para decirlo en la ficha) */
+    diaCongelado: function (fecha) {
+      var d = this.estado.fotos && this.estado.fotos[fecha];
+      return !!(d && Object.keys(d).length);
+    },
+
+    congelarPlato: function (fecha, id, rehacer) {
+      var r = this.receta(id);
+      if (!r) return false;                      // borrada: no hay nada que fotografiar
+      if (!this.estado.fotos) this.estado.fotos = {};
+      if (!this.estado.fotos[fecha]) this.estado.fotos[fecha] = {};
+      if (this.estado.fotos[fecha][id] && !rehacer) return false;
+      var n = this.nutrReceta(r), s = this.salReceta(r);
+      var d1 = function (x) { return Math.round((x || 0) * 10) / 10; };
+      this.estado.fotos[fecha][id] = {
+        n: r.n, r: r.raciones || 1,
+        k: d1(n.k), p: d1(n.p), g: d1(n.g), h: d1(n.h),
+        s: Math.round((s || 0) * 1000) / 1000
+      };
+      return true;
+    },
+
+    TOMAS_Y_CAPRICHO: ["desayuno", "almuerzo", "comida", "merienda", "cena", "capricho"],
+
+    congelarDia: function (fecha, rehacer) {
+      var dia = this.estado.plan[fecha];
+      if (!dia) return 0;
+      var self = this, n = 0;
+      this.TOMAS_Y_CAPRICHO.forEach(function (t) {
+        (dia[t] || []).forEach(function (id) { if (self.congelarPlato(fecha, id, rehacer)) n++; });
+      });
+      return n;
+    },
+
+    /* EL CIERRE. Al arrancar, todo día ya pasado que no tenga foto la tiene. */
+    congelarPasado: function () {
+      var hoy = Util.hoyISO(), self = this, n = 0;
+      Object.keys(this.estado.plan || {}).forEach(function (f) {
+        if (f < hoy) n += self.congelarDia(f);
+      });
+      return n;
+    },
+
+    /* SE HA TOCADO UN DÍA. Lo que se acaba de poner se fotografía ya —si lo
+       apuntas hoy, lo de hoy es lo que comiste—, lo que se ha quitado suelta su
+       foto, y si el día ya había pasado queda la marca de «corregido a mano».
+       Se llama DESPUÉS de cambiar el plan y ANTES de guardar. */
+    tocarDia: function (fecha) {
+      var dia = this.estado.plan[fecha];
+      if (!dia) return;
+      var self = this, dentro = {};
+      this.TOMAS_Y_CAPRICHO.forEach(function (t) {
+        (dia[t] || []).forEach(function (id) { dentro[id] = 1; self.congelarPlato(fecha, id); });
+      });
+      var d = this.estado.fotos && this.estado.fotos[fecha];
+      if (d) {
+        Object.keys(d).forEach(function (id) { if (!dentro[id]) delete d[id]; });
+        if (!Object.keys(d).length) delete this.estado.fotos[fecha];
+      }
+      if (this.esPasado(fecha)) {
+        if (!this.estado.corregido) this.estado.corregido = {};
+        this.estado.corregido[fecha] = Util.hoyISO();
+      }
+    },
+
+    corregidoEl: function (fecha) { return (this.estado.corregido || {})[fecha] || null; },
+
     /* sal total de un día del plan (por persona), con lo comido fuera estimado */
     salDia: function (fecha) {
       var dia = this.estado.plan[fecha];
@@ -654,7 +776,7 @@
           if (puestos.length) {
             var gf = self.agrupar(puestos);
             gf.orden.forEach(function (id) {
-              total += self.salReceta(self.receta(id)) * self.factorPlato(fecha, toma, id, gf.veces[id]);
+              total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, gf.veces[id]);
             });
             return;
           }
@@ -664,10 +786,10 @@
         }
         var g = self.agrupar(dia[toma]);
         g.orden.forEach(function (id) {
-          total += self.salReceta(self.receta(id)) * self.factorPlato(fecha, toma, id, g.veces[id]);
+          total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, g.veces[id]);
         });
       });
-      (dia.capricho || []).forEach(function (id) { total += self.salReceta(self.receta(id)); });
+      (dia.capricho || []).forEach(function (id) { total += self.salEn(fecha, id); });
       return total;
     },
 
@@ -734,7 +856,7 @@
           if (puestos.length) {
             var gf = self.agrupar(puestos);
             gf.orden.forEach(function (id) {
-              var nn = self.nutrReceta(self.receta(id));
+              var nn = self.nutrEn(fecha, id);
               var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
               t.k += nn.k * f; t.p += nn.p * f; t.g += nn.g * f; t.h += nn.h * f;
             });
@@ -747,7 +869,7 @@
         var g = self.agrupar(dia[toma]);
         g.orden.forEach(function (id) {
           if (soloComido && !self.estaComido(fecha, toma, id)) return;
-          var n = self.nutrReceta(self.receta(id));
+          var n = self.nutrEn(fecha, id);
           var f = self.factorPlato(fecha, toma, id, g.veces[id]);
           t.k += n.k * f; t.p += n.p * f; t.g += n.g * f; t.h += n.h * f;
         });
@@ -756,7 +878,7 @@
          se apunta DESPUÉS de comerlo —nadie planifica un helado de bar—, así que
          pedirle además el visto sería pedir dos veces lo mismo. */
       (dia.capricho || []).forEach(function (id) {
-        var n = self.nutrReceta(self.receta(id));
+        var n = self.nutrEn(fecha, id);
         t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
       });
       return t;
@@ -1633,6 +1755,10 @@
       if (!comido && i >= 0) d[toma].splice(i, 1);
       if (!d[toma].length) delete d[toma];
       if (!Object.keys(d).length) delete this.estado.comido[fecha];
+      /* EL ✓ ES EL MOMENTO EN QUE EL PLATO DEJA DE SER PLAN Y PASA A SER UN
+         HECHO: aquí se le hace la foto. Quitar el ✓ no la borra, porque lo que
+         sigue puesto en el día sigue siendo lo que había ese día. */
+      if (comido) this.congelarPlato(fecha, recetaId);
       this.guardar("comido");
     },
 
@@ -2320,7 +2446,7 @@
 
         /* lo que los fijos ya ocupan de la cuota de esta toma */
         var yaEnLaToma = 0;
-        puestosYa.forEach(function (id) { yaEnLaToma += self.nutrReceta(self.receta(id)).k; });
+        puestosYa.forEach(function (id) { yaEnLaToma += self.nutrEn(fecha, id).k; });
 
         var restante = objetivo - self.nutrDia(fecha).k;
         var cuota = Math.round(objetivo * (reparto[t.k] || 0.2)) - yaEnLaToma;

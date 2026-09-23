@@ -340,10 +340,22 @@
                 : '') +
               '</header>';
 
+      /* LA MARCA DE CORREGIDO A MANO. No es un adorno: si un día pasado no
+         cuadra con lo que recuerdas, saber que lo tocaste —y cuándo— es la
+         diferencia entre un dato y una sospecha. */
+      var corr = Almacen.corregidoEl(fecha);
+      var selloCorr = corr
+        ? ' · <b>Corregido a mano</b> el ' + corr.slice(8, 10) + '/' + corr.slice(5, 7)
+        : '';
       if (cerr) {
-        html += '<div class="nota-tipo ya-pasado">Día pasado. No se planifica ni se rellena, ' +
-                'para no pisar lo que comiste de verdad. <b>Puedes seguir marcando ✓</b> lo que ' +
-                'comiste; si necesitas corregir algo más, dale a «Editar».</div>';
+        html += '<div class="nota-tipo ya-pasado">Día pasado y <b>congelado</b>: los nombres y los ' +
+                'números son los que tenían los platos ESE día, así que cambiar una receta ya no ' +
+                'reescribe esta ficha. <b>Puedes seguir marcando ✓</b> lo que comiste; para corregir ' +
+                'algo más, dale a «Editar».' + selloCorr + '</div>';
+      } else if (Almacen.esPasado(fecha)) {
+        html += '<div class="nota-tipo ya-pasado">Corrigiendo un día pasado. Lo que añadas se guarda ' +
+                'con los valores de hoy y queda fijo; lo que quites desaparece del día. Dale a ' +
+                '«Cerrar» al terminar.' + selloCorr + '</div>';
       }
 
       /* tipo de día: se elige ANTES de rellenar, porque manda sobre todo lo demás */
@@ -494,8 +506,15 @@
             var veces = gr.idxs.length;
             var idx = gr.idxs[gr.idxs.length - 1];   // el último: el que quita el «−»
             var r = Almacen.receta(rid);
-            var nombre = r ? r.n : "(receta borrada)";
-            var n = r ? Almacen.nutrReceta(r) : { k: 0 };
+            /* EL PASADO SE LEE DE LA FOTO, NO DE LA RECETA. Un día ya comido
+               guarda el nombre y los números que el plato tenía ESE día, así que
+               cambiar la receta hoy no reescribe lo que cenaste el martes. Si no
+               hay foto —un día futuro, el plan— se lee la receta de siempre.
+               Y un plato borrado del recetario sigue teniendo nombre si le dio
+               tiempo a hacerse la foto. */
+            var foto = Almacen.fotoPlato(fecha, rid);
+            var nombre = Almacen.nombreEn(fecha, rid) || "(receta borrada)";
+            var n = (foto || r) ? Almacen.nutrEn(fecha, rid) : { k: 0 };
             var s = "";
             var com = Almacen.estaComido(fecha, t.k, rid);
             var cpr = Almacen.estaComprado(fecha, t.k, rid);
@@ -518,8 +537,11 @@
                       /* El día y la toma viajan con el plato para que la ficha pueda
                          enseñar las cantidades de los que comen ESE día, y no las de
                          una ración suelta. */
-                      '<span class="nom" data-ficha="' + esc(rid) + '" ' +
-                        'data-ficha-dia="' + fecha + '|' + t.k + '">' + esc(nombre) + '</span>' +
+                      (r ? '<span class="nom" data-ficha="' + esc(rid) + '" ' +
+                        'data-ficha-dia="' + fecha + '|' + t.k + '">' + esc(nombre) + '</span>'
+                         : '<span class="nom" title="Esta receta ya no está en el recetario; ' +
+                           'el nombre y los n\u00fameros son los que ten\u00eda ese d\u00eda">' +
+                           esc(nombre) + '</span>') +
                       /* Con una sola ración solo se ofrece el «+», que es lo que hay que
                          descubrir. En cuanto hay dos aparece el «− ×N +» entero. */
                       (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
@@ -532,7 +554,7 @@
                             'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
                         '</span>') +
                       '<span class="sal">' + Util.kcal(n.k * fac) + ' · ' +
-                        (r ? Util.sal(Almacen.salReceta(r) * fac) : "") + '</span>' +
+                        ((foto || r) ? Util.sal(Almacen.salEn(fecha, rid) * fac) : "") + '</span>' +
                       /* El botón de la cantidad real sale cuando el plato está comido:
                          antes de comértelo no hay nada que corregir. Si ya hay
                          corrección se ve el dato, no un icono. */
@@ -575,9 +597,10 @@
           var veces = gc.idxs.length;
           var idx = gc.idxs[gc.idxs.length - 1];
           var r = Almacen.receta(rid);
-          var n = r ? Almacen.nutrReceta(r) : { k: 0 };
+          var fotoC = Almacen.fotoPlato(fecha, rid);
+          var n = (fotoC || r) ? Almacen.nutrEn(fecha, rid) : { k: 0 };
           html += '<div class="plato capricho">' +
-                    '<span class="nom">' + esc(r ? r.n : "(borrado)") + '</span>' +
+                    '<span class="nom">' + esc(Almacen.nombreEn(fecha, rid) || "(borrado)") + '</span>' +
                     (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
                       '<span class="grupo-cantidad' + (veces > 1 ? " varias" : "") + '">' +
                         (veces > 1
@@ -918,6 +941,7 @@
       var estabaVacia = !(dia[toma] || []).length;
       dia[toma].push(idReceta);
       if (estabaVacia) Almacen.ponerFijos(fecha);
+      Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
       cerrarModal();
       pintarMenu();
@@ -1112,6 +1136,7 @@
         if (!rid) return;
         var dia = Almacen.asegurarDia(fecha);
         dia.capricho.push(rid);
+        Almacen.tocarDia(fecha);
         Almacen.guardar("capricho");
         cerrarModal();
         pintarMenu();
@@ -3823,14 +3848,14 @@
       if (mas) {
         var pm = mas.getAttribute("data-mas").split("|");
         var dm = Almacen.estado.plan[pm[0]];
-        if (dm && dm[pm[1]]) { dm[pm[1]].push(pm[2]); Almacen.guardar("plato"); pintarMenu(); }
+        if (dm && dm[pm[1]]) { dm[pm[1]].push(pm[2]); Almacen.tocarDia(pm[0]); Almacen.guardar("plato"); pintarMenu(); }
         return;
       }
       var menos = e.target.closest("[data-menos]");
       if (menos) {
         var pn = menos.getAttribute("data-menos").split("|");
         var dn = Almacen.estado.plan[pn[0]];
-        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); Almacen.guardar("plato"); pintarMenu(); }
+        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); Almacen.tocarDia(pn[0]); Almacen.guardar("plato"); pintarMenu(); }
         return;
       }
       var quitarT = e.target.closest("[data-quitartodo]");
@@ -3839,6 +3864,7 @@
         var dt = Almacen.estado.plan[qt[0]];
         if (dt && dt[qt[1]]) {
           dt[qt[1]] = dt[qt[1]].filter(function (x) { return x !== qt[2]; });
+          Almacen.tocarDia(qt[0]);
           Almacen.guardar("plato"); pintarMenu();
         }
         return;
@@ -3848,6 +3874,7 @@
         var pmc = masCap.getAttribute("data-mascap").split("|");
         var dmc = Almacen.asegurarDia(pmc[0]);
         dmc.capricho.push(pmc[1]);
+        Almacen.tocarDia(pmc[0]);
         Almacen.guardar("capricho"); pintarMenu();
         return;
       }
@@ -3856,6 +3883,7 @@
         var pnc = menosCap.getAttribute("data-menoscap").split("|");
         var dnc = Almacen.asegurarDia(pnc[0]);
         dnc.capricho.splice(parseInt(pnc[1], 10), 1);
+        Almacen.tocarDia(pnc[0]);
         Almacen.guardar("capricho"); pintarMenu();
         return;
       }
@@ -3864,6 +3892,7 @@
         var qct = quitaCapT.getAttribute("data-quitacaptodo").split("|");
         var dct = Almacen.asegurarDia(qct[0]);
         dct.capricho = dct.capricho.filter(function (x) { return x !== qct[1]; });
+        Almacen.tocarDia(qct[0]);
         Almacen.guardar("capricho"); pintarMenu();
         return;
       }
@@ -3872,6 +3901,7 @@
         var pc = qcap.getAttribute("data-quitacap").split("|");
         var dc = Almacen.asegurarDia(pc[0]);
         dc.capricho.splice(parseInt(pc[1], 10), 1);
+        Almacen.tocarDia(pc[0]);
         Almacen.guardar("capricho");
         pintarMenu();
         return;
@@ -3941,7 +3971,7 @@
       if (quitar) {
         var q = quitar.getAttribute("data-quitar").split("|");
         var dia = Almacen.estado.plan[q[0]];
-        if (dia && dia[q[1]]) { dia[q[1]].splice(+q[2], 1); Almacen.guardar("plato"); pintarMenu(); }
+        if (dia && dia[q[1]]) { dia[q[1]].splice(+q[2], 1); Almacen.tocarDia(q[0]); Almacen.guardar("plato"); pintarMenu(); }
         return;
       }
       var ficha = e.target.closest("[data-ficha]");
