@@ -1259,6 +1259,7 @@
     dia.guardadoVaciar = guardado;
     Util.TOMAS.forEach(function (t) { dia[t.k] = []; });
     dia.capricho = [];
+    Util.TOMAS.forEach(function (t) { Almacen.marcarVaciada(fecha, t.k, true); });
     Almacen.tocarDia(fecha);
     Almacen.guardar("vaciar");
     pintarMenu();
@@ -1271,6 +1272,7 @@
     if (!g) return;
     Util.TOMAS.forEach(function (t) { dia[t.k] = (g[t.k] || []).slice(); });
     dia.capricho = (g.capricho || []).slice();
+    Almacen.olvidarVaciadas(fecha);      /* deshacer devuelve el día tal cual estaba */
     delete dia.guardadoVaciar;
     Almacen.tocarDia(fecha);
     Almacen.guardar("vaciar");
@@ -4145,7 +4147,13 @@
       if (quitar) {
         var q = quitar.getAttribute("data-quitar").split("|");
         var dia = Almacen.estado.plan[q[0]];
-        if (dia && dia[q[1]]) { dia[q[1]].splice(+q[2], 1); Almacen.tocarDia(q[0]); Almacen.guardar("plato"); pintarMenu(); }
+        if (dia && dia[q[1]]) {
+          dia[q[1]].splice(+q[2], 1);
+          /* Si le has quitado el último, es que quieres esa toma vacía: que no
+             se vuelva a llenar sola en cuanto pongas otro plato. */
+          if (!dia[q[1]].length) Almacen.marcarVaciada(q[0], q[1], true);
+          Almacen.tocarDia(q[0]); Almacen.guardar("plato"); pintarMenu();
+        }
         return;
       }
       var ficha = e.target.closest("[data-ficha]");

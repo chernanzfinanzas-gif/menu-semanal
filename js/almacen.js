@@ -2495,6 +2495,7 @@
       });
 
       /* el yogur y el pan tostado de comida y cena van siempre */
+      this.olvidarVaciadas(fecha);   /* lo pides tú: los fijos vuelven */
       puesto += this.ponerFijos(fecha);
 
       /* El bidón entra SIEMPRE en un día de ruta: es el único sitio del recetario
@@ -2514,6 +2515,27 @@
        El yogur con avena y el pan tostado van en comida y cena SIEMPRE. No se ponen
        en las tomas que se comen fuera (no las cocina él) ni en las de mochila de un
        día de ruta (el pan tostado en una mochila acaba hecho migas). */
+    /* UNA TOMA QUE VACÍAS TÚ NO SE VUELVE A LLENAR SOLA (23-sep-2026).
+       Carlos: «borro todo hasta los yogures con copos que pone por defecto, añado
+       el yogur griego y vuelven a aparecer el yogur con copos y el pan de mesa».
+       La regla de «si la toma estaba vacía es que la montas desde cero, así que
+       entran los fijos» sirve para una semana nueva, pero al vaciar a propósito
+       hace justo lo contrario de lo que quieres. Queda anotado en el día, y lo
+       borran los rellenos que pides tú a posta: «Completar» y la plantilla. */
+    marcarVaciada: function (fecha, toma, si) {
+      var d = this.asegurarDia(fecha);
+      if (si) { if (!d.sinFijos) d.sinFijos = {}; d.sinFijos[toma] = 1; return; }
+      if (d.sinFijos) { delete d.sinFijos[toma]; if (!Object.keys(d.sinFijos).length) delete d.sinFijos; }
+    },
+    estaVaciada: function (fecha, toma) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.sinFijos && d.sinFijos[toma]);
+    },
+    olvidarVaciadas: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (d) delete d.sinFijos;
+    },
+
     ponerFijos: function (fecha) {
       if (this.esPasado(fecha)) return 0;
       var d = this.asegurarDia(fecha);
@@ -2523,6 +2545,7 @@
         if (!self.receta(f.r)) return;
         (f.tomas || []).forEach(function (toma) {
           if (self.esFuera(fecha, toma)) return;
+          if (self.estaVaciada(fecha, toma)) return;   /* la vaciaste tú */
           if (ficha.mochila.indexOf(toma) >= 0) return;
           if (!d[toma]) d[toma] = [];
           if (d[toma].indexOf(f.r) >= 0) return;
@@ -2570,6 +2593,7 @@
       var objetivo = this.objetivoDelDia(fecha);
       if (!objetivo) return { motivo: "sin-objetivo" };
 
+      this.olvidarVaciadas(fecha);   /* lo pides tú: los fijos vuelven */
       var puestos = this.ponerFijos(fecha);
 
       /* lo que ya hay esta semana, para no repetir */
@@ -2746,14 +2770,21 @@
 
     /* Rellena la semana entera respetando el tipo de cada día: comida Y entreno. */
     rellenarSemana: function (lunesISO, plantillaId) {
-      var total = 0, entrenos = 0;
+      /* EL DEPORTE NO SE PONE SOLO (23-sep-2026). Carlos: «los añadidos de deporte
+         han de ser voluntarios por mí, salvo los del plan, que se ponen de forma
+         automática». Rellenar la semana aplicaba además el «entreno estándar» de
+         Ajustes a los SIETE días y lo guardaba como si lo hubiera apuntado él
+         —bici indoor y musculación, con su ✕ y sus minutos editables—, y eso le
+         subía las calorías del día sin haber hecho nada.
+         Lo del plan no se toca: ésa sí es automática, y además ni se guarda, se
+         calcula, y se retira sola cuando llega el dato del reloj o el día pasa.
+         El botón «Estándar» de cada día sigue estando para cuando lo quiera. */
+      var total = 0;
       for (var i = 0; i < 7; i++) {
-        var f = Util.sumarDias(lunesISO, i);
-        total += this.rellenarDia(f, plantillaId);
-        entrenos += this.aplicarEntrenoEstandar(f) ? 1 : 0;
+        total += this.rellenarDia(Util.sumarDias(lunesISO, i), plantillaId);
       }
       if (total) this.guardar("rellenar");
-      return { tomas: total, dias: entrenos };
+      return { tomas: total, dias: 0 };
     },
 
     aplicarPlantilla: function (plantillaId, lunesISO) {
