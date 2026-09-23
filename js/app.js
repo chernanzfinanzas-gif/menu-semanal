@@ -4,6 +4,15 @@
 
   var $ = Util.$, $$ = Util.$$, esc = Util.esc;
 
+  /* NORMA CONTRA LINEAS HUERFANAS (23-sep-2026, la pidio Carlos al ver que la
+     «g» de «Copos de avena integrales · 20 g» se quedaba sola en un renglon).
+     Pega el numero a su unidad con un espacio DURO, asi que no se pueden
+     separar nunca, ni en un navegador que no entienda `text-wrap:pretty`.
+     Se aplica DESPUES de escapar, sobre texto ya seguro. */
+  function sinViudas(txt) {
+    return String(txt).replace(/(\d)\s+(g|kg|ml|cl|l|ud|uds|mg)(?![a-z\u00e1-\u00fa])/gi, "$1\u00a0$2");
+  }
+
   var UI = {
     vista: "menu",
     lunes: Util.lunesDe(Util.hoyISO()),
@@ -539,49 +548,68 @@
                total de esa toma. */
             var real = Almacen.cantidadReal(fecha, t.k, rid);
             var fac = Almacen.factorPlato(fecha, t.k, rid, veces);
-            html += '<div class="plato' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
+            /* LA FILA, EN DOS LINEAS (23-sep-2026, disenada con Carlos sobre un mock).
+               Arriba: las dos casillas, el nombre con todo el ancho que sobra, las
+               calorias y la x. Abajo: las unidades JUSTO DEBAJO de las casillas, y lo
+               que comiste de verdad justo debajo de las calorias. Cada cosa cae en la
+               vertical de la suya.
+               La sal por plato SE FUE: ocupaba unos 70 px por fila, casi siempre ponia
+               «0 g», y la que importa —la del dia— sigue arriba en la cabecera.
+               Clase propia `dos-lineas` y no `.plato` a secas, porque esa clase la
+               comparten el capricho y el entreno y cambiarla los rompe. */
+            var hayCant = !cerr || veces > 1;
+            var hayReal = !cerr && com;
+            html += '<div class="plato dos-lineas' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
+                      '<div class="pl-arriba">' +
+                      '<span class="pl-checks">' +
                       /* Dos casillas, porque son dos cosas distintas: el carro dice que
-                         los ingredientes ya están en casa; el visto, que te lo comiste. */
+                         los ingredientes ya estan en casa; el visto, que te lo comiste. */
                       /* En una toma de fuera no hay carro: eso no se compra, se paga
-                         allí. Dejarlo invitaba a marcarlo y no significaba nada. */
+                         alli. Dejarlo invitaba a marcarlo y no significaba nada. */
                       (fueraT ? '' :
                       '<button class="marcar carro' + (cpr ? " si" : "") + '" ' +
                         'title="' + (cpr ? "Comprado: no se vuelve a pedir" : "Marcar como comprado") + '" ' +
                         'data-comprado="' + fecha + '|' + t.k + '|' + esc(rid) + '">\ud83d\uded2</button>') +
                       '<button class="marcar' + (com ? " si" : "") + '" title="Marcar como comido" ' +
-                        'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">✓</button>' +
-                      /* El día y la toma viajan con el plato para que la ficha pueda
-                         enseñar las cantidades de los que comen ESE día, y no las de
-                         una ración suelta. */
+                        'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">\u2713</button>' +
+                      '</span>' +
+                      /* El dia y la toma viajan con el plato para que la ficha pueda
+                         ensenar las cantidades de los que comen ESE dia, y no las de
+                         una racion suelta. */
                       (r ? '<span class="nom" data-ficha="' + esc(rid) + '" ' +
-                        'data-ficha-dia="' + fecha + '|' + t.k + '">' + esc(nombre) + '</span>'
-                         : '<span class="nom" title="Esta receta ya no está en el recetario; ' +
+                        'data-ficha-dia="' + fecha + '|' + t.k + '">' + sinViudas(esc(nombre)) + '</span>'
+                         : '<span class="nom" title="Esta receta ya no est\u00e1 en el recetario; ' +
                            'el nombre y los n\u00fameros son los que ten\u00eda ese d\u00eda">' +
-                           esc(nombre) + '</span>') +
-                      /* Con una sola ración solo se ofrece el «+», que es lo que hay que
-                         descubrir. En cuanto hay dos aparece el «− ×N +» entero. */
-                      (cerr ? (veces > 1 ? '<span class="cuantos">×' + veces + '</span>' : '') :
-                        '<span class="grupo-cantidad' + (veces > 1 ? " varias" : "") + '">' +
-                          (veces > 1
-                            ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">−</button>' +
-                              '<span class="cuantos" title="' + veces + ' raciones">×' + veces + '</span>'
-                            : '') +
-                          '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
-                            'title="Otro más"' + (veces >= 12 ? ' disabled' : '') + '>+</button>' +
-                        '</span>') +
-                      '<span class="sal">' + Util.kcal(n.k * fac) + ' · ' +
-                        ((foto || r) ? Util.sal(Almacen.salEn(fecha, rid) * fac) : "") + '</span>' +
-                      /* El botón de la cantidad real sale cuando el plato está comido:
-                         antes de comértelo no hay nada que corregir. Si ya hay
-                         corrección se ve el dato, no un icono. */
-                      (cerr || !com ? '' :
-                        '<button class="marcar peso' + (real ? " si" : "") + '" ' +
-                          'title="' + (real ? "Comiste " + esc(Util.numero ? Util.numero(real.c) : real.c) + " " + esc(real.u === "rac" ? "raciones" : real.u) + " — tocar para cambiarlo" : "¿Cuánto comiste de verdad?") + '" ' +
-                          'data-real="' + fecha + '|' + t.k + '|' + esc(rid) + '">' +
-                          (real ? esc(String(real.c) + (real.u === "rac" ? " r" : " " + real.u)) : "⚖") +
-                        '</button>') +
+                           sinViudas(esc(nombre)) + '</span>') +
+                      '<span class="pl-kcal">' + Util.kcal(n.k * fac) + '</span>' +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
-                        'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">×</button>') +
+                        'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
+                      '</div>' +
+                      /* Segunda linea. Solo se pinta si tiene algo que decir: un plato
+                         sin marcar y con una sola racion no la necesita. */
+                      ((hayCant || hayReal) ?
+                      '<div class="pl-abajo">' +
+                        '<span class="grupo-cantidad pl-cant' + (veces > 1 ? " varias" : "") + '">' +
+                          (cerr ? (veces > 1 ? '<span class="cuantos">\u00d7' + veces + '</span>' : '') :
+                            (veces > 1
+                              ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">\u2212</button>' +
+                                '<span class="cuantos" title="' + veces + ' raciones">\u00d7' + veces + '</span>'
+                              : '') +
+                            '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                              'title="Otro m\u00e1s"' + (veces >= 12 ? ' disabled' : '') + '>+</button>') +
+                        '</span>' +
+                        /* La cantidad real sale cuando el plato esta comido: antes de
+                           comertelo no hay nada que corregir. Si ya hay correccion se ve
+                           el dato; si no, se pide con palabras y no con un icono suelto. */
+                        (hayReal ?
+                        '<span class="pl-comido"><span class="pl-marca">Comido</span>' +
+                          '<button class="marcar peso' + (real ? " si" : "") + '" ' +
+                            'title="' + (real ? "Comiste " + esc(Util.numero ? Util.numero(real.c) : real.c) + " " + esc(real.u === "rac" ? "raciones" : real.u) + " \u2014 tocar para cambiarlo" : "\u00bfCu\u00e1nto comiste de verdad?") + '" ' +
+                            'data-real="' + fecha + '|' + t.k + '|' + esc(rid) + '">' +
+                            (real ? esc(String(real.c) + (real.u === "rac" ? " r" : "\u00a0" + real.u)) : "\u00bfcu\u00e1nto? \u2696") +
+                          '</button>' +
+                        '</span>' : '') +
+                      '</div>' : '') +
                     '</div>';
           });
         }
