@@ -114,6 +114,15 @@
        reciente— y de ese día manda entero quien lo tocó el último, tanto para el
        plan como para lo comido. Las tomas que el ganador no tenga se conservan
        del otro lado, para no tirar un ✓ de otra toma que nadie ha tocado. */
+    /* Los sellos de día se unen por el MÁS NUEVO de cada día, nunca por el reloj
+       global: si no, el propio sello que decide quién manda podía perderse. */
+    var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
+    junto.selloDia = {};
+    for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];
+    for (kk in selR) if (Object.prototype.hasOwnProperty.call(selR, kk)) {
+      if (!junto.selloDia[kk] || String(selR[kk]) > String(junto.selloDia[kk])) junto.selloDia[kk] = selR[kk];
+    }
+
     function selloDe(est, dia) {
       var a = ((est.selloDia || {})[dia]) || "";
       var b = ((est.corregido || {})[dia]) || "";

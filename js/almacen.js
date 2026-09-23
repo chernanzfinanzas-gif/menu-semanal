@@ -40,6 +40,7 @@
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
       if (this._fotosNuevas) { try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {} }
+      this._reiniciarFotoDias();   /* punto de partida: nada ha cambiado todavía */
       return this.estado;
     },
 
@@ -532,7 +533,43 @@
     _compCache: null,
     _compSello: -1,
 
+    /* ─── SELLAR SOLOS LOS DÍAS QUE CAMBIAN (23-sep-2026) ───────────────────
+       El sello por día lo ponían sólo `marcarComido` y `tocarDia`. Todo lo demás
+       —poner un plato, quitarlo, el contador ×N, comer fuera, los caprichos, los
+       comensales— cambiaba un día SIN dejar rastro, y al unir dos aparatos ese
+       día lo decidía el reloj global de todo el estado: un aparato que no sabía
+       nada podía pisarlo por guardar un segundo después.
+       Instrumentar los dieciséis sitios que tocan un día era garantía de
+       olvidarse de uno. Se hace en el único sitio por el que pasan todos:
+       al guardar se compara con la foto anterior y se sella lo que haya
+       cambiado. Es una comparación de textos sobre nueve días: no se nota. */
+    _fotoDias: null,
+
+    _retratarDias: function () {
+      var f = {}, e = this.estado;
+      Object.keys(e.plan || {}).forEach(function (d) { f["p" + d] = JSON.stringify(e.plan[d]); });
+      Object.keys(e.comido || {}).forEach(function (d) { f["c" + d] = JSON.stringify(e.comido[d]); });
+      return f;
+    },
+
+    _sellarLoCambiado: function () {
+      var ahora = this._retratarDias();
+      if (!this._fotoDias) { this._fotoDias = ahora; return; }
+      var antes = this._fotoDias, tocados = {}, k;
+      for (k in ahora) if (ahora[k] !== antes[k]) tocados[k.slice(1)] = 1;
+      for (k in antes) if (!(k in ahora)) tocados[k.slice(1)] = 1;
+      var dias = Object.keys(tocados);
+      if (dias.length) {
+        var iso = new Date().toISOString();
+        if (!this.estado.selloDia) this.estado.selloDia = {};
+        var s = this.estado.selloDia;
+        dias.forEach(function (d) { s[d] = iso; });
+      }
+      this._fotoDias = ahora;
+    },
+
     guardar: function (motivo) {
+      this._sellarLoCambiado();
       this._sello++;              /* invalida la cuenta de lo comprometido */
       this._cacheEntreno = null;          // ver `hayEntreno`
       this.estado.actualizado = new Date().toISOString();
@@ -540,6 +577,10 @@
       this.avisar(motivo || "cambio");
       if (global.Sync && global.Sync.programarGuardado) global.Sync.programarGuardado();
     },
+
+    /* Se llama al acabar de cargar o de reemplazar: fija el punto de partida
+       para que el primer `guardar` no crea que ha cambiado el mundo entero. */
+    _reiniciarFotoDias: function () { this._fotoDias = this._retratarDias(); },
 
     reemplazar: function (nuevo) {
       /* LA CLAVE Y LA PAUSA SON DE ESTE APARATO, NO DE LA COPIA (23-sep-2026).
@@ -559,6 +600,7 @@
         if (mio.pausada != null) g.pausada = mio.pausada;
       }
       this.reparar();
+      this._reiniciarFotoDias();
       try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
       this.avisar("recarga");
     },
