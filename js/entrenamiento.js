@@ -223,6 +223,43 @@
       ".ent-sem.apagado b{color:var(--gris)}",
       ".ent-sem.ambar{border-left-color:var(--ambar);background:var(--ambar-fondo)}",
       ".ent-sem.ambar b{color:var(--ambar)}",
+      /* los otros tres estados, para cuando el semáforo se calibre (15-oct) */
+      ".ent-sem.verde{border-left-color:var(--verde);background:var(--verde-claro)}",
+      ".ent-sem.verde b{color:var(--verde)}",
+      ".ent-sem.rojo{border-left-color:var(--rojo);background:var(--rojo-fondo)}",
+      ".ent-sem.rojo b{color:var(--rojo)}",
+      ".ent-sem.azulsem{border-left-color:var(--azul);background:var(--azul-claro)}",
+      ".ent-sem.azulsem b{color:var(--azul)}",
+      /* encendido, la ranura de 138 px se queda corta: con el porqué dentro el
+         texto se parte mal. A 190 respira, y en móvil pasa a ancho completo. */
+      ".ent-sem.encendido{flex:0 0 190px}",
+      "@media(max-width:520px){.ent-franja .ent-sem.encendido{flex:none}}",
+      /* el porqué: dos cifras, rótulo arriba y número debajo. En línea se pisaban.
+         El rótulo lleva alto de dos líneas para que los números queden alineados
+         («Fatiga vs forma» ocupa dos y «Dos noches» una). */
+      ".sem-razon{display:flex;gap:12px;margin-top:8px;padding-top:8px;",
+      "  border-top:1px solid rgba(31,42,36,.10)}",
+      ".sem-razon>div{flex:1;min-width:0}",
+      ".sem-razon .q{display:block;font-size:.6rem;letter-spacing:.04em;text-transform:uppercase;",
+      "  color:var(--gris);font-weight:700;line-height:1.25;margin-bottom:4px;min-height:2.5em}",
+      ".sem-razon .n{display:block;font-size:1.02rem;font-weight:700;color:var(--tinta);line-height:1}",
+      /* las alternativas, botones y no texto: si hay que apuntarlo a mano, no se
+         apunta. Tocando uno, la sesión del día queda cambiada. */
+      ".sem-ofrece{background:var(--blanco);border:1px solid var(--borde);",
+      "  border-radius:var(--radio);padding:11px 13px;margin-bottom:12px}",
+      ".sem-ofrece .et2{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;",
+      "  color:var(--gris);font-weight:700;display:block;margin-bottom:6px}",
+      ".sem-ofrece button{display:block;width:100%;text-align:left;font:inherit;font-size:.85rem;",
+      "  background:var(--blanco);border:1px solid var(--borde);border-radius:9px;",
+      "  padding:8px 11px;margin-bottom:5px;color:var(--tinta);cursor:pointer}",
+      ".sem-ofrece button:hover,.sem-ofrece button:focus-visible{border-color:var(--azul-borde);",
+      "  box-shadow:0 1px 6px rgba(47,92,138,.10);outline:none}",
+      ".sem-ofrece button.puesta{border-color:var(--verde-borde);background:var(--verde-claro)}",
+      ".sem-ofrece button b{font-weight:700}",
+      ".sem-ofrece button small{display:block;color:var(--gris);font-size:.76rem;margin-top:1px}",
+      ".sem-ofrece .nota{font-size:.76rem;color:var(--gris);margin:4px 0 0;line-height:1.35}",
+      ".sem-ofrece .deshacer{font-size:.75rem;color:var(--azul);font-weight:700;",
+      "  background:none;border:0;padding:4px 0;width:auto;margin:2px 0 0;cursor:pointer}",
       ".ent-avisos{flex:1 1 200px;background:var(--blanco);border:1px solid var(--borde);",
       "  border-radius:var(--radio);padding:11px 13px;display:flex;flex-direction:column;gap:6px}",
       ".ent-franja .et{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;",
@@ -766,7 +803,22 @@
     if (!e.entreno.checks) e.entreno.checks = {};
     if (!e.entreno.medidas) e.entreno.medidas = {};
     if (!e.entreno.talla) e.entreno.talla = {};
+    if (!e.entreno.ajuste) e.entreno.ajuste = {};
     return e.entreno;
+  }
+
+  /* ---------- EL AJUSTE DEL DÍA ----------
+     Cuando el semáforo rebaja y se acepta la alternativa, la sesión de hoy queda
+     cambiada. Se guarda como { i, t, min, descanso }: `i` es LA POSICIÓN de la
+     sesión sustituida, y eso no es un detalle — las marcas de hecho se guardan
+     como "s0", "s1"… por posición, así que si el ajuste cambiara el número de
+     sesiones o su orden, la casilla marcada pasaría a leer otra sesión. Sustituye
+     una por otra, en su sitio, y no toca las demás. */
+  function ajusteDe(iso) { return ent().ajuste[iso] || null; }
+
+  function ponerAjuste(iso, aj) {
+    if (aj) ent().ajuste[iso] = aj; else delete ent().ajuste[iso];
+    A.guardar("entreno");
   }
 
   /* marca: true = hecha · "no" = NO hecha · nada = lo que diga el reloj.
@@ -1227,15 +1279,25 @@
      `htmlPortada` la usa, petaba al montar la portada y no había ni vídeo ni botón
      «Entrar». Restaurada literal desde la copia de las 8:04 que guarda el buzón; el
      diff de funciones confirma que fue lo ÚNICO que se perdió en esa publicación. */
-  function sesionesDe(iso, sem, talla) {
+  function sesionesDe(iso, sem, talla, sinAjuste) {
+    var lista;
     var exc = (P.excepciones || {})[iso];
-    if (exc) return exc.map(function (s) { return { t: s.t, min: s.min }; });
-    var pl = P.plantillas[talla];
-    if (!pl) return [];
-    return (pl.dias[U.desdeISO(iso).getDay()] || []).map(function (s) {
-      if (s.t === "DIA_GRANDE") return { t: textoDiaGrande(sem), min: 0, grande: true };
-      return { t: s.t, min: s.min };
-    });
+    if (exc) {
+      lista = exc.map(function (s) { return { t: s.t, min: s.min }; });
+    } else {
+      var pl = P.plantillas[talla];
+      if (!pl) return [];
+      lista = (pl.dias[U.desdeISO(iso).getDay()] || []).map(function (s) {
+        if (s.t === "DIA_GRANDE") return { t: textoDiaGrande(sem), min: 0, grande: true };
+        return { t: s.t, min: s.min };
+      });
+    }
+    /* si el semáforo rebajó el día y se aceptó, manda lo aceptado */
+    var aj = sinAjuste ? null : ajusteDe(iso);
+    if (aj && lista[aj.i]) {
+      lista[aj.i] = { t: aj.t, min: aj.min, ajustada: true, descanso: !!aj.descanso };
+    }
+    return lista;
   }
 
   /* A qué se parece un texto: así la sesión de caminar solo la marca una caminata. */
@@ -1341,7 +1403,133 @@
     return familia(sesion && sesion.t) !== "movilidad";
   }
 
+  /* Un descanso que ha mandado el semáforo ES cumplir: el día que la app te dice
+     «hoy no» y le haces caso, has hecho lo que tocaba. Lo contrario enseña a
+     desobedecer al semáforo para no romper la racha, que es justo lo que no
+     puede pasar. */
+  function descansoAceptado(iso) {
+    var aj = ajusteDe(iso);
+    return !!(aj && aj.descanso);
+  }
+
+  /* ---------- EL SEMÁFORO ----------
+     Devuelve { id, nombre, dice, ofrece, nota, razones } o null.
+     Null mientras no esté calibrado, y entonces la ficha sigue diciendo
+     «Sin calibrar»: es lo correcto, porque los umbrales se fijan el 15-oct con
+     tres semanas sin corticoide y sacarlos antes sería calibrarlo sobre un
+     cuerpo que no es el suyo del resto del año. */
+  function razonesSemaforo(iso) {
+    var ayer = U.sumarDias(iso, -1), antes = U.sumarDias(iso, -2);
+    var ctl = valorDia("ctl", ayer), atl = valorDia("atl", ayer);
+    var n1 = valorDia("sueno_min", iso), n2 = valorDia("sueno_min", ayer);
+    var noches = [];
+    if (n1 != null) noches.push(n1);
+    if (n2 != null) noches.push(n2);
+    /* EL MISMO SIGNO QUE EL RESTO DE LA APP: forma menos fatiga. Positivo =
+       descansado. La tarjeta «Forma y fatiga» de Mi Estado ya lo calcula así y
+       el plan dice «se sale con Balance positivo», así que ponerlo al revés aquí
+       —como lo tuve un rato— dejaba el mismo número significando lo contrario en
+       dos sitios de la misma pantalla. */
+    return {
+      balance: (ctl == null || atl == null) ? null : Math.round(ctl - atl),
+      noches: noches.length ? (noches.reduce(function (a, b) { return a + b; }, 0) /
+                               noches.length / 60) : null,
+      _antes: antes
+    };
+  }
+
+  /* el porqué, en dos cifras. Si falta un dato se pinta «—» y no se inventa. */
+  function htmlRazones(r) {
+    var defs = (P.semaforo && P.semaforo.razones) || [];
+    if (!defs.length) return "";
+    var h = '<div class="sem-razon">';
+    defs.forEach(function (d) {
+      var v = r[d.id], txt;
+      if (v == null) txt = "—";
+      else if (d.id === "noches") txt = v.toFixed(1).replace(".", ",") + " h";
+      else txt = (v > 0 ? "+" : "") + v;   // el signo se ve: +8 y −8 no son lo mismo
+      h += '<div title="' + U.esc(d.ayuda || "") + '">' +
+           '<span class="q">' + U.esc(d.et) + "</span>" +
+           '<span class="n">' + U.esc(txt) + "</span></div>";
+    });
+    return h + "</div>";
+  }
+
+  /* LA SESIÓN QUE EL SEMÁFORO REBAJA: la primera que cuenta para el día. La
+     movilidad no se toca —no es lo que cansa— y así el índice que se guarda
+     apunta siempre a la sesión de verdad. */
+  /* SIN el ajuste puesto, siempre: si se tomara la sesión ya rebajada como base,
+     al repintar se calcularía «el 60 % del 60 %» y el botón dejaría de reconocer
+     su propia alternativa como la que está puesta. */
+  function sesionPrincipal(iso, sem, talla) {
+    var ses = sesionesDe(iso, sem, talla, true);
+    for (var i = 0; i < ses.length; i++) if (cuentaParaElDia(ses[i])) return { i: i, s: ses[i] };
+    return null;
+  }
+
+  function textoAlternativa(base, o) {
+    if (o.descanso) return { t: "Descanso, lo manda el semáforo", min: 0, descanso: true };
+    if (o.cambia) return { t: o.cambia, min: o.min || Math.round((base.min || 0) * (o.factor || 1)) };
+    var m = Math.round((base.min || 0) * (o.factor || 1));
+    return { t: base.t + (o.detalle ? " · " + o.detalle : ""), min: m };
+  }
+
+  function htmlOfrece(iso, sem, est) {
+    var pr = sesionPrincipal(iso, sem, tallaDe(sem));
+    if (!pr) return "";
+    var aj = ajusteDe(iso);
+    var h = '<div class="sem-ofrece"><span class="et2">' +
+      (est.id === "azul" ? "Si te apetece" : "En vez de " + U.esc(pr.s.t.toLowerCase())) + "</span>";
+    (est.ofrece || []).forEach(function (o, k) {
+      /* Una alternativa puede no venir a cuento: «cambiar la bici por una
+         caminata» en un día de caminar sobra. Se dice en los datos con `soloSi`
+         y no se adivina aquí — probé a descartarlas comparando familias y me
+         llevé por delante el «paseo de 20-30 minutos» de los días rojos, que sí
+         es una rebaja buena aunque también sea caminar. */
+      if (o.soloSi && familia(pr.s.t) !== o.soloSi) return;
+      var alt = textoAlternativa(pr.s, o);
+      var puesta = !!(aj && aj.t === alt.t);
+      h += '<button type="button" class="' + (puesta ? "puesta" : "") +
+        '" data-sem-alt="' + iso + "|" + pr.i + "|" + k + '">' +
+        "<b>" + U.esc(o.t) + "</b>" +
+        (alt.min ? "<small>" + alt.min + " min" + (puesta ? " · puesto" : "") + "</small>"
+                 : (puesta ? "<small>puesto</small>" : "")) +
+        "</button>";
+    });
+    if (est.nota) h += '<p class="nota">' + U.esc(est.nota) + "</p>";
+    if (aj) h += '<button type="button" class="deshacer" data-sem-deshacer="' + iso +
+                 '">Deshacer y volver a la sesión de siempre</button>';
+    return h + "</div>";
+  }
+
+  function estadoSemaforo(iso) {
+    var cfg = P.semaforo || {};
+    if (!cfg.activo || !cfg.umbrales) return null;      // sin calibrar: no opina
+    var r = razonesSemaforo(iso);
+    if (r.balance == null) return null;                 // sin datos no se inventa
+    /* Los umbrales se leen de PEOR A MEJOR y se para en el primero que cabe.
+       Como el balance es forma menos fatiga, lo malo es lo NEGATIVO: el primero
+       de la lista es el rojo, con el `hasta` más bajo, y el último lleva
+       `hasta: null` y recoge todo lo que quede por arriba. Quien los rellene en
+       la calibración que respete ese orden. */
+    var id = null, u = cfg.umbrales;
+    for (var i = 0; i < u.length; i++) {
+      if (u[i].hasta == null || r.balance <= u[i].hasta) { id = u[i].estado; break; }
+    }
+    if (!id) return null;
+    /* el sueño solo puede EMPEORARLO, nunca mejorarlo: dos noches cortas no
+       autorizan nada, y dos buenas no compensan venir cargado de fatiga. */
+    if (r.noches != null && cfg.sueno_corto && r.noches < cfg.sueno_corto) {
+      if (id === "verde") id = "ambar"; else if (id === "ambar") id = "rojo";
+    }
+    var e = (cfg.estados || {})[id];
+    if (!e) return null;
+    return { id: id, nombre: e.nombre, dice: e.dice, ofrece: e.ofrece || [],
+             nota: e.nota || "", razones: r };
+  }
+
   function diaCumplido(iso, sem, talla) {
+    if (descansoAceptado(iso)) return true;        // el semáforo mandó parar y se paró
     var ses = sesionesDe(iso, sem, talla);
     if (!ses.length) return true;                 // descanso: el día cuenta
     /* Se mira el índice ORIGINAL, no el de la lista filtrada: las marcas se
@@ -6536,15 +6724,31 @@
     var todosAv = avisosOrdenados(hoy), av = todosAv.slice(0, 2), sem0 = (P.semaforo || {});
     var hayConsulta = todosAv.some(function (a) { return a.d.nivel === "consulta"; });
     h += '<div class="ent-franja">';
-    h += '<div class="ent-sem' + (sem0.activo ? "" : " apagado") + (hayConsulta ? " ambar" : "") + '">' +
+    /* EL SEMÁFORO. Mientras no esté calibrado sigue diciendo «Sin calibrar», que
+       es lo honesto; en cuanto haya umbrales se enciende solo. Un aviso de nivel
+       Consulta lo baja a ámbar aunque los números digan verde — es la única
+       conexión entre los avisos y el entrenamiento, y manda hacia abajo. */
+    var estSem = estadoSemaforo(hoy);
+    if (estSem && hayConsulta && (estSem.id === "verde" || estSem.id === "azul")) {
+      var eAmb = (sem0.estados || {}).ambar || {};
+      estSem = { id: "ambar", nombre: eAmb.nombre || "Suave",
+                 dice: "Hoy suave: hay un aviso de consulta sin resolver.",
+                 ofrece: eAmb.ofrece || [], nota: eAmb.nota || "", razones: estSem.razones };
+    }
+    var claseSem = estSem
+      ? " encendido " + (estSem.id === "azul" ? "azulsem" : estSem.id)
+      : ((hayConsulta ? " ambar" : " apagado"));
+    h += '<div class="ent-sem' + claseSem + '">' +
       '<span class="et">Semáforo</span>' +
-      "<b>" + (sem0.activo ? "—" : (hayConsulta ? "Suave" : "Sin calibrar")) + "</b>" +
-      "<small>" + (sem0.activo
-        ? ""
+      "<b>" + (estSem ? U.esc(estSem.nombre)
+                      : (hayConsulta ? "Suave" : "Sin calibrar")) + "</b>" +
+      "<small>" + (estSem ? U.esc(estSem.dice)
         : (hayConsulta
           ? "Hoy suave: hay un aviso de consulta sin resolver."
           : "Se activa el " + U.etiquetaFecha(sem0.desde || "2026-10-15") + ", con tres semanas sin corticoide.")) +
-      "</small></div>";
+      "</small>";
+    if (estSem) h += htmlRazones(estSem.razones);
+    h += "</div>";
     h += '<div class="ent-avisos' + (todosAv.length ? " pulsable" : "") + '"' +
       (todosAv.length ? ' role="button" tabindex="0" data-avisos="1"' : "") + ">" +
       '<span class="et">Avisos · ' + todosAv.length + "</span>";
@@ -6560,6 +6764,7 @@
           : "Tócalo para verlo con su explicación") + "</span>";
     }
     h += "</div></div>";
+    if (estSem && estSem.ofrece && estSem.ofrece.length) h += htmlOfrece(hoy, sem, estSem);
 
     /* cabecera */
     h += '<div class="tarjeta ent-cab">' +
@@ -7053,6 +7258,27 @@
 
       var verV = t.closest ? t.closest("[data-video]") : null;
       if (verV) { abrirVideo(verV.getAttribute("data-video")); return; }
+
+      /* --- el semáforo rebaja y se acepta la alternativa --- */
+      var alt = t.closest ? t.closest("[data-sem-alt]") : null;
+      if (alt) {
+        var pa = alt.getAttribute("data-sem-alt").split("|");
+        var isoA = pa[0], iA = parseInt(pa[1], 10), kA = parseInt(pa[2], 10);
+        var semA = semanaDe(isoA);
+        var est = estadoSemaforo(isoA);
+        var pr = semA && sesionPrincipal(isoA, semA, tallaDe(semA));
+        if (est && pr && est.ofrece[kA]) {
+          var nueva = textoAlternativa(pr.s, est.ofrece[kA]);
+          var yaA = ajusteDe(isoA);
+          /* volver a tocar la que ya está puesta la quita: es el mismo botón */
+          if (yaA && yaA.t === nueva.t) ponerAjuste(isoA, null);
+          else ponerAjuste(isoA, { i: iA, t: nueva.t, min: nueva.min, descanso: !!nueva.descanso });
+          pintarConservando();
+        }
+        return;
+      }
+      var desh = t.closest ? t.closest("[data-sem-deshacer]") : null;
+      if (desh) { ponerAjuste(desh.getAttribute("data-sem-deshacer"), null); pintarConservando(); return; }
 
       /* quitar de una vez las repetidas que se colaron en una fusión antigua */
       var lim = t.closest ? t.closest("[data-limpiar]") : null;

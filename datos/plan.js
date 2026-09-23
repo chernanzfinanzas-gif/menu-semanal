@@ -451,13 +451,49 @@
       estados: {
         verde:  { nombre: "Normal",   dice: "Adelante con lo de hoy" },
         ambar:  { nombre: "Suave",    dice: "Hoy no toca apretar",
-                  ofrece: ["La misma sesión al 60 % del tiempo y sin intensidad", "Cambiar la bici por una caminata"] },
+                  ofrece: [
+                    { t: "La misma sesión al 60 %", detalle: "sin intensidad", factor: 0.6 },
+                    { t: "Cambiar la bici por una caminata", cambia: "Caminar a buen paso", factor: 0.7, soloSi: "bici" }
+                  ] },
         rojo:   { nombre: "Descansa", dice: "Hoy no",
-                  ofrece: ["Paseo de 20-30 minutos", "Descanso completo"],
+                  ofrece: [
+                    { t: "Paseo de 20-30 minutos", cambia: "Paseo suave", min: 25 },
+                    { t: "Descanso completo", descanso: true }
+                  ],
                   nota: "Lo que no se hace no se recupera." },
         azul:   { nombre: "Sube",     dice: "Llevas días por debajo de tu forma",
-                  ofrece: ["Un 10-15 % más de tiempo"] }
+                  ofrece: [
+                    { t: "Un 10-15 % más de tiempo", factor: 1.12 }
+                  ] }
       },
+
+      /* EL PORQUÉ, EN DOS CIFRAS. Un semáforo que dice «Descansa» sin decir por
+         qué se desobedece a la tercera vez. Son las dos que el propio plan nombra
+         —«fatiga frente a forma, las dos últimas noches»— y NO la VFC: el 23-sep
+         se midió en 117 salidas suyas que la VFC de después no distingue un paseo
+         de una paliza (una caída de más del 5 % sale en el 26-27 % de las salidas
+         en las tres franjas por igual). Sirve para confirmar con ventana larga,
+         no para decidir un día. */
+      razones: [
+        { id: "balance", et: "Balance", ayuda: "Forma menos fatiga, igual que en Mi Estado. Positivo: vienes descansado. Negativo: llevas más carga encima de la que tu forma sostiene." },
+        { id: "noches",  et: "Dos noches",      ayuda: "Media de sueño de las dos últimas noches.", unidad: "h" }
+      ],
+
+      /* LOS UMBRALES NO ESTÁN, Y ESO ES A PROPÓSITO.
+         Aquí irían los cortes que deciden verde, ámbar, rojo y azul. Se fijan el
+         15-oct-2026, con tres semanas seguidas sin corticoide: antes de eso los
+         datos están contaminados —el corticoide sube la tensión, quita el sueño y
+         tiene la VFC en el mínimo del año— y unos cortes sacados de ahí valdrían
+         para un cuerpo que no es el suyo del resto del año.
+         Mientras `umbrales` sea null, `estadoSemaforo` devuelve null y la ficha
+         sigue diciendo «Sin calibrar». Todo lo demás —los colores, las dos cifras,
+         los botones— ya está montado y se enciende solo el día que esto se rellene. */
+      /* De peor a mejor, y se para en el primero que cabe. El balance es forma
+         menos fatiga, así que lo malo es lo negativo: el rojo va primero con el
+         `hasta` más bajo, y el último lleva `hasta: null` para recoger el resto.
+         Forma tendrá: [{hasta:-15,estado:"rojo"},{hasta:-5,estado:"ambar"},
+                        {hasta:10,estado:"verde"},{hasta:null,estado:"azul"}] */
+      umbrales: null,
       regla_consulta: "Un aviso de nivel Consulta baja el semáforo a ámbar y lo dice con esas palabras. Es la única conexión entre avisos y entrenamiento."
     },
 
