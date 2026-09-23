@@ -1231,10 +1231,35 @@
       var r = P.rampa[idx];
       return { n: r.n, carga: r.carga, talla: r.talla, nota: r.nota, criterio: r.criterio };
     }
+    /* EL CRUCERO, pasada la semana 13.
+       ANTES: repetía la carga de la 13 para siempre. O sea que la rampa se paraba
+       en 400 y ahí se quedaba hasta el fin de los tiempos, con una descarga cada
+       cuarta semana. Nadie lo había mirado porque hasta hoy la 13 caía en
+       diciembre y quedaba lejos.
+       AHORA: sigue subiendo `crucero.paso` puntos por semana de construcción
+       hasta `crucero.techo`, y la cuarta semana baja sobre la ÚLTIMA DE
+       CONSTRUCCIÓN, no sobre la anterior —si no, dos descargas seguidas se
+       comerían la una a la otra y la rampa se desinflaría sola.
+       Los números y el porqué están en datos/plan.js, junto a `crucero`. */
     var base = P.rampa[P.rampa.length - 1], k = idx - (P.rampa.length - 1);
-    var descarga = (k % 4) === 3;                                       // tres semanas y la cuarta de descarga
-    return { n: base.n + k, carga: descarga ? Math.round(base.carga * 0.65) : base.carga,
-             talla: descarga ? "B" : "A", nota: descarga ? "Descarga" : base.nota };
+    var cru = P.crucero || {};
+    var paso = cru.paso || 0;
+    var techo = cru.techo || base.carga;
+    var fDesc = cru.descarga || 0.65;
+    var carga = base.carga, ultima = base.carga, descarga = false;
+    for (var j = 1; j <= k; j++) {
+      descarga = (j % 4) === 3;                                         // tres de construcción y la cuarta baja
+      if (descarga) {
+        carga = Math.round(ultima * fDesc);
+      } else {
+        carga = Math.min(ultima + paso, techo);
+        ultima = carga;
+      }
+    }
+    if (k === 0) { carga = base.carga; descarga = false; }
+    return { n: base.n + k, carga: carga,
+             talla: descarga ? (cru.tallaDescarga || "B") : "A",
+             nota: descarga ? "Descarga" : base.nota };
   }
 
   function registroPase() { var e = ent(); if (!e.pase) e.pase = {}; return e.pase; }

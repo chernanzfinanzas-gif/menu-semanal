@@ -35,28 +35,123 @@
        43 de la versión anterior.
        Lo que la salida SÍ hace es condicionar la semana siguiente: ver
        `diaGrande.umbrales`. */
+    /* LOS RITMOS, MEDIDOS Y NO SUPUESTOS  ·  23-sep-2026
+       Puntos de carga por hora, sacados de sus propios días de UNA sola
+       actividad, derivando la carga del día de la serie `atl`:
+           carga = atl[d-1] + 7 x (atl[d] - atl[d-1])
+       Esa derivación está comprobada: los días 19 y 20 de septiembre clavan lo
+       que el plan pedía con un 7 % de diferencia.
+
+       Están aquí como DATO para que ningún cálculo vuelva a inventárselos, y
+       con su muestra al lado para saber de cuánto nos fiamos. */
+    ritmos: {
+      caminar: { v: 25, n: 6, ventana: "la semana del 18 al 23 de septiembre de 2026",
+                 revisarEl: "2026-10-05",
+                 nota: "MEDIDO CON LA SEMANA ENTERA, no estimado: seis días, 369 minutos " +
+                       "caminando (6,15 h) y 156 puntos de carga. 156 / 6,15 = 25,3 p/h. " +
+                       "Estable dentro de la semana: el día 18 sale a 25,9 y el 23 a 26,3. " +
+                       "AVISO DE CARLOS, y tiene razón: este 25,3 está inflado por la " +
+                       "prednisona, que le sube el pulso, y la carga se calcula con el pulso. " +
+                       "Cuando acabe el corticoide es de esperar que baje hacia 19-20. HAY QUE " +
+                       "VOLVER A MEDIRLO a partir del 5 de octubre. No rompe la rampa: el " +
+                       "objetivo está en puntos, así que si el ritmo baja, las sesiones se " +
+                       "alargan para llegar a la misma carga. Pasó por 14,2 (media de todo el " +
+                       "historial) y por 20 (últimos 3 meses); los dos se quedaban cortos." },
+      bici:    { v: 45, n: 39, ventana: "todo el historial",
+                 nota: "Mediana 46,3. Muestra grande y estable; las últimas salidas de junio " +
+                       "van a 39-45. Sin datos desde el 5 de junio: revisar cuando vuelva a rodar." },
+      correr:  { v: 15, n: 8,  ventana: "todo el historial",
+                 nota: "Muy disperso (5 a 24) y no entra en el plan. Referencia, no para calcular." },
+      revisar: "Volver a medirlos cada pocas semanas: el de caminar se movió de 14,2 a 20 en un mes."
+    },
+
+    /* LA RAMPA  ·  reescrita entera la noche del 23-sep-2026 con datos medidos
+       y con Carlos discutiendo cada número. Sube un 12 % semanal.
+
+       POR QUÉ SE REHÍZO. Hizo la semana 1 exactamente como la app se la mandó y
+       la gráfica le decía que iba al 120 %. No iba: el listón estaba mal puesto.
+       El objetivo se calculó suponiendo que caminar le cuesta 14,2 puntos/hora
+       —la mediana de todo su historial, con montaña larga y lenta dentro—.
+       Caminando por Madrid va a 25,3, medido sobre la semana entera. El mismo
+       plan, con el ritmo bueno, cuesta 196 y no 130.
+
+       POR QUÉ 12 % Y NO 8 %. Porque la rampa anterior era la mitad de su vida
+       normal y él lo dijo desde el principio. Sus propios números:
+         · abril-mayo 2026, rodando: 480-576 puntos/semana;
+         · máximo histórico de forma: CTL 79, unos 550/semana;
+         · 2023: 945 horas en el año, 18 a la semana, 22.687 km;
+         · 12 salidas de rodillo de 3 h o más en el último año, todas en Zwift;
+         · 35 días de 4 h o más, 13 de 5 h o más.
+       Se llegó a argumentar que 3 h de rodillo entre semana no se sostienen.
+       Es falso y él lo desmontó: son una tarde de marzo para él.
+
+       Esto acaba en 400 puntos y 10,5 h/semana, que es el 58 % de su 2023 y el
+       techo del 8-10 h que el propio plan pone como objetivo.
+
+       LO QUE SÍ LIMITA, y no es su capacidad. Cada bloque fuerte suyo va seguido
+       de un hueco de 20 a 37 días: octubre 2025, 106 horas; noviembre, 19. Seis
+       veces en catorce meses. Por eso las semanas 4, 8 y 12 bajan DE VERDAD y no
+       se negocian: es lo único que no tenía en 2025.
+
+       LAS TRES REGLAS:
+         1. Se parte de lo que CUESTA de verdad la semana 1, medido: 196.
+         2. Construcción +12 %. Cada cuarta semana, descarga al 70 % de la
+            anterior de construcción —no del acumulado, que desinflaba la rampa.
+         3. Las sesiones SE ESCALAN desde el objetivo: la talla dice la forma y
+            los minutos salen de la carga de esa semana. Sin eso, la talla A
+            cuesta siempre lo mismo y la rampa no sube aunque los números suban.
+            OJO: esto ÚLTIMO ESTÁ SIN IMPLEMENTAR en el código a 23-sep-2026. */
+    /* EL CRUCERO: qué pasa después de la semana 13  ·  decidido el 23-sep-2026
+       Hasta hoy el código repetía la carga de la semana 13 para siempre, con una
+       descarga cada cuarta. O sea que la rampa se paraba en 400 y ahí se quedaba.
+
+       Ahora sigue subiendo 28 puntos por semana de construcción hasta un techo de
+       700, que son CTL 90 y unas 15 h semanales.
+
+       POR QUÉ 28 Y NO MÁS. Se simularon los 290 días, día a día, con CTL a 42 y
+       ATL a 7, y se miró cuántos caen en la zona roja de forma (por debajo de −30):
+
+           paso  CTL 30-jun  CTL/sem  forma mín  días en rojo
+           +21        80       1,71      −23          0
+           +28        90       1,97      −28          0     <- este
+           +32        97       2,14      −30          1
+           +35       102       2,26      −33          3
+           +40       108       2,42      −37          7
+
+       La última fila es su propia subida de 2022 clavada: de CTL 25,7 el 1 de
+       enero a 110,4 el 1 de septiembre, 2,42 puntos por semana. Le llevaría a 108
+       en junio, pero con siete días en rojo — y aquella subida tampoco fue limpia:
+       en julio de 2022 se cayó de 91 a 75. Carlos lo dijo él mismo: «de ahí
+       llegaron mis problemas, no descansar, no planificar descargas».
+
+       Eligió 90 sin rojo. La frase fue suya: «90 sin rojo».
+
+       SI VA SOBRADO EN MARZO se sube el techo entonces, con dos meses de semáforo
+       verde y la forma sin bajar de −15. Decidirlo ahora para dentro de nueve
+       meses es adivinar. */
+    crucero: {
+      paso: 28,          // puntos que sube cada semana de construcción
+      techo: 700,        // CTL 90 el 30-jun; en régimen, con la descarga cada cuarta,
+                         // la media es 651 y la CTL se asienta en ~93. Unas 15 h/semana.
+      descarga: 0.72,    // la cuarta semana, sobre la última de construcción
+      tallaDescarga: "A",// a este nivel la talla B se queda corta: A escalada a la baja
+      revisar: "2027-03-01"
+    },
+
     rampa: [
-      /* 130 y no 90: el bloque dura DIEZ días, no siete, y los 90 estaban escritos
-         para una semana. Medido en los datos de Carlos, caminar le cuesta 14,2
-         puntos por hora (mediana de 24 días de una sola actividad); los 470
-         minutos de caminata que programan las excepciones salen a 111, y al
-         ritmo que lleva estos días —19 puntos/hora— a 149. 130 cae en medio.
-         Con los 90 el pase del domingo le habría marcado rojo por exceso
-         haciendo exactamente lo que la app le mandó. Acordado el 23-sep-2026. */
-      { n: 1,  desde: "2026-09-18", hasta: "2026-09-27", carga: 130, talla: "R", criterio: "asistencia",
-        nota: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
-      { n: 2,  desde: "2026-09-28", hasta: "2026-10-04", carga: 95, talla: "R", nota: "Fin del corticoide. Revisión el 28" },
-      { n: 3,  desde: "2026-10-05", hasta: "2026-10-11", carga: 105, talla: "A", nota: "Primera semana de verdad" },
-      { n: 4,  desde: "2026-10-12", hasta: "2026-10-18", carga: 70,  talla: "B", nota: "Descarga. El domingo, test de 20 minutos" },
-      { n: 5,  desde: "2026-10-19", hasta: "2026-10-25", carga: 120, talla: "A", nota: "" },
-      { n: 6,  desde: "2026-10-26", hasta: "2026-11-01", carga: 135, talla: "A", nota: "" },
-      { n: 7,  desde: "2026-11-02", hasta: "2026-11-08", carga: 150, talla: "A", nota: "" },
-      { n: 8,  desde: "2026-11-09", hasta: "2026-11-15", carga: 100, talla: "B", nota: "Descarga" },
-      { n: 9,  desde: "2026-11-16", hasta: "2026-11-22", carga: 170, talla: "A", nota: "" },
-      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 190, talla: "A", nota: "Segundo test el jueves 26" },
-      { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 215, talla: "A", nota: "Entra un día de intensidad" },
-      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 140, talla: "B", nota: "Descarga" },
-      { n: 13, desde: "2026-12-14", hasta: "2027-06-30", carga: 240, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" }
+      { n: 1, desde: "2026-09-18", hasta: "2026-09-27", carga: 196, talla: "R", criterio: "asistencia", nota: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
+      { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", nota: "Fin del corticoide. Revisión el 28. Entra la bici. Volver a medir el ritmo de caminar" },
+      { n: 3, desde: "2026-10-05", hasta: "2026-10-11", carga: 180, talla: "A", nota: "Primera semana de verdad" },
+      { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 125, talla: "B", nota: "DESCARGA, no se negocia. El domingo, test de 20 minutos" },
+      { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 200, talla: "A" },
+      { n: 6, desde: "2026-10-26", hasta: "2026-11-01", carga: 225, talla: "A" },
+      { n: 7, desde: "2026-11-02", hasta: "2026-11-08", carga: 250, talla: "A" },
+      { n: 8, desde: "2026-11-09", hasta: "2026-11-15", carga: 175, talla: "B", nota: "DESCARGA, no se negocia. Noviembre es su mes de parón histórico" },
+      { n: 9, desde: "2026-11-16", hasta: "2026-11-22", carga: 280, talla: "A" },
+      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 315, talla: "A", nota: "Segundo test el jueves 26" },
+      { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 355, talla: "A", nota: "Entra un día de intensidad" },
+      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 250, talla: "A", nota: "DESCARGA, no se negocia. Talla A escalada a la baja, no B: a este nivel la B se queda corta" },
+      { n: 13, desde: "2026-12-14", hasta: "2026-12-20", carga: 400, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" },
     ],
 
     /* ---------- las tallas de semana ----------
