@@ -1,9 +1,9 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v150";
+var CACHE = "menu-semanal-v151";
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=150",
-  "./js/util.js?v=150", "./js/almacen.js?v=150", "./js/github.js?v=150", "./js/app.js?v=150",
-  "./datos/ingredientes.js?v=150", "./datos/recetas.js?v=150", "./datos/nuevos.js?v=150", "./datos/hogar.js?v=150", "./datos/plantillas.js?v=150", "./datos/actividades.js?v=150", "./datos/plan.js?v=150", "./datos/mi-cocina.json", "./datos/mis-gustos.json", "./js/entrenamiento.js?v=150", "./js/actividad-khb.js?v=150", "./css/actividad-khb.css?v=150",
+  "./", "./index.html", "./css/estilos.css?v=151",
+  "./js/util.js?v=151", "./js/almacen.js?v=151", "./js/github.js?v=151", "./js/app.js?v=151",
+  "./datos/ingredientes.js?v=151", "./datos/recetas.js?v=151", "./datos/nuevos.js?v=151", "./datos/hogar.js?v=151", "./datos/plantillas.js?v=151", "./datos/actividades.js?v=151", "./datos/plan.js?v=151", "./datos/mi-cocina.json", "./datos/mis-gustos.json", "./js/entrenamiento.js?v=151", "./js/actividad-khb.js?v=151", "./css/actividad-khb.css?v=151",
   "./iconos/khb/1-arbol-pulso.webp", "./iconos/khb/2-frutas-tenedor.webp", "./iconos/khb/3-pesas-corredor.webp", "./iconos/khb/4-agua.webp", "./iconos/khb/5-sueno.webp", "./iconos/khb/6-zapatillas.webp", "./iconos/khb/7-yoga.webp", "./iconos/khb/8-recetario.webp", "./iconos/khb/9-podio.webp", "./iconos/khb/10-bici.webp", "./iconos/khb/11-montana.webp", "./media/cartel-h.webp", "./media/cartel-v.webp", "./manifest.webmanifest", "./iconos/icono.svg"
 ];
 

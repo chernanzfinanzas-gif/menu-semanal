@@ -542,7 +542,22 @@
     },
 
     reemplazar: function (nuevo) {
+      /* LA CLAVE Y LA PAUSA SON DE ESTE APARATO, NO DE LA COPIA (23-sep-2026).
+         Restaurar una copia sustituía el estado entero, config incluida, y se
+         llevaba por delante el token. Y pasa siempre que la copia venga del
+         repositorio, porque allí el token va en blanco A PROPÓSITO para que no
+         viaje nunca. Resultado: restaurar dejaba el aparato desconectado y
+         Carlos teniendo que ir a buscar la clave a otro sitio.
+         Lo de este aparato se queda en este aparato. */
+      var mio = (this.estado && this.estado.config && this.estado.config.github) || {};
       this.estado = nuevo;
+      if (mio.token || mio.pausada != null) {
+        if (!this.estado.config) this.estado.config = {};
+        if (!this.estado.config.github) this.estado.config.github = {};
+        var g = this.estado.config.github;
+        if (mio.token && !g.token) g.token = mio.token;
+        if (mio.pausada != null) g.pausada = mio.pausada;
+      }
       this.reparar();
       try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
       this.avisar("recarga");
