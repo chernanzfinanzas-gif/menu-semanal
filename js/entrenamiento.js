@@ -1222,6 +1222,22 @@
     return o;
   }
 
+  /* RECUPERADA el 23-sep-2026. La publicación de las 9:41 de esa mañana borró esta
+     función dejando los SIETE sitios que la llaman, y la app dejó de arrancar: como
+     `htmlPortada` la usa, petaba al montar la portada y no había ni vídeo ni botón
+     «Entrar». Restaurada literal desde la copia de las 8:04 que guarda el buzón; el
+     diff de funciones confirma que fue lo ÚNICO que se perdió en esa publicación. */
+  function sesionesDe(iso, sem, talla) {
+    var exc = (P.excepciones || {})[iso];
+    if (exc) return exc.map(function (s) { return { t: s.t, min: s.min }; });
+    var pl = P.plantillas[talla];
+    if (!pl) return [];
+    return (pl.dias[U.desdeISO(iso).getDay()] || []).map(function (s) {
+      if (s.t === "DIA_GRANDE") return { t: textoDiaGrande(sem), min: 0, grande: true };
+      return { t: s.t, min: s.min };
+    });
+  }
+
   /* A qué se parece un texto: así la sesión de caminar solo la marca una caminata. */
   function familia(txt) {
     var t = String(txt || "").toLowerCase()
