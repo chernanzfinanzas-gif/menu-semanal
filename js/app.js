@@ -477,7 +477,26 @@
         html += '<div class="toma' + (fueraT ? " es-fuera" : "") + (activa ? "" : " inactiva") + '">';
         /* Dos controles por toma: cuántos comen y si se come fuera. Van aquí y no en
            la cabecera del día porque las dos cosas cambian toma a toma. */
-        html += '<div class="titulo-toma"><span>' + t.n + '</span>' +
+        /* LAS CALORÍAS DE LA TOMA, al lado de su nombre (Carlos, 23-sep-2026).
+           Salen de `Almacen.nutrToma`, que es la misma función que suma el total
+           del día: así las cinco tomas cuadran con la cabecera y no hay dos
+           cuentas distintas conviviendo.
+           Se enseña lo COMIDO cuando coincide con lo puesto, y «comido / puesto»
+           cuando falta algo por marcar. Una toma vacía no enseña nada: un «0
+           kcal» en cada renglón es ruido, no información. */
+        var kToma = Almacen.nutrToma(fecha, t.k, false).k;
+        var kCom = Almacen.nutrToma(fecha, t.k, true).k;
+        var etqK = "";
+        if (kToma >= 1) {
+          etqK = (Math.round(kCom) >= Math.round(kToma))
+            ? '<b class="kcal-toma hecha">' + Util.kcal(kToma) + '</b>'
+            /* «652 / 860 kcal» y no «652 kcal / 860 kcal»: con la palabra dos
+               veces el rótulo se partía en dos renglones en el móvil. */
+            : '<b class="kcal-toma">' +
+                (kCom >= 1 ? '<i>' + Util.kcal(kCom).replace(' kcal', '') + '</i> / ' : '') +
+                Util.kcal(kToma) + '</b>';
+        }
+        html += '<div class="titulo-toma"><span>' + t.n + etqK + '</span>' +
                 (cerr ? (comen !== personasBase ? '<span class="chip-toma comensales raro">👤 ' + comen + '</span>' : '')
                       : '<span class="grupo-comensales' + (comen !== personasBase ? " raro" : "") + '">' +
                         '<button class="paso" data-comensales="' + fecha + '|' + t.k + '|-1" ' +

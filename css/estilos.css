@@ -830,3 +830,16 @@ button.enlace {
    las dos se lean como jerarquia y no como dos colores sueltos. */
 .plato.dos-lineas{border-bottom:1px solid rgba(47,107,71,.5)}
 .plato.dos-lineas:last-child{border-bottom:0}
+
+
+/* LAS CALORÍAS DE CADA TOMA, al lado de su nombre  ·  23-sep-2026
+   Van pegadas al rótulo y en cifra tabular, para que los cinco renglones se
+   lean en columna aunque cambien los números. Apagadas mientras falte algo por
+   marcar y en verde cuando la toma está entera comida: el color hace de visto
+   sin ocupar sitio. La cursiva es lo ya comido cuando aún falta algo. */
+.titulo-toma .kcal-toma{
+  margin-left:8px; font-size:.72rem; font-weight:650; letter-spacing:0;
+  text-transform:none; color:var(--gris); font-variant-numeric:tabular-nums;
+}
+.titulo-toma .kcal-toma i{font-style:normal; color:var(--morado); font-weight:700}
+.titulo-toma .kcal-toma.hecha{color:var(--verde)}

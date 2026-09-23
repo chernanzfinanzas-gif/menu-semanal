@@ -958,45 +958,61 @@
     },
 
     /* {k,p,g,h} de un día. soloComido = suma únicamente lo marcado como comido */
+    /* {k,p,g,h} DE UNA SOLA TOMA. Sale de aquí y no de una cuenta aparte para
+       que la suma de las cinco tomas dé EXACTAMENTE el total del día: `nutrDia`
+       llama a esta función, así que no pueden separarse nunca aunque cambien las
+       reglas de lo que cuenta. (Pedido por Carlos el 23-sep-2026: quería ver las
+       calorías al lado del nombre de cada toma.) */
+    nutrToma: function (fecha, toma, soloComido) {
+      var dia = this.estado.plan[fecha];
+      var t = { k: 0, p: 0, g: 0, h: 0 };
+      if (!dia) return t;
+      var self = this;
+      if (self.esFuera(fecha, toma)) {
+        /* SI SABES QUÉ COMISTE, MANDA LO QUE COMISTE. La estimación de «fuera
+           de casa» está para cuando no lo sabes —una comida de trabajo, una
+           boda—, no para tapar lo que sí puedes apuntar. Carlos, 22-sep-2026:
+           una cena en el McDonald's se marca fuera Y se apunta el menú, y lo
+           que tiene que contar es el menú.
+           Lo de fuera cuenta siempre, también en «sólo lo comido»: si has
+           marcado que comes fuera es que has comido, no hay nada que tachar. */
+        var puestos = dia[toma] || [];
+        if (puestos.length) {
+          var gf = self.agrupar(puestos);
+          gf.orden.forEach(function (id) {
+            var nn = self.nutrEn(fecha, id);
+            var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
+            t.k += nn.k * f; t.p += nn.p * f; t.g += nn.g * f; t.h += nn.h * f;
+          });
+          return t;
+        }
+        var e = self.estimacionFuera(toma);
+        if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
+        return t;
+      }
+      var g = self.agrupar(dia[toma]);
+      g.orden.forEach(function (id) {
+        if (soloComido && !self.estaComido(fecha, toma, id)) return;
+        var n = self.nutrEn(fecha, id);
+        var f = self.factorPlato(fecha, toma, id, g.veces[id]);
+        t.k += n.k * f; t.p += n.p * f; t.g += n.g * f; t.h += n.h * f;
+      });
+      return t;
+    },
+
     nutrDia: function (fecha, soloComido) {
       var dia = this.estado.plan[fecha];
       var t = { k: 0, p: 0, g: 0, h: 0 };
       if (!dia) return t;
       var self = this;
       ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
-        if (self.esFuera(fecha, toma)) {
-          /* SI SABES QUÉ COMISTE, MANDA LO QUE COMISTE. La estimación de «fuera
-             de casa» está para cuando no lo sabes —una comida de trabajo, una
-             boda—, no para tapar lo que sí puedes apuntar. Carlos, 22-sep-2026:
-             una cena en el McDonald's se marca fuera Y se apunta el menú, y lo
-             que tiene que contar es el menú.
-             Lo de fuera cuenta siempre, también en «sólo lo comido»: si has
-             marcado que comes fuera es que has comido, no hay nada que tachar. */
-          var puestos = dia[toma] || [];
-          if (puestos.length) {
-            var gf = self.agrupar(puestos);
-            gf.orden.forEach(function (id) {
-              var nn = self.nutrEn(fecha, id);
-              var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
-              t.k += nn.k * f; t.p += nn.p * f; t.g += nn.g * f; t.h += nn.h * f;
-            });
-            return;
-          }
-          var e = self.estimacionFuera(toma);
-          if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
-          return;
-        }
-        var g = self.agrupar(dia[toma]);
-        g.orden.forEach(function (id) {
-          if (soloComido && !self.estaComido(fecha, toma, id)) return;
-          var n = self.nutrEn(fecha, id);
-          var f = self.factorPlato(fecha, toma, id, g.veces[id]);
-          t.k += n.k * f; t.p += n.p * f; t.g += n.g * f; t.h += n.h * f;
-        });
+        var x = self.nutrToma(fecha, toma, soloComido);
+        t.k += x.k; t.p += x.p; t.g += x.g; t.h += x.h;
       });
       /* LOS CAPRICHOS CUENTAN SIEMPRE, también en «sólo lo comido». Un capricho
          se apunta DESPUÉS de comerlo —nadie planifica un helado de bar—, así que
-         pedirle además el visto sería pedir dos veces lo mismo. */
+         pedirle además el visto sería pedir dos veces lo mismo.
+         Van fuera de `nutrToma` a propósito: no pertenecen a ninguna toma. */
       (dia.capricho || []).forEach(function (id) {
         var n = self.nutrEn(fecha, id);
         t.k += n.k; t.p += n.p; t.g += n.g; t.h += n.h;
