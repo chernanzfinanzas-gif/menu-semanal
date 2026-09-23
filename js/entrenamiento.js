@@ -530,6 +530,9 @@
       ".evo-u{font-size:.72rem;color:var(--gris)}",
       ".evo-pie{margin:2px 0 10px}",
       ".evo-svg{display:block;width:100%;max-width:520px;height:auto;overflow:visible}",
+      /* la tarjeta de forma y fatiga se lleva mas ancho: es la que mas datos
+         mete por pixel y la que Carlos mira primero */
+      ".evo-svg.grande{max-width:760px}",
       ".evo-sub{margin:16px 0 6px;font-size:.86rem;font-weight:700;color:var(--azul-hondo)}",
       ".evo-ley{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:.72rem;color:var(--gris)}",
       ".evo-ley span{display:inline-flex;align-items:center;gap:5px}",
@@ -3830,7 +3833,9 @@
 
     function serial(ps) { return ps.map(function (x) { return x.f + ":" + x.v; }).join(","); }
 
-    var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '"' +
+    /* `o.clase` deja agrandar UNA gráfica sin tocar las dieciséis: el ancho vive
+       en el CSS de `.evo-svg`, que es común a todas. (Carlos, 24-sep-2026.) */
+    var s = '<svg class="evo-svg' + (o.clase ? " " + o.clase : "") + '" viewBox="0 0 ' + W + " " + H + '"' +
       ' data-esc="' + [t0, t1, min, max, W, H, L, R, T, B].join("|") + '"' +
       ' data-uni="' + U.esc(o.unidadTip || o.arriba || "") + '"' +
       (sec ? ' data-pts2="' + serial(sec.pts) + '"' +
@@ -5197,7 +5202,8 @@
     var cuerpo3, nota3 = "";
     if (ctl.length) {
       cuerpo3 = grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112, arriba: "puntos", min: 0, unidadTip: "puntos",
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 150, arriba: "puntos", min: 0,
+        unidadTip: "puntos", clase: "grande",
         alt: "Forma y fatiga",
         explica: "Azul la forma, que es la carga acumulada de seis semanas; roja la fatiga, la de una. " +
           "Cuando la roja se queda arriba mucho tiempo, viene el parón.",
@@ -5206,12 +5212,21 @@
       }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
       if (cs.objetivos.length) {
         cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
-          desde: cs.desde, hasta: cs.hasta, alto: 92, arriba: "carga semanal · la rampa entera", min: 0,
+          desde: cs.desde, hasta: cs.hasta, alto: 130, arriba: "carga semanal \u00b7 la rampa entera",
+          min: 0, clase: "grande",
           alt: "Carga semanal real frente al objetivo del plan",
           explica: "Una barra clara por semana con lo que pide la rampa hasta diciembre, y encima en verde lo que llevas hecho.",
+          /* EL GLOBO SALE EN TODAS LAS BARRAS, no solo en la verde (Carlos,
+             23-sep-2026: «solo sale banner en la columna rellena, debería salir
+             en todas, con la carga prevista, y si hay carga hecha esa semana por
+             dónde va»). Se consigue con el modo PAREJA que ya existía para la
+             tensión alta y baja: la serie que se lee es la del OBJETIVO —que
+             tiene un punto por cada semana hasta diciembre— y lo hecho viaja de
+             acompañante. Las semanas sin hacer enseñan solo lo que piden. */
+          par: ["pide la rampa", "llevas hecho"],
           series: [{ pts: cs.objetivos, color: "#cfdcea", barras: true, marcarUltimo: false,
-                     techo: "#8fa8bf" },
-                   { pts: cs.reales, color: VERDE, barras: true, marcarUltimo: false, tip: true }]
+                     techo: "#8fa8bf", tip: true },
+                   { pts: cs.reales, color: VERDE, barras: true, marcarUltimo: false }]
         }) + leyenda([{ n: "objetivo de la rampa", color: "#cfdcea" }, { n: "lo hecho", color: VERDE }]);
       }
       var u3 = ctl[ctl.length - 1], p3 = ctl[0];
