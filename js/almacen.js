@@ -307,6 +307,28 @@
         if (global.console) console.log("Recetas actualizadas: " + refrescadas.join(", "));
       }
 
+      /* HOGAR: lo mismo que arriba, y FALTABA (23-sep-2026). Sin este bloque, un
+         cambio en un artículo YA GUARDADO no llegaba jamás al móvil: por `altas`
+         solo entran los ids nuevos, así que corregir una marca, cambiar un cajón o
+         retirar un producto no servía de nada. Se vio porque el Ariel enseñaba
+         «Ponle tu marca y formato» llevando marca y formato desde hacía días: lo que
+         mandaba era la copia guardada, con el `pendiente` de meses atrás.
+         Lo que esté editado a mano lleva `editado` y no se toca, igual que siempre. */
+      var hogSemilla = {};
+      (global.DATOS_HOGAR || []).forEach(function (x) { if (x.rev) hogSemilla[x.id] = x; });
+      var hogRefrescados = [];
+      (e.hogarLista || []).forEach(function (x, i) {
+        var nuevo = hogSemilla[x.id];
+        if (!nuevo || x.editado) return;
+        if ((x.rev || 1) >= nuevo.rev) return;
+        e.hogarLista[i] = JSON.parse(JSON.stringify(nuevo));
+        hogRefrescados.push(nuevo.n);
+      });
+      if (hogRefrescados.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Hogar actualizado (" + hogRefrescados.length + "): " + hogRefrescados.join(", "));
+      }
+
       /* ---------- LO QUE HAS CORREGIDO DESDE OTRO APARATO ----------
          Un ingrediente que ya tenías y que cambiaste en el móvil no puede entrar
          por `rev`: el `rev` es mío, de cuando mejoro el catálogo, y no sabe nada
