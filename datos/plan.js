@@ -184,6 +184,18 @@
         ayuda: "De la misma pantalla de Garmin que el músculo. Ojo con leerlo como un objetivo: sube cuando pierdes grasa, " +
                "pero también cuando retienes líquido, y con el corticoide te pueden estar pasando las dos cosas a la vez. " +
                "Por eso aquí no se pinta de color: es contexto para explicar el peso, no una meta." },
+      /* LA GRASA, TAMBIÉN A MANO (23-sep-2026, Carlos: «tengo la opción de
+         poner todas a mano menos grasa corporal, añádela»). Comprobado: se
+         podían teclear doce medidas y ésta no estaba.
+         Sigue bajando sola de intervals; esto es para el día que la báscula dé
+         un número que no llegue, o para corregir el que llegó. Lo que escriba
+         él manda sobre lo de intervals, como ya pasa con músculo, agua y ósea. */
+      { id: "grasa", nombre: "Grasa corporal", unidad: "%", paso: 0.1, min: 5, max: 60,
+        aMano: true, informativo: true,
+        ayuda: "De la misma pantalla de Garmin que el músculo, el día que te peses. " +
+               "Normalmente baja sola de intervals y no hace falta tocarla: esto es para el día " +
+               "que no llegue o para corregirla. Y ojo el día que la masa ósea baile, porque " +
+               "entonces el porcentaje de grasa de esa pesada tampoco vale." },
       { id: "hueso", nombre: "Masa ósea", unidad: "kg", paso: 0.1, min: 1, max: 8,
         aMano: true, informativo: true,
         ayuda: "Apenas se mueve en un adulto, así que vale de control de la propia báscula: si cambia mucho de un mes a otro, " +

@@ -556,15 +556,27 @@
       ".ent-dia.pend{background:var(--azul-claro);border-color:var(--azul-borde)}",
       ".ent-dia.hoy{border-color:var(--azul);background:var(--azul-claro);box-shadow:inset 0 -3px 0 var(--azul)}",
       ".ent-dia.sel{border-color:var(--azul);border-width:2px;background:var(--azul-claro)}",
-      ".ent-dia .d{font-weight:700;font-size:.8rem;color:var(--azul-hondo)}",
-      ".ent-dia .f{font-size:.66rem;color:var(--gris)}",
+      /* LA LETRA Y EL NÚMERO, MÁS GRANDES Y LOS DOS EN NEGRITA (23-sep-2026,
+         Carlos). El número iba en gris y dos tallas por debajo de la letra,
+         y es justo el dato que se busca al mirar la tira. */
+      ".ent-dia .d{font-weight:700;font-size:.95rem;color:var(--azul-hondo);line-height:1.1}",
+      ".ent-dia .f{font-size:.86rem;font-weight:700;color:var(--azul-hondo);line-height:1.1}",
       ".ent-dia .q{font-size:.64rem;color:var(--gris);line-height:1.25;overflow-wrap:anywhere}",
-      ".ent-dia .p{width:9px;height:9px;border-radius:50%;background:var(--borde);margin-top:auto;flex:none}",
-      ".ent-dia.ok .p{background:#2f6b47}",
-      ".ent-dia.fallo .p{background:#b3402f}",
-      ".ent-dia.fuera .p{background:#e0c48c}",
+      /* EL PUNTO, CON ARO BLANCO Y UN VERDE MÁS VIVO (23-sep-2026, Carlos:
+         «no distingo el verde oscuro de un azul oscuro»). Y no era su vista:
+         el verde de antes, #2f6b47, contra el azul del día de hoy, #2f5c8a,
+         da un contraste de 1,10 — o sea, la misma luminosidad y sólo el tono
+         para separarlos. Por debajo de 3 no los distingue nadie con poca luz.
+         #34a853 sube esa separación a 2,28 sin perder contra los fondos.
+         El aro blanco hace más que el cambio de color: despega el punto de
+         cualquier fondo, sea del color que sea. */
+      ".ent-dia .p{width:11px;height:11px;border-radius:50%;background:var(--borde);" +
+        "margin-top:auto;flex:none;box-shadow:0 0 0 1.5px #fff}",
+      ".ent-dia.ok .p{background:#34a853}",
+      ".ent-dia.fallo .p{background:#d0492f}",
+      ".ent-dia.fuera .p{background:#e0a93c}",
       ".ent-dia.pend .p{background:var(--azul-borde)}",
-      ".ent-dia.hoy.ok .p{background:#2f6b47}",       /* hoy sigue azul, pero el punto ya dice que está hecho */
+      ".ent-dia.hoy.ok .p{background:#34a853}",       /* hoy sigue azul, pero el punto ya dice que está hecho */
       ".ent-dia.fuera .q,.ent-dia.fuera .f{color:#8a7448}",
       ".ent-talla{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}",
       ".ent-talla select{padding:7px 9px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
@@ -4191,7 +4203,16 @@
     if (pedidoArchivo) return;
     if (ActHistorico.datos && Historico.datos) return;
     pedidoArchivo = true;
-    var repinta = function () { pintar(); };
+    /* CONSERVANDO EL SITIO (23-sep-2026, Carlos: «entro en el plan, voy
+       bajando buscando un punto y la pantalla vuelve al principio»).
+       No era el guardado en GitHub: eran estas dos descargas. Son ficheros
+       gordos y, cuando llegan, repintan la vista entera; con el árbol nuevo el
+       navegador manda el scroll arriba. En el ordenador llegan antes de que dé
+       tiempo a bajar, y en el móvil llegan justo mientras busca.
+       `pintarConservando` ya existía para esto —se usa al anotar una medida— y
+       guarda la posición de la ventana y la de cualquier contenedor con
+       scroll. */
+    var repinta = function () { pintarConservando(); };
     if (!ActHistorico.datos) ActHistorico.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);
   }
@@ -4288,7 +4309,7 @@
                      "<b>Rutas al día</b>.");
           try { localStorage.removeItem(Salud.CLAVE); } catch (e) {}
           Salud.datos = null; Salud.sha = null;
-          Salud.cargar(true, function () { pintar(); });
+          Salud.cargar(true, function () { pintarConservando(); });   // el tercer repintado que saltaba
           return;
         }
         var x = v[i];
@@ -4426,7 +4447,7 @@
 
     /* ---------- 1. peso, masa magra y grasa ---------- */
     var pes = seriePeso(v), med7 = mediaMovilDias(pes, 7), magra = serieSalud("magra", v);
-    var gBas = serieSalud("grasa", v), gCin = serieGrasaCinta(v);
+    var gBas = serieMixta("grasa", v), gCin = serieGrasaCinta(v);   // báscula + lo tecleado a mano
     var cuerpo1, nota1 = "";
     if (pes.length) {
       cuerpo1 = grafica({
@@ -4973,7 +4994,11 @@
       grasaCinta: { n: "Grasa por cinta", u: "%", dias: 120,
                     serie: function () { return serieGrasaCinta(v); },
                     pie: "Sale de cintura, cuello y altura. No depende del agua del cuerpo, así que para la tendencia es más fiable que la báscula." },
-      grasa: { n: "Grasa corporal", u: "%", dias: 120, serie: function () { return serieSalud("grasa", v); },
+      /* `serieMixta` y no `serieSalud`: desde el 23-sep-2026 la grasa también se
+         puede teclear, y con `serieSalud` lo anotado a mano no habría salido
+         nunca en la gráfica. Es la misma función que usan músculo, agua y ósea:
+         lo escrito por él pisa lo de intervals en ese día. */
+      grasa: { n: "Grasa corporal", u: "%", dias: 120, serie: function () { return serieMixta("grasa", v); },
                serie2: function () { return serieGrasaCinta(v); }, etq2: "por cinta",
                par: ["báscula", "cinta"],
                pie: "Azul la báscula, roja la cinta. Mientras vayan juntas, las dos valen." },
@@ -7204,10 +7229,13 @@
       }
     });
 
+    /* ÉSTE ES EL QUE ÉL SOSPECHABA, Y ACERTABA A MEDIAS: salta con cualquier
+       guardado del almacén, y también cuando la sincronización con GitHub trae
+       lo del otro aparato y lo funde. Repintaba desde arriba. */
     if (A.suscribir) A.suscribir(function (motivo) {
       if (motivo === "entreno") return;                       // ya repintamos nosotros
       var v = document.getElementById("vista-entreno");
-      if (v && v.classList.contains("activa")) pintar();
+      if (v && v.classList.contains("activa")) pintarConservando();
     });
   }
 
@@ -7339,7 +7367,9 @@
       var n = Salud.sembrarPesos();
       if (n) U.toast(n === 1 ? "1 peso traído de intervals" : n + " pesos traídos de intervals");
       var v = document.getElementById("vista-entreno");
-      if (v && v.classList.contains("activa")) pintar();
+      /* Y éste es el que más veces le habrá saltado: al arrancar se pinta con
+         la copia guardada y uno o dos segundos después llega salud.json. */
+      if (v && v.classList.contains("activa")) pintarConservando();
     });
   }
 
