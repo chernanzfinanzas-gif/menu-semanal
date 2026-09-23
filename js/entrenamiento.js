@@ -43,9 +43,9 @@
       pie: "Qué he hecho: el archivo entero, año por año y mes por mes, con su mini mapa.", listo: true },
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
-    /* Va el CUARTO a propósito: Carlos lo quiso al lado de El Plan, Actividad y
-       Evolución, en una fila, y Casos y Material debajo. Con la rejilla de
-       cuatro columnas eso sale solo. */
+    /* Va el CUARTO a propósito. Con dos columnas —que es como Carlos lo quiso
+       al verlo: tres filas de dos— queda en la segunda fila junto a Evolución,
+       y Casos y Material caen en la tercera. */
     { id: "rampa", nombre: "Rampa de Entreno", img: "iconos/khb/10-bici.webp",
       pie: "A dónde va el plan y por qué: la rampa, la curva prevista y los puntos clave.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
@@ -179,7 +179,6 @@
       /* índice de bloques */
       ".ent-bloques{display:grid;grid-template-columns:1fr;gap:10px}",
       "@media(min-width:620px){.ent-bloques{grid-template-columns:1fr 1fr}}",
-      "@media(min-width:980px){.ent-bloques{grid-template-columns:repeat(4,1fr)}}",
       ".ent-bloque{display:flex;gap:15px;align-items:center;text-align:left;width:100%;font:inherit;color:inherit;",
       "  cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--azul-borde);",
       "  background:linear-gradient(180deg,#fff 0%,#eef3f8 100%);",
