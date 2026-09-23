@@ -320,6 +320,9 @@
       var colorK = Almacen.semaforoKcal(nutr.k, objetivo);
 
       var cerr = cerrado(fecha);
+      var hayQueVaciar = !!(dia && (Util.TOMAS.some(function (t) { return (dia[t.k] || []).length; }) ||
+                                    (dia.capricho || []).length));
+      var sePuedeDeshacer = !!(dia && dia.guardadoVaciar);
       html += '<div class="dia' + (fecha === hoy ? " hoy" : "") + (cerr ? " cerrado" : "") +
               (Almacen.esPasado(fecha) && !cerr ? " reabierto" : "") + '">';
       html += '<header><span class="nombre">' + Util.DIAS[i] + '</span>' +
@@ -369,6 +372,19 @@
         });
         html += '<button class="btn principal mini rellenar-dia" data-completar="' + fecha + '" ' +
                 'title="Elige platos para cuadrar con las calorías del día">Completar</button>';
+        /* VACIAR EL DÍA DE UN GOLPE (23-sep-2026, Carlos: «quiero un botón que vacíe
+           el día», «junto a completar», «reduce el tamaño para que entren los dos»).
+           Hasta hoy había que quitar plato a plato.
+           El «Deshacer» sólo aparece MIENTRAS el día siga vacío: en cuanto vuelve a
+           poner algo, el botón pasa a ser «Vaciar» otra vez. Así nunca hay un
+           Deshacer al acecho que le borre lo recién puesto. */
+        html += hayQueVaciar
+          ? '<button class="btn mini vaciar-dia" data-vaciardia="' + fecha + '" ' +
+            'title="Deja el día entero vacío">Vaciar</button>'
+          : sePuedeDeshacer
+            ? '<button class="btn principal mini vaciar-dia" data-desvaciar="' + fecha + '" ' +
+              'title="Devuelve lo que acabas de vaciar">Deshacer</button>'
+            : '';
         /* El botón «Plantilla» de cada día se quitó el 21-sep-2026: Carlos no hace
            plantillas de un solo día, así que copiar la plantilla día a día no le
            servía para nada y robaba sitio en una cabecera que ya lleva cuatro
@@ -1109,6 +1125,33 @@
                 '<input type="number" id="cap-kcal" placeholder="kcal" min="1" max="3000" step="10">' +
                 '<button class="btn principal mini" id="cap-crear">A\u00f1adir</button>' +
               '</div>';
+      /* LOS PRODUCTOS, QUE ES LO QUE SE APUNTA AQUÍ (23-sep-2026, Carlos:
+         «voy a meter un capricho y no encuentro las pizzas… solo me presenta el
+         recetario, no los ingredientes»).
+         Tenía razón y era un fallo de verdad. El 22-sep los caprichos dejaron de
+         ser recetas y pasaron a ser ingredientes, pero este selector se quedó
+         ofreciendo sólo recetas: desde entonces no había forma de apuntar una
+         pizza, un Whopper o un helado. Se le pone el mismo buscador que tienen
+         las tomas, con una mejora: la cantidad viene ya puesta con la ración de
+         la ficha, así que una pizza entra como media pizza sin teclear nada. */
+      html += '<p class="nota-modal">Un producto: la pizza, el helado, lo del bar. ' +
+              'Escribe para buscarlo; la cantidad viene puesta con tu ración.</p>';
+      html += '<div class="nuevo-suelto" style="margin-bottom:10px">' +
+                '<input type="text" id="capsu-buscar" placeholder="Buscar producto\u2026" ' +
+                  'style="flex:1 1 100%; margin-bottom:6px">' +
+                '<select id="capsu-ing">' +
+                Almacen.estado.ingredientes.filter(function (g) { return !g.oculta; })
+                  .sort(function (a, b) { return a.n.localeCompare(b.n); })
+                  .map(function (g) {
+                    return '<option value="' + esc(g.id) + '" data-u="' + esc(g.u) + '"' +
+                           ' data-peso="' + (g.pesoUd || 0) + '" data-racion="' + (g.racion || 0) + '"' +
+                           ' data-txt="' + esc(g.racionTexto || "") + '">' + esc(g.n) + '</option>';
+                  }).join("") +
+                '</select>' +
+                '<input type="number" id="capsu-cant" step="0.25" min="0" value="1">' +
+                '<span id="capsu-uni">ud</span>' +
+                '<button class="btn principal mini" id="capsu-add">A\u00f1adir</button>' +
+              '</div>';
       html += '<input type="text" id="filtro-selector" placeholder="Filtrar\u2026">';
       html += '<div class="lista-selec" id="lista-caprichos">';
       function boton(r) {
@@ -1157,12 +1200,82 @@
         Util.toast("Apuntado y guardado en el recetario");
       });
 
+      /* La casilla de cantidad se pone sola con la ración de la ficha: media
+         pizza son 170 g y no hay que saberlo de memoria. */
+      function ajustarCapsu() {
+        var sel = $("#capsu-ing"), op = sel.options[sel.selectedIndex];
+        if (!op) return;
+        var u = op.getAttribute("data-u"),
+            peso = parseFloat(op.getAttribute("data-peso")) || 0,
+            rac  = parseFloat(op.getAttribute("data-racion")) || 0,
+            txt  = op.getAttribute("data-txt") || "";
+        $("#capsu-uni").textContent = (u === "ud" ? (peso ? "ud (" + peso + " g)" : "ud") : u) +
+                                      (txt ? " \u00b7 " + txt : "");
+        var c = $("#capsu-cant");
+        c.step  = u === "ud" ? "0.25" : "5";
+        c.value = rac || (u === "ud" ? 1 : 30);
+      }
+      $("#capsu-ing").addEventListener("change", ajustarCapsu);
+      ajustarCapsu();
+
+      $("#capsu-buscar").addEventListener("input", function (e) {
+        var q = sinTildes(e.target.value.trim().toLowerCase());
+        var sel = $("#capsu-ing"), visibles = [];
+        Array.prototype.forEach.call(sel.options, function (o) {
+          var vale = !q || sinTildes(o.textContent.toLowerCase()).indexOf(q) >= 0;
+          o.hidden = !vale;
+          if (vale) visibles.push(o);
+        });
+        if (visibles.length && (sel.selectedIndex < 0 || sel.options[sel.selectedIndex].hidden)) {
+          sel.value = visibles[0].value;
+          ajustarCapsu();
+        }
+      });
+
+      $("#capsu-add").addEventListener("click", function () {
+        var cant = parseFloat(String($("#capsu-cant").value).replace(",", "."));
+        var id = Almacen.crearSuelto($("#capsu-ing").value, cant);
+        if (!id) { Util.toast("Pon una cantidad"); return; }
+        meter(id);
+      });
+
       $("#lista-caprichos").addEventListener("click", function (e) {
         var b = e.target.closest("[data-cap]");
         if (b) meter(b.getAttribute("data-cap"));
       });
     }
     pinta();
+  }
+
+  /* VACIAR UN DÍA ENTERO, Y PODER VOLVER ATRÁS.
+     Lo vaciado se guarda en `dia.guardadoVaciar` hasta que el día vuelva a tener
+     algo. No se borra nada del recetario: sólo se sueltan los platos del día. */
+  function vaciarDia(fecha) {
+    var dia = Almacen.asegurarDia(fecha);
+    var guardado = { capricho: (dia.capricho || []).slice() }, cuantos = 0;
+    Util.TOMAS.forEach(function (t) { guardado[t.k] = (dia[t.k] || []).slice(); });
+    Object.keys(guardado).forEach(function (k) { cuantos += guardado[k].length; });
+    if (!cuantos) { Util.toast("Este día ya está vacío"); return; }
+    dia.guardadoVaciar = guardado;
+    Util.TOMAS.forEach(function (t) { dia[t.k] = []; });
+    dia.capricho = [];
+    Almacen.tocarDia(fecha);
+    Almacen.guardar("vaciar");
+    pintarMenu();
+    Util.toast("Día vaciado: " + cuantos + (cuantos === 1 ? " plato" : " platos") +
+               ". Tienes Deshacer al lado de Completar.");
+  }
+
+  function deshacerVaciado(fecha) {
+    var dia = Almacen.asegurarDia(fecha), g = dia.guardadoVaciar;
+    if (!g) return;
+    Util.TOMAS.forEach(function (t) { dia[t.k] = (g[t.k] || []).slice(); });
+    dia.capricho = (g.capricho || []).slice();
+    delete dia.guardadoVaciar;
+    Almacen.tocarDia(fecha);
+    Almacen.guardar("vaciar");
+    pintarMenu();
+    Util.toast("Devuelto tal y como estaba");
   }
 
   /* selector de actividad */
@@ -2510,7 +2623,16 @@
     html += '<div class="fila">' +
       '<label class="campo" style="flex:1 1 150px"><span>Raci\u00f3n habitual (' + esc(g.u || "g") + ')</span>' +
         '<input type="number" id="ig-racion" min="0" step="0.5" value="' + (g.racion != null ? g.racion : "") + '">' +
-        '<span class="nota-peque" style="font-weight:400">Lo que sueles tomar de una vez: un pl\u00e1tano, 30 g de pistachos. Se usa al apuntarlo en una toma.</span></label>' +
+        '<span class="nota-peque" style="font-weight:400">' +
+          /* DECIRLO CON PALABRAS (23-sep-2026, Carlos): «no veo que la raci\u00f3n a
+             consumir sea media pizza, veo datos de 100 gramos». El n\u00famero estaba
+             bien —170 de una pizza de 340— pero obligaba a dividir de cabeza.
+             Si la ficha trae `racionTexto`, se ense\u00f1a eso; si no, el texto de siempre. */
+          (g.racionTexto
+            ? '<b>= ' + esc(g.racionTexto) + '</b>. Lo que sueles tomar de una vez.'
+            : 'Lo que sueles tomar de una vez: un pl\u00e1tano, 30 g de pistachos. ' +
+              'Se usa al apuntarlo en una toma.') +
+        '</span></label>' +
       '<label class="campo" style="flex:2 1 260px"><span>Nota</span>' +
         '<input type="text" id="ig-nota" value="' + esc(g.nota || "") + '" placeholder="Marca, formato, d\u00f3nde lo compras\u2026"></label>' +
       '</div>';
@@ -3877,6 +3999,11 @@
       if (add) { var p = add.getAttribute("data-anadir").split("|"); abrirSelector(p[0], p[1]); return; }
       var cap = e.target.closest("[data-capricho]");
       if (cap) { abrirSelectorCapricho(cap.getAttribute("data-capricho")); return; }
+
+      var vac = e.target.closest("[data-vaciardia]");
+      if (vac) { vaciarDia(vac.getAttribute("data-vaciardia")); return; }
+      var des = e.target.closest("[data-desvaciar]");
+      if (des) { deshacerVaciado(des.getAttribute("data-desvaciar")); return; }
       /* Contador de cantidad. En las tomas y en los caprichos funciona igual:
          «+» mete otra ración del mismo plato, «−» quita la última, «×» las quita
          todas. Todo sobre las mismas listas de ids que ya había. */

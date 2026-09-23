@@ -136,6 +136,10 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 }
 .pest-tipo.activo{background:var(--verde); border-color:var(--verde); color:#fff}
 .tipo-dia .rellenar-dia{margin-left:auto}
+/* Completar y Vaciar van juntos al final de la fila. Se achican un punto para
+   que los dos quepan en un móvil sin partir la línea (Carlos, 23-sep-2026:
+   «junto a completar un botón de vaciar… reduce el tamaño para que entren los dos»). */
+.tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia{padding:4px 9px; font-size:.72rem}
 /* deporte y horas de un día de ruta */
 .plan-ruta{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
   padding:10px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
