@@ -1325,10 +1325,40 @@
     return !!relojPara(iso, sesion);
   }
 
+  /* QUÉ SESIONES PUEDEN DAR UN DÍA POR CUMPLIDO.
+     La movilidad no. El 23-sep-2026 Carlos vio el miércoles en verde con la
+     caminata sin hacer: ese día trae «Caminar 55'» y «Movilidad de cuello y
+     mandíbula 10'», marcó la segunda, y el bucle de abajo se conformaba con la
+     primera sesión hecha que encontrara. Diez minutos de estiramientos daban el
+     día por bueno.
+     Y contradecía la regla que el propio plan escribe: «un día cuenta como
+     cumplido si se hizo la sesión que tocaba, o la de la talla S» — la que
+     tocaba, no el complemento. Las de la talla S son fuerza, bici y caminata:
+     ésas son las que cuentan, más correr y remo si aparecieran.
+     La movilidad se sigue viendo y se sigue marcando: lo único que no puede es
+     decidir el día. */
+  function cuentaParaElDia(sesion) {
+    return familia(sesion && sesion.t) !== "movilidad";
+  }
+
   function diaCumplido(iso, sem, talla) {
     var ses = sesionesDe(iso, sem, talla);
     if (!ses.length) return true;                 // descanso: el día cuenta
-    for (var i = 0; i < ses.length; i++) if (sesionHecha(iso, ses[i], i)) return true;
+    /* Se mira el índice ORIGINAL, no el de la lista filtrada: las marcas se
+       guardan como "s0", "s1"… por posición en el día, y renumerarlas leería
+       la casilla equivocada. */
+    var hayDeLasQueCuentan = false;
+    for (var i = 0; i < ses.length; i++) {
+      if (!cuentaParaElDia(ses[i])) continue;
+      hayDeLasQueCuentan = true;
+      if (sesionHecha(iso, ses[i], i)) return true;
+    }
+    /* Un día que solo tuviera movilidad no puede quedar imposible de cumplir:
+       ahí vale cualquiera de las que haya. Hoy no existe ningún día así, pero
+       el día que alguien lo escriba, esto no se rompe. */
+    if (!hayDeLasQueCuentan) {
+      for (var j = 0; j < ses.length; j++) if (sesionHecha(iso, ses[j], j)) return true;
+    }
     return false;
   }
 
