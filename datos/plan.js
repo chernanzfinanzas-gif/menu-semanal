@@ -22,22 +22,41 @@
       nota: "Z2 calculado por reserva (Karvonen) con 175 de máxima y 47 de reposo: 55-70 % es 118-137 ppm. Mientras dure el corticoide el pulso va alto por el fármaco: manda el poder hablar."
     },
 
-    /* ---------- la rampa: cada semana, su carga y su talla ---------- */
+    /* ---------- la rampa: cada semana, su carga y su talla ----------
+       LA CARGA DE AQUÍ ES SOLO ENTRENAMIENTO: rodillo y caminatas. El día grande
+       del fin de semana NO entra, por decisión de Carlos (23-sep-2026): «entreno
+       para ir a la montaña y salir con la bici tranquilo el fin de semana», así
+       que la salida es el objetivo, no el presupuesto. Meterla dentro obligaba a
+       elegir entre un domingo bueno y un número verde — y además descuadraba la
+       semana un 50 % según tocara monte (14,2 puntos/hora) o carretera (48,6).
+       Por eso estos números son más bajos que los de antes: 240 en crucero en vez
+       de 300. No es menos entreno, es otra unidad. Sumando la salida rondan los
+       315, que en equilibrio dan una forma (CTL) de unos 45 — por encima de los
+       43 de la versión anterior.
+       Lo que la salida SÍ hace es condicionar la semana siguiente: ver
+       `diaGrande.umbrales`. */
     rampa: [
-      { n: 1,  desde: "2026-09-18", hasta: "2026-09-27", carga: 90,  talla: "R", criterio: "asistencia",
-        nota: "Con prednisona. Fuerza a media carga" },
-      { n: 2,  desde: "2026-09-28", hasta: "2026-10-04", carga: 110, talla: "R", nota: "Fin del corticoide. Revisión el 28" },
-      { n: 3,  desde: "2026-10-05", hasta: "2026-10-11", carga: 140, talla: "A", nota: "Primera semana de verdad" },
-      { n: 4,  desde: "2026-10-12", hasta: "2026-10-18", carga: 95,  talla: "B", nota: "Descarga. El domingo, test de 20 minutos" },
-      { n: 5,  desde: "2026-10-19", hasta: "2026-10-25", carga: 160, talla: "A", nota: "" },
-      { n: 6,  desde: "2026-10-26", hasta: "2026-11-01", carga: 180, talla: "A", nota: "" },
-      { n: 7,  desde: "2026-11-02", hasta: "2026-11-08", carga: 200, talla: "A", nota: "" },
-      { n: 8,  desde: "2026-11-09", hasta: "2026-11-15", carga: 130, talla: "B", nota: "Descarga" },
-      { n: 9,  desde: "2026-11-16", hasta: "2026-11-22", carga: 225, talla: "A", nota: "" },
-      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 250, talla: "A", nota: "Segundo test el jueves 26" },
-      { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 275, talla: "A", nota: "Entra un día de intensidad" },
-      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 180, talla: "B", nota: "Descarga" },
-      { n: 13, desde: "2026-12-14", hasta: "2027-06-30", carga: 300, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" }
+      /* 130 y no 90: el bloque dura DIEZ días, no siete, y los 90 estaban escritos
+         para una semana. Medido en los datos de Carlos, caminar le cuesta 14,2
+         puntos por hora (mediana de 24 días de una sola actividad); los 470
+         minutos de caminata que programan las excepciones salen a 111, y al
+         ritmo que lleva estos días —19 puntos/hora— a 149. 130 cae en medio.
+         Con los 90 el pase del domingo le habría marcado rojo por exceso
+         haciendo exactamente lo que la app le mandó. Acordado el 23-sep-2026. */
+      { n: 1,  desde: "2026-09-18", hasta: "2026-09-27", carga: 130, talla: "R", criterio: "asistencia",
+        nota: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
+      { n: 2,  desde: "2026-09-28", hasta: "2026-10-04", carga: 95, talla: "R", nota: "Fin del corticoide. Revisión el 28" },
+      { n: 3,  desde: "2026-10-05", hasta: "2026-10-11", carga: 105, talla: "A", nota: "Primera semana de verdad" },
+      { n: 4,  desde: "2026-10-12", hasta: "2026-10-18", carga: 70,  talla: "B", nota: "Descarga. El domingo, test de 20 minutos" },
+      { n: 5,  desde: "2026-10-19", hasta: "2026-10-25", carga: 120, talla: "A", nota: "" },
+      { n: 6,  desde: "2026-10-26", hasta: "2026-11-01", carga: 135, talla: "A", nota: "" },
+      { n: 7,  desde: "2026-11-02", hasta: "2026-11-08", carga: 150, talla: "A", nota: "" },
+      { n: 8,  desde: "2026-11-09", hasta: "2026-11-15", carga: 100, talla: "B", nota: "Descarga" },
+      { n: 9,  desde: "2026-11-16", hasta: "2026-11-22", carga: 170, talla: "A", nota: "" },
+      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 190, talla: "A", nota: "Segundo test el jueves 26" },
+      { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 215, talla: "A", nota: "Entra un día de intensidad" },
+      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 140, talla: "B", nota: "Descarga" },
+      { n: 13, desde: "2026-12-14", hasta: "2027-06-30", carga: 240, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" }
     ],
 
     /* ---------- las tallas de semana ----------
@@ -114,7 +133,73 @@
       "2026-09-27": [{ t: "Descanso, o paseo corto", min: 30 }]
     },
 
-    /* El día grande alterna: semana impar, montaña; semana par, bici. */
+    /* LA SALIDA LARGA DEL FIN DE SEMANA NO SE PROGRAMA.
+       Carlos, 23-sep-2026: «la actividad larga tampoco va a seguir un plan fijo…
+       pueden ser 4 seguidas de montaña, alternancia, solo bici. Depende de los
+       planes que aparezcan. Igual un día sale un fin de semana en montaña y se
+       hacen dos rutas. Lo único es controlar si superamos los umbrales
+       permisibles y adaptar el domingo el plan a lo que se ha hecho».
+       Aquí NO hay calendario: hay una orientación de lo que es razonable en cada
+       fase, y unos umbrales que deciden qué pasa la semana siguiente. */
+    salidaLarga: {
+      texto: "Salida larga, la que surja",
+      programada: false,
+      fueraDeCarga: true,
+      /* Orientación, NO instrucción: lo que el cuerpo aguanta bien en cada tramo
+         de la rampa. Si un fin de semana sale otra cosa, sale otra cosa. */
+      orientacion: [
+        { hasta: 4,  texto: "ahora mismo: monte de 8-10 km, o bici llana de 30-40" },
+        { hasta: 8,  texto: "monte de 12-14 km, o bici de 45-55" },
+        { hasta: 16, texto: "monte de 15-18 km, o bici de 60-70" },
+        { hasta: 24, texto: "monte de 18-22 km, o bici de 70-85" },
+        { hasta: 99, texto: "monte de 20-25 km, o bici de 80-100" }
+      ],
+      /* LOS UMBRALES SE MIRAN SOBRE EL FIN DE SEMANA ENTERO, no sobre un día:
+         un finde de monte con dos rutas cuenta como una sola cosa. */
+      sobre: "fin de semana completo",
+      umbrales: [
+        { hasta: 100,  fue: "tranquilo",
+          reaccion: "nada", texto: "Fin de semana tranquilo. La semana que viene sigue la rampa." },
+        { hasta: 150,  fue: "se notó",
+          reaccion: "no_sube", texto: "Se notó. La semana que viene repite el objetivo de esta, no sube." },
+        { hasta: 99999, fue: "se fue de madre",
+          reaccion: "baja_25", texto: "Eso se fue de madre. La semana que viene baja un 25 % y sin intensidad." }
+      ],
+      /* DE DÓNDE SALEN ESOS CORTES, Y HASTA DÓNDE VALEN.
+         De 117 salidas largas suyas (2 h o más), midiendo la VFC de las dos
+         noches siguientes contra la media de los siete días anteriores:
+             menos de 100 puntos .... +2,6 %   (65 salidas)
+             100 a 150 .............. -0,4 %   (37 salidas)
+             más de 150 ............. -2,0 %   (15 salidas)
+         La media se mueve limpiamente. La PROBABILIDAD de un bajón NO: una caída
+         de más del 5 % sale en el 26-27 % de las salidas en las tres franjas por
+         igual. Por eso dispara la carga, que se mide sin ruido, y no la VFC.
+         El pulso en reposo no sirve para esto: no se mueve (±0,3 ppm).
+
+         PROVISIONALES, y conviene saber por qué: esos cortes están medidos POR
+         DÍA, y aquí se aplican al FIN DE SEMANA ENTERO. No se pudo medir sobre
+         findes porque en los 400 días de registro casi no hay: la mediana de sus
+         fines de semana es 23 puntos y el máximo 127, o sea que el tramo rojo no
+         se habría disparado ni una vez. Su entrenamiento de 2025-2026 fue rodillo
+         entre semana, no salidas. En cuanto haya diez fines de semana con salida
+         de verdad, estos números se vuelven a sacar de sus propios datos. */
+      recalibrar: { cuando: "10 fines de semana con salida registrada", desde: "2026-09-28" },
+      /* La VFC CONFIRMA, no dispara: media de 4 noches contra la de 14. Si la
+         carga dice verde pero el cuerpo lleva cuatro días diciendo que no, se
+         aplica el tramo siguiente. Dos señales independientes y manda la fiable. */
+      confirmacionVfc: { noches: 4, contra: 14, caida: 0.06 },
+      referencias: [
+        "Montaña 9 km / 300 m ....... unos 43 puntos",
+        "Bici 35 km tranquila ....... unos 82",
+        "Bici 65 km a ritmo ......... unos 153",
+        "30 km y 1.137 m (jun-2025) . tramo rojo"
+      ]
+    },
+
+    /* Lo que queda de `diaGrande` es solo lo que la app pinta: la imagen del fin
+       de semana, el aviso de seguridad y los minutos que se le suponen cuando no
+       hay nada registrado. Las listas de montaña y bici se quedan como referencia
+       histórica, pero YA NO PRESCRIBEN NADA: ver `salidaLarga`. */
     diaGrande: {
       montana: [
         { hasta: 4,  texto: "Montaña: 8-10 km y 250-350 m" },

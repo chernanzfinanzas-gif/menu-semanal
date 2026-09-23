@@ -1207,21 +1207,19 @@
 
   function tallaDe(sem) { return ent().talla[sem.desde] || sem.talla; }
 
+  /* LA SALIDA LARGA NO SE PROGRAMA. Carlos, 23-sep-2026: «la actividad larga
+     tampoco va a seguir un plan fijo… pueden ser 4 seguidas de montaña,
+     alternancia, solo bici. Depende de los planes que aparezcan. Igual un día
+     sale un fin de semana en montaña y se hacen dos rutas».
+     Así que aquí no se dice qué hacer: se dice lo que hay, y el domingo el pase
+     mira lo que costó y ajusta la semana siguiente. Antes esto alternaba monte y
+     bici por si el número de semana era par — que además ni alternaba, porque las
+     descargas son todas pares y se saltan. Fuera. */
   function textoDiaGrande(sem) {
-    var lista = (sem.n % 2) ? P.diaGrande.montana : P.diaGrande.bici;
-    for (var i = 0; i < lista.length; i++) if (sem.n <= lista[i].hasta) return lista[i].texto;
-    return lista[lista.length - 1].texto;
-  }
-
-  function sesionesDe(iso, sem, talla) {
-    var exc = (P.excepciones || {})[iso];
-    if (exc) return exc.map(function (s) { return { t: s.t, min: s.min }; });
-    var pl = P.plantillas[talla];
-    if (!pl) return [];
-    return (pl.dias[U.desdeISO(iso).getDay()] || []).map(function (s) {
-      if (s.t === "DIA_GRANDE") return { t: textoDiaGrande(sem), min: 0, grande: true };
-      return { t: s.t, min: s.min };
-    });
+    var o = (P.salidaLarga && P.salidaLarga.texto) || "Salida larga, la que surja";
+    var r = P.salidaLarga && P.salidaLarga.orientacion;
+    if (r) for (var i = 0; i < r.length; i++) if (sem.n <= r[i].hasta) return o + " · " + r[i].texto;
+    return o;
   }
 
   /* A qué se parece un texto: así la sesión de caminar solo la marca una caminata. */
@@ -6483,7 +6481,9 @@
     }
 
     var talla = tallaDe(sem), pl = P.plantillas[talla];
-    var img = (sem.n % 2) ? P.diaGrande.imagenes.montana : P.diaGrande.imagenes.bici;
+    /* La salida ya no se programa, así que la imagen no puede anunciar monte o
+       bici: se queda la de montaña como ilustración del fin de semana. */
+    var img = P.diaGrande.imagenes.montana;
     var h = volver;
 
     /* franja: dos ranuras, el semáforo y los avisos */
