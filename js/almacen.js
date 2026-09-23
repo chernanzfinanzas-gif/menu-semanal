@@ -215,6 +215,7 @@
       if (!e.plantillas || !e.plantillas.length) e.plantillas = JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || []));
       if (!e.plan) e.plan = {};
       if (!e.comido) e.comido = {};
+      if (!e.selloDia) e.selloDia = {};
       if (!e.perfil) e.perfil = this.estadoInicial().perfil;
       if (!e.pesos) e.pesos = [];
       if (!e.actividad) e.actividad = {};
@@ -808,9 +809,23 @@
            "2026-09-23T12:31:07.000Z" siguen siendo el día y el mes. */
         this.estado.corregido[fecha] = new Date().toISOString();
       }
+      this.sellarDia(fecha);
     },
 
     corregidoEl: function (fecha) { return (this.estado.corregido || {})[fecha] || null; },
+
+    /* La hora en que este aparato tocó por última vez ese día: el ✓ de comido o
+       una corrección. No es lo mismo que `corregido`, que además pinta el sello
+       «Corregido a mano» en la cabecera y sólo vale para días pasados. */
+    sellarDia: function (fecha) {
+      if (!this.estado.selloDia) this.estado.selloDia = {};
+      this.estado.selloDia[fecha] = new Date().toISOString();
+    },
+    selloDeDia: function (fecha) {
+      var a = (this.estado.selloDia || {})[fecha] || "";
+      var b = (this.estado.corregido || {})[fecha] || "";
+      return a > b ? a : b;
+    },
 
     /* sal total de un día del plan (por persona), con lo comido fuera estimado */
     salDia: function (fecha) {
@@ -1840,6 +1855,13 @@
          HECHO: aquí se le hace la foto. Quitar el ✓ no la borra, porque lo que
          sigue puesto en el día sigue siendo lo que había ese día. */
       if (comido) this.congelarPlato(fecha, recetaId);
+      /* SELLO DE DÍA (23-sep-2026). Marcar un ✓ era lo único deliberado que NO
+         dejaba rastro por día, así que al unir dos aparatos lo decidía el reloj
+         global de todo el estado y un aparato que no sabía nada borraba los ✓.
+         Carlos: «marcas, la app dice guardando, guardado… sales y al volver
+         aparecen desmarcados». Con este sello, `github.js` sabe qué lado tocó
+         ESE día más tarde. */
+      this.sellarDia(fecha);
       this.guardar("comido");
     },
 
@@ -2289,7 +2311,9 @@
        la comida y la merienda, que son las tres tomas que caen en el monte. */
     TIPOS_DIA: {
       casa: { n: "En casa",           icono: "🏠", topeSal: true,  mochila: [], ruta: false },
-      ruta: { n: "Ruta o bici larga", icono: "🥾", topeSal: false, ruta: true,
+      ruta: { n: "Outdoor", icono: "🥾", topeSal: false, ruta: true,   /* era «Ruta o bici larga»:
+                 no cabía en la fila del día junto a Completar y Vaciar. Carlos, 23-sep-2026.
+                 «Fuera» estaba descartado: ya significa comer fuera de casa en esa misma ficha. */
               mochila: ["almuerzo", "comida", "merienda"] }
     },
 

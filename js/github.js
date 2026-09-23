@@ -105,15 +105,46 @@
        lado que lo corrigió MÁS TARDE, pase lo que pase con el sello global.
        Una corrección a mano es lo más deliberado que hay en la app: nunca la
        puede tirar un reloj. */
-    var corrL = local.corregido || {}, corrR = remoto.corregido || {};
-    var dias = {}, f;
-    for (f in corrL) if (Object.prototype.hasOwnProperty.call(corrL, f)) dias[f] = 1;
-    for (f in corrR) if (Object.prototype.hasOwnProperty.call(corrR, f)) dias[f] = 1;
+    /* AMPLIADO EL 23-sep-2026: el guardián protegía el PLAN del día, pero no lo
+       COMIDO, y los ✓ se perdían exactamente igual. Carlos: «marcas, la app dice
+       guardando, guardado… sales y al volver aparecen desmarcados». Medido: con
+       el remoto 5 s por delante, {"comida":["pasta_bolonesa","yogur_griego"]} se
+       quedaba en {"comida":[]}.
+       Ahora cuenta el sello de DÍA —el ✓ o la corrección, lo que sea más
+       reciente— y de ese día manda entero quien lo tocó el último, tanto para el
+       plan como para lo comido. Las tomas que el ganador no tenga se conservan
+       del otro lado, para no tirar un ✓ de otra toma que nadie ha tocado. */
+    function selloDe(est, dia) {
+      var a = ((est.selloDia || {})[dia]) || "";
+      var b = ((est.corregido || {})[dia]) || "";
+      return a > b ? a : b;
+    }
+    var dias = {}, f, fuentes = [local.corregido || {}, remoto.corregido || {},
+                                local.selloDia || {}, remoto.selloDia || {}];
+    fuentes.forEach(function (o) {
+      for (f in o) if (Object.prototype.hasOwnProperty.call(o, f)) dias[f] = 1;
+    });
     Object.keys(dias).forEach(function (dia) {
-      var manda = String(corrL[dia] || "") >= String(corrR[dia] || "") ? local : remoto;
+      var mandaLocal = selloDe(local, dia) >= selloDe(remoto, dia);
+      var manda = mandaLocal ? local : remoto, otro = mandaLocal ? remoto : local;
+
       if (manda.plan && manda.plan[dia]) {
         if (!junto.plan) junto.plan = {};
         junto.plan[dia] = JSON.parse(JSON.stringify(manda.plan[dia]));
+      }
+
+      var cm = (manda.comido || {})[dia], co = (otro.comido || {})[dia];
+      if (cm || co) {
+        var unido = JSON.parse(JSON.stringify(co || {}));
+        Object.keys(cm || {}).forEach(function (toma) {
+          unido[toma] = (cm[toma] || []).slice();      /* la toma que él tocó, suya */
+        });
+        Object.keys(unido).forEach(function (toma) {
+          if (!unido[toma] || !unido[toma].length) delete unido[toma];
+        });
+        if (!junto.comido) junto.comido = {};
+        if (Object.keys(unido).length) junto.comido[dia] = unido;
+        else delete junto.comido[dia];
       }
     });
     if (!junto.config) junto.config = {};

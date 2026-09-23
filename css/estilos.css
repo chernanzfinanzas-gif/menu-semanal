@@ -127,11 +127,11 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .chip-sal.libre{background:#eef1f7; color:#4a5a7a}
 
 /* ---------- tipo de día ---------- */
-.tipo-dia{display:flex; gap:5px; align-items:center; flex-wrap:wrap;
+.tipo-dia{display:flex; gap:4px; align-items:center; flex-wrap:wrap;
   padding:8px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
 .pest-tipo{
   border:1px solid var(--borde); background:var(--blanco); color:var(--gris);
-  border-radius:99px; padding:4px 10px; font-size:.75rem; font-weight:650;
+  border-radius:99px; padding:4px 7px; font-size:.75rem; font-weight:650;
   display:inline-flex; align-items:center; gap:4px; line-height:1.2; cursor:pointer;
 }
 .pest-tipo.activo{background:var(--verde); border-color:var(--verde); color:#fff}
@@ -139,7 +139,7 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 /* Completar y Vaciar van juntos al final de la fila. Se achican un punto para
    que los dos quepan en un móvil sin partir la línea (Carlos, 23-sep-2026:
    «junto a completar un botón de vaciar… reduce el tamaño para que entren los dos»). */
-.tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia{padding:4px 9px; font-size:.72rem}
+.tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia{padding:4px 7px; font-size:.72rem}
 /* deporte y horas de un día de ruta */
 .plan-ruta{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
   padding:10px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
@@ -245,8 +245,11 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .nota-tipo.aviso-objetivo b{color:#6d4c0c}
 .selector-dias button .marca-tipo{font-size:.7rem; line-height:1}
 @media (max-width:520px){
-  .pest-tipo span{display:none}
-  .pest-tipo{padding:4px 9px; font-size:.9rem}
+  /* Los rótulos del tipo de día SE VEN TAMBIÉN EN EL MÓVIL (Carlos, 23-sep-2026:
+     «no salen los textos, de en casa o en ruta»). Antes se escondían porque
+     «Ruta o bici larga» no cabía; ahora pone «Outdoor» y entra de sobra. */
+  .pest-tipo{padding:4px 6px; font-size:.7rem; gap:3px}
+  .tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia{padding:4px 6px; font-size:.7rem}
 }
 
 /* resumen de energía del día */
