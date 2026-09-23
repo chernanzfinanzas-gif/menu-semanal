@@ -39,15 +39,15 @@
   var BLOQUES = [
     { id: "plan", nombre: "El Plan", img: "iconos/khb/3-pesas-corredor.webp",
       pie: "Lo que toca hoy, con sus casillas, y la semana entera a la vista.", listo: true },
-    { id: "actividad", nombre: "Actividad", img: "iconos/khb/6-zapatillas.webp",
-      pie: "Qué he hecho: el archivo entero, año por año y mes por mes, con su mini mapa.", listo: true },
+    /* SEGUNDO, al lado de El Plan. Lo pidió Carlos al verlo montado: el plan y
+       su rampa se miran juntos, y Actividad —que es el archivo de lo hecho— baja
+       a la segunda fila. Con dos columnas quedan tres filas de dos. */
+    { id: "rampa", nombre: "Rampa de Entreno", img: "iconos/khb/12-zwift.webp",
+      pie: "A dónde va el plan y por qué: la rampa, la curva prevista y los puntos clave.", listo: true },
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
-    /* Va el CUARTO a propósito. Con dos columnas —que es como Carlos lo quiso
-       al verlo: tres filas de dos— queda en la segunda fila junto a Evolución,
-       y Casos y Material caen en la tercera. */
-    { id: "rampa", nombre: "Rampa de Entreno", img: "iconos/khb/10-bici.webp",
-      pie: "A dónde va el plan y por qué: la rampa, la curva prevista y los puntos clave.", listo: true },
+    { id: "actividad", nombre: "Actividad", img: "iconos/khb/6-zapatillas.webp",
+      pie: "Qué he hecho: el archivo entero, año por año y mes por mes, con su mini mapa.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
       pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: true },
     { id: "material", nombre: "Material y movimientos", img: "iconos/khb/7-yoga.webp",
