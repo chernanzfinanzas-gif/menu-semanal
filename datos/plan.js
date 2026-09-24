@@ -154,6 +154,44 @@
       { n: 13, desde: "2026-12-14", hasta: "2026-12-20", carga: 400, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" },
     ],
 
+    /* ---------- EL BOLSILLO DE LA SEMANA  ·  24-sep-2026 ----------
+       El plan deja de decir qué día toca cada cosa. Dice qué BLOQUES tiene la
+       semana y cuánto pesa cada uno; los días los pone Carlos.
+
+       Motivo suyo: «tú propones los bloques —fuerza, caminar, bici indoor y la
+       salida outdoor larga— y yo la distribuyo según mi agenda. Esto me cubre
+       si me llaman para hacer una ruta entre diario, un día tengo médico y no
+       puedo entrenar, pasando ese día a descanso».
+
+       LA IDEA QUE LO ORDENA: el objetivo no es un techo, es una lista de la
+       compra. Los bloques de bici son los que son; lo que haga ADEMÁS —pasear
+       con su pareja, una tarde larga por Madrid— no descuenta de ellos. Así
+       pasear no puede quitarle bici, que era todo el miedo.
+
+       Y esto es además la regla 3 de la rampa, la que estaba escrita arriba con
+       un «OJO: esto último está sin implementar»: las sesiones se escalan desde
+       el objetivo de la semana. */
+    bolsillo: {
+      /* 85 % bici, 15 % caminar. Antes era 78/22. Decisión suya: caminar va a
+         salir de sobra como paseo de ocio, no hace falta mandarlo. */
+      cuota: { bici: 0.85, caminar: 0.15 },
+      /* el bloque largo se lleva este trozo del presupuesto de bici; el resto
+         se reparte entre los rodillos */
+      largo: { cuota: 0.30, min: 60, max: 240 },
+      rodillo: { n: 5, min: 45, max: 150 },
+      caminata: { n: 3, min: 30, max: 75 },
+      /* La fuerza no lleva precio: el cumplimiento se cuenta por BLOQUES
+         hechos, no por puntos, así que saltársela cuenta igual que saltarse una
+         salida de bici sin necesidad de ponerle un número. Sus 23 puntos reales
+         medidos viven en la carga activa, que es donde está el cansancio. */
+      fuerza: { n: 3, min: 45, nombres: ["Fuerza A", "Fuerza B", "Fuerza C"] },
+      textos: {
+        largo: "Salida larga",
+        rodillo: "Bici Z2 en rodillo",
+        caminata: "Caminar a buen paso"
+      }
+    },
+
     /* ---------- las tallas de semana ----------
        Los días van con el número de getDay(): 1 lunes … 6 sábado, 0 domingo. */
     plantillas: {

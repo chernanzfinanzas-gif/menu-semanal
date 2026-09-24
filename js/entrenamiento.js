@@ -689,6 +689,32 @@
       ".ent-dia .d{font-weight:700;font-size:.95rem;color:var(--azul-hondo);line-height:1.1}",
       ".ent-dia .f{font-size:.86rem;font-weight:700;color:var(--azul-hondo);line-height:1.1}",
       ".ent-dia .q{font-size:.64rem;color:var(--gris);line-height:1.25;overflow-wrap:anywhere}",
+      /* ---- EL TABLERO DE BLOQUES (24-sep-2026) ----
+         La casilla del dia deja de enumerar las sesiones en texto y pasa a
+         llevar los bloques, que se pueden coger y soltar en otro dia. */
+      ".ent-dia .q.bloques{width:100%;font-size:inherit}",
+      ".dia-bl{display:block;width:100%;margin-top:3px;padding:3px 4px;font:inherit;",
+      "  font-size:.66rem;font-weight:650;line-height:1.2;text-align:center;cursor:pointer;",
+      "  border:1px solid var(--azul-borde);background:var(--azul-claro);color:var(--azul-hondo);",
+      "  border-radius:7px}",
+      ".dia-bl:first-child{margin-top:1px}",
+      ".dia-bl:hover{border-color:var(--azul)}",
+      ".dia-bl.largo{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}",
+      ".dia-bl.fuerza{background:#f3eefb;border-color:#ddcdf3;color:#5a2b8f}",
+      ".dia-bl.elegido{outline:2px solid var(--azul);outline-offset:1px}",
+      ".bl-bandeja{border:1px dashed var(--azul-borde);background:#fafcfe;border-radius:11px;",
+      "  padding:9px 11px;margin:10px 0}",
+      ".bl-bandeja .et{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;",
+      "  color:var(--gris);font-weight:700;margin-bottom:6px}",
+      ".bl-chips{display:flex;gap:6px;flex-wrap:wrap}",
+      ".bl-chips .dia-bl{display:inline-block;width:auto;margin-top:0;font-size:.72rem;padding:4px 10px}",
+      ".bl-moviendo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;",
+      "  padding:9px 12px;border-radius:10px;background:var(--azul-claro);",
+      "  border:1px solid var(--azul-borde);font-size:.84rem;color:var(--azul-hondo)}",
+      ".bl-quitar,.bl-cancela{border:1px solid var(--azul-borde);background:var(--blanco);",
+      "  border-radius:999px;padding:3px 11px;font:inherit;font-size:.74rem;font-weight:600;",
+      "  color:var(--azul-hondo);cursor:pointer}",
+      ".bl-quitar:hover,.bl-cancela:hover{border-color:var(--azul)}",
       /* EL PUNTO, CON ARO BLANCO Y UN VERDE MÁS VIVO (23-sep-2026, Carlos:
          «no distingo el verde oscuro de un azul oscuro»). Y no era su vista:
          el verde de antes, #2f6b47, contra el azul del día de hoy, #2f5c8a,
@@ -1394,10 +1420,190 @@
      `htmlPortada` la usa, petaba al montar la portada y no había ni vídeo ni botón
      «Entrar». Restaurada literal desde la copia de las 8:04 que guarda el buzón; el
      diff de funciones confirma que fue lo ÚNICO que se perdió en esa publicación. */
+  /* ==================== EL BOLSILLO DE LA SEMANA Y SU REPARTO ====================
+     El plan dice QUÉ BLOQUES tiene la semana y cuánto pesa cada uno; los días
+     los pone Carlos. Los tamaños salen del objetivo de esa semana, que es la
+     regla 3 de la rampa —«las sesiones se escalan desde el objetivo»— y llevaba
+     desde el 23 de septiembre escrita y sin hacer.
+     (Carlos, 24-sep-2026.) */
+  var cacheBolsillo = {};
+  /* el bloque que se está moviendo: { desde, bid }. Dos toques —el bloque y
+     luego el día— en vez de arrastrar, que en el móvil es un suplicio. */
+  var bloqueSel = null;
+
+  /* el nombre corto que cabe en la casilla de un día */
+  function cortoBloque(s) {
+    var n = s.largo ? "Larga"
+      : (s.fam === "bici" ? "Bici"
+      : (s.fam === "caminar" ? "Andar"
+      : (s.fam === "fuerza" ? "Fza " + s.t.slice(-1) : s.t.split(" ")[0])));
+    return n + (s.min ? " " + s.min + "'" : "");
+  }
+
+  function bolsilloDe(sem) {
+    var B = P.bolsillo;
+    if (!B || !sem || !sem.desde) return null;
+    var clave = sem.desde + "|" + sem.carga + "|" + tallaDe(sem);
+    if (cacheBolsillo[clave]) return cacheBolsillo[clave];
+
+    var rit = P.ritmos || {}, out = [], num = 0;
+    var vBici = (rit.bici && rit.bici.v) || 45, vCam = (rit.caminar && rit.caminar.v) || 25;
+
+    function mete(fam, texto, n, min, extra) {
+      for (var i = 0; i < n; i++) {
+        var b = { id: "b" + num, t: texto, min: min, fam: fam };
+        num++;
+        if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) b[k] = extra[k];
+        out.push(b);
+      }
+    }
+    /* cuántos bloques y de cuánto, para gastar `pts` sin pasar del máximo por
+       bloque ni bajar del mínimo. Si no llega ni para uno del mínimo, cero. */
+    /* CUÁNTOS BLOQUES Y DE CUÁNTO. Se prefieren MUCHOS bloques medianos a
+       pocos largos: la semana que pidió Carlos son cinco rodillos, no uno de
+       dos horas y media. Así que se hacen tantos como quepan a la duración
+       mínima, con el tope de `cfg.n`, y los minutos se reparten entre ellos.
+       En las semanas bajas salen menos bloques, y van apareciendo según sube
+       el objetivo hasta llegar a los cinco. */
+    function trocear(pts, ph, cfg) {
+      if (!(pts > 0) || !ph) return { n: 0, min: 0 };
+      var minT = pts / ph * 60;
+      if (minT < cfg.min) return { n: 0, min: 0 };
+      var n = Math.max(1, Math.min(cfg.n, Math.floor(minT / cfg.min)));
+      var m = Math.round(minT / n / 5) * 5;
+      if (m > cfg.max) m = cfg.max;
+      if (m < cfg.min) m = cfg.min;
+      return { n: n, min: m };
+    }
+
+    var carga = sem.carga || 0;
+    var ptsBici = carga * ((B.cuota && B.cuota.bici) || 0.85);
+    var ptsCam = carga - ptsBici;
+
+    /* el largo se sirve primero y se lleva su trozo del presupuesto de bici.
+       Ya NO está fuera de la carga: Carlos, 24-sep-2026, «si un sábado me
+       machaco con la bici es carga, quiera o no». */
+    var ptsLargo = ptsBici * ((B.largo && B.largo.cuota) || 0.3);
+    var minLargo = Math.round((ptsLargo / vBici * 60) / 5) * 5;
+    minLargo = Math.max(B.largo.min, Math.min(B.largo.max, minLargo));
+    /* lleva familia «bici» PARA EL PRECIO —si no, no costaría nada y el
+       presupuesto se evaporaría—, y la marca `largo` para que al buscarle
+       actividad medida le valga igual una ruta de monte que un rodillo. */
+    mete("bici", B.textos.largo, 1, minLargo, { largo: true });
+
+    var rod = trocear(ptsBici - ptsLargo, vBici, B.rodillo);
+    mete("bici", B.textos.rodillo, rod.n, rod.min);
+    var cam = trocear(ptsCam, vCam, B.caminata);
+    mete("caminar", B.textos.caminata, cam.n, cam.min);
+    (B.fuerza.nombres || []).slice(0, B.fuerza.n).forEach(function (nom) {
+      mete("fuerza", nom, 1, B.fuerza.min);
+    });
+
+    cacheBolsillo[clave] = out;
+    return out;
+  }
+
+  function diasDe(sem) {
+    var out = [], f = sem.desde;
+    while (f <= sem.hasta) { out.push(f); f = U.sumarDias(f, 1); }
+    return out;
+  }
+
+  /* El reparto de partida: lo gordo separado y el último día de la semana
+     libre. Si no toca nada, la semana funciona igual que antes. */
+  function repartoPropuesto(sem, b) {
+    var dias = diasDe(sem), n = dias.length, mapa = {};
+    var huecos = Math.max(1, n - 1);                 // el último día se deja libre
+    var ordRod = [0, 3, 1, 4, 2, 5], ordCam = [2, 5, 1, 4, 0, 3], ordFue = [0, 3, 1];
+    var iR = 0, iC = 0, iF = 0;
+    b.forEach(function (x) {
+      if (x.largo) { mapa[x.id] = dias[Math.max(0, n - 2)]; return; }
+      if (x.fam === "caminar") { mapa[x.id] = dias[ordCam[iC++ % ordCam.length] % huecos]; return; }
+      if (x.fam === "fuerza") { mapa[x.id] = dias[ordFue[iF++ % ordFue.length] % huecos]; return; }
+      mapa[x.id] = dias[ordRod[iR++ % ordRod.length] % huecos];
+    });
+    return mapa;
+  }
+
+  function repartoGuardado() { var e = ent(); if (!e.reparto) e.reparto = {}; return e.reparto; }
+
+  /* dónde está cada bloque de esta semana. Null = sin colocar, en la bandeja. */
+  function repartoDe(sem) {
+    var b = bolsilloDe(sem);
+    if (!b || !b.length) return null;
+    var g = repartoGuardado()[sem.desde];
+    if (!g) return repartoPropuesto(sem, b);
+    var mapa = {};
+    b.forEach(function (x) { mapa[x.id] = (g[x.id] === undefined) ? null : g[x.id]; });
+    return mapa;
+  }
+
+  /* los bloques que no están en ningún día, de las semanas que toca esta tira.
+     La tira son siete días y pueden caer en dos semanas de la rampa. */
+  function sinColocar(lunes) {
+    var vistos = {}, out = [];
+    for (var i = 0; i < 7; i++) {
+      var f = U.sumarDias(lunes, i), sem = semanaDe(f);
+      if (!sem || vistos[sem.desde]) continue;
+      vistos[sem.desde] = true;
+      if ((P.excepciones || {})[f]) continue;          // semana escrita a mano
+      var b = bolsilloDe(sem), r = repartoDe(sem);
+      if (!b || !r) continue;
+      b.forEach(function (x) { if (!r[x.id]) out.push({ sem: sem, b: x }); });
+    }
+    return out;
+  }
+
+  function moverBloque(sem, bid, iso) {
+    var r = repartoGuardado();
+    if (!r[sem.desde]) r[sem.desde] = repartoDe(sem) || {};
+    /* la marca viaja con el bloque: las casillas se guardan por día y posición,
+       así que mover sin llevarse la marca la dejaría en el día viejo */
+    var antes = r[sem.desde][bid] || null;
+    /* el índice VIEJO hay que sacarlo antes de mover y el NUEVO después: si se
+       sacan los dos a la vez, el viejo ya no existe y la marca se pierde */
+    var vIdx = antes ? indiceDe(sem, bid, antes) : -1;
+    r[sem.desde][bid] = iso;
+    if (antes && antes !== iso) {
+      var nIdx = iso ? indiceDe(sem, bid, iso) : -1;
+      var c = ent().checks;
+      if (vIdx >= 0 && c[antes] && c[antes]["s" + vIdx] !== undefined) {
+        var val = c[antes]["s" + vIdx];
+        delete c[antes]["s" + vIdx];
+        if (!Object.keys(c[antes]).length) delete c[antes];
+        if (iso && nIdx >= 0) { if (!c[iso]) c[iso] = {}; c[iso]["s" + nIdx] = val; }
+      }
+    }
+    A.guardar("entreno");
+  }
+
+  /* la posición que ocupa un bloque dentro de su día, que es como se guardan
+     las casillas ("s0", "s1"…) */
+  function indiceDe(sem, bid, iso) {
+    if (!iso) return -1;
+    var b = bolsilloDe(sem), r = repartoGuardado()[sem.desde] || repartoDe(sem) || {}, k = 0;
+    for (var i = 0; i < b.length; i++) {
+      if (r[b[i].id] !== iso) continue;
+      if (b[i].id === bid) return k;
+      k++;
+    }
+    return -1;
+  }
+
   function sesionesDe(iso, sem, talla, sinAjuste) {
     var lista;
     var exc = (P.excepciones || {})[iso];
-    if (exc) {
+    /* LAS EXCEPCIONES MANDAN SOBRE EL BOLSILLO. Son los diez días escritos a
+       mano del 18 al 27 de septiembre, con el corticoide encima y sin bici: si
+       el bolsillo los pisara, la semana 1 dejaría de ser lo que el plan dice. */
+    var rep = (!exc && sem) ? repartoDe(sem) : null;
+    if (rep) {
+      var bl = bolsilloDe(sem);
+      lista = [];
+      bl.forEach(function (x) {
+        if (rep[x.id] === iso) lista.push({ t: x.t, min: x.min, fam: x.fam, largo: x.largo, bid: x.id });
+      });
+    } else if (exc) {
       lista = exc.map(function (s) { return { t: s.t, min: s.min }; });
     } else {
       var pl = P.plantillas[talla];
@@ -1474,10 +1680,13 @@
   /* ¿Hay una actividad medida que encaje con ESTA sesión? */
   function relojPara(iso, sesion) {
     if (sinReloj(sesion)) return null;
-    var fam = familia(sesion.t), reg = registradas(iso), umbral = Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
-    if (sesion.grande) umbral = MIN_SESION;
+    var fam = sesion.fam || familia(sesion.t);
+    var reg = registradas(iso), umbral = Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
+    /* el bloque largo no tiene familia: vale bici, vale ruta, vale monte */
+    var libre = sesion.grande || sesion.largo || !fam;
+    if (libre) umbral = MIN_SESION;
     for (var i = 0; i < reg.length; i++) {
-      if ((reg[i].fam === fam || (sesion.grande && (reg[i].fam === "caminar" || reg[i].fam === "bici"))) &&
+      if ((reg[i].fam === fam || (libre && (reg[i].fam === "caminar" || reg[i].fam === "bici"))) &&
           reg[i].min >= umbral) return reg[i];
     }
     return null;
@@ -6200,7 +6409,8 @@
 
   /* Lo que cuesta una sesión, con los ritmos MEDIDOS del plan. */
   function costeSesion(s) {
-    var r = (P.ritmos || {})[familia(s.t)];
+    /* el bloque trae su familia puesta; el texto solo se mira cuando no la hay */
+    var r = (P.ritmos || {})[s.fam || familia(s.t)];
     if (!r || !(s.min > 0)) return 0;
     return (s.min / 60) * (r.v || 0);
   }
@@ -7322,7 +7532,34 @@
       "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) + "</h2>" +
       '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
       "</div>" +
-      '<div class="ent-semana">';
+      "";
+    /* ---------- LA BANDEJA Y EL TABLERO (24-sep-2026) ----------
+       La tira de los siete días pasa a ser el tablero donde se reparten los
+       bloques. Arriba, lo que queda por colocar. Se mueve con dos toques: el
+       bloque y después el día. */
+    var sueltos = sinColocar(lunes);
+    if (bloqueSel) {
+      var semMov = semanaDe(bloqueSel.desde), bMov = null;
+      if (semMov) (bolsilloDe(semMov) || []).forEach(function (x) { if (x.id === bloqueSel.bid) bMov = x; });
+      if (bMov) {
+        h += '<div class="bl-moviendo">Moviendo <b>' + U.esc(bMov.t) +
+          (bMov.min ? ", " + bMov.min + " min" : "") + "</b>. Toca el día donde lo pones" +
+          '<button type="button" class="bl-quitar" data-bloque-a="bandeja">dejarlo sin colocar</button>' +
+          '<button type="button" class="bl-cancela" data-bloque-a="nada">cancelar</button></div>';
+      }
+    }
+    if (sueltos.length) {
+      h += '<div class="bl-bandeja"><span class="et">Sin colocar</span><div class="bl-chips">';
+      sueltos.forEach(function (x) {
+        h += '<button type="button" class="dia-bl' + (x.b.largo ? " largo" : "") +
+          (x.b.fam === "fuerza" ? " fuerza" : "") +
+          (bloqueSel && bloqueSel.bid === x.b.id ? " elegido" : "") +
+          '" data-bloque="' + x.sem.desde + ":" + x.b.id + '">' +
+          U.esc(x.b.t) + (x.b.min ? " · " + x.b.min + " min" : "") + "</button>";
+      });
+      h += "</div></div>";
+    }
+    h += '<div class="ent-semana">';
     for (var i = 0; i < 7; i++) {
       var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
       var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
@@ -7338,9 +7575,17 @@
       h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
         '" data-dia="' + f + '" role="button" tabindex="0">' +
         '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
-        '<span class="q">' + (!semF ? "—" : (ss.length
-          ? U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))
-          : "descanso")) + "</span><span class=\"p\"></span></div>";
+        '<span class="q' + (ss.length && ss[0].bid ? " bloques" : "") + '">' +
+        (!semF ? "—" : (!ss.length ? "descanso"
+          : (ss[0].bid
+            ? ss.map(function (s) {
+                return '<button type="button" class="dia-bl' + (s.largo ? " largo" : "") +
+                  (s.fam === "fuerza" ? " fuerza" : "") +
+                  (bloqueSel && bloqueSel.bid === s.bid && bloqueSel.desde === semF.desde ? " elegido" : "") +
+                  '" data-bloque="' + semF.desde + ":" + s.bid + '">' + U.esc(cortoBloque(s)) + "</button>";
+              }).join("")
+            : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))))) +
+        "</span><span class=\"p\"></span></div>";
     }
     h += "</div>";
     h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
@@ -7913,9 +8158,45 @@
         pintar();
         return;
       }
+      /* un bloque: se elige para moverlo, o se suelta si ya estaba elegido */
+      var bb = t.closest ? t.closest("[data-bloque]") : null;
+      if (bb) {
+        e.preventDefault(); e.stopPropagation();
+        var pb = bb.getAttribute("data-bloque").split(":");
+        bloqueSel = (bloqueSel && bloqueSel.bid === pb[1] && bloqueSel.desde === pb[0])
+          ? null : { desde: pb[0], bid: pb[1] };
+        pintarConservando();
+        return;
+      }
+      var ba = t.closest ? t.closest("[data-bloque-a]") : null;
+      if (ba) {
+        e.preventDefault(); e.stopPropagation();
+        var dest = ba.getAttribute("data-bloque-a");
+        if (dest === "bandeja" && bloqueSel) {
+          var smv = semanaDe(bloqueSel.desde);
+          if (smv) moverBloque(smv, bloqueSel.bid, null);
+        }
+        bloqueSel = null;
+        pintarConservando();
+        return;
+      }
       var dd = t.closest ? t.closest("[data-dia]") : null;
       if (dd) {
         var f = dd.getAttribute("data-dia");
+        /* con un bloque en la mano, tocar un día lo coloca ahí en vez de abrirlo */
+        if (bloqueSel) {
+          var sMov = semanaDe(bloqueSel.desde), sDest = semanaDe(f);
+          if (sMov && sDest && sDest.desde === sMov.desde) {
+            moverBloque(sMov, bloqueSel.bid, f);
+            bloqueSel = null;
+            pintarConservando();
+            return;
+          }
+          U.toast("Ese día es de otra semana");
+          bloqueSel = null;
+          pintarConservando();
+          return;
+        }
         diaSel = (f === U.hoyISO()) ? null : f;
         pintar();
         return;
