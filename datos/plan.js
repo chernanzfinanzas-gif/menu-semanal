@@ -229,11 +229,23 @@
              haré». El bloque largo no desaparece: se vuelve rodillo largo —«1
              largo outdoor o indoor», palabras suyas— y la semana conserva sus
              seis bloques de bici en vez de engordar cinco. */
-          { id: "rodillo", fam: "rodillo", n: "Sin salida: rodillo largo",  ph: 45,   mh: "en casa",          muestra: 39, topeHoras: 3 }
+          { id: "rodillo", fam: "rodillo", n: "Sin salida: rodillo largo",  ph: 45,   mh: "en casa",          muestra: 39, topeHoras: 3 },
+          /* NI SALIDA NI RODILLO LARGO · añadido el 24-sep-2026 a petición suya:
+             «hay la opción sin salida: rodillo largo, pero no hay sin salida: sin
+             entreno, que pasa esa carga a la semana». Tenía razón, faltaba. Aquí
+             no hay bloque largo de ninguna clase: todo el presupuesto de bici se
+             reparte entre los rodillos de diario. Es el caso del viaje o la boda
+             en el que tampoco quiere meterse tres horas de rodillo el sábado. */
+          { id: "nada",    fam: null,      n: "Sin salida: reparto en la semana", ph: 0, mh: "todo a los rodillos", muestra: 0 }
         ],
         pordefecto: "bici-llano"
       },
-      rodillo: { n: 5, min: 45, max: 150 },
+      /* `suelo`: si lo que sobra no llega al bloque mínimo pero pasa de esto, se
+         hace UN bloque corto en vez de perderlo. Carlos lo vio probando la semana
+         del 28: con dos horas de puerto sobraban 35 minutos y desaparecían.
+         `max` sube a 180 porque sin salida los cinco rodillos se van a las tres
+         horas en las semanas altas, y él lo aceptó expresamente. */
+      rodillo: { n: 5, min: 45, max: 180, suelo: 30 },
       caminata: { n: 3, min: 30, max: 75 },
       /* La fuerza no lleva precio: el cumplimiento se cuenta por BLOQUES
          hechos, no por puntos, así que saltársela cuenta igual que saltarse una

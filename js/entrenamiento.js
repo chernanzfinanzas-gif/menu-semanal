@@ -1606,7 +1606,14 @@
     function trocear(pts, ph, cfg) {
       if (!(pts > 0) || !ph) return { n: 0, min: 0 };
       var minT = pts / ph * 60;
-      if (minT < cfg.min) return { n: 0, min: 0 };
+      /* LO QUE SOBRA NO SE TIRA. Antes, si el resto no llegaba al bloque mínimo
+         se perdía entero: Carlos probó la semana del 28 con dos horas de puerto,
+         sobraban 35 minutos de rodillo y la app le quitaba TODA la bici de
+         diario. Ahora, si pasa del `suelo`, se hace un bloque corto. */
+      if (minT < cfg.min) {
+        if (cfg.suelo && minT >= cfg.suelo) return { n: 1, min: Math.round(minT / 5) * 5 };
+        return { n: 0, min: 0 };
+      }
       var n = Math.max(1, Math.min(cfg.n, Math.floor(minT / cfg.min)));
       var m = Math.round(minT / n / 5) * 5;
       if (m > cfg.max) m = cfg.max;
@@ -1628,13 +1635,18 @@
        la semana se va a más de veinte horas. Se le puso delante con los números
        y eligió repartirlo todo. */
     var L = largoDe(sem);
-    var ptsLargo = L ? L.pts : 0;
-    var minLargo = Math.max(15, Math.round((L ? L.horas : 1) * 60 / 5) * 5);
-    /* `pts` es su precio propio, que costeSesion respeta. Conserva la familia
-       «bici» para el color y el reparto, y la marca `largo` para que al buscarle
-       actividad medida le valga igual una ruta de monte que un rodillo. */
-    mete("bici", (L && L.modo.fam === "rodillo") ? "Rodillo largo" : B.textos.largo,
-         1, minLargo, { largo: true, pts: ptsLargo, modo: L ? L.modo.id : null });
+    var ptsLargo = 0;
+    /* SI NO HAY SALIDA NI RODILLO LARGO no se mete bloque: el presupuesto entero
+       se reparte entre los rodillos de diario. */
+    if (L && L.modo.fam) {
+      ptsLargo = L.pts;
+      var minLargo = Math.max(15, Math.round(L.horas * 60 / 5) * 5);
+      /* `pts` es su precio propio, que costeSesion respeta. Conserva la familia
+         «bici» para el color y el reparto, y la marca `largo` para que al buscarle
+         actividad medida le valga igual una ruta de monte que un rodillo. */
+      mete("bici", L.modo.fam === "rodillo" ? "Rodillo largo" : B.textos.largo,
+           1, minLargo, { largo: true, pts: ptsLargo, modo: L.modo.id });
+    }
 
     var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, B.rodillo);
     mete("bici", B.textos.rodillo, rod.n, rod.min);
@@ -1682,24 +1694,30 @@
     var L = largoDe(sem);
     if (!L) return "";
     var B = P.bolsillo || {}, bl = bolsilloDe(sem) || [];
-    /* LAS SEMANAS ESCRITAS A MANO NO TIENEN BLOQUE LARGO (los diez días del
-       corticóide van día a día en `excepciones`). Enseñar aquí una salida que no
-       mueve nada del tablero sería mentir, así que la ficha no sale. */
-    var hayLargo = false;
-    bl.forEach(function (x) { if (x.largo) hayLargo = true; });
-    if (!hayLargo) return "";
+    /* LAS SEMANAS ESCRITAS A MANO NO LLEVAN FICHA (los diez días del corticóide
+       van día a día en `excepciones`): enseñar ahí una salida que no mueve nada
+       del tablero sería mentir. Se reconocen porque sus bloques traen `dia`.
+       OJO, y por esto se arregló: antes el corte era «no hay bloque largo», y con
+       el modo «sin salida: reparto en la semana» tampoco lo hay — la ficha
+       desaparecía y se quedaba sin manera de volver atrás. */
+    var aMano = false;
+    bl.forEach(function (x) { if (x.dia) aMano = true; });
+    if (aMano || !bl.length) return "";
     var nRod = 0, minRod = 0;
     bl.forEach(function (x) {
       if (x.fam === "bici" && !x.largo) { nRod++; minRod = x.min; }
     });
     var esRod = L.modo.fam === "rodillo";
+    var esNada = !L.modo.fam;
     var ptsBici = Math.round((sem.carga || 0) * ((B.cuota && B.cuota.bici) || 0.85));
     return '<div class="salida-ficha' + (L.pts > ptsBici ? " pasada" : "") + '">' +
       '<div class="salida-txt"><span class="et">' +
-        (esRod ? "Esta semana, sin salida" : "La salida de esta semana") + "</span>" +
-        "<b>" + U.esc(L.modo.n) + " · " + horasTxt(L.horas) + "</b>" +
-        '<span class="nota-peque">Paga <b>' + L.pts + " puntos</b> de los " +
-          ptsBici + " de bici" + (L.suyo ? "" : " · propuesta de la app") + ". " +
+        (esRod || esNada ? "Esta semana, sin salida" : "La salida de esta semana") + "</span>" +
+        "<b>" + U.esc(L.modo.n) + (esNada ? "" : " · " + horasTxt(L.horas)) + "</b>" +
+        '<span class="nota-peque">' +
+          (esNada ? "Los <b>" + ptsBici + " puntos</b> de bici van enteros a los días de diario. "
+                  : "Paga <b>" + L.pts + "</b> de los " + ptsBici + " de bici" +
+                    (L.suyo ? "" : " · propuesta de la app") + ". ") +
           (nRod ? (nRod === 1 ? "Queda 1 rodillo de " : "Quedan " + nRod + " rodillos de ") +
                   minRod + " min."
                 : "No quedan puntos para rodillo.") + "</span>" +
@@ -1752,7 +1770,11 @@
         '<span>' + m.ph.toString().replace(".", ",") + " p/h · " + U.esc(m.mh) + "</span></button>";
     });
     h += "</div>";
-    if (L) {
+    if (L && !L.modo.fam) {
+      h += '<div class="sal-cuenta">Sin bloque largo. Los <b>' +
+        Math.round(ptsBici) + " puntos</b> de bici se reparten entre los rodillos de diario.</div>";
+      h += '<button type="button" class="deshacer" data-sal-modo="">Volver a la propuesta de la app</button>';
+    } else if (L) {
       h += '<p class="sal-et">Horas</p><div class="sal-horas">';
       horasPosibles(L.modo).forEach(function (x) {
         h += '<button type="button" class="sal-hora' + (Math.abs(x - L.horas) < 0.01 ? " elegido" : "") +
