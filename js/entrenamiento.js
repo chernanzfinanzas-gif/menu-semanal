@@ -7537,6 +7537,12 @@
        La tira de los siete días pasa a ser el tablero donde se reparten los
        bloques. Arriba, lo que queda por colocar. Se mueve con dos toques: el
        bloque y después el día. */
+    /* EL DÍA ABIERTO SE CALCULA AQUÍ, ANTES DE PINTAR LA TIRA. Estaba más
+       abajo, así que cuando la tira preguntaba `f === dia` la variable valía
+       undefined y la casilla del día elegido NUNCA se marcaba. Fallo viejo,
+       visto al probar el tablero. (24-sep-2026.) */
+    var dia = (diaSel && semanaDe(diaSel)) ? diaSel : hoy;
+
     var sueltos = sinColocar(lunes);
     if (bloqueSel) {
       var semMov = semanaDe(bloqueSel.desde), bMov = null;
@@ -7544,8 +7550,8 @@
       if (bMov) {
         h += '<div class="bl-moviendo">Moviendo <b>' + U.esc(bMov.t) +
           (bMov.min ? ", " + bMov.min + " min" : "") + "</b>. Toca el día donde lo pones" +
-          '<button type="button" class="bl-quitar" data-bloque-a="bandeja">dejarlo sin colocar</button>' +
-          '<button type="button" class="bl-cancela" data-bloque-a="nada">cancelar</button></div>';
+          '<button type="button" class="bl-quitar" data-blq-a="bandeja">dejarlo sin colocar</button>' +
+          '<button type="button" class="bl-cancela" data-blq-a="nada">cancelar</button></div>';
       }
     }
     if (sueltos.length) {
@@ -7554,7 +7560,7 @@
         h += '<button type="button" class="dia-bl' + (x.b.largo ? " largo" : "") +
           (x.b.fam === "fuerza" ? " fuerza" : "") +
           (bloqueSel && bloqueSel.bid === x.b.id ? " elegido" : "") +
-          '" data-bloque="' + x.sem.desde + ":" + x.b.id + '">' +
+          '" data-blq="' + x.sem.desde + ":" + x.b.id + '">' +
           U.esc(x.b.t) + (x.b.min ? " · " + x.b.min + " min" : "") + "</button>";
       });
       h += "</div></div>";
@@ -7582,7 +7588,7 @@
                 return '<button type="button" class="dia-bl' + (s.largo ? " largo" : "") +
                   (s.fam === "fuerza" ? " fuerza" : "") +
                   (bloqueSel && bloqueSel.bid === s.bid && bloqueSel.desde === semF.desde ? " elegido" : "") +
-                  '" data-bloque="' + semF.desde + ":" + s.bid + '">' + U.esc(cortoBloque(s)) + "</button>";
+                  '" data-blq="' + semF.desde + ":" + s.bid + '">' + U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))))) +
         "</span><span class=\"p\"></span></div>";
@@ -7591,8 +7597,8 @@
     h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
       " El fin de semana, un solo día grande: " + U.esc(textoDiaGrande(sem).toLowerCase()) + ". El otro, descanso.</p></div>";
 
-    /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana */
-    var dia = (diaSel && semanaDe(diaSel)) ? diaSel : hoy;
+    /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
+       Se calculó arriba, antes de la tira, para que la casilla salga marcada. */
     var semDia = semanaDe(dia) || sem, tallaDia = tallaDe(semDia);
     var d = U.desdeISO(dia), esHoy = (dia === hoy);
     var titulo = esHoy
@@ -8158,20 +8164,25 @@
         pintar();
         return;
       }
-      /* un bloque: se elige para moverlo, o se suelta si ya estaba elegido */
-      var bb = t.closest ? t.closest("[data-bloque]") : null;
+      /* Un bloque de la semana: se elige para moverlo, o se suelta si ya
+         estaba elegido. EL ATRIBUTO ES `data-blq` Y NO `data-bloque` PORQUE
+         ESE YA ESTABA COGIDO: es el de los botones de las secciones de
+         Entrenamiento —«plan», «rampa», «evolucion»—, y este manejador va
+         delante de aquél. Con el mismo nombre se tragaba todos los clics y no
+         abría ninguna sección. (24-sep-2026.) */
+      var bb = t.closest ? t.closest("[data-blq]") : null;
       if (bb) {
         e.preventDefault(); e.stopPropagation();
-        var pb = bb.getAttribute("data-bloque").split(":");
+        var pb = bb.getAttribute("data-blq").split(":");
         bloqueSel = (bloqueSel && bloqueSel.bid === pb[1] && bloqueSel.desde === pb[0])
           ? null : { desde: pb[0], bid: pb[1] };
         pintarConservando();
         return;
       }
-      var ba = t.closest ? t.closest("[data-bloque-a]") : null;
+      var ba = t.closest ? t.closest("[data-blq-a]") : null;
       if (ba) {
         e.preventDefault(); e.stopPropagation();
-        var dest = ba.getAttribute("data-bloque-a");
+        var dest = ba.getAttribute("data-blq-a");
         if (dest === "bandeja" && bloqueSel) {
           var smv = semanaDe(bloqueSel.desde);
           if (smv) moverBloque(smv, bloqueSel.bid, null);

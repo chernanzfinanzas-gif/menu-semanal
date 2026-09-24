@@ -688,8 +688,18 @@
       var actos = Almacen.entrenoDelDia(fecha);
       var kProc = Almacen.kcalPorProcedencia(fecha);
       html += '<div class="toma actividad-dia">';
+      /* EL BOTÓN «ESTÁNDAR» NO SALE SI EL PLAN YA MANDA ALGO ESE DÍA.
+         (Carlos, 24-sep-2026.) El entreno estándar es para un día suelto que no
+         tiene nada, no para ponerlo ENCIMA de la sesión que la rampa ya te
+         manda. Poniéndolo encima quedaban dos previsiones del mismo día
+         viniendo de dos sitios distintos, y las dos sumando calorías: eso es
+         lo que se vio el día 23, con «Caminar» del plan y «Bici indoor» y
+         «Musculación» del botón en la misma ficha.
+         Se reconoce la previsión del plan en que NO está guardada —se calcula
+         al pintar—, así que no trae `x`. */
+      var yaHayPlan = actos.some(function (e) { return !e.x && e.clase === "previsto"; });
       html += '<div class="titulo-toma"><span>Entreno del día</span>' +
-              (!cerr && tipo !== "ruta"
+              (!cerr && tipo !== "ruta" && !yaHayPlan
                 ? '<button class="btn mini" data-estandar="' + fecha + '" ' +
                   'title="Poner el entreno estándar de Ajustes">Estándar</button>' : '') +
               (cerr ? '' : '<button class="anadir" data-actividad="' + fecha + '">+</button>') +
@@ -719,7 +729,7 @@
                     '<div class="act-arriba">' +
                       '<span class="nom">' + esc(e.n) + '</span>' +
                       (e.clase === "real" ? '<span class="etiqueta">reloj</span>' : '') +
-                      (e.clase === "previsto" && !e.tapada && !e.caducada
+                      (e.clase === "previsto" && !e.tapada && !e.caducada && x.ref !== "estandar"
                         ? '<span class="etiqueta">del plan</span>' : '') +
                       (e.tapada ? '<span class="etiqueta">sustituida por lo real</span>' : '') +
                       (e.caducada ? '<span class="etiqueta">no se hizo</span>' : '') +
@@ -4167,6 +4177,12 @@
       var est = e.target.closest("[data-estandar]");
       if (est) {
         var fe = est.getAttribute("data-estandar");
+        /* la misma norma que arriba, también aquí: si el plan ya manda algo ese
+           día, el estándar no entra ni aunque se llegue al botón por otra vía */
+        if (Almacen.entrenoDelDia(fe).some(function (z) { return !z.x && z.clase === "previsto"; })) {
+          Util.toast("Ese día ya tiene la sesión que manda el plan");
+          return;
+        }
         var n3 = Almacen.aplicarEntrenoEstandar(fe, true);
         pintarMenu();
         Util.toast(n3 ? "Entreno estándar puesto" : "Ese día ya tiene el entreno medido por el reloj");

@@ -2122,17 +2122,33 @@
       });
 
       /* 2 · LO APUNTADO A MANO. Lo tapa una salida real de su familia, igual
-         que al plan: lo escribiste porque ibas a hacerlo, y ya se midió. */
+         que al plan: lo escribiste porque ibas a hacerlo, y ya se midió.
+
+         EL ENTRENO ESTÁNDAR NO ES «APUNTADO», ES «PREVISTO»  ·  24-sep-2026
+         Las entradas con `ref:"estandar"` las pone el botón del entreno
+         estándar, no la mano. Se guardaban igual que lo apuntado, así que
+         contaban al 70 % y —esto es lo gordo— NO CADUCABAN NUNCA: un día que
+         pasó sin hacerlas seguía sumando sus calorías para siempre. Carlos lo
+         vio en el día 23: dos líneas de «Bici indoor moderada» y «Musculación
+         en casa» que él no había puesto, sumando 188 kcal al objetivo, con la
+         ficha del día ya cerrada. Y encima la pantalla las rotulaba
+         «previsto» mientras la cuenta las llamaba «lo que añadiste»: el
+         rótulo decía una cosa y el número otra.
+         Ahora son previsión de verdad: las tapa una salida real de su familia
+         y caducan solas en cuanto el día pasa sin hacerlas. */
       guardadas.forEach(function (x, idx) {
         var f = (x.fuente === "garmin") ? self.famDeActividad(x.a) : self.famDeActividad(x.a);
         var esReloj = x.fuente === "garmin";
+        var esEstandar = !esReloj && x.ref === "estandar";
         var tapada = false;
         if (!esReloj) {
           if (tapas[f] > 0) { tapas[f]--; tapada = true; }
         }
         out.push({ x: x, idx: idx, n: self.nombreDeEntrada(x), min: x.min || 0,
                    kcal: Math.round(self.kcalDeEntrada(x)), fam: f,
-                   clase: esReloj ? "real" : "apuntado", tapada: tapada });
+                   clase: esReloj ? "real" : (esEstandar ? "previsto" : "apuntado"),
+                   tapada: tapada,
+                   caducada: esEstandar && !tapada && pasado });
       });
 
       /* 3 · LO PREVISTO POR EL PLAN. Lo tapa una salida real de su familia, y
