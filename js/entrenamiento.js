@@ -586,6 +586,10 @@
       ".ses-reglas{margin-top:10px;padding:11px 13px;border-radius:11px;background:var(--azul-claro);",
       "  border:1px solid var(--azul-borde)}",
       ".ses-reglas b{display:block;font-size:.85rem;color:var(--azul-hondo);margin-bottom:4px}",
+      /* la rutina dentro de la emergente: sin tarjeta, que la emergente ya lo es */
+      ".mod-bloque{margin-bottom:12px}",
+      ".mod-bloque:last-of-type{margin-bottom:0}",
+      ".aviso.en-modal{margin-top:12px}",
       ".ses-reglas ul{margin:0;padding-left:18px;font-size:.86rem;line-height:1.5}",
       ".ses-bloque{margin-top:14px}",
       ".ses-bloque h3{display:flex;align-items:baseline;gap:8px;margin:0 0 5px;font-size:.95rem;",
@@ -7359,19 +7363,37 @@
 
   /* ---------- la ficha de una rutina ---------- */
   function pantRutina(id, s) {
+    var cuerpo = cuerpoRutina(id, s, false);
+    if (cuerpo === null) return pantRutinas(s);
+    return '<button type="button" class="ent-atras" data-mv="rutinas">' +
+      FLECHA + "Rutinas</button>" + cuerpo +
+      '<button type="button" class="ent-atras abajo" data-mv="rutinas">' +
+      FLECHA + "Rutinas</button>";
+  }
+
+  /* EL CUERPO DE UNA RUTINA, APARTE  ·  24-sep-2026
+     Se usa en dos sitios: la pantalla de Rutinas dentro de Material, y la
+     emergente que se abre desde El Plan. Carlos: «ver la rutina va a la
+     página de rutinas y solo puedo volver a Rutinas, no a El Plan de donde
+     venía». Tenía razón: entrar desde el plan te dejaba tirado en otra
+     sección. Desde el plan ahora es una emergente que se cierra con la × y
+     te deja donde estabas. */
+  function cuerpoRutina(id, s, enModal) {
     var ses = null;
     SESIONES.forEach(function (x) { if (x.id === id) ses = x; });
-    if (!ses) return pantRutinas(s);
+    if (!ses) return null;
 
     var hoy = new Date().getDay();
-    var h = '<button type="button" class="ent-atras" data-mv="rutinas">' +
-      FLECHA + "Rutinas</button>" +
-      '<div class="tarjeta"><h2>' + U.esc(ses.n) +
-      (hoy === ses.dia ? ' <b class="mv-hoy">hoy</b>' : "") + "</h2>" +
-      '<p class="nota-peque">' + U.esc(ses.diaTxt) + " · " + ses.mov.length +
+    var caja = enModal ? "mod-bloque" : "tarjeta";
+    /* en la emergente el nombre ya va en la cabecera: no se repite aquí */
+    var h = '<div class="' + caja + '">' +
+      (enModal ? "" : "<h2>" + U.esc(ses.n) +
+        (hoy === ses.dia ? ' <b class="mv-hoy">hoy</b>' : "") + "</h2>") +
+      '<p class="nota-peque"' + (enModal ? ' style="margin:0"' : "") + ">" +
+      U.esc(ses.diaTxt) + " · " + ses.mov.length +
       " ejercicios · unos " + ses.min + " min · descanso de 1:15 entre series</p></div>";
 
-    h += '<div class="tarjeta">';
+    h += '<div class="' + caja + '">';
     ses.mov.forEach(function (m) {
       var mv = movPorNombre(m.n);
       var falta = mv ? faltaPara(mv, s) : [];
@@ -7393,17 +7415,30 @@
     });
     h += "</div>";
 
-    h += '<div class="aviso"><b>Las tres de siempre:</b> ' +
+    h += '<div class="aviso' + (enModal ? " en-modal" : "") + '"><b>Las tres de siempre:</b> ' +
       'espirar en el esfuerzo y <b>nunca bloquear el aire</b>; ' +
       'ni una repetición al fallo en los tres primeros meses; ' +
       'y parar al primer síntoma de oído. ' +
       '<span class="nota-peque">Se sube peso cuando salen 12 repeticiones limpias en las ' +
       'tres series. La casilla de hecho <b>se marca sola</b> cuando intervals trae la ' +
       'sesión que grabaste en el reloj.</span></div>';
-
-    h += '<button type="button" class="ent-atras abajo" data-mv="rutinas">' +
-      FLECHA + "Rutinas</button>";
     return h;
+  }
+
+  /* la rutina del día, en emergente, sin salir de El Plan */
+  function abrirRutina(id) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    var ses = null;
+    SESIONES.forEach(function (x) { if (x.id === id) ses = x; });
+    var cuerpo = cuerpoRutina(id, tengo(), true);
+    if (!ses || cuerpo === null) return;
+    caja.innerHTML = "<header><h2>" + U.esc(ses.n) + "</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      cuerpo +
+      '<button class="btn principal" type="button" data-cerrar-guia="1" ' +
+      'style="width:100%;margin-top:14px">Cerrar</button>';
+    modal.classList.add("abierta");
   }
 
   /* ---- edición del material ---- */
@@ -8159,13 +8194,12 @@
       if (lim) { e.preventDefault(); Limpieza.lanzar(); return; }
 
 
-      /* desde el plan, directo a la ficha de la rutina del día */
+      /* Desde el plan la rutina se abre EN EMERGENTE y no se cambia de
+         sección: así la × devuelve a El Plan, que es de donde se venía. */
       var verR = t.closest ? t.closest("[data-ver-rutina]") : null;
       if (verR) {
-        bloque = "material";
-        matVista = verR.getAttribute("data-ver-rutina");
-        matEditando = null; pintar();
-        if (cont.scrollIntoView) cont.scrollIntoView({ block: "start" });
+        e.preventDefault();
+        abrirRutina(verR.getAttribute("data-ver-rutina"));
         return;
       }
 
