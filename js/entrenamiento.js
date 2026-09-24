@@ -4490,6 +4490,22 @@
     return (v === undefined || v === "") ? null : v;
   }
 
+  /* EL ÚLTIMO DATO QUE HAYA, NO EL DE HOY A SECAS  ·  24-sep-2026
+     `salud.json` lo escribe el workflow por la noche, así que por la mañana el
+     día de hoy todavía no existe y «Dónde estás hoy» salía con tres rayas —y
+     la curva prevista arrancaba en un 10 inventado, que es peor: toda la
+     proyección salía de un sitio donde no estás—. Ahora se retrocede hasta
+     encontrar el último día con dato y se dice de cuándo es. */
+  function ultimoDato(campo, tope) {
+    var f = U.hoyISO(), max = tope || 10;
+    for (var i = 0; i <= max; i++) {
+      var v = valorDia(campo, f);
+      if (v !== null && v !== undefined && v !== "") return { v: v, f: f, atras: i };
+      f = U.sumarDias(f, -1);
+    }
+    return null;
+  }
+
   function mediaSalud(campo, desde, hasta) {
     var s = 0, n = 0;
     if (!Salud.datos || !Salud.datos.dias) return null;
@@ -6487,7 +6503,8 @@
      sitio donde no estás. */
   function curvaPrevista(cal) {
     var hoy = U.hoyISO();
-    var ctl = valorDia("ctl", hoy), atl = valorDia("atl", hoy);
+    var uC = ultimoDato("ctl"), uA = ultimoDato("atl");
+    var ctl = uC ? uC.v : null, atl = uA ? uA.v : null;
     if (ctl === null || ctl === undefined) ctl = 10;
     if (atl === null || atl === undefined) atl = ctl;
     var ser = [];
@@ -6573,13 +6590,21 @@
     for (i = 0; i < cal.length; i++) if (hoy >= cal[i].desde && hoy <= cal[i].hasta) sem = cal[i];
 
     /* ---- dónde estás hoy ---- */
-    var ctl = valorDia("ctl", hoy), atl = valorDia("atl", hoy);
+    var uCtl = ultimoDato("ctl"), uAtl = ultimoDato("atl");
+    var ctl = uCtl ? uCtl.v : null, atl = uAtl ? uAtl.v : null;
+    /* si el dato no es de hoy se dice de cuándo es: un número sin fecha que
+       lleva tres días quieto engaña más que unas rayas */
+    var deCuando = "";
+    if (uCtl && uCtl.atras > 0) {
+      deCuando = " · medido el " + fechaCorta(uCtl.f) +
+        (uCtl.atras === 1 ? " (ayer)" : " (hace " + uCtl.atras + " días)");
+    }
     h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Dónde estás hoy</h2></div>' +
       '<p class="nota-peque evo-pie">' +
         (sem ? "Semana " + sem.n + " de la rampa · del " + fechaCorta(sem.desde) + " al " +
                fechaCorta(sem.hasta) + " · talla " + sem.talla +
                (sem.descarga ? " · DESCARGA" : "")
-             : "Hoy no caes dentro de la rampa.") + "</p>" +
+             : "Hoy no caes dentro de la rampa.") + U.esc(deCuando) + "</p>" +
       '<div class="ramp-datos">' +
         ramoDato("Forma (CTL)", ctl === null ? "—" : num(ctl, 0), "") +
         ramoDato("Fatiga (ATL)", atl === null ? "—" : num(atl, 0), "") +
@@ -6863,7 +6888,11 @@
     { id: "silla", n: "Silla ergonómica de rodillas", d: "bloqueada en la habitación de entrenar — press y empuje de cadera", da: ["apoyo"] },
     { id: "sofa",  n: "Sofá",               d: "el otro apoyo a la altura buena", da: ["apoyo"] },
     { id: "este",  n: "Esterilla",          d: "", da: ["esterilla"] },
-    { id: "anil",  n: "Anillas de la terraza", d: "anclajes de escalada en el muro — falta una barra o unas anillas que colgar", da: ["alto"] }
+    { id: "anil", n: "Anclajes de la terraza", d: "anclajes de escalada en el muro — el punto alto del que colgar", da: ["alto"] },
+    /* ---- llegado el 21 y el 24 de septiembre ---- */
+    { id: "anillas", n: "Anillas", d: "cuelgan de los anclajes de la terraza — tirón vertical y fondos", da: ["anillas"] },
+    { id: "bjalon",  n: "Barra de jalón", d: "85 cm con mosquetón — se engancha a los tubos", da: ["jalon"] },
+    { id: "circ",    n: "Bandas de tela circulares", d: "para cadera y glúteo medio — no se enrollan como las planas", da: ["circular"] }
   ];
 
   /* `pide` es una lista de GRUPOS: dentro de un grupo vale cualquiera, y hay que
@@ -6875,13 +6904,16 @@
     { n: "Press de hombros",      pide: [["mancuerna", "tubo"]], nota: "De pie o sentado" },
     { n: "Elevación lateral",     pide: [["mancuerna", "plana"]], nota: "Con poco peso sobra" },
     { n: "Fondos",                pide: [["apoyo"]], nota: "Manos atrás en el borde" },
+    { n: "Fondos en anillas",     pide: [["anillas"]], bl: "empuje", nota: "Duros de verdad: empezar con los pies en el suelo" },
+    { n: "Flexiones en anillas",  pide: [["anillas"]], bl: "empuje", nota: "Las anillas se mueven: el centro trabaja el doble" },
     { n: "Extensión de tríceps",  pide: [["mancuerna", "tubo"]], nota: "" },
 
     /* ---- tirón ---- */
     { n: "Remo",                  pide: [["tubo"], ["anclaje"]], nota: "El que más kilos te deja mover" },
     { n: "Remo a una mano",       pide: [["mancuerna"], ["apoyo"]], nota: "Rodilla y mano en el apoyo" },
-    { n: "Jalón",                 pide: [["tubo"], ["alto", "anclaje"]], nota: "Mejor desde las anillas que desde la puerta" },
-    { n: "Dominadas",             pide: [["barra"]], nota: "Con banda de anilla para asistir" },
+    { n: "Jalón",                 pide: [["tubo"], ["alto", "anclaje"]], nota: "Mejor desde los anclajes que desde la puerta; con la barra de jalón, agarre ancho" },
+    { n: "Dominadas",             pide: [["barra", "anillas"]], nota: "En las anillas también valen, y perdonan más el hombro. Con banda de anilla para asistir" },
+    { n: "Remo invertido",        pide: [["anillas"]], bl: "tiron", nota: "Cuanto más horizontal el cuerpo, más pesa. Se gradúa andando con los pies" },
     { n: "Aperturas invertidas",  pide: [["tubo", "plana"]], bl: "tiron", nota: "El face pull: hombro y trapecio" },
     { n: "Curl de bíceps",        pide: [["mancuerna", "tubo"]], nota: "" },
     { n: "Encogimiento de hombros", pide: [["mancuerna"]], nota: "" },
@@ -6894,7 +6926,8 @@
     { n: "Peso muerto rumano",    pide: [["mancuerna", "rusa", "anilla"]], nota: "Bisagra de cadera, espalda recta" },
     { n: "Peso muerto a una pierna", pide: [["mancuerna", "rusa"]], nota: "Duplica la carga sin añadir peso" },
     { n: "Empuje de cadera",      pide: [["apoyo"]], nota: "Espalda en el sofá, peso en la cadera" },
-    { n: "Abducción de cadera",   pide: [["plana", "anilla"]], nota: "Glúteo medio: la rodilla en las bajadas" },
+    { n: "Abducción de cadera",   pide: [["plana", "anilla", "circular"]], nota: "Glúteo medio: la rodilla en las bajadas" },
+    { n: "Paso lateral con banda", pide: [["circular"]], bl: "pierna", nota: "La banda encima de la rodilla; pasos cortos sin juntar los pies" },
     { n: "Elevación de gemelos",  pide: [["mancuerna", "rusa"]], nota: "" },
 
     /* ---- centro ---- */
@@ -6941,6 +6974,25 @@
         });
       }
       e.v_material = 1;
+      A.guardar("entreno");
+    }
+    /* LO QUE VA LLEGANDO SE AÑADE SIN PISAR LO SUYO  ·  24-sep-2026
+       La lista es editable, así que una siembra que la reescribiera entera se
+       llevaría por delante lo que él haya cambiado. Se añaden SOLO los que
+       falten por id, y se deja intacto todo lo demás. */
+    if (e.v_material < 2 && e.material) {
+      var hay = {};
+      e.material.forEach(function (x) { hay[x.id] = x; });
+      MATERIAL_BASE.forEach(function (x) {
+        if (!hay[x.id]) e.material.push({ id: x.id, n: x.n, d: x.d, da: x.da.slice() });
+      });
+      /* el texto de los anclajes decía «falta una barra o unas anillas que
+         colgar»; ya no falta. Solo se cambia si él no lo había tocado. */
+      if (hay.anil && /falta una barra/.test(hay.anil.d || "")) {
+        hay.anil.n = "Anclajes de la terraza";
+        hay.anil.d = "anclajes de escalada en el muro — el punto alto del que colgar";
+      }
+      e.v_material = 2;
       A.guardar("entreno");
     }
     if (!e.material) e.material = [];
