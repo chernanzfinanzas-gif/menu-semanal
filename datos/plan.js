@@ -1,6 +1,19 @@
 /* datos/plan.js — El Plan: rampa, plantilla de semana y tareas con check.
-   Espejo del puente informes-salud/plan-entrenamiento.json (v3, 18-sep-2026).
-   Si cambia el puente, se regenera este fichero: la app no calcula el plan, lo lee. */
+
+   ESTE FICHERO MANDA. Hasta el 24-sep-2026 aquí ponía lo contrario: que era el
+   espejo de `informes-salud/plan-entrenamiento.json` y que se regeneraba desde
+   él. La dirección se dio la vuelta sola durante la reconstrucción del 23 y el
+   24 —la rampa, el crucero, el bolsillo y los ritmos por terreno se decidieron
+   y se escribieron AQUÍ— y el puente se quedó seis días atrás diciendo que la
+   semana 1 pedía 90 puntos cuando pide 196. No lo lee ningún código, así que no
+   rompió nada; pero lo lee quien busca contexto, y eso es peor.
+
+   Así que: la rampa, el crucero, las tallas, el bolsillo, la salida larga y los
+   ritmos medidos se deciden en este fichero y SE COPIAN al puente. Lo que el
+   puente tiene y aquí no —medición del peso, nutrición, verificación, día
+   grande, lo que el plan no hace— sigue siendo suyo y no se toca desde aquí.
+   Si se cambia algo de la primera lista, se actualiza el puente en la misma
+   tanda. Lo dice también su `meta.manda`. */
 (function (global) {
   "use strict";
 
@@ -100,7 +113,15 @@
          3. Las sesiones SE ESCALAN desde el objetivo: la talla dice la forma y
             los minutos salen de la carga de esa semana. Sin eso, la talla A
             cuesta siempre lo mismo y la rampa no sube aunque los números suban.
-            OJO: esto ÚLTIMO ESTÁ SIN IMPLEMENTAR en el código a 23-sep-2026. */
+            HECHO el 24-sep-2026. Lo hace el bolsillo: `bolsilloDe(sem)` reparte
+            la carga de la semana en 85 % bici y 15 % caminar, el bloque largo se
+            lleva el 30 % de lo de bici, y `trocear` convierte lo que queda en
+            bloques de rodillo con los minutos que hagan falta. `sesionesDe` pide
+            ese reparto y sólo cae en la plantilla fija cuando no hay ninguno.
+            La talla ya no dice los minutos: dice la forma de la semana.
+            (Esta línea decía «SIN IMPLEMENTAR» hasta el 24-sep. Un comentario
+            caducado aquí no es un detalle: el del crucero me hizo afirmarle algo
+            falso el día anterior.) */
     /* EL CRUCERO: qué pasa después de la semana 13  ·  decidido el 23-sep-2026
        Hasta hoy el código repetía la carga de la semana 13 para siempre, con una
        descarga cada cuarta. O sea que la rampa se paraba en 400 y ahí se quedaba.
