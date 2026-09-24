@@ -533,6 +533,20 @@
       /* la tarjeta de forma y fatiga se lleva mas ancho: es la que mas datos
          mete por pixel y la que Carlos mira primero */
       ".evo-svg.grande{max-width:760px}",
+      /* el mando de periodo de cada tarjeta: va en la misma linea que su
+         titulo y en formato corto, para no robar altura */
+      ".rangos-graf{display:flex;gap:4px;flex-wrap:wrap;align-items:center;align-self:center;margin:0}",
+      ".rangos-graf .evo-r{padding:3px 9px;font-size:.7rem}",
+      ".evo-f{border:1px solid var(--borde);background:#fff;color:var(--azul-hondo);",
+      "  border-radius:999px;width:24px;height:24px;padding:0;display:inline-flex;",
+      "  align-items:center;justify-content:center;font:inherit;font-size:.9rem;",
+      "  font-weight:700;line-height:1;cursor:pointer}",
+      ".evo-f:disabled{opacity:.28;cursor:default}",
+      ".evo-f:not(:disabled):hover{border-color:var(--azul);color:var(--azul)}",
+      ".evo-tramo{margin:0 0 8px;font-size:.76rem;color:var(--gris)}",
+      ".evo-tramo b{color:var(--azul-hondo)}",
+      ".evo-hoy{border:0;background:none;padding:0 0 0 4px;font:inherit;font-size:.76rem;",
+      "  color:var(--azul);text-decoration:underline;cursor:pointer}",
       ".evo-sub{margin:16px 0 6px;font-size:.86rem;font-weight:700;color:var(--azul-hondo)}",
       ".evo-ley{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:.72rem;color:var(--gris)}",
       ".evo-ley span{display:inline-flex;align-items:center;gap:5px}",
@@ -2281,9 +2295,9 @@
   /* «1 mes» se añadió el 22-sep-2026 con la VFC de franja: es la vista de
      cuatro semanas del reloj, que es la que Carlos tiene en el ojo, y la única
      en la que la línea de cada noche se lee de verdad. */
-  var RANGOS = [{ id: "1m", n: "1 mes", d: 31 },
-                { id: "3m", n: "3 meses", d: 92 }, { id: "6m", n: "6 meses", d: 183 },
-                { id: "1a", n: "1 año", d: 365 }, { id: "todo", n: "Todo", d: 0 }];
+  var RANGOS = [{ id: "1m", n: "1 mes", c: "1m", d: 31 },
+                { id: "3m", n: "3 meses", c: "3m", d: 92 }, { id: "6m", n: "6 meses", c: "6m", d: 183 },
+                { id: "1a", n: "1 año", c: "1a", d: 365 }, { id: "todo", n: "Todo", c: "Todo", d: 0 }];
   /* Los tramos de las ventanas emergentes: los mismos menos «Todo» (ver
      abrirHistoria). salud.json trae 400 días, así que «1 año» siempre cabe
      sin tener que traer el histórico. */
@@ -3456,7 +3470,76 @@
   function ventanaEvo() {
     var hasta = U.hoyISO(), r = null;
     for (var i = 0; i < RANGOS.length; i++) if (RANGOS[i].id === rangoEvo) r = RANGOS[i];
-    return { desde: (r && r.d) ? U.sumarDias(hasta, -r.d) : "2019-01-01", hasta: hasta };
+    return { desde: (r && r.d) ? U.sumarDias(hasta, -r.d) : EVO_PRIMER_DIA, hasta: hasta };
+  }
+
+  /* ==================== EL PERIODO, UNO POR TARJETA ====================
+     Antes había UN selector arriba del todo y mandaba sobre las dieciséis
+     gráficas: para mirar la forma a un año y la cintura a tres meses había que
+     subir, cambiar, bajar, mirar y volver a subir. Ahora cada tarjeta guarda
+     dos cosas —qué tramo enseña y CUÁNTOS tramos atrás está mirando— y las
+     flechas corren esa ventana entera hacia atrás o hacia delante sin tocar
+     las demás. Un año y la flecha izquierda es el año anterior completo.
+     (Carlos, 24-sep-2026.) */
+  var EVO_PRIMER_DIA = "2019-01-01";
+  var vistaEvo = {};
+
+  function vistaDe(id) {
+    if (!vistaEvo[id]) vistaEvo[id] = { r: rangoEvo, des: 0 };
+    return vistaEvo[id];
+  }
+  function rangoDe(id) {
+    var vi = vistaDe(id);
+    for (var i = 0; i < RANGOS.length; i++) if (RANGOS[i].id === vi.r) return RANGOS[i];
+    return RANGOS[2];
+  }
+  /* cuántos saltos atrás caben antes de salirse de los datos: no se deja
+     llegar a una ventana entera en blanco */
+  function desTope(id) {
+    var r = rangoDe(id);
+    if (!r.d) return 0;
+    return Math.max(0, Math.floor(diasEntre(EVO_PRIMER_DIA, U.hoyISO()) / r.d) - 1);
+  }
+  function ventanaDe(id) {
+    var vi = vistaDe(id), r = rangoDe(id), hoy = U.hoyISO();
+    if (!r.d) return { desde: EVO_PRIMER_DIA, hasta: hoy };
+    var hasta = vi.des ? U.sumarDias(hoy, -r.d * vi.des) : hoy;
+    return { desde: U.sumarDias(hasta, -r.d), hasta: hasta };
+  }
+  /* el histórico hace falta en cuanto alguien pide «Todo» o se va hacia atrás:
+     salud.json sólo trae los últimos 400 días */
+  function pideHistorico() {
+    if (rangoEvo === "todo") return true;
+    for (var k in vistaEvo) {
+      if (!vistaEvo.hasOwnProperty(k)) continue;
+      if (vistaEvo[k].des > 0 || vistaEvo[k].r === "todo") return true;
+    }
+    return false;
+  }
+  /* el mando de una tarjeta: flecha, tramos en corto, flecha */
+  function mandoEvo(id) {
+    var vi = vistaDe(id), r = rangoDe(id), tope = desTope(id);
+    var h = '<div class="rangos-graf">';
+    h += '<button type="button" class="evo-f" data-desp="' + id + ':1"' +
+      (r.d && vi.des < tope ? "" : " disabled") +
+      ' title="Tramo anterior" aria-label="Tramo anterior">\u2039</button>';
+    RANGOS.forEach(function (x) {
+      h += '<button type="button" class="evo-r' + (x.id === vi.r ? " activo" : "") +
+        '" data-rango="' + id + ":" + x.id + '">' + U.esc(x.c || x.n) + "</button>";
+    });
+    h += '<button type="button" class="evo-f" data-desp="' + id + ':-1"' +
+      (vi.des > 0 ? "" : " disabled") +
+      ' title="Tramo siguiente" aria-label="Tramo siguiente">\u203a</button>';
+    return h + "</div>";
+  }
+  /* sólo cuando se ha movido hacia atrás: dónde está y cómo volver */
+  function tramoEvo(id) {
+    var vi = vistaDe(id);
+    if (!vi.des) return "";
+    var v = ventanaDe(id);
+    return '<p class="evo-tramo">Mirando del <b>' + U.esc(U.etiquetaFecha(v.desde)) +
+      "</b> al <b>" + U.esc(U.etiquetaFecha(v.hasta)) + "</b>" +
+      ' <button type="button" class="evo-hoy" data-desp="' + id + ':hoy">volver a hoy</button></p>';
   }
 
   /* serie de un campo de salud.json; el histórico se suma si está cargado */
@@ -3770,7 +3853,22 @@
   function grafica(o) {
     /* el margen derecho guarda sitio para los números de la escala: si no,
        el punto del último dato se les monta encima */
-    var W = 320, H = o.alto || 108, L = 2, R = (o.escala === false ? 2 : 17), T = 10, B = 14;
+    /* POR QUÉ LA GRANDE LLEVA OTRO viewBox. El SVG se estira al ancho que le
+       deje el CSS, y con él se estira TODO lo que lleva dentro, letra incluida:
+       al pasar de 520 a 760 px la letra salió un 46 % más gorda que la del
+       resto de la página. (Carlos, 24-sep-2026: «los títulos y textos quedan
+       muy grandes respecto al resto de texto».) Se arregla agrandando también
+       el lienzo —468 en vez de 320— para que la proporción píxel/unidad sea la
+       misma que en las dieciséis normales: 1,625. Así la grande gana sitio de
+       verdad y la letra sale igual que en las demás.
+       Y sólo se agranda si la pantalla da los 760 px: `main` topa en 1100 y se
+       come 56 de márgenes. En el móvil las dos miden lo mismo —el 100 % del
+       ancho—, así que ahí agrandar el lienzo sólo achicaría la letra. */
+    var grande = !!(o.clase && o.clase.indexOf("grande") >= 0) &&
+                 typeof window !== "undefined" && window.innerWidth >= 816;
+    var W = grande ? 468 : 320;
+    var H = Math.round((o.alto || 108) * (grande ? 1.4615 : 1));
+    var L = 2, R = (o.escala === false ? 2 : 17), T = 10, B = 14;
     var series = (o.series || []).filter(function (s) { return s.pts && s.pts.length; });
     if (!series.length) return "";
 
@@ -3835,7 +3933,7 @@
 
     /* `o.clase` deja agrandar UNA gráfica sin tocar las dieciséis: el ancho vive
        en el CSS de `.evo-svg`, que es común a todas. (Carlos, 24-sep-2026.) */
-    var s = '<svg class="evo-svg' + (o.clase ? " " + o.clase : "") + '" viewBox="0 0 ' + W + " " + H + '"' +
+    var s = '<svg class="evo-svg' + (grande ? " grande" : "") + '" viewBox="0 0 ' + W + " " + H + '"' +
       ' data-esc="' + [t0, t1, min, max, W, H, L, R, T, B].join("|") + '"' +
       ' data-uni="' + U.esc(o.unidadTip || o.arriba || "") + '"' +
       (sec ? ' data-pts2="' + serial(sec.pts) + '"' +
@@ -3984,11 +4082,12 @@
     return h + "</div>";
   }
 
-  function tarjetaEvo(titulo, valor, unidad, pie, cuerpo, nota) {
+  function tarjetaEvo(titulo, valor, unidad, pie, cuerpo, nota, mando) {
     var h = '<div class="tarjeta evo-t"><div class="evo-cab"><h2>' + U.esc(titulo) + "</h2>" +
       (valor === null || valor === undefined ? "" :
         '<b class="evo-v">' + U.esc(String(valor)) + "</b>" +
-        (unidad ? '<span class="evo-u">' + U.esc(unidad) + "</span>" : "")) + "</div>";
+        (unidad ? '<span class="evo-u">' + U.esc(unidad) + "</span>" : "")) +
+      (mando || "") + "</div>";
     if (pie) h += '<p class="nota-peque evo-pie">' + pie + "</p>";
     h += cuerpo;
     if (nota) h += '<p class="evo-nota">' + nota + "</p>";
@@ -4742,12 +4841,10 @@
     h += htmlPase();
 
     h += '<h3 class="evo-sub" style="margin-top:20px">Las series</h3>';
-    h += '<div class="evo-rangos">';
-    RANGOS.forEach(function (r) {
-      h += '<button type="button" class="evo-r' + (r.id === rangoEvo ? " activo" : "") +
-        '" data-rango="' + r.id + '">' + U.esc(r.n) + "</button>";
-    });
-    h += "</div>";
+    /* El selector de arriba ya no manda sobre nada: cada tarjeta lleva el suyo
+       al lado de su título. Dos mandos para lo mismo confunden. */
+    h += '<p class="nota-peque" style="margin:0 0 10px">Cada tarjeta lleva su propio periodo, ' +
+      "y las flechas corren esa ventana entera hacia atrás o hacia delante.</p>";
 
     if (!Salud.datos) {
       return h + '<div class="tarjeta"><h2>Evolución</h2><p class="nota-peque">' +
@@ -4755,17 +4852,18 @@
           ? "Hace falta la sincronización con GitHub: Ajustes → Sincronizar."
           : "Todavía no tengo <b>datos/salud.json</b>. Se reintenta al volver a entrar.") + "</p></div>";
     }
-    if (rangoEvo === "todo" && !Historico.datos) {
+    if (pideHistorico() && !Historico.datos) {
       h += '<p class="nota-peque" style="margin:0 0 10px">' +
         (Historico.estado === "cargando" ? "Trayendo el histórico…"
           : Historico.estado === "error" ? "No he podido traer el histórico; se enseña lo reciente."
           : "Trayendo el histórico…") + "</p>";
     }
 
-    var v = ventanaEvo(), bandas = bandasFarmaco(v);
+    var v, bandas;
     var AZUL = "#2f5c8a", VERDE = "#2f6b47", AMBAR = "#c98a1b", ROJO = "#b3402f", GRIS = "#8aa0b5";
 
     /* ---------- 1. peso, masa magra y grasa ---------- */
+    v = ventanaDe("peso"); bandas = bandasFarmaco(v);
     var pes = seriePeso(v), med7 = mediaMovilDias(pes, 7), magra = serieSalud("magra", v);
     var gBas = serieMixta("grasa", v), gCin = serieGrasaCinta(v);   // báscula + lo tecleado a mano
     var cuerpo1, nota1 = "";
@@ -4813,9 +4911,10 @@
     var ultPeso = pes.length ? pes[pes.length - 1].v : null;
     h += tarjetaEvo("Peso y composición", ultPeso === null ? null : num(ultPeso), "kg",
       "El peso del día oscila más de un kilo por agua y tránsito: la línea gruesa es la media de 7 días, que es la que cuenta.",
-      cuerpo1, nota1);
+      tramoEvo("peso") + cuerpo1, nota1, mandoEvo("peso"));
 
     /* ---------- 2. VFC, FC en reposo y sueño ---------- */
+    v = ventanaDe("recu"); bandas = bandasFarmaco(v);
     var vfc = serieSalud("vfc", v), vfc7 = serieSalud("vfc7", v), fcr = serieSalud("fcr", v);
     var sue = serieSalud("sueno_min", v).map(function (p) { return { f: p.f, v: p.v / 60 }; });
     var cuerpo2, nota2 = "";
@@ -5116,7 +5215,8 @@
       cuerpo2 = sinDatos("Sin datos de recuperación en este tramo");
     }
     h += tarjetaEvo("Recuperación", vfc7.length ? num(vfc7[vfc7.length - 1].v) : null, "ms",
-      "La VFC dice lo que ya pasó; el sueño y la carga dicen lo que va a pasar.", cuerpo2, nota2);
+      "La VFC dice lo que ya pasó; el sueño y la carga dicen lo que va a pasar.",
+      tramoEvo("recu") + cuerpo2, nota2, mandoEvo("recu"));
 
     /* ---------- 2b. batería y estrés ----------
        Dos series que llevaban 2.476 días bajadas y sin pintar. Van juntas
@@ -5137,10 +5237,11 @@
 
        No llegan por intervals: sólo con la exportación de Garmin. Se dice
        debajo. */
+    v = ventanaDe("bat"); bandas = bandasFarmaco(v);
     var bbMax = serieSalud("body_battery", v), bbMin = serieSalud("body_battery_min", v);
     var bbCar = serieSalud("bb_carga", v), bbGas = serieSalud("bb_gasto", v);
     var est = serieSalud("estres", v), estN = serieSalud("sueno_estres", v);
-    if (bbMin.length || est.length) {
+    if (bbMin.length || est.length || vistaDe("bat").des > 0) {
       var cuerpoB = "", notaB = "";
       var largoB = diasEntre(v.desde, v.hasta) > 200;
       if (bbMin.length) {
@@ -5191,12 +5292,15 @@
           .concat(estN.length ? [{ n: "durmiendo", color: ROJO }] : []));
       }
       cuerpoB += avisoFrescura(bbMin.length ? "body_battery_min" : "estres");
+      if (!bbMin.length && !est.length) cuerpoB = sinDatos("Sin batería ni estrés en este tramo") + cuerpoB;
       var ultBB = bbMin.length ? bbMin[bbMin.length - 1].v : null;
       h += tarjetaEvo("Batería y estrés", ultBB === null ? null : num(ultBB, 0), "de 100",
-        "Cuánto te queda en el depósito y cuánto te lo están vaciando.", cuerpoB, notaB);
+        "Cuánto te queda en el depósito y cuánto te lo están vaciando.",
+        tramoEvo("bat") + cuerpoB, notaB, mandoEvo("bat"));
     }
 
     /* ---------- 3. forma, fatiga y carga contra la rampa ---------- */
+    v = ventanaDe("forma"); bandas = bandasFarmaco(v);
     var ctl = serieSalud("ctl", v), atl = serieSalud("atl", v);
     var cs = seriesCargaSemanal();
     var cuerpo3, nota3 = "";
@@ -5236,9 +5340,11 @@
       cuerpo3 = sinDatos("Sin carga registrada en este tramo");
     }
     h += tarjetaEvo("Forma y fatiga", ctl.length ? num(ctl[ctl.length - 1].v) : null, "puntos",
-      "La forma sube despacio y se cae rápido: por eso la rampa manda sobre las ganas.", cuerpo3, nota3);
+      "La forma sube despacio y se cae rápido: por eso la rampa manda sobre las ganas.",
+      tramoEvo("forma") + cuerpo3, nota3, mandoEvo("forma"));
 
     /* ---------- 4. cintura, cintura÷altura y vatios por kilo ---------- */
+    v = ventanaDe("cintura"); bandas = bandasFarmaco(v);
     var cin = serieApp("cintura", v), wkg = serieWkgMensual(v);
     var altura = (A.estado.perfil && A.estado.perfil.altura) || (P.grasaCinta && P.grasaCinta.altura_cm) || 182;
     var cuerpo4 = "", nota4 = "";
@@ -5275,8 +5381,10 @@
       nota4 = "Cintura ÷ altura: <b>" + rc.ratio.toFixed(2).replace(".", ",") + "</b>. El umbral de riesgo bajo " +
         "está en 0,50, que para tus " + rc.altura + " cm son " + rc.objetivo + " cm.";
     }
+    if (!cuerpo4) cuerpo4 = sinDatos("Sin cintura ni vatios en este tramo");
     h += tarjetaEvo("Cintura y rendimiento", cin.length ? num(cin[cin.length - 1].v) : null, "cm",
-      "La cintura es la medida que más se mueve con el plan, y la que más dice del riesgo.", cuerpo4, nota4);
+      "La cintura es la medida que más se mueve con el plan, y la que más dice del riesgo.",
+      tramoEvo("cintura") + cuerpo4, nota4, mandoEvo("cintura"));
 
     h += htmlFrescura();
     h += volver;
@@ -7677,9 +7785,23 @@
       if (gb) { e.preventDefault(); abrirGuia(gb.getAttribute("data-guia")); return; }
       var rg = t.closest ? t.closest("[data-rango]") : null;
       if (rg) {
-        rangoEvo = rg.getAttribute("data-rango");
-        if (rangoEvo === "todo" && !Historico.datos) Historico.cargar(function () { pintar(); });
-        pintar();
+        /* «tarjeta:tramo». Se repinta CONSERVANDO el scroll: cambiar el periodo
+           de la última gráfica no puede devolverte arriba del todo. */
+        var pr = rg.getAttribute("data-rango").split(":");
+        if (pr.length > 1) { var vr = vistaDe(pr[0]); vr.r = pr[1]; vr.des = 0; }
+        else rangoEvo = pr[0];
+        if (pideHistorico() && !Historico.datos) Historico.cargar(function () { pintarConservando(); });
+        pintarConservando();
+        return;
+      }
+      var dp = t.closest ? t.closest("[data-desp]") : null;
+      if (dp) {
+        /* «tarjeta:1» atrás un tramo entero, «tarjeta:-1» adelante, «tarjeta:hoy» a cero */
+        var pd = dp.getAttribute("data-desp").split(":"), vd = vistaDe(pd[0]);
+        if (pd[1] === "hoy") vd.des = 0;
+        else vd.des = Math.max(0, Math.min(desTope(pd[0]), vd.des + parseInt(pd[1], 10)));
+        if (vd.des > 0 && !Historico.datos) Historico.cargar(function () { pintarConservando(); });
+        pintarConservando();
         return;
       }
       var ob = t.closest ? t.closest("[data-obs]") : null;
