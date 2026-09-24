@@ -450,6 +450,22 @@
       ".pase-fallo.salud span{color:#b3402f}",
       ".pase-fallo.agenda span{color:var(--ambar)}",
       ".pase-fallo small{flex:1 1 100%;margin-left:52px;font-size:.8rem;color:var(--gris)}",
+      /* la rejilla del pase: tres columnas en escritorio, una en el movil */
+      ".pase-rejilla{display:grid;gap:12px 24px;grid-template-columns:1fr;margin-top:14px}",
+      "@media(min-width:820px){.pase-rejilla{grid-template-columns:1fr 1fr 1fr}}",
+      ".pase-bloque{min-width:0}",
+      ".pase-bloque .evo-sub{margin:0 0 6px}",
+      ".pase-dato{background:var(--azul-claro);border:1px solid var(--azul-borde);",
+      "  border-radius:10px;padding:8px 11px;margin-bottom:7px}",
+      ".pase-dato span{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;",
+      "  color:var(--azul);font-weight:700}",
+      ".pase-dato b{display:block;font-size:1.05rem;color:var(--azul-hondo);line-height:1.3;",
+      "  font-variant-numeric:tabular-nums}",
+      ".pase-dato small{display:block;font-size:.72rem;color:var(--gris);line-height:1.35}",
+      /* el dato que no se puede leer —con corticoide— apagado y con el borde
+         de guiones: el numero esta, pero no significa lo que parece */
+      ".pase-dato.flojo{background:var(--gris-claro);border-color:#d3dbd7;border-style:dashed}",
+      ".pase-dato.flojo span,.pase-dato.flojo b{color:var(--gris)}",
       ".pase-prox{margin:4px 0 0;font-size:.9rem;line-height:1.5;padding:11px 13px;border-radius:11px;",
       "  background:var(--azul-claro);border:1px solid var(--azul-borde);color:var(--azul-hondo)}",
       /* evolución: las series largas */
@@ -529,13 +545,12 @@
       ".evo-v{font-size:1.25rem;font-weight:700;color:var(--azul-hondo)}",
       ".evo-u{font-size:.72rem;color:var(--gris)}",
       ".evo-pie{margin:2px 0 10px}",
-      ".evo-svg{display:block;width:100%;max-width:520px;height:auto;overflow:visible}",
-      /* la tarjeta de forma y fatiga se lleva mas ancho: es la que mas datos
-         mete por pixel y la que Carlos mira primero */
-      ".evo-svg.grande{max-width:760px}",
+      /* sin tope de ancho: la grafica ocupa la caja entera y el lienzo se
+         calcula para esa medida, asi que la letra sale igual en todas */
+      ".evo-svg{display:block;width:100%;height:auto;overflow:visible}",
       /* el mando de periodo de cada tarjeta: va en la misma linea que su
          titulo y en formato corto, para no robar altura */
-      ".rangos-graf{display:flex;gap:4px;flex-wrap:wrap;align-items:center;align-self:center;margin:0}",
+      ".rangos-graf{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 9px}",
       ".rangos-graf .evo-r{padding:3px 9px;font-size:.7rem}",
       ".evo-f{border:1px solid var(--borde);background:#fff;color:var(--azul-hondo);",
       "  border-radius:999px;width:24px;height:24px;padding:0;display:inline-flex;",
@@ -3532,13 +3547,19 @@
       ' title="Tramo siguiente" aria-label="Tramo siguiente">\u203a</button>';
     return h + "</div>";
   }
+  /* CON EL AÑO, y no es un adorno: `U.etiquetaFecha` da «24 septiembre» sin
+     año, así que un tramo de un año entero salía como «del 24 septiembre al
+     24 septiembre» y no decía nada. (Carlos, 24-sep-2026, en su captura.) */
+  function fechaConAno(iso) {
+    return U.etiquetaFecha(iso) + " de " + U.desdeISO(iso).getFullYear();
+  }
   /* sólo cuando se ha movido hacia atrás: dónde está y cómo volver */
   function tramoEvo(id) {
     var vi = vistaDe(id);
     if (!vi.des) return "";
     var v = ventanaDe(id);
-    return '<p class="evo-tramo">Mirando del <b>' + U.esc(U.etiquetaFecha(v.desde)) +
-      "</b> al <b>" + U.esc(U.etiquetaFecha(v.hasta)) + "</b>" +
+    return '<p class="evo-tramo">Mirando del <b>' + U.esc(fechaConAno(v.desde)) +
+      "</b> al <b>" + U.esc(fechaConAno(v.hasta)) + "</b>" +
       ' <button type="button" class="evo-hoy" data-desp="' + id + ':hoy">volver a hoy</button></p>';
   }
 
@@ -3850,24 +3871,33 @@
     return { sup: sup, inf: inf, puntos: puntos };
   }
 
+  /* cuántos píxeles de ancho tiene de verdad el hueco donde va la gráfica:
+     `main` topa en 1100 y se come 14 de padding por lado, y la tarjeta otros
+     14; la caja de una emergente topa en 640 y se come 18 por lado. */
+  function anchoCaja(tipo) {
+    var w = (typeof window !== "undefined" && window.innerWidth) || 560;
+    if (tipo === "modal") return Math.min(w, 640) - 36;
+    return Math.min(w, 1100) - 56;
+  }
+
   function grafica(o) {
     /* el margen derecho guarda sitio para los números de la escala: si no,
        el punto del último dato se les monta encima */
-    /* POR QUÉ LA GRANDE LLEVA OTRO viewBox. El SVG se estira al ancho que le
-       deje el CSS, y con él se estira TODO lo que lleva dentro, letra incluida:
-       al pasar de 520 a 760 px la letra salió un 46 % más gorda que la del
-       resto de la página. (Carlos, 24-sep-2026: «los títulos y textos quedan
-       muy grandes respecto al resto de texto».) Se arregla agrandando también
-       el lienzo —468 en vez de 320— para que la proporción píxel/unidad sea la
-       misma que en las dieciséis normales: 1,625. Así la grande gana sitio de
-       verdad y la letra sale igual que en las demás.
-       Y sólo se agranda si la pantalla da los 760 px: `main` topa en 1100 y se
-       come 56 de márgenes. En el móvil las dos miden lo mismo —el 100 % del
-       ancho—, así que ahí agrandar el lienzo sólo achicaría la letra. */
-    var grande = !!(o.clase && o.clase.indexOf("grande") >= 0) &&
-                 typeof window !== "undefined" && window.innerWidth >= 816;
-    var W = grande ? 468 : 320;
-    var H = Math.round((o.alto || 108) * (grande ? 1.4615 : 1));
+    /* EL LIENZO SE HACE A LA MEDIDA DE LA CAJA, y ésta es la razón.
+       El SVG se estira hasta el ancho que le deje el CSS, y al estirarse
+       arrastra TODO lo que lleva dentro, letra incluida. Mientras todas las
+       gráficas midieron 520 px eso daba igual, porque todas se estiraban lo
+       mismo; en cuanto una se llevó 760, su letra salió un 46 % más gorda que
+       la del resto de la página. (Carlos, 24-sep-2026.)
+       Así que el lienzo no es fijo: se calcula para que la proporción
+       píxel/unidad sea siempre 1,625, el ancho que dé la caja. Una gráfica de
+       toda la tarjeta y otra dentro de una emergente salen con la misma letra,
+       y la letra es la misma que tenían las de 520 px de antes.
+       Por debajo de 520 px de caja —el móvil— se deja el lienzo de siempre:
+       ahí la letra ya se agrandaba con el estirón y está bien así. */
+    var disp = o.ancho || anchoCaja(o.caja);
+    var W = disp > 520 ? Math.round(disp / 1.625) : 320;
+    var H = o.alto || 108;
     var L = 2, R = (o.escala === false ? 2 : 17), T = 10, B = 14;
     var series = (o.series || []).filter(function (s) { return s.pts && s.pts.length; });
     if (!series.length) return "";
@@ -3933,7 +3963,7 @@
 
     /* `o.clase` deja agrandar UNA gráfica sin tocar las dieciséis: el ancho vive
        en el CSS de `.evo-svg`, que es común a todas. (Carlos, 24-sep-2026.) */
-    var s = '<svg class="evo-svg' + (grande ? " grande" : "") + '" viewBox="0 0 ' + W + " " + H + '"' +
+    var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '"' +
       ' data-esc="' + [t0, t1, min, max, W, H, L, R, T, B].join("|") + '"' +
       ' data-uni="' + U.esc(o.unidadTip || o.arriba || "") + '"' +
       (sec ? ' data-pts2="' + serial(sec.pts) + '"' +
@@ -4082,12 +4112,11 @@
     return h + "</div>";
   }
 
-  function tarjetaEvo(titulo, valor, unidad, pie, cuerpo, nota, mando) {
+  function tarjetaEvo(titulo, valor, unidad, pie, cuerpo, nota) {
     var h = '<div class="tarjeta evo-t"><div class="evo-cab"><h2>' + U.esc(titulo) + "</h2>" +
       (valor === null || valor === undefined ? "" :
         '<b class="evo-v">' + U.esc(String(valor)) + "</b>" +
-        (unidad ? '<span class="evo-u">' + U.esc(unidad) + "</span>" : "")) +
-      (mando || "") + "</div>";
+        (unidad ? '<span class="evo-u">' + U.esc(unidad) + "</span>" : "")) + "</div>";
     if (pie) h += '<p class="nota-peque evo-pie">' + pie + "</p>";
     h += cuerpo;
     if (nota) h += '<p class="evo-nota">' + nota + "</p>";
@@ -4349,10 +4378,15 @@
       Math.round((p / 1.3) * 100) + '%"></i><span class="obj"></span></div>';
   }
 
-  function filaPase(n, v, c) {
-    return '<div class="ent-fila"><span class="n">' + U.esc(n) + "</span>" +
-      '<span class="v">' + (v === null || v === undefined ? "—" : v) + "</span>" +
-      '<span class="c">' + U.esc(c || "") + "</span></div>";
+  /* UN DATO DEL PASE, EN FICHA. El cuarto argumento apaga la ficha, y ese
+     argumento ya se le pasaba a la fila de antes —para los dias con
+     corticoide— pero aquella solo aceptaba tres y lo tiraba: la VFC y el
+     pulso de esos dias se veian como lecturas buenas. Aqui si se usa.
+     La fila vieja (`filaPase`) se va: no le quedaba ni una llamada. */
+  function datoPase(n, v, c, apagado) {
+    return '<div class="pase-dato' + (apagado ? " flojo" : "") + '"><span>' + U.esc(n) + "</span>" +
+      "<b>" + (v === null || v === undefined ? "\u2014" : v) + "</b>" +
+      (c ? "<small>" + U.esc(c) + "</small>" : "") + "</div>";
   }
 
   function htmlPase() {
@@ -4377,26 +4411,70 @@
       U.esc(ver.t) + "</small>" +
       (cerrada ? "" : '<em class="prov">Provisional: la semana no ha terminado.</em>') + "</div>";
 
+    /* ---------- LOS TRES BLOQUES DE NÚMEROS, EN REJILLA ----------
+       En escritorio iban uno debajo de otro: el pase medía 799 px de alto y
+       dejaba cuatrocientos píxeles vacíos a los lados. En tres columnas baja a
+       580 y cabe de una vez, con el veredicto y la semana que viene a la vista
+       al mismo tiempo. En el móvil no cambia nada —la rejilla sólo se parte en
+       tres a partir de 820 px de ancho—, y el texto corrido («Lo que falló»,
+       «La semana que viene») sigue a todo el ancho, que es donde se lee.
+       Cada dato va en ficha, con el rótulo arriba y la nota debajo: en una
+       columna estrecha la nota larga cabe entera, y puesta en fila de tres
+       trozos se partía en tres líneas. (Carlos, 24-sep-2026: «opción B».) */
+    var bDias, bPeso, bRecu;
+
     /* 1. carga */
     if (!r.cerrada && !r.cump.previstos) {
-      h += '<h3 class="evo-sub">Días movidos</h3><p class="nota-peque">Todavía ninguno que juzgar: ' +
+      bDias = '<h3 class="evo-sub">Días movidos</h3><p class="nota-peque">Todavía ninguno que juzgar: ' +
         "la sesión de hoy no cuenta hasta que termine el día.</p>";
     } else if (r.porAsistencia) {
-      h += '<h3 class="evo-sub">Días movidos</h3>' +
+      bDias = '<h3 class="evo-sub">Días movidos</h3>' +
         barraPase(r.pct === null ? 0 : r.pct) +
-        filaPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos,
-          r.pct === null ? "" : Math.round(r.pct * 100) + " %") +
-        filaPase("Carga registrada", r.carga === null ? null : r.carga,
+        datoPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos +
+          (r.pct === null ? "" : " \u00b7 " + Math.round(r.pct * 100) + " %"), "") +
+        datoPase("Carga registrada", r.carga === null ? null : r.carga,
           "esta semana no se juzga por carga: es la de arranque, a pie");
     } else {
-      h += '<h3 class="evo-sub">Carga</h3>' + barraPase(r.pct === null ? 0 : r.pct) +
-        filaPase("Carga de la semana", r.carga === null ? null : r.carga, "objetivo " + sem.carga) +
-        filaPase("Cumplimiento", r.pct === null ? null : Math.round(r.pct * 100) + " %",
+      bDias = '<h3 class="evo-sub">Carga</h3>' + barraPase(r.pct === null ? 0 : r.pct) +
+        datoPase("Carga de la semana", r.carga === null ? null : r.carga, "objetivo " + sem.carga) +
+        datoPase("Cumplimiento", r.pct === null ? null : Math.round(r.pct * 100) + " %",
           r.pctAnt === null ? "" : "la anterior, " + Math.round(r.pctAnt * 100) + " %") +
-        filaPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos, "");
+        datoPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos, "");
     }
 
-    /* 2. lo que falló, y por qué */
+    /* 2. peso */
+    var a7 = mediaPesos(hasta, 7), b7 = mediaPesos(U.sumarDias(sem.desde, -1), 7);
+    bPeso = '<h3 class="evo-sub">Peso</h3>';
+    if (a7 && a7.n >= 2) {
+      var dif = b7 && b7.n >= 2 ? a7.m - b7.m : null;
+      var obj = cfg.pesoObjetivo;
+      bPeso += datoPase("Media de 7 días", num(a7.m) + " kg", a7.n + (a7.n === 1 ? " pesada" : " pesadas")) +
+        datoPase("Contra los 7 anteriores", dif === null ? null : signo(dif) + " kg",
+          dif === null ? "hacen falta dos semanas" :
+            (dif <= obj[0] ? "más rápido que el objetivo"
+              : dif <= obj[1] ? "en el ritmo del plan"
+                : dif <= 0 ? "más lento que el objetivo" : "hacia arriba"));
+    } else {
+      bPeso += '<p class="nota-peque">Con ' + (a7 ? a7.n : 0) + " pesadas no se puede hacer media. Con dos ya sale.</p>";
+    }
+
+    /* 3. recuperación */
+    var vf = mediaSalud("vfc", sem.desde, hasta), fc = mediaSalud("fcr", sem.desde, hasta);
+    var su = mediaSalud("sueno_min", sem.desde, hasta);
+    var par = (Salud.datos && Salud.datos.meta && Salud.datos.meta.parametros) || {};
+    var farm = Salud.conFarmaco(hasta);
+    bRecu = '<h3 class="evo-sub">Recuperación</h3>' +
+      datoPase("VFC media", vf ? num(vf.m) + " ms" : null,
+        farm ? "con corticoide: sin lectura" : (par.base_vfc ? "tu base " + num(par.base_vfc) : ""), farm) +
+      datoPase("FC en reposo media", fc ? Math.round(fc.m) + " lpm" : null,
+        farm ? "con corticoide: sin lectura" : (par.base_fcr ? "tu base " + num(par.base_fcr) : ""), farm) +
+      datoPase("Sueño medio", su ? hhmm(Math.round(su.m)) : null, "tu media 6h24");
+
+    h += '<div class="pase-rejilla"><div class="pase-bloque">' + bDias +
+      '</div><div class="pase-bloque">' + bPeso +
+      '</div><div class="pase-bloque">' + bRecu + "</div></div>";
+
+    /* 4. lo que falló, y por qué — a todo el ancho, debajo de la rejilla */
     if (r.cump.fallos.length) {
       h += '<h3 class="evo-sub">Lo que falló</h3>';
       r.cump.fallos.forEach(function (x) {
@@ -4420,34 +4498,6 @@
             ? "Lo que falló fue por salud. Eso sí manda sobre la rampa: no se compensa, se recupera."
             : "Sin motivo anotado. Si vuelve a pasar, marca la observación del día: es lo que distingue «no pude» de «no quise».")) + "</p>";
     }
-
-    /* 3. peso */
-    var a7 = mediaPesos(hasta, 7), b7 = mediaPesos(U.sumarDias(sem.desde, -1), 7);
-    h += '<h3 class="evo-sub">Peso</h3>';
-    if (a7 && a7.n >= 2) {
-      var dif = b7 && b7.n >= 2 ? a7.m - b7.m : null;
-      var obj = cfg.pesoObjetivo;
-      h += filaPase("Media de 7 días", num(a7.m) + " kg", a7.n + (a7.n === 1 ? " pesada" : " pesadas")) +
-        filaPase("Contra los 7 anteriores", dif === null ? null : signo(dif) + " kg",
-          dif === null ? "hacen falta dos semanas" :
-            (dif <= obj[0] ? "más rápido que el objetivo"
-              : dif <= obj[1] ? "en el ritmo del plan"
-                : dif <= 0 ? "más lento que el objetivo" : "hacia arriba"));
-    } else {
-      h += '<p class="nota-peque">Con ' + (a7 ? a7.n : 0) + " pesadas no se puede hacer media. Con dos ya sale.</p>";
-    }
-
-    /* 4. recuperación */
-    var vf = mediaSalud("vfc", sem.desde, hasta), fc = mediaSalud("fcr", sem.desde, hasta);
-    var su = mediaSalud("sueno_min", sem.desde, hasta);
-    var par = (Salud.datos && Salud.datos.meta && Salud.datos.meta.parametros) || {};
-    var farm = Salud.conFarmaco(hasta);
-    h += '<h3 class="evo-sub">Recuperación</h3>';
-    h += filaPase("VFC media", vf ? num(vf.m) + " ms" : null,
-      farm ? "con corticoide: sin lectura" : (par.base_vfc ? "tu base " + num(par.base_vfc) : ""), farm);
-    h += filaPase("FC en reposo media", fc ? Math.round(fc.m) + " lpm" : null,
-      farm ? "con corticoide: sin lectura" : (par.base_fcr ? "tu base " + num(par.base_fcr) : ""), farm);
-    h += filaPase("Sueño medio", su ? hhmm(Math.round(su.m)) : null, "tu media 6h24");
 
     /* 5. la semana que viene */
     var sig = semanaSiguienteDe(sem);
@@ -4911,7 +4961,7 @@
     var ultPeso = pes.length ? pes[pes.length - 1].v : null;
     h += tarjetaEvo("Peso y composición", ultPeso === null ? null : num(ultPeso), "kg",
       "El peso del día oscila más de un kilo por agua y tránsito: la línea gruesa es la media de 7 días, que es la que cuenta.",
-      tramoEvo("peso") + cuerpo1, nota1, mandoEvo("peso"));
+      mandoEvo("peso") + tramoEvo("peso") + cuerpo1, nota1);
 
     /* ---------- 2. VFC, FC en reposo y sueño ---------- */
     v = ventanaDe("recu"); bandas = bandasFarmaco(v);
@@ -5216,7 +5266,7 @@
     }
     h += tarjetaEvo("Recuperación", vfc7.length ? num(vfc7[vfc7.length - 1].v) : null, "ms",
       "La VFC dice lo que ya pasó; el sueño y la carga dicen lo que va a pasar.",
-      tramoEvo("recu") + cuerpo2, nota2, mandoEvo("recu"));
+      mandoEvo("recu") + tramoEvo("recu") + cuerpo2, nota2);
 
     /* ---------- 2b. batería y estrés ----------
        Dos series que llevaban 2.476 días bajadas y sin pintar. Van juntas
@@ -5296,7 +5346,7 @@
       var ultBB = bbMin.length ? bbMin[bbMin.length - 1].v : null;
       h += tarjetaEvo("Batería y estrés", ultBB === null ? null : num(ultBB, 0), "de 100",
         "Cuánto te queda en el depósito y cuánto te lo están vaciando.",
-        tramoEvo("bat") + cuerpoB, notaB, mandoEvo("bat"));
+        mandoEvo("bat") + tramoEvo("bat") + cuerpoB, notaB);
     }
 
     /* ---------- 3. forma, fatiga y carga contra la rampa ---------- */
@@ -5306,8 +5356,8 @@
     var cuerpo3, nota3 = "";
     if (ctl.length) {
       cuerpo3 = grafica({
-        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 150, arriba: "puntos", min: 0,
-        unidadTip: "puntos", clase: "grande",
+        desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 219, arriba: "puntos", min: 0,
+        unidadTip: "puntos",
         alt: "Forma y fatiga",
         explica: "Azul la forma, que es la carga acumulada de seis semanas; roja la fatiga, la de una. " +
           "Cuando la roja se queda arriba mucho tiempo, viene el parón.",
@@ -5316,8 +5366,8 @@
       }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
       if (cs.objetivos.length) {
         cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
-          desde: cs.desde, hasta: cs.hasta, alto: 130, arriba: "carga semanal \u00b7 la rampa entera",
-          min: 0, clase: "grande",
+          desde: cs.desde, hasta: cs.hasta, alto: 190, arriba: "carga semanal \u00b7 la rampa entera",
+          min: 0,
           alt: "Carga semanal real frente al objetivo del plan",
           explica: "Una barra clara por semana con lo que pide la rampa hasta diciembre, y encima en verde lo que llevas hecho.",
           /* EL GLOBO SALE EN TODAS LAS BARRAS, no solo en la verde (Carlos,
@@ -5341,7 +5391,7 @@
     }
     h += tarjetaEvo("Forma y fatiga", ctl.length ? num(ctl[ctl.length - 1].v) : null, "puntos",
       "La forma sube despacio y se cae rápido: por eso la rampa manda sobre las ganas.",
-      tramoEvo("forma") + cuerpo3, nota3, mandoEvo("forma"));
+      mandoEvo("forma") + tramoEvo("forma") + cuerpo3, nota3);
 
     /* ---------- 4. cintura, cintura÷altura y vatios por kilo ---------- */
     v = ventanaDe("cintura"); bandas = bandasFarmaco(v);
@@ -5384,7 +5434,7 @@
     if (!cuerpo4) cuerpo4 = sinDatos("Sin cintura ni vatios en este tramo");
     h += tarjetaEvo("Cintura y rendimiento", cin.length ? num(cin[cin.length - 1].v) : null, "cm",
       "La cintura es la medida que más se mueve con el plan, y la que más dice del riesgo.",
-      tramoEvo("cintura") + cuerpo4, nota4, mandoEvo("cintura"));
+      mandoEvo("cintura") + tramoEvo("cintura") + cuerpo4, nota4);
 
     h += htmlFrescura();
     h += volver;
@@ -5634,7 +5684,7 @@
       }
 
       h += '<div class="hist-graf">' + grafica({
-        desde: desde, hasta: U.hoyISO(), alto: 120, arriba: d.u, lineasH: lineas,
+        desde: desde, hasta: U.hoyISO(), alto: 120, arriba: d.u, lineasH: lineas, caja: "modal",
         bandas: bandasFarmaco({ desde: desde, hasta: U.hoyISO() }),
         franja: opFranja,
         alt: d.n, series: series, unidadTip: d.u, par: d.par,
