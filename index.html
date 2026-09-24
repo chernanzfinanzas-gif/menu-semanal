@@ -213,6 +213,7 @@
     <div class="filtros" id="selector-despensa" style="margin-bottom:4px">
       <button class="btn mini principal" data-desp="comida">Comida</button>
       <button class="btn mini" data-desp="hogar">Hogar</button>
+      <button class="btn mini" data-desp="localizacion">Localización</button>
     </div>
 
     <div id="bloque-desp-comida">
@@ -224,6 +225,16 @@
       <button class="btn mini solo-edicion" id="despensa-vaciar">Vaciar entera</button>
     </div>
     <div class="rejilla-despensa" id="rejilla-despensa"></div>
+    </div>
+
+    <div id="bloque-desp-localizacion" hidden>
+      <div class="aviso">El recorrido de tu cocina, zona por zona. Lo que no tiene sitio sale
+        arriba, en Pendiente: hasta que lo coloques, la app no sabe dónde buscarlo y te avisa
+        si lo usas en un plato.</div>
+      <div class="fila" style="margin-bottom:12px">
+        <input type="text" id="buscar-loc" placeholder="Buscar un ingrediente…" style="flex:1; min-width:180px">
+      </div>
+      <div id="rejilla-loc"></div>
     </div>
 
     <div id="bloque-desp-hogar" hidden>

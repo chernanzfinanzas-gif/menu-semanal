@@ -244,6 +244,19 @@
             completados++;
           }
         });
+        /* CAMPOS DE TEXTO NUEVOS, con la misma regla y por el mismo motivo.
+           Esta lista existía sólo para los cuatro números de arriba, y eso
+           convertía cualquier campo nuevo en papel mojado: se publicaba en el
+           catálogo y no llegaba nunca a la copia guardada, así que la app
+           seguía comportándose igual y parecía que el cambio no se había hecho.
+           (24-sep-2026, al añadir `sitio`.)
+           `sitio` = dónde vive en casa. Hasta hoy se deducía de la sección del
+           supermercado, y por eso los seis pescados congelados estaban fichados
+           en la nevera: su sección es Pescadería. Abrías el congelador en la
+           app y no estaba el bacalao que tenías dentro. */
+        ["sitio"].forEach(function (campo) {
+          if (!ing[campo] && ref && ref[campo]) { ing[campo] = ref[campo]; completados++; }
+        });
       });
       if (completados) {
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
@@ -1380,25 +1393,160 @@
 
        El stock NO BLOQUEA NADA. Sugiere. Nunca impide planificar algo. */
 
-    /* DÓNDE ESTÁ EN LA CASA, que no es lo mismo que la sección del súper.
-       La sección es la ruta del supermercado y sirve para la lista de la compra;
-       para repasar, lo que hace falta es esto: tú no abres «Lácteos y huevos»,
-       abres la nevera. El orden es el de la prisa que corre cada cosa. */
-    SITIOS: [
-      { k: "nevera",     n: "Nevera",     cats: ["Lácteos y huevos", "Carnicería", "Pescadería", "Charcutería y quesos"] },
-      { k: "frutero",    n: "Frutero",    cats: ["Frutas y verduras"] },
-      { k: "congelador", n: "Congelador", cats: ["Congelados"] },
-      { k: "panera",     n: "Panera",     cats: ["Panadería"] },
-      { k: "armario",    n: "Armario",    cats: ["Despensa", "Especias y aromáticos", "Aperitivos y frutos secos", "Dulces", "Bebidas"] }
+    /* ============ DÓNDE ESTÁ EN LA CASA: ZONAS Y ESTANTES ============
+       La sección del supermercado es la ruta de la tienda y sirve para la lista
+       de la compra. Esto es otra cosa: el recorrido de SU cocina, y lo dictó él
+       el 24-sep-2026 después de colocar las 209 fichas una a una.
+
+       Tres zonas, y el orden es el orden en que se recorren. Dentro de cada una,
+       los estantes en el orden en que se miran.
+
+       POR QUÉ NO SE DEDUCE NADA. Hasta hoy el sitio salía de la sección del
+       súper, y por eso los seis pescados congelados estaban fichados en la
+       nevera. Se intentó afinar con subgrupos y Carlos lo tumbó con dos frases:
+       «las salsas están en la nevera» y «lácteos hay en nevera y la leche en
+       brick en el armario». O sea que los lácteos van a la nevera MENOS el
+       brick, y las salsas a la despensa MENOS cuando están abiertas. Eso no es
+       una categoría: es cómo está montada su cocina.
+
+       Lo midió el reparto que hizo: de las 209 que yo había deducido, me
+       corrigió 43 —el 21 %—, y los fallos no eran al azar. TODO lo que falla es
+       lo que se abre: la mermelada cerrada es despensa y abierta es puerta de
+       nevera; el brick de leche justo al revés.
+
+       Así que una ficha sin `sitio` escrito NO SE COLOCA SOLA: va a Pendiente.
+       Es lo que él pidió — «cualquier ingrediente nuevo debe aparecer en
+       pendiente» — y es más honrado que inventarle un estante. */
+    ZONAS: [
+      { k: "nevera", n: "Nevera", estantes: [
+        { k: "puerta",     n: "Puerta" },
+        { k: "est_arriba", n: "Estante arriba" },
+        { k: "est_abajo",  n: "Estante abajo" },
+        { k: "cajones",    n: "Cajones" },
+        { k: "frutero",    n: "Frutero" },
+        { k: "congelador", n: "Congelador" }
+      ] },
+      { k: "despensa", n: "Despensa", estantes: [
+        { k: "esencial",  n: "Esencial" },
+        { k: "conserva",  n: "Conserva" },
+        { k: "panaderia", n: "Panadería" },
+        { k: "aperitivo", n: "Aperitivo" },
+        { k: "bases",     n: "Bases" },
+        { k: "desayuno",  n: "Desayuno" },
+        { k: "bebida",    n: "Bebida" },
+        { k: "postres",   n: "Postres" }
+      ] },
+      { k: "alacena", n: "Alacena", estantes: [
+        { k: "sports",   n: "Sports" },
+        { k: "basicos",  n: "Básicos" },
+        { k: "especias", n: "Especias" },
+        { k: "otros",    n: "Otros" }
+      ] }
     ],
+
+    /* La lista plana de estantes, que es lo que usan el stock y la pasada.
+       `SITIOS` conserva el nombre de antes para no tocar lo que ya lo pedía. */
+    get SITIOS() {
+      if (this._sitiosPlanos) return this._sitiosPlanos;
+      var out = [];
+      this.ZONAS.forEach(function (z) {
+        z.estantes.forEach(function (e) {
+          out.push({ k: e.k, n: e.n, zona: z.k, zonaN: z.n, cats: [] });
+        });
+      });
+      this._sitiosPlanos = out;
+      return out;
+    },
+    zonaDe: function (estante) {
+      var z = null;
+      this.ZONAS.forEach(function (Z) {
+        Z.estantes.forEach(function (e) { if (e.k === estante) z = Z; });
+      });
+      return z;
+    },
 
     sitioDe: function (id) {
       var g = typeof id === "string" ? this.ingrediente(id) : id;
       if (!g) return null;
-      var cat = g.cat, fuera = null;
-      this.SITIOS.forEach(function (s) { if (!fuera && s.cats.indexOf(cat) >= 0) fuera = s.k; });
-      return fuera;           // null = no se guarda en casa (restaurante y bar)
+      /* SÓLO LO ESCRITO. Sin `sitio` no hay estante: devuelve null y la ficha
+         sale en Pendiente. Ver la nota larga de ZONAS. */
+      if (!g.sitio) return null;            // sin colocar: va a Pendiente
+      var vale = false;
+      this.SITIOS.forEach(function (s) { if (s.k === g.sitio) vale = true; });
+      return vale ? g.sitio : null;         // un estante que ya no existe, también pendiente
     },
+    /* Mover algo de estante. Es lo único que coloca: no hay regla que lo haga
+       por su cuenta (ver ZONAS). */
+    ponerSitio: function (id, sitio) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      var vale = false;
+      this.SITIOS.forEach(function (s) { if (s.k === sitio) vale = true; });
+      if (!vale) return false;
+      g.sitio = sitio;
+      /* el sitio de destino queda sin confirmar: acabas de meterle una línea
+         que no estaba cuando lo contaste */
+      if (!this.estado.stockSitios) this.estado.stockSitios = {};
+      delete this.estado.stockSitios[sitio];
+      this.guardar("ingrediente");
+      return true;
+    },
+
+    /* ---------- LO QUE NO TIENE SITIO ----------
+       Carlos, 24-sep-2026: «cualquier ingrediente nuevo debe aparecer en
+       pendiente, y si se usa una receta con él aparece un aviso de que el
+       ingrediente no tiene localización».
+       Las dos mitades de esa frase están aquí: la lista para la pestaña de
+       Localización, y el aviso para cuando ya está metido en un plato. */
+    sinColocar: function () {
+      var self = this, out = [];
+      (this.estado.ingredientes || []).forEach(function (g) {
+        if (g.oculta) return;
+        if (g.cat === "Restaurante y bar") return;   // no se guarda en casa
+        if (self.sitioDe(g)) return;
+        out.push(g);
+      });
+      out.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      return out;
+    },
+
+    /* Los ingredientes sin estante que usa un plato. Vacío = todo colocado. */
+    sinSitioDeReceta: function (recetaId) {
+      var self = this, rec = this.receta(recetaId), out = [];
+      if (!rec) return out;
+      (rec.ing || []).forEach(function (l) {
+        var g = self.ingrediente(l.i);
+        if (!g || g.oculta) return;
+        if (g.cat === "Restaurante y bar") return;
+        if (self.sitioDe(g)) return;
+        if (out.indexOf(g) < 0) out.push(g);
+      });
+      return out;
+    },
+
+    /* Lo mismo para todo lo planificado de hoy en adelante: lo que alimenta el
+       aviso de la pestaña. Devuelve { ingrediente: [nombres de plato] }. */
+    avisoSinSitio: function () {
+      var self = this, hoy = Util.hoyISO(), fuera = {};
+      Object.keys(this.estado.plan || {}).forEach(function (fecha) {
+        if (fecha < hoy) return;
+        var dia = self.estado.plan[fecha];
+        if (!dia) return;
+        ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
+          if (self.esFuera(fecha, toma)) return;
+          (dia[toma] || []).forEach(function (rid) {
+            var rec = self.receta(rid);
+            if (!rec) return;
+            self.sinSitioDeReceta(rid).forEach(function (g) {
+              if (!fuera[g.id]) fuera[g.id] = { n: g.n, platos: [] };
+              if (fuera[g.id].platos.indexOf(rec.n) < 0) fuera[g.id].platos.push(rec.n);
+            });
+          });
+        });
+      });
+      return fuera;
+    },
+
     nombreSitio: function (k) {
       var n = k;
       this.SITIOS.forEach(function (s) { if (s.k === k) n = s.n; });
@@ -1621,7 +1769,17 @@
                     frutero—, la que más gasta primero. Con el arroz o el aceite
                     no se ofrece nada: no corren prisa y saldría medio recetario. */
 
-    URGENTES: ["nevera", "frutero"],
+    /* EL CONGELADOR ENTRA (24-sep-2026). Estaba fuera con este motivo escrito
+       arriba: «con el arroz o el aceite no se ofrece nada: no corren prisa y
+       saldría medio recetario». Para el armario sigue siendo verdad —el aceite
+       está en media cocina—, pero en el congelador lo que hay es un lomo de
+       bacalao concreto, una bandeja de calamar, unas setas. Carlos lo describió
+       así: «si hay bacalao, setas, mango… lo anoto. Luego hago una receta de
+       bacalao que necesita cebolla caramelizada. Pues planifica el bacalao y
+       sólo pide la cebolla». Con el congelador fuera, esa receta no se ofrecía
+       nunca y acababa comprando otro pescado teniendo ése dentro.
+       El armario sigue fuera, y a propósito. */
+    URGENTES: ["nevera", "frutero", "congelador"],
 
     loQuePuedesGastar: function (toma) {
       var self = this, comp = this.comprometidoTodo();

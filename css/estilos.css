@@ -465,6 +465,41 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   .linea-stock .paso-stock{min-width:44px; height:44px}
   .linea-stock .btn.mini{padding:10px 12px}
 }
+/* ---------- LOCALIZACIÓN (24-sep-2026) ----------
+   Tres zonas, quince estantes y doscientas líneas. Lo que manda el diseño es
+   que se lea el RECORRIDO: la zona es el título, el estante un rótulo pequeño
+   con su cuenta, y la línea un nombre con su desplegable. Pendiente va arriba
+   y no se pliega: mientras tenga algo dentro hay cosas que la app no sabe
+   dónde buscar. */
+.zona-loc{border:1px solid var(--borde); border-radius:11px; margin-bottom:10px;
+  background:var(--blanco); overflow:hidden}
+.zona-loc > summary, .zona-loc .cab-zona{display:flex; align-items:center; gap:10px;
+  padding:11px 13px; cursor:pointer; font-weight:650}
+.zona-loc .cab-zona{cursor:default}
+.zona-loc .tit{flex:1}
+.zona-loc .cuantas{font-size:.76rem; color:var(--gris); border:1px solid var(--borde);
+  border-radius:99px; padding:2px 9px; min-width:34px; text-align:center}
+.zona-loc .cuantas.avisa{color:#fff; background:var(--ambar); border-color:var(--ambar)}
+.zona-loc.pendiente{border-color:var(--ambar); border-width:1.5px}
+.zona-loc.pendiente .tit{color:var(--ambar)}
+.zona-loc h4.estante{margin:10px 0 4px; padding:0 13px; font-size:.72rem; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--gris);
+  display:flex; gap:8px; align-items:baseline}
+.zona-loc h4.estante span{font-weight:400; letter-spacing:0; text-transform:none; opacity:.75}
+.linea-loc{margin:0 13px 6px; flex-wrap:wrap; row-gap:6px}
+.linea-loc .datos{flex:1 1 180px; min-width:0}
+/* CON `#` Y NO `.`: el contenedor lleva id, no clase, así que la regla no
+   llegaba y en el móvil ganaba el `.linea .detalle{display:none}` de más
+   abajo. Sin detalle no se ve el aviso de «lo usa tal plato», que es la
+   mitad de para qué está esta pantalla. Mismo fallo que en la pasada. */
+#rejilla-loc .linea-loc .detalle{display:block; font-size:.75rem; line-height:1.35}
+.loc-sel{font:inherit; font-size:.85rem; color:inherit; background:var(--blanco);
+  border:1px solid var(--borde); border-radius:9px; padding:8px 9px; max-width:190px}
+@media(max-width:519px){
+  .linea-loc .datos{flex:1 1 100%}
+  .loc-sel{flex:1 1 100%; max-width:none; height:44px}
+}
+
 /* ---------- LA PASADA PREVIA (24-sep-2026) ----------
    Tres botones por línea y nada más. Se contesta de pie, delante de la nevera,
    con el móvil en una mano: los botones son gordos, ocupan una fila entera

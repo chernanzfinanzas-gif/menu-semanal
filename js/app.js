@@ -2708,6 +2708,30 @@
       '<label class="campo" style="flex:2 1 260px"><span>Nota</span>' +
         '<input type="text" id="ig-nota" value="' + esc(g.nota || "") + '" placeholder="Marca, formato, d\u00f3nde lo compras\u2026"></label>' +
       '</div>';
+    /* DÓNDE SE GUARDA, Y ES OBLIGATORIO. Carlos, 24-sep-2026: «es importante que
+       los ingredientes nuevos tengan su estante… no debe haber ingredientes sin
+       localización». Sin estante, la app no sabe dónde buscarlo al repasar la
+       despensa y no puede decirte si lo tienes: la ficha queda coja y el fallo
+       no se ve hasta que estás delante de la nevera. Se pide aquí, que es el
+       único momento en que alguien está pensando en ese producto.
+       Lo de restaurante y bar no se guarda en casa: ahí no se pregunta. */
+    if (g.cat !== "Restaurante y bar") {
+      html += '<label class="campo" style="margin-bottom:12px">' +
+        '<span>Dónde se guarda en casa</span>' +
+        '<select id="ig-sitio">' +
+          '<option value="">— elige el estante —</option>' +
+          Almacen.ZONAS.map(function (z) {
+            return '<optgroup label="' + esc(z.n) + '">' +
+              z.estantes.map(function (e) {
+                return '<option value="' + esc(e.k) + '"' +
+                  (e.k === g.sitio ? " selected" : "") + '>' + esc(e.n) + '</option>';
+              }).join("") + '</optgroup>';
+          }).join("") +
+        '</select>' +
+        '<span class="nota-peque" style="font-weight:400">Hace falta para que la despensa ' +
+        'sepa dónde buscarlo. ' +
+        'Si no lo pones, el ingrediente sale en Despensa → Localización → Pendiente.</span></label>';
+    }
     html += '<label style="font-size:.85rem; display:block; margin-bottom:12px">' +
             '<input type="checkbox" id="ig-basico"' + (g.basico ? " checked" : "") + '> ' +
             'Es un básico de despensa (va aparte en la lista de la compra)</label>';
@@ -2718,6 +2742,15 @@
     $("#ig-guardar").addEventListener("click", function () {
       var nombre = $("#ig-n").value.trim();
       if (!nombre) { Util.toast("Ponle nombre al ingrediente"); return; }
+      /* El estante se exige salvo en lo de restaurante y bar, que no se guarda
+         en ninguna parte. Es la regla que pidió Carlos: nada sin localización. */
+      var selSitio = $("#ig-sitio");
+      var catElegida = $("#ig-cat").value;
+      if (selSitio && catElegida !== "Restaurante y bar" && !selSitio.value) {
+        Util.toast("Dinos dónde se guarda en casa");
+        try { selSitio.focus(); selSitio.scrollIntoView({ block: "center" }); } catch (e2) {}
+        return;
+      }
       var num = function (sel) { var v = parseFloat($(sel).value.replace(",", ".")); return isNaN(v) ? 0 : v; };
       var res = {
         id: g.id || ("ing_" + Date.now().toString(36)),
@@ -2727,6 +2760,7 @@
       var peso = parseFloat($("#ig-peso").value);
       if (res.u === "ud" && peso > 0) res.pesoUd = peso;
       if ($("#ig-basico").checked) res.basico = true;
+      if (selSitio && selSitio.value) res.sitio = selSitio.value;
       var racion = parseFloat(String($("#ig-racion").value).replace(",", "."));
       if (racion > 0) res.racion = racion;
       var prod = $("#ig-producto").value.trim();
@@ -3130,14 +3164,97 @@
      y formato, porque es ese nombre el que viaja a Amazon. Las que vienen de
      fábrica traen un nombre genérico y salen avisando de que les falta la marca. */
   function ponerFilaDespensa(cual) {
-    UI.filaDesp = (cual === "hogar") ? "hogar" : "comida";
-    var bc = $("#bloque-desp-comida"), bh = $("#bloque-desp-hogar");
-    if (bc) bc.hidden = UI.filaDesp !== "comida";
-    if (bh) bh.hidden = UI.filaDesp !== "hogar";
+    UI.filaDesp = (cual === "hogar" || cual === "localizacion") ? cual : "comida";
+    var bl = { comida: $("#bloque-desp-comida"), hogar: $("#bloque-desp-hogar"),
+               localizacion: $("#bloque-desp-localizacion") };
+    Object.keys(bl).forEach(function (k) { if (bl[k]) bl[k].hidden = UI.filaDesp !== k; });
     $$("#selector-despensa [data-desp]").forEach(function (b) {
       b.classList.toggle("principal", b.getAttribute("data-desp") === UI.filaDesp);
     });
-    if (UI.filaDesp === "hogar") pintarHogar(); else pintarDespensa();
+    if (UI.filaDesp === "hogar") pintarHogar();
+    else if (UI.filaDesp === "localizacion") pintarLocalizacion();
+    else pintarDespensa();
+  }
+
+  /* ==================== LOCALIZACIÓN ====================
+     El recorrido de su cocina: tres zonas y quince estantes, dictados por él el
+     24-sep-2026 después de colocar las 209 fichas una a una. Aquí es donde se
+     coloca lo que llega nuevo y donde se corrige lo que esté donde no es.
+
+     PENDIENTE VA ARRIBA Y NO SE PUEDE PLEGAR. Es el único bloque que pide algo:
+     mientras haya algo ahí, hay ingredientes que la app no sabe dónde buscar, y
+     eso se nota en la pasada de la despensa y en la lista de la compra. */
+  function lineaLoc(g, estanteActual) {
+    var av = (locAvisos || {})[g.id];
+    return '<div class="linea linea-loc" data-locfila="' + esc(g.id) + '">' +
+      '<div class="datos"><div class="nombre">' + esc(g.n) + '</div>' +
+      '<div class="detalle">' + esc(g.cat) +
+        (av ? ' · <b style="color:var(--ambar)">lo usa ' + esc(av.platos.slice(0, 2).join(", ")) +
+              (av.platos.length > 2 ? " y " + (av.platos.length - 2) + " más" : "") + '</b>' : "") +
+      '</div></div>' +
+      '<select class="loc-sel" data-loc="' + esc(g.id) + '" aria-label="Dónde se guarda ' + esc(g.n) + '">' +
+        '<option value=""' + (estanteActual ? "" : " selected") + '>— sin colocar —</option>' +
+        Almacen.ZONAS.map(function (z) {
+          return '<optgroup label="' + esc(z.n) + '">' +
+            z.estantes.map(function (e) {
+              return '<option value="' + esc(e.k) + '"' +
+                (e.k === estanteActual ? " selected" : "") + '>' + esc(e.n) + '</option>';
+            }).join("") + '</optgroup>';
+        }).join("") +
+      '</select></div>';
+  }
+
+  var locAvisos = null;
+
+  function pintarLocalizacion() {
+    var cont = $("#rejilla-loc");
+    if (!cont) return;
+    var q = sinTildes((UI.buscaLoc || "").trim().toLowerCase());
+    var casa = (Almacen.estado.ingredientes || []).filter(function (g) {
+      return !g.oculta && g.cat !== "Restaurante y bar";
+    });
+    var filtra = function (l) {
+      return q ? l.filter(function (g) { return sinTildes(g.n.toLowerCase()).indexOf(q) >= 0; }) : l;
+    };
+    locAvisos = Almacen.avisoSinSitio();
+
+    var pend = filtra(Almacen.sinColocar());
+    var enAvisos = Object.keys(locAvisos).length;
+    var html = "";
+
+    /* --- lo que no tiene sitio --- */
+    html += '<section class="grupo-selec zona-loc pendiente"' + (pend.length ? " open" : "") + '>' +
+      '<div class="cab-zona"><span class="tit">Pendiente</span>' +
+      '<span class="cuantas' + (pend.length ? " avisa" : "") + '">' + (pend.length || "—") + "</span></div>";
+    if (!pend.length) {
+      html += '<p class="aviso-grupo">Todo colocado. Lo que des de alta a partir de ahora aparecerá aquí.</p>';
+    } else {
+      html += '<p class="aviso-grupo">' + pend.length + ' sin sitio' +
+        (enAvisos ? ' · <b style="color:var(--ambar)">' + enAvisos +
+          " ya están en platos planificados</b>" : "") + '</p>';
+      pend.forEach(function (g) { html += lineaLoc(g, ""); });
+    }
+    html += "</section>";
+
+    /* --- las tres zonas, en su orden --- */
+    Almacen.ZONAS.forEach(function (z) {
+      var deZona = z.estantes.map(function (e) {
+        return { e: e, ing: filtra(casa.filter(function (g) { return Almacen.sitioDe(g) === e.k; })) };
+      });
+      var total = deZona.reduce(function (a, x) { return a + x.ing.length; }, 0);
+      if (q && !total) return;
+      var abierta = q ? true : UI.zonaAbierta === z.k;
+      html += '<details class="grupo-selec zona-loc"' + (abierta ? " open" : "") +
+        ' data-zona="' + esc(z.k) + '"><summary><span class="tit">' + esc(z.n) + "</span>" +
+        '<span class="cuantas">' + (total || "—") + "</span></summary>";
+      deZona.forEach(function (x) {
+        html += '<h4 class="estante">' + esc(x.e.n) +
+          '<span>' + (x.ing.length || "vacío") + "</span></h4>";
+        x.ing.forEach(function (g) { html += lineaLoc(g, x.e.k); });
+      });
+      html += "</details>";
+    });
+    cont.innerHTML = html;
   }
 
   function pintarHogar() {
@@ -4595,6 +4712,28 @@
     $("#selector-despensa").addEventListener("click", function (e) {
       var b = e.target.closest("[data-desp]");
       if (b) ponerFilaDespensa(b.getAttribute("data-desp"));
+    });
+    $("#buscar-loc").addEventListener("input", function (e) {
+      UI.buscaLoc = e.target.value; pintarLocalizacion();
+    });
+    /* El desplegable guarda al soltar. No se repinta la pantalla entera: con
+       doscientas líneas, rehacerla te devuelve arriba y pierdes por dónde ibas.
+       Se mueve la fila a su estante nuevo y se ajustan los contadores. */
+    $("#rejilla-loc").addEventListener("change", function (e) {
+      var sel = e.target.closest("[data-loc]");
+      if (!sel) return;
+      var id = sel.getAttribute("data-loc"), v = sel.value;
+      if (v) Almacen.ponerSitio(id, v);
+      else { var g = Almacen.ingrediente(id); if (g) { delete g.sitio; Almacen.guardar("ingrediente"); } }
+      var abierta = UI.zonaAbierta;
+      pintarLocalizacion();
+      UI.zonaAbierta = abierta;
+      Util.toast(v ? "A " + Almacen.nombreSitio(v) : "Sin colocar");
+    });
+    $("#rejilla-loc").addEventListener("click", function (e) {
+      var d = e.target.closest("[data-zona]");
+      if (d) UI.zonaAbierta = UI.zonaAbierta === d.getAttribute("data-zona")
+        ? null : d.getAttribute("data-zona");
     });
     $("#buscar-hogar").addEventListener("input", function (e) { UI.busquedaHogar = e.target.value; pintarHogar(); });
     $("#filtro-hogar-cajon").addEventListener("change", function (e) { UI.cajonHogar = e.target.value; pintarHogar(); });
