@@ -628,10 +628,26 @@
       ".av-linea b{display:block;color:var(--azul-hondo)}",
       ".av-linea span{color:#6b7c8d}",
       ".dia-bl.quitado{text-decoration:line-through;opacity:.55}",
+      ".ent-dia{position:relative}",
+      ".ent-dia .pie{display:flex;align-items:center;justify-content:space-evenly;gap:4px;margin-top:6px}",
+      ".ent-dia .dc{display:flex;flex-direction:column;align-items:center;line-height:1;gap:1px}",
+      ".ent-dia .dc b{font-size:.72rem;font-weight:800;color:var(--azul-hondo)}",
+      ".ent-dia .dc i{font-size:.52rem;font-style:normal;font-weight:700;letter-spacing:.06em;" +
+        "text-transform:uppercase;color:var(--gris)}",
+      ".ent-dia.ok .dc b{color:var(--verde)}",
+      ".sem-carga{display:block;font-size:.68rem;font-weight:700;color:var(--gris);" +
+        "text-transform:uppercase;letter-spacing:.05em;margin-top:2px}",
+      ".dia-nd{position:absolute;top:3px;right:3px;display:flex;flex-direction:column;align-items:center;" +
+        "line-height:1;gap:0;padding:2px 3px;border:0;background:transparent;cursor:pointer;opacity:.35}",
+      ".dia-nd b{font-size:13px;color:var(--rojo);font-weight:800}",
+      ".dia-nd span{font-size:7px;letter-spacing:.02em;color:var(--rojo);text-transform:uppercase;font-weight:700}",
+      ".dia-nd:hover{opacity:1}",
+      ".dia-nd.puesto{opacity:1}",
+      ".dia-nd.puesto b{color:var(--gris)}",
+      ".dia-nd.puesto span{color:var(--gris)}",
       ".nohab-caja{margin:10px 0;padding:10px 12px;border:1px dashed var(--azul-borde);border-radius:12px}",
       ".nohab-caja summary{cursor:pointer;font-size:.86rem;color:var(--azul-hondo);font-weight:600}",
-      ".nohab-caja.puesto{display:flex;gap:10px;align-items:center;justify-content:space-between;" +
-        "border-style:solid;background:#f4f6f8}",
+      ".nohab-caja.puesto{display:block;border-style:solid;background:#f4f6f8}",
       ".nohab-caja.puesto b{display:block}",
       ".nohab-caja .nota-peque{display:block;margin:4px 0 0}",
       ".nohab-bot{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}",
@@ -1802,17 +1818,21 @@
     var n = dias.length, mapa = {};
     var huecos = Math.max(1, n - 1);                 // el último día se deja libre
     var ordRod = [0, 3, 1, 4, 2, 5], ordCam = [2, 5, 1, 4, 0, 3], ordFue = [0, 3, 1];
-    var iR = 0, iC = 0, iF = 0;
+    var iR = 0, iC = 0, iF = 0, huerfanos = [];
     b.forEach(function (x) {
-      /* si el bloque viene de una línea escrita a mano, arranca en SU día —salvo
-         que ese día esté marcado como no hábil, y entonces se reparte como los
-         demás en vez de quedarse en un día que no existe */
+      /* si el bloque viene de una línea escrita a mano, arranca en SU día */
       if (x.dia && !noHabilDe(x.dia)) { mapa[x.id] = x.dia; return; }
+      /* SI SU DÍA SE HA MARCADO COMO NO DISPONIBLE no entra en el reparto por
+         orden —que va por índices y en una semana larga puede caer en un día ya
+         pasado—: se aparta y al final se le busca el hueco que menos carga lleve
+         de hoy en adelante. */
+      if (x.dia) { huerfanos.push(x); return; }
       if (x.largo) { mapa[x.id] = dias[Math.max(0, n - 2)]; return; }
       if (x.fam === "caminar") { mapa[x.id] = dias[ordCam[iC++ % ordCam.length] % huecos]; return; }
       if (x.fam === "fuerza") { mapa[x.id] = dias[ordFue[iF++ % ordFue.length] % huecos]; return; }
       mapa[x.id] = dias[ordRod[iR++ % ordRod.length] % huecos];
     });
+    huerfanos.forEach(function (x) { mapa[x.id] = mejorDiaPara(sem, mapa, x); });
     return mapa;
   }
 
@@ -2037,10 +2057,50 @@
   /* ==================== LOS AVISOS DE REPARTO  ·  24-sep-2026 ====================
      Los tres que eligió Carlos. AVISAN, NO IMPIDEN: el reparto es suyo y la app
      solo señala lo que a la vista no se ve. */
+  /* ¿este bloque es descanso? Ni la movilidad ni una línea que diga «descanso»
+     cuentan como día trabajado. */
+  function esDescanso(x) {
+    if (familia(x && x.t) === "movilidad") return true;
+    return /descans/i.test(String((x && x.t) || ""));
+  }
+
+  /* ==================== LA CARGA A LA VISTA  ·  24-sep-2026 ====================
+     Carlos: «en La Semana pon la carga total junto a La semana (Carga X). Y en el
+     bloque de cada día… dos columnas, una con el círculo tal y como está y en otra
+     la carga de ese día».
+     Es el número que de verdad decide el plan y hasta hoy no se veía en el tablero:
+     había que ir al pase para saber cuánto pesaba lo que estabas repartiendo. */
+  function cargaDeDia(iso) {
+    var sem = semanaDe(iso);
+    if (!sem) return null;
+    var b = bolsilloDe(sem), rep = b && b.length ? repartoDe(sem) : null;
+    if (!rep) return null;
+    var t = 0, hay = false;
+    b.forEach(function (x) {
+      if (rep[x.id] !== iso) return;
+      hay = true;
+      t += costeSesion(x);
+    });
+    /* un día SIN bloques no enseña carga: el «0» al lado de «descanso» solo hace
+       ruido. Un día CON bloques sí la enseña aunque salga 0, porque eso significa
+       que todo lo que lleva es fuerza, que no tiene precio. */
+    return hay ? Math.round(t) : null;
+  }
+
+  /* lo que suman los bloques COLOCADOS de la semana. Lo que esté en la bandeja no
+     cuenta: todavía no tiene día y por tanto no está repartido. */
+  function cargaDeSemana(sem) {
+    var b = bolsilloDe(sem), rep = b && b.length ? repartoDe(sem) : null;
+    if (!rep) return null;
+    var t = 0;
+    b.forEach(function (x) { if (rep[x.id]) t += costeSesion(x); });
+    return Math.round(t);
+  }
+
   function avisosReparto(sem) {
     var b = bolsilloDe(sem), rep = b && b.length ? repartoDe(sem) : null;
     if (!rep) return [];
-    var dias = diasDe(sem), out = [], min = {}, total = 0, fuerza = {};
+    var dias = diasDe(sem), out = [], min = {}, total = 0, fuerza = {}, curra = {};
     dias.forEach(function (f) { min[f] = 0; });
     b.forEach(function (x) {
       var d = rep[x.id];
@@ -2048,6 +2108,12 @@
       min[d] += (x.min || 0);
       total += (x.min || 0);
       if (x.fam === "fuerza") fuerza[d] = true;
+      /* UN DÍA DE DESCANSO SIGUE SIENDO DESCANSO aunque el plan le ponga minutos.
+         Las semanas escritas a mano traen líneas como «Descanso, o paseo corto,
+         30 min», y con esos 30 minutos el aviso decía que la semana no tenía
+         ningún día de descanso teniendo uno delante, con la palabra escrita.
+         Lo vio Carlos el 24-sep y tenía toda la razón. */
+      if (!esDescanso(x)) curra[d] = true;
     });
     /* 1) un día que se lleva más del 40 % de la semana */
     if (total > 0) {
@@ -2061,7 +2127,7 @@
       });
     }
     /* 2) una semana sin ningún día de descanso */
-    var sinNada = dias.filter(function (f) { return !min[f] && !noHabilDe(f); });
+    var sinNada = dias.filter(function (f) { return !curra[f] && !noHabilDe(f); });
     if (!sinNada.length && total > 0) {
       out.push({ t: "Esta semana no tiene ningún día de descanso",
                  d: "Los siete días llevan algo. El descanso es lo único que no tenías en 2025, y por eso las semanas 4, 8 y 12 bajan de verdad." });
@@ -2103,6 +2169,13 @@
      Carlos eligió que la app recoloque sola y él retoque. (24-sep-2026.) */
   function mejorDiaPara(sem, mapa, bloque) {
     var libres = diasHabilesDe(sem);
+    /* NUNCA AL PASADO. Sin esto, en una semana larga como la 1 (18 al 27) un
+       bloque recolocado podía aterrizar en el día 20, que ya pasó y ni siquiera
+       sale en la tira: el bloque se esfumaba de la pantalla. Lo vio Carlos el
+       24-sep al marcar un viernes como no disponible. */
+    var hoy = U.hoyISO();
+    var futuros = libres.filter(function (f) { return f >= hoy; });
+    if (futuros.length) libres = futuros;
     if (!libres.length) return null;
     var carga = {}, b = bolsilloDe(sem) || [];
     libres.forEach(function (f) { carga[f] = 0; });
@@ -8250,7 +8323,14 @@
     var lunes = lunesVista || U.lunesDe(hoy);
     h += '<div class="tarjeta"><div class="ent-navsem">' +
       '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
-      "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) + "</h2>" +
+      "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) +
+        (function () {
+          var sx = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
+          var c = sx ? cargaDeSemana(sx) : null;
+          if (c === null) return "";
+          return '<small class="sem-carga">Carga ' + c +
+            (sx.carga ? " de " + sx.carga : "") + "</small>";
+        })() + "</h2>" +
       '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
       "</div>" +
       "";
@@ -8310,6 +8390,13 @@
       h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
         '" data-dia="' + f + '" role="button" tabindex="0">' +
         '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
+        /* NO DISP, EN LA TIRA  ·  24-sep-2026. Estaba en la ficha del día y Carlos
+           lo dijo claro: «debería salir en La Semana… más fácil de encontrar que
+           donde está». Un toque marca, otro desmarca. El motivo se afina luego en
+           la ficha del día, que no hace falta elegirlo para marcarlo. */
+        (semF ? '<button type="button" class="dia-nd' + (noHab ? " puesto" : "") +
+          '" data-nd="' + f + '" title="' + (noHab ? "Volver a d\u00eda h\u00e1bil" : "Marcar como no disponible") +
+          '"><b>\u00d7</b><span>no disp</span></button>' : "") +
         '<span class="q' + (ss.length && ss[0].bid ? " bloques" : "") + '">' +
         (noHab ? U.esc(nombreNoHabil(noHab.m))
         : (!semF ? "—" : (!ss.length ? "descanso"
@@ -8326,7 +8413,14 @@
                   U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
-        "</span><span class=\"p\"></span></div>";
+        '</span><span class="pie"><span class="p"></span>' +
+        (function () {
+          if (!semF || noHab) return "";
+          var c = cargaDeDia(f);
+          /* con su rótulo: un número suelto al lado del punto no dice qué es.
+             (Carlos, 24-sep-2026.) */
+          return c === null ? "" : '<span class="dc"><b>' + c + "</b><i>carga</i></span>";
+        })() + "</span></div>";
     }
     h += "</div>";
     h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) + "</p>";
@@ -8351,18 +8445,18 @@
        día y otro para soltar un bloque, y un tercero sería un campo de minas. */
     var nh = noHabilDe(dia);
     if (nh) {
-      h += '<div class="nohab-caja puesto"><div><b>Día no hábil · ' +
-        U.esc(nombreNoHabil(nh.m)) + "</b>" +
-        '<span class="nota-peque">Cuenta como descanso, no como incumplido. Su carga ya está repartida en los días que quedan.</span></div>' +
-        '<button type="button" class="btn" data-nohabil="' + dia + ':">Volver a hábil</button></div>';
-    } else {
-      h += '<details class="nohab-caja"><summary>No voy a poder entrenar este día</summary>' +
-        '<p class="nota-peque">Lo marca como descanso y reparte su carga entre los días hábiles que queden. La semana no pierde puntos.</p><div class="nohab-bot">';
+      /* Marcado ya está (con la × de la tira): aquí solo se afina EL PORQUÉ, que es
+         lo único que hace falta pensar. Los motivos son etiquetas y no cambian
+         ningún cálculo. */
+      h += '<div class="nohab-caja puesto"><b>Día no disponible</b>' +
+        '<span class="nota-peque">Cuenta como descanso, no como incumplido. Su carga ya está repartida en los días que quedan.</span>' +
+        '<div class="nohab-bot">';
       MOTIVOS_NOHABIL.forEach(function (m) {
-        h += '<button type="button" class="sal-hora" data-nohabil="' + dia + ":" + m.id + '">' +
-          U.esc(m.n) + "</button>";
+        h += '<button type="button" class="sal-hora' + (nh.m === m.id ? " elegido" : "") +
+          '" data-nohabil="' + dia + ":" + m.id + '">' + U.esc(m.n) + "</button>";
       });
-      h += "</div></details>";
+      h += '<button type="button" class="sal-hora" data-nohabil="' + dia + ':">Vuelve a estar disponible</button>';
+      h += "</div></div>";
     }
 
     var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
@@ -8821,6 +8915,17 @@
       var lim = t.closest ? t.closest("[data-limpiar]") : null;
       if (lim) { e.preventDefault(); Limpieza.lanzar(); return; }
 
+
+      /* la × de la tira: marca o desmarca el día sin abrirlo ni soltar bloques */
+      var ndB = t.closest ? t.closest("[data-nd]") : null;
+      if (ndB) {
+        e.preventDefault();
+        e.stopPropagation();
+        var fnd = ndB.getAttribute("data-nd");
+        ponerNoHabil(fnd, noHabilDe(fnd) ? null : "otro");
+        pintarConservando();
+        return;
+      }
 
       /* marcar o desmarcar un día como no hábil */
       var nhB = t.closest ? t.closest("[data-nohabil]") : null;
