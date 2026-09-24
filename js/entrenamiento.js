@@ -221,7 +221,13 @@
       ".ent-franja{display:flex;gap:8px;align-items:stretch;margin-bottom:12px}",
       /* más específico a propósito: esta media query va antes que la regla base de .ent-sem */
       "@media(max-width:520px){.ent-franja{flex-direction:column}.ent-franja .ent-sem{flex:none}}",
-      ".ent-sem{flex:0 0 138px;background:var(--blanco);border:1px solid var(--borde);",
+      /* 190 px Y NO 138  ·  24-sep-2026. El mock del 23 de septiembre lo dejó
+         escrito: «la ranura de 138 px se queda corta; con el porqué dentro
+         necesita unos 190, o el texto se parte raro en el móvil». Las dos cifras
+         del porqué —fatiga contra forma y las dos últimas noches— sí se montaron
+         en su día; la ranura se quedó sin ensanchar y el aviso se perdió de vista
+         hasta que Carlos se acordó de él. */
+      ".ent-sem{flex:0 0 190px;background:var(--blanco);border:1px solid var(--borde);",
       "  border-left:4px solid var(--gris);border-radius:var(--radio);padding:11px 13px;",
       "  display:flex;flex-direction:column;gap:2px}",
       ".ent-sem b{font-size:1.05rem;color:var(--tinta)}",
@@ -326,22 +332,29 @@
       /* medidas */
       /* rejilla: columnas fijas por ancho, para que las medidas queden repartidas
          en filas parejas y no ocho arriba y una sola abajo */
-      ".ent-medidas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}",
-      "@media(min-width:620px){.ent-medidas{grid-template-columns:repeat(3,minmax(0,1fr))}}",
-      "@media(min-width:980px){.ent-medidas{grid-template-columns:repeat(5,minmax(0,1fr))}}",
+      /* TRES POR FILA EN EL MÓVIL  ·  24-sep-2026 (Carlos: «haría las métricas más
+         estrechas, sobra mucho en todas; lo ideal es que en móvil entren tres por
+         fila»). Eran dos, y con nombres de una palabra el hueco se desperdiciaba.
+         Caben tres si la casilla adelgaza: rótulo más pequeño, menos relleno en el
+         campo y el hueco entre columnas a 6 px. El campo se queda en 40 px de
+         alto, que sigue siendo un objetivo cómodo para el dedo. */
+      ".ent-medidas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:14px}",
+      "@media(min-width:620px){.ent-medidas{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}}",
+      "@media(min-width:980px){.ent-medidas{grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}}",
       /* en columna: el rótulo crece hasta igualar al vecino más alto, así las
          cajas de la fila quedan alineadas aunque el texto ocupe dos líneas */
       ".ent-medida{display:flex;flex-direction:column;min-width:0;max-width:280px;width:100%}",
-      ".ent-medida input{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
+      ".ent-medida input{width:100%;padding:8px 6px;border:1px solid var(--borde);border-radius:9px;" +
+        "font:inherit;font-size:.95rem;text-align:center}",
       ".ent-medida input:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-medida.puesta input{border-color:var(--azul);background:var(--azul-claro)}",
-      ".ent-medida span{display:flex;flex:1 0 auto;align-items:flex-start;gap:6px;",
-      "  font-size:.76rem;color:var(--gris);margin-bottom:3px;line-height:1.25}",
+      ".ent-medida span{display:flex;flex:1 0 auto;align-items:flex-start;gap:3px;",
+      "  font-size:.68rem;color:var(--gris);margin-bottom:3px;line-height:1.2;overflow-wrap:anywhere}",
       ".ent-medida .hoy{flex:none;font-style:normal;font-size:.62rem;font-weight:700;letter-spacing:.06em;",
       "  text-transform:uppercase;color:var(--azul);border:1px solid var(--azul-borde);",
       "  background:var(--azul-claro);border-radius:999px;padding:0 6px;line-height:1.5}",
       ".ent-medida.toca input{border-color:var(--azul)}",
-      ".ent-medida small{display:block;margin-top:3px;font-size:.7rem;color:var(--gris)}",
+      ".ent-medida small{display:block;margin-top:3px;font-size:.62rem;color:var(--gris);line-height:1.25}",
       /* botones de guía y su ventana */
       ".ent-mas{margin-top:10px;background:none;border:1px dashed var(--azul-borde);color:var(--azul);",
       "  border-radius:10px;padding:8px 12px;font:inherit;font-size:.83rem;font-weight:600;cursor:pointer;width:100%}",
@@ -642,14 +655,20 @@
       ".ent-dia.ok .dc b{color:var(--verde)}",
       ".sem-carga{display:block;font-size:.68rem;font-weight:700;color:var(--gris);" +
         "text-transform:uppercase;letter-spacing:.05em;margin-top:2px}",
-      ".dia-nd{position:absolute;top:3px;right:3px;display:flex;flex-direction:column;align-items:center;" +
-        "line-height:1;gap:0;padding:2px 3px;border:0;background:transparent;cursor:pointer;opacity:.35}",
-      ".dia-nd b{font-size:13px;color:var(--rojo);font-weight:800}",
-      ".dia-nd span{font-size:7px;letter-spacing:.02em;color:var(--rojo);text-transform:uppercase;font-weight:700}",
-      ".dia-nd:hover{opacity:1}",
-      ".dia-nd.puesto{opacity:1}",
-      ".dia-nd.puesto b{color:var(--gris)}",
-      ".dia-nd.puesto span{color:var(--gris)}",
+      /* LA × DE NO DISP, más grande y más roja  ·  24-sep-2026 (Carlos).
+         Apagada, rojo claro y a media tinta: se ve que está pero no compite con
+         los bloques. Puesta, rojo oscuro, a tamaño completo y en negrita: ese día
+         hay que verlo desde el otro lado de la habitación. */
+      ".ent-dia .cab{display:flex;align-items:flex-start;justify-content:space-between;" +
+        "width:100%;gap:4px}",
+      ".ent-dia .fecha{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}",
+      ".dia-nd{display:flex;flex-direction:column;align-items:flex-end;" +
+        "line-height:1;gap:0;padding:0;border:0;background:transparent;cursor:pointer}",
+      ".dia-nd b{font-size:17px;color:#e07a6e;font-weight:800}",
+      ".dia-nd span{font-size:8px;letter-spacing:.03em;color:#e07a6e;text-transform:uppercase;font-weight:800}",
+      ".dia-nd:hover b,.dia-nd:hover span{color:#c0392b}",
+      ".dia-nd.puesto b{font-size:20px;color:#a5271a;font-weight:900}",
+      ".dia-nd.puesto span{font-size:9px;color:#a5271a;font-weight:900;letter-spacing:.04em}",
       ".nohab-caja{margin:10px 0;padding:10px 12px;border:1px dashed var(--azul-borde);border-radius:12px}",
       ".nohab-caja summary{cursor:pointer;font-size:.86rem;color:var(--azul-hondo);font-weight:600}",
       ".nohab-caja.puesto{display:block;border-style:solid;background:#f4f6f8}",
@@ -720,7 +739,7 @@
       "  opacity:.35;pointer-events:none;z-index:2}",
       ".graf-pie{margin:6px 0 0;font-size:.76rem;line-height:1.45;color:var(--gris)}",
       /* el histórico emergente */
-      ".ent-ver{margin-left:4px;border:0;background:none;color:var(--azul);cursor:pointer;padding:0 2px;",
+      ".ent-ver{margin-left:2px;border:0;background:none;color:var(--azul);cursor:pointer;padding:0 1px;",
       "  line-height:0;vertical-align:-1px;opacity:.75}",
       ".ent-ver:hover{opacity:1}",
       "button.ent-fila{width:100%;text-align:left;background:none;font:inherit;cursor:pointer}",
@@ -5007,8 +5026,14 @@
       }
       if (se.marcarUltimo !== false) {
         var u = se.pts[se.pts.length - 1];
+        /* `colorPunto`: la línea puede ir clarita y el punto del último dato
+           fuerte. Hace falta desde que debajo de la gráfica hay una línea
+           cruda y una media móvil encima: el número de «Último» que sale en la
+           tabla es el del dato de verdad, no el de la media, así que el punto
+           tiene que estar en la línea cruda — y en ella se vería lavado.
+           (24-sep-2026.) */
         s += '<circle cx="' + X(u.f).toFixed(1) + '" cy="' + Y(u.v).toFixed(1) +
-          '" r="2.4" fill="' + se.color + '" stroke="#fff" stroke-width="1"/>';
+          '" r="2.4" fill="' + (se.colorPunto || se.color) + '" stroke="#fff" stroke-width="1"/>';
       }
     });
 
@@ -6468,8 +6493,17 @@
     var v = { desde: "2019-01-01", hasta: U.hoyISO() };
     var D = {
       peso: { n: "Peso", u: "kg", dias: 90, serie: function () { return seriePeso(v); },
-              media: 7, objetivo: pesoObjetivo(), etqObj: "tu objetivo",
-              pie: "La línea gruesa es la media de 7 días, que es la que cuenta: el dato del día oscila más de un kilo por agua y tránsito." },
+              /* `mediaDesde: 0`: el peso se suaviza TAMBIÉN en el tramo de un
+                 mes. Las demás empiezan a los tres meses porque con treinta
+                 puntos no hay emborronamiento que quitar, pero aquí el dato
+                 del día baila más de un kilo y sin la media no se lee ni en
+                 una semana. */
+              media: 7, mediaDesde: 0, objetivo: pesoObjetivo(), etqObj: "tu objetivo",
+              pie: function (suave) {
+                return suave
+                  ? "La línea gruesa es la media de 7 días, que es la que cuenta: el dato del día oscila más de un kilo por agua y tránsito."
+                  : "En este tramo hay pocas pesadas y se dibujan tal cual. El dato de un día suelto oscila más de un kilo por agua y tránsito: para leer el peso hacen falta varias seguidas.";
+              } },
       cintura: { n: "Cintura", u: "cm", dias: 120, serie: function () { return serieApp("cintura", v); },
                  objetivo: Math.round(alturaCm() * 0.5), etqObj: "0,50 de tu altura",
                  techo: 102, etqTecho: "102 cm · riesgo alto",
@@ -6545,18 +6579,33 @@
       fcr: { n: "FC en reposo", u: "lpm", dias: 30, serie: function () { return serieSalud("fcr", v); },
              serie2: function () { return serieSalud("pulso_min", v); },
              etq2: "mínimo del día", par: ["en reposo", "mínimo del día"],
-             objetivo: baseSalud("base_fcr"), etqObj: "tu base", invertido: true,
-             pie: "Azul el pulso en reposo, roja el latido más bajo de todo el día. " +
+             objetivo: baseSalud("base_fcr"), etqObj: "tu base", invertido: true, media: 7,
+             pie: function (suave) { return "Azul el pulso en reposo, roja el latido más bajo de todo el día. " +
+                  (suave ? "De cada color hay dos líneas: la clarita es lo que marcó ese día y la gruesa " +
+                           "su media de 7 días. Mira la gruesa para saber por dónde vas y la clara para los " +
+                           "picos, que es donde está el aviso. " : "") +
                   "Cuanto más bajas, mejor: cinco por encima de tu base tres días seguidos es señal. " +
                   "La roja suele ir cuatro o cinco latidos por debajo de la azul: " +
                   "lo que dice algo es la distancia entre las dos. Sólo llega con la exportación de Garmin, " +
-                  "así que se corta en la última que bajaste." },
+                  "así que se corta en la última que bajaste."; } },
       sueno: { n: "Sueño", u: "h", dias: 14, serie: function () {
                  return serieSalud("sueno_min", v).map(function (p) { return { f: p.f, v: p.v / 60 }; });
-               }, objetivo: 7, etqObj: "7 h",
-               pie: "Lo que predice el día siguiente son las dos últimas noches, no la media del mes." },
+               }, objetivo: 7, etqObj: "7 h", media: 7,
+               pie: function (suave) {
+                 return suave
+                   ? "Lo que predice el día siguiente son las dos últimas noches, y ésas están en la " +
+                     "línea clara. La gruesa es la media de 7 noches y dice otra cosa: si estás " +
+                     "durmiendo bien esta temporada."
+                   : "Lo que predice el día siguiente son las dos últimas noches, no la media del mes.";
+               } },
       pt_sueno: { n: "Puntuación de sueño", u: "de 100", dias: 14, serie: function () { return serieSalud("pt_sueno", v); },
-                  objetivo: 70, etqObj: "70", pie: "La nota que pone Garmin a la noche." },
+                  objetivo: 70, etqObj: "70", media: 7,
+                  pie: function (suave) {
+                    return "La nota que pone Garmin a la noche. Es la más saltarina de todas: de una " +
+                      "noche a la siguiente cambia 17 puntos de media" +
+                      (suave ? ", así que la que hay que mirar es la línea gruesa, la media de 7 noches."
+                             : ", así que una noche suelta no dice gran cosa.");
+                  } },
       /* CON LA FATIGA DEBAJO (22-sep-2026, Carlos: «la gráfica de carga ctl y
          fatiga no trae la fatiga, sólo el ctl»). Y era verdad: la tarjeta de Mi
          Estado se llama «Forma y fatiga» y da los dos números, pero la ventana
@@ -6602,9 +6651,10 @@
     histAbierta = clave;
     var s1 = d.serie() || [], s2 = d.serie2 ? (d.serie2() || []) : [];
     /* el tramo recorta las dos series, igual que el selector de Evolución */
-    var corte = null;
+    var corte = null, diasTramo = 0;
     for (var iR = 0; iR < RANGOS.length; iR++) if (RANGOS[iR].id === rangoHist && RANGOS[iR].d) {
       corte = U.sumarDias(U.hoyISO(), -RANGOS[iR].d);
+      diasTramo = RANGOS[iR].d;
     }
     if (corte) {
       s1 = s1.filter(function (x) { return x.f >= corte; });
@@ -6633,7 +6683,12 @@
         "</small></div>";
     } else {
       var AZUL = "#2f5c8a", ROJO = "#b3402f", GRIS = "#8aa0b5", VERDE = "#2f6b47";
-      var lineas = [];
+      /* los mismos dos colores, lavados: son para la línea de cada día cuando
+         lleva una media móvil encima. Grises no, porque con dos series —alta y
+         baja, reposo y mínimo— habría dos líneas grises iguales y no se sabría
+         cuál es cuál. Cada cruda conserva su color, sólo que apagado. */
+      var AZUL_CLARO = "#bacde1", ROJO_CLARO = "#e6c3bb";
+      var lineas = [], suaviza = false;
       if (d.objetivo) lineas.push({ v: d.objetivo, color: "#cfdcea", etq: d.etqObj || "objetivo" });
       if (d.techo) lineas.push({ v: d.techo, color: "#eccf9a", etq: d.etqTecho || "límite" });
 
@@ -6646,13 +6701,51 @@
                                      marcarUltimo: false, techo: "#8fa8bf" });
         series.push({ pts: s1, color: AZUL, barras: true, marcarUltimo: false, tip: true });
       } else {
-        if (d.media && s1.length > 3) {
-          series.push({ pts: s1, color: GRIS, ancho: 0.8, marcarUltimo: false });
-          series.push({ pts: mediaMovilDias(s1, d.media), color: AZUL, ancho: 1.6 });
+        /* ===== LAS DOS LÍNEAS, NO UNA (24-sep-2026) =====
+           Carlos: «algunas gráficas se ven un poco embarulladas, no sé si es
+           mejor usar una media móvil para suavizar el trazado».
+
+           Lo era, y está medido sobre su serie real de FC en reposo del último
+           año: va de 42 a 58 lpm —16 lpm de recorrido de verdad— y para
+           contarlo el trazo sube y baja 885. Cincuenta y cinco veces más tinta
+           que distancia. El salto medio de un día al siguiente es de 2,4 lpm y
+           la desviación de toda la serie, 2,9: casi todo lo que se ve es ruido.
+           Con la media móvil de 7 días el recorrido cae a 137.
+
+           Pero la media VA ENCIMA DE LA CRUDA, no en su lugar. El aviso que da
+           esta medida —lo dice el pie de la propia gráfica— es «cinco por
+           encima de tu base tres días seguidos». Una media de 7 deja ese pico
+           en dos latidos de bulto: alisar del todo borraría justo lo que hay
+           que ver. Fina y clarita la de cada día, gruesa la media.
+
+           Y sólo donde los datos lo piden. Medido en los últimos 90 días, el
+           salto diario contra la dispersión de la serie:
+             fcr 2,44 / 2,52 = 0,97   sueño 1,42 h / 1,17 h = 1,21
+             pt_sueño 17,0 / 14,4 = 1,19        ← ruido del tamaño de la señal
+             ctl 0,52 / 11,6 = 0,04   atl 0,95 / 5,13 = 0,19
+             tensión: 6 días con toma en todo el año
+           Forma y fatiga ya salen suaves de fábrica y la tensión tiene seis
+           puntos: promediarlas no quitaría ruido, sólo añadiría retraso.
+
+           El orden importa dos veces. Las crudas primero para que las medias
+           queden dibujadas encima, y además porque el globo del dedo lee
+           `series[0]` y `series[1]` (ver `o.par`): así enseña los dos valores
+           medidos de ese día, que es lo que se le está preguntando. */
+        var minT = (d.mediaDesde === undefined ? 35 : d.mediaDesde);
+        suaviza = !!(d.media && s1.length > 3 && diasTramo > minT);
+        if (suaviza) {
+          /* la cruda se afina cuando hay más puntos que píxeles: con 365 días en
+             una caja de móvil, a 0,8 de grosor el zigzag vuelve a ser una mancha
+             y tapa la media. Es el mismo criterio que usan las noches de VFC. */
+          var gCrudo = diasTramo > 200 ? 0.6 : 0.85;
+          series.push({ pts: s1, color: AZUL_CLARO, colorPunto: AZUL, ancho: gCrudo });
+          if (s2.length) series.push({ pts: s2, color: ROJO_CLARO, colorPunto: ROJO, ancho: gCrudo });
+          series.push({ pts: mediaMovilDias(s1, d.media), color: AZUL, ancho: 1.8, marcarUltimo: false });
+          if (s2.length) series.push({ pts: mediaMovilDias(s2, d.media), color: ROJO, ancho: 1.5, marcarUltimo: false });
         } else {
           series.push({ pts: s1, color: AZUL, ancho: 1.6, soloPuntos: s1.length < 3 });
+          if (s2.length) series.push({ pts: s2, color: ROJO, ancho: 1.3, marcarUltimo: true });
         }
-        if (s2.length) series.push({ pts: s2, color: ROJO, ancho: 1.3, marcarUltimo: true });
       }
 
       var todo = s1.concat(s2);
@@ -6703,6 +6796,8 @@
           : "Tu serie de " + d.n + " en el tramo elegido" +
             (d.objetivo ? ", con la línea del objetivo" : "") +
             (d.techo ? " y la del límite" : "") +
+            (suaviza ? ". La línea clara es el dato de cada día y la gruesa su media de " +
+                       d.media + " días, que es la que marca la tendencia" : "") +
             ". Pasa el dedo por encima para ver cada valor con su fecha."
       }) + leyFranja + "</div>";
 
@@ -6738,7 +6833,13 @@
       h += '<div class="hist-n">' + (s1.length + s2.length) + " medidas guardadas</div></div>";
     }
 
-    if (d.pie) h += '<p class="hist-pie">' + U.esc(d.pie) + "</p>";
+    /* El pie puede ser una función: hay medidas cuyo texto habla de «la línea
+       gruesa» y esa línea no siempre está. El peso, sin ir más lejos, se
+       suaviza desde el primer tramo, pero con tres pesadas en un mes no hay
+       media que dibujar y el pie se quedaba señalando una línea que no existe.
+       Un pie que describe lo que no se ve es un pie que se deja de leer. */
+    var pieTx = typeof d.pie === "function" ? d.pie(suaviza) : d.pie;
+    if (pieTx) h += '<p class="hist-pie">' + U.esc(pieTx) + "</p>";
     h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Cerrar</button>';
     caja.innerHTML = h;
     modal.classList.add("abierta");
@@ -8434,7 +8535,12 @@
       var ok = (estadoDia === "ok") || (f === hoy && cumplido);
       h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
         '" data-dia="' + f + '" role="button" tabindex="0">' +
-        '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
+        /* LA CABECERA, EN DOS COLUMNAS como el pie: fecha a la izquierda y NO DISP
+           a la derecha. Antes la × iba en posición absoluta sobre la esquina y en
+           el móvil se comía la fecha. (Carlos, 24-sep-2026: «en el móvil se ven
+           juntos».) */
+        '<span class="cab"><span class="fecha">' +
+        '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span></span>" +
         /* NO DISP, EN LA TIRA  ·  24-sep-2026. Estaba en la ficha del día y Carlos
            lo dijo claro: «debería salir en La Semana… más fácil de encontrar que
            donde está». Un toque marca, otro desmarca. El motivo se afina luego en
@@ -8442,6 +8548,7 @@
         (semF ? '<button type="button" class="dia-nd' + (noHab ? " puesto" : "") +
           '" data-nd="' + f + '" title="' + (noHab ? "Volver a d\u00eda h\u00e1bil" : "Marcar como no disponible") +
           '"><b>\u00d7</b><span>no disp</span></button>' : "") +
+        "</span>" +
         '<span class="q' + (ss.length && ss[0].bid ? " bloques" : "") + '">' +
         (noHab ? U.esc(nombreNoHabil(noHab.m))
         : (!semF ? "—" : (!ss.length ? "descanso"
