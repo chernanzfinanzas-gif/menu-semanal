@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=186">
-<link rel="stylesheet" href="css/actividad-khb.css?v=186">
+<link rel="stylesheet" href="css/estilos.css?v=195">
+<link rel="stylesheet" href="css/actividad-khb.css?v=195">
 </head>
 <body>
 
@@ -211,9 +211,9 @@
     </div>
 
     <div class="filtros" id="selector-despensa" style="margin-bottom:4px">
-      <button class="btn mini principal" data-desp="comida">Comida</button>
+      <button class="btn mini principal" data-desp="localizacion">Localización</button>
+      <button class="btn mini" data-desp="tengo">¿Lo tengo?</button>
       <button class="btn mini" data-desp="hogar">Hogar</button>
-      <button class="btn mini" data-desp="localizacion">Localización</button>
     </div>
 
     <div id="bloque-desp-comida">
@@ -233,8 +233,21 @@
         si lo usas en un plato.</div>
       <div class="fila" style="margin-bottom:12px">
         <input type="text" id="buscar-loc" placeholder="Buscar un ingrediente…" style="flex:1; min-width:180px">
+        <button class="btn mini" id="loc-reordenar" title="Vuelve a ordenar la lista con lo que has cambiado">Reordenar</button>
       </div>
       <div id="rejilla-loc"></div>
+    </div>
+
+    <div id="bloque-desp-tengo" hidden>
+      <div class="aviso">Ve mirando, de la nevera a la alacena, y <b>marca sólo lo que veas</b>:
+        poco, suficiente o mucho. Lo que no marques es lo que no hay. Esto se hace
+        <b>antes de planificar</b>: lo que sobre decide los primeros platos y lo que falte entra
+        en la compra. Para volver a quitar una marca, toca el mismo botón.</div>
+      <div class="fila" style="margin-bottom:12px">
+        <input type="text" id="buscar-tengo" placeholder="Buscar un ingrediente…" style="flex:1; min-width:180px">
+        <button class="btn mini" id="tengo-reordenar" title="Vuelve a ordenar con lo anotado">Reordenar</button>
+      </div>
+      <div id="rejilla-tengo"></div>
     </div>
 
     <div id="bloque-desp-hogar" hidden>
@@ -480,18 +493,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=186"></script>
-<script src="datos/recetas.js?v=186"></script>
-<script src="datos/nuevos.js?v=186"></script>
-<script src="datos/hogar.js?v=186"></script>
-<script src="datos/plantillas.js?v=186"></script>
-<script src="datos/actividades.js?v=186"></script>
-<script src="datos/plan.js?v=186"></script>
-<script src="js/util.js?v=186"></script>
-<script src="js/almacen.js?v=186"></script>
-<script src="js/github.js?v=186"></script>
-<script src="js/app.js?v=186"></script>
-<script src="js/actividad-khb.js?v=186"></script>
-<script src="js/entrenamiento.js?v=186"></script>
+<script src="datos/ingredientes.js?v=195"></script>
+<script src="datos/recetas.js?v=195"></script>
+<script src="datos/nuevos.js?v=195"></script>
+<script src="datos/hogar.js?v=195"></script>
+<script src="datos/plantillas.js?v=195"></script>
+<script src="datos/actividades.js?v=195"></script>
+<script src="datos/plan.js?v=195"></script>
+<script src="js/util.js?v=195"></script>
+<script src="js/almacen.js?v=195"></script>
+<script src="js/github.js?v=195"></script>
+<script src="js/app.js?v=195"></script>
+<script src="js/actividad-khb.js?v=195"></script>
+<script src="js/entrenamiento.js?v=195"></script>
 </body>
 </html>

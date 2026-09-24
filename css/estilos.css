@@ -493,6 +493,58 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
    abajo. Sin detalle no se ve el aviso de «lo usa tal plato», que es la
    mitad de para qué está esta pantalla. Mismo fallo que en la pasada. */
 #rejilla-loc .linea-loc .detalle{display:block; font-size:.75rem; line-height:1.35}
+.linea-loc.movida{border-color:var(--verde)}
+/* ¿Lo tengo?: la cifra siempre visible —se escribe mucho más que en la pasada
+   de antes de comprar, porque aquí no hay un menú que diga cuánto hace falta—
+   y la línea ya anotada, con un punto de color para verla de lejos. */
+#rejilla-tengo .linea-tengo{margin:0 13px 6px}
+#rejilla-tengo .linea-tengo .detalle{display:block; font-size:.76rem; line-height:1.35}
+#rejilla-tengo .linea-tengo.anotada{border-left:3px solid var(--verde)}
+/* Tres niveles y nada más. Sin campo de cifra la línea cabe en dos renglones y
+   entran siete u ocho por pantalla, que es lo que hace llevadera una pasada de
+   ciento cincuenta. Los tres botones se reparten el ancho a partes iguales para
+   que se acierte con el dedo sin mirar. */
+#rejilla-tengo .niveles{gap:5px; flex:1 1 100%}
+#rejilla-tengo .niveles .pas-b{flex:1 1 0; min-width:0}
+#rejilla-tengo .linea-tengo.anotada .nombre{font-weight:650}
+#rejilla-tengo .linea-tengo .donde{color:var(--gris)}
+
+/* ---------- ¿LO TENGO?: UN ESTANTE CADA VEZ (24-sep-2026) ----------
+   Carlos: «que abrir una localización y volver atrás sea sencillo, un botón
+   hacia atrás y el menú desplegable». La barra va PEGADA bajo la cabecera: con
+   treinta líneas por estante, un botón de volver que se queda arriba del todo
+   es un botón que no existe. `top` es la altura de `header.barra`. */
+.tengo-barra{position:sticky; top:52px; z-index:12; display:flex; align-items:center;
+  gap:8px; padding:8px 0 9px; margin:0 13px 2px; background:var(--gris-claro);
+  border-bottom:1px solid var(--borde)}
+.tengo-barra .btn{flex:0 0 auto; white-space:nowrap}
+.tengo-barra .loc-sel{flex:1 1 auto; min-width:0; max-width:none}
+#rejilla-tengo h4.estante{margin:10px 0 6px; padding:0 13px; font-size:.72rem;
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gris);
+  display:flex; gap:8px; align-items:baseline}
+#rejilla-tengo h4.estante span{font-weight:400; letter-spacing:0; text-transform:none; opacity:.75}
+
+/* El índice: dieciocho sitios, el nombre, cuántos llevas y cuándo lo repasaste.
+   Es un `button` de verdad y no un `div` con un clic encima, para que se pueda
+   tocar con el teclado y para que el móvil lo trate como algo pulsable. */
+.fila-estante{display:flex; width:calc(100% - 26px); margin:0 13px 6px; font:inherit; color:inherit;
+  text-align:left; cursor:pointer; background:var(--blanco); -webkit-appearance:none;
+  appearance:none; align-items:center}
+.fila-estante .datos{flex:1 1 auto; min-width:0}
+.fila-estante .nombre{font-weight:600}
+#rejilla-tengo .fila-estante .detalle{display:block; font-size:.75rem; color:var(--gris)}
+.fila-estante .cuantas{font-size:.76rem; color:var(--gris); border:1px solid var(--borde);
+  border-radius:99px; padding:3px 9px; white-space:nowrap}
+.fila-estante .cuantas.hechos{color:var(--verde); border-color:var(--verde)}
+.fila-estante .ir{color:var(--gris); font-size:1.5rem; line-height:1; margin-left:2px}
+.fila-estante.anotada{border-left:3px solid var(--verde)}
+.fila-estante:active{background:var(--gris-claro)}
+@media(max-width:767px){
+  /* la cabecera mide 38 px en el móvil: con 44 quedaba un hueco de 6 px por el
+     que se veía pasar la línea de debajo */
+  .tengo-barra{top:38px}
+  .fila-estante{padding:15px 12px}
+}
 .loc-sel{font:inherit; font-size:.85rem; color:inherit; background:var(--blanco);
   border:1px solid var(--borde); border-radius:9px; padding:8px 9px; max-width:190px}
 @media(max-width:519px){

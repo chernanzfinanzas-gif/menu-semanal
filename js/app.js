@@ -20,6 +20,7 @@
     filtrosIng: { texto: "", cat: "", clase: "" },
     fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
     filaDesp: "comida",     /* qué se lista en la Despensa: comida u hogar */
+    estanteTengo: null,     /* ¿Lo tengo?: el estante abierto, uno cada vez */
     busquedaHogar: "",
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
@@ -3164,16 +3165,234 @@
      y formato, porque es ese nombre el que viaja a Amazon. Las que vienen de
      fábrica traen un nombre genérico y salen avisando de que les falta la marca. */
   function ponerFilaDespensa(cual) {
-    UI.filaDesp = (cual === "hogar" || cual === "localizacion") ? cual : "comida";
+    /* El orden es el de Carlos: primero se coloca (Localización), luego se
+       anota lo que hay (¿Lo tengo?) y aparte va lo de la casa (Hogar).
+       «Comida» era la pantalla vieja de contar: la sustituye ¿Lo tengo?, que
+       hace lo mismo recorriendo el mueble en vez de sólo lo ya apuntado. Se
+       deja el bloque por si alguna ruta antigua lo pide. */
+    var validas = ["localizacion", "tengo", "hogar", "comida"];
+    UI.filaDesp = validas.indexOf(cual) >= 0 ? cual : "localizacion";
     var bl = { comida: $("#bloque-desp-comida"), hogar: $("#bloque-desp-hogar"),
-               localizacion: $("#bloque-desp-localizacion") };
+               localizacion: $("#bloque-desp-localizacion"), tengo: $("#bloque-desp-tengo") };
     Object.keys(bl).forEach(function (k) { if (bl[k]) bl[k].hidden = UI.filaDesp !== k; });
     $$("#selector-despensa [data-desp]").forEach(function (b) {
       b.classList.toggle("principal", b.getAttribute("data-desp") === UI.filaDesp);
     });
     if (UI.filaDesp === "hogar") pintarHogar();
     else if (UI.filaDesp === "localizacion") pintarLocalizacion();
+    else if (UI.filaDesp === "tengo") pintarLoTengo();
     else pintarDespensa();
+  }
+
+  /* ==================== ¿LO TENGO? ====================
+     El recorrido de la casa, de la nevera a la alacena, para anotar lo que hay
+     ANTES de planificar. Tres respuestas, las mismas que la pasada de antes de
+     comprar, y por el mismo motivo: «hay» y «no queda» resuelven casi todo, y
+     «queda algo» está para lo único que una marca no puede decir —la media
+     pizza, los 200 g que quedan en la bolsa de avena.
+
+     NO SE REPINTA AL CONTESTAR. Con doscientas líneas, rehacer la lista cierra
+     el estante que estás mirando y te devuelve arriba. (Carlos, 24-sep-2026,
+     sobre la pantalla de Localización: «podemos hacer que donde escribo se
+     quede, y que cierre y haga scroll yo».) Vale igual aquí. */
+  function btnTengo(id, r, activo, txt) {
+    return '<button type="button" class="btn mini pas-b' + (activo ? " activo" : "") +
+      '" data-tengo="' + esc(id) + ':' + r + '">' + txt + "</button>";
+  }
+
+  /* TRES NIVELES, NINGUNA CIFRA. Carlos, 24-sep-2026: «yo creo que sólo iré
+     marcando lo que haya algo… veo el producto y lo anoto con más o menos la
+     cantidad: poco / suficiente / mucho».
+     Es la respuesta buena a su propia pega sobre llevar stock —«siempre acaba
+     con regularizaciones y errores»—: un número exacto que nadie va a mantener
+     miente; tres niveles que se ven de un vistazo, no. Y lo que NO está marcado
+     es lo que no hay, así que la pasada consiste en ir marcando, no en
+     contestar doscientas preguntas. */
+  var NIVELES = [
+    { k: "poco",       n: "Poco" },
+    { k: "suficiente", n: "Suficiente" },
+    { k: "mucho",      n: "Mucho" }
+  ];
+
+  function detalleTengo(x, donde) {
+    var d;
+    if (x.pte === "corto") d = '<span style="color:var(--ambar)">se gastó más de lo apuntado</span>';
+    else if (!x.anotado || !x.nivel) d = "sin marcar";
+    else {
+      var n0 = "";
+      NIVELES.forEach(function (n) { if (n.k === x.nivel) n0 = n.n.toLowerCase(); });
+      d = "hay " + n0;
+      if (x.comprometido > 0) d += " · el menú ya pide " +
+        esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd));
+      if (x.dias !== null) d += " · " + (x.dias === 0 ? "hoy" : "hace " + x.dias + " d");
+    }
+    /* al buscar se sale de un estante concreto, así que hay que decir de dónde
+       es cada resultado: si no, marcas una cosa sin saber dónde mirarla */
+    if (donde) d += ' <span class="donde">· ' + esc(donde) + "</span>";
+    return d;
+  }
+
+  function lineaTengo(x, donde) {
+    return '<div class="linea linea-pas linea-tengo' + (x.nivel ? " anotada" : "") +
+      '" data-tengofila="' + esc(x.id) + '">' +
+      '<div class="datos"><div class="nombre">' + esc(x.n) + "</div>" +
+      '<div class="detalle">' + detalleTengo(x, donde) + "</div></div>" +
+      '<div class="pas-btns niveles">' +
+        NIVELES.map(function (n) {
+          return btnTengo(x.id, n.k, x.nivel === n.k, n.n);
+        }).join("") +
+      "</div></div>";
+  }
+
+  /* ---------- UN ESTANTE CADA VEZ ----------
+     Carlos, 24-sep-2026: «asegúrate de que abrir una localización y volver
+     atrás sea sencillo: un botón hacia atrás y el menú desplegable».
+
+     La nevera entera son 62 líneas; su puerta, 11. La pasada es física —estás
+     delante de un estante, no delante de una zona—, así que la pantalla enseña
+     primero la lista de estantes y luego UNO SOLO. Arriba, pegada, una barra
+     con «Volver» y un desplegable con los dieciocho: para pasar de la puerta al
+     congelador no hay que volver al índice ni buscar el sitio en un scroll de
+     doscientas líneas. La barra es pegajosa porque el botón de volver tiene que
+     estar donde el pulgar, no a seis pantallazos de distancia. */
+  function repasoTxt(e) {
+    return e.dias === null ? "sin repasar"
+      : (e.dias === 0 ? "repasado hoy" : "repasado hace " + e.dias + " d");
+  }
+
+  function indiceTengo(zonas) {
+    var h = '<div class="indice-tengo">';
+    zonas.forEach(function (z) {
+      var con = z.estantes.filter(function (e) { return e.ing.length; });
+      if (!con.length) return;
+      h += '<h4 class="estante zona-tit">' + esc(z.n) +
+        "<span>" + z.anotados + " de " + z.total + "</span></h4>";
+      con.forEach(function (e) {
+        h += '<button type="button" class="linea fila-estante' +
+          (e.anotados ? " anotada" : "") + '" data-irestante="' + esc(e.k) + '">' +
+          '<div class="datos"><div class="nombre">' + esc(e.n) + "</div>" +
+          '<div class="detalle">' + repasoTxt(e) + "</div></div>" +
+          '<div class="cuantas' + (e.anotados ? " hechos" : "") + '">' +
+            e.anotados + "/" + e.ing.length + "</div>" +
+          '<div class="ir">&rsaquo;</div></button>';
+      });
+    });
+    return h + "</div>";
+  }
+
+  function barraTengo(zonas, est, zon) {
+    var op = "";
+    zonas.forEach(function (z) {
+      var con = z.estantes.filter(function (e) { return e.ing.length; });
+      if (!con.length) return;
+      op += '<optgroup label="' + esc(z.n) + '">';
+      con.forEach(function (e) {
+        op += '<option value="' + esc(e.k) + '"' + (e.k === est.k ? " selected" : "") +
+          ">" + esc(e.n) + " (" + e.anotados + "/" + e.ing.length + ")</option>";
+      });
+      op += "</optgroup>";
+    });
+    return '<div class="tengo-barra">' +
+      '<button type="button" class="btn mini" data-tengovolver="1">&lsaquo; Estantes</button>' +
+      '<select class="loc-sel" id="salto-estante" aria-label="Ir a otro estante">' + op + "</select>" +
+      "</div>" +
+      '<h4 class="estante zona-tit">' + esc(zon.n) + " · " + esc(est.n) +
+      '<span data-repaso="1">' + repasoTxt(est) + "</span></h4>";
+  }
+
+  function pintarLoTengo() {
+    var cont = $("#rejilla-tengo");
+    if (!cont) return;
+    var q = sinTildes((UI.buscaTengo || "").trim().toLowerCase());
+    var zonas = Almacen.recorrido();
+
+    /* buscar manda sobre el estante: se busca en toda la casa y cada resultado
+       dice dónde vive */
+    if (q) {
+      var html = "", n = 0;
+      zonas.forEach(function (z) {
+        z.estantes.forEach(function (e) {
+          e.ing.forEach(function (i) {
+            if (sinTildes(i.n.toLowerCase()).indexOf(q) < 0) return;
+            n++; html += lineaTengo(i, z.n + " · " + e.n);
+          });
+        });
+      });
+      cont.innerHTML = n
+        ? '<div class="nota-peque" style="margin:0 13px 8px">' + n +
+          (n === 1 ? " ingrediente" : " ingredientes") + " con ese nombre</div>" + html
+        : '<div class="vacio">Nada con ese nombre.</div>';
+      return;
+    }
+
+    var est = null, zon = null;
+    zonas.forEach(function (z) {
+      z.estantes.forEach(function (e) { if (e.k === UI.estanteTengo) { est = e; zon = z; } });
+    });
+
+    var hay = zonas.some(function (z) { return z.total > 0; });
+    if (!hay) {
+      cont.innerHTML = '<div class="vacio">No hay nada colocado todavía. ' +
+        "Coloca los ingredientes en Localización y aparecerán aquí.</div>";
+      return;
+    }
+    if (!est || !est.ing.length) { UI.estanteTengo = null; cont.innerHTML = indiceTengo(zonas); return; }
+    cont.innerHTML = barraTengo(zonas, est, zon) +
+      est.ing.map(function (i) { return lineaTengo(i); }).join("");
+  }
+
+  /* Cambiar de estante o volver al índice sin quedarse a media pantalla. */
+  function irEstanteTengo(k) {
+    UI.estanteTengo = k || null;
+    if ($("#buscar-tengo") && UI.buscaTengo) { UI.buscaTengo = ""; $("#buscar-tengo").value = ""; }
+    pintarLoTengo();
+    /* `scrollIntoView` deja el contenedor a cero y la cabecera pegada se lo
+       come: al entrar en un estante la primera línea quedaba debajo del verde.
+       Se descuenta la altura de la cabecera más un respiro. */
+    var c = $("#rejilla-tengo");
+    if (!c) return;
+    try {
+      var y = c.getBoundingClientRect().top + (window.pageYOffset || 0) - 58;
+      window.scrollTo({ top: y > 0 ? y : 0 });
+    } catch (e) {}
+  }
+
+  /* Los contadores al vuelo, sin rehacer la lista. */
+  /* La cuenta del estante vive en el propio desplegable —«Puerta (3/11)»—, que
+     está pegado arriba: así se ve cómo va la pasada sin dejar de marcar y sin
+     un segundo contador que diga lo mismo. */
+  function contadoresTengo() {
+    var est = null;
+    Almacen.recorrido().forEach(function (z) {
+      z.estantes.forEach(function (e) { if (e.k === UI.estanteTengo) est = e; });
+    });
+    if (!est) return;
+    var op = document.querySelector('#salto-estante option[value="' + est.k + '"]');
+    if (op) op.textContent = est.n + " (" + est.anotados + "/" + est.ing.length + ")";
+    var r = document.querySelector('#rejilla-tengo [data-repaso]');
+    if (r) r.textContent = repasoTxt(est);
+  }
+
+  /* Refresca SOLO esa línea: el detalle y qué botón queda encendido. */
+  /* Refresca SOLO esa línea: el detalle y qué nivel queda encendido. */
+  function refrescarLineaTengo(id) {
+    var fila = document.querySelector('[data-tengofila="' + id + '"]');
+    if (!fila) return;
+    var x = null;
+    Almacen.recorrido().forEach(function (z) {
+      z.estantes.forEach(function (e) {
+        e.ing.forEach(function (i2) { if (i2.id === id) x = i2; });
+      });
+    });
+    if (!x) return;
+    var det = fila.querySelector(".detalle");
+    if (det) det.innerHTML = detalleTengo(x);
+    fila.classList.toggle("anotada", !!x.nivel);
+    fila.querySelectorAll("[data-tengo]").forEach(function (b) {
+      var r = b.getAttribute("data-tengo").split(":")[1];
+      b.classList.toggle("activo", r === x.nivel);
+    });
+    contadoresTengo();
   }
 
   /* ==================== LOCALIZACIÓN ====================
@@ -3205,6 +3424,33 @@
   }
 
   var locAvisos = null;
+
+  /* Los números, al vuelo y sin rehacer la lista: cuántos quedan sin colocar y
+     cuántos hay en cada zona. Lo que ya está en pantalla no se toca. */
+  function contadoresLoc() {
+    var pend = Almacen.sinColocar().length;
+    var cab = document.querySelector("#rejilla-loc .pendiente .cuantas");
+    if (cab) { cab.textContent = pend || "—"; cab.classList.toggle("avisa", !!pend); }
+    var txt = document.querySelector("#rejilla-loc .pendiente .aviso-grupo");
+    if (txt && pend) {
+      var av = Object.keys(Almacen.avisoSinSitio()).length;
+      txt.innerHTML = pend + " sin sitio" +
+        (av ? ' · <b style="color:var(--ambar)">' + av + " ya están en platos planificados</b>" : "");
+    } else if (txt) {
+      txt.textContent = "Todo colocado. Lo que des de alta a partir de ahora aparecerá aquí.";
+    }
+    var casa = (Almacen.estado.ingredientes || []).filter(function (g) {
+      return !g.oculta && g.cat !== "Restaurante y bar";
+    });
+    Almacen.ZONAS.forEach(function (z) {
+      var n = casa.filter(function (g) {
+        var k = Almacen.sitioDe(g);
+        return z.estantes.some(function (e) { return e.k === k; });
+      }).length;
+      var d = document.querySelector('#rejilla-loc [data-zona="' + z.k + '"] .cuantas');
+      if (d) d.textContent = n || "—";
+    });
+  }
 
   function pintarLocalizacion() {
     var cont = $("#rejilla-loc");
@@ -4716,24 +4962,69 @@
     $("#buscar-loc").addEventListener("input", function (e) {
       UI.buscaLoc = e.target.value; pintarLocalizacion();
     });
-    /* El desplegable guarda al soltar. No se repinta la pantalla entera: con
-       doscientas líneas, rehacerla te devuelve arriba y pierdes por dónde ibas.
-       Se mueve la fila a su estante nuevo y se ajustan los contadores. */
+    /* AL ELEGIR ESTANTE NO SE REPINTA NADA. Carlos, 24-sep-2026: «cuando
+       modifico algo en alacena se guarda y se cierra y se va arriba; podemos
+       hacer que donde escribo se quede, y que cierre y haga scroll yo».
+       Tenía razón dos veces. Rehacer la lista entera cerraba el `details` de la
+       zona y te devolvía al principio, y con doscientas líneas eso significa
+       buscar otra vez por dónde ibas. Ahora la fila se queda donde está, dice a
+       dónde se ha ido, y los contadores se ajustan a mano. Cuando quieras verlo
+       recolocado está el botón «Reordenar». */
     $("#rejilla-loc").addEventListener("change", function (e) {
       var sel = e.target.closest("[data-loc]");
       if (!sel) return;
       var id = sel.getAttribute("data-loc"), v = sel.value;
       if (v) Almacen.ponerSitio(id, v);
-      else { var g = Almacen.ingrediente(id); if (g) { delete g.sitio; Almacen.guardar("ingrediente"); } }
-      var abierta = UI.zonaAbierta;
-      pintarLocalizacion();
-      UI.zonaAbierta = abierta;
-      Util.toast(v ? "A " + Almacen.nombreSitio(v) : "Sin colocar");
+      else { var g0 = Almacen.ingrediente(id); if (g0) { delete g0.sitio; Almacen.guardar("ingrediente"); } }
+      var fila = document.querySelector('[data-locfila="' + id + '"]');
+      if (fila) {
+        fila.classList.toggle("movida", !!v);
+        var det = fila.querySelector(".detalle");
+        var g = Almacen.ingrediente(id);
+        if (det) det.innerHTML = esc(g ? g.cat : "") +
+          (v ? ' · <b style="color:var(--verde)">en ' + esc(Almacen.nombreSitio(v)) + '</b>'
+             : ' · <b style="color:var(--ambar)">sin colocar</b>');
+      }
+      contadoresLoc();
     });
+    /* El pliegue SÓLO desde la cabecera de la zona. Estaba escuchando cualquier
+       clic dentro del `details`, así que abrir el desplegable cerraba la zona:
+       el clic del `select` también casaba con `closest("[data-zona]")`. */
     $("#rejilla-loc").addEventListener("click", function (e) {
-      var d = e.target.closest("[data-zona]");
+      var sum = e.target.closest("summary");
+      if (!sum) return;
+      var d = sum.closest("[data-zona]");
       if (d) UI.zonaAbierta = UI.zonaAbierta === d.getAttribute("data-zona")
         ? null : d.getAttribute("data-zona");
+    });
+    $("#buscar-tengo").addEventListener("input", function (e) {
+      UI.buscaTengo = e.target.value; pintarLoTengo();
+    });
+    $("#rejilla-tengo").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-tengo]");
+      if (b) {
+        var par = b.getAttribute("data-tengo").split(":");
+        /* tocar el nivel que ya estaba puesto lo quita: es como se dice «esto
+           ya no está», sin necesidad de un botón de «no queda» en cada línea */
+        var quita = b.classList.contains("activo");
+        Almacen.responderRecorrido(par[0], quita ? null : par[1]);
+        refrescarLineaTengo(par[0]);
+        return;
+      }
+      var ir = e.target.closest("[data-irestante]");
+      if (ir) { irEstanteTengo(ir.getAttribute("data-irestante")); return; }
+      if (e.target.closest("[data-tengovolver]")) { irEstanteTengo(null); return; }
+    });
+    $("#rejilla-tengo").addEventListener("change", function (e) {
+      if (e.target.id === "salto-estante") irEstanteTengo(e.target.value);
+    });
+    var bret = $("#tengo-reordenar");
+    if (bret) bret.addEventListener("click", function () { pintarLoTengo(); });
+    var bre = $("#loc-reordenar");
+    if (bre) bre.addEventListener("click", function () {
+      pintarLocalizacion();
+      var c = $("#rejilla-loc");
+      if (c) try { c.scrollIntoView({ block: "start" }); } catch (e3) {}
     });
     $("#buscar-hogar").addEventListener("input", function (e) { UI.busquedaHogar = e.target.value; pintarHogar(); });
     $("#filtro-hogar-cajon").addEventListener("change", function (e) { UI.cajonHogar = e.target.value; pintarHogar(); });

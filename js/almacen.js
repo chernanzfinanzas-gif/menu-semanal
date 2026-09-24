@@ -1492,6 +1492,98 @@
       return true;
     },
 
+    /* ================= EL RECORRIDO: ¿LO TENGO? =================
+       Carlos, 24-sep-2026: «voy mirando en el móvil para anotar lo que tengo,
+       desde la nevera a la alacena».
+
+       Es la pasada de la despensa, pero recorriendo la CASA en vez del menú.
+       La otra —la de antes de comprar— pregunta «¿hay bastante para lo que pide
+       la semana?» y sabe la cantidad que hace falta. Ésta no tiene menú
+       delante: se hace ANTES de planificar, que es justo cuando todavía no hay
+       nada planificado. Así que la pregunta es otra y la respuesta también:
+
+         HAY        hay lo normal: un envase. Es lo que se ve de un vistazo
+                    sin contar, y para el 90 % de las líneas basta.
+         QUEDA ALGO se escribe la cifra. Es para la media pizza y los 200 g de
+                    avena que quedan en la bolsa: lo único que una marca no
+                    puede decir.
+         NO QUEDA   cero.
+
+       Devuelve las zonas con sus estantes y lo que vive en cada uno, tenga
+       cifra o no: lo que se recorre es el mueble, no la lista de lo apuntado. */
+    recorrido: function () {
+      var self = this, hoy = Util.hoyISO(), comp = this.comprometidoTodo();
+      var casa = (this.estado.ingredientes || []).filter(function (g) {
+        return !g.oculta && g.cat !== "Restaurante y bar";
+      });
+      return this.ZONAS.map(function (z) {
+        var estantes = z.estantes.map(function (e) {
+          var l = casa.filter(function (g) { return self.sitioDe(g) === e.k; })
+            .map(function (g) {
+              var f = self.fichaStock(g.id);
+              var c = (f && f.c > 0) ? f.c : 0;
+              return {
+                id: g.id, n: g.n, u: g.u, pesoUd: g.pesoUd || 0, envase: g.envase || 0,
+                racion: g.racion || 0, nivel: (f && f.nivel) || null,
+                c: c, anotado: !!f, f: (f && f.f) || null,
+                pte: (f && f.pte) || false,
+                dias: (f && f.f) ? Util.diasEntre(f.f, hoy) : null,
+                comprometido: comp[g.id] || 0,
+                libre: Math.max(0, c - (comp[g.id] || 0))
+              };
+            });
+          l.sort(function (a, b) { return a.n.localeCompare(b.n); });
+          var contado = (self.estado.stockSitios || {})[e.k] || null;
+          return { k: e.k, n: e.n, ing: l,
+                   anotados: l.filter(function (x) { return x.nivel; }).length,
+                   contado: contado,
+                   dias: contado ? Util.diasEntre(contado, hoy) : null };
+        });
+        return { k: z.k, n: z.n, estantes: estantes,
+                 total: estantes.reduce(function (a, x) { return a + x.ing.length; }, 0),
+                 anotados: estantes.reduce(function (a, x) { return a + x.anotados; }, 0) };
+      });
+    },
+
+    /* ---------- LA RESPUESTA DEL RECORRIDO: TRES NIVELES ----------
+       Carlos, 24-sep-2026: «lo anoto con más o menos la cantidad: poco /
+       suficiente / mucho». Ningún número que teclear, y por una razón que es
+       suya: un stock exacto que nadie mantiene acaba mintiendo, y él lo ha
+       sufrido llevándolo en logística.
+
+       Pero la lista de la compra sí necesita una cantidad, así que el nivel se
+       traduce a envases. La traducción es una SUPOSICIÓN declarada, no una
+       medida:
+         poco       = un cuarto de envase   -> falta casi todo, la compra pide
+         suficiente = un envase             -> lo normal, no pide
+         mucho      = dos envases           -> de sobra
+       Lo que no está marcado vale cero, que es lo prudente: si no lo has visto,
+       la compra lo pide. Sin envase se usa la ración, y sin ración, la unidad. */
+    NIVELES_STOCK: { poco: 0.25, suficiente: 1, mucho: 2 },
+
+    responderRecorrido: function (id, nivel) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      if (!nivel) {
+        delete this.estado.stock[id];
+      } else {
+        var factor = this.NIVELES_STOCK[nivel];
+        if (!(factor > 0)) return false;
+        var lleno = g.envase > 0 ? g.envase : (g.racion > 0 ? g.racion : 1);
+        var c = lleno * factor;
+        /* en unidades no hay cuartos de yogur: se redondea a una pieza */
+        if (g.u === "ud") c = Math.max(1, Math.round(c));
+        this.estado.stock[id] = { c: Math.round(c * 100) / 100, nivel: nivel, f: Util.hoyISO() };
+      }
+      var k = this.sitioDe(id);
+      if (k) {
+        if (!this.estado.stockSitios) this.estado.stockSitios = {};
+        this.estado.stockSitios[k] = Util.hoyISO();
+      }
+      this.guardar("stock");
+      return true;
+    },
+
     /* ---------- LO QUE NO TIENE SITIO ----------
        Carlos, 24-sep-2026: «cualquier ingrediente nuevo debe aparecer en
        pendiente, y si se usa una receta con él aparece un aviso de que el
