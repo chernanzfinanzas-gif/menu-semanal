@@ -3744,18 +3744,34 @@
   /* La rampa entera, no solo el tramo elegido: es el plan, y se mira completo.
      Las semanas que aún no han empezado salen solo como objetivo. */
   function seriesCargaSemanal() {
+    /* LA RAMPA ENTERA, NO SÓLO LAS SEMANAS ESCRITAS A MANO.
+       Antes se recorría `P.rampa`, que llega a la semana 13 y se acaba el 21 de
+       diciembre: el gráfico se paraba ahí aunque la rampa siga. Desde el 23 de
+       septiembre `peldano()` calcula el crucero semana a semana —28 puntos por
+       semana de construcción, descarga cada cuarta, techo 700— así que la rampa
+       existe hasta julio de 2027 y el dibujo no la enseñaba.
+       Ahora se recorren las RAMPA_SEMANAS que se proyectan, exactamente igual
+       que hace `calendarioRampa()`. Y el día que se escriban más semanas a mano
+       en plan.js, el gráfico las coge solo: `peldano()` da preferencia a lo
+       escrito y sólo calcula a partir de donde se acaba.
+       (Carlos, 24-sep-2026: «puede abarcar hasta junio este gráfico y luego se
+       actualizará cuando añadamos más semanas?».) */
     var reales = [], objetivos = [], hoy = U.hoyISO();
-    P.rampa.forEach(function (r) {
-      objetivos.push({ f: r.desde, v: r.carga, n: r.n });
-      if (r.desde > hoy) return;
-      var c = cargaSemana(r.desde, r.hasta < hoy ? r.hasta : hoy);
-      if (c !== null) reales.push({ f: r.desde, v: c, n: r.n });
-    });
-    /* la última semana de la rampa está abierta («crucero»): para dibujar se
-       cuenta como una semana más, o el eje se iría hasta el verano que viene */
-    var ult = P.rampa[P.rampa.length - 1];
+    var f = P.rampa[0].desde, hasta;
+    for (var i = 0; i < RAMPA_SEMANAS; i++) {
+      var p = peldano(i);
+      /* la semana 1 son diez días, no siete: arrancó un viernes */
+      var dias = (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
+      hasta = U.sumarDias(f, dias - 1);
+      objetivos.push({ f: f, v: p.carga, n: p.n });
+      if (f <= hoy) {
+        var c = cargaSemana(f, hasta < hoy ? hasta : hoy);
+        if (c !== null) reales.push({ f: f, v: c, n: p.n });
+      }
+      f = U.sumarDias(hasta, 1);
+    }
     return { reales: reales, objetivos: objetivos,
-             desde: P.rampa[0].desde, hasta: U.sumarDias(ult.desde, 7) };
+             desde: P.rampa[0].desde, hasta: f };
   }
 
   /* ---------- el dibujo ----------
@@ -3915,9 +3931,15 @@
     todos.sort(function (a, b) { return a - b; });
     function pct(q) { return todos[Math.min(todos.length - 1, Math.max(0, Math.round((todos.length - 1) * q)))]; }
     var min = pct(0.02), max = pct(0.98);
-    var recortados = (min > todos[0] || max < todos[todos.length - 1]);
     if (o.min !== undefined && o.min < min) min = o.min;
     if (o.max !== undefined && o.max > max) max = o.max;
+    /* EL «+» DEL TOPE, DESPUÉS DE APLICAR `min` Y `max` Y SÓLO MIRANDO ARRIBA.
+       Se calculaba antes, y además contaba también el recorte de abajo: en la
+       carga semanal, con `min:0` puesto, no se recortaba nada y el eje ponía
+       «700+» igual, diciendo que había barras más altas fuera del dibujo.
+       No las había. El «+» sólo adorna el rótulo de arriba, así que sólo puede
+       significar una cosa: que por arriba queda algo fuera. */
+    var recortados = max < todos[todos.length - 1];
     if (max - min < 0.5) { max += 0.5; min -= 0.5; }
     var minD = min, maxD = max;                    // los extremos rotulados
     var pad = (max - min) * 0.12; min -= pad; max += pad;
@@ -3935,9 +3957,16 @@
     var t0 = U.desdeISO(o.desde).getTime(), t1 = U.desdeISO(o.hasta).getTime();
     if (t1 <= t0) t1 = t0 + 86400000;
     var diasEje = Math.round((t1 - t0) / 86400000);
+    /* Con la rampa entera el tramo va de septiembre de 2026 a julio de 2027:
+       290 días, por debajo de los 300 que encendían el formato largo, así que
+       el eje ponía «18 septiembre … 5 julio» sin decir de qué año era cada uno.
+       Cambiar de año civil basta para que haga falta decirlo. */
+    var cruzaAno = new Date(t0).getFullYear() !== new Date(t1).getFullYear();
     function rotuloFecha(f) {
       var d = U.desdeISO(f);
-      return diasEje > 300 ? (MES_CORTO[d.getMonth()] + " " + d.getFullYear()) : U.etiquetaFecha(f);
+      if (diasEje > 300) return MES_CORTO[d.getMonth()] + " " + d.getFullYear();
+      if (cruzaAno) return U.etiquetaFecha(f) + " " + d.getFullYear();
+      return U.etiquetaFecha(f);
     }
     function X(f) {
       var x = L + (W - L - R) * ((U.desdeISO(f).getTime() - t0) / (t1 - t0));
@@ -3965,6 +3994,9 @@
        en el CSS de `.evo-svg`, que es común a todas. (Carlos, 24-sep-2026.) */
     var s = '<svg class="evo-svg" viewBox="0 0 ' + W + " " + H + '"' +
       ' data-esc="' + [t0, t1, min, max, W, H, L, R, T, B].join("|") + '"' +
+      /* el globo dice el año cuando el tramo pasa de los diez meses: con la
+         rampa llegando a julio de 2027, «5 octubre» a secas no dice cuál */
+      ' data-ano="' + (diasEje > 300 || cruzaAno ? 1 : 0) + '"' +
       ' data-uni="' + U.esc(o.unidadTip || o.arriba || "") + '"' +
       (sec ? ' data-pts2="' + serial(sec.pts) + '"' +
              ' data-lab1="' + U.esc((o.par && o.par[0]) || "") + '"' +
@@ -5369,7 +5401,8 @@
           desde: cs.desde, hasta: cs.hasta, alto: 190, arriba: "carga semanal \u00b7 la rampa entera",
           min: 0,
           alt: "Carga semanal real frente al objetivo del plan",
-          explica: "Una barra clara por semana con lo que pide la rampa hasta diciembre, y encima en verde lo que llevas hecho.",
+          explica: "Una barra clara por semana con lo que pide la rampa —las trece escritas y el crucero " +
+            "que viene detrás, hasta el techo de 700—, y encima en verde lo que llevas hecho.",
           /* EL GLOBO SALE EN TODAS LAS BARRAS, no solo en la verde (Carlos,
              23-sep-2026: «solo sale banner en la columna rellena, debería salir
              en todas, con la carga prevista, y si hay carga hecha esa semana por
@@ -8086,8 +8119,10 @@
         ? (lab1 ? U.esc(lab1) + " " : "") + U.esc(numTip(mejor.v)) + " · " +
           (lab2 ? U.esc(lab2) + " " : "") + U.esc(numTip(v2)) + (uni ? " " + U.esc(uni) : "")
         : U.esc(numTip(mejor.v)) + (uni ? " " + U.esc(uni) : "");
+      var conAno = svg.getAttribute("data-ano") === "1";
       tip.innerHTML = "<b>" + texto + "</b>" +
-        "<span>" + U.esc(U.etiquetaFecha(mejor.f)) + "</span>";
+        "<span>" + U.esc(U.etiquetaFecha(mejor.f) +
+          (conAno ? " de " + U.desdeISO(mejor.f).getFullYear() : "")) + "</span>";
       tip.style.display = "block";
       var ancho = tip.offsetWidth || 90;
       var x = xPt * esc2 - ancho / 2;
