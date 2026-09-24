@@ -610,6 +610,31 @@
       ".sal-hora{padding:7px 12px;border:1px solid var(--azul-borde);border-radius:999px;background:var(--blanco);" +
         "font:inherit;color:inherit;cursor:pointer}",
       ".sal-hora.elegido{border-color:var(--azul);background:var(--azul);color:#fff}",
+      /* días no hábiles, ámbar y avisos de reparto */
+      ".ent-dia.nohabil{background:repeating-linear-gradient(135deg,#f4f6f8,#f4f6f8 6px,#eceff3 6px,#eceff3 12px);" +
+        "border-color:#d7dde4;color:#8b97a4}",
+      ".ent-dia.nohabil .q{font-style:italic}",
+      ".ent-dia.ambar{background:var(--ambar-fondo);border-color:var(--ambar)}",
+      ".resc{display:flex;flex-direction:column;gap:3px;margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid}",
+      ".resc .et{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;font-weight:700}",
+      ".resc.ambar{background:var(--ambar-fondo);border-color:var(--ambar)}",
+      ".resc.ambar .et{color:#8a5a12}",
+      ".resc.rojo{background:var(--rojo-fondo);border-color:var(--rojo)}",
+      ".resc.rojo .et{color:var(--rojo)}",
+      ".resc .btn{align-self:flex-start;margin-top:6px}",
+      ".av-reparto{margin-top:10px;display:flex;flex-direction:column;gap:6px}",
+      ".av-linea{padding:8px 11px;border-radius:10px;background:var(--azul-claro);" +
+        "border:1px solid var(--azul-borde);font-size:.82rem}",
+      ".av-linea b{display:block;color:var(--azul-hondo)}",
+      ".av-linea span{color:#6b7c8d}",
+      ".dia-bl.quitado{text-decoration:line-through;opacity:.55}",
+      ".nohab-caja{margin:10px 0;padding:10px 12px;border:1px dashed var(--azul-borde);border-radius:12px}",
+      ".nohab-caja summary{cursor:pointer;font-size:.86rem;color:var(--azul-hondo);font-weight:600}",
+      ".nohab-caja.puesto{display:flex;gap:10px;align-items:center;justify-content:space-between;" +
+        "border-style:solid;background:#f4f6f8}",
+      ".nohab-caja.puesto b{display:block}",
+      ".nohab-caja .nota-peque{display:block;margin:4px 0 0}",
+      ".nohab-bot{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}",
       ".sal-cuenta{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--azul-claro);font-size:.95rem}",
       ".mod-bloque:last-of-type{margin-bottom:0}",
       ".aviso.en-modal{margin-top:12px}",
@@ -953,6 +978,8 @@
     if (!e.entreno.talla) e.entreno.talla = {};
     if (!e.entreno.ajuste) e.entreno.ajuste = {};
     if (!e.entreno.largo) e.entreno.largo = {};   // la salida declarada, por semana
+    if (!e.entreno.noHabil) e.entreno.noHabil = {};   // días que no se pueden entrenar
+    if (!e.entreno.quitados) e.entreno.quitados = {}; // bloques retirados con motivo
     return e.entreno;
   }
 
@@ -1557,7 +1584,8 @@
     if (!B || !sem || !sem.desde) return null;
     var gL = (ent().largo || {})[sem.desde];
     var clave = sem.desde + "|" + sem.carga + "|" + tallaDe(sem) +
-                "|" + (gL ? gL.modo + ":" + gL.horas : "-");
+                "|" + (gL ? gL.modo + ":" + gL.horas : "-") +
+                "|" + firmaNoHabil(sem);
     if (cacheBolsillo[clave]) return cacheBolsillo[clave];
 
     var rit = P.ritmos || {}, out = [], num = 0;
@@ -1603,7 +1631,13 @@
        mínima, con el tope de `cfg.n`, y los minutos se reparten entre ellos.
        En las semanas bajas salen menos bloques, y van apareciendo según sube
        el objetivo hasta llegar a los cinco. */
-    function trocear(pts, ph, cfg) {
+    /* CUÁNTOS DÍAS HAY PARA REPARTIR. Con días no hábiles marcados, mantener los
+       cinco rodillos sería meter dos en el mismo día una y otra vez. Se hacen
+       menos bloques y más largos, que es lo coherente con repartir toda la carga
+       en menos días. (24-sep-2026.) */
+    var nHab = Math.max(1, diasHabilesDe(sem).length);
+
+    function trocear(pts, ph, cfg, tope) {
       if (!(pts > 0) || !ph) return { n: 0, min: 0 };
       var minT = pts / ph * 60;
       /* LO QUE SOBRA NO SE TIRA. Antes, si el resto no llegaba al bloque mínimo
@@ -1614,7 +1648,8 @@
         if (cfg.suelo && minT >= cfg.suelo) return { n: 1, min: Math.round(minT / 5) * 5 };
         return { n: 0, min: 0 };
       }
-      var n = Math.max(1, Math.min(cfg.n, Math.floor(minT / cfg.min)));
+      var maxN = Math.min(cfg.n, tope || cfg.n);
+      var n = Math.max(1, Math.min(maxN, Math.floor(minT / cfg.min)));
       var m = Math.round(minT / n / 5) * 5;
       if (m > cfg.max) m = cfg.max;
       if (m < cfg.min) m = cfg.min;
@@ -1648,10 +1683,14 @@
            1, minLargo, { largo: true, pts: ptsLargo, modo: L.modo.id });
     }
 
-    var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, B.rodillo);
+    /* el largo, si lo hay, ya ocupa un día: a los rodillos les quedan nHab-1 */
+    var topeRod = Math.max(1, nHab - (ptsLargo > 0 ? 1 : 0));
+    var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, B.rodillo, topeRod);
     mete("bici", B.textos.rodillo, rod.n, rod.min);
-    var cam = trocear(ptsCam, vCam, B.caminata);
+    var cam = trocear(ptsCam, vCam, B.caminata, nHab);
     mete("caminar", B.textos.caminata, cam.n, cam.min);
+    /* la fuerza NO se recorta por días: comparte día con el rodillo sin problema,
+       que es lo que hacen las plantillas de siempre. */
     (B.fuerza.nombres || []).slice(0, B.fuerza.n).forEach(function (nom) {
       mete("fuerza", nom, 1, B.fuerza.min);
     });
@@ -1666,16 +1705,109 @@
     return out;
   }
 
+  /* ==================== LOS DÍAS NO HÁBILES  ·  24-sep-2026 ====================
+     Carlos: «si no hay salida y no puedo moverla de día que reparta esa carga en
+     los cinco días disponibles. Y esta frase trae una mejora: marcar días como no
+     hábiles por la razón que sea». Y luego: «o cuentan como descanso o se pueden
+     clasificar así».
+
+     Así que un día no hábil ES DESCANSO: no se le pone nada y no cuenta como
+     incumplido. La carga de la semana NO baja —decisión suya, la misma que tomó
+     con la salida larga—: se reparte entre los días que queden, aunque salgan
+     sesiones largas. Si marca el sábado y el domingo, los cinco de diario cargan
+     con todo.
+
+     MOTIVOS: son etiquetas, no reglas. Ninguno cambia el cálculo; están para que
+     dentro de un mes se sepa por qué aquella semana fue rara. */
+  var MOTIVOS_NOHABIL = [
+    { id: "viaje",   n: "Viaje" },
+    { id: "social",  n: "Compromiso" },
+    { id: "trabajo", n: "Trabajo" },
+    { id: "medico",  n: "Médico" },
+    { id: "otro",    n: "Otra cosa" }
+  ];
+
+  function noHabilDe(iso) { return ent().noHabil[iso] || null; }
+
+  function ponerNoHabil(iso, motivo) {
+    var e = ent();
+    if (motivo) e.noHabil[iso] = { m: motivo, t: Date.now() };
+    else delete e.noHabil[iso];
+    cacheBolsillo = {};
+    /* AL MARCARLO, LOS BLOQUES DE ESE DÍA SE RECOLOCAN SOLOS. Es lo que eligió
+       Carlos: la app los reparte en los días hábiles que queden y él retoca lo que
+       no le cuadre. Se guarda el reparto entero para que el movimiento sea real y
+       no una recolocación que se rehace distinta en cada pintada. */
+    var sem = semanaDe(iso);
+    if (motivo && sem) {
+      var b = bolsilloDe(sem) || [], mapa = repartoDe(sem) || {}, movidos = 0;
+      b.forEach(function (x) {
+        if (mapa[x.id] !== iso) return;
+        var d = mejorDiaPara(sem, mapa, x);
+        mapa[x.id] = d;
+        if (d) movidos++;
+      });
+      repartoGuardado()[sem.desde] = mapa;
+      if (movidos && U.toast) U.toast(movidos === 1 ? "1 bloque movido" : movidos + " bloques movidos");
+    }
+    A.guardar("entreno");
+  }
+
+  function diasHabilesDe(sem) {
+    return diasDe(sem).filter(function (f) { return !noHabilDe(f); });
+  }
+
+  /* los días no hábiles de una semana, para la clave de caché del bolsillo */
+  function firmaNoHabil(sem) {
+    var o = [];
+    diasDe(sem).forEach(function (f) { var n = noHabilDe(f); if (n) o.push(f + ":" + n.m); });
+    return o.join(",");
+  }
+
+  /* ==================== QUITAR UN BLOQUE CON MOTIVO ====================
+     Carlos, 23-sep-2026: «lo de quitar un bloque con motivo está bien para saber
+     y registrar qué pasó después, pero a nivel de cumplimiento sería un
+     incumplimiento igual». Eso es exactamente lo que hace: guarda el porqué y
+     cuenta como no hecho. No es una forma de salvar la semana. */
+  var MOTIVOS_BLOQUE = [
+    { id: "tiempo",    n: "El tiempo" },
+    { id: "cansancio", n: "Cansado" },
+    { id: "molestia",  n: "Molestia" },
+    { id: "agenda",    n: "No me dio la vida" },
+    { id: "otro",      n: "Otra cosa" }
+  ];
+
+  function quitadosDe(sem) {
+    var q = ent().quitados[sem.desde];
+    if (!q) { q = {}; ent().quitados[sem.desde] = q; }
+    return q;
+  }
+
+  function quitadoDe(sem, bid) { return quitadosDe(sem)[bid] || null; }
+
+  function ponerQuitado(sem, bid, motivo) {
+    var q = quitadosDe(sem);
+    if (motivo) q[bid] = { m: motivo, t: Date.now() };
+    else delete q[bid];
+    A.guardar("entreno");
+  }
+
   /* El reparto de partida: lo gordo separado y el último día de la semana
      libre. Si no toca nada, la semana funciona igual que antes. */
   function repartoPropuesto(sem, b) {
-    var dias = diasDe(sem), n = dias.length, mapa = {};
+    /* SOLO EN DÍAS HÁBILES. Un día marcado como no hábil es descanso y no recibe
+       nada; su carga se la reparten los que quedan. (24-sep-2026.) */
+    var dias = diasHabilesDe(sem);
+    if (!dias.length) dias = diasDe(sem);            // semana entera bloqueada: no se pierde nada
+    var n = dias.length, mapa = {};
     var huecos = Math.max(1, n - 1);                 // el último día se deja libre
     var ordRod = [0, 3, 1, 4, 2, 5], ordCam = [2, 5, 1, 4, 0, 3], ordFue = [0, 3, 1];
     var iR = 0, iC = 0, iF = 0;
     b.forEach(function (x) {
-      /* si el bloque viene de una línea escrita a mano, arranca en SU día */
-      if (x.dia) { mapa[x.id] = x.dia; return; }
+      /* si el bloque viene de una línea escrita a mano, arranca en SU día —salvo
+         que ese día esté marcado como no hábil, y entonces se reparte como los
+         demás en vez de quedarse en un día que no existe */
+      if (x.dia && !noHabilDe(x.dia)) { mapa[x.id] = x.dia; return; }
       if (x.largo) { mapa[x.id] = dias[Math.max(0, n - 2)]; return; }
       if (x.fam === "caminar") { mapa[x.id] = dias[ordCam[iC++ % ordCam.length] % huecos]; return; }
       if (x.fam === "fuerza") { mapa[x.id] = dias[ordFue[iF++ % ordFue.length] % huecos]; return; }
@@ -1738,6 +1870,77 @@
   var salidaSem = null;
   function semanaActivaSalida() { return salidaSem; }
 
+  /* lo que queda por rescatar de los días ya pasados de esta tira */
+  function panelAmbar(lunes) {
+    var out = "", vistos = {};
+    for (var i = 0; i < 7; i++) {
+      var f = U.sumarDias(lunes, i), sem = semanaDe(f);
+      if (!sem) continue;
+      var r = estadoRescate(sem, f);
+      if (!r) continue;
+      var k = f; if (vistos[k]) continue; vistos[k] = 1;
+      var nombres = r.pend.map(function (x) { return cortoBloque(x); }).join(", ");
+      if (r.estado === "ambar") {
+        out += '<div class="resc ambar"><span class="et">Sin hacer, todavía a tiempo</span>' +
+          "<b>" + U.esc(nombres) + "</b>" +
+          '<span class="nota-peque">Era del ' + U.esc(U.etiquetaFecha(f)) +
+          ". Queda sitio el <b>" + U.esc(U.etiquetaFecha(r.dia)) + "</b>.</span>" +
+          '<button type="button" class="btn" data-resc="' + f + ">" + r.dia +
+          '">Pasarlo al ' + U.esc(U.etiquetaFecha(r.dia)) + "</button></div>";
+      } else {
+        out += '<div class="resc rojo"><span class="et">No se hizo y ya no hay dónde</span>' +
+          "<b>" + U.esc(nombres) + "</b>" +
+          '<span class="nota-peque">Era del ' + U.esc(U.etiquetaFecha(f)) +
+          ". No quedan días hábiles en esta semana: cuenta como incumplido.</span></div>";
+      }
+    }
+    return out;
+  }
+
+  function panelAvisos(lunes) {
+    var sem = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
+    if (!sem) return "";
+    var av = avisosReparto(sem);
+    if (!av.length) return "";
+    var h = '<div class="av-reparto">';
+    av.forEach(function (a) {
+      h += '<div class="av-linea"><b>' + U.esc(a.t) + "</b><span>" + U.esc(a.d) + "</span></div>";
+    });
+    return h + "</div>";
+  }
+
+  /* la ventana para quitar un bloque con motivo */
+  function abrirQuitar(clave) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    var pr = clave.split(":"), sem = semanaDe(pr[0]);
+    if (!sem) return;
+    var b = bolsilloDe(sem) || [], bl = null;
+    b.forEach(function (x) { if (x.id === pr[1]) bl = x; });
+    if (!bl) return;
+    var q = quitadoDe(sem, pr[1]);
+    var h = '<header><h2>No lo voy a hacer</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">\u00d7</button></header>' +
+      '<div class="sal-cuenta"><b>' + U.esc(bl.t) + (bl.min ? " \u00b7 " + bl.min + " min" : "") + "</b></div>" +
+      '<p class="nota-peque">Se registra el motivo para saber qu\u00e9 pas\u00f3, pero <b>cuenta como incumplido igual</b>. Palabras tuyas del 23 de septiembre.</p>' +
+      '<p class="sal-et">Por qu\u00e9</p><div class="sal-horas">';
+    MOTIVOS_BLOQUE.forEach(function (m) {
+      h += '<button type="button" class="sal-hora' + (q && q.m === m.id ? " elegido" : "") +
+        '" data-quitar-m="' + pr[0] + ":" + pr[1] + ":" + m.id + '">' + U.esc(m.n) + "</button>";
+    });
+    h += "</div>";
+    if (q) h += '<button type="button" class="deshacer" data-quitar-m="' + pr[0] + ":" + pr[1] +
+                ':">Recuperarlo, s\u00ed lo voy a hacer</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
+  }
+
+  function nombreNoHabil(id) {
+    var r = "No hábil";
+    MOTIVOS_NOHABIL.forEach(function (m) { if (m.id === id) r = m.n; });
+    return r;
+  }
+
   function horasTxt(h) {
     var e = Math.floor(h), m = Math.round((h - e) * 60);
     return e + (m ? "h" + (m < 10 ? "0" : "") + m : " h");
@@ -1791,6 +1994,90 @@
     return h;
   }
 
+  /* ==================== EL ÁMBAR  ·  24-sep-2026 ====================
+     Carlos puso la norma: «se pone rojo si el bloque que estaba previsto no he
+     podido pasarlo a otro día. Imagina que surge algo el sábado y no puedo pasarlo
+     al domingo… pues se queda en rojo».
+     O sea que ROJO es el final del camino, no la primera señal. Mientras queden
+     días hábiles por delante en esa semana, el bloque todavía se puede salvar: eso
+     es el ÁMBAR, y viene con el día al que la app propone moverlo.
+     Un bloque QUITADO con motivo no es ámbar: es rojo desde ya. Quitarlo es una
+     decisión tomada. */
+  function diasLibresTras(sem, iso) {
+    var hoy = U.hoyISO();
+    return diasHabilesDe(sem).filter(function (f) { return f > iso && f >= hoy; });
+  }
+
+  /* qué le pasa a un día ya pasado que no se cumplió: ámbar si aún hay dónde
+     meterlo, rojo si ya no. Devuelve null si no hay nada que decir. */
+  function estadoRescate(sem, iso) {
+    if (noHabilDe(iso)) return null;
+    var b = bolsilloDe(sem), rep = b && b.length ? repartoDe(sem) : null;
+    if (!rep) return null;
+    var hoy = U.hoyISO();
+    if (iso >= hoy) return null;                       // hoy y el futuro no se juzgan
+    var talla = tallaDe(sem), ses = sesionesDe(iso, sem, talla), pend = [];
+    ses.forEach(function (x, i) {
+      if (!x.bid || !cuentaParaElDia(x)) return;
+      if (quitadoDe(sem, x.bid)) return;               // quitado con motivo: rojo, no ámbar
+      if (!sesionHecha(iso, x, i)) pend.push(x);
+    });
+    if (!pend.length) return null;
+    var libres = diasLibresTras(sem, iso);
+    if (!libres.length) return { estado: "rojo", pend: pend };
+    /* el día propuesto es el hábil que menos carga lleve de los que quedan */
+    var mapa = rep, carga = {};
+    libres.forEach(function (f) { carga[f] = 0; });
+    b.forEach(function (x) { var d = mapa[x.id]; if (d && carga[d] !== undefined) carga[d] += (x.min || 0); });
+    var mejor = libres[0];
+    libres.forEach(function (f) { if (carga[f] < carga[mejor]) mejor = f; });
+    return { estado: "ambar", pend: pend, dia: mejor };
+  }
+
+  /* ==================== LOS AVISOS DE REPARTO  ·  24-sep-2026 ====================
+     Los tres que eligió Carlos. AVISAN, NO IMPIDEN: el reparto es suyo y la app
+     solo señala lo que a la vista no se ve. */
+  function avisosReparto(sem) {
+    var b = bolsilloDe(sem), rep = b && b.length ? repartoDe(sem) : null;
+    if (!rep) return [];
+    var dias = diasDe(sem), out = [], min = {}, total = 0, fuerza = {};
+    dias.forEach(function (f) { min[f] = 0; });
+    b.forEach(function (x) {
+      var d = rep[x.id];
+      if (!d || min[d] === undefined) return;
+      min[d] += (x.min || 0);
+      total += (x.min || 0);
+      if (x.fam === "fuerza") fuerza[d] = true;
+    });
+    /* 1) un día que se lleva más del 40 % de la semana */
+    if (total > 0) {
+      dias.forEach(function (f) {
+        if (min[f] / total > 0.40) {
+          out.push({ t: "Un solo día se lleva el " + Math.round(min[f] / total * 100) +
+                        " % de la semana", d: "El " + U.etiquetaFecha(f) + " tiene " +
+                        Math.round(min[f] / 60 * 10) / 10 + " h de las " +
+                        Math.round(total / 60 * 10) / 10 + " de la semana. Reparte si puedes." });
+        }
+      });
+    }
+    /* 2) una semana sin ningún día de descanso */
+    var sinNada = dias.filter(function (f) { return !min[f] && !noHabilDe(f); });
+    if (!sinNada.length && total > 0) {
+      out.push({ t: "Esta semana no tiene ningún día de descanso",
+                 d: "Los siete días llevan algo. El descanso es lo único que no tenías en 2025, y por eso las semanas 4, 8 y 12 bajan de verdad." });
+    }
+    /* 3) dos días seguidos de fuerza */
+    for (var i = 0; i < dias.length - 1; i++) {
+      if (fuerza[dias[i]] && fuerza[dias[i + 1]]) {
+        out.push({ t: "Dos días seguidos de fuerza",
+                   d: U.etiquetaFecha(dias[i]) + " y " + U.etiquetaFecha(dias[i + 1]) +
+                      ". El músculo necesita 48 h para recuperarse; deja un día entre medias." });
+        break;
+      }
+    }
+    return out;
+  }
+
   function repartoGuardado() { var e = ent(); if (!e.reparto) e.reparto = {}; return e.reparto; }
 
   /* dónde está cada bloque de esta semana. Null = sin colocar, en la bandeja. */
@@ -1801,7 +2088,32 @@
     if (!g) return repartoPropuesto(sem, b);
     var mapa = {};
     b.forEach(function (x) { mapa[x.id] = (g[x.id] === undefined) ? null : g[x.id]; });
+    /* RED DE SEGURIDAD: si algo quedó guardado en un día que ahora es no hábil,
+       se recoloca al vuelo. `ponerNoHabil` ya los mueve y lo guarda, pero esto
+       cubre el caso de que el estado llegue descuadrado de otro aparato. */
+    b.forEach(function (x) {
+      if (mapa[x.id] && noHabilDe(mapa[x.id])) mapa[x.id] = mejorDiaPara(sem, mapa, x);
+    });
     return mapa;
+  }
+
+  /* EL DÍA HÁBIL QUE MENOS CARGA LLEVA, para recolocar un bloque que se ha quedado
+     sin sitio. Se mide en minutos, no en número de bloques: tres fuerzas de 45 no
+     pesan lo que un rodillo de dos horas. Empata a favor del día más temprano.
+     Carlos eligió que la app recoloque sola y él retoque. (24-sep-2026.) */
+  function mejorDiaPara(sem, mapa, bloque) {
+    var libres = diasHabilesDe(sem);
+    if (!libres.length) return null;
+    var carga = {}, b = bolsilloDe(sem) || [];
+    libres.forEach(function (f) { carga[f] = 0; });
+    b.forEach(function (x) {
+      if (x.id === bloque.id) return;
+      var d = mapa[x.id];
+      if (d && carga[d] !== undefined) carga[d] += (x.min || 0);
+    });
+    var mejor = libres[0];
+    libres.forEach(function (f) { if (carga[f] < carga[mejor]) mejor = f; });
+    return mejor;
   }
 
   /* los bloques que no están en ningún día, de las semanas que toca esta tira.
@@ -2120,6 +2432,7 @@
   }
 
   function diaCumplido(iso, sem, talla) {
+    if (noHabilDe(iso)) return true;               // día no hábil: ES descanso (Carlos, 24-sep)
     if (descansoAceptado(iso)) return true;        // el semáforo mandó parar y se paró
     var ses = sesionesDe(iso, sem, talla);
     if (!ses.length) return true;                 // descanso: el día cuenta
@@ -4667,7 +4980,53 @@
   function semanaAbajoDe(sem) { return peldano(Math.max(0, (sem.idx === undefined ? 0 : sem.idx) - 1)); }
 
   /* cumplimiento: días con sesión hecha sobre días con sesión prevista */
+  /* SE CUENTAN BLOQUES, NO DÍAS  ·  24-sep-2026
+     Hasta hoy esto contaba días: un día con rodillo y fuerza en el que solo se
+     hacía la fuerza salía CUMPLIDO entero, y una semana de cinco rodillos repartida
+     en tres días valía lo mismo que otra en seis. Desde que el plan va por bloques
+     —el bolsillo— la unidad honrada es el bloque.
+     Las semanas antiguas, las escritas a mano y las que no tienen bolsillo siguen
+     contándose por días: ahí no hay bloques que contar y cambiarlo reescribiría el
+     pasado. */
   function cumplimientoSemana(sem, hasta) {
+    var b = bolsilloDe(sem), rep = b && b.length ? repartoDe(sem) : null;
+    if (rep) return cumplimientoPorBloques(sem, hasta, b, rep);
+    return cumplimientoPorDias(sem, hasta);
+  }
+
+  function cumplimientoPorBloques(sem, hasta, b, rep) {
+    var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = {}, hoy = U.hoyISO();
+    var porDia = {};
+    b.forEach(function (x) {
+      var d = rep[x.id];
+      if (!d) return;                                  // en la bandeja: todavía sin colocar
+      (porDia[d] = porDia[d] || []).push(x);
+    });
+    Object.keys(porDia).forEach(function (f) {
+      if (f > hasta || f > sem.hasta || f < sem.desde) return;
+      if (noHabilDe(f)) return;                        // día no hábil: es descanso, no se juzga
+      if (descansoAceptado(f)) return;                 // el semáforo mandó parar
+      var ses = sesionesDe(f, sem, talla);
+      porDia[f].forEach(function (x) {
+        if (!cuentaParaElDia(x)) return;
+        var q = quitadoDe(sem, x.id);
+        /* HOY NO SE JUZGA todavía: a media tarde queda tarde para hacerlo. Pero un
+           bloque QUITADO con motivo sí cuenta ya, porque quitarlo es una decisión
+           tomada, no una duda. Y cuenta como NO hecho: palabras suyas. */
+        var i = -1;
+        for (var k = 0; k < ses.length; k++) if (ses[k].bid === x.id) { i = k; break; }
+        var hecho = (i >= 0) && sesionHecha(f, ses[i], i);
+        if (f === hoy && !hecho && !q) return;
+        previstos++;
+        if (hecho && !q) hechos++;
+        else fallos[f] = { f: f, m: motivosDe(f), nota: (obsDe(f) || {}).nota };
+      });
+    });
+    var lista = Object.keys(fallos).sort().map(function (f) { return fallos[f]; });
+    return { previstos: previstos, hechos: hechos, fallos: lista, porBloques: true };
+  }
+
+  function cumplimientoPorDias(sem, hasta) {
     var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = [], hoy = U.hoyISO();
     for (var f = sem.desde; f <= sem.hasta && f <= hasta; f = U.sumarDias(f, 1)) {
       var ses = sesionesDe(f, sem, talla);
@@ -4814,11 +5173,14 @@
     } else if (pct >= (porAsistencia ? U0.asistencia : U0.subir)) {
       v = "subir";
       porque = porAsistencia
-        ? "Has movido " + cump.hechos + " de " + cump.previstos + " días previstos."
+        ? "Has hecho " + cump.hechos + " de " + cump.previstos + " " +
+          (cump.porBloques ? "bloques previstos." : "días previstos.")
         : "Carga al " + Math.round(pct * 100) + " % del objetivo.";
     } else {
       v = "repetir";
-      porque = (porAsistencia ? "Días movidos: " + cump.hechos + " de " + cump.previstos + "."
+      porque = (porAsistencia
+        ? (cump.porBloques ? "Bloques hechos: " : "Días movidos: ") +
+          cump.hechos + " de " + cump.previstos + "."
         : "Carga al " + Math.round(pct * 100) + " % del objetivo.") +
         (sal.limitar ? " Y hubo " + sal.limitar + " día" + (sal.limitar > 1 ? "s" : "") + " con lesión limitante." : "");
     }
@@ -4949,12 +5311,16 @@
 
     /* 1. carga */
     if (!r.cerrada && !r.cump.previstos) {
-      bDias = '<h3 class="evo-sub">Días movidos</h3><p class="nota-peque">Todavía ninguno que juzgar: ' +
-        "la sesión de hoy no cuenta hasta que termine el día.</p>";
+      bDias = '<h3 class="evo-sub">Cumplimiento</h3><p class="nota-peque">Todavía nada que juzgar: ' +
+        "lo de hoy no cuenta hasta que termine el día.</p>";
     } else if (r.porAsistencia) {
-      bDias = '<h3 class="evo-sub">Días movidos</h3>' +
+      /* DESDE EL 24-SEP-2026 SE CUENTAN BLOQUES, NO DÍAS, en las semanas que tienen
+         bolsillo. El rótulo lo dice para que el número no se lea mal: un día con
+         rodillo y fuerza son DOS bloques, y antes contaba como uno solo. */
+      bDias = '<h3 class="evo-sub">' + (r.cump.porBloques ? "Cumplimiento" : "Días movidos") + "</h3>" +
         barraPase(r.pct === null ? 0 : r.pct) +
-        datoPase("Días con sesión hecha", r.cump.hechos + " de " + r.cump.previstos +
+        datoPase(r.cump.porBloques ? "Bloques hechos" : "Días con sesión hecha",
+          r.cump.hechos + " de " + r.cump.previstos +
           (r.pct === null ? "" : " \u00b7 " + Math.round(r.pct * 100) + " %"), "") +
         datoPase("Carga registrada", r.carga === null ? null : r.carga,
           "esta semana no se juzga por carga: es la de arranque, a pie");
@@ -6445,7 +6811,7 @@
     }
     if (sem.criterio === "asistencia") {
       return { estado: "nada", color: COL_TEND.nada, serie: [],
-               texto: "esta semana se juzga por días movidos, no por carga" };
+               texto: "esta semana se juzga por bloques hechos, no por carga" };
     }
     var r = repartoSemana(sem, dia);
     var objetivo = sem.carga * r.parte;
@@ -7906,6 +8272,8 @@
         h += '<div class="bl-moviendo">Moviendo <b>' + U.esc(bMov.t) +
           (bMov.min ? ", " + bMov.min + " min" : "") + "</b>. Toca el día donde lo pones" +
           '<button type="button" class="bl-quitar" data-blq-a="bandeja">dejarlo sin colocar</button>' +
+          '<button type="button" class="bl-quitar" data-quitar="' + bloqueSel.desde + ":" + bloqueSel.bid +
+            '">no lo voy a hacer…</button>' +
           '<button type="button" class="bl-cancela" data-blq-a="nada">cancelar</button></div>';
       }
     }
@@ -7930,28 +8298,41 @@
          rojo = día terminado sin cumplir; azul = lo vigente y lo que viene.
          Hoy se queda azul aunque ya esté hecho: todavía está corriendo. */
       var cumplido = semF && diaCumplido(f, semF, tallaDe(semF));
+      /* ÁMBAR: el día pasó sin cumplirse pero todavía quedan días hábiles donde
+         meter lo que falta. Rojo solo cuando ya no hay dónde. (Carlos, 24-sep.) */
+      var resc = (semF && f < hoy && !cumplido) ? estadoRescate(semF, f) : null;
+      var noHab = noHabilDe(f);
       var estadoDia = !semF ? "fuera"
-        : (f > hoy ? "pend" : (f === hoy ? "pend" : (cumplido ? "ok" : "fallo")));
+        : (noHab ? "nohabil"
+        : (f > hoy ? "pend" : (f === hoy ? "pend"
+        : (cumplido ? "ok" : (resc && resc.estado === "ambar" ? "ambar" : "fallo")))));
       var ok = (estadoDia === "ok") || (f === hoy && cumplido);
       h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
         '" data-dia="' + f + '" role="button" tabindex="0">' +
         '<span class="d">' + DIA_CORTO[fd.getDay()] + '</span><span class="f">' + fd.getDate() + "</span>" +
         '<span class="q' + (ss.length && ss[0].bid ? " bloques" : "") + '">' +
-        (!semF ? "—" : (!ss.length ? "descanso"
+        (noHab ? U.esc(nombreNoHabil(noHab.m))
+        : (!semF ? "—" : (!ss.length ? "descanso"
           : (ss[0].bid
             ? ss.map(function (s) {
+                /* un bloque QUITADO con motivo se ve tachado: sigue ahí, cuenta como
+                   no hecho, y se nota de un vistazo que no fue un olvido */
+                var quit = semF && s.bid ? quitadoDe(semF, s.bid) : null;
                 return '<button type="button" class="dia-bl' + (s.largo ? " largo" : "") +
+                  (quit ? " quitado" : "") +
                   (s.fam === "fuerza" ? " fuerza" : "") +
                   (bloqueSel && bloqueSel.bid === s.bid && bloqueSel.desde === semF.desde ? " elegido" : "") +
                   '" draggable="true" data-blq="' + semF.desde + ":" + s.bid + '">' +
                   U.esc(cortoBloque(s)) + "</button>";
               }).join("")
-            : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))))) +
+            : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
         "</span><span class=\"p\"></span></div>";
     }
     h += "</div>";
     h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) + "</p>";
     h += fichaSalida(lunes);
+    h += panelAmbar(lunes);
+    h += panelAvisos(lunes);
     h += "</div>";
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
@@ -7964,6 +8345,25 @@
 
     h += '<div class="tarjeta"><h2>' + titulo + "</h2>";
     if (!esHoy) h += '<button type="button" class="ent-volver" data-dia="' + hoy + '">‹ volver a hoy</button>';
+
+    /* MARCAR EL DÍA COMO NO HÁBIL. Va aquí, en la ficha del día abierto, y no en la
+       casilla de la tira: en el móvil la casilla ya tiene un toque para abrir el
+       día y otro para soltar un bloque, y un tercero sería un campo de minas. */
+    var nh = noHabilDe(dia);
+    if (nh) {
+      h += '<div class="nohab-caja puesto"><div><b>Día no hábil · ' +
+        U.esc(nombreNoHabil(nh.m)) + "</b>" +
+        '<span class="nota-peque">Cuenta como descanso, no como incumplido. Su carga ya está repartida en los días que quedan.</span></div>' +
+        '<button type="button" class="btn" data-nohabil="' + dia + ':">Volver a hábil</button></div>';
+    } else {
+      h += '<details class="nohab-caja"><summary>No voy a poder entrenar este día</summary>' +
+        '<p class="nota-peque">Lo marca como descanso y reparte su carga entre los días hábiles que queden. La semana no pierde puntos.</p><div class="nohab-bot">';
+      MOTIVOS_NOHABIL.forEach(function (m) {
+        h += '<button type="button" class="sal-hora" data-nohabil="' + dia + ":" + m.id + '">' +
+          U.esc(m.n) + "</button>";
+      });
+      h += "</div></details>";
+    }
 
     var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
     ses.forEach(function (s, i) {
@@ -8422,6 +8822,47 @@
       if (lim) { e.preventDefault(); Limpieza.lanzar(); return; }
 
 
+      /* marcar o desmarcar un día como no hábil */
+      var nhB = t.closest ? t.closest("[data-nohabil]") : null;
+      if (nhB) {
+        e.preventDefault();
+        var pr = nhB.getAttribute("data-nohabil").split(":");
+        ponerNoHabil(pr[0], pr[1] || null);
+        pintarConservando();
+        return;
+      }
+
+      /* rescatar un bloque ámbar: pasarlo al día que propone la app */
+      var rsc = t.closest ? t.closest("[data-resc]") : null;
+      if (rsc) {
+        e.preventDefault();
+        var pr2 = rsc.getAttribute("data-resc").split(">");
+        var semR = semanaDe(pr2[0]);
+        if (semR) {
+          var bR = bolsilloDe(semR) || [], mapa = repartoDe(semR) || {}, n = 0;
+          var sesR = sesionesDe(pr2[0], semR, tallaDe(semR));
+          sesR.forEach(function (x, i) {
+            if (!x.bid || !cuentaParaElDia(x)) return;
+            if (quitadoDe(semR, x.bid)) return;
+            if (sesionHecha(pr2[0], x, i)) return;
+            mapa[x.bid] = pr2[1]; n++;
+          });
+          repartoGuardado()[semR.desde] = mapa;
+          A.guardar("entreno");
+          if (n && U.toast) U.toast(n === 1 ? "1 bloque movido" : n + " bloques movidos");
+        }
+        pintarConservando();
+        return;
+      }
+
+      /* quitar un bloque con motivo: se registra el porqué y cuenta como no hecho */
+      var qB = t.closest ? t.closest("[data-quitar]") : null;
+      if (qB) {
+        e.preventDefault();
+        abrirQuitar(qB.getAttribute("data-quitar"));
+        return;
+      }
+
       /* la salida de la semana: abrir, elegir terreno, elegir horas */
       var salB = t.closest ? t.closest("[data-salida]") : null;
       if (salB) { e.preventDefault(); abrirSalida(salB.getAttribute("data-salida")); return; }
@@ -8680,6 +9121,22 @@
         if (histAbierta) abrirHistoria(histAbierta, rangoHist);
         return;
       }
+      /* el motivo por el que se quita un bloque: también en la ventana */
+      var qm = e.target.closest ? e.target.closest("[data-quitar-m]") : null;
+      if (qm) {
+        e.preventDefault();
+        var pr = qm.getAttribute("data-quitar-m").split(":");
+        var semQ = semanaDe(pr[0]);
+        if (semQ) {
+          ponerQuitado(semQ, pr[1], pr[2] || null);
+          bloqueSel = null;
+          if (U.toast) U.toast(pr[2] ? "Bloque quitado" : "Bloque recuperado");
+        }
+        cerrarGuia();
+        pintarConservando();
+        return;
+      }
+
       /* LA SALIDA DE LA SEMANA SE ELIGE AQUÍ, no en el manejador de la pestaña.
          Es el mismo motivo de la nota de arriba: la ventana cuelga de `#modal`,
          fuera del contenedor de Entrenamiento, así que aquel `click` no la ve.
