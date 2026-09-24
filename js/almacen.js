@@ -158,6 +158,13 @@
         stockSitios: {},       /* { sitio: "AAAA-MM-DD" } — cuándo se contó cada sitio
                                   de la casa por última vez. Cada uno va por su cuenta:
                                   la nevera se repasa cada semana y el armario, no. */
+        gastado: {},           /* { fecha: { toma: { recetaId: { ingId: cantidad } } } }
+                                  LO QUE SE DESCONTÓ DE LA DESPENSA al marcar ese plato
+                                  como comido. Se guarda por una razón concreta: quitar
+                                  el ✓ tiene que devolver EXACTAMENTE lo que se quitó, y
+                                  recalcularlo no vale porque el descuento se queda en
+                                  cero cuando la cuenta iba corta. Sin esto, desmarcar
+                                  inventaría comida que nunca hubo. */
         real: {},              /* { fecha: { toma: { recetaId: {c, u} } } }
                                   LO QUE COMISTE DE VERDAD, cuando no fue lo previsto.
                                   Vive en el día, nunca en la receta ni en el plan: que
@@ -1467,6 +1474,121 @@
       return l > 0 ? l : 0;
     },
 
+    /* ================= COMER GASTA DE LA DESPENSA (24-sep-2026) =================
+       El tercer movimiento del stock, y faltaba. Sin él la despensa sólo sabía
+       subir: entraba al comprar y no salía nunca, así que se inflaba sola hasta
+       el siguiente recuento. Medido antes de arreglarlo, con una pizza de 320 g
+       y media por cena:
+
+         planifico   stock   0 · comprometido 320 · libre   0
+         compro      stock 320 · comprometido 320 · libre   0
+         me la como  stock 320 · comprometido   0 · libre 320   <- mentira
+
+       Te la habías comido y la despensa ofrecía una pizza entera. Y encima el
+       error crecía al revés de como se espera: comer SUBÍA lo libre, porque lo
+       comprometido caía y el stock no.
+
+       CUÁNTAS RACIONES SALEN DE CASA. No son las que come Carlos: son las de
+       todos los que se sientan. Pero la corrección de cantidad real («hoy el
+       plátano pesó 104 g») es SUYA, de su ración, no de la de los demás. Así
+       que las raciones del hogar son las de los otros comensales tal como se
+       planificaron, más la suya con su corrección:
+
+           raciones = (personas − 1) × veces  +  factorPlato
+
+       Con un solo comensal queda `factorPlato`, que es la corrección pura. Sin
+       corrección, `factorPlato` vale `veces` y queda `personas × veces`, que es
+       exactamente lo que comprometió el plato. Los dos extremos salen bien, y
+       marcar comido deshace justo lo que reservó planificar. */
+    racionesDeCasa: function (fecha, toma, recetaId, veces) {
+      var personas = this.comensales(fecha, toma) || 1;
+      var f = this.factorPlato(fecha, toma, recetaId, veces || 1);
+      return (personas - 1) * (veces || 1) + f;
+    },
+
+    /* Cuántas veces está puesto ese plato en esa toma. */
+    vecesEnToma: function (fecha, toma, recetaId) {
+      var dia = this.estado.plan[fecha];
+      var lista = (dia && dia[toma]) || [];
+      var n = 0;
+      lista.forEach(function (x) { if (x === recetaId) n++; });
+      return n || 1;
+    },
+
+    /* Lo que ese plato saca de la despensa, ingrediente a ingrediente. */
+    gastoDePlato: function (fecha, toma, recetaId) {
+      var rec = this.receta(recetaId);
+      if (!rec) return null;
+      var veces = this.vecesEnToma(fecha, toma, recetaId);
+      var factor = this.racionesDeCasa(fecha, toma, recetaId, veces) / (rec.raciones || 1);
+      if (!(factor > 0)) return null;
+      var out = {};
+      (rec.ing || []).forEach(function (l) { out[l.i] = (out[l.i] || 0) + l.c * factor; });
+      return out;
+    },
+
+    gastoApuntado: function (fecha, toma, recetaId) {
+      var d = this.estado.gastado && this.estado.gastado[fecha];
+      var t = d && d[toma];
+      return (t && t[recetaId]) || null;
+    },
+
+    /* ---------- al marcar comido ----------
+       Lo de fuera de casa no sale de tu despensa, igual que no compromete.
+       Si la cuenta se queda corta, el stock va a CERO y la línea queda marcada
+       `pte`: en su sitio de la despensa se ve como «por confirmar» y el aviso
+       de repasar ese sitio salta solo. No bloquea nada — decisión de Carlos,
+       24-sep-2026: «a cero y marcado para repasar». */
+    gastarDespensa: function (fecha, toma, recetaId) {
+      if (this.esFuera(fecha, toma)) return;
+      if (this.gastoApuntado(fecha, toma, recetaId)) return;   // ya estaba descontado
+      var gasto = this.gastoDePlato(fecha, toma, recetaId);
+      if (!gasto) return;
+      var self = this, hecho = {};
+      Object.keys(gasto).forEach(function (id) {
+        var g = self.ingrediente(id);
+        if (!g || !self.sitioDe(g)) return;        // restaurante y bar no tiene despensa
+        var f = self.fichaStock(id);
+        var habia = (f && f.c > 0) ? f.c : 0;
+        var quita = gasto[id];
+        var corto = quita > habia;
+        var queda = corto ? 0 : habia - quita;
+        hecho[id] = Math.round((corto ? habia : quita) * 100) / 100;
+        /* `pte: "corto"` y no `true` a secas: el `pte` de siempre significa
+           «lo tienes pero no sabemos cuánto», y el aviso de la despensa lo dice
+           con esas palabras. Aquí lo que ha pasado es lo contrario —se gastó
+           más de lo que había apuntado—, y con el mismo aviso quedaría al revés
+           de lo que ocurrió. Los dos siguen siendo verdad al preguntar `!!pte`. */
+        self.estado.stock[id] = { c: Math.round(queda * 100) / 100,
+                                  f: (f && f.f) || null,
+                                  pte: corto ? "corto" : ((f && f.pte) || false) };
+      });
+      if (!Object.keys(hecho).length) return;
+      if (!this.estado.gastado) this.estado.gastado = {};
+      if (!this.estado.gastado[fecha]) this.estado.gastado[fecha] = {};
+      if (!this.estado.gastado[fecha][toma]) this.estado.gastado[fecha][toma] = {};
+      this.estado.gastado[fecha][toma][recetaId] = hecho;
+    },
+
+    /* Quitar el ✓ devuelve EXACTAMENTE lo que se quitó, ni más. */
+    devolverDespensa: function (fecha, toma, recetaId) {
+      var hecho = this.gastoApuntado(fecha, toma, recetaId);
+      if (!hecho) return;
+      var self = this;
+      Object.keys(hecho).forEach(function (id) {
+        var f = self.fichaStock(id);
+        var habia = (f && f.c > 0) ? f.c : 0;
+        self.estado.stock[id] = { c: Math.round((habia + hecho[id]) * 100) / 100,
+                                  f: (f && f.f) || null, pte: !!(f && f.pte) };
+      });
+      var g = this.estado.gastado;
+      if (g && g[fecha] && g[fecha][toma]) {
+        delete g[fecha][toma][recetaId];
+        if (!Object.keys(g[fecha][toma]).length) delete g[fecha][toma];
+        if (!Object.keys(g[fecha]).length) delete g[fecha];
+      }
+    },
+
     /* Lo que hay en un sitio de la casa, con su cuenta hecha. */
     loQueHayEn: function (sitio) {
       var self = this, comp = this.comprometidoTodo(), fuera = [];
@@ -1928,6 +2050,11 @@
          HECHO: aquí se le hace la foto. Quitar el ✓ no la borra, porque lo que
          sigue puesto en el día sigue siendo lo que había ese día. */
       if (comido) this.congelarPlato(fecha, recetaId);
+      /* Y SALE DE LA DESPENSA. El ✓ es el único momento en que se sabe que la
+         comida se ha consumido de verdad; hasta el 24-sep-2026 no lo tocaba y
+         el stock sólo sabía subir. Ver `gastarDespensa`. */
+      if (comido) this.gastarDespensa(fecha, toma, recetaId);
+      else this.devolverDespensa(fecha, toma, recetaId);
       /* SELLO DE DÍA (23-sep-2026). Marcar un ✓ era lo único deliberado que NO
          dejaba rastro por día, así que al unir dos aparatos lo decidía el reloj
          global de todo el estado y un aparato que no sabía nada borraba los ✓.
@@ -3011,16 +3138,47 @@
         });
       });
 
+      /* Lo comprometido se pide UNA vez: recorre el plan entero y aquí se
+         consulta una vez por ingrediente. */
+      var compTodo = this.comprometidoTodo();
+
       var secciones = {}, basicos = [];
       Object.keys(acumulado).forEach(function (id) {
         var ing = self.ingrediente(id);
         if (!ing) return;
-        /* LO QUE HACE FALTA MENOS LO QUE HAY. Y luego, redondeado al envase:
-           en la tienda no venden 340 g de arroz, venden bolsas de kilo. */
+        /* LO QUE HACE FALTA MENOS LO QUE HAY DISPONIBLE PARA ESTA SEMANA. Y
+           luego, redondeado al envase: en la tienda no venden 340 g de arroz,
+           venden bolsas de kilo.
+
+           «DISPONIBLE PARA ESTA SEMANA» no es el stock entero, y aquí lo era
+           hasta el 24-sep-2026. Lo que está en casa puede estar ya reservado
+           por platos que NO entran en esta lista: los de otras semanas, y los
+           de ésta que ya se compraron (esos no cuentan en `pide` pero sí se van
+           a comer). Medido antes de arreglarlo:
+
+             una pizza en el congelador, dos cenas planificadas —una esta semana
+             y otra la que viene—, genero la compra de la semana que viene:
+             NO PIDE NADA. Abres el congelador el martes y no hay pizza.
+
+           La cuenta: de todo lo comprometido, lo que NO es esta lista está
+           apartado y no se puede contar como disponible.
+
+               hay = stock − (comprometido − lo que pide esta lista)
+
+           Cuando la semana es lo único planificado y nada está comprado,
+           `comprometido` y `pide` son el mismo número y queda `hay = stock`,
+           que es lo de siempre. O sea que esto sólo cambia el resultado en los
+           casos que hoy están mal. */
         var pide = acumulado[id].cantidad;
-        var hay = self.stockDe(id);
+        var apartado = (compTodo[id] || 0) - pide;
+        if (apartado < 0) apartado = 0;
+        var hay = self.stockDe(id) - apartado;
+        if (hay < 0) hay = 0;
         var falta = pide - hay;
-        if (falta <= 0.0001 && !self.estado.compraMarcada[id]) return;   // cubierto: no se pide
+        /* `todo: true` lo usa la PASADA PREVIA: necesita también lo que ya está
+           cubierto, porque lo que repasas antes de comprar es todo lo que el
+           menú va a gastar, no sólo lo que falta. */
+        if (!opciones.todo && falta <= 0.0001 && !self.estado.compraMarcada[id]) return;
         if (falta < 0) falta = 0;
         var envases = ing.envase > 0 ? Math.ceil(falta / ing.envase) : 0;
         var comprar = envases > 0 ? envases * ing.envase : falta;
@@ -3034,6 +3192,7 @@
           hay: hay,
           envase: ing.envase || 0,
           envases: envases,
+          apartado: Math.round(apartado * 100) / 100,   // lo que el stock ya debe a otros platos
           cajon: self.cajonDe(ing),
           tienda: self.tiendaDe(ing),
           unidad: ing.u,
@@ -3084,6 +3243,113 @@
       basicos.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
 
       return { secciones: salida, basicos: basicos };
+    },
+
+    /* ================= LA PASADA PREVIA (24-sep-2026) =================
+       Carlos, que ha llevado stock en logística: «la gestión de stock siempre
+       acaba con regularizaciones frecuentes y errores». Tiene razón, y aquí se
+       desviará igual. Lo que cambia es el alcance.
+
+       En logística el stock ES el producto: prometes disponibilidad, así que
+       hay que regularizarlo entero. Aquí el número contesta UNA pregunta
+       —«¿hay que comprarlo?»— y esa pregunta sólo se le hace a lo que el menú
+       de esa semana va a gastar. Medido sobre sus ocho días reales de plan, con
+       dos comensales: 48 ingredientes de los 235 del catálogo, repartidos en
+       21 de armario, 14 de frutero, 12 de nevera y 1 de panera. Los otros 187
+       pueden estar mal todo el año sin consecuencia, porque nadie les pregunta
+       nada; y el día que una receta nueva tire de uno, aparece en la pasada de
+       esa semana y se corrige ahí. La desviación nunca llega a hacer daño
+       antes de que la cacen.
+
+       Así que la pasada NO es una auditoría aparte: es el paso que ya hacía él
+       —abrir la nevera antes de planificar— con la app poniendo delante lo que
+       cree, para que sólo tenga que corregir lo que esté mal. Cinco o diez
+       líneas de cuarenta y ocho.
+
+       LA X MANDA SOBRE EL NÚMERO. El stock deja de ser una verdad que hay que
+       mantener y pasa a ser una sugerencia que se confirma una vez por semana.
+
+       Y TRES RESPUESTAS, NO DOS. «Hay» y «no hay» resuelven casi todo, pero no
+       el caso que hizo falta medir: esa semana el menú pide 460 g de copos de
+       avena y el envase trae 500. El lunes «hay avena» es verdad y el viernes
+       no queda. Para eso está «queda esto», que es donde se escribe la cifra —
+       y es lo único que una lista de marcar no puede hacer. */
+    pasadaPrevia: function (lunesISO, dias) {
+      var self = this, hoy = Util.hoyISO();
+      /* Las mismas reglas que la lista, y no por comodidad: lo que se repasa
+         tiene que ser exactamente lo que se va a comprar. Un plato ya comprado
+         o ya comido no entra en la lista, así que tampoco hay nada que
+         contestar sobre él. */
+      var datos = this.generarCompra(lunesISO, dias, { saltarComido: true, todo: true });
+      var todas = [];
+      datos.secciones.forEach(function (s) {
+        s.lineas.forEach(function (l) { todas.push(l); });
+      });
+      datos.basicos.forEach(function (l) { l.esBasico = true; todas.push(l); });
+
+      var mapa = {}, sitios = [];
+      this.SITIOS.forEach(function (s) {
+        mapa[s.k] = { k: s.k, n: s.n, lineas: [], basicos: [],
+                      contado: (self.estado.stockSitios || {})[s.k] || null };
+        sitios.push(mapa[s.k]);
+      });
+
+      var total = 0;
+      todas.forEach(function (l) {
+        var g = self.ingrediente(l.id);
+        if (!g) return;
+        var k = self.sitioDe(g);
+        if (!k || !mapa[k]) return;          // restaurante y bar no se guarda en casa
+        var f = self.fichaStock(l.id);
+        var necesita = l.pide + (l.apartado || 0);
+        var linea = {
+          id: l.id, n: l.nombre, u: l.unidad, pesoUd: l.pesoUd || 0, envase: l.envase || 0,
+          pide: l.pide, hay: l.hay, apartado: l.apartado || 0, necesita: necesita,
+          basico: !!l.esBasico, minimo: g.minimo || 0,
+          confirmadoEl: (f && f.f) || null,
+          pte: (f && f.pte) || false,
+          recetas: l.recetas || [],
+          /* lo que la app cree, y que sale ya marcado */
+          estado: l.hay >= l.pide - 0.0001 ? "hay" : (l.hay <= 0.0001 ? "no" : "parte")
+        };
+        linea.dias = linea.confirmadoEl ? Util.diasEntre(linea.confirmadoEl, hoy) : null;
+        /* Sin contar nunca, o contado hace más de una semana, no se da por
+           bueno: se marca para que salte a la vista. */
+        linea.dudoso = !!(linea.pte || linea.dias === null || linea.dias > 7);
+        /* Un básico por debajo de su mínimo SALE del bloque plegado: es justo
+           el que se acaba sin avisar, porque el menú gasta dos gramos y nadie
+           lo mira. Los demás básicos casi siempre son que sí. */
+        linea.avisa = !!(linea.minimo && self.stockDe(l.id) < linea.minimo);
+        if (linea.basico && !linea.avisa && !linea.dudoso) mapa[k].basicos.push(linea);
+        else mapa[k].lineas.push(linea);
+        total++;
+      });
+
+      sitios.forEach(function (s) {
+        var por = function (a, b) { return a.n.localeCompare(b.n); };
+        s.lineas.sort(por); s.basicos.sort(por);
+        s.total = s.lineas.length + s.basicos.length;
+        s.dias = s.contado ? Util.diasEntre(s.contado, hoy) : null;
+      });
+      return { sitios: sitios.filter(function (s) { return s.total > 0; }), total: total };
+    },
+
+    /* La respuesta de una línea de la pasada. Escribe en el MISMO stock de
+       siempre: la pasada no inventa un concepto nuevo, sólo es la manera
+       cómoda de corregirlo. Y siempre deja la línea confirmada HOY, que es lo
+       que apaga el aviso de «sin contar». */
+    responderPasada: function (id, r, cant) {
+      var c;
+      if (r === "no") c = 0;
+      else if (r === "parte") c = Math.max(0, Number(cant) || 0);
+      else c = Math.max(this.stockDe(id), Number(cant) || 0);   // "hay": al menos lo que hace falta
+      this.estado.stock[id] = { c: Math.round(c * 100) / 100, f: Util.hoyISO() };
+      var k = this.sitioDe(id);
+      if (k) {
+        if (!this.estado.stockSitios) this.estado.stockSitios = {};
+        this.estado.stockSitios[k] = Util.hoyISO();
+      }
+      this.guardar("stock");
     }
   };
 

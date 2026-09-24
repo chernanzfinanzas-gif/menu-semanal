@@ -465,6 +465,39 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   .linea-stock .paso-stock{min-width:44px; height:44px}
   .linea-stock .btn.mini{padding:10px 12px}
 }
+/* ---------- LA PASADA PREVIA (24-sep-2026) ----------
+   Tres botones por línea y nada más. Se contesta de pie, delante de la nevera,
+   con el móvil en una mano: los botones son gordos, ocupan una fila entera
+   debajo del nombre y el que está elegido se ve desde lejos. La cifra del
+   «queda esto» sólo aparece cuando hay algo que escribir. */
+.linea-pas{flex-wrap:wrap; row-gap:8px}
+.linea-pas .datos{flex:1 1 100%}
+/* CON `#modal` DELANTE, y no es manía: en el móvil hay un `.linea .detalle
+   {display:none}` que va DESPUÉS en este fichero y ganaba. Sin el detalle, la
+   línea es un nombre y tres botones y estás contestando a ciegas: lo que dice
+   si hay bastante es «hacen falta 188 g». Mismo caso que el de la despensa,
+   documentado veinte líneas más abajo. */
+#modal .linea-pas .detalle{display:block; font-size:.82rem; line-height:1.35}
+.pas-btns{display:flex; gap:6px; flex:1 1 auto}
+/* `white-space:normal` y no `nowrap`: los rótulos son de dos palabras («Hay
+   bastante», «Queda algo…») y con nowrap el de en medio empujaba a los otros
+   fuera de la caja en pantallas estrechas. Prefiero dos líneas a un botón
+   cortado. */
+.pas-btns .pas-b{flex:1 1 0; min-height:38px; font-weight:650; white-space:normal;
+  line-height:1.2; padding-left:6px; padding-right:6px}
+.pas-b.activo{background:var(--verde); border-color:var(--verde); color:#fff}
+.pas-fila-cifra{display:flex; align-items:center; gap:8px; flex:1 1 100%; justify-content:flex-end}
+.pas-fila-cifra span{font-size:.82rem; color:var(--gris)}
+.linea-pas .pas-cifra{width:92px; text-align:right; font-size:1rem; font-weight:650; padding:8px}
+@media(max-width:519px){
+  .pas-btns .pas-b{min-height:44px; padding:10px 6px; font-size:.86rem}
+  .linea-pas .pas-cifra{height:44px; font-size:1.05rem}
+}
+/* Los básicos van dentro de su sitio, plegados y un punto más apagados: casi
+   nunca falta ninguno y no tienen que competir por la atención con el salmón. */
+.basicos-pas{margin:4px 0 10px 14px; border-bottom:0}
+.basicos-pas > summary{font-size:.92rem; opacity:.8}
+
 /* El buscador de dentro de cada sitio: estás delante de ese armario, así que
    solo ofrece lo que se guarda ahí y no hay que subir a lo alto de la página. */
 .anadir-sitio{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:10px 0 12px 18px}

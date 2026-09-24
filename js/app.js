@@ -3571,6 +3571,14 @@
          te devolvía al principio y perdías dónde ibas.
        · TODO MÁS GRANDE en el móvil: se toca de pie y con una mano. */
   function detalleStock(x) {
+    /* Dos motivos distintos para pedir la cifra, y decirlos igual confunde:
+       uno es \u00ablo tienes y no sabemos cu\u00e1nto\u00bb, el otro \u00abhas gastado m\u00e1s de lo
+       que hab\u00eda apuntado\u00bb. El segundo nace al marcar un plato comido con la
+       cuenta corta (24-sep-2026). */
+    if (x.pte === "corto") {
+      return '<span style="color:var(--ambar)">Se gast\u00f3 m\u00e1s de lo que hab\u00eda apuntado: ' +
+             'la cuenta iba alta. Cu\u00e9ntalo y pon la cifra</span>';
+    }
     if (x.pte) return '<span style="color:var(--ambar)">Sabemos que lo tienes, pero no cu\u00e1nto: pon la cifra</span>';
     var d;
     if (x.comprometido > 0) {
@@ -3581,6 +3589,125 @@
     }
     if (x.envase) d += ' \u00b7 envase de ' + esc(Util.cantidadReceta(x.envase, x.u, x.pesoUd));
     return d;
+  }
+
+  /* ==================== LA PASADA PREVIA ====================
+     Se abre antes de comprar y pregunta, sitio por sitio, por lo que el menú
+     de esa semana va a gastar. Cada línea viene YA marcada con lo que la app
+     cree; sólo hay que corregir lo que esté mal.
+
+     Por qué es una emergente y no una pestaña: esto se hace de pie, delante de
+     la nevera, con el móvil en una mano. Una pantalla a la vez, sin nada
+     alrededor, y el sitio que estás mirando abierto y los demás cerrados. */
+  var pasadaAbierta = null;          // qué sitio está desplegado
+
+  /* «Hay» lleva pegada la cifra que hace falta: decir que hay es decir que hay
+     AL MENOS eso, y el stock se sube hasta ahí si estaba por debajo. Va en el
+     botón y no se recalcula al pulsar, para que lo que se guarda sea
+     exactamente lo que estabas viendo cuando contestaste. */
+  function botonPas(id, r, activo, txt, nec) {
+    return '<button type="button" class="btn mini pas-b' + (activo ? " activo" : "") +
+           '" data-pas="' + esc(id) + ':' + r + '"' +
+           (nec ? ' data-nec="' + nec + '"' : "") + ">" + txt + "</button>";
+  }
+
+  function lineaPasadaHTML(l) {
+    var cant = function (c) { return esc(Util.cantidadReceta(c, l.u, l.pesoUd)); };
+    var pie;
+    if (l.estado === "parte") {
+      pie = '<span style="color:var(--ambar)">queda ' + cant(l.hay) + ' y hacen falta ' + cant(l.pide) + '</span>';
+    } else if (l.dudoso) {
+      pie = '<span style="color:var(--ambar)">' +
+            (l.pte === "corto" ? "se gastó más de lo apuntado"
+             : l.pte ? "no sabemos cuánto hay"
+             : l.dias === null ? "nunca contado" : "contado hace " + l.dias + " días") + "</span>";
+    } else if (l.avisa) {
+      pie = '<span style="color:var(--ambar)">por debajo del mínimo (' + cant(l.minimo) + ')</span>';
+    } else {
+      pie = "hacen falta " + cant(l.pide) +
+            (l.apartado > 0 ? " · y " + cant(l.apartado) + " ya están pedidos por otros días" : "");
+    }
+    return '<div class="linea linea-pas" data-pasfila="' + esc(l.id) + '">' +
+      '<div class="datos"><div class="nombre">' + esc(l.n) + "</div>" +
+      '<div class="detalle">' + pie + "</div></div>" +
+      '<div class="pas-btns">' +
+        /* «Hay bastante · No queda · Queda algo», y no «Hay · No hay · Queda».
+           Carlos, 24-sep-2026: «¿la diferencia entre Hay y Quedan?». Con los
+           rótulos cortos los tres parecían lo mismo. Nombrando la CANTIDAD
+           —bastante, nada, algo— la diferencia se lee sin explicarla, que es
+           lo que tiene que pasar cuando lo contestas de pie y con prisa. */
+        botonPas(l.id, "hay", l.estado === "hay" && !l.dudoso, "Hay bastante", l.necesita) +
+        botonPas(l.id, "no", l.estado === "no", "No queda") +
+        botonPas(l.id, "parte", l.estado === "parte", "Queda algo…") +
+      "</div>" +
+      /* La cifra, con su rótulo y en su propia fila. En el móvil los tres
+         botones ya llenan el ancho, así que el campo cae abajo sí o sí: si cae
+         suelto y sin nombre parece un número huérfano —el mismo problema que
+         tenía la carga del día en el tablero de entreno—, así que se le pone
+         delante «quedan» y la unidad detrás. */
+      (l.estado === "parte"
+        ? '<div class="pas-fila-cifra"><span>quedan</span>' +
+          '<input type="number" class="stock-cant pas-cifra" data-pascifra="' + esc(l.id) +
+          '" inputmode="decimal" value="' + (Math.round(l.hay * 100) / 100) + '">' +
+          "<span>" + esc(l.u === "ud" ? "uds" : l.u) + "</span></div>"
+        : "") +
+      "</div>";
+  }
+
+  function htmlPasada() {
+    var r = Almacen.rangoCompra(UI.cuandoCompra);
+    var p = Almacen.pasadaPrevia(r.desde, r.dias);
+    var h = '<header><h2>Antes de comprar</h2>' +
+      '<button class="cerrar" type="button" data-cerrar="1" aria-label="Cerrar">×</button></header>';
+    if (!p.total) {
+      return h + '<div class="vacio">No hay nada planificado en esas fechas, así que no hay nada que repasar.</div>' +
+             '<button class="btn principal ancho" data-cerrar="1">Cerrar</button>';
+    }
+    h += '<p class="nota-peque">El menú de estos días gasta <b>' + p.total +
+         "</b> cosas. Ve sitio por sitio y corrige lo que no cuadre: lo demás ya está " +
+         "marcado con lo que creo que tienes.</p>";
+    if (pasadaAbierta === null && p.sitios.length) pasadaAbierta = p.sitios[0].k;
+    p.sitios.forEach(function (s) {
+      var pend = s.lineas.filter(function (l) { return l.dudoso || l.estado !== "hay"; }).length;
+      h += '<details class="grupo-selec sitio-pas"' + (s.k === pasadaAbierta ? " open" : "") +
+           ' data-pasitio="' + esc(s.k) + '">' +
+           "<summary><span class=\"tit\">" + esc(s.n) + "</span>" +
+           '<span class="cuantas">' + s.total + "</span></summary>";
+      h += '<p class="aviso-grupo">' +
+           (s.dias === null ? "sin contar todavía"
+            : s.dias === 0 ? "repasado hoy" : "repasado hace " + s.dias + " días") +
+           (pend ? " · <b>" + pend + " por mirar</b>" : " · todo en orden") + "</p>";
+      s.lineas.forEach(function (l) { h += lineaPasadaHTML(l); });
+      if (s.basicos.length) {
+        h += '<details class="grupo-selec basicos-pas"><summary><span class="tit">' +
+             "Básicos</span><span class=\"cuantas\">" + s.basicos.length + "</span></summary>" +
+             '<p class="aviso-grupo">Los de siempre, y de estos casi nunca falta ninguno. ' +
+             "El que baje de su mínimo sale solo ahí arriba.</p>";
+        s.basicos.forEach(function (l) { h += lineaPasadaHTML(l); });
+        h += "</details>";
+      }
+      h += "</details>";
+    });
+    h += '<button class="btn principal ancho" data-cerrar="1">Listo, a la compra</button>';
+    return h;
+  }
+
+  function abrirPasada() { pasadaAbierta = null; abrirModal(htmlPasada()); }
+
+  /* Repinta SOLO esa línea: rehacer la emergente entera mientras contestas te
+     cierra el sitio abierto y te manda arriba. Mismo motivo que en la despensa. */
+  function refrescarLineaPasada(id) {
+    var fila = document.querySelector('[data-pasfila="' + id + '"]');
+    if (!fila) return;
+    var r = Almacen.rangoCompra(UI.cuandoCompra);
+    var p = Almacen.pasadaPrevia(r.desde, r.dias), nueva = null;
+    p.sitios.forEach(function (s) {
+      s.lineas.concat(s.basicos).forEach(function (l) { if (l.id === id) nueva = l; });
+    });
+    if (!nueva) return;
+    var tmp = document.createElement("div");
+    tmp.innerHTML = lineaPasadaHTML(nueva);
+    fila.replaceWith(tmp.firstChild);
   }
 
   function lineaStockHTML(x) {
@@ -4271,6 +4398,21 @@
 
     /* --- modal --- */
     $("#modal").addEventListener("click", function (e) {
+      /* LA PASADA, ANTES DEL CIERRE. Su botón de abajo lleva `data-cerrar`, así
+         que si el cierre fuera primero no se llegaría nunca a lo de aquí. Y el
+         `details` de cada sitio se recuerda para que repintar una línea no te
+         cierre el armario que estabas mirando. */
+      var pb = e.target.closest("[data-pas]");
+      if (pb) {
+        var par = pb.getAttribute("data-pas").split(":");
+        var nec = parseFloat(pb.getAttribute("data-nec") || "0");
+        Almacen.responderPasada(par[0], par[1], par[1] === "hay" ? nec : 0);
+        refrescarLineaPasada(par[0]);
+        if (typeof pintarCompra === "function") pintarCompra();
+        return;
+      }
+      var pd = e.target.closest("[data-pasitio]");
+      if (pd) pasadaAbierta = pd.getAttribute("data-pasitio");
       if (e.target.id === "modal" || e.target.closest("[data-cerrar]")) { cerrarModal(); return; }
       var ed = e.target.closest("[data-editar]");
       if (ed) { abrirEditor(ed.getAttribute("data-editar")); return; }
@@ -4363,6 +4505,8 @@
       });
     });
     $("#compra-recalcular").addEventListener("click", pintarCompra);
+    var bp = $("#compra-pasada");
+    if (bp) bp.addEventListener("click", abrirPasada);
     $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
     /* Los platos de la compra: marcar uno, o el día entero de un golpe. */
     $("#platos-compra").addEventListener("click", function (e) {
@@ -4492,6 +4636,15 @@
       var id = st.getAttribute("data-stock");
       Almacen.ponerStock(id, parseFloat(String(st.value).replace(",", ".")));
       setTimeout(function () { refrescarLineaStock(id); }, 0);
+    });
+    /* La cifra del «queda esto» de la pasada. La emergente tiene su propio
+       oyente de `change`: el de la rejilla de la despensa no llega hasta aquí. */
+    $("#modal").addEventListener("change", function (e) {
+      var pc = e.target.closest("[data-pascifra]");
+      if (!pc) return;
+      var id = pc.getAttribute("data-pascifra");
+      Almacen.responderPasada(id, "parte", parseFloat(String(pc.value).replace(",", ".")));
+      if (typeof pintarCompra === "function") pintarCompra();
     });
     $("#rejilla-despensa").addEventListener("toggle", function (e) {
       var d = e.target.closest("details[data-sitio]");
