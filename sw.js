@@ -1,5 +1,5 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v183";
+var CACHE = "menu-semanal-v184";
 var FICHEROS = [
   "./", "./index.html", "./css/estilos.css?v=183",
   "./js/util.js?v=183", "./js/almacen.js?v=183", "./js/github.js?v=183", "./js/app.js?v=183",
