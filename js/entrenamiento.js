@@ -1436,12 +1436,22 @@
      luego el día— en vez de arrastrar, que en el móvil es un suplicio. */
   var bloqueSel = null;
 
-  /* el nombre corto que cabe en la casilla de un día */
+  /* El nombre corto que cabe en la casilla de un día.
+     Los bloques de una semana ESCRITA A MANO conservan su propio texto —hasta
+     la primera coma—, que es como se leía la tira antes: «Fuerza A»,
+     «Caminar a buen paso», «Descanso». Los que genera la rampa sí se abrevian,
+     porque son siempre los mismos cuatro. */
   function cortoBloque(s) {
+    if (s.dia) {
+      var t = String(s.t || "").split(",")[0];
+      return t + (s.min ? " " + s.min + "'" : "");
+    }
     var n = s.largo ? "Larga"
       : (s.fam === "bici" ? "Bici"
       : (s.fam === "caminar" ? "Andar"
-      : (s.fam === "fuerza" ? "Fza " + s.t.slice(-1) : s.t.split(" ")[0])));
+      : (s.fam === "fuerza"
+          ? ("Fza " + String(s.t).replace(/^fuerza\s*/i, "").split(/[,\s]/)[0]).replace(/\s+$/, "")
+          : s.t.split(" ")[0])));
     return n + (s.min ? " " + s.min + "'" : "");
   }
 
@@ -1452,6 +1462,30 @@
     if (cacheBolsillo[clave]) return cacheBolsillo[clave];
 
     var rit = P.ritmos || {}, out = [], num = 0;
+
+    /* LAS SEMANAS ESCRITAS A MANO TAMBIÉN SON BLOQUES  ·  24-sep-2026
+       Los diez días del 18 al 27 de septiembre están escritos uno a uno en
+       `excepciones`: el corticoide, sin bici, a pie. Si el bolsillo los pisara
+       con lo que manda la rampa, la semana dejaría de ser la que el plan dice.
+       Pero tampoco tiene sentido que sean lo único de la app que no se puede
+       mover. Así que el bolsillo de esas semanas se hace CON ESAS MISMAS
+       LÍNEAS: dicen exactamente lo mismo, y cada una se queda de partida en su
+       día, pero ya se pueden arrastrar como las demás. */
+    var conMano = [], fx = sem.desde;
+    while (fx <= sem.hasta) {
+      if ((P.excepciones || {})[fx]) conMano.push(fx);
+      fx = U.sumarDias(fx, 1);
+    }
+    if (conMano.length) {
+      conMano.forEach(function (d) {
+        (P.excepciones[d] || []).forEach(function (x) {
+          out.push({ id: "b" + num, t: x.t, min: x.min, fam: familia(x.t), dia: d });
+          num++;
+        });
+      });
+      cacheBolsillo[clave] = out;
+      return out;
+    }
     var vBici = (rit.bici && rit.bici.v) || 45, vCam = (rit.caminar && rit.caminar.v) || 25;
 
     function mete(fam, texto, n, min, extra) {
@@ -1522,6 +1556,8 @@
     var ordRod = [0, 3, 1, 4, 2, 5], ordCam = [2, 5, 1, 4, 0, 3], ordFue = [0, 3, 1];
     var iR = 0, iC = 0, iF = 0;
     b.forEach(function (x) {
+      /* si el bloque viene de una línea escrita a mano, arranca en SU día */
+      if (x.dia) { mapa[x.id] = x.dia; return; }
       if (x.largo) { mapa[x.id] = dias[Math.max(0, n - 2)]; return; }
       if (x.fam === "caminar") { mapa[x.id] = dias[ordCam[iC++ % ordCam.length] % huecos]; return; }
       if (x.fam === "fuerza") { mapa[x.id] = dias[ordFue[iF++ % ordFue.length] % huecos]; return; }
@@ -1551,7 +1587,6 @@
       var f = U.sumarDias(lunes, i), sem = semanaDe(f);
       if (!sem || vistos[sem.desde]) continue;
       vistos[sem.desde] = true;
-      if ((P.excepciones || {})[f]) continue;          // semana escrita a mano
       var b = bolsilloDe(sem), r = repartoDe(sem);
       if (!b || !r) continue;
       b.forEach(function (x) { if (!r[x.id]) out.push({ sem: sem, b: x }); });
@@ -1598,15 +1633,16 @@
   function sesionesDe(iso, sem, talla, sinAjuste) {
     var lista;
     var exc = (P.excepciones || {})[iso];
-    /* LAS EXCEPCIONES MANDAN SOBRE EL BOLSILLO. Son los diez días escritos a
-       mano del 18 al 27 de septiembre, con el corticoide encima y sin bici: si
-       el bolsillo los pisara, la semana 1 dejaría de ser lo que el plan dice. */
-    var rep = (!exc && sem) ? repartoDe(sem) : null;
+    /* El reparto manda siempre que exista, incluso en las semanas escritas a
+       mano: en ésas el bolsillo se construye con las propias líneas escritas
+       (ver `bolsilloDe`), así que dicen lo mismo y además se pueden mover. */
+    var rep = sem ? repartoDe(sem) : null;
     if (rep) {
       var bl = bolsilloDe(sem);
       lista = [];
       bl.forEach(function (x) {
-        if (rep[x.id] === iso) lista.push({ t: x.t, min: x.min, fam: x.fam, largo: x.largo, bid: x.id });
+        if (rep[x.id] === iso) lista.push({ t: x.t, min: x.min, fam: x.fam, largo: x.largo,
+                                            dia: x.dia, bid: x.id });
       });
     } else if (exc) {
       lista = exc.map(function (s) { return { t: s.t, min: s.min }; });
