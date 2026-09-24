@@ -462,6 +462,18 @@
       { id: "muslo",   nombre: "Muslo",      unidad: "cm",   paso: 0.5, min: 30, max: 90,
         diaDelMes: 1, informativo: true,
         ayuda: "Mensual. Es donde vive el músculo del ciclista: si el peso baja y el muslo aguanta, vas bien; si bajan los dos, estás perdiendo músculo." },
+      /* EL GEMELO  ·  añadido el 24-sep-2026. Idea suya: «cosas de ciclista».
+         Mensual, como muslo y brazo. Pero con un matiz que los otros dos no
+         tienen y que está escrito en la ayuda: el gemelo TAMBIÉN se hincha por
+         retención de líquidos, que es justo lo que mide el tobillo. Un gemelo
+         que sube no es músculo por sí solo: hay que leerlo contra el tobillo. */
+      { id: "gemelo",  nombre: "Gemelo",     unidad: "cm",   paso: 0.5, min: 25, max: 55,
+        diaDelMes: 1, informativo: true,
+        ayuda: "Mensual. De pie, peso en las dos piernas y músculo relajado —no de puntillas—, " +
+               "por la parte más ancha, siempre la MISMA pierna (la del tobillo) y por la mañana. " +
+               "Marca con boli dónde mides la primera vez: 2 cm arriba o abajo cambian más el número " +
+               "que un mes de bici. OJO: el gemelo también se hincha por líquido. Se lee con el tobillo " +
+               "al lado — sube el gemelo y el tobillo quieto: entrenamiento; suben los dos: líquido." },
       /* La báscula mide músculo, agua y masa ósea, pero intervals no los baja:
          de los 19 campos que devuelve no está ninguno de los tres. Así que el
          músculo se teclea a mano, mirando la app de Garmin el día que te pesas.

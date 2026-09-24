@@ -629,8 +629,13 @@
       ".av-linea span{color:#6b7c8d}",
       ".dia-bl.quitado{text-decoration:line-through;opacity:.55}",
       ".ent-dia{position:relative}",
-      ".ent-dia .pie{display:flex;align-items:center;justify-content:space-evenly;gap:4px;margin-top:6px}",
-      ".ent-dia .dc{display:flex;flex-direction:column;align-items:center;line-height:1;gap:1px}",
+      /* EL PIE SIEMPRE ABAJO DEL TODO, el punto pegado a la izquierda y la carga a
+         la derecha. Antes iba justo debajo del último bloque, así que en una fila
+         con días de distinto número de bloques los puntos quedaban a alturas
+         distintas y no se podían comparar de un vistazo. (Carlos, 24-sep-2026.) */
+      ".ent-dia .pie{display:flex;align-items:flex-end;justify-content:space-between;" +
+        "width:100%;gap:4px;margin-top:auto;padding-top:6px}",
+      ".ent-dia .dc{display:flex;flex-direction:column;align-items:flex-end;line-height:1;gap:1px}",
       ".ent-dia .dc b{font-size:.72rem;font-weight:800;color:var(--azul-hondo)}",
       ".ent-dia .dc i{font-size:.52rem;font-style:normal;font-weight:700;letter-spacing:.06em;" +
         "text-transform:uppercase;color:var(--gris)}",
@@ -2583,6 +2588,25 @@
     return fuera;
   }
 
+  /* EL VALOR DE UNA MEDIDA EN UN DÍA CONCRETO, o en los tres días de alrededor.
+     Hace falta para leer el gemelo contra el tobillo: las dos se anotan el mismo
+     día pero no siempre «el mismo día» es literal. Sin margen, la lectura se
+     quedaría muda por un día de diferencia. (24-sep-2026.) */
+  function valorMedidaEn(id, iso, margen) {
+    var m = ent().medidas, d = (margen === undefined) ? 3 : margen, i;
+    for (i = 0; i <= d; i++) {
+      var caras = i === 0 ? [iso] : [U.sumarDias(iso, -i), U.sumarDias(iso, i)];
+      for (var k = 0; k < caras.length; k++) {
+        var fila = m[caras[k]];
+        if (fila && fila[id] !== undefined && fila[id] !== "") {
+          var v = parseFloat(fila[id]);
+          if (!isNaN(v)) return v;
+        }
+      }
+    }
+    return null;
+  }
+
   function media(lista) {
     if (!lista.length) return null;
     var s = 0;
@@ -3058,6 +3082,20 @@
         "Siempre la misma pierna."
       ],
       fallos: "Apretar, o medir en un sitio distinto cada mes. Un centímetro de diferencia en la altura del muslo cambia el número más que tres meses de entrenamiento."
+    },
+    gemelo: {
+      titulo: "Cómo medir el gemelo",
+      dibujo: "",
+      pasos: [
+        "De pie, peso repartido en las dos piernas y el músculo <b>relajado</b>. De puntillas no: así mides otro músculo.",
+        "Por la <b>parte más ancha</b> de la pantorrilla. Búscala con la cinta y apunta a cuántos centímetros del suelo está.",
+        "Marca ese punto con boli la primera vez: 2 cm arriba o abajo cambian más el número que un mes de bici.",
+        "Cinta horizontal y apoyada, sin apretar.",
+        "Siempre la MISMA pierna, la del tobillo, y por la mañana.",
+        "Mide el <b>tobillo el mismo día</b>: sin él, este número no dice si has ganado músculo o estás reteniendo."
+      ],
+      fallos: "Medir con el músculo en tensión, cambiar de altura cada mes, o leerlo solo. " +
+        "El gemelo se hincha con la retención de líquidos igual que el tobillo: sube el gemelo y el tobillo quieto, es entrenamiento; suben los dos, es líquido."
     },
     brazo: {
       titulo: "Cómo medir el brazo",
@@ -6443,6 +6481,13 @@
       brazo: { n: "Brazo", u: "cm", dias: 180, serie: function () { return serieApp("brazo", v); }, pie: "Informativo: se mueve muy poco." },
       muslo: { n: "Muslo", u: "cm", dias: 180, serie: function () { return serieApp("muslo", v); },
                pie: "Donde vive el músculo del ciclista. Si el peso baja y el muslo aguanta, vas bien." },
+      /* EL GEMELO va con el tobillo dibujado encima, y no es un adorno: los dos
+         suben con la retención de líquidos. Separados, un gemelo que crece
+         parece músculo; juntos se ve si lo es. (24-sep-2026.) */
+      gemelo: { n: "Gemelo", u: "cm", dias: 180, serie: function () { return serieApp("gemelo", v); },
+                serie2: function () { return serieApp("tobillo", v); }, etq2: "tobillo",
+                par: ["gemelo", "tobillo"],
+                pie: "Cosa de ciclista, pero se lee con el tobillo al lado: si sube el gemelo y el tobillo está quieto, es entrenamiento; si suben los dos, es líquido." },
       grasaCinta: { n: "Grasa por cinta", u: "%", dias: 120,
                     serie: function () { return serieGrasaCinta(v); },
                     pie: "Sale de cintura, cuello y altura. No depende del agua del cuerpo, así que para la tendencia es más fiable que la báscula." },
@@ -6750,7 +6795,7 @@
 
   /* hacia dónde es mejor que vaya cada una */
   var MEJOR = {
-    peso: "baja", cintura: "baja", cuello: null, tobillo: null, brazo: null, muslo: null,
+    peso: "baja", cintura: "baja", cuello: null, tobillo: null, brazo: null, muslo: null, gemelo: null,
     grasa: "baja", grasaCinta: "baja", magra: "sube", musculo: "sube", vfc: "sube", fcr: "baja", sueno: "sube",
     pt_sueno: "sube", ctl: "sube", carga: "sube", tension: "baja", pulso: null
   };
@@ -8727,6 +8772,7 @@
     { k: "cuello",  n: "Cuello",  u: " cm" },
     { k: "tobillo", n: "Tobillo", u: " cm" },
     { k: "muslo",   n: "Muslo",   u: " cm" },
+    { k: "gemelo",  n: "Gemelo",  u: " cm" },
     { k: "brazo",   n: "Brazo",   u: " cm" }
   ];
 
@@ -8746,6 +8792,27 @@
           pie += " · " + (Math.abs(dt) < 0.05 ? "igual que tu media de " + prev.length + " días"
             : signo(dt) + " cm sobre tu media de " + prev.length + " días") +
             (dt >= 0.7 ? " — eso es líquido, no grasa" : "");
+        }
+      }
+      /* EL GEMELO SE LEE CONTRA EL TOBILLO. Los dos suben con el líquido, así que
+         el gemelo a solas no distingue músculo de retención. Aquí se compara el
+         cambio de uno con el del otro desde la medida anterior de gemelo. */
+      if (m.k === "gemelo" && u) {
+        var gs = serieMedida("gemelo", dia, 400);
+        if (gs.length >= 2) {
+          var dg = gs[gs.length - 1].v - gs[gs.length - 2].v;
+          var tobA = valorMedidaEn("tobillo", gs[gs.length - 2].f);
+          var tobB = valorMedidaEn("tobillo", gs[gs.length - 1].f);
+          var lect = "";
+          if (tobA !== null && tobB !== null) {
+            var dtb = tobB - tobA;
+            if (dg >= 0.3 && Math.abs(dtb) < 0.3) lect = " — y el tobillo quieto: eso es entrenamiento";
+            else if (dg >= 0.3 && dtb >= 0.3) lect = " — pero el tobillo sube igual: es líquido, no músculo";
+            else if (dg <= -0.3 && Math.abs(dtb) < 0.3) lect = " — con el tobillo quieto: mira el peso, puede ser pérdida de músculo";
+          } else {
+            lect = " — sin tobillo ese día no se puede saber si es músculo o líquido";
+          }
+          pie += " · " + (Math.abs(dg) < 0.05 ? "igual que la anterior" : signo(dg) + " cm desde la anterior") + lect;
         }
       }
       h += tarjeta(m.n, u ? num(u.v) + m.u : null, pie, m.k, null, u ? u.v : null);
