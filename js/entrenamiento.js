@@ -702,6 +702,11 @@
       ".dia-bl.largo{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}",
       ".dia-bl.fuerza{background:#f3eefb;border-color:#ddcdf3;color:#5a2b8f}",
       ".dia-bl.elegido{outline:2px solid var(--azul);outline-offset:1px}",
+      ".dia-bl.llevando{opacity:.4}",
+      ".dia-bl{-webkit-user-drag:element}",
+      ".ent-dia.encima{border-color:var(--azul);border-width:2px;background:var(--azul-claro);",
+      "  box-shadow:0 0 0 3px rgba(47,92,138,.14)}",
+      ".bl-bandeja.encima{border-color:var(--azul);border-style:solid;background:var(--azul-claro)}",
       ".bl-bandeja{border:1px dashed var(--azul-borde);background:#fafcfe;border-radius:11px;",
       "  padding:9px 11px;margin:10px 0}",
       ".bl-bandeja .et{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;",
@@ -7560,7 +7565,7 @@
         h += '<button type="button" class="dia-bl' + (x.b.largo ? " largo" : "") +
           (x.b.fam === "fuerza" ? " fuerza" : "") +
           (bloqueSel && bloqueSel.bid === x.b.id ? " elegido" : "") +
-          '" data-blq="' + x.sem.desde + ":" + x.b.id + '">' +
+          '" draggable="true" data-blq="' + x.sem.desde + ":" + x.b.id + '">' +
           U.esc(x.b.t) + (x.b.min ? " · " + x.b.min + " min" : "") + "</button>";
       });
       h += "</div></div>";
@@ -7588,7 +7593,8 @@
                 return '<button type="button" class="dia-bl' + (s.largo ? " largo" : "") +
                   (s.fam === "fuerza" ? " fuerza" : "") +
                   (bloqueSel && bloqueSel.bid === s.bid && bloqueSel.desde === semF.desde ? " elegido" : "") +
-                  '" data-blq="' + semF.desde + ":" + s.bid + '">' + U.esc(cortoBloque(s)) + "</button>";
+                  '" draggable="true" data-blq="' + semF.desde + ":" + s.bid + '">' +
+                  U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · "))))) +
         "</span><span class=\"p\"></span></div>";
@@ -8242,7 +8248,13 @@
         if (bloque === "actividad") prepararArchivo();   // pide sus ficheros al entrar
         if (bloque === "casos") prepararCasos();
         pintar();
+        return;
       }
+      /* TOCAR FUERA SUELTA EL BLOQUE QUE LLEVABAS EN LA MANO. Si lo tocaste
+         sin querer, no hace falta buscar el «cancelar»: vale con tocar en
+         cualquier hueco. Va al final de todo y sólo repinta si de verdad
+         había algo cogido. (Carlos, 24-sep-2026.) */
+      if (bloqueSel) { bloqueSel = null; pintarConservando(); }
     });
 
     cont.addEventListener("keydown", function (e) {
@@ -8352,6 +8364,79 @@
      para todas: las de Evolución, las del pase y las emergentes. */
 
   var tipPuesto = false;
+
+  /* ==================== ARRASTRAR BLOQUES ====================
+     Los dos toques —bloque y luego día— son lo que funciona en el móvil. Pero
+     en el ordenador lo natural es arrastrar, y así estaba en el boceto que
+     Carlos aprobó: probó a arrastrar, no pasó nada, y con razón dijo que no
+     coincidía. Las dos formas conviven: el arrastre para el ratón, los dos
+     toques para el dedo. (24-sep-2026.) */
+  var arrastrePuesto = false, llevando = null;
+
+  function ponerArrastre() {
+    if (arrastrePuesto) return;
+    arrastrePuesto = true;
+
+    function bloqueDe(e) {
+      var t = e.target;
+      return (t && t.closest) ? t.closest("[data-blq]") : null;
+    }
+    function destinoDe(e) {
+      var t = e.target;
+      if (!t || !t.closest) return null;
+      return t.closest("[data-dia]") || t.closest(".bl-bandeja");
+    }
+    document.addEventListener("dragstart", function (e) {
+      var b = bloqueDe(e);
+      if (!b) return;
+      var pb = b.getAttribute("data-blq").split(":");
+      llevando = { desde: pb[0], bid: pb[1] };
+      bloqueSel = null;                       // arrastrando no hace falta el aviso
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", b.getAttribute("data-blq")); } catch (x) {}
+      }
+      b.classList.add("llevando");
+    });
+    document.addEventListener("dragend", function () {
+      llevando = null;
+      var v = document.querySelectorAll(".dia-bl.llevando, .ent-dia.encima, .bl-bandeja.encima");
+      for (var i = 0; i < v.length; i++) v[i].classList.remove("llevando", "encima");
+    });
+    document.addEventListener("dragover", function (e) {
+      if (!llevando) return;
+      var d = destinoDe(e);
+      if (!d) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      d.classList.add("encima");
+    });
+    document.addEventListener("dragleave", function (e) {
+      var d = destinoDe(e);
+      if (d) d.classList.remove("encima");
+    });
+    document.addEventListener("drop", function (e) {
+      if (!llevando) return;
+      var d = destinoDe(e);
+      if (!d) return;
+      e.preventDefault();
+      d.classList.remove("encima");
+      var sMov = semanaDe(llevando.desde);
+      if (!sMov) { llevando = null; return; }
+      if (d.classList.contains("bl-bandeja")) {
+        moverBloque(sMov, llevando.bid, null);
+      } else {
+        var iso = d.getAttribute("data-dia"), sDest = semanaDe(iso);
+        if (!sDest || sDest.desde !== sMov.desde) {
+          U.toast("Ese día es de otra semana");
+          llevando = null; pintarConservando(); return;
+        }
+        moverBloque(sMov, llevando.bid, iso);
+      }
+      llevando = null;
+      pintarConservando();
+    });
+  }
 
   function ponerTip() {
     if (tipPuesto) return;
@@ -8469,6 +8554,7 @@
     inyectarHtml();
     conectar();
     ponerTip();
+    ponerArrastre();
     if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
     pintar();
     abrirEnElPlan();
