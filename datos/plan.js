@@ -23,18 +23,18 @@
     },
 
     /* ---------- la rampa: cada semana, su carga y su talla ----------
-       LA CARGA DE AQUÍ ES SOLO ENTRENAMIENTO: rodillo y caminatas. El día grande
-       del fin de semana NO entra, por decisión de Carlos (23-sep-2026): «entreno
-       para ir a la montaña y salir con la bici tranquilo el fin de semana», así
-       que la salida es el objetivo, no el presupuesto. Meterla dentro obligaba a
-       elegir entre un domingo bueno y un número verde — y además descuadraba la
-       semana un 50 % según tocara monte (14,2 puntos/hora) o carretera (48,6).
-       Por eso estos números son más bajos que los de antes: 240 en crucero en vez
-       de 300. No es menos entreno, es otra unidad. Sumando la salida rondan los
-       315, que en equilibrio dan una forma (CTL) de unos 45 — por encima de los
-       43 de la versión anterior.
-       Lo que la salida SÍ hace es condicionar la semana siguiente: ver
-       `diaGrande.umbrales`. */
+       LA CARGA DE AQUÍ ES LA SEMANA ENTERA, SALIDA LARGA INCLUIDA.
+       El 23-sep-2026 se escribió aquí lo contrario —que el día grande quedaba
+       fuera del presupuesto— y al día siguiente Carlos lo corrigió: «si un
+       sábado me machaco con la bici es carga, quiera o no». El código se cambió
+       ese mismo día (el bloque largo entra en el bolsillo) pero esta nota se
+       quedó sin tocar, y el 24 de septiembre me hizo contarle a Carlos una cosa
+       falsa. AVISO PARA QUIEN LEA: esta cabecera es documentación, no código. Si
+       alguna vez discrepa del código, manda el código — y se corrige la nota.
+
+       La salida larga se lleva `bolsillo.largo.cuota` del presupuesto de bici,
+       y los rodillos se dimensionan con lo que quede. Los umbrales de
+       `salidaLarga` se escribieron para el mundo anterior y están RETIRADOS. */
     /* LOS RITMOS, MEDIDOS Y NO SUPUESTOS  ·  23-sep-2026
        Puntos de carga por hora, sacados de sus propios días de UNA sola
        actividad, derivando la carga del día de la serie `atl`:
@@ -132,7 +132,11 @@
     crucero: {
       paso: 28,          // puntos que sube cada semana de construcción
       techo: 700,        // CTL 90 el 30-jun; en régimen, con la descarga cada cuarta,
-                         // la media es 651 y la CTL se asienta en ~93. Unas 15 h/semana.
+                         // la media es 651 y la CTL se asienta en ~93.
+                         // HORAS: 17 de cardio y 19 con la fuerza, no las 15 que
+                         // decía esta línea. El 15 salía de pasar TODA la carga a
+                         // ritmo de bici; las caminatas van a 25 p/h y tardan casi
+                         // el doble por punto. Medido el 24-sep-2026.
       descarga: 0.72,    // la cuarta semana, sobre la última de construcción
       tallaDescarga: "A",// a este nivel la talla B se queda corta: A escalada a la baja
       revisar: "2027-03-01"
@@ -175,9 +179,60 @@
       /* 85 % bici, 15 % caminar. Antes era 78/22. Decisión suya: caminar va a
          salir de sobra como paseo de ocio, no hace falta mandarlo. */
       cuota: { bici: 0.85, caminar: 0.15 },
-      /* el bloque largo se lleva este trozo del presupuesto de bici; el resto
-         se reparte entre los rodillos */
-      largo: { cuota: 0.30, min: 60, max: 240 },
+      /* ---------- EL BLOQUE LARGO  ·  medido el 24-sep-2026 ----------
+         Carlos: «el bloque outdoor largo ha de ser de x carga y eso supone x
+         minutos de ruta con desnivel, x minutos de ruta media y x minutos en
+         bici, y me adapto a eso». Y luego: «estoy de acuerdo con que salida de 6
+         horas igual vale más, hay que determinar bien ese número». Las dos veces
+         tenía razón.
+
+         LO QUE SE MIDIÓ. Sus propias salidas de 2,5 h o más del histórico
+         (2021-10 a 2025-09) con el `esfuerzo` del reloj: 74 a pie y 139 en bici.
+         Se parten por DESNIVEL POR HORA, que es lo que de verdad manda, y de cada
+         tramo se toma la MEDIANA de sus puntos/hora. No hay modelo ni ajuste: son
+         sus propios días. Se descartó un registro roto (21-sep-2024: 7,3 h y 30
+         puntos, pulso mal grabado).
+
+         POR QUÉ EL 14,2 ESTABA MAL. Era la mediana de TODAS sus caminatas, y esa
+         la mandan 219 paseos de menos de una hora a 14,1 p/h. Las salidas largas
+         van a 18,2 y las de montaña a 26,1. El 25,3 medido la semana del 18 de
+         septiembre se pasaba por lo contrario: paseos cortos con corticoide. Los
+         dos eran un número plano para algo que no es plano.
+
+         LO QUE MANDA ES EL DESNIVEL, NO LAS HORAS. A pie, seis horas de llano
+         pagan 64 puntos y tres de montaña pagan 78. Andar más por lo plano casi
+         no suma; subir sí.
+
+         PRIMERO SE PROBARON LAS DOS VARIABLES por separado —esfuerzo = 9,5 x horas
+         + 8,0 por cada 100 m— pero eso daba salidas de media hora con 1.000 m de
+         desnivel en las semanas bajas, que no existen. Con el desnivel POR HORA
+         cada modo es un ritmo plano y el disparate desaparece.
+
+         LO FLOJO, Y HAY QUE DECIRLO: «A pie, montaña» sale de 12 salidas y su
+         cuartil alto está en 38, o sea que la horquilla es ancha. VOLVER A MEDIRLO
+         en cuanto registre tres o cuatro salidas nuevas. */
+      largo: {
+        cuota: 0.30,       // trozo del presupuesto de bici que se le propone
+        min: 60, max: 240,
+        topeHoras: 6,      // suyo: «las rutas más duras serán de 6 horas, 7 como mucho»
+        /* `ph` son puntos por hora MEDIDOS; `muestra` el número de salidas; `mh` el
+           desnivel por hora que define el tramo, que es lo que separa un modo de otro. */
+        modos: [
+          { id: "pie-llano",   fam: "pie",  n: "A pie, llano",              ph: 10.7, mh: "menos de 60 m/h",  muestra: 14 },
+          { id: "pie-medio",   fam: "pie",  n: "A pie, media montaña",      ph: 18.2, mh: "60 a 200 m/h",     muestra: 48 },
+          { id: "pie-monte",   fam: "pie",  n: "A pie, montaña",            ph: 26.1, mh: "más de 200 m/h",   muestra: 12 },
+          { id: "bici-llano",  fam: "bici", n: "En bici, llano u ondulado", ph: 35.1, mh: "menos de 200 m/h", muestra: 60 },
+          { id: "bici-desn",   fam: "bici", n: "En bici, con desnivel",     ph: 45.2, mh: "200 a 300 m/h",    muestra: 57 },
+          { id: "bici-puerto", fam: "bici", n: "En bici, con puerto",       ph: 55.1, mh: "más de 300 m/h",   muestra: 22 },
+          /* SIN SALIDA. Carlos: «un viaje, una boda… hay que repartir la carga en
+             los cinco días de diario, aunque salgan 3 horas al día de rodillo, lo
+             haré». El bloque largo no desaparece: se vuelve rodillo largo —«1
+             largo outdoor o indoor», palabras suyas— y la semana conserva sus
+             seis bloques de bici en vez de engordar cinco. */
+          { id: "rodillo", fam: "rodillo", n: "Sin salida: rodillo largo",  ph: 45,   mh: "en casa",          muestra: 39, topeHoras: 3 }
+        ],
+        pordefecto: "bici-llano"
+      },
       rodillo: { n: 5, min: 45, max: 150 },
       caminata: { n: 3, min: 30, max: 75 },
       /* La fuerza no lleva precio: el cumplimiento se cuenta por BLOQUES
@@ -276,8 +331,10 @@
        fase, y unos umbrales que deciden qué pasa la semana siguiente. */
     salidaLarga: {
       texto: "Salida larga, la que surja",
-      programada: false,
-      fueraDeCarga: true,
+      /* RETIRADO el 24-sep-2026: `programada: false` y `fueraDeCarga: true`.
+         Nadie los leía y decían lo contrario de lo que hace el código. La salida
+         ahora es un bloque del bolsillo, se declara (modo y horas) y se paga con
+         los ritmos medidos de `bolsillo.largo.formula`. */
       /* Orientación, NO instrucción: lo que el cuerpo aguanta bien en cada tramo
          de la rampa. Si un fin de semana sale otra cosa, sale otra cosa. */
       orientacion: [
@@ -290,7 +347,13 @@
       /* LOS UMBRALES SE MIRAN SOBRE EL FIN DE SEMANA ENTERO, no sobre un día:
          un finde de monte con dos rutas cuenta como una sola cosa. */
       sobre: "fin de semana completo",
-      umbrales: [
+      /* UMBRALES RETIRADOS · 24-sep-2026. Nunca llegaron a implementarse —solo
+         estaban escritos— y menos mal: se pensaron cuando la salida quedaba
+         FUERA del presupuesto. Ahora el propio plan pide 101 puntos de salida en
+         la semana 13 y 158 en la 23, así que estos cortes disparían «se fue de
+         madre» por hacer justo lo que la app manda. Se quedan como DATO
+         histórico de la medición de VFC, que sigue siendo válida. */
+      umbralesRetirados: [
         { hasta: 100,  fue: "tranquilo",
           reaccion: "nada", texto: "Fin de semana tranquilo. La semana que viene sigue la rampa." },
         { hasta: 150,  fue: "se notó",

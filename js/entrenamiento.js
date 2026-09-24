@@ -588,6 +588,29 @@
       ".ses-reglas b{display:block;font-size:.85rem;color:var(--azul-hondo);margin-bottom:4px}",
       /* la rutina dentro de la emergente: sin tarjeta, que la emergente ya lo es */
       ".mod-bloque{margin-bottom:12px}",
+      /* la ficha de la salida, bajo el tablero */
+      ".salida-ficha{display:flex;gap:12px;align-items:center;margin-top:10px;padding:10px 12px;" +
+        "border:1px solid var(--azul-borde);border-radius:12px;background:var(--azul-claro)}",
+      ".salida-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}",
+      ".salida-txt .et{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7c8d}",
+      ".salida-txt b{font-size:.98rem}",
+      ".salida-ficha .btn{flex:0 0 auto}",
+      ".salida-ficha.pasada{border-color:var(--ambar);background:var(--ambar-fondo)}",
+      ".salida-pasa{font-size:.78rem;color:#8a5a12;font-weight:600}",
+      /* la emergente */
+      ".sal-modos{display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0}",
+      "@media (min-width:520px){.sal-modos{grid-template-columns:1fr 1fr}}",
+      ".sal-modo{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;" +
+        "padding:9px 11px;border:1px solid var(--azul-borde);border-radius:10px;background:var(--blanco);" +
+        "font:inherit;color:inherit;cursor:pointer}",
+      ".sal-modo span{font-size:.78rem;color:#6b7c8d}",
+      ".sal-modo.elegido{border-color:var(--azul);background:var(--azul-claro);box-shadow:inset 0 0 0 1px var(--azul)}",
+      ".sal-et{margin:12px 0 4px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7c8d}",
+      ".sal-horas{display:flex;flex-wrap:wrap;gap:6px}",
+      ".sal-hora{padding:7px 12px;border:1px solid var(--azul-borde);border-radius:999px;background:var(--blanco);" +
+        "font:inherit;color:inherit;cursor:pointer}",
+      ".sal-hora.elegido{border-color:var(--azul);background:var(--azul);color:#fff}",
+      ".sal-cuenta{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--azul-claro);font-size:.95rem}",
       ".mod-bloque:last-of-type{margin-bottom:0}",
       ".aviso.en-modal{margin-top:12px}",
       ".ses-reglas ul{margin:0;padding-left:18px;font-size:.86rem;line-height:1.5}",
@@ -929,6 +952,7 @@
     if (!e.entreno.medidas) e.entreno.medidas = {};
     if (!e.entreno.talla) e.entreno.talla = {};
     if (!e.entreno.ajuste) e.entreno.ajuste = {};
+    if (!e.entreno.largo) e.entreno.largo = {};   // la salida declarada, por semana
     return e.entreno;
   }
 
@@ -1435,6 +1459,72 @@
      regla 3 de la rampa —«las sesiones se escalan desde el objetivo»— y llevaba
      desde el 23 de septiembre escrita y sin hacer.
      (Carlos, 24-sep-2026.) */
+  /* ==================== LA SALIDA LARGA, DECLARADA ====================
+     El plan propone un modo y unas horas; Carlos los cambia si sabe a dónde va.
+     Con eso se calcula lo que paga el bloque, y los cinco rodillos se dimensionan
+     con lo que queda. Es la regla que él pidió: «el bloque de montaña o outdoor se
+     puede poner como estimación y en función de eso repartir los otros cinco».
+     (24-sep-2026.) */
+  function cfgLargo() { return (P.bolsillo && P.bolsillo.largo) || {}; }
+
+  function modoLargo(id) {
+    var ms = cfgLargo().modos || [], i;
+    for (i = 0; i < ms.length; i++) if (ms[i].id === id) return ms[i];
+    for (i = 0; i < ms.length; i++) if (ms[i].id === cfgLargo().pordefecto) return ms[i];
+    return ms[0] || null;
+  }
+
+  function topeLargo(m) {
+    var c = cfgLargo();
+    return (m && m.topeHoras) || c.topeHoras || 6;
+  }
+
+  /* lo que paga una salida: horas por el ritmo MEDIDO de ese terreno */
+  function puntosLargo(m, horas) {
+    if (!m || !(horas > 0) || !(m.ph > 0)) return 0;
+    return Math.round(horas * m.ph);
+  }
+
+  /* LAS HORAS QUE LA APP PROPONE: las que hacen falta para pagar su trozo del
+     presupuesto de bici en ese terreno, redondeadas a media hora, con su tope y
+     con un suelo de una hora —una salida larga de media hora no es una salida.
+     En montaña el tope muerde casi siempre, y ahí está la gracia: la salida paga
+     lo que paga y lo que falte se lo comen los rodillos. Es lo que Carlos eligió
+     con las dos opciones delante y los números a la vista. */
+  function horasPropuestas(m, ptsBici) {
+    var tope = topeLargo(m);
+    if (!m || !(m.ph > 0)) return Math.min(2, tope);
+    var h = Math.round((ptsBici * (cfgLargo().cuota || 0.30) / m.ph) * 2) / 2;
+    if (!(h >= 1)) h = 1;
+    return Math.min(h, tope);
+  }
+
+  /* las horas que se pueden elegir para un modo: de 1 h a su tope, de media en
+     media. La montaña tiene el mismo tope que lo demás; el rodillo, tres horas. */
+  function horasPosibles(m) {
+    var out = [], tope = topeLargo(m), h;
+    for (h = 1; h <= tope + 0.001; h += 0.5) out.push(Math.round(h * 2) / 2);
+    return out;
+  }
+
+  /* lo declarado para una semana, o la propuesta si no hay nada declarado */
+  function largoDe(sem) {
+    var g = (ent().largo || {})[sem.desde];
+    var m = modoLargo(g && g.modo);
+    if (!m) return null;
+    var ptsBici = (sem.carga || 0) * ((P.bolsillo.cuota && P.bolsillo.cuota.bici) || 0.85);
+    var horas = (g && g.horas > 0) ? Math.min(g.horas, topeLargo(m)) : horasPropuestas(m, ptsBici);
+    return { modo: m, horas: horas, pts: puntosLargo(m, horas), suyo: !!(g && g.modo) };
+  }
+
+  function ponerLargo(sem, modo, horas) {
+    var e = ent();
+    if (!modo) delete e.largo[sem.desde];
+    else e.largo[sem.desde] = { modo: modo, horas: horas || 0 };
+    cacheBolsillo = {};
+    A.guardar("entreno");
+  }
+
   var cacheBolsillo = {};
   /* el bloque que se está moviendo: { desde, bid }. Dos toques —el bloque y
      luego el día— en vez de arrastrar, que en el móvil es un suplicio. */
@@ -1456,13 +1546,18 @@
       : (s.fam === "fuerza"
           ? ("Fza " + String(s.t).replace(/^fuerza\s*/i, "").split(/[,\s]/)[0]).replace(/\s+$/, "")
           : s.t.split(" ")[0])));
+    /* A PARTIR DE DOS HORAS, EN HORAS. La salida larga salía como «360'» y eso
+       no lo lee nadie de un vistazo en una casilla del tablero. */
+    if (s.min >= 120) return n + " " + horasTxt(Math.round(s.min / 30) / 2);
     return n + (s.min ? " " + s.min + "'" : "");
   }
 
   function bolsilloDe(sem) {
     var B = P.bolsillo;
     if (!B || !sem || !sem.desde) return null;
-    var clave = sem.desde + "|" + sem.carga + "|" + tallaDe(sem);
+    var gL = (ent().largo || {})[sem.desde];
+    var clave = sem.desde + "|" + sem.carga + "|" + tallaDe(sem) +
+                "|" + (gL ? gL.modo + ":" + gL.horas : "-");
     if (cacheBolsillo[clave]) return cacheBolsillo[clave];
 
     var rit = P.ritmos || {}, out = [], num = 0;
@@ -1523,18 +1618,25 @@
     var ptsBici = carga * ((B.cuota && B.cuota.bici) || 0.85);
     var ptsCam = carga - ptsBici;
 
-    /* el largo se sirve primero y se lleva su trozo del presupuesto de bici.
-       Ya NO está fuera de la carga: Carlos, 24-sep-2026, «si un sábado me
-       machaco con la bici es carga, quiera o no». */
-    var ptsLargo = ptsBici * ((B.largo && B.largo.cuota) || 0.3);
-    var minLargo = Math.round((ptsLargo / vBici * 60) / 5) * 5;
-    minLargo = Math.max(B.largo.min, Math.min(B.largo.max, minLargo));
-    /* lleva familia «bici» PARA EL PRECIO —si no, no costaría nada y el
-       presupuesto se evaporaría—, y la marca `largo` para que al buscarle
+    /* EL LARGO SE SIRVE PRIMERO Y CON SU PRECIO MEDIDO. Ya NO está fuera de la
+       carga —Carlos, 24-sep-2026: «si un sábado me machaco con la bici es carga,
+       quiera o no»— y ya NO se paga a ritmo de bici: se declara el modo y las
+       horas, y la fórmula medida dice lo que vale. Los rodillos se dimensionan
+       con lo que quede, que es lo que él pidió.
+       El caso duro y elegido a sabiendas: seis horas de montaña pagan ~137 de los
+       595 puntos de bici de la semana 27, así que quedan 458 para los rodillos y
+       la semana se va a más de veinte horas. Se le puso delante con los números
+       y eligió repartirlo todo. */
+    var L = largoDe(sem);
+    var ptsLargo = L ? L.pts : 0;
+    var minLargo = Math.max(15, Math.round((L ? L.horas : 1) * 60 / 5) * 5);
+    /* `pts` es su precio propio, que costeSesion respeta. Conserva la familia
+       «bici» para el color y el reparto, y la marca `largo` para que al buscarle
        actividad medida le valga igual una ruta de monte que un rodillo. */
-    mete("bici", B.textos.largo, 1, minLargo, { largo: true });
+    mete("bici", (L && L.modo.fam === "rodillo") ? "Rodillo largo" : B.textos.largo,
+         1, minLargo, { largo: true, pts: ptsLargo, modo: L ? L.modo.id : null });
 
-    var rod = trocear(ptsBici - ptsLargo, vBici, B.rodillo);
+    var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, B.rodillo);
     mete("bici", B.textos.rodillo, rod.n, rod.min);
     var cam = trocear(ptsCam, vCam, B.caminata);
     mete("caminar", B.textos.caminata, cam.n, cam.min);
@@ -1568,6 +1670,103 @@
       mapa[x.id] = dias[ordRod[iR++ % ordRod.length] % huecos];
     });
     return mapa;
+  }
+
+  /* LA SALIDA DE LA SEMANA, A LA VISTA Y EDITABLE.
+     Antes aquí salía una orientación fija por número de semana —«monte de 15-18
+     km, o bici de 60-70»— que no dependía de nada y no servía para calcular.
+     Ahora se declara y de ahí salen los cinco rodillos. */
+  function fichaSalida(lunes) {
+    var sem = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
+    if (!sem) return "";
+    var L = largoDe(sem);
+    if (!L) return "";
+    var B = P.bolsillo || {}, bl = bolsilloDe(sem) || [];
+    /* LAS SEMANAS ESCRITAS A MANO NO TIENEN BLOQUE LARGO (los diez días del
+       corticóide van día a día en `excepciones`). Enseñar aquí una salida que no
+       mueve nada del tablero sería mentir, así que la ficha no sale. */
+    var hayLargo = false;
+    bl.forEach(function (x) { if (x.largo) hayLargo = true; });
+    if (!hayLargo) return "";
+    var nRod = 0, minRod = 0;
+    bl.forEach(function (x) {
+      if (x.fam === "bici" && !x.largo) { nRod++; minRod = x.min; }
+    });
+    var esRod = L.modo.fam === "rodillo";
+    var ptsBici = Math.round((sem.carga || 0) * ((B.cuota && B.cuota.bici) || 0.85));
+    return '<div class="salida-ficha' + (L.pts > ptsBici ? " pasada" : "") + '">' +
+      '<div class="salida-txt"><span class="et">' +
+        (esRod ? "Esta semana, sin salida" : "La salida de esta semana") + "</span>" +
+        "<b>" + U.esc(L.modo.n) + " · " + horasTxt(L.horas) + "</b>" +
+        '<span class="nota-peque">Paga <b>' + L.pts + " puntos</b> de los " +
+          ptsBici + " de bici" + (L.suyo ? "" : " · propuesta de la app") + ". " +
+          (nRod ? (nRod === 1 ? "Queda 1 rodillo de " : "Quedan " + nRod + " rodillos de ") +
+                  minRod + " min."
+                : "No quedan puntos para rodillo.") + "</span>" +
+        /* SI LA SALIDA SE PASA DEL PRESUPUESTO SE DICE, y no se compensa quitando
+           nada: es carga de verdad y ya está hecha. Pasa sobre todo en las
+           semanas de descarga, donde el presupuesto de bici es pequeño y una
+           jornada de montaña se lo lleva entero. Callarlo sería dejarle creer que
+           la semana cuadra cuando va un 50 % por encima. */
+        (L.pts > ptsBici
+          ? '<span class="salida-pasa">Se pasa en ' + (L.pts - ptsBici) +
+            " puntos del presupuesto de bici de esta semana.</span>" : "") +
+      "</div>" +
+      '<button type="button" class="btn" data-salida="' + sem.desde + '">Cambiar</button></div>';
+  }
+
+  /* La emergente no lleva la semana en cada botón: la guarda el botón que la
+     abrió. Se lee de ahí para no repetir el dato en veinte sitios. */
+  var salidaSem = null;
+  function semanaActivaSalida() { return salidaSem; }
+
+  function horasTxt(h) {
+    var e = Math.floor(h), m = Math.round((h - e) * 60);
+    return e + (m ? "h" + (m < 10 ? "0" : "") + m : " h");
+  }
+
+  /* la emergente para declararla: terreno arriba, horas debajo, y lo que cuesta
+     cada cosa a la vista. Nada de teclear metros de desnivel. */
+  function abrirSalida(iso) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    var sem = semanaDe(iso) || semanaDe(U.sumarDias(iso, 3));
+    if (!caja || !modal || !sem) return;
+    salidaSem = sem;
+    caja.innerHTML = '<header><h2>La salida de la semana</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      '<div id="salida-cuerpo">' + cuerpoSalida(sem) + "</div>";
+    modal.classList.add("abierta");
+  }
+
+  function cuerpoSalida(sem) {
+    var L = largoDe(sem), C = cfgLargo();
+    var ptsBici = (sem.carga || 0) * (((P.bolsillo.cuota) || {}).bici || 0.85);
+    var h = '<p class="nota-peque">El objetivo de esta semana son <b>' + (sem.carga || 0) +
+      " puntos</b>, " + Math.round(ptsBici) + " de ellos de bici. Lo que no pague la salida " +
+      "se reparte entre los rodillos de diario.</p>";
+    h += '<div class="sal-modos">';
+    (C.modos || []).forEach(function (m) {
+      var mio = L && L.modo.id === m.id;
+      h += '<button type="button" class="sal-modo' + (mio ? " elegido" : "") +
+        '" data-sal-modo="' + m.id + '"><b>' + U.esc(m.n) + "</b>" +
+        '<span>' + m.ph.toString().replace(".", ",") + " p/h · " + U.esc(m.mh) + "</span></button>";
+    });
+    h += "</div>";
+    if (L) {
+      h += '<p class="sal-et">Horas</p><div class="sal-horas">';
+      horasPosibles(L.modo).forEach(function (x) {
+        h += '<button type="button" class="sal-hora' + (Math.abs(x - L.horas) < 0.01 ? " elegido" : "") +
+          '" data-sal-hora="' + x + '">' + horasTxt(x) + "</button>";
+      });
+      h += "</div>";
+      h += '<div class="sal-cuenta"><b>' + L.pts + " puntos</b> · " +
+        U.esc(L.modo.n.toLowerCase()) + ", " + horasTxt(L.horas) + "</div>";
+      h += '<p class="nota-peque">Ritmo medido sobre <b>' + L.modo.muestra +
+        " salidas suyas</b> de 2,5 h o más." +
+        (L.modo.muestra < 20 ? " Muestra corta: el número se afinará con las próximas." : "") + "</p>";
+      h += '<button type="button" class="deshacer" data-sal-modo="">Volver a la propuesta de la app</button>';
+    }
+    return h;
   }
 
   function repartoGuardado() { var e = ent(); if (!e.reparto) e.reparto = {}; return e.reparto; }
@@ -1646,6 +1845,7 @@
       lista = [];
       bl.forEach(function (x) {
         if (rep[x.id] === iso) lista.push({ t: x.t, min: x.min, fam: x.fam, largo: x.largo,
+                                            pts: x.pts, modo: x.modo,
                                             dia: x.dia, bid: x.id });
       });
     } else if (exc) {
@@ -6470,6 +6670,11 @@
 
   /* Lo que cuesta una sesión, con los ritmos MEDIDOS del plan. */
   function costeSesion(s) {
+    /* EL BLOQUE LARGO TRAE SU PRECIO PUESTO. Se paga con la fórmula medida
+       (horas + desnivel), no con un ritmo por familia: seis horas a pie por el
+       llano y seis en bici por un puerto no cuestan lo mismo ni de lejos.
+       (24-sep-2026.) */
+    if (s.pts > 0) return s.pts;
     /* el bloque trae su familia puesta; el texto solo se mira cuando no la hay */
     var r = (P.ritmos || {})[s.fam || familia(s.t)];
     if (!r || !(s.min > 0)) return 0;
@@ -7723,8 +7928,9 @@
         "</span><span class=\"p\"></span></div>";
     }
     h += "</div>";
-    h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) +
-      " El fin de semana, un solo día grande: " + U.esc(textoDiaGrande(sem).toLowerCase()) + ". El otro, descanso.</p></div>";
+    h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) + "</p>";
+    h += fichaSalida(lunes);
+    h += "</div>";
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
        Se calculó arriba, antes de la tira, para que la casilla salga marcada. */
@@ -8194,6 +8400,10 @@
       if (lim) { e.preventDefault(); Limpieza.lanzar(); return; }
 
 
+      /* la salida de la semana: abrir, elegir terreno, elegir horas */
+      var salB = t.closest ? t.closest("[data-salida]") : null;
+      if (salB) { e.preventDefault(); abrirSalida(salB.getAttribute("data-salida")); return; }
+
       /* Desde el plan la rutina se abre EN EMERGENTE y no se cambia de
          sección: así la × devuelve a El Plan, que es de donde se venía. */
       var verR = t.closest ? t.closest("[data-ver-rutina]") : null;
@@ -8446,6 +8656,31 @@
         e.preventDefault();
         VFC_NOCHES = !nb2.classList.contains("activo");
         if (histAbierta) abrirHistoria(histAbierta, rangoHist);
+        return;
+      }
+      /* LA SALIDA DE LA SEMANA SE ELIGE AQUÍ, no en el manejador de la pestaña.
+         Es el mismo motivo de la nota de arriba: la ventana cuelga de `#modal`,
+         fuera del contenedor de Entrenamiento, así que aquel `click` no la ve.
+         Se aprendió probando: los botones de terreno no hacían nada. */
+      var salM = e.target.closest ? e.target.closest("[data-sal-modo]") : null;
+      var salH = e.target.closest ? e.target.closest("[data-sal-hora]") : null;
+      if (salM || salH) {
+        e.preventDefault();
+        var semS = semanaActivaSalida();
+        if (semS) {
+          if (salM) {
+            /* sin id = «volver a la propuesta»: se borra lo declarado y la app
+               vuelve a proponer terreno y horas. */
+            ponerLargo(semS, salM.getAttribute("data-sal-modo") || null, 0);
+          } else {
+            var Lact = largoDe(semS);
+            ponerLargo(semS, Lact ? Lact.modo.id : null,
+                       parseFloat(salH.getAttribute("data-sal-hora")));
+          }
+          var cu = document.getElementById("salida-cuerpo");
+          if (cu) cu.innerHTML = cuerpoSalida(semS);
+          pintarConservando();
+        }
         return;
       }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
