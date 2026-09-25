@@ -5080,7 +5080,12 @@
       var tip = e.target.closest("[data-tipodia]");
       if (tip) {
         var pt = tip.getAttribute("data-tipodia").split("|");
-        Almacen.ponerTipoDia(pt[0], pt[1]);
+        var quitada = Almacen.ponerTipoDia(pt[0], pt[1]);
+        if (quitada) {
+          var act = Almacen.actividad(quitada.a);
+          Util.toast("Quitada la salida" + (act ? " de " + act.n.toLowerCase() : "") +
+            " de ese d\u00eda");
+        }
         pintarMenu();
         return;
       }

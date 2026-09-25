@@ -3877,11 +3877,35 @@
       var t = d && d.tipo;
       return this.TIPOS_DIA[t] ? t : "casa";
     },
+    /* CAMBIAR EL DÍA A «EN CASA» TIENE QUE DESHACER LA SALIDA (25-sep-2026).
+       Carlos: «he quitado el domingo como día de ruta, lo he cambiado a en casa
+       y no ha quitado la ruta de senderismo».
+
+       Y no la quitaba porque planificar una ruta hace TRES cosas —marca el día,
+       guarda la salida en `d.ruta` y registra la actividad en el día, que es lo
+       que sube el objetivo de calorías— y esto sólo deshacía la primera. El
+       senderismo se quedaba registrado en un día «en casa», sumando cuatro
+       horas de calorías a un domingo de sofá.
+
+       Se borra sólo la actividad marcada `ref:"ruta"`, que es la que puso el
+       planificador. Lo que venga de Garmin o lo que hayas apuntado a mano lleva
+       otra marca y no se toca: si la ruta SE HIZO, eso es registro y se queda. */
     ponerTipoDia: function (fecha, tipo) {
       if (!this.TIPOS_DIA[tipo]) return;
       var d = this.asegurarDia(fecha);
+      var quitada = null;
+      if (!this.TIPOS_DIA[tipo].ruta && d.ruta) {
+        quitada = d.ruta;
+        delete d.ruta;
+        var lista = (this.estado.actividad || {})[fecha];
+        if (lista) {
+          for (var i = lista.length - 1; i >= 0; i--) if (lista[i].ref === "ruta") lista.splice(i, 1);
+          if (!lista.length) delete this.estado.actividad[fecha];
+        }
+      }
       d.tipo = tipo;
       this.guardar("tipo-dia");
+      return quitada;
     },
     fichaTipoDia: function (fecha) { return this.TIPOS_DIA[this.tipoDia(fecha)]; },
 
