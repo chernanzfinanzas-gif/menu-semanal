@@ -3267,6 +3267,86 @@
     else pintarDespensa();
   }
 
+  /* ==================== LA AYUDA AL PASAR EL RATÓN ====================
+     Carlos, 25-sep-2026: «cuando dejas el ratón un rato sobre un botón sale un
+     banner explicativo de lo que se hace en ese botón».
+
+     No hace falta escribir nada nuevo: la app ya lleva CINCUENTA textos de
+     ayuda puestos en los `title` de los botones. Lo que pasa es que el `title`
+     lo pinta el navegador a su manera —tarda dos segundos, sale en gris
+     diminuto, y en el móvil no sale nunca—, así que estaban escritos y no se
+     leían.
+
+     Esto los reaprovecha enteros: al posar el ratón medio segundo, el texto
+     sale como un bocadillo de la app, encima del botón, legible. Y se quita el
+     `title` mientras tanto para que el navegador no enseñe el suyo a la vez —
+     al salir se devuelve, que es lo que hace que siga funcionando con el
+     teclado y con los lectores de pantalla.
+
+     En el móvil no hay ratón, así que no se activa: allí los botones ya son
+     grandes y el texto de la pantalla explica lo que hace falta. */
+  var ayudaCaja = null, ayudaReloj = null, ayudaEl = null;
+
+  function ponerAyuda(el, txt) {
+    if (!ayudaCaja) {
+      ayudaCaja = document.createElement("div");
+      ayudaCaja.className = "ayuda-globo";
+      ayudaCaja.setAttribute("role", "tooltip");
+      document.body.appendChild(ayudaCaja);
+    }
+    ayudaCaja.textContent = txt;
+    ayudaCaja.style.visibility = "hidden";
+    ayudaCaja.classList.add("visible");
+    var r = el.getBoundingClientRect();
+    var a = ayudaCaja.getBoundingClientRect();
+    var x = r.left + r.width / 2 - a.width / 2;
+    /* que no se salga por los lados */
+    x = Math.max(8, Math.min(x, window.innerWidth - a.width - 8));
+    var y = r.top - a.height - 8;
+    var abajo = y < 8;
+    if (abajo) y = r.bottom + 8;
+    ayudaCaja.classList.toggle("abajo", abajo);
+    ayudaCaja.style.left = Math.round(x) + "px";
+    ayudaCaja.style.top = Math.round(y) + "px";
+    ayudaCaja.style.visibility = "";
+  }
+
+  function quitarAyuda() {
+    clearTimeout(ayudaReloj);
+    if (ayudaCaja) ayudaCaja.classList.remove("visible");
+    if (ayudaEl && ayudaEl.getAttribute("data-ayuda")) {
+      ayudaEl.setAttribute("title", ayudaEl.getAttribute("data-ayuda"));
+      ayudaEl.removeAttribute("data-ayuda");
+    }
+    ayudaEl = null;
+  }
+
+  function arrancarAyuda() {
+    if (!window.matchMedia || !window.matchMedia("(hover: hover)").matches) return;
+    document.addEventListener("mouseover", function (e) {
+      var el = e.target.closest ? e.target.closest("[title]") : null;
+      if (!el || el === ayudaEl) return;
+      quitarAyuda();
+      var txt = (el.getAttribute("title") || "").trim();
+      if (txt.length < 3) return;             // un número suelto no es ayuda
+      ayudaEl = el;
+      el.setAttribute("data-ayuda", txt);
+      el.removeAttribute("title");            // que no salga también el del navegador
+      ayudaReloj = setTimeout(function () {
+        if (ayudaEl === el && document.body.contains(el)) ponerAyuda(el, txt);
+      }, 550);
+    });
+    document.addEventListener("mouseout", function (e) {
+      if (!ayudaEl) return;
+      var a = e.relatedTarget;
+      if (a && ayudaEl.contains && ayudaEl.contains(a)) return;   // sigues dentro
+      quitarAyuda();
+    });
+    /* al hacer clic, al soltar el foco o al mover la pantalla, fuera */
+    document.addEventListener("click", quitarAyuda, true);
+    window.addEventListener("scroll", quitarAyuda, true);
+  }
+
   /* ==================== CÓMO SE PIDE CADA COSA ====================
      El gestor. Nace el 25-sep-2026 de una frase suya —«vamos a crear el gestor,
      el contenedor y el método; luego repasamos los ingredientes a cada grupo y
@@ -6522,6 +6602,7 @@
     Almacen.iniciar();
     aplicarModo();
     conectarEventos();
+    arrancarAyuda();
 
     // primera vez: deja la semana en curso preparada con la Semana A
     var hayPlan = Object.keys(Almacen.estado.plan).length > 0;

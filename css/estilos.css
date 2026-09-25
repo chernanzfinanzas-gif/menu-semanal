@@ -9,7 +9,8 @@
   --tinta:#1f2a24; --gris:#667a70; --gris-claro:#f5f7f6; --borde:#dfe5e2;
   --blanco:#ffffff; --sombra:0 1px 3px rgba(31,42,36,.10), 0 6px 18px rgba(31,42,36,.06);
   --radio:12px;
-}
+  /* el granate de «lo quiero esta vez»: ni verde de apuntar ni ámbar de avisar */
+  --granate:#8f1d2b}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
@@ -1176,17 +1177,38 @@ button.enlace {
 .minlote input{width:74px; padding:6px 8px; font-size:.9rem}
 .minlote .nota-peque{margin:0; align-self:center}
 
-/* La fila del capricho, dentro de la ficha del pase. Ámbar como en todas
-   partes, y con la misma forma que la de contar para no aprender nada nuevo. */
-.quiero-fila{display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  margin:10px 0 0; padding:9px 11px; border:1px dashed var(--borde); border-radius:12px}
-.quiero-fila > span{flex:1 1 auto; font-size:.86rem; color:var(--gris)}
-.quiero-fila .paso{flex:0 0 auto; display:flex; align-items:center; gap:2px}
-.quiero-fila .paso .btn.mini{width:36px; height:36px; padding:0; font-size:1.1rem; line-height:1}
-.quiero-fila .cuenta-lista{min-width:34px; text-align:center; font-weight:700}
-.quiero-fila small{flex:1 0 100%; font-size:.72rem; color:#8a5a00}
-.quiero-fila.activo{background:#fff4e0; border-color:#e8c07a; border-style:solid}
-.quiero-fila.activo > span{color:#8a5a00; font-weight:600}
+/* LA FILA DEL CAPRICHO, CON LA FORMA DE «APUNTAR Y SEGUIR» (25-sep-2026).
+   Carlos: «que destaque… como apuntar y seguir con ese formato de bocadillo
+   pero con un color rojo oscuro con letra blanca».
+
+   Y tiene sentido que grite: es lo único de la ficha que NO es contar. Todo lo
+   demás responde «cuánto hay»; esto añade algo a la compra, que es una decisión
+   de otra naturaleza y que cuesta dinero. El granate la separa del verde de
+   apuntar y del ámbar de avisar, y no se confunde con ninguno.
+
+   Apagada es un bocadillo hueco, de contorno; encendida se rellena. */
+.quiero-fila{display:flex; align-items:center; justify-content:center; gap:12px;
+  flex-wrap:wrap; width:100%; max-width:320px; margin:10px auto 0;
+  padding:11px 16px; border-radius:99px;
+  border:2px solid var(--granate,#8f1d2b); background:transparent}
+.quiero-fila > span{flex:0 1 auto; font-size:.95rem; font-weight:650; color:var(--granate,#8f1d2b)}
+.quiero-fila .paso{flex:0 0 auto; display:flex; align-items:center; gap:4px}
+.quiero-fila .paso .btn.mini{width:34px; height:34px; padding:0; font-size:1.15rem;
+  line-height:1; border-color:var(--granate,#8f1d2b); color:var(--granate,#8f1d2b);
+  background:transparent}
+.quiero-fila .cuenta-lista{min-width:30px; text-align:center; font-weight:800;
+  color:var(--granate,#8f1d2b)}
+.quiero-fila small{flex:1 0 100%; text-align:center; font-size:.74rem;
+  color:var(--granate,#8f1d2b)}
+
+/* encendida: el bocadillo relleno, letra blanca */
+.quiero-fila.activo{background:var(--granate,#8f1d2b); border-color:var(--granate,#8f1d2b)}
+.quiero-fila.activo > span,
+.quiero-fila.activo .cuenta-lista,
+.quiero-fila.activo small{color:#fff}
+.quiero-fila.activo .paso .btn.mini{border-color:rgba(255,255,255,.55); color:#fff;
+  background:rgba(255,255,255,.12)}
+.quiero-fila.activo .paso .btn.mini:disabled{opacity:.45}
 
 /* Hogar en modo pase: se esconden el buscador y el filtro, igual que en
    ¿Lo tengo?, para dejar una pantalla a la vez. */
@@ -1194,3 +1216,19 @@ button.enlace {
 #bloque-desp-hogar.en-pase > .fila{display:none}
 .hogar-botones{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px}
 .hogar-botones .btn.hog-b{width:100%; padding:15px 10px; font-size:1rem; font-weight:700}
+
+/* ============ EL GLOBO DE AYUDA (25-sep-2026) ============
+   Reaprovecha los `title` que ya estaban escritos. Oscuro y con letra blanca
+   para que se lea sobre cualquier pantalla de la app, y con una punta que
+   señala el botón del que habla. Nunca tapa lo que estás mirando: si no cabe
+   arriba, se pone debajo. */
+.ayuda-globo{position:fixed; z-index:9999; max-width:260px; padding:8px 11px;
+  border-radius:10px; background:#1f2a24; color:#fff; font-size:.78rem;
+  line-height:1.35; box-shadow:0 6px 20px rgba(31,42,36,.28);
+  opacity:0; transform:translateY(3px); pointer-events:none;
+  transition:opacity .12s ease, transform .12s ease}
+.ayuda-globo.visible{opacity:1; transform:none}
+.ayuda-globo::after{content:""; position:absolute; left:50%; margin-left:-5px;
+  border:5px solid transparent; border-top-color:#1f2a24; top:100%}
+.ayuda-globo.abajo::after{top:auto; bottom:100%;
+  border-top-color:transparent; border-bottom-color:#1f2a24}
