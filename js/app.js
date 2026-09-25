@@ -19,7 +19,7 @@
     filtros: { texto: "", toma: "", grupo: "", tool: "" },
     filtrosIng: { texto: "", cat: "", clase: "" },
     fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
-    filaDesp: "comida",     /* qué se lista en la Despensa: comida u hogar */
+    filaDesp: "localizacion", /* qué pestaña de la Despensa se abre */
     estanteTengo: null,     /* ¿Lo tengo?: el estante abierto, uno cada vez */
     pase: { vista: "indice", estante: null, i: 0 },
     busquedaHogar: "",
@@ -4553,7 +4553,13 @@
     if (vista === "menu") pintarMenu();
     if (vista === "recetas") pintarRecetas();
     if (vista === "compra") pintarCompra();
-    if (vista === "despensa") pintarDespensa();
+    /* LA DESPENSA ENTRA POR SU PESTAÑA, NO POR LA PANTALLA VIEJA. Al abrir la
+       app se veía marcada «Localización» y debajo salía la pantalla antigua de
+       contar cantidades; sólo al ir a ¿Lo tengo? y volver aparecía la buena.
+       Era que el HTML dejaba visible el bloque viejo y nadie llamaba a
+       `ponerFilaDespensa` hasta que tocabas una pestaña. (Carlos, 25-sep-2026,
+       en la primera prueba en el móvil.) */
+    if (vista === "despensa") ponerFilaDespensa(UI.filaDesp);
     if (vista === "ajustes") pintarAjustes();
     window.scrollTo(0, 0);
   }
@@ -5284,9 +5290,17 @@
       }
       var bp = e.target.closest("[data-cuentapaso]");
       if (bp) {
+        /* EN ENVASES, NO EN GRAMOS. `stockDe` devuelve la cantidad —440 ml de
+           concentrado—, pero `contarStock` cuenta ENVASES, así que el + le
+           sumaba medio mililitro a una botella y la cifra no se movía. En los
+           huevos no se notaba porque una pieza es una unidad y los dos números
+           coinciden. (Carlos, 25-sep-2026: «el + y el − de agua con gas no
+           funciona».) */
         var pp = bp.getAttribute("data-cuentapaso").split("|");
-        var act = Almacen.stockDe(pp[0]);
-        Almacen.contarStock(pp[0], Math.max(0, act + Number(pp[1])));
+        var act = Almacen.piezasDe(pp[0]);
+        var paso2 = Number(pp[1]);
+        var n2 = Math.round((act + paso2) * 100) / 100;
+        Almacen.contarStock(pp[0], n2 > 0 ? n2 : 0);
         pintarLoTengo(); return;
       }
       var bb = e.target.closest("[data-paseborrar]");

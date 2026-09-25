@@ -1748,10 +1748,15 @@
     },
 
     /* Cuántas piezas hay ahora apuntadas. */
+    /* Cuántos envases hay apuntados. Usa `tamanoPieza`, la MISMA que pinta la
+       ficha y la misma con la que escribe `contarStock`: si las tres no usan
+       el mismo tamaño, el + y el − dejan de cuadrar con lo que se ve. */
     piezasDe: function (id) {
-      var g = this.ingrediente(id), p = g && this.piezaDe(g);
-      if (!p || !(p.c > 0)) return 0;
-      return Math.round(this.stockDe(id) / p.c * 100) / 100;
+      var g = this.ingrediente(id);
+      if (!g) return 0;
+      var tam = this.tamanoPieza(g);
+      if (!(tam > 0)) return 0;
+      return Math.round(this.stockDe(id) / tam * 100) / 100;
     },
 
     /* Cuánto de este ingrediente se lleva UN plato. La mediana y no la media:
@@ -1833,7 +1838,13 @@
       if (!g) return false;
       if (!this.estado.stock) this.estado.stock = {};
       n = Number(n);
-      var p = this.piezaDe(g), tam = (p && p.c > 0) ? p.c : 1;
+      /* LA MISMA PIEZA QUE ENSEÑA LA FICHA. Esto llamaba a `piezaDe`, que sólo
+         sabe de piezas DECLARADAS, así que en un bote de mayonesa devolvía
+         nulo y media unidad se guardaba como 0,5 g; y en la merluza cogía la
+         caja de 400 en vez de la ración de 200. `tamanoPieza` es la que manda:
+         respeta el formato —ración, envase o pieza suelta— y es la que se
+         pinta. (25-sep-2026, probando el + y el − en el móvil.) */
+      var tam = this.tamanoPieza(g);
       if (!(n >= 0)) { delete this.estado.stock[id]; }
       else {
         this.estado.stock[id] = {
