@@ -1879,6 +1879,7 @@
     },
 
     sellarSitio: function (id) {
+      this._sellarStock();
       var k = this.sitioDe(id);
       if (!k) return;
       if (!this.estado.stockSitios) this.estado.stockSitios = {};
@@ -2035,6 +2036,7 @@
     iniciarRonda: function () {
       this.estado.stockSitios = {};
       this.estado.rondaStock = Util.hoyISO();
+      this._sellarStock();
       this.guardar("stock");
       return true;
     },
@@ -2046,6 +2048,19 @@
        apuntado, para probar sin ensuciar y para cuando la despensa ya no se
        parece a lo que dice la app. Va aparte y con confirmación, porque
        deshacerla cuesta una pasada entera. */
+    /* ---------- EL SELLO DE LA FOTO DE LA DESPENSA ----------
+       Lo apuntado en una pasada es una FOTO, no una suma de trozos: si un
+       aparato dice dos botellas y otro dice ninguna, no se fusionan, gana la
+       foto más reciente. Y sobre todo: sin esto, BORRAR NO SE PROPAGA. La
+       fusión con GitHub coge de la copia remota cualquier clave que falte en
+       la tuya, así que vaciar la despensa aquí y sincronizar la devolvía
+       entera. (Carlos, 25-sep-2026: «he dado borrar todo lo apuntado, dice que
+       lo ha borrado, pone guardado, y al entrar en Puerta siguen los productos
+       del pase anterior».) */
+    _sellarStock: function () {
+      this.estado.stockSello = new Date().toISOString();
+    },
+
     borrarStock: function () {
       var n = Object.keys(this.estado.stock || {}).length;
       this.estado.stock = {};
@@ -2053,6 +2068,7 @@
       this.estado.sitiosSaltados = {};
       this.estado.rondaStock = null;
       this._sello++; this._compCache = null;
+      this._sellarStock();
       this.guardar("stock");
       return n;
     },
@@ -2065,6 +2081,7 @@
       this.estado.stockSitios[estanteK] = Util.hoyISO();
       if (!this.estado.sitiosSaltados) this.estado.sitiosSaltados = {};
       this.estado.sitiosSaltados[estanteK] = Util.hoyISO();
+      this._sellarStock();
       this.guardar("stock");
       return true;
     },
@@ -2074,6 +2091,7 @@
       if (this.estado.sitiosSaltados) delete this.estado.sitiosSaltados[estanteK];
       if (!this.estado.stockSitios) this.estado.stockSitios = {};
       this.estado.stockSitios[estanteK] = Util.hoyISO();
+      this._sellarStock();
       this.guardar("stock");
       return true;
     },

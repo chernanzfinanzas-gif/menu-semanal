@@ -116,6 +116,26 @@
        del otro lado, para no tirar un ✓ de otra toma que nadie ha tocado. */
     /* Los sellos de día se unen por el MÁS NUEVO de cada día, nunca por el reloj
        global: si no, el propio sello que decide quién manda podía perderse. */
+    /* ── LA DESPENSA ES UNA FOTO, Y BORRAR TIENE QUE PROPAGARSE ──────────
+       `fusionar` es aditiva: una clave que no está en la copia local se coge
+       de la remota. Para el plan o las recetas eso es lo que queremos, pero
+       para lo apuntado en la despensa es al revés — vaciarla aquí y
+       sincronizar la devolvía entera, porque en GitHub seguían todas las
+       líneas. (Carlos, 25-sep-2026, probando «Borrar todo lo apuntado».)
+       Lo apuntado en una pasada no son trozos que sumar: es una foto de un
+       momento. Así que manda entera la del lado que la tomó más tarde, según
+       su propio sello, no según el reloj global del estado. */
+    var selloL = String(local.stockSello || ""), selloR = String(remoto.stockSello || "");
+    if (selloL || selloR) {
+      var ganaR = selloR > selloL;
+      var foto = ganaR ? remoto : local;
+      junto.stock          = foto.stock          || {};
+      junto.stockSitios    = foto.stockSitios    || {};
+      junto.sitiosSaltados = foto.sitiosSaltados || {};
+      junto.rondaStock     = foto.rondaStock     || null;
+      junto.stockSello     = ganaR ? selloR : selloL;
+    }
+
     var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
     junto.selloDia = {};
     for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];
@@ -166,6 +186,12 @@
   var Sync = {
     ocupado: false,
     temporizador: null,
+
+    /* Asidero de pruebas. La fusión es donde se han perdido datos tres veces
+       —los días 21 y 22, los ✓ de lo comido, y el 25-sep lo apuntado en la
+       despensa—, y no se puede comprobar desde fuera porque es privada. Esto
+       la deja mirar sin tocar nada: no la usa la app. */
+    _fusionarPrueba: function (remoto, sha) { return fusionarConRemoto(remoto, sha); },
 
     cfg: function () { return Almacen.estado.config.github || {}; },
 
