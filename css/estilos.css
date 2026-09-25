@@ -1262,3 +1262,7 @@ button.enlace {
   #lista-compra .linea .nombre{line-height:1.3}
   #lista-compra .linea .detalle{-webkit-line-clamp:3}
 }
+
+/* El aviso del estante que lleva más tiempo sin mirarse. Ámbar, porque no es
+   un error: es un dato que ya no es de fiar. */
+.ronda-sub .viejo{color:var(--ambar)}

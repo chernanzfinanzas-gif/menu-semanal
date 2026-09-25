@@ -3565,16 +3565,49 @@
 
   function indiceTengo() {
     var r = Almacen.estadoRonda();
+    /* EL TÍTULO DICE LO QUE HAY, NO SI SE PULSÓ UN BOTÓN. Carlos había dado la
+       vuelta entera a la casa sin pulsar «Empezar una ronda» —que no hace falta
+       para nada— y esto le decía «Sin ronda empezada» con 209 fichas contadas.
+       Ahora: cuándo empezó la vuelta, cuántos estantes llevas, y si está
+       terminada, la fecha del último. */
+    /* DOS HECHOS, NO UNA FECHA INVENTADA. El primer intento titulaba «Ronda
+       iniciada el…» con el sello más antiguo, y eso miente en cuanto un estante
+       se queda meses sin repasar: las especias sin mirar desde mayo ponían
+       «ronda iniciada el 28 de mayo», cuando la vuelta fue ayer.
+       Lo que hace falta saber es otra cosa, y son dos números:
+         cuándo fue la ÚLTIMA vuelta  — si la foto es reciente
+         cuál es el dato MÁS VIEJO    — qué estante la está estropeando
+       El segundo sólo se enseña cuando pasa de dos días, para no dar la lata
+       cuando está todo al día. */
+    var falta = r.total - r.hechos;
+    var comoFecha = function (d, iso) {
+      return d === 0 ? "hoy" : (d === 1 ? "ayer" : "el " + Util.etiquetaFecha(iso));
+    };
+    var ultima = r.ultimo ? comoFecha(r.diasUltimo, r.ultimo) : "";
+    var aviso = (r.masViejo && r.masViejo.dias > 2)
+      ? ' \u00b7 <b class="viejo">el dato m\u00e1s viejo es ' + esc(r.masViejo.n) +
+        ", de hace " + r.masViejo.dias + " d\u00edas</b>"
+      : "";
+    var tit, sub;
+    if (!r.ronda) {
+      tit = "Sin repasar nunca";
+      sub = "Da una vuelta a la casa y apunta lo que hay: de eso sale todo lo dem\u00e1s.";
+    } else if (!falta) {
+      tit = "Casa repasada";
+      sub = "\u00daltima vuelta " + ultima + " \u00b7 los " + r.total + " estantes" +
+            (r.saltados ? ", " + r.saltados + (r.saltados === 1 ? " dado" : " dados") + " por visto" : "") +
+            aviso;
+    } else {
+      tit = "Ronda a medias";
+      sub = "<b>" + r.hechos + " de " + r.total + "</b> estantes \u00b7 te faltan " + falta +
+            " \u00b7 \u00faltima vuelta " + ultima +
+            (r.saltados ? " \u00b7 " + r.saltados + (r.saltados === 1 ? " dado" : " dados") + " por visto" : "") +
+            aviso;
+    }
     var h = '<div class="ronda-cab">' +
-      (r.ronda === Util.hoyISO()
-        ? '<div class="ronda-tit">Ronda de hoy</div><div class="ronda-sub">' +
-          r.hechos + " de " + r.total + " estantes" +
-          (r.saltados ? " · " + r.saltados + (r.saltados === 1 ? " dado" : " dados") + " por visto" : "") +
-          "</div>"
-        : '<div class="ronda-tit">Sin ronda empezada</div><div class="ronda-sub">' +
-          "Lo apuntado sigue valiendo; empezar una ronda sólo pone los estantes a cero.</div>") +
+      '<div class="ronda-tit">' + tit + '</div><div class="ronda-sub">' + sub + "</div>" +
       '<button type="button" class="btn" id="ronda-empezar">' +
-        (r.ronda === Util.hoyISO() ? "Empezar otra ronda" : "Empezar una ronda") + "</button>" +
+        (r.ronda ? "Empezar otra ronda" : "Empezar una ronda") + "</button>" +
       '<div class="ronda-pie"><button type="button" class="btn mini borrar" id="ronda-borrar">' +
         "Borrar todo lo apuntado</button></div></div>";
 

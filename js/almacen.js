@@ -382,6 +382,57 @@
         if (global.console) console.log("Recetas actualizadas: " + refrescadas.join(", "));
       }
 
+      /* RETIRAR UN PRODUCTO DEL CATÁLOGO GANA A `editado` (25-sep-2026).
+         Depurando el catálogo con Carlos: la leche sin lactosa que él no compra
+         estaba marcada `editado` en su copia, así que el `rev` no la alcanzaba y
+         la ficha seguía viva en su móvil por muchas veces que yo la retirase.
+         Que un producto salga del catálogo NO es un dato de la ficha —una
+         caloría, un envase: eso lo corrige él y manda lo suyo—: es que ese
+         producto ya no existe para la app. Así que esto se aplica siempre y no
+         toca nada más de su ficha. Y se lleva por delante la cantidad apuntada
+         en el stock, que si no queda contando algo que ya no se ve. */
+      var retiradas = [];
+      e.ingredientes.forEach(function (ing) {
+        var s = ingSemilla[ing.id];
+        if (!s || !s.oculta || ing.oculta) return;
+        ing.oculta = true;
+        if (e.stock) delete e.stock[ing.id];
+        retiradas.push(ing.n);
+      });
+      (e.recetas || []).forEach(function (r) {
+        var s = recSemilla[r.id];
+        if (!s || !s.oculta || r.oculta) return;
+        r.oculta = true;
+        retiradas.push(r.n);
+      });
+      if (retiradas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Retirados del catálogo (" + retiradas.length + "): " + retiradas.join(", "));
+      }
+
+      /* UN RENOMBRADO GANA A `editado`, PERO UNA SOLA VEZ (25-sep-2026).
+         Poniendo la marca en los nombres del catálogo, tres fichas suyas no se
+         enteraban —el café descafeinado y los dos chocolates— porque estaban
+         marcadas como corregidas a mano y su copia manda. Carlos pidió que se
+         les pusiera igualmente el nombre con marca.
+         No se hace pisando el nombre siempre: eso le borraría cualquier nombre
+         que escriba él a partir de ahora. Se hace con un sello: el catálogo
+         dice «este renombrado es del 25-sep», y se aplica al que no lo tenga.
+         Aplicado una vez, queda el sello y no vuelve a tocarse nunca. Si él lo
+         renombra después, el suyo se queda. */
+      var renombradas = [];
+      e.ingredientes.forEach(function (ing) {
+        var s = ingSemilla[ing.id];
+        if (!s || !s.renombrar || ing.renombrado === s.renombrar) return;
+        ing.n = s.n;
+        ing.renombrado = s.renombrar;
+        renombradas.push(s.n);
+      });
+      if (renombradas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Renombrados (" + renombradas.length + "): " + renombradas.join(", "));
+      }
+
       /* HOGAR: lo mismo que arriba, y FALTABA (23-sep-2026). Sin este bloque, un
          cambio en un artículo YA GUARDADO no llegaba jamás al móvil: por `altas`
          solo entran los ids nuevos, así que corregir una marca, cambiar un cajón o
@@ -2285,24 +2336,61 @@
       }).length;
     },
 
+    /* ---------- CUÁNDO EMPEZÓ LA RONDA ----------
+       Antes esto sólo sabía de rondas empezadas con el botón, y contaba como
+       hecho lo sellado HOY. Dos consecuencias, las dos falsas:
+         - Carlos dio la vuelta entera a la casa sin pulsar «Empezar una ronda»
+           —que no hace falta para nada— y la pantalla le decía «Sin ronda
+           empezada» con 209 fichas apuntadas.
+         - Y al día siguiente le habría dicho que no había repasado nada, porque
+           los sellos ya no serían de hoy.
+       (Carlos, 25-sep-2026: «debería poner ronda iniciada el día de hacer
+       stock».)
+
+       Ahora la ronda se deduce de los hechos: empieza cuando se selló el
+       PRIMER estante de la vuelta en curso, y un estante está hecho si su sello
+       es de esa fecha o posterior. Si pulsas el botón, manda la fecha del
+       botón, que es lo que significa «empiezo otra vuelta». */
     estadoRonda: function () {
       var self = this, sellado = this.estado.stockSitios || {},
           saltado = this.estado.sitiosSaltados || {}, hoy = Util.hoyISO();
-      var out = [], hechos = 0, saltados = 0;
+
+      var desde = this.estado.rondaStock || null;
+      if (!desde) {
+        Object.keys(sellado).forEach(function (k) {
+          var f = sellado[k];
+          if (f && (!desde || f < desde)) desde = f;
+        });
+      }
+
+      var out = [], hechos = 0, saltados = 0, ultimo = null, viejo = null;
       this.ZONAS.forEach(function (z) {
         z.estantes.forEach(function (e) {
           var n = self.cuantasEnEstante(e.k);
           if (!n) return;
           var f = sellado[e.k] || null;
-          var hecho = f === hoy;
-          if (hecho) { hechos++; if (saltado[e.k] === hoy) saltados++; }
+          if (f && (!ultimo || f > ultimo)) ultimo = f;
+          /* EL ESLABÓN MÁS DÉBIL. Lo que decide si te puedes fiar de la foto de
+             la despensa no es cuándo diste la última vuelta: es el estante que
+             lleva MÁS tiempo sin mirarse. Se guarda con nombre y todo, porque
+             saber que hay un dato de hace cuatro meses no sirve de nada si no
+             sabes cuál. */
+          if (f && (!viejo || f < viejo.f)) viejo = { k: e.k, n: e.n, f: f };
+          var hecho = !!(f && desde && f >= desde);
+          if (hecho) { hechos++; if (saltado[e.k] && saltado[e.k] >= desde) saltados++; }
           out.push({ k: e.k, n: e.n, zona: z.n, fichas: n, hecho: hecho, esHogar: !!e.hogar,
-                     saltado: saltado[e.k] === hoy,
+                     saltado: !!(saltado[e.k] && desde && saltado[e.k] >= desde),
                      dias: f ? Util.diasEntre(f, hoy) : null });
         });
       });
       return { estantes: out, total: out.length, hechos: hechos, saltados: saltados,
-               ronda: this.estado.rondaStock || null };
+               ronda: desde,
+               conBoton: !!this.estado.rondaStock,
+               ultimo: ultimo,
+               diasUltimo: ultimo ? Util.diasEntre(ultimo, hoy) : null,
+               masViejo: viejo ? { k: viejo.k, n: viejo.n, f: viejo.f,
+                                   dias: Util.diasEntre(viejo.f, hoy) } : null,
+               diasDesde: desde ? Util.diasEntre(desde, hoy) : null };
     },
 
     /* El estante siguiente en el recorrido, para encadenar sin volver al índice. */
