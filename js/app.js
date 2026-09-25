@@ -850,18 +850,52 @@
        plato no se puede prometer dos veces. */
     var tengo = Almacen.loQuePuedesGastar(toma);
     var bloqueCasa = "";
-    if (tengo.productos.length || tengo.recetas.length) {
+    /* TRES ESCALONES, Y EL PRIMERO ES «LO PUEDO HACER HOY» (25-sep-2026).
+       Carlos, recién terminada la ronda de stock: «si puedo hacer un arroz
+       entero y unos macarrones debería ser lo primero entre lo que elegir».
+       Antes sólo había un escalón —lo que gasta algo perecedero— y era otra
+       pregunta: ésa mira a lo que se estropea, y ésta a lo que puedes cenar sin
+       ir al súper. Van las dos, y primero la suya, porque es la que convierte
+       una tarde recorriendo la casa en un menú. */
+    var colaReceta = function (id) {
+      var rec = Almacen.receta(id);
+      return rec ? Util.sal(Almacen.salReceta(rec)) + " de sal \u00b7 " + (rec.min || "?") + " min" : "";
+    };
+    var botonReceta = function (r, pie) {
+      return '<button data-elegir="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
+             esc(r.n) + "<small>" + pie + "</small></button>";
+    };
+    var nEnCasa = tengo.productos.length + tengo.recetas.length +
+                  (tengo.enteras || []).length + (tengo.casi || []).length;
+    if (nEnCasa) {
       bloqueCasa = '<details class="grupo-selec" data-fijo="1" open>' +
         '<summary><span class="tit">Ya lo tienes en casa</span>' +
-        '<span class="cuantas">' + (tengo.productos.length + tengo.recetas.length) + '</span></summary>' +
-        '<p class="aviso-grupo">Lo libre de la despensa, empezando por lo que antes se estropea.</p>';
+        '<span class="cuantas">' + nEnCasa + '</span></summary>';
+
+      if ((tengo.enteras || []).length) {
+        bloqueCasa += '<p class="aviso-grupo"><b>Lo puedes hacer entero</b>, sin comprar nada.</p>';
+        bloqueCasa += tengo.enteras.map(function (r) {
+          return botonReceta(r, "todo en casa \u00b7 " + colaReceta(r.id));
+        }).join("");
+      }
+      if ((tengo.casi || []).length) {
+        bloqueCasa += '<p class="aviso-grupo">Te falta poco: tienes lo principal.</p>';
+        bloqueCasa += tengo.casi.map(function (r) {
+          return botonReceta(r, "falta " + esc(r.faltan.slice(0, 2).join(", ")) +
+            (r.faltan.length > 2 ? " y " + (r.faltan.length - 2) + " m\u00e1s" : "") +
+            " \u00b7 " + colaReceta(r.id));
+        }).join("");
+      }
+      if (tengo.recetas.length) {
+        bloqueCasa += '<p class="aviso-grupo">Gasta lo que antes se estropea.</p>';
+      }
       bloqueCasa += tengo.recetas.map(function (r) {
-        var rec = Almacen.receta(r.id);
-        return '<button data-elegir="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
-               esc(r.n) + '<small>gasta ' + esc(r.cuales.slice(0, 3).join(", ")) +
-               (rec ? ' \u00b7 ' + Util.sal(Almacen.salReceta(rec)) + ' de sal \u00b7 ' + (rec.min || "?") + ' min' : '') +
-               '</small></button>';
+        return botonReceta(r, "gasta " + esc(r.cuales.slice(0, 3).join(", ")) +
+          " \u00b7 " + colaReceta(r.id));
       }).join("");
+      if (tengo.productos.length) {
+        bloqueCasa += '<p class="aviso-grupo">Para comer tal cual.</p>';
+      }
       bloqueCasa += tengo.productos.map(function (x) {
         var g = Almacen.ingrediente(x.id);
         var n = g ? Almacen.nutrReceta({ ing: [{ i: x.id, c: x.racion }] }) : { k: 0 };

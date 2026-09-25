@@ -2478,30 +2478,136 @@
         return a.n.localeCompare(b.n);
       });
 
-      /* --- recetas que gastan lo fresco --- */
-      var recetas = [];
+      /* ============ LO QUE PUEDES HACER HOY SIN COMPRAR NADA ============
+         Carlos, 25-sep-2026, nada más terminar la primera ronda de stock:
+         «debería ofrecer platos que se puedan hacer aunque sea de despensa… si
+         puedo hacer un arroz entero y unos macarrones debería ser lo primero
+         entre lo que elegir».
+
+         Es una regla DISTINTA de la que había, y las dos valen:
+           gastar lo perecedero  el bacalao que se estropea (lo de antes)
+           poder cocinarlo hoy   el arroz entero, sin pisar el súper (esto)
+         La segunda es la que convierte el stock en un menú, y por eso va
+         primero: acabas de recorrer la casa apuntando lo que hay, y lo que
+         quieres ver es qué cenas salen de ahí.
+
+         Aquí el armario SÍ cuenta. Estaba fuera a propósito para la regla de lo
+         perecedero —«con el arroz o el aceite saldría medio recetario»—, pero
+         para esta pregunta el arroz es justo lo que la contesta.
+
+         LOS BÁSICOS SE DAN POR SUPUESTOS. Son 22: el aceite, la sal, el arroz,
+         la pasta. Si hubiera que tenerlos apuntados uno a uno, con no haber
+         contado el aceite NINGUNA receta saldría completa nunca. Es el mismo
+         criterio que ya usa la lista de la compra, que los saca aparte en
+         «Revisa la despensa» en vez de pedirlos por cuenta. Si apuntas que no
+         hay, entonces sí falta.
+
+         Y dos escalones, porque medido sobre el recetario: 44 de las 99 recetas
+         llevan de 7 a 10 ingredientes. Exigir las diez exactas dejaría la lista
+         vacía casi siempre, y por eso existe «te falta poco»: están todos los
+         ingredientes que definen el plato y falta algo de acompañamiento. */
+      function loTengo(l) {
+        var g = self.ingrediente(l.i);
+        if (!g) return false;
+        if (g.basico) return self.stockDe(l.i) > 0.0001 || !self.fichaStock(l.i) ||
+                              !!(self.fichaStock(l.i) || {}).pte;
+        var x = libres[l.i];
+        return !!x && x.c >= l.c - 0.0001;
+      }
+      /* Un ingrediente MENOR no define el plato: los básicos, las especias, el
+         pan y las bebidas. Es la misma familia que ya se salta la app para
+         decidir cuál es el ingrediente principal de una receta.
+
+         CON UNA EXCEPCIÓN, y se vio probándolo: el arroz es básico, así que en
+         un arroz meloso quedaba de accesorio y la receta salía como «te falta
+         poco» faltando el arroz. El ingrediente PRINCIPAL de una receta nunca
+         es menor, sea lo que sea. Principal = el primero que no es pan, especia
+         ni bebida, que es la regla ya medida en el catálogo (96 % de acierto
+         contra lo que Carlos diría). */
+      function principalDe(r) {
+        var lin = r.ing || [];
+        for (var k = 0; k < lin.length; k++) {
+          var g = self.ingrediente(lin[k].i);
+          if (!g) continue;
+          if (["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"].indexOf(g.cat) < 0) return lin[k].i;
+        }
+        return lin.length ? lin[0].i : null;
+      }
+      function menor(l, princ) {
+        var g = self.ingrediente(l.i);
+        if (!g) return true;
+        if (l.i === princ) return false;
+        if (g.basico) return true;
+        return ["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"].indexOf(g.cat) >= 0;
+      }
+
+      var enteras = [], casi = [], recetas = [];
       this.visibles().forEach(function (r) {
         if (r.grupo === "suelto") return;            // eso ya sale como producto
-        if (toma && (r.tipo || []).length && (r.tipo || []).indexOf(toma) < 0 && !r.llevable) {
-          /* no se descarta: las tomas son una sugerencia. Solo baja de orden. */
+        var lineas = r.ing || [];
+        if (!lineas.length) return;
+        var propia = (r.tipo || []).indexOf(toma) >= 0;
+        var princ = principalDe(r);
+
+        /* ---- ¿la puedo hacer entera? ---- */
+        var faltan = [], faltanMayores = [], frescoQueGasta = 0, mayoresEnCasa = 0;
+        lineas.forEach(function (l) {
+          var g = self.ingrediente(l.i);
+          if (!loTengo(l)) {
+            faltan.push(g ? g.n : l.i);
+            if (!menor(l, princ)) faltanMayores.push(g ? g.n : l.i);
+            return;
+          }
+          if (!menor(l, princ)) mayoresEnCasa++;
+          var x = libres[l.i];
+          if (x && self.URGENTES.indexOf(x.sitio) >= 0) frescoQueGasta += Math.min(l.c, x.c);
+        });
+
+        if (!faltan.length) {
+          enteras.push({ id: r.id, n: r.n, propia: propia, fresco: frescoQueGasta,
+                         ing: lineas.length });
+          return;
         }
+        /* «Te falta poco» exige que quede algo del plato en pie: sin ningún
+           ingrediente mayor en casa no te falta poco, te falta el plato. Se vio
+           con «Pan tostado Ortiz», cuyo único ingrediente es el propio pan: sin
+           pan salía como «te falta poco» faltando todo. */
+        if (!faltanMayores.length && mayoresEnCasa > 0 && faltan.length <= 3) {
+          casi.push({ id: r.id, n: r.n, propia: propia, fresco: frescoQueGasta,
+                      faltan: faltan });
+          return;
+        }
+        /* ---- si no, ¿al menos gasta algo que corre prisa? ---- */
         var gasta = 0, cuales = [];
-        (r.ing || []).forEach(function (l) {
+        lineas.forEach(function (l) {
           var x = libres[l.i];
           if (!x || self.URGENTES.indexOf(x.sitio) < 0) return;
           gasta += Math.min(l.c, x.c);
           cuales.push(x.g.n);
         });
         if (!gasta) return;
-        recetas.push({ id: r.id, n: r.n, gasta: gasta, cuales: cuales,
-                       propia: (r.tipo || []).indexOf(toma) >= 0 });
+        recetas.push({ id: r.id, n: r.n, gasta: gasta, cuales: cuales, propia: propia });
       });
+
+      /* Dentro de cada escalón: primero lo que encaja con la toma, y luego lo
+         que más fresco gasta — así, entre dos platos que puedes hacer enteros,
+         gana el que salva algo que se estropea. */
+      function ordenar(a, b) {
+        if (a.propia !== b.propia) return a.propia ? -1 : 1;
+        if (b.fresco !== a.fresco) return b.fresco - a.fresco;
+        return a.n.localeCompare(b.n);
+      }
+      enteras.sort(ordenar);
+      casi.sort(ordenar);
       recetas.sort(function (a, b) {
         if (a.propia !== b.propia) return a.propia ? -1 : 1;
         return b.gasta - a.gasta;
       });
 
-      return { productos: productos.slice(0, 14), recetas: recetas.slice(0, 8) };
+      return { productos: productos.slice(0, 14),
+               enteras: enteras.slice(0, 10),
+               casi: casi.slice(0, 8),
+               recetas: recetas.slice(0, 8) };
     },
 
     /* ================= HOGAR =================
