@@ -26,6 +26,7 @@
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
     buscaQuiero: "",        /* el buscador de «lo quiero esta vez», en la Compra */
+    paseHogar: { vista: "indice", ap: null, i: 0 },   /* el pase de Hogar, igual que el de ¿Lo tengo? */
     buscaPedir: "",         /* el gestor de cómo se pide: buscador y filtro */
     filtroPedir: "",
     grupoPedir: {},         /* qué grupos de contenedor están abiertos */
@@ -2789,7 +2790,7 @@
         '<span>Dónde se guarda en casa</span>' +
         '<select id="ig-sitio">' +
           '<option value="">— elige el estante —</option>' +
-          Almacen.ZONAS.map(function (z) {
+          Almacen.ZONAS.filter(function (z) { return !z.soloHogar; }).map(function (z) {
             return '<optgroup label="' + esc(z.n) + '">' +
               z.estantes.map(function (e) {
                 return '<option value="' + esc(e.k) + '"' +
@@ -3451,6 +3452,20 @@
      Ahora: nombre y estado a la izquierda, y a la derecha el mismo − cifra +.
      Todo en un renglón. */
   function lineaTengo(x, donde) {
+    /* un estante de Hogar no tiene cifras: tiene un sí o un no */
+    if (x.hogar) {
+      return '<div class="linea linea-tengo' + (x.falta ? " anotada" : "") +
+        '" data-tengofila="' + esc(x.id) + '">' +
+        '<div class="datos"><div class="nombre">' + esc(x.n) + "</div>" +
+        '<div class="detalle">' + (x.falta
+          ? "a la compra \u00b7 " + x.cantidad + (x.cantidad === 1 ? " unidad" : " unidades")
+          : "no marcado") + "</div></div>" +
+        '<button type="button" class="btn mini' + (x.falta ? " principal" : "") +
+          '" data-hogarsi="' + esc(x.id) + '">' + (x.falta ? "\u2713" : "Me falta") + "</button>" +
+        (x.falta ? '<button type="button" class="btn mini" data-hogarno="' + esc(x.id) +
+          '">Quitar</button>' : "") +
+        "</div>";
+    }
     var paso = x.piezaUd ? 1 : 0.5;
     return '<div class="linea linea-tengo' + (x.piezas > 0 ? " anotada" : "") +
       '" data-tengofila="' + esc(x.id) + '">' +
@@ -3509,13 +3524,21 @@
     var cont = $("#rejilla-tengo");
     var p = Almacen.pase(UI.pase.estante);
     if (!p) { UI.pase.vista = "indice"; return pintarLoTengo(); }
+    /* «cómo se mide» es de los estantes de comida: en Hogar no hay envases que
+       contar, hay cosas que marcar. Y sin este guardián, una ficha sin formato
+       reventaba la portada entera — que es lo que pasó al estrenar Hogar. */
     var regs = {};
-    p.fichas.forEach(function (f) { regs[f.formato] = (regs[f.formato] || 0) + 1; });
+    p.fichas.forEach(function (f) { if (f.formato) regs[f.formato] = (regs[f.formato] || 0) + 1; });
     var comoSeMide = Object.keys(regs).sort(function (a, b) { return regs[b] - regs[a]; })
       .slice(0, 4).map(function (k) {
         var ff = Almacen.FORMATOS[k];
-        return regs[k] + " " + (regs[k] === 1 ? ff.n[0] : ff.n[1]);
-      });
+        return ff ? (regs[k] + " " + (regs[k] === 1 ? ff.n[0] : ff.n[1])) : "";
+      }).filter(function (t) { return t; });
+    if (p.esHogar) {
+      comoSeMide = [p.marcados
+        ? p.marcados + (p.marcados === 1 ? " cosa a la compra" : " cosas a la compra")
+        : "nada marcado"];
+    }
     cont.innerHTML =
       '<div class="pase-portada">' +
         '<div class="zona">' + esc(p.zona) + "</div>" +
@@ -3549,6 +3572,53 @@
     var x = p.fichas[UI.pase.i];
     var pct = Math.round(UI.pase.i / p.fichas.length * 100);
 
+    /* ---- LA FICHA DE HOGAR ---- 
+       Mismo pase, otra pregunta. En la comida es «cuánto hay»; aquí es «me
+       falta o no», y lo que contestes va derecho a la lista. Por eso al marcar
+       se dice en la propia ficha —Carlos, 25-sep-2026— antes de saltar a la
+       siguiente: «lo compras la próxima vez». */
+    if (x.hogar) {
+      cont.innerHTML =
+        '<div class="ficha-pase">' +
+          '<div class="ficha-cab">' +
+            '<button type="button" class="btn nav" data-paseatras="1"' +
+              (UI.pase.i ? "" : " disabled") + ' aria-label="Anterior">&#8249;</button>' +
+            '<div class="donde">' + esc(p.estante) + "<span>" + (UI.pase.i + 1) +
+              " de " + p.fichas.length + "</span></div>" +
+            '<button type="button" class="btn nav" data-pasedelante="1"' +
+              (UI.pase.i + 1 < p.fichas.length ? "" : " disabled") + ' aria-label="Siguiente">&#8250;</button>' +
+            '<button type="button" class="btn mini" data-pasesalir="1">Salir</button>' +
+          "</div>" +
+          '<div class="barra"><span style="width:' + pct + '%"></span></div>' +
+          '<div class="ficha-cuerpo">' +
+            "<h2>" + esc(x.n) + "</h2>" +
+            (x.pendiente
+              ? '<div class="producto" style="color:var(--ambar)">Ponle tu marca y formato</div>'
+              : (x.producto ? '<div class="producto">' + esc(x.producto) + "</div>" : "")) +
+            '<div class="pide flojo">' + esc(x.cajonN) +
+              (x.suplente ? " \u00b7 si no hay: " + esc(x.suplente) : "") + "</div>" +
+            '<div class="hogar-botones">' +
+              '<button type="button" class="btn hog-b' + (x.falta ? "" : " principal") +
+                '" data-hogarno="' + esc(x.id) + '">No me falta</button>' +
+              '<button type="button" class="btn hog-b' + (x.falta ? " principal" : "") +
+                '" data-hogarsi="' + esc(x.id) + '">Me falta</button>' +
+            "</div>" +
+            (x.falta
+              ? '<div class="quiero-fila activo"><span>Cu\u00e1ntos</span><div class="paso">' +
+                '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|-1">\u2212</button>' +
+                '<span class="cuenta-lista">' + x.cantidad + "</span>" +
+                '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|1">+</button>' +
+                "</div>" +
+                '<small>\u00a1Lo compras la pr\u00f3xima vez!</small></div>'
+              : "") +
+          "</div>" +
+          '<div class="ficha-pie">' +
+            '<button type="button" class="btn mini" data-hogareditar="' + esc(x.id) + '">Editar la ficha</button>' +
+          "</div>" +
+        "</div>";
+      return;
+    }
+
     var contexto = x.comprometido > 0
       ? '<div class="pide">El menú ya pide <b>' +
         esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd)) + "</b></div>"
@@ -3563,7 +3633,8 @@
        latas quieres docenas. (Carlos, 25-sep.) */
     var n = x.piezas || 0;
     var paso = x.piezaUd ? 1 : 0.5;
-    var quiero = Almacen.quiereEstaVez(x.id);
+    /* cuántas has pedido, no sólo si has pedido */
+    var quiero = ((Almacen.estado.quiero || {})[x.id] || {}).p || 0;
     var botones = '<div class="cuenta-fila">' +
       '<button type="button" class="btn redondo" data-cuentapaso="' + esc(x.id) + "|" + (-paso) + '">−</button>' +
       '<div class="cifra"><b>' + cifra(n) + "</b><span>" +
@@ -3582,13 +3653,31 @@
         : "") +
       '<button type="button" class="btn grande" data-pasesig="' + esc(x.id) + "|" + n +
         '">Apuntar y seguir</button>' +
-      /* «LO QUIERO ESTA VEZ», DESDE LA FICHA. Estás mirando el estante, ves que
-         quedan dos cervezas y decides que esta semana quieres más: el momento de
-         decirlo es éste, no dentro de tres pantallas. Es un interruptor, no un
-         mínimo: entra en la próxima lista y al confirmar la compra se olvida. */
-      '<button type="button" class="btn mini quierolo' + (quiero ? " activo" : "") +
-        '" data-quiero="' + esc(x.id) + '">' +
-        (quiero ? "\u2713 lo quieres esta vez" : "Lo quiero esta vez") + "</button>";
+      /* «LO QUIERO ESTA VEZ», DESDE LA FICHA, Y CON CANTIDAD (25-sep-2026).
+         Nació como interruptor —un toque, una unidad— y Carlos pidió la
+         cantidad aquí mismo: «para los pedidos de lo que quiero esta vez se
+         debería poder elegir mientras se hace el stock, una fila Lo quiero esta
+         vez y elegir la cantidad. Eso lo pasaría a la lista directamente».
+
+         Tiene razón y es el mismo gesto que el de arriba: estás mirando el
+         estante con el producto en la mano, sabes que quedan dos cervezas y que
+         quieres un pack. Decirlo aquí evita el viaje a la Compra, y evita que
+         se te olvide, que es peor.
+
+         La fila es igual que la de contar, para que no haya que aprender nada:
+         − cifra +. En cero desaparece de la lista. */
+      '<div class="quiero-fila' + (quiero ? " activo" : "") + '">' +
+        "<span>Lo quiero esta vez</span>" +
+        '<div class="paso">' +
+          '<button type="button" class="btn mini" data-quieropaso="' + esc(x.id) +
+            '|-1"' + (quiero ? "" : " disabled") + ">\u2212</button>" +
+          '<span class="cuenta-lista">' + cifra(quiero) + "</span>" +
+          '<button type="button" class="btn mini" data-quieropaso="' + esc(x.id) +
+            '|1">+</button>' +
+        "</div>" +
+        (quiero ? '<small>' + cifra(quiero) + " " +
+          esc(quiero === 1 ? x.piezaUno : x.piezaVarias) + " a la pr\u00f3xima compra</small>" : "") +
+      "</div>";
 
     cont.innerHTML =
       '<div class="ficha-pase">' +
@@ -3658,9 +3747,14 @@
       '<div class="pase-portada fin">' +
         '<div class="tic">&#10003;</div>' +
         "<h2>" + esc(p.estante) + " repasado</h2>" +
-        '<div class="cuenta"><b>' + p.conAlgo + "</b> con algo · <b>" +
-          (p.marcadas - p.conAlgo) + "</b> sin nada · <b>" +
-          (p.total - p.marcadas) + "</b> sin mirar</div>" +
+        /* el resumen de un estante de Hogar cuenta otra cosa: lo que se va a
+           la lista, no cuánto queda en el armario */
+        (p.esHogar
+          ? '<div class="cuenta"><b>' + p.marcados + "</b> " +
+            (p.marcados === 1 ? "cosa la compras" : "cosas las compras") + " la pr\u00f3xima vez</div>"
+          : '<div class="cuenta"><b>' + p.conAlgo + "</b> con algo · <b>" +
+            (p.marcadas - p.conAlgo) + "</b> sin nada · <b>" +
+            (p.total - p.marcadas) + "</b> sin mirar</div>") +
         (sig ? '<button type="button" class="btn grande" data-irestante="' + esc(sig) +
                '">Seguir con ' + esc(sigN) + "</button>" : "") +
         '<div class="otras"><button type="button" class="btn mini" data-pasesalir="1">Volver a los estantes</button></div>' +
@@ -3852,7 +3946,7 @@
       '</div></div>' +
       '<select class="loc-sel" data-loc="' + esc(g.id) + '" aria-label="Dónde se guarda ' + esc(g.n) + '">' +
         '<option value=""' + (estanteActual ? "" : " selected") + '>— sin colocar —</option>' +
-        Almacen.ZONAS.map(function (z) {
+        Almacen.ZONAS.filter(function (z) { return !z.soloHogar; }).map(function (z) {
           return '<optgroup label="' + esc(z.n) + '">' +
             z.estantes.map(function (e) {
               return '<option value="' + esc(e.k) + '"' +
@@ -3881,7 +3975,7 @@
     var casa = (Almacen.estado.ingredientes || []).filter(function (g) {
       return !g.oculta && g.cat !== "Restaurante y bar";
     });
-    Almacen.ZONAS.forEach(function (z) {
+    Almacen.ZONAS.filter(function (z) { return !z.soloHogar; }).forEach(function (z) {
       var n = casa.filter(function (g) {
         var k = Almacen.sitioDe(g);
         return z.estantes.some(function (e) { return e.k === k; });
@@ -3922,7 +4016,7 @@
     html += "</section>";
 
     /* --- las tres zonas, en su orden --- */
-    Almacen.ZONAS.forEach(function (z) {
+    Almacen.ZONAS.filter(function (z) { return !z.soloHogar; }).forEach(function (z) {
       var deZona = z.estantes.map(function (e) {
         return { e: e, ing: filtra(casa.filter(function (g) { return Almacen.sitioDe(g) === e.k; })) };
       });
@@ -3942,9 +4036,113 @@
     cont.innerHTML = html;
   }
 
+  /* ==================== HOGAR, COMO UN PASE ====================
+     Carlos, 25-sep-2026: «hogar debe tener el formato de ¿Lo tengo?».
+
+     Y es el mismo trabajo: recorrer la casa mirando cosas y decidiendo. Lo que
+     cambia es que aquí no hay cantidades que contar —llevar el inventario de
+     las bayetas no paga— sino una sola pregunta: ¿me falta o no?
+
+     Los cuatro apartados hacen de estantes: Limpieza, Menaje, Aseo y Mascota.
+     Mismo índice, misma ficha a pantalla completa, mismos botones de avanzar y
+     retroceder, y la misma salida de «por visto» para el apartado que hoy no
+     vas a abrir. Quien ya sabe usar ¿Lo tengo? no aprende nada nuevo. */
+  function pintarPaseHogar() {
+    var cont = $("#rejilla-hogar");
+    if (!cont) return false;
+    if (UI.paseHogar.vista === "indice") return false;   // lo pinta la lista de siempre
+
+    var lista = fichasApartado(UI.paseHogar.ap);
+    if (!lista.length) { UI.paseHogar = { vista: "indice", ap: null, i: 0 }; return false; }
+    var ap = null;
+    Almacen.APARTADOS.forEach(function (a) { if (a.k === UI.paseHogar.ap) ap = a; });
+
+    if (UI.paseHogar.i >= lista.length) {
+      var marc = lista.filter(function (x) { return Almacen.faltaHogar(x.id); }).length;
+      cont.innerHTML = '<div class="ficha-pase"><div class="ficha-cuerpo">' +
+        "<h2>" + esc(ap ? ap.n : "") + ", repasado</h2>" +
+        '<div class="pide">' + (marc ? marc + (marc === 1 ? " cosa" : " cosas") + " a la compra"
+                                     : "No te falta nada de aqu\u00ed") + "</div>" +
+        '<button type="button" class="btn grande" data-hogarindice="1">Volver a los apartados</button>' +
+        "</div></div>";
+      return true;
+    }
+
+    var x = lista[UI.paseHogar.i];
+    var falta = Almacen.faltaHogar(x.id);
+    var c = Almacen.cantidadHogar(x.id);
+    var cajon = x.cajon || "amazon";
+    var det = esc(Almacen.nombreCajon(cajon));
+    if (cajon === "suscripcion") det += " \u00b7 llega sola";
+    if (x.suplente) det += " \u00b7 si no hay: " + esc(x.suplente);
+    var pct = Math.round(UI.paseHogar.i / lista.length * 100);
+
+    cont.innerHTML =
+      '<div class="ficha-pase">' +
+        '<div class="ficha-cab">' +
+          '<button type="button" class="btn nav" data-hogaratras="1"' +
+            (UI.paseHogar.i ? "" : " disabled") + ' aria-label="Anterior">&#8249;</button>' +
+          '<div class="donde">' + esc(ap ? ap.n : "") + "<span>" + (UI.paseHogar.i + 1) +
+            " de " + lista.length + "</span></div>" +
+          '<button type="button" class="btn nav" data-hogardelante="1"' +
+            (UI.paseHogar.i + 1 < lista.length ? "" : " disabled") + ' aria-label="Siguiente">&#8250;</button>' +
+          '<button type="button" class="btn mini" data-hogarindice="1">Salir</button>' +
+        "</div>" +
+        '<div class="barra"><span style="width:' + pct + '%"></span></div>' +
+        '<div class="ficha-cuerpo">' +
+          "<h2>" + esc(x.n) + "</h2>" +
+          (x.pendiente
+            ? '<div class="producto" style="color:var(--ambar)">Ponle tu marca y formato</div>'
+            : (x.generico ? '<div class="producto">' + esc(x.generico) + "</div>" : "")) +
+          '<div class="pide flojo">' + det + "</div>" +
+          '<div class="hogar-botones">' +
+            /* `grande` ya es el botón principal de la app, así que poniéndolo
+               en los dos salían los dos en verde y no se veía cuál está
+               elegido. Aquí el verde lo lleva sólo la respuesta que está
+               puesta, igual que los atajos de contar. */
+            '<button type="button" class="btn hog-b' + (falta ? "" : " principal") +
+              '" data-hogarno="' + esc(x.id) + '">No me falta</button>' +
+            '<button type="button" class="btn hog-b' + (falta ? " principal" : "") +
+              '" data-hogarsi="' + esc(x.id) + '">Me falta</button>' +
+          "</div>" +
+          (falta
+            ? '<div class="quiero-fila activo"><span>Cu\u00e1ntos</span><div class="paso">' +
+              '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|-1">\u2212</button>' +
+              '<span class="cuenta-lista">' + c + "</span>" +
+              '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|1">+</button>' +
+              "</div></div>"
+            : "") +
+        "</div>" +
+        '<div class="ficha-pie">' +
+          '<button type="button" class="btn mini" data-hogareditar="' + esc(x.id) + '">Editar la ficha</button>' +
+        "</div>" +
+      "</div>";
+    return true;
+  }
+
+  /* Las fichas de un apartado, en el orden en que se pasan. */
+  function fichasApartado(k) {
+    return (Almacen.estado.hogarLista || []).filter(function (x) {
+      return !x.oculta && x.cat === k;
+    }).sort(function (a, b) { return a.n.localeCompare(b.n); });
+  }
+
+  function avanzarHogar() {
+    var lista = fichasApartado(UI.paseHogar.ap);
+    UI.paseHogar.i = Math.min(UI.paseHogar.i + 1, lista.length);
+    pintarHogar();
+    var c = $("#rejilla-hogar");
+    if (c) try {
+      var y = c.getBoundingClientRect().top + (window.pageYOffset || 0) - 58;
+      window.scrollTo({ top: y > 0 ? y : 0 });
+    } catch (e) {}
+  }
+
   function pintarHogar() {
     var cont = $("#rejilla-hogar");
     if (!cont) return;
+    /* con el pase abierto se esconden el buscador y el filtro: una pantalla a
+       la vez, igual que en ¿Lo tengo? */
     var q = sinTildes((UI.busquedaHogar || "").trim().toLowerCase());
     var todo = (Almacen.estado.hogarLista || []).filter(function (x) {
       if (x.oculta) return false;
@@ -3953,6 +4151,10 @@
       return true;
     });
     var html = "", faltan = 0;
+    /* EL ÍNDICE, COMO EL DE ¿LO TENGO? (25-sep-2026). Sin buscar, cuatro filas
+       —una por apartado— y entras a pasarlas de una en una. Buscando, la lista
+       de siempre con sus casillas, que es lo que hace falta cuando ya sabes qué
+       vienes a marcar. */
     Almacen.APARTADOS.forEach(function (ap) {
       var lista = todo.filter(function (x) { return x.cat === ap.k; });
       if (!lista.length) return;
@@ -5619,14 +5821,23 @@
       /* --- la ronda --- */
       if (e.target.closest("#ronda-borrar")) {
         var cuantos = Object.keys(Almacen.estado.stock || {}).length;
-        if (!cuantos) { Util.toast("No hay nada apuntado"); return; }
+        var caprichos = Object.keys(Almacen.estado.quiero || {}).length;
+        var hogarM = Object.keys(Almacen.estado.hogar || {}).length;
+        if (!cuantos && !caprichos && !hogarM) { Util.toast("No hay nada apuntado"); return; }
         if (!confirm("Se borra lo apuntado en " + cuantos +
             (cuantos === 1 ? " producto" : " productos") +
-            ", y los trece estantes quedan sin repasar.\n\nRecuperarlo es volver a dar la vuelta a la casa. ¿Seguro?")) return;
+            ", y los estantes quedan sin repasar." +
+            (caprichos ? "\n\nTambi\u00e9n se borran " + caprichos +
+              (caprichos === 1 ? " cosa" : " cosas") + " de \u00ablo quiero esta vez\u00bb." : "") +
+            (hogarM ? "\n\nY " + hogarM + (hogarM === 1 ? " cosa marcada" : " cosas marcadas") +
+              " de Hogar." : "") +
+            "\n\nRecuperarlo es volver a dar la vuelta a la casa. \u00bfSeguro?")) return;
         Almacen.borrarStock();
         UI.pase = { vista: "indice", estante: null, i: 0 };
         UI.estanteTengo = null;
-        pintarLoTengo(); Util.toast("Borrado: " + cuantos + " productos sin apuntar"); return;
+        pintarLoTengo(); pintarCompra(); pintarHogar();
+        Util.toast("Borrado: " + cuantos + " productos sin apuntar" +
+          (caprichos + hogarM ? " y " + (caprichos + hogarM) + " de la lista" : "")); return;
       }
       if (e.target.closest("#ronda-empezar")) {
         Almacen.iniciarRonda();
@@ -5709,6 +5920,38 @@
         if (UI.pase.vista === "ficha") pintarLoTengo();
         else refrescarLineaTengo(pp[0]);
         return;
+      }
+      /* ---- las respuestas de un estante de Hogar, dentro del pase ---- */
+      var phs = e.target.closest("[data-hogarsi]");
+      if (phs) {
+        var idhs = phs.getAttribute("data-hogarsi");
+        Almacen.marcarFaltaHogar(idhs, true, Almacen.cantidadHogar(idhs) || 1);
+        avanzarFicha(); return;
+      }
+      var phn = e.target.closest("[data-hogarno]");
+      if (phn) {
+        Almacen.marcarFaltaHogar(phn.getAttribute("data-hogarno"), false);
+        avanzarFicha(); return;
+      }
+      var phc = e.target.closest("[data-hogarcant]");
+      if (phc) {
+        var pph = phc.getAttribute("data-hogarcant").split("|");
+        var nph = (Almacen.cantidadHogar(pph[0]) || 1) + Number(pph[1]);
+        if (nph < 1) nph = 1;
+        Almacen.marcarFaltaHogar(pph[0], true, nph);
+        pintarLoTengo(); return;
+      }
+      var phe = e.target.closest("[data-hogareditar]");
+      if (phe) { abrirHogar(phe.getAttribute("data-hogareditar")); return; }
+
+      var bqp = e.target.closest("[data-quieropaso]");
+      if (bqp) {
+        var pq2 = bqp.getAttribute("data-quieropaso").split("|");
+        var act2 = ((Almacen.estado.quiero || {})[pq2[0]] || {}).p || 0;
+        var n3 = act2 + Number(pq2[1]);
+        if (n3 < 1) Almacen.quererEstaVez(pq2[0], false);
+        else Almacen.quererEstaVez(pq2[0], true, n3);
+        pintarLoTengo(); return;
       }
       var bq = e.target.closest("[data-quiero]");
       if (bq) {
@@ -5840,6 +6083,44 @@
       }
     });
     $("#rejilla-hogar").addEventListener("click", function (e) {
+      /* ---- el pase de Hogar ---- */
+      var hap = e.target.closest("[data-hogarap]");
+      if (hap) {
+        UI.paseHogar = { vista: "ficha", ap: hap.getAttribute("data-hogarap"), i: 0 };
+        pintarHogar(); return;
+      }
+      if (e.target.closest("[data-hogarindice]")) {
+        UI.paseHogar = { vista: "indice", ap: null, i: 0 };
+        pintarHogar(); return;
+      }
+      if (e.target.closest("[data-hogaratras]")) {
+        UI.paseHogar.i = Math.max(0, UI.paseHogar.i - 1); pintarHogar(); return;
+      }
+      if (e.target.closest("[data-hogardelante]")) {
+        UI.paseHogar.i = UI.paseHogar.i + 1; pintarHogar(); return;
+      }
+      var hsi = e.target.closest("[data-hogarsi]");
+      if (hsi) {
+        var idS = hsi.getAttribute("data-hogarsi");
+        Almacen.marcarFaltaHogar(idS, true, Almacen.cantidadHogar(idS) || 1);
+        avanzarHogar(); pintarCompra(); return;
+      }
+      var hno = e.target.closest("[data-hogarno]");
+      if (hno) {
+        Almacen.marcarFaltaHogar(hno.getAttribute("data-hogarno"), false);
+        avanzarHogar(); pintarCompra(); return;
+      }
+      var hc = e.target.closest("[data-hogarcant]");
+      if (hc) {
+        var ph = hc.getAttribute("data-hogarcant").split("|");
+        var nh = (Almacen.cantidadHogar(ph[0]) || 1) + Number(ph[1]);
+        if (nh < 1) nh = 1;
+        Almacen.marcarFaltaHogar(ph[0], true, nh);
+        pintarHogar(); pintarCompra(); return;
+      }
+      var hed = e.target.closest("[data-hogareditar]");
+      if (hed) { abrirHogar(hed.getAttribute("data-hogareditar")); return; }
+
       var ed = e.target.closest("[data-edithogar]");
       if (ed) abrirHogar(ed.getAttribute("data-edithogar"));
     });

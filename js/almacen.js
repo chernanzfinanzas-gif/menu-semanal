@@ -1562,8 +1562,48 @@
         { k: "basicos",  n: "Básicos" },
         { k: "especias", n: "Especias" },
         { k: "otros",    n: "Otros" }
+      ] },
+
+      /* HOGAR ES UNA ZONA MÁS (25-sep-2026). Carlos: «Hogar es una nueva
+         localización con 4 estantes y se pasa y se borra con la lista».
+
+         Tiene razón y es lo que faltaba para que el ciclo sea UNO: dar la
+         vuelta a la casa es dar la vuelta a la casa entera, y el armario de la
+         limpieza está en la casa. Tenerlo en una pestaña aparte obligaba a
+         acordarse de ir, y lo que no se recuerda no se hace.
+
+         `soloHogar` marca la zona para que no se ofrezca como sitio donde
+         colocar comida: en Limpieza no va un yogur. Y `hogar` en cada estante
+         dice de qué apartado de `hogarLista` saca sus fichas, porque aquí no
+         hay ingredientes: hay bayetas.
+
+         La diferencia con los demás estantes es la pregunta. En los otros es
+         «cuánto hay»; aquí es «me falta o no», y lo que contestes va derecho a
+         la lista de la compra. */
+      { k: "hogar", n: "Hogar", soloHogar: true, estantes: [
+        { k: "hog_limpieza", n: "Limpieza",         hogar: "Limpieza" },
+        { k: "hog_menaje",   n: "Menaje de cocina", hogar: "Menaje" },
+        { k: "hog_aseo",     n: "Aseo",             hogar: "Aseo" },
+        { k: "hog_mascota",  n: "Mascota",          hogar: "Mascota" }
       ] }
     ],
+
+    /* De qué apartado de Hogar es este estante, o null si es de comida. */
+    catHogarDe: function (k) {
+      var cat = null;
+      this.ZONAS.forEach(function (z) {
+        z.estantes.forEach(function (e) { if (e.k === k && e.hogar) cat = e.hogar; });
+      });
+      return cat;
+    },
+    /* Las fichas de Hogar de un estante, ordenadas. */
+    hogarDeEstante: function (k) {
+      var cat = this.catHogarDe(k);
+      if (!cat) return null;
+      return (this.estado.hogarLista || [])
+        .filter(function (x) { return !x.oculta && x.cat === cat; })
+        .sort(function (a, b) { return a.n.localeCompare(b.n); });
+    },
 
     /* La lista plana de estantes, que es lo que usan el stock y la pasada.
        `SITIOS` conserva el nombre de antes para no tocar lo que ya lo pedía. */
@@ -1653,6 +1693,19 @@
       });
       return this.ZONAS.map(function (z) {
         var estantes = z.estantes.map(function (e) {
+          var hg = self.hogarDeEstante(e.k);
+          if (hg) {
+            var contadoH = (self.estado.stockSitios || {})[e.k] || null;
+            return { k: e.k, n: e.n, esHogar: true,
+                     ing: hg.map(function (x) {
+                       return { id: x.id, n: x.n, hogar: true,
+                                falta: self.faltaHogar(x.id),
+                                cantidad: self.cantidadHogar(x.id) || 1 };
+                     }),
+                     anotados: hg.filter(function (x) { return self.faltaHogar(x.id); }).length,
+                     contado: contadoH,
+                     dias: contadoH ? Util.diasEntre(contadoH, hoy) : null };
+          }
           var l = casa.filter(function (g) { return self.sitioDe(g) === e.k; })
             .map(function (g) {
               var f = self.fichaStock(g.id);
@@ -2057,6 +2110,31 @@
         z.estantes.forEach(function (e) { if (e.k === estanteK) { zona = z; est = e; } });
       });
       if (!est) return null;
+
+      /* ---- un estante de Hogar: aquí no se cuenta, se decide ---- */
+      var hog = this.hogarDeEstante(estanteK);
+      if (hog) {
+        var selH = (this.estado.stockSitios || {})[estanteK] || null;
+        return {
+          estante: est.n, zona: zona.n, k: estanteK, estanteK: estanteK, esHogar: true,
+          total: hog.length,
+          dias: selH ? Util.diasEntre(selH, hoy) : null,
+          marcados: hog.filter(function (x) { return self.faltaHogar(x.id); }).length,
+          fichas: hog.map(function (x) {
+            return {
+              id: x.id, n: x.n, hogar: true,
+              producto: x.pendiente ? "" : (x.generico || ""),
+              pendiente: !!x.pendiente,
+              cajon: self.cajonDe ? (x.cajon || "amazon") : "amazon",
+              cajonN: self.nombreCajon(x.cajon || "amazon"),
+              suplente: x.suplente || "",
+              falta: self.faltaHogar(x.id),
+              cantidad: self.cantidadHogar(x.id) || 1
+            };
+          })
+        };
+      }
+
       var casa = (this.estado.ingredientes || []).filter(function (g) {
         return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === estanteK;
       });
@@ -2140,16 +2218,35 @@
       this.estado.stockSello = new Date().toISOString();
     },
 
+    /* «BORRAR TODO LO APUNTADO» SE LLEVA TAMBIÉN LOS CAPRICHOS (25-sep-2026).
+       Carlos: «lo quiero esta vez también debe borrarse al ir a iniciar un
+       nuevo stock con el botón».
+
+       Y es coherente con lo que acabamos de montar: desde la v229 los caprichos
+       se piden DENTRO del pase, con el producto delante. Así que pertenecen a
+       esa ronda, no al mundo. Empezar de cero es empezar de cero: ni cantidades
+       ni encargos de la vuelta anterior.
+       Lo de Hogar no se toca: eso se marca en su propio pase y va por su lado. */
     borrarStock: function () {
       var n = Object.keys(this.estado.stock || {}).length;
+      var q = Object.keys(this.estado.quiero || {}).length;
       this.estado.stock = {};
       this.estado.stockSitios = {};
       this.estado.sitiosSaltados = {};
       this.estado.rondaStock = null;
+      /* Y LO DE HOGAR TAMBIÉN (25-sep-2026). Desde que Hogar es una zona más
+         del recorrido, empezar de cero tiene que dejar también su armario sin
+         marcar: si no, la vuelta siguiente arrastraría lo de la anterior. */
+      var h = Object.keys(this.estado.hogar || {}).length;
+      if (q || h) {
+        this.estado.quiero = {};
+        this.estado.hogar = {};
+        this._sellarPedido();
+      }
       this._sello++; this._compCache = null;
       this._sellarStock();
       this.guardar("stock");
-      return n;
+      return { fichas: n, caprichos: q, hogar: h };
     },
 
     /* Dar un estante por visto sin pasar sus fichas. Para las especias, que
@@ -2176,20 +2273,30 @@
     },
 
     /* Cómo va la ronda: qué estantes quedan y cuáles se dieron por vistos. */
+    /* Cuántas fichas hay en un estante. Un estante de Hogar cuenta sus
+       bayetas; los demás, sus ingredientes. Se usa en los cuatro sitios que
+       recorren la casa, para que ninguno se deje media vuelta. */
+    cuantasEnEstante: function (k) {
+      var h = this.hogarDeEstante(k);
+      if (h) return h.length;
+      var self = this;
+      return (this.estado.ingredientes || []).filter(function (g) {
+        return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === k;
+      }).length;
+    },
+
     estadoRonda: function () {
       var self = this, sellado = this.estado.stockSitios || {},
           saltado = this.estado.sitiosSaltados || {}, hoy = Util.hoyISO();
       var out = [], hechos = 0, saltados = 0;
       this.ZONAS.forEach(function (z) {
         z.estantes.forEach(function (e) {
-          var n = (self.estado.ingredientes || []).filter(function (g) {
-            return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === e.k;
-          }).length;
+          var n = self.cuantasEnEstante(e.k);
           if (!n) return;
           var f = sellado[e.k] || null;
           var hecho = f === hoy;
           if (hecho) { hechos++; if (saltado[e.k] === hoy) saltados++; }
-          out.push({ k: e.k, n: e.n, zona: z.n, fichas: n, hecho: hecho,
+          out.push({ k: e.k, n: e.n, zona: z.n, fichas: n, hecho: hecho, esHogar: !!e.hogar,
                      saltado: saltado[e.k] === hoy,
                      dias: f ? Util.diasEntre(f, hoy) : null });
         });
@@ -2203,10 +2310,7 @@
       var planos = [], self = this;
       this.ZONAS.forEach(function (z) {
         z.estantes.forEach(function (e) {
-          var n = (self.estado.ingredientes || []).filter(function (g) {
-            return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === e.k;
-          }).length;
-          if (n) planos.push(e.k);
+          if (self.cuantasEnEstante(e.k)) planos.push(e.k);
         });
       });
       var i = planos.indexOf(estanteK);
