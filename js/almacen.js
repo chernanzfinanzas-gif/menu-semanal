@@ -210,7 +210,20 @@
           lista.forEach(function (x, i) { pos[x.id] = i; });
           (nv[par[0]] || []).forEach(function (x) {
             if (!x || !x.id) return;
-            if (pos[x.id] != null) lista[pos[x.id]] = x; else lista.push(x);
+            if (pos[x.id] == null) { lista.push(x); return; }
+            /* SE COMPLETA, NO SE SUSTITUYE. (25-sep-2026.) Antes la ficha de
+               `nuevos.js` pisaba entera a la del catálogo, así que una ficha
+               añadida sobre la marcha se quedaba congelada en la forma que
+               tenía ese día: cualquier campo posterior del catálogo —`sitio`,
+               `formato`— desaparecía sin dejar rastro. Se notó porque el
+               solomillo y los taquitos de chorizo no salían en el estante de
+               Carne y parecía un fallo del estante.
+               Manda el catálogo, que es lo curado; de `nuevos` sólo se cogen
+               los campos que el catálogo no tiene. */
+            var base = lista[pos[x.id]];
+            Object.keys(x).forEach(function (k) {
+              if (base[k] === undefined || base[k] === null || base[k] === "") base[k] = x[k];
+            });
           });
         });
       }
@@ -254,8 +267,20 @@
            supermercado, y por eso los seis pescados congelados estaban fichados
            en la nevera: su sección es Pescadería. Abrías el congelador en la
            app y no estaba el bacalao que tenías dentro. */
-        ["sitio"].forEach(function (campo) {
+        /* LA LISTA TIENE QUE CRECER CON CADA CAMPO NUEVO, y olvidarlo cuesta
+           caro: el 25-sep-2026 el solomillo y los taquitos de chorizo no
+           aparecían en el estante de Carne y parecía un fallo del estante. Lo
+           que pasaba es que esas dos fichas viven en `nuevos.js` —se añadieron
+           sobre la marcha— y ahí no llegaban ni `sitio` ni `formato`, así que
+           la app las trataba como si no tuvieran sitio.
+           `formato` = en qué viene y cómo se cuenta (bolsa, tarro, ración…). */
+        ["sitio", "formato", "producto", "suplente"].forEach(function (campo) {
           if (!ing[campo] && ref && ref[campo]) { ing[campo] = ref[campo]; completados++; }
+        });
+        /* Y los números del envase, que deciden cuánto es «una ración» o «media
+           bolsa». Sólo si faltan o están a cero: un valor tuyo no se pisa. */
+        ["envase", "racion", "pesoUd"].forEach(function (campo) {
+          if (!(ing[campo] > 0) && ref && ref[campo] > 0) { ing[campo] = ref[campo]; completados++; }
         });
       });
       if (completados) {
@@ -389,7 +414,18 @@
              Lo que editas a mano lleva `editado` y no lo toca nadie, como siempre. */
           var s = _catIng2[par[1]][x.id];
           if (s && !x.editado && (s.rev || 0) > (n.rev || 0)) return;
-          e[par[1]][i] = JSON.parse(JSON.stringify(n));
+          var copia = JSON.parse(JSON.stringify(n));
+          /* NO SE PIERDE LO QUE EL CATÁLOGO SABE Y TU COPIA NO. (25-sep-2026.)
+             Esto sustituía la ficha entera, así que una corrección hecha en el
+             móvil hace semanas borraba cualquier campo añadido al catálogo
+             después —`sitio`, `formato`, el envase—. Se vio con el solomillo y
+             los taquitos de chorizo, que no aparecían en el estante de Carne.
+             Tu corrección sigue mandando en lo que tocaste; lo que no trae, lo
+             pone el catálogo. */
+          if (s) Object.keys(s).forEach(function (k) {
+            if (copia[k] === undefined || copia[k] === null || copia[k] === "") copia[k] = s[k];
+          });
+          e[par[1]][i] = copia;
           corregidos.push(n.n);
         });
       });
@@ -1423,6 +1459,12 @@
         { k: "est_arriba", n: "Estante arriba" },
         { k: "est_abajo",  n: "Estante abajo" },
         { k: "cajones",    n: "Cajones" },
+        /* Estante propio para la carne (Carlos, 25-sep-2026). No es un cajón
+           físico: es que las catorce fichas de carnicería no tenían sitio y no
+           salían en ningún pase, y repartirlas por la nevera las volvía a
+           esconder. Va antes del frutero porque en el recorrido la carne se
+           mira con lo frío y no con la fruta. */
+        { k: "carne",      n: "Carne" },
         { k: "frutero",    n: "Frutero" },
         { k: "congelador", n: "Congelador" }
       ] },
@@ -1545,43 +1587,484 @@
       });
     },
 
-    /* ---------- LA RESPUESTA DEL RECORRIDO: TRES NIVELES ----------
+    /* ---------- LA RESPUESTA DEL RECORRIDO: EN PLATOS, NO EN ENVASES ----------
        Carlos, 24-sep-2026: «lo anoto con más o menos la cantidad: poco /
-       suficiente / mucho». Ningún número que teclear, y por una razón que es
-       suya: un stock exacto que nadie mantiene acaba mintiendo, y él lo ha
-       sufrido llevándolo en logística.
+       suficiente / mucho». Ningún número que teclear, por una razón suya: un
+       stock exacto que nadie mantiene acaba mintiendo, y lo ha sufrido
+       llevándolo en logística.
 
-       Pero la lista de la compra sí necesita una cantidad, así que el nivel se
-       traduce a envases. La traducción es una SUPOSICIÓN declarada, no una
-       medida:
-         poco       = un cuarto de envase   -> falta casi todo, la compra pide
-         suficiente = un envase             -> lo normal, no pide
-         mucho      = dos envases           -> de sobra
-       Lo que no está marcado vale cero, que es lo prudente: si no lo has visto,
-       la compra lo pide. Sin envase se usa la ración, y sin ración, la unidad. */
-    NIVELES_STOCK: { poco: 0.25, suficiente: 1, mucho: 2 },
+       Y el 25-sep, la medida de esos niveles, también suya:
+         «poco = un plato, suficiente = dos platos, mucho = más de dos».
+
+       ES MEJOR QUE LO QUE HABÍA. Antes el nivel era una fracción del ENVASE, y
+       el envase no dice nada de lo que se cocina. Medido el 24-sep sobre sus
+       fichas: el limón y el ajo tenían envase 0, así que sus tres niveles eran
+       1 / 1 / 2 —marcarlos no informaba de nada—; y «mucho» de leche eran
+       12.000 ml. En platos, «un plato» sale de las propias recetas en 110 de
+       los 210 ingredientes (la mediana de lo que piden por ración), de la
+       ración en 97 y del envase en 3. Ninguno se queda sin fuente.
+
+       «NADA» NO ES LO MISMO QUE NO MARCADO. (Carlos, 25-sep, con la idea del
+       pase ficha a ficha.) Sin marcar significa «no lo he mirado»; «nada»
+       significa «he mirado y no hay». Las dos valen cero para la compra, pero
+       sólo la segunda dice que el estante está repasado, y esa diferencia es lo
+       que permite avisar de «llevas seis semanas sin abrir el congelador» en
+       vez de creer que está vacío. */
+    /* ---------- DOS MANERAS DE MIRAR UNA COSA ----------
+       Carlos, 25-sep-2026, repasando la puerta de la nevera conmigo:
+
+         «En la puerta están los huevos — cantidad de huevos.
+          Las salsas todas: botes (lleno - mitad - cuarto).
+          El vino blanco son briks pequeños — cantidad de briks: 2, 3, 0,5.
+          Mermelada: lleno - mitad - cuarto.»
+
+       Eso es mejor que los cuatro regímenes que yo había calculado, y por una
+       razón sencilla: «lleno / mitad / cuarto» es lo que VES al abrir un bote,
+       mientras que «poco / suficiente / mucho» era una abstracción mía que
+       además había que traducir. Así que quedan dos:
+
+         CONTAR   lo que viene en piezas — huevos, briks, latas, botellas,
+                  bandejas, lomos, piezas de fruta. Se cuentan, con medias.
+         BOTE     lo que abres y miras por dentro — salsas, mermeladas, cremas,
+                  bolsas, especias. Nada / Cuarto / Mitad / Lleno.
+
+       Y la pieza se detecta sola en dos de cada tres fichas: por la unidad
+       (`ud`), por el tamaño que el propio nombre declara —«(lata 330 ml)»,
+       «(brik 1 L)», «(bandeja 300 g)»— o porque el envase entero es una sola
+       ración, que es el caso de las ensaladas preparadas y la lubina. Lo que no
+       tiene pieza es, justamente, lo que va en bote. */
+    /* ---------- EL FORMATO MANDA ----------
+       Carlos, 25-sep-2026, al ver que el mismo producto se comportaba de dos
+       maneras según cómo estuviera escrito el nombre:
+
+         «Cacahuetes contaría bolsas: 1,5 · 0,5, y ahí salen los gramos en los
+          dos. Doritos, bolsas. Patatas fritas, bolsas. Las almendras como los
+          cacahuetes, contar bolsas. Y los pistachos, los dátiles, orejones.»
+
+       Antes, «Cacahuetes tostados con sal (bolsa 200 g)» se contaba en bolsas y
+       «Cacahuetes tostados SIN sal» se medía en cuartos de bote, porque uno
+       declaraba el tamaño entre paréntesis y el otro no. Eso no era un sistema,
+       era un accidente de tecleo.
+
+       Ahora cada ficha lleva `formato` y de ahí sale todo. Y las dos maneras
+       que parecían distintas eran la misma: «medio bote» son 0,5 botes y «dos
+       latas» son 2 latas. Se cuentan envases con decimales, siempre. Lo único
+       que cambia con el formato son LOS ATAJOS que se ofrecen, porque en un
+       tarro quieres cuartos y en las latas quieres docenas. */
+    FORMATOS: {
+      suelto:   { n: ["unidad", "unidades"],   atajos: [0, 1, 2, 3, 4, 6, 12], suelta: true },
+      /* LA TERCERA UNIDAD. Carlos, 25-sep-2026: «el pescado va por raciones —
+         tengo 4 raciones de bacalao, de salmón, de merluza. La carne debería
+         ser igual». No son piezas (un lomo puede ser media ración o dos) ni
+         envases (una bandeja trae varias), es lo que vas a poner en un plato.
+         Y lo que se guarda son gramos, como siempre: la ración de la ficha es
+         la que traduce. */
+      racion:   { n: ["ración", "raciones"],   atajos: [0, 1, 2, 3, 4, 6], racion: true },
+      lata:     { n: ["lata", "latas"],        atajos: [0, 1, 2, 3, 4, 6, 12] },
+      brik:     { n: ["brik", "briks"],        atajos: [0, 0.5, 1, 2, 3, 6] },
+      botella:  { n: ["botella", "botellas"],  atajos: [0, 0.25, 0.5, 0.75, 1, 2] },
+      tarro:    { n: ["tarro", "tarros"],      atajos: [0, 0.25, 0.5, 0.75, 1, 2] },
+      bote:     { n: ["bote", "botes"],        atajos: [0, 0.25, 0.5, 0.75, 1, 2] },
+      bolsa:    { n: ["bolsa", "bolsas"],      atajos: [0, 0.25, 0.5, 1, 1.5, 2] },
+      paquete:  { n: ["paquete", "paquetes"],  atajos: [0, 0.25, 0.5, 1, 1.5, 2] },
+      bandeja:  { n: ["bandeja", "bandejas"],  atajos: [0, 0.5, 1, 2, 3] },
+      tarrina:  { n: ["tarrina", "tarrinas"],  atajos: [0, 0.5, 1, 2, 3] },
+      caja:     { n: ["caja", "cajas"],        atajos: [0, 1, 2, 3, 4] },
+      tableta:  { n: ["tableta", "tabletas"],  atajos: [0, 0.5, 1, 2, 3] },
+      malla:    { n: ["malla", "mallas"],      atajos: [0, 0.5, 1, 2] },
+      rebanada: { n: ["rebanada", "rebanadas"], atajos: [0, 2, 4, 6, 8, 12] },
+      filete:   { n: ["filete", "filetes"],    atajos: [0, 1, 2, 3, 4, 6] },
+      barra:    { n: ["barra", "barras"],      atajos: [0, 0.5, 1, 2] },
+      sobre:    { n: ["sobre", "sobres"],      atajos: [0, 1, 2, 3, 5, 10] },
+      capsula:  { n: ["cápsula", "cápsulas"],  atajos: [0, 5, 10, 20, 30, 50], suelta: true }
+    },
+
+    formatoDe: function (g) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return "suelto";
+      if (g.formato && this.FORMATOS[g.formato]) return g.formato;
+      return g.u === "ud" ? "suelto" : "bote";
+    },
+
+    fichaFormato: function (g) { return this.FORMATOS[this.formatoDe(g)]; },
+
+    nombrePieza: function (g, n) {
+      var f = this.fichaFormato(g);
+      return (n === 1 || n === -1) ? f.n[0] : f.n[1];
+    },
+
+    /* Todo se cuenta en envases; lo que falta es saber cuánto pesa uno. Si la
+       pieza no se puede deducir, el envase entero ES la pieza. */
+    /* El tamaño que el nombre o el producto declaran: «(lata 330 ml)»,
+       «(bandeja 300 g)», «Don Simón Vino Blanco Brik, 3 × 187 ml». */
+    RE_PIEZA: /\((?:[^()]*?,\s*)?(?:lata|latas|brik|briks|botella|bandeja|tarrina|caja|unidad|rebanada|tableta|bolsa|frasco|sobre|filete|barra)\s*(?:de\s*)?([\d.,]+)\s*(g|kg|ml|l)\b/i,
+    RE_PIEZA_COLA: /,\s*([\d.,]+)\s*(g|kg|ml|l)\s*\)\s*$/i,
+    RE_PACK: /(\d+)\s*(?:x|×)\s*([\d.,]+)\s*(g|kg|ml|l)\b/i,
+
+    piezaDe: function (g) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return null;
+      if (g.piezaML > 0) return { c: g.piezaML, de: "ficha" };
+      if (g.u === "ud") return { c: 1, de: "unidad" };
+      var mp = this.RE_PACK.exec(g.producto || "");
+      if (mp) {
+        var vp = parseFloat(String(mp[2]).replace(",", "."));
+        var up = String(mp[3]).toLowerCase();
+        if (up === "kg" || up === "l") vp *= 1000;
+        if (vp > 0) return { c: vp, de: "pack del producto" };
+      }
+      var m = this.RE_PIEZA.exec(g.n) || this.RE_PIEZA_COLA.exec(g.n);
+      if (m) {
+        var v = parseFloat(String(m[1]).replace(",", "."));
+        var u = String(m[2]).toLowerCase();
+        if (u === "kg" || u === "l") v *= 1000;
+        if (v > 0 && (!(g.envase > 0) ||
+            Math.abs(g.envase / v - Math.round(g.envase / v)) < 0.03)) {
+          return { c: v, de: "nombre" };
+        }
+      }
+      if (g.envase > 0 && this.racionUso(g) > 0 && g.envase / this.racionUso(g) <= 1.6)
+        return { c: g.envase, de: "el envase es la pieza" };
+      return null;
+    },
+
+    /* LO QUE SE CUENTA ES EL ENVASE, salvo cuando las piezas quedan sueltas.
+       Un paquete de pan de molde son dieciséis rebanadas, pero tú ves el
+       paquete y dices «me queda medio»; en cambio una malla de cebollas se
+       abre y quedan tres cebollas encima de la encimera, y ahí cuentas
+       cebollas. Los formatos con `suelta` cuentan la pieza; el resto, el
+       envase. (Carlos, 25-sep: «el formato manda».) */
+    tamanoPieza: function (g) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return 1;
+      var ff = this.fichaFormato(g);
+      if (ff && ff.racion) return g.racion > 0 ? g.racion : this.racionUso(g);
+      if (ff && ff.suelta) return g.u === "ud" ? 1 : (g.racion > 0 ? g.racion : 1);
+      var p = this.piezaDe(g);
+      if (p && p.c > 0 && !(g.u === "ud" && p.de === "unidad")) return p.c;
+      if (g.envase > 0) return g.envase;
+      if (g.racion > 0) return g.racion;
+      return 1;
+    },
+
+    /* Cuántas piezas hay ahora apuntadas. */
+    piezasDe: function (id) {
+      var g = this.ingrediente(id), p = g && this.piezaDe(g);
+      if (!p || !(p.c > 0)) return 0;
+      return Math.round(this.stockDe(id) / p.c * 100) / 100;
+    },
+
+    /* Cuánto de este ingrediente se lleva UN plato. La mediana y no la media:
+       una receta que use medio kilo no debe arrastrar al resto. Se usa para
+       decir «este bote te da para catorce platos», que era la idea de Carlos
+       del 25-sep puesta donde sí significa algo. */
+    racionUso: function (g) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return 1;
+      if (!this._racUso) this._racUso = {};
+      if (this._racUsoSello !== this._sello) { this._racUso = {}; this._racUsoSello = this._sello; }
+      if (this._racUso[g.id] != null) return this._racUso[g.id];
+      var usos = [];
+      this.visibles().forEach(function (r) {
+        (r.ing || []).forEach(function (l) {
+          if (l.i === g.id && l.c > 0) usos.push(l.c / (r.raciones || 1));
+        });
+      });
+      var v;
+      if (usos.length) {
+        usos.sort(function (a, b) { return a - b; });
+        var m2 = Math.floor(usos.length / 2);
+        v = usos.length % 2 ? usos[m2] : (usos[m2 - 1] + usos[m2]) / 2;
+      } else v = g.racion > 0 ? g.racion : (g.envase > 0 ? g.envase : 1);
+      this._racUso[g.id] = v;
+      return v;
+    },
+
+    platosQueDa: function (g, cantidad) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return 0;
+      var r = this.racionUso(g);
+      return r > 0 ? Math.round(cantidad / r * 10) / 10 : 0;
+    },
+
+    /* El nivel del bote, traducido a cantidad. */
+    /* Puente para la vista de lista, que todavía habla de niveles. Los traduce
+       a envases: cuarto 0,25 · mitad 0,5 · lleno 1. */
+    NIVELES_BOTE: { nada: 0, cuarto: 0.25, mitad: 0.5, lleno: 1,
+                    poco: 0.25, suficiente: 1, mucho: 2 },
+    nivelesDe: function (g) { return ["nada", "cuarto", "mitad", "lleno"]; },
+    cantidadNivel: function (g, nivel) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return 0;
+      var factor = this.NIVELES_BOTE[nivel];
+      if (!(factor > 0)) return 0;
+      return Math.round(this.tamanoPieza(g) * factor * 100) / 100;
+    },
 
     responderRecorrido: function (id, nivel) {
       var g = this.ingrediente(id);
       if (!g) return false;
+      if (!this.estado.stock) this.estado.stock = {};
       if (!nivel) {
-        delete this.estado.stock[id];
+        delete this.estado.stock[id];               // volver a «sin mirar»
+      } else if (this.NIVELES_BOTE[nivel] == null) {
+        return false;
       } else {
-        var factor = this.NIVELES_STOCK[nivel];
-        if (!(factor > 0)) return false;
-        var lleno = g.envase > 0 ? g.envase : (g.racion > 0 ? g.racion : 1);
-        var c = lleno * factor;
-        /* en unidades no hay cuartos de yogur: se redondea a una pieza */
-        if (g.u === "ud") c = Math.max(1, Math.round(c));
-        this.estado.stock[id] = { c: Math.round(c * 100) / 100, nivel: nivel, f: Util.hoyISO() };
+        var fac = this.NIVELES_BOTE[nivel];
+        this.estado.stock[id] = { c: this.cantidadNivel(g, nivel), piezas: fac,
+                                  nivel: nivel, f: Util.hoyISO() };
       }
-      var k = this.sitioDe(id);
-      if (k) {
-        if (!this.estado.stockSitios) this.estado.stockSitios = {};
-        this.estado.stockSitios[k] = Util.hoyISO();
-      }
+      this.sellarSitio(id);
       this.guardar("stock");
       return true;
+    },
+
+    /* ---------- LO QUE SE CUENTA, SE CUENTA ----------
+       Carlos, 24-sep-2026: «hay productos que no vale con mucho / poco /
+       suficiente… los huevos por ejemplo, hay que saber si hay 2, 4».
+       Tiene razón y se puede medir: de sus 210 ingredientes de casa, 56 van por
+       unidades, y ahí el nivel es una estimación cuando el dato exacto está a
+       la vista —abres la huevera y los cuentas—. Así que los «ud» se cuentan y
+       el resto se estima. La regla es la unidad de la ficha, no una lista de
+       productos elegidos a mano. */
+    /* n son PIEZAS, no gramos: «2 briks», «3 huevos», «media bandeja». */
+    contarStock: function (id, n) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      if (!this.estado.stock) this.estado.stock = {};
+      n = Number(n);
+      var p = this.piezaDe(g), tam = (p && p.c > 0) ? p.c : 1;
+      if (!(n >= 0)) { delete this.estado.stock[id]; }
+      else {
+        this.estado.stock[id] = {
+          c: Math.round(n * tam * 100) / 100, piezas: n,
+          f: Util.hoyISO(), contado: true,
+          nivel: n <= 0 ? "nada" : "contado"
+        };
+      }
+      this.sellarSitio(id);
+      this.guardar("stock");
+      return true;
+    },
+
+    sellarSitio: function (id) {
+      var k = this.sitioDe(id);
+      if (!k) return;
+      if (!this.estado.stockSitios) this.estado.stockSitios = {};
+      this.estado.stockSitios[k] = Util.hoyISO();
+    },
+
+    /* ---------- LOS PLATOS DE UN INGREDIENTE ----------
+       Para la ficha del pase, y no de adorno: es la LISTA DE LO QUE BLOQUEA EL
+       BORRADO. Carlos, 25-sep-2026: «por eso poner las recetas de cada
+       ingrediente, para no eliminar un ingrediente hasta haber modificado la
+       receta». Los planificados van primero: si el ingrediente sale en la cena
+       del jueves, eso pesa más que salir en una receta que no piensas hacer. */
+    platosDe: function (id) {
+      var self = this, planif = {};
+      Object.keys(this.estado.plan || {}).forEach(function (f) {
+        var dia = self.estado.plan[f];
+        if (!dia) return;
+        ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (t) {
+          (dia[t] || []).forEach(function (rid) { planif[rid] = true; });
+        });
+      });
+      var out = [];
+      this.visibles().forEach(function (r) {
+        (r.ing || []).forEach(function (l) {
+          if (l.i !== id) return;
+          if (out.some(function (x) { return x.id === r.id; })) return;
+          out.push({ id: r.id, n: r.n, c: l.c, planificado: !!planif[r.id] });
+        });
+      });
+      out.sort(function (a, b) {
+        if (a.planificado !== b.planificado) return a.planificado ? -1 : 1;
+        return a.n.localeCompare(b.n);
+      });
+      return out;
+    },
+
+    /* ---------- BORRAR UN PRODUCTO DE TU CASA ----------
+       Carlos, 25-sep-2026: «tengo dos gazpachos, sólo compro uno; el que no
+       compro, si no aparece en ninguna receta, ya no quiero que aparezca como
+       ingrediente». Y la guarda, que es suya también: si SÍ aparece en alguna
+       receta no se borra — primero se cambia la receta.
+
+       Medido: de los 132 del pase, 69 no salen en ninguna receta (se borran sin
+       tocar nada) y 63 están bloqueados. Sus tres gazpachos están en el primer
+       grupo. No se destruye la ficha: se oculta, y se recupera desde Catálogo. */
+    puedeBorrar: function (id) {
+      var platos = this.platosDe(id);
+      return { si: !platos.length, platos: platos };
+    },
+
+    borrarIngrediente: function (id) {
+      var g = this.ingrediente(id);
+      if (!g) return { ok: false, motivo: "no existe" };
+      var p = this.puedeBorrar(id);
+      if (!p.si) return { ok: false, motivo: "lo usan platos", platos: p.platos };
+      g.oculta = true;
+      if (this.estado.stock) delete this.estado.stock[id];
+      this._sello++; this._compCache = null;
+      this.guardar("ingredientes");
+      this.guardar("stock");
+      return { ok: true };
+    },
+
+    /* ---------- EL PASE FICHA A FICHA ----------
+       Carlos, 25-sep-2026: «¿Lo tengo? es un pase de fichas que pasa de una a
+       otra al marcar el producto». Un estante cada vez, decisión suya: la
+       nevera entera son 61 fichas y su puerta 11, y un túnel largo es como se
+       le han muerto otros proyectos. Al acabar el estante se sella con la
+       fecha; si lo deja a medias, NO se sella, que es lo que evita creer que
+       has hecho la pasada cuando te quedaste en la ficha 60.
+
+       Devuelve todo lo que la ficha necesita ya calculado: la pantalla no tiene
+       que saber de recetas ni de raciones. */
+    pase: function (estanteK) {
+      var self = this, hoy = Util.hoyISO(), comp = this.comprometidoTodo();
+      var zona = null, est = null;
+      this.ZONAS.forEach(function (z) {
+        z.estantes.forEach(function (e) { if (e.k === estanteK) { zona = z; est = e; } });
+      });
+      if (!est) return null;
+      var casa = (this.estado.ingredientes || []).filter(function (g) {
+        return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === estanteK;
+      });
+      casa.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      var fichas = casa.map(function (g) {
+        var f = self.fichaStock(g.id);
+        var platos = self.platosDe(g.id);
+        var fmt = self.formatoDe(g), ff = self.FORMATOS[fmt];
+        var tam = self.tamanoPieza(g);
+        return {
+          id: g.id, n: g.n, u: g.u, pesoUd: g.pesoUd || 0,
+          producto: g.producto || "", suplente: g.suplente || "",
+          formato: fmt,
+          pieza: tam,
+          piezaUno: ff.n[0],
+          piezaVarias: ff.n[1],
+          atajos: ff.atajos,
+          piezaUd: g.u === "ud",
+          racionUso: self.racionUso(g),
+          envase: g.envase || 0,
+          porEnvase: self.platosQueDa(g, g.envase > 0 ? g.envase : self.racionUso(g)),
+          piezas: self.piezasDe(g.id),
+          nivel: (f && f.nivel) || null,
+          c: (f && f.c > 0) ? f.c : 0,
+          contado: !!(f && f.contado),
+          marcada: !!f,
+          platosLibres: self.platosQueDa(g, Math.max(0, ((f && f.c > 0) ? f.c : 0) - (comp[g.id] || 0))),
+          dias: (f && f.f) ? Util.diasEntre(f.f, hoy) : null,
+          comprometido: comp[g.id] || 0,
+          platos: platos,
+          borrable: !platos.length
+        };
+      });
+      var contado = (this.estado.stockSitios || {})[estanteK] || null;
+      return {
+        zona: zona.n, zonaK: zona.k, estante: est.n, estanteK: estanteK,
+        fichas: fichas, total: fichas.length,
+        marcadas: fichas.filter(function (x) { return x.marcada; }).length,
+        conAlgo: fichas.filter(function (x) { return x.c > 0; }).length,
+        dias: contado ? Util.diasEntre(contado, hoy) : null
+      };
+    },
+
+    /* ---------- EMPEZAR UNA RONDA ----------
+       Carlos, 25-sep-2026: «hay un botón que reinicia el control de stock:
+       empiezo, lo pulso y comienza por estantes; estante mirado se queda
+       marcado, puedo marcar un estante sin mirarlo».
+
+       NO BORRA LAS CANTIDADES. Sólo pone todos los estantes en «sin repasar».
+       Lo apuntado la vez anterior sigue valiendo hasta que lo pises, y eso es
+       lo que hace que saltarse las especias signifique «siguen como estaban» y
+       no «no hay nada» —que metería el estante entero en la lista de la compra
+       y es justo el error que la pasada existe para evitar—. Lo que se pierde
+       al reiniciar no es el dato, es la CONFIANZA en el dato: la ficha dirá
+       «apuntado hace 12 días» hasta que vuelvas a mirarla. */
+    iniciarRonda: function () {
+      this.estado.stockSitios = {};
+      this.estado.rondaStock = Util.hoyISO();
+      this.guardar("stock");
+      return true;
+    },
+
+    /* ---------- BORRAR DE VERDAD ----------
+       «Empezar una ronda» no borra: desprecinta los estantes y conserva las
+       cantidades, que es lo que hace que saltarse las especias signifique
+       «siguen como estaban». Pero hace falta la otra: empezar de cero sin nada
+       apuntado, para probar sin ensuciar y para cuando la despensa ya no se
+       parece a lo que dice la app. Va aparte y con confirmación, porque
+       deshacerla cuesta una pasada entera. */
+    borrarStock: function () {
+      var n = Object.keys(this.estado.stock || {}).length;
+      this.estado.stock = {};
+      this.estado.stockSitios = {};
+      this.estado.sitiosSaltados = {};
+      this.estado.rondaStock = null;
+      this._sello++; this._compCache = null;
+      this.guardar("stock");
+      return n;
+    },
+
+    /* Dar un estante por visto sin pasar sus fichas. Para las especias, que
+       duran meses, o para lo que hoy no piensas abrir. Queda sellado igual,
+       pero se anota que no se miró, para poder distinguirlo luego. */
+    darPorVisto: function (estanteK) {
+      if (!this.estado.stockSitios) this.estado.stockSitios = {};
+      this.estado.stockSitios[estanteK] = Util.hoyISO();
+      if (!this.estado.sitiosSaltados) this.estado.sitiosSaltados = {};
+      this.estado.sitiosSaltados[estanteK] = Util.hoyISO();
+      this.guardar("stock");
+      return true;
+    },
+
+    /* Al empezar a pasar un estante de verdad, deja de estar «saltado». */
+    marcarMirado: function (estanteK) {
+      if (this.estado.sitiosSaltados) delete this.estado.sitiosSaltados[estanteK];
+      if (!this.estado.stockSitios) this.estado.stockSitios = {};
+      this.estado.stockSitios[estanteK] = Util.hoyISO();
+      this.guardar("stock");
+      return true;
+    },
+
+    /* Cómo va la ronda: qué estantes quedan y cuáles se dieron por vistos. */
+    estadoRonda: function () {
+      var self = this, sellado = this.estado.stockSitios || {},
+          saltado = this.estado.sitiosSaltados || {}, hoy = Util.hoyISO();
+      var out = [], hechos = 0, saltados = 0;
+      this.ZONAS.forEach(function (z) {
+        z.estantes.forEach(function (e) {
+          var n = (self.estado.ingredientes || []).filter(function (g) {
+            return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === e.k;
+          }).length;
+          if (!n) return;
+          var f = sellado[e.k] || null;
+          var hecho = f === hoy;
+          if (hecho) { hechos++; if (saltado[e.k] === hoy) saltados++; }
+          out.push({ k: e.k, n: e.n, zona: z.n, fichas: n, hecho: hecho,
+                     saltado: saltado[e.k] === hoy,
+                     dias: f ? Util.diasEntre(f, hoy) : null });
+        });
+      });
+      return { estantes: out, total: out.length, hechos: hechos, saltados: saltados,
+               ronda: this.estado.rondaStock || null };
+    },
+
+    /* El estante siguiente en el recorrido, para encadenar sin volver al índice. */
+    estanteSiguiente: function (estanteK) {
+      var planos = [], self = this;
+      this.ZONAS.forEach(function (z) {
+        z.estantes.forEach(function (e) {
+          var n = (self.estado.ingredientes || []).filter(function (g) {
+            return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === e.k;
+          }).length;
+          if (n) planos.push(e.k);
+        });
+      });
+      var i = planos.indexOf(estanteK);
+      return (i >= 0 && i + 1 < planos.length) ? planos[i + 1] : null;
     },
 
     /* ---------- LO QUE NO TIENE SITIO ----------

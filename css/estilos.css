@@ -539,6 +539,92 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .fila-estante .ir{color:var(--gris); font-size:1.5rem; line-height:1; margin-left:2px}
 .fila-estante.anotada{border-left:3px solid var(--verde)}
 .fila-estante:active{background:var(--gris-claro)}
+
+/* ---------- EL PASE FICHA A FICHA (25-sep-2026) ----------
+   Se contesta de pie, delante del estante abierto, con el móvil en una mano.
+   Por eso: una sola cosa en pantalla, el nombre grande arriba y los botones
+   gordos abajo, donde llega el pulgar sin recolocar la mano. Nada de lo que
+   no cambie la respuesta entra aquí — se leen ciento treinta pantallas. */
+#bloque-desp-tengo.en-pase .solo-indice{display:none}
+
+.ronda-cab{background:var(--blanco); border:1px solid var(--borde); border-radius:12px;
+  padding:14px; margin:0 13px 12px; text-align:center}
+.ronda-tit{font-weight:650}
+.ronda-sub{font-size:.8rem; color:var(--gris); margin:2px 0 10px}
+/* El borrado va debajo y en pequeño: es la operación que no se puede deshacer,
+   así que no comparte sitio con el botón que se toca cada semana. */
+.ronda-pie{margin-top:12px; padding-top:10px; border-top:1px solid var(--borde)}
+.ronda-pie .borrar{color:var(--rojo); border-color:var(--rojo); font-size:.74rem; padding:6px 10px}
+.fila-estante.hecha{opacity:.72}
+/* `.linea.hecha` tacha el nombre en la lista de la compra —ahí «hecho» es
+   «comprado»—, pero un estante repasado no está tachado, está al día. */
+.fila-estante.hecha .nombre{text-decoration:none}
+.fila-estante.hecha .ir{color:var(--verde)}
+.fila-estante .ir-estante{display:flex; align-items:center; gap:12px; flex:1 1 auto;
+  min-width:0; background:none; border:0; padding:0; font:inherit; color:inherit; text-align:left}
+.fila-estante .visto{flex:0 0 auto}
+
+/* la portada del estante y el resumen del final */
+.pase-portada{background:var(--blanco); border:1px solid var(--borde); border-radius:14px;
+  padding:26px 18px; margin:0 13px; text-align:center}
+.pase-portada .zona{font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--gris)}
+.pase-portada h2{margin:4px 0 10px; font-size:1.4rem}
+.pase-portada .cuenta{font-size:.86rem; color:var(--gris)}
+.pase-portada .cuando{font-size:.8rem; color:var(--gris); margin-bottom:18px}
+.pase-portada .otras{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px}
+.pase-portada.fin .tic{font-size:2.4rem; color:var(--verde); line-height:1}
+.btn.grande{width:100%; max-width:320px; padding:15px 18px; font-size:1rem; font-weight:650;
+  background:var(--verde); color:#fff; border-color:var(--verde)}
+
+/* la ficha */
+.ficha-pase{background:var(--blanco); border:1px solid var(--borde); border-radius:14px;
+  margin:0 13px; overflow:hidden}
+.ficha-cab{display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--borde)}
+.ficha-cab .donde{flex:1; text-align:center; font-size:.78rem; color:var(--gris)}
+.ficha-pase .barra{height:3px; background:var(--gris-claro)}
+.ficha-pase .barra span{display:block; height:100%; background:var(--verde); transition:width .25s ease}
+.ficha-cuerpo{padding:22px 16px 16px; text-align:center}
+.ficha-cuerpo h2{margin:0 0 4px; font-size:1.3rem; line-height:1.2}
+.ficha-cuerpo .producto{font-size:.82rem; color:var(--gris); margin-bottom:12px}
+.ficha-cuerpo .pide{font-size:.9rem; margin-bottom:18px; color:var(--tinta)}
+.ficha-cuerpo .pide.flojo{color:var(--gris); font-size:.82rem}
+.ficha-cuerpo .ultima{font-size:.76rem; color:var(--gris); margin-top:12px}
+
+/* los niveles: cuatro columnas en fila, con lo que significan debajo */
+.niveles-ficha{display:grid; grid-template-columns:repeat(4,1fr); gap:7px}
+.niveles-ficha.tres{grid-template-columns:repeat(3,1fr)}
+.btn.nivel{display:flex; flex-direction:column; align-items:center; gap:3px; padding:14px 4px;
+  min-width:0; line-height:1.15}
+.btn.nivel .tit{font-weight:650; font-size:.86rem}
+.btn.nivel .eq{font-size:.66rem; color:var(--gris); font-weight:400}
+.btn.nivel.activo{background:var(--verde); color:#fff; border-color:var(--verde)}
+.btn.nivel.activo .eq{color:rgba(255,255,255,.85)}
+
+/* los que se cuentan */
+.cuenta-fila{display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:12px}
+.cuenta-fila .cifra{min-width:88px}
+.cuenta-fila .cifra b{display:block; font-size:2.2rem; line-height:1}
+.cuenta-fila .cifra span{font-size:.74rem; color:var(--gris)}
+.btn.redondo{width:54px; height:54px; border-radius:50%; font-size:1.5rem; padding:0;
+  display:flex; align-items:center; justify-content:center}
+.atajos{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:16px}
+.atajos .btn.mini{min-width:42px}
+.atajos .btn.mini.activo{background:var(--verde); color:#fff; border-color:var(--verde)}
+.quees{font-size:.76rem; color:var(--gris); margin:-4px 0 14px}
+.niveles-ficha ~ .quees{margin-top:10px; margin-bottom:0}
+
+/* el pie: los platos que lo usan y el borrado */
+.ficha-pie{border-top:1px solid var(--borde); padding:10px 14px 14px}
+.ficha-pie .usos summary{font-size:.8rem; color:var(--gris); cursor:pointer; padding:4px 0}
+.ficha-pie .uso{font-size:.8rem; padding:3px 0 3px 10px; color:var(--gris)}
+.ficha-pie .uso.planificado{color:var(--tinta)}
+.ficha-pie .borrar{margin-top:8px; color:var(--rojo); border-color:var(--rojo)}
+.ficha-pie .bloqueado{margin-top:8px}
+@media(max-width:519px){
+  .niveles-ficha{grid-template-columns:repeat(2,1fr)}
+  .niveles-ficha.tres{grid-template-columns:repeat(3,1fr)}
+  .ficha-cuerpo h2{font-size:1.2rem}
+}
 @media(max-width:767px){
   /* la cabecera mide 38 px en el móvil: con 44 quedaba un hueco de 6 px por el
      que se veía pasar la línea de debajo */

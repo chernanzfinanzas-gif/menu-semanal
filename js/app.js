@@ -21,6 +21,7 @@
     fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
     filaDesp: "comida",     /* qué se lista en la Despensa: comida u hogar */
     estanteTengo: null,     /* ¿Lo tengo?: el estante abierto, uno cada vez */
+    pase: { vista: "indice", estante: null, i: 0 },
     busquedaHogar: "",
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
@@ -3208,20 +3209,24 @@
      miente; tres niveles que se ven de un vistazo, no. Y lo que NO está marcado
      es lo que no hay, así que la pasada consiste en ir marcando, no en
      contestar doscientas preguntas. */
+  /* La lista habla el mismo idioma que el pase (25-sep-2026): fracciones del
+     envase, que es lo que ves al abrirlo. La lista sirve para retocar una cosa
+     suelta sin pasar el estante entero; el pase es para la pasada de verdad. */
   var NIVELES = [
-    { k: "poco",       n: "Poco" },
-    { k: "suficiente", n: "Suficiente" },
-    { k: "mucho",      n: "Mucho" }
+    { k: "cuarto", n: "Cuarto" },
+    { k: "mitad",  n: "Mitad" },
+    { k: "lleno",  n: "Lleno" }
   ];
 
   function detalleTengo(x, donde) {
     var d;
     if (x.pte === "corto") d = '<span style="color:var(--ambar)">se gastó más de lo apuntado</span>';
     else if (!x.anotado || !x.nivel) d = "sin marcar";
+    else if (x.nivel === "nada") d = "no hay";
     else {
-      var n0 = "";
+      var n0 = x.nivel;
       NIVELES.forEach(function (n) { if (n.k === x.nivel) n0 = n.n.toLowerCase(); });
-      d = "hay " + n0;
+      d = (x.contado ? "hay " : "queda ") + n0;
       if (x.comprometido > 0) d += " · el menú ya pide " +
         esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd));
       if (x.dias !== null) d += " · " + (x.dias === 0 ? "hoy" : "hace " + x.dias + " d");
@@ -3260,24 +3265,198 @@
       : (e.dias === 0 ? "repasado hoy" : "repasado hace " + e.dias + " d");
   }
 
-  function indiceTengo(zonas) {
-    var h = '<div class="indice-tengo">';
-    zonas.forEach(function (z) {
-      var con = z.estantes.filter(function (e) { return e.ing.length; });
-      if (!con.length) return;
-      h += '<h4 class="estante zona-tit">' + esc(z.n) +
-        "<span>" + z.anotados + " de " + z.total + "</span></h4>";
-      con.forEach(function (e) {
-        h += '<button type="button" class="linea fila-estante' +
-          (e.anotados ? " anotada" : "") + '" data-irestante="' + esc(e.k) + '">' +
+  function indiceTengo() {
+    var r = Almacen.estadoRonda();
+    var h = '<div class="ronda-cab">' +
+      (r.ronda === Util.hoyISO()
+        ? '<div class="ronda-tit">Ronda de hoy</div><div class="ronda-sub">' +
+          r.hechos + " de " + r.total + " estantes" +
+          (r.saltados ? " · " + r.saltados + (r.saltados === 1 ? " dado" : " dados") + " por visto" : "") +
+          "</div>"
+        : '<div class="ronda-tit">Sin ronda empezada</div><div class="ronda-sub">' +
+          "Lo apuntado sigue valiendo; empezar una ronda sólo pone los estantes a cero.</div>") +
+      '<button type="button" class="btn" id="ronda-empezar">' +
+        (r.ronda === Util.hoyISO() ? "Empezar otra ronda" : "Empezar una ronda") + "</button>" +
+      '<div class="ronda-pie"><button type="button" class="btn mini borrar" id="ronda-borrar">' +
+        "Borrar todo lo apuntado</button></div></div>";
+
+    var zona = "";
+    r.estantes.forEach(function (e) {
+      if (e.zona !== zona) { zona = e.zona; h += '<h4 class="estante zona-tit">' + esc(zona) + "</h4>"; }
+      var estado = e.hecho
+        ? (e.saltado ? "dado por visto hoy" : "repasado hoy")
+        : (e.dias === null ? "sin repasar nunca" : "hace " + e.dias + " d");
+      h += '<div class="linea fila-estante' + (e.hecho ? " hecha" : "") + '">' +
+        '<button type="button" class="ir-estante" data-irestante="' + esc(e.k) + '">' +
           '<div class="datos"><div class="nombre">' + esc(e.n) + "</div>" +
-          '<div class="detalle">' + repasoTxt(e) + "</div></div>" +
-          '<div class="cuantas' + (e.anotados ? " hechos" : "") + '">' +
-            e.anotados + "/" + e.ing.length + "</div>" +
-          '<div class="ir">&rsaquo;</div></button>';
-      });
+          '<div class="detalle">' + esc(estado) + "</div></div>" +
+          '<div class="cuantas">' + e.fichas + "</div>" +
+          '<div class="ir">' + (e.hecho ? "&#10003;" : "&rsaquo;") + "</div></button>" +
+        (e.hecho ? "" : '<button type="button" class="btn mini visto" data-porvisto="' + esc(e.k) +
+          '" title="No lo voy a abrir: sigue como estaba">Por visto</button>') +
+        "</div>";
     });
-    return h + "</div>";
+    return h;
+  }
+
+  /* La confirmación del estante: su tamaño, cuándo se repasó, y las tres
+     salidas. Es el «confirmas» que pedía Carlos, y es donde vive la elección
+     entre pasar ficha a ficha y ver la lista de golpe. */
+  function pintarConfirmaEstante() {
+    var cont = $("#rejilla-tengo");
+    var p = Almacen.pase(UI.pase.estante);
+    if (!p) { UI.pase.vista = "indice"; return pintarLoTengo(); }
+    var regs = {};
+    p.fichas.forEach(function (f) { regs[f.formato] = (regs[f.formato] || 0) + 1; });
+    var comoSeMide = Object.keys(regs).sort(function (a, b) { return regs[b] - regs[a]; })
+      .slice(0, 4).map(function (k) {
+        var ff = Almacen.FORMATOS[k];
+        return regs[k] + " " + (regs[k] === 1 ? ff.n[0] : ff.n[1]);
+      });
+    cont.innerHTML =
+      '<div class="pase-portada">' +
+        '<div class="zona">' + esc(p.zona) + "</div>" +
+        "<h2>" + esc(p.estante) + "</h2>" +
+        '<div class="cuenta"><b>' + p.total + "</b> " + (p.total === 1 ? "ficha" : "fichas") +
+          (comoSeMide.length ? " · " + esc(comoSeMide.join(" · ")) : "") + "</div>" +
+        '<div class="cuando">' + (p.dias === null ? "Sin repasar nunca"
+          : (p.dias === 0 ? "Repasado hoy" : "Repasado hace " + p.dias + " d")) + "</div>" +
+        '<button type="button" class="btn grande" data-paseempezar="1">Empezar</button>' +
+        '<div class="otras">' +
+          '<button type="button" class="btn mini" data-paselista="1">Ver la lista</button>' +
+          '<button type="button" class="btn mini" data-porvisto="' + esc(p.estanteK) + '">Darlo por visto</button>' +
+          '<button type="button" class="btn mini" data-pasesalir="1">Volver</button>' +
+        "</div></div>";
+  }
+
+  /* ---------- LA FICHA ----------
+     Una cosa, en el centro, y los botones grandes abajo donde llega el pulgar.
+     Lo que lleva y por qué:
+       el producto concreto  -> para reconocerlo en el estante
+       lo que el menú pide   -> es lo que hace que marcarlo sirva de algo
+       qué significa el nivel-> «suficiente = un bote ≈ 13 platos» (Carlos, 25-sep)
+       los platos que lo usan-> y son además lo que BLOQUEA el borrado
+     Lo que NO lleva: kcal, sal y precio. No cambian la respuesta y hay que
+     leer ciento treinta pantallas. */
+  function pintarFicha() {
+    var cont = $("#rejilla-tengo");
+    var p = Almacen.pase(UI.pase.estante);
+    if (!p || !p.fichas.length) { UI.pase.vista = "indice"; return pintarLoTengo(); }
+    if (UI.pase.i >= p.fichas.length) { UI.pase.vista = "fin"; return pintarFinEstante(); }
+    var x = p.fichas[UI.pase.i];
+    var pct = Math.round(UI.pase.i / p.fichas.length * 100);
+
+    var contexto = x.comprometido > 0
+      ? '<div class="pide">El menú ya pide <b>' +
+        esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd)) + "</b></div>"
+      : (x.platos.length
+          ? '<div class="pide flojo">Sale en ' + x.platos.length +
+            (x.platos.length === 1 ? " plato" : " platos") + ", ninguno planificado</div>"
+          : '<div class="pide flojo">No entra en ninguna receta</div>');
+
+    /* UNA SOLA MANERA DE CONTESTAR: cuántos envases hay. «Medio bote» son 0,5
+       botes y «dos latas» son 2 latas — es la misma pregunta. Lo que cambia con
+       el formato son los atajos, porque en un tarro quieres cuartos y en las
+       latas quieres docenas. (Carlos, 25-sep.) */
+    var n = x.piezas || 0;
+    var paso = x.piezaUd ? 1 : 0.5;
+    var botones = '<div class="cuenta-fila">' +
+      '<button type="button" class="btn redondo" data-cuentapaso="' + esc(x.id) + "|" + (-paso) + '">−</button>' +
+      '<div class="cifra"><b>' + cifra(n) + "</b><span>" +
+        esc(n === 1 ? x.piezaUno : x.piezaVarias) + "</span></div>" +
+      '<button type="button" class="btn redondo" data-cuentapaso="' + esc(x.id) + "|" + paso + '">+</button>' +
+      "</div>" +
+      '<div class="atajos">' + x.atajos.map(function (v) {
+        return '<button type="button" class="btn mini' + (n === v ? " activo" : "") +
+          '" data-cuenta="' + esc(x.id) + "|" + v + '">' + cifra(v) + "</button>";
+      }).join("") + "</div>" +
+      (x.pieza > 1 && !x.piezaUd
+        ? '<div class="quees">cada ' + esc(x.piezaUno) + " son " +
+          esc(Util.cantidadReceta(x.pieza, x.u, x.pesoUd)) +
+          (x.porEnvase >= 2 && x.porEnvase <= 60
+            ? ", para " + Math.round(x.porEnvase) + " platos" : "") + "</div>"
+        : "") +
+      '<button type="button" class="btn grande" data-pasesig="' + esc(x.id) + "|" + n +
+        '">Apuntar y seguir</button>';
+
+    cont.innerHTML =
+      '<div class="ficha-pase">' +
+        '<div class="ficha-cab">' +
+          '<button type="button" class="btn mini" data-paseatras="1"' +
+            (UI.pase.i ? "" : " disabled") + ">&lsaquo;</button>" +
+          '<div class="donde">' + esc(p.estante) + " · " + (UI.pase.i + 1) + " de " + p.fichas.length + "</div>" +
+          '<button type="button" class="btn mini" data-pasesalir="1">Salir</button>' +
+        "</div>" +
+        '<div class="barra"><span style="width:' + pct + '%"></span></div>' +
+        '<div class="ficha-cuerpo">' +
+          "<h2>" + esc(x.n) + "</h2>" +
+          (x.producto ? '<div class="producto">' + esc(x.producto) + "</div>" : "") +
+          contexto +
+          botones +
+          (x.marcada ? '<div class="ultima">' + (x.dias === 0 ? "Apuntado hoy"
+            : "Apuntado hace " + x.dias + " d") + "</div>" : "") +
+        "</div>" +
+        '<div class="ficha-pie">' +
+          (x.platos.length
+            ? '<details class="usos"><summary>Sale en ' + x.platos.length +
+              (x.platos.length === 1 ? " plato" : " platos") + "</summary>" +
+              x.platos.map(function (pl) {
+                return '<div class="uso' + (pl.planificado ? " planificado" : "") + '">' +
+                  esc(pl.n) + (pl.planificado ? " <b>· planificado</b>" : "") + "</div>";
+              }).join("") + "</details>"
+            : "") +
+          (x.borrable
+            ? '<button type="button" class="btn mini borrar" data-paseborrar="' + esc(x.id) +
+              '">Ya no lo compro</button>'
+            : '<div class="nota-peque bloqueado">Para quitarlo de tu casa hay que cambiar antes ' +
+              (x.platos.length === 1 ? "el plato que lo usa" : "los " + x.platos.length + " platos que lo usan") +
+              "</div>") +
+        "</div>" +
+      "</div>";
+  }
+
+  /* Medio brik se escribe «½» y un cuarto «¼», no «0.5» y «0.3». */
+  var QUEBRADOS = { 0.25: "\u00bc", 0.5: "\u00bd", 0.75: "\u00be",
+                    1.25: "1\u00bc", 1.5: "1\u00bd", 1.75: "1\u00be",
+                    2.5: "2\u00bd", 3.5: "3\u00bd" };
+  function cifra(v) {
+    if (QUEBRADOS[v]) return QUEBRADOS[v];
+    var n = Math.round(v * 100) / 100;
+    return String(n).replace(".", ",");
+  }
+
+  function pintarFinEstante() {
+    var cont = $("#rejilla-tengo");
+    var p = Almacen.pase(UI.pase.estante);
+    if (!p) { UI.pase.vista = "indice"; return pintarLoTengo(); }
+    var sig = Almacen.estanteSiguiente(UI.pase.estante);
+    var sigN = "";
+    if (sig) Almacen.ZONAS.forEach(function (z) {
+      z.estantes.forEach(function (e) { if (e.k === sig) sigN = e.n; }); });
+    cont.innerHTML =
+      '<div class="pase-portada fin">' +
+        '<div class="tic">&#10003;</div>' +
+        "<h2>" + esc(p.estante) + " repasado</h2>" +
+        '<div class="cuenta"><b>' + p.conAlgo + "</b> con algo · <b>" +
+          (p.marcadas - p.conAlgo) + "</b> sin nada · <b>" +
+          (p.total - p.marcadas) + "</b> sin mirar</div>" +
+        (sig ? '<button type="button" class="btn grande" data-irestante="' + esc(sig) +
+               '">Seguir con ' + esc(sigN) + "</button>" : "") +
+        '<div class="otras"><button type="button" class="btn mini" data-pasesalir="1">Volver a los estantes</button></div>' +
+      "</div>";
+  }
+
+  /* Avanzar es la operación del pase: se marca y se pasa. Si era la última del
+     estante, el estante queda sellado y sale el resumen. */
+  function avanzarFicha() {
+    var p = Almacen.pase(UI.pase.estante);
+    if (!p) { UI.pase.vista = "indice"; return pintarLoTengo(); }
+    UI.pase.i++;
+    if (UI.pase.i >= p.fichas.length) {
+      Almacen.marcarMirado(UI.pase.estante);
+      UI.pase.vista = "fin";
+    }
+    pintarLoTengo();
   }
 
   function barraTengo(zonas, est, zon) {
@@ -3300,9 +3479,32 @@
       '<span data-repaso="1">' + repasoTxt(est) + "</span></h4>";
   }
 
+  /* ==================== EL PASE FICHA A FICHA ====================
+     Carlos, 25-sep-2026, idea nocturna: «¿Lo tengo? es un pase de fichas que
+     pasa de una a otra al marcar el producto. Un botón de iniciar, primera
+     ventana Nevera, confirmar, siguiente ventana Estante superior, confirmas,
+     ingrediente 1… y así hasta pasar por todo».
+
+     Cuatro pantallas, y el estado cabe en tres datos: qué vista, qué estante y
+     por qué ficha vas.
+       indice   la ronda: los doce estantes y cómo va cada uno
+       estante  la confirmación: «Puerta, 11 fichas» + empezar / lista / por visto
+       ficha    una sola cosa, sus botones, y al marcar salta a la siguiente
+       fin      el resumen del estante y el salto al siguiente
+
+     POR QUÉ UN ESTANTE Y NO LA CASA ENTERA (decisión suya): la nevera son 61
+     fichas y su puerta 11. Un túnel largo es como se le han muerto otros
+     proyectos, y además, si lo dejas en la ficha 60, las que quedan cuentan
+     como «no hay» y la compra las pide todas creyendo tú que hiciste la pasada.
+     Sellando estante a estante, lo que no terminas se ve sin terminar. */
   function pintarLoTengo() {
     var cont = $("#rejilla-tengo");
     if (!cont) return;
+    var bloque = $("#bloque-desp-tengo");
+    if (bloque) bloque.classList.toggle("en-pase", UI.pase.vista !== "indice");
+    if (UI.pase.vista === "ficha")   return pintarFicha();
+    if (UI.pase.vista === "estante") return pintarConfirmaEstante();
+    if (UI.pase.vista === "fin")     return pintarFinEstante();
     var q = sinTildes((UI.buscaTengo || "").trim().toLowerCase());
     var zonas = Almacen.recorrido();
 
@@ -5011,10 +5213,100 @@
         refrescarLineaTengo(par[0]);
         return;
       }
+      /* --- la ronda --- */
+      if (e.target.closest("#ronda-borrar")) {
+        var cuantos = Object.keys(Almacen.estado.stock || {}).length;
+        if (!cuantos) { Util.toast("No hay nada apuntado"); return; }
+        if (!confirm("Se borra lo apuntado en " + cuantos +
+            (cuantos === 1 ? " producto" : " productos") +
+            ", y los trece estantes quedan sin repasar.\n\nRecuperarlo es volver a dar la vuelta a la casa. ¿Seguro?")) return;
+        Almacen.borrarStock();
+        UI.pase = { vista: "indice", estante: null, i: 0 };
+        UI.estanteTengo = null;
+        pintarLoTengo(); Util.toast("Borrado: " + cuantos + " productos sin apuntar"); return;
+      }
+      if (e.target.closest("#ronda-empezar")) {
+        Almacen.iniciarRonda();
+        UI.pase = { vista: "indice", estante: null, i: 0 };
+        UI.estanteTengo = null;
+        pintarLoTengo(); Util.toast("Ronda empezada: los estantes vuelven a «sin repasar»"); return;
+      }
+      var pv = e.target.closest("[data-porvisto]");
+      if (pv) {
+        var kv = pv.getAttribute("data-porvisto");
+        Almacen.darPorVisto(kv);
+        UI.pase = { vista: "indice", estante: null, i: 0 };
+        pintarLoTengo(); Util.toast("Dado por visto: sigue como estaba"); return;
+      }
       var ir = e.target.closest("[data-irestante]");
-      if (ir) { irEstanteTengo(ir.getAttribute("data-irestante")); return; }
+      if (ir) {
+        UI.pase = { vista: "estante", estante: ir.getAttribute("data-irestante"), i: 0 };
+        UI.estanteTengo = null;
+        pintarLoTengo(); arribaTengo(); return;
+      }
+      if (e.target.closest("[data-paseempezar]")) {
+        UI.pase.vista = "ficha"; UI.pase.i = 0; pintarLoTengo(); arribaTengo(); return;
+      }
+      if (e.target.closest("[data-paselista]")) {
+        var kl = UI.pase.estante;
+        UI.pase = { vista: "indice", estante: null, i: 0 };
+        irEstanteTengo(kl); return;
+      }
+      if (e.target.closest("[data-pasesalir]")) {
+        UI.pase = { vista: "indice", estante: null, i: 0 };
+        UI.estanteTengo = null; pintarLoTengo(); arribaTengo(); return;
+      }
+      if (e.target.closest("[data-paseatras]")) {
+        if (UI.pase.i > 0) UI.pase.i--;
+        UI.pase.vista = "ficha"; pintarLoTengo(); return;
+      }
+      var bs = e.target.closest("[data-pasesig]");
+      if (bs) {
+        /* apuntar cero también es una respuesta: dice que has mirado la huevera
+           y estaba vacía, que no es lo mismo que no haberla abierto */
+        var ps = bs.getAttribute("data-pasesig").split("|");
+        if (ps.length === 2) Almacen.contarStock(ps[0], Number(ps[1]));
+        avanzarFicha(); return;
+      }
+
+      /* --- contestar una ficha: se marca y se pasa a la siguiente --- */
+      var bf = e.target.closest("[data-ficha]");
+      if (bf) {
+        var pf = bf.getAttribute("data-ficha").split(":");
+        Almacen.responderRecorrido(pf[0], bf.classList.contains("activo") ? null : pf[1]);
+        avanzarFicha(); return;
+      }
+      var bc = e.target.closest("[data-cuenta]");
+      if (bc) {
+        var pc = bc.getAttribute("data-cuenta").split("|");
+        Almacen.contarStock(pc[0], Number(pc[1]));
+        avanzarFicha(); return;
+      }
+      var bp = e.target.closest("[data-cuentapaso]");
+      if (bp) {
+        var pp = bp.getAttribute("data-cuentapaso").split("|");
+        var act = Almacen.stockDe(pp[0]);
+        Almacen.contarStock(pp[0], Math.max(0, act + Number(pp[1])));
+        pintarLoTengo(); return;
+      }
+      var bb = e.target.closest("[data-paseborrar]");
+      if (bb) {
+        var res = Almacen.borrarIngrediente(bb.getAttribute("data-paseborrar"));
+        if (!res.ok) { Util.toast("No se puede: lo usan " + (res.platos || []).length + " platos"); return; }
+        pintarLoTengo(); Util.toast("Quitado de tu casa. Se recupera desde Catálogo"); return;
+      }
       if (e.target.closest("[data-tengovolver]")) { irEstanteTengo(null); return; }
     });
+
+    /* Sube al principio del bloque: cada pantalla del pase empieza arriba. */
+    function arribaTengo() {
+      var c = $("#rejilla-tengo");
+      if (!c) return;
+      try {
+        var y = c.getBoundingClientRect().top + (window.pageYOffset || 0) - 58;
+        window.scrollTo({ top: y > 0 ? y : 0 });
+      } catch (e2) {}
+    }
     $("#rejilla-tengo").addEventListener("change", function (e) {
       if (e.target.id === "salto-estante") irEstanteTengo(e.target.value);
     });
