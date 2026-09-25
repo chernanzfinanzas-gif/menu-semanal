@@ -26,6 +26,9 @@
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
     buscaQuiero: "",        /* el buscador de «lo quiero esta vez», en la Compra */
+    buscaPedir: "",         /* el gestor de cómo se pide: buscador y filtro */
+    filtroPedir: "",
+    grupoPedir: {},         /* qué grupos de contenedor están abiertos */
     cajonHogar: "",
     busquedaDespensa: "",
     verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
@@ -3200,18 +3203,141 @@
        «Comida» era la pantalla vieja de contar: la sustituye ¿Lo tengo?, que
        hace lo mismo recorriendo el mueble en vez de sólo lo ya apuntado. Se
        deja el bloque por si alguna ruta antigua lo pide. */
-    var validas = ["localizacion", "tengo", "hogar", "comida"];
+    var validas = ["localizacion", "tengo", "pedir", "hogar", "comida"];
     UI.filaDesp = validas.indexOf(cual) >= 0 ? cual : "localizacion";
     var bl = { comida: $("#bloque-desp-comida"), hogar: $("#bloque-desp-hogar"),
-               localizacion: $("#bloque-desp-localizacion"), tengo: $("#bloque-desp-tengo") };
+               localizacion: $("#bloque-desp-localizacion"), tengo: $("#bloque-desp-tengo"),
+               pedir: $("#bloque-desp-pedir") };
     Object.keys(bl).forEach(function (k) { if (bl[k]) bl[k].hidden = UI.filaDesp !== k; });
     $$("#selector-despensa [data-desp]").forEach(function (b) {
       b.classList.toggle("principal", b.getAttribute("data-desp") === UI.filaDesp);
     });
-    if (UI.filaDesp === "hogar") pintarHogar();
+    if (UI.filaDesp === "pedir") pintarPedir();
+    else if (UI.filaDesp === "hogar") pintarHogar();
     else if (UI.filaDesp === "localizacion") pintarLocalizacion();
     else if (UI.filaDesp === "tengo") pintarLoTengo();
     else pintarDespensa();
+  }
+
+  /* ==================== CÓMO SE PIDE CADA COSA ====================
+     El gestor. Nace el 25-sep-2026 de una frase suya —«vamos a crear el gestor,
+     el contenedor y el método; luego repasamos los ingredientes a cada grupo y
+     forma de pedir que le corresponda»— y de un número: de las 235 fichas
+     visibles, 71 (el 30 %) no las pide ninguna receta y no tienen mínimo, o sea
+     que NUNCA entran solas en una lista. Todo eso se compraba de memoria.
+
+     AGRUPADO POR CONTENEDOR, que es el eje que eligió él. No es estético: es lo
+     único que permite decidir por lotes —«todas las latas de bebida, no debe
+     faltar»— y es la regla de diseño que más le importa, porque sus proyectos
+     se le mueren cuando el sistema exige una decisión por elemento. Por eso la
+     forma se aplica DESDE LA CABECERA del grupo a todo lo que se ve, y la fila
+     de cada ficha está para la excepción, no para el trabajo.
+
+     Y por eso el contenedor va primero en el orden: las 68 fichas sin formato
+     salen arriba, porque sin contenedor no hay ni piezas ni lote ni mínimo. */
+  function pintarPedir() {
+    var cont = $("#rejilla-pedir");
+    if (!cont) return;
+    var g = Almacen.gestorPedir(UI.buscaPedir || "");
+    var fil = UI.filtroPedir || "";
+    var MOD = Almacen.MODOS_PEDIR;
+
+    /* El marcador de arriba: cuántas van por cada forma, sobre el total. Es la
+       barra de progreso del repaso — cuando «sin decidir» llegue a cero, está. */
+    var sinDecidir = 0;
+    g.grupos.forEach(function (gr) {
+      gr.fichas.forEach(function (f) { if (!f.puesto) sinDecidir++; });
+    });
+    var tot = g.cuenta.menu + g.cuenta.minimo + g.cuenta.capricho + g.cuenta.nunca;
+    var cab = '<div class="tarjeta pedir-marcador"><div class="pedir-cuentas">' +
+      MOD.map(function (m) {
+        return '<div class="pedir-cuenta ' + m.k + '"><b>' + g.cuenta[m.k] + "</b><span>" +
+          esc(m.n) + "</span></div>";
+      }).join("") +
+      "</div>" +
+      '<div class="nota-peque">' + tot + " fichas. " +
+      (sinDecidir
+        ? "<b>" + sinDecidir + " sin decidir todavía</b>: van por lo que la app deduce."
+        : "Todas decididas por ti.") + "</div></div>";
+
+    if (!g.grupos.length) { cont.innerHTML = cab + '<div class="vacio">Nada con ese nombre.</div>'; return; }
+
+    var html = cab;
+    g.grupos.forEach(function (gr) {
+      var fichas = gr.fichas.filter(function (f) {
+        if (!fil) return true;
+        if (fil === "sinponer") return !f.puesto;
+        return f.modo === fil;
+      });
+      if (!fichas.length) return;
+      var abierto = !!UI.grupoPedir[gr.k || "_"];
+      var ids = fichas.map(function (f) { return f.id; }).join(",");
+
+      html += '<div class="grupo-pedir' + (gr.k ? "" : " sin-formato") + '">' +
+        '<button type="button" class="grupo-cab" data-grupopedir="' + esc(gr.k || "_") + '">' +
+          '<div class="datos"><div class="nombre">' + esc(gr.n) +
+            (gr.k ? "" : ' <span class="etiqueta">falta ponerlo</span>') + "</div>" +
+            '<div class="detalle">' + fichas.length +
+              (fichas.length === 1 ? " ficha" : " fichas") + " · " +
+              MOD.filter(function (m) { return gr.modos[m.k]; }).map(function (m) {
+                return gr.modos[m.k] + " " + m.n.toLowerCase();
+              }).join(" · ") + "</div></div>" +
+          '<div class="ir">' + (abierto ? "&#9662;" : "&rsaquo;") + "</div></button>";
+
+      if (abierto) {
+        /* LA CABECERA DE LOTE. Aquí es donde se hace el trabajo de verdad: una
+           pulsada pone la forma a las que se estén viendo. La fila de abajo es
+           para la excepción. */
+        html += '<div class="lote-pedir"><span class="nota-peque">Poner las ' +
+          fichas.length + " a:</span>" +
+          MOD.map(function (m) {
+            return '<button type="button" class="btn mini lote-' + m.k +
+              '" data-lotepedir="' + esc(m.k) + "|" + esc(ids) + '">' + esc(m.n) + "</button>";
+          }).join("") +
+          (gr.k ? "" : "") + "</div>";
+
+        fichas.forEach(function (f) {
+          html += '<div class="linea linea-pedir' + (f.puesto ? " puesta" : "") + '">' +
+            '<div class="datos"><div class="nombre">' + esc(f.n) + "</div>" +
+            '<div class="detalle">' + esc(f.cat || "") +
+              (f.platos ? " · en " + f.platos + (f.platos === 1 ? " receta" : " recetas")
+                        : ' · <b>en ninguna receta</b>') +
+              (f.modo === "minimo"
+                ? " · mínimo " + cifra(f.minimo) + ", lote " + cifra(f.lote)
+                : "") +
+              (f.puesto ? "" : " · deducido") + "</div></div>" +
+            '<div class="modos">' +
+              MOD.map(function (m) {
+                return '<button type="button" class="btn mini modo-' + m.k +
+                  (f.modo === m.k ? " activo" : "") + '" data-modopedir="' + esc(f.id) + "|" + m.k +
+                  '" title="' + esc(m.c) + '">' + esc(m.n) + "</button>";
+              }).join("") +
+            "</div>" +
+            (f.modo === "minimo"
+              ? '<div class="minlote"><label>Mínimo<input type="number" min="0" step="0.5" ' +
+                'data-minpedir="' + esc(f.id) + '" value="' + f.minimo + '"></label>' +
+                '<label>Lote<input type="number" min="1" step="1" ' +
+                'data-lotenum="' + esc(f.id) + '" value="' + (f.lote || 1) + '"></label>' +
+                '<span class="nota-peque">' +
+                  (f.pieza > 1 ? "cada una son " + esc(Util.cantidadReceta(f.pieza, f.u, f.pesoUd)) : "") +
+                "</span></div>"
+              : "") +
+            "</div>";
+        });
+
+        if (!gr.k) {
+          /* Las que no tienen contenedor: aquí mismo se les pone, en lote. */
+          html += '<div class="lote-pedir formato"><span class="nota-peque">Ponerles contenedor:</span>' +
+            Object.keys(Almacen.FORMATOS).map(function (k) {
+              var ff = Almacen.FORMATOS[k];
+              return '<button type="button" class="btn mini" data-loteformato="' + esc(k) + "|" + esc(ids) +
+                '">' + esc(ff.n[1]) + "</button>";
+            }).join("") + "</div>";
+        }
+      }
+      html += "</div>";
+    });
+    cont.innerHTML = html;
   }
 
   /* ==================== ¿LO TENGO? ====================
@@ -5536,6 +5662,81 @@
       pintarLocalizacion();
       var c = $("#rejilla-loc");
       if (c) try { c.scrollIntoView({ block: "start" }); } catch (e3) {}
+    });
+    /* ---------- el gestor de cómo se pide ---------- */
+    $("#buscar-pedir").addEventListener("input", function (e) {
+      UI.buscaPedir = e.target.value;
+      /* al buscar se abren los grupos: si no, ves cabeceras y no el resultado */
+      if (UI.buscaPedir.trim()) {
+        Almacen.gestorPedir(UI.buscaPedir).grupos.forEach(function (gr) {
+          UI.grupoPedir[gr.k || "_"] = true;
+        });
+      }
+      pintarPedir();
+      var c = $("#buscar-pedir");
+      if (c) { c.focus(); c.setSelectionRange(c.value.length, c.value.length); }
+    });
+    $("#filtro-pedir").addEventListener("change", function (e) {
+      UI.filtroPedir = e.target.value;
+      if (UI.filtroPedir) {
+        Almacen.gestorPedir(UI.buscaPedir).grupos.forEach(function (gr) {
+          UI.grupoPedir[gr.k || "_"] = true;
+        });
+      }
+      pintarPedir();
+    });
+    $("#rejilla-pedir").addEventListener("click", function (e) {
+      var gc = e.target.closest("[data-grupopedir]");
+      if (gc) {
+        var k = gc.getAttribute("data-grupopedir");
+        UI.grupoPedir[k] = !UI.grupoPedir[k];
+        pintarPedir(); return;
+      }
+      var lp = e.target.closest("[data-lotepedir]");
+      if (lp) {
+        var pl = lp.getAttribute("data-lotepedir").split("|");
+        var idsl = pl[1] ? pl[1].split(",") : [];
+        /* AVISAR ANTES DE «NUNCA» si hay platos que lo usan: poner «nunca» a algo
+           que una receta necesita deja el plato sin poder comprarse, y eso no se
+           hace por descuido. */
+        if (pl[0] === "nunca") {
+          var conPlatos = idsl.filter(function (id) { return Almacen.cuantasRecetas(id) > 0; });
+          if (conPlatos.length && !window.confirm(
+              conPlatos.length + (conPlatos.length === 1 ? " de \u00e9stas sale en alguna receta"
+                                                        : " de \u00e9stas salen en alguna receta") +
+              ". Con \u00abnunca\u00bb no entrar\u00e1n en la lista aunque el men\u00fa las pida. \u00bfSeguro?")) return;
+        }
+        var nl = Almacen.modoPedirLote(idsl, pl[0]);
+        Util.toast(nl + (nl === 1 ? " ficha puesta en " : " fichas puestas en ") +
+          Almacen.nombreModo(pl[0]).toLowerCase());
+        pintarPedir(); return;
+      }
+      var lf = e.target.closest("[data-loteformato]");
+      if (lf) {
+        var pf = lf.getAttribute("data-loteformato").split("|");
+        var nf = Almacen.ponerFormatoLote(pf[1] ? pf[1].split(",") : [], pf[0]);
+        Util.toast(nf + (nf === 1 ? " ficha con contenedor" : " fichas con contenedor"));
+        pintarPedir(); return;
+      }
+      var mp = e.target.closest("[data-modopedir]");
+      if (mp) {
+        var pm = mp.getAttribute("data-modopedir").split("|");
+        if (pm[1] === "nunca" && Almacen.cuantasRecetas(pm[0]) > 0 && !window.confirm(
+            "Sale en " + Almacen.cuantasRecetas(pm[0]) + " receta(s). Con \u00abnunca\u00bb no entrar\u00e1 " +
+            "en la lista aunque el men\u00fa la pida. \u00bfSeguro?")) return;
+        Almacen.ponerModoPedir(pm[0], pm[1]);
+        pintarPedir(); return;
+      }
+    });
+    $("#rejilla-pedir").addEventListener("change", function (e) {
+      var mn = e.target.closest("[data-minpedir]");
+      var lo = e.target.closest("[data-lotenum]");
+      if (!mn && !lo) return;
+      var id = (mn || lo).getAttribute(mn ? "data-minpedir" : "data-lotenum");
+      var fila = (mn || lo).closest(".linea-pedir");
+      var im = fila.querySelector("[data-minpedir]"), il = fila.querySelector("[data-lotenum]");
+      Almacen.ponerMinimoLote(id, Number(im ? im.value : 0), Number(il ? il.value : 1));
+      pintarPedir();
     });
     $("#buscar-hogar").addEventListener("input", function (e) { UI.busquedaHogar = e.target.value; pintarHogar(); });
     $("#filtro-hogar-cajon").addEventListener("change", function (e) { UI.cajonHogar = e.target.value; pintarHogar(); });

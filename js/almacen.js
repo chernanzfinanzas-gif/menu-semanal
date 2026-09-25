@@ -346,7 +346,16 @@
         var nuevo = ingSemilla[ing.id];
         if (!nuevo || ing.editado) return;
         if ((ing.rev || 1) >= nuevo.rev) return;
+        /* LO SUYO SOBREVIVE AL REFRESCO (25-sep-2026). Subir el `rev` de una
+           ficha sustituye la ficha entera por la mía, así que arreglarle una
+           caloría le borraba la forma de pedir que había elegido en el gestor.
+           Esos tres campos no son míos: los decide él y no viajan en el
+           catálogo. Se rescatan antes de sustituir. */
+        var suyo = { pedir: ing.pedir, minimo: ing.minimo, lote: ing.lote };
         e.ingredientes[i] = JSON.parse(JSON.stringify(nuevo));
+        Object.keys(suyo).forEach(function (k) {
+          if (suyo[k] !== undefined && suyo[k] !== null) e.ingredientes[i][k] = suyo[k];
+        });
         ingRefrescados.push(nuevo.n);
       });
       if (ingRefrescados.length) {
@@ -2664,6 +2673,161 @@
     /* CONFIRMAR LA COMPRA. Lo normal es que todo haya llegado: solo se pasan las
        excepciones. `faltas` es { ingredienteId: cuantosEnvasesLlegaron }.
        Lo que llega sube el stock; lo que no, se va a la lista de recados. */
+    /* ============ CÓMO SE PIDE CADA COSA ============
+       La tercera pata, después de DÓNDE está en casa (`sitio`) y EN QUÉ viene
+       (`formato`). Contesta a una pregunta que hasta ahora no tenía respuesta
+       escrita en ningún sitio: **cuando ningún plato lo pide, ¿qué pasa?**
+
+       Y no era una pregunta menor. Medido el 25-sep-2026 sobre las 235 fichas
+       visibles: 71 —el 30 %— no las pide ninguna receta Y no tienen mínimo. O
+       sea que NUNCA entran solas en una lista de la compra. Son los yogures, el
+       pan, la fruta que se come sin receta, la cerveza. Todo eso se compraba de
+       memoria, fuera de la app.
+
+       Cuatro formas, y la elige Carlos ficha a ficha desde el gestor:
+         menu      solo cuando un plato lo pide. Es lo de siempre y el defecto.
+         minimo    además se repone solo: si baja del mínimo, entra el lote.
+                   Es una ORDEN PERMANENTE, y por eso tiene que ser para pocas
+                   cosas — «la leche sí, las fantas zero no».
+         capricho  hay que pedirlo a mano. No se repone nunca solo, pero la app
+                   te lo pone a un toque en «lo quiero esta vez».
+         nunca     no entra en ninguna lista, lo pida quien lo pida: lo de
+                   restaurante, la suscripción de SodaStream, lo de HSN y
+                   Decathlon que pide él aparte.
+
+       Lo de `nunca` ESTABA YA, pero escondido en dos condiciones dentro de
+       `generarCompra` —«si es Restaurante y bar, fuera» y «si el cajón es
+       suscripción o aparte, fuera»—. Eso es una regla de negocio metida en el
+       código donde nadie la ve ni la puede cambiar. Ahora está en la ficha. */
+    MODOS_PEDIR: [
+      { k: "menu",     n: "Lo pide el menú",   c: "Solo cuando un plato lo necesita" },
+      { k: "minimo",   n: "No debe faltar",    c: "Se repone solo hasta el mínimo" },
+      { k: "capricho", n: "Solo si lo pido",   c: "A mano, cuando lo quieras" },
+      { k: "nunca",    n: "Nunca en la lista", c: "No se compra por aquí" }
+    ],
+
+    /* El modo de una ficha. Si no lo ha puesto él, se DEDUCE — y se deduce de
+       forma que la lista salga exactamente igual que salía antes de existir
+       este campo. Eso es lo que permite estrenarlo sin que cambie nada el
+       primer día: lo que cambia es que ahora se ve y se puede tocar. */
+    modoPedir: function (g) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      if (!g) return "menu";
+      if (g.pedir) return g.pedir;
+      if (g.cat === "Restaurante y bar") return "nunca";
+      /* Por `cajonDe`, no por `g.cajon`: «aparte» puede venir de la semilla
+         aunque la copia guardada diga otra cosa, y así era como lo miraba la
+         lista antes. Mismo resultado exacto. */
+      var caj = this.cajonDe(g);
+      if (caj === "suscripcion" || caj === "aparte") return "nunca";
+      if (g.minimo > 0) return "minimo";
+      return "menu";
+    },
+    nombreModo: function (k) {
+      for (var i = 0; i < this.MODOS_PEDIR.length; i++)
+        if (this.MODOS_PEDIR[i].k === k) return this.MODOS_PEDIR[i].n;
+      return k;
+    },
+
+    ponerModoPedir: function (id, modo) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      g.pedir = modo;
+      /* Poner «no debe faltar» sin decir cuánto no significa nada: se arranca
+         con un mínimo de 1 y el lote del envase, y él lo ajusta. Y al salir de
+         ese modo el mínimo se borra, para que no quede una orden permanente
+         dormida en una ficha que ya no la usa. */
+      if (modo === "minimo") { if (!(g.minimo > 0)) g.minimo = 1; if (!(g.lote > 0)) g.lote = 1; }
+      else { delete g.minimo; delete g.lote; }
+      this.marcarTuyo(g);
+      this.guardar("catalogo");
+      return true;
+    },
+
+    /* En LOTE, que es como trabaja él: «todas las latas de bebida, no debe
+       faltar». Nunca una decisión por elemento. */
+    modoPedirLote: function (ids, modo) {
+      var self = this, n = 0;
+      (ids || []).forEach(function (id) { if (self.ponerModoPedir(id, modo)) n++; });
+      return n;
+    },
+
+    ponerMinimoLote: function (id, minimo, lote) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      g.minimo = minimo > 0 ? minimo : 1;
+      g.lote = lote > 0 ? lote : 1;
+      g.pedir = "minimo";
+      this.marcarTuyo(g);
+      this.guardar("catalogo");
+      return true;
+    },
+
+    /* Poner el contenedor de golpe a un grupo: las 68 fichas sin formato no se
+       arreglan una a una. */
+    ponerFormatoLote: function (ids, formato) {
+      var self = this, n = 0;
+      (ids || []).forEach(function (id) {
+        var g = self.ingrediente(id);
+        if (!g) return;
+        g.formato = formato;
+        self.marcarTuyo(g);
+        n++;
+      });
+      if (n) this.guardar("catalogo");
+      return n;
+    },
+
+    /* LO QUE VE EL GESTOR: las fichas agrupadas por contenedor, que es el eje
+       que eligió Carlos — «todas las bolsas juntas» — porque es el que permite
+       decidir por lotes y el que deja a la vista las que no tienen contenedor. */
+    gestorPedir: function (filtro) {
+      var self = this, grupos = {}, cuenta = { menu: 0, minimo: 0, capricho: 0, nunca: 0 };
+      var q = filtro ? String(filtro).trim().toLowerCase() : "";
+      (this.estado.ingredientes || []).forEach(function (g) {
+        if (g.oculta) return;
+        var modo = self.modoPedir(g);
+        cuenta[modo] = (cuenta[modo] || 0) + 1;
+        if (q && g.n.toLowerCase().indexOf(q) < 0) return;
+        var k = g.formato || "";
+        if (!grupos[k]) grupos[k] = { k: k, fichas: [], modos: { menu: 0, minimo: 0, capricho: 0, nunca: 0 } };
+        grupos[k].modos[modo]++;
+        grupos[k].fichas.push({
+          id: g.id, n: g.n, cat: g.cat, modo: modo,
+          minimo: g.minimo || 0, lote: g.lote || 0,
+          pieza: self.tamanoPieza(g), u: g.u, pesoUd: g.pesoUd || 0,
+          puesto: !!g.pedir,
+          platos: self.cuantasRecetas(g.id)
+        });
+      });
+      var fuera = Object.keys(grupos).map(function (k) {
+        var ff = self.FORMATOS[k];
+        grupos[k].n = ff ? (ff.n[1].charAt(0).toUpperCase() + ff.n[1].slice(1)) : "Sin contenedor";
+        grupos[k].fichas.sort(function (a, b) { return a.n.localeCompare(b.n); });
+        return grupos[k];
+      });
+      /* Las que no tienen contenedor, primero: son las que hay que arreglar. */
+      fuera.sort(function (a, b) {
+        if (!a.k !== !b.k) return a.k ? 1 : -1;
+        return b.fichas.length - a.fichas.length;
+      });
+      return { grupos: fuera, cuenta: cuenta };
+    },
+
+    /* En cuántas recetas sale. Se usa para avisar antes de poner «nunca» en
+       algo que un plato necesita. */
+    cuantasRecetas: function (id) {
+      if (!this._cacheUsos) {
+        var u = {};
+        (this.estado.recetas || []).forEach(function (r) {
+          (r.ing || []).forEach(function (l) { u[l.i] = (u[l.i] || 0) + 1; });
+        });
+        this._cacheUsos = u;
+      }
+      return this._cacheUsos[id] || 0;
+    },
+    _cacheUsos: null,
+
     /* ---------- «LO QUIERO ESTA VEZ» ----------
        Carlos, 25-sep-2026, al ver adónde llevaba ponerle mínimo a todo: «no voy
        a tener refrescos azucarados, no deberían tener un stock mínimo; debería
@@ -4075,7 +4239,13 @@
         /* Lo de restaurante y bar no se compra en ningún sitio: cuenta en las
            calorías y en la sal del día, pero no tiene nada que hacer en una
            lista de la compra. */
-        if (ing.cat === "Restaurante y bar") return;
+        /* LA REGLA YA NO ESTÁ AQUÍ DENTRO. Antes eran dos condiciones sueltas
+           —«si es Restaurante y bar, fuera» y «si el cajón es suscripción o
+           aparte, fuera»— escritas en el código, donde ni se veían ni se podían
+           cambiar. Ahora lo dice la ficha, con `pedir: "nunca"`, y `modoPedir`
+           deduce exactamente esas mismas dos condiciones mientras él no diga
+           otra cosa: el día que se estrenó, la lista salió idéntica. */
+        if (self.modoPedir(ing) === "nunca") return;
         /* NI LA SUSCRIPCIÓN NI LO QUE SE PIDE APARTE (23-sep-2026). La suscripción
            llega sola cada seis semanas; lo de «aparte» —la proteína y los geles de
            HSN, las barritas de Decathlon— lo pide Carlos por su cuenta cuando ve
@@ -4083,7 +4253,6 @@
            pero no pintan nada en una lista de la compra. Hasta hoy la regla era
            «si no es Amazon, es Súper», así que el café en grano y los sabores de
            SodaStream salían en la lista de Súper cada vez que el menú los usaba. */
-        if (linea.cajon === "suscripcion" || linea.cajon === "aparte") return;
         if (ing.basico) { basicos.push(linea); return; }
         if (!secciones[ing.cat]) secciones[ing.cat] = [];
         secciones[ing.cat].push(linea);
@@ -4094,6 +4263,7 @@
       Object.keys(this.estado.quiero || {}).forEach(function (id) {
         var ing = self.ingrediente(id);
         if (!ing || ing.oculta) return;
+        if (self.modoPedir(ing) === "nunca") return;
         if (acumulado[id]) return;                  // ya lo pide un plato
         var tamq = self.tamanoPieza(ing);
         var pediste = self.estado.quiero[id].p || 1;
@@ -4144,6 +4314,7 @@
          plato ya lo pedía, esa línea manda y ésta no se añade. */
       (this.estado.ingredientes || []).forEach(function (ing) {
         if (ing.oculta || !(ing.minimo > 0)) return;
+        if (self.modoPedir(ing) !== "minimo") return;     // el modo manda sobre el número
         if ((self.estado.quiero || {})[ing.id]) return;   // ya entra por capricho
         if (acumulado[ing.id]) return;              // el menú ya lo pide: esa línea manda
         var tam = self.tamanoPieza(ing);

@@ -1108,3 +1108,70 @@ button.enlace {
    el motivo siempre se ve, y la nota entera sigue estando en la ficha. */
 #lista-compra .linea .detalle{display:-webkit-box; -webkit-line-clamp:2;
   -webkit-box-orient:vertical; overflow:hidden}
+
+/* ============ EL GESTOR DE CÓMO SE PIDE (25-sep-2026) ============
+   Cuatro formas, cuatro colores, y los mismos en todas partes: el marcador de
+   arriba, los botones de lote y los de cada fila. Que el color signifique lo
+   mismo en las tres alturas es lo que permite leer un grupo de un vistazo sin
+   leer una sola palabra.
+     verde  lo pide el menú       — el caso normal, lo que ya funcionaba
+     azul   no debe faltar        — una orden permanente: pocas, y a la vista
+     ámbar  solo si lo pido       — el capricho, el mismo ámbar que en la Compra
+     gris   nunca en la lista     — apagado a propósito: no participa */
+.pedir-marcador{margin-bottom:10px}
+.pedir-cuentas{display:flex; gap:7px; flex-wrap:wrap}
+.pedir-cuenta{flex:1 1 74px; text-align:center; padding:7px 4px; border-radius:10px;
+  border:1px solid var(--borde); background:var(--gris-claro)}
+.pedir-cuenta b{display:block; font-size:1.35rem; line-height:1.1}
+.pedir-cuenta span{display:block; font-size:.66rem; line-height:1.2; color:var(--gris)}
+.pedir-cuenta.menu{background:var(--verde-claro); border-color:var(--verde-borde); color:var(--verde)}
+.pedir-cuenta.minimo{background:#e8f0fb; border-color:#a9c4e8; color:#1f4d8f}
+.pedir-cuenta.capricho{background:#fff4e0; border-color:#e8c07a; color:#8a5a00}
+.pedir-cuenta.nunca{opacity:.62}
+
+.grupo-pedir{margin-bottom:7px; border:1px solid var(--borde); border-radius:12px;
+  overflow:hidden; background:#fff}
+.grupo-pedir.sin-formato{border-color:#e8c07a; background:#fffdf7}
+.grupo-cab{display:flex; align-items:center; gap:10px; width:100%; padding:11px 13px;
+  background:none; border:0; text-align:left; cursor:pointer; font:inherit}
+.grupo-cab .datos{flex:1 1 auto; min-width:0}
+.grupo-cab .nombre{font-weight:600}
+.grupo-cab .detalle{font-size:.72rem; color:var(--gris); line-height:1.3}
+.grupo-cab .ir{flex:0 0 auto; color:var(--gris); font-size:1.15rem}
+
+/* La cabecera de lote. Va pegada arriba del grupo y en un fondo distinto porque
+   NO es una fila más: es el sitio donde se hace el trabajo. La fila de cada
+   ficha está para la excepción. */
+.lote-pedir{display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+  padding:9px 13px; background:var(--gris-claro); border-top:1px solid var(--borde);
+  border-bottom:1px solid var(--borde)}
+.lote-pedir .nota-peque{flex:1 0 100%; margin:0 0 2px}
+.lote-pedir.formato{background:#fffdf7}
+
+.linea-pedir{display:block; padding:9px 13px; border-bottom:1px solid var(--borde)}
+.linea-pedir:last-child{border-bottom:0}
+.linea-pedir .nombre{font-size:.88rem; line-height:1.25}
+.linea-pedir .detalle{font-size:.72rem; color:var(--gris); line-height:1.3}
+.linea-pedir:not(.puesta) .nombre{color:var(--gris)}
+.linea-pedir .modos{display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:7px}
+.linea-pedir .modos .btn.mini{width:100%; font-size:.72rem; padding:7px 4px; white-space:normal}
+.btn.mini.modo-menu.activo{background:var(--verde-claro);
+  border-color:var(--verde-borde); color:var(--verde); font-weight:600}
+/* Las de lote llevan SIEMPRE su color, no solo al pulsarlas: son el sitio donde
+   se trabaja y tienen que leerse de un vistazo, igual que el marcador de arriba. */
+.lote-pedir .btn.lote-menu{border-color:var(--verde-borde); color:var(--verde)}
+.lote-pedir .btn.lote-minimo{border-color:#a9c4e8; color:#1f4d8f}
+.lote-pedir .btn.lote-capricho{border-color:#e8c07a; color:#8a5a00}
+.lote-pedir .btn.lote-nunca{border-color:#b9bfc5; color:#495057}
+/* El `.detalle` va oculto por defecto en las listas compactas de la app; aquí
+   es lo que dice si la ficha sale en alguna receta, o sea lo que más importa
+   para decidir. */
+.linea-pedir .detalle{display:block}
+.btn.mini.modo-minimo.activo{background:#e8f0fb; border-color:#a9c4e8; color:#1f4d8f; font-weight:600}
+.btn.mini.modo-capricho.activo{background:#fff4e0; border-color:#e8c07a; color:#8a5a00; font-weight:600}
+.btn.mini.modo-nunca.activo{background:#e9ecef; border-color:#b9bfc5; color:#495057; font-weight:600}
+
+.minlote{display:flex; align-items:flex-end; gap:9px; margin-top:8px; flex-wrap:wrap}
+.minlote label{font-size:.7rem; color:var(--gris); display:flex; flex-direction:column; gap:2px}
+.minlote input{width:74px; padding:6px 8px; font-size:.9rem}
+.minlote .nota-peque{margin:0; align-self:center}

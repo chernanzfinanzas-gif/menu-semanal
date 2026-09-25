@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=215">
-<link rel="stylesheet" href="css/actividad-khb.css?v=215">
+<link rel="stylesheet" href="css/estilos.css?v=216">
+<link rel="stylesheet" href="css/actividad-khb.css?v=216">
 </head>
 <body>
 
@@ -214,6 +214,7 @@
     <div class="filtros" id="selector-despensa" style="margin-bottom:4px">
       <button class="btn mini principal" data-desp="localizacion">Localización</button>
       <button class="btn mini" data-desp="tengo">¿Lo tengo?</button>
+      <button class="btn mini" data-desp="pedir">Cómo se pide</button>
       <button class="btn mini" data-desp="hogar">Hogar</button>
     </div>
 
@@ -250,6 +251,26 @@
         <button class="btn mini" id="tengo-reordenar" title="Vuelve a ordenar con lo anotado">Reordenar</button>
       </div>
       <div id="rejilla-tengo"></div>
+    </div>
+
+    <div id="bloque-desp-pedir" hidden>
+      <div class="aviso">La tercera cosa que hay que saber de cada producto, después de
+        <b>dónde está</b> y <b>en qué viene</b>: <b>qué pasa cuando ningún plato lo pide</b>.
+        Hoy 71 fichas de 235 no las pide ninguna receta y no tienen mínimo, así que no entran
+        nunca solas en la lista. Aquí se arregla, y <b>por grupos</b>: eliges el contenedor
+        arriba y aplicas la forma a todas de una vez.</div>
+      <div class="fila" style="margin-bottom:10px">
+        <input type="text" id="buscar-pedir" placeholder="Buscar un ingrediente…" style="flex:1; min-width:180px">
+        <select id="filtro-pedir">
+          <option value="">Todas las formas</option>
+          <option value="menu">Lo pide el menú</option>
+          <option value="minimo">No debe faltar</option>
+          <option value="capricho">Solo si lo pido</option>
+          <option value="nunca">Nunca en la lista</option>
+          <option value="sinponer">Sin decidir todavía</option>
+        </select>
+      </div>
+      <div id="rejilla-pedir"></div>
     </div>
 
     <div id="bloque-desp-hogar" hidden>
@@ -495,18 +516,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=215"></script>
-<script src="datos/recetas.js?v=215"></script>
-<script src="datos/nuevos.js?v=215"></script>
-<script src="datos/hogar.js?v=215"></script>
-<script src="datos/plantillas.js?v=215"></script>
-<script src="datos/actividades.js?v=215"></script>
-<script src="datos/plan.js?v=215"></script>
-<script src="js/util.js?v=215"></script>
-<script src="js/almacen.js?v=215"></script>
-<script src="js/github.js?v=215"></script>
-<script src="js/app.js?v=215"></script>
-<script src="js/actividad-khb.js?v=215"></script>
-<script src="js/entrenamiento.js?v=215"></script>
+<script src="datos/ingredientes.js?v=216"></script>
+<script src="datos/recetas.js?v=216"></script>
+<script src="datos/nuevos.js?v=216"></script>
+<script src="datos/hogar.js?v=216"></script>
+<script src="datos/plantillas.js?v=216"></script>
+<script src="datos/actividades.js?v=216"></script>
+<script src="datos/plan.js?v=216"></script>
+<script src="js/util.js?v=216"></script>
+<script src="js/almacen.js?v=216"></script>
+<script src="js/github.js?v=216"></script>
+<script src="js/app.js?v=216"></script>
+<script src="js/actividad-khb.js?v=216"></script>
+<script src="js/entrenamiento.js?v=216"></script>
 </body>
 </html>
