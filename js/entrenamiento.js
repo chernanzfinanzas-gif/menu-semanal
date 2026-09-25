@@ -7308,7 +7308,10 @@
       out.push({ n: p.n, desde: f, hasta: hasta, dias: dias, carga: p.carga,
                  talla: p.talla, nota: p.nota, coste: coste, minutos: minutos,
                  factor: coste > 0 ? p.carga / coste : 1,
-                 descarga: /descarga/i.test(p.nota || "") });
+                 /* 25-sep-2026: ANCLADO AL PRINCIPIO. La nota de las semanas de
+                    crucero es «Crucero: tres semanas y la cuarta de descarga», y
+                    sin el ^ TODAS salían marcadas como descarga. */
+                 descarga: /^\s*descarga/i.test(p.nota || "") });
       f = U.sumarDias(hasta, 1);
     }
     return out;
@@ -7324,26 +7327,73 @@
     if (ctl === null || ctl === undefined) ctl = 10;
     if (atl === null || atl === undefined) atl = ctl;
     var ser = [];
+    /* MODELO APROXIMADO DE REPARTO (Carlos, 25-sep-2026). La simulación NO sigue
+       las sesiones día a día: la salida larga se declara cada semana y, sin
+       declarar, la propuesta metía el 30 % en un solo día y dibujaba picos que
+       no son el plan. Aquí la carga de la semana se reparte 14 % de lunes a
+       viernes, 30 % el sábado y nada el domingo. Es la curva, no el plan. */
+    var REPARTO = [0, 0.14, 0.14, 0.14, 0.14, 0.14, 0.30];   // getDay(): 0 domingo
+    function diaSem(iso) { return new Date(iso + "T12:00:00").getDay(); }
     cal.forEach(function (sem) {
-      for (var d = 0; d < sem.dias; d++) {
-        var iso = U.sumarDias(sem.desde, d), carga = 0;
-        sesionesDe(iso, { n: sem.n, desde: sem.desde, hasta: sem.hasta }, sem.talla)
-          .forEach(function (x) { carga += costeSesion(x) * sem.factor; });
+      var suma = 0, d;
+      for (d = 0; d < sem.dias; d++) suma += REPARTO[diaSem(U.sumarDias(sem.desde, d))];
+      var real7 = 0;
+      for (d = 0; d < sem.dias; d++) {
+        var iso = U.sumarDias(sem.desde, d);
+        var carga = suma > 0 ? sem.carga * REPARTO[diaSem(iso)] / suma : sem.carga / sem.dias;
         /* los días ya vividos llevan lo que de verdad midió el reloj */
         if (iso <= hoy) {
           var real = cargaSemana(iso, iso);
           if (real !== null) carga = real;
         }
+        real7 += carga;
         ctl += (carga - ctl) / 42;
         atl += (carga - atl) / 7;
-        ser.push({ f: iso, c: carga, ctl: ctl, atl: atl, fo: ctl - atl });
+        ser.push({ f: iso, c: carga, ctl: ctl, atl: atl, fo: ctl - atl,
+                   sn: sem.n, obj: sem.carga, desc: sem.descarga });
       }
+      /* la carga de la semana tal como sale en la curva (real + prevista) */
+      ser.forEach(function (x) { if (x.sn === sem.n) x.semC = real7; });
     });
     return ser;
   }
 
   /* El dibujo de la curva. Dos paneles: carga+CTL+ATL arriba, balance abajo con
      sus bandas, que es donde se ve si el plan te mete en sobreentrenamiento. */
+  /* El recuadro al pasar el ratón o el dedo por la curva: la semana, su
+     carga, la forma y la fatiga de ese día. */
+  var curvaSer = null, curvaGeo = null;
+  function datoCurva(ev) {
+    var svg = ev.target.closest ? ev.target.closest("svg[data-curva]") : null;
+    if (!svg || !curvaSer || !curvaGeo) return false;
+    var r = svg.getBoundingClientRect(), g = curvaGeo;
+    var sx = (ev.clientX - r.left) / r.width * g.W;
+    var i = Math.round((sx - g.x0) / g.ancho * (g.n - 1));
+    i = Math.max(0, Math.min(g.n - 1, i));
+    var x = curvaSer[i], cx = g.x0 + i * g.ancho / (g.n - 1);
+    var cur = document.getElementById("curva-cursor"), caja = document.getElementById("curva-dato");
+    if (cur) { cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.style.display = ""; }
+    if (caja) {
+      var hoy = U.hoyISO();
+      caja.innerHTML = "<b>" + fechaCorta(x.f) + "</b> · semana " + x.sn + (x.desc ? " (descarga)" : "") +
+        (x.f <= hoy ? " · <i>medido</i>" : " · <i>previsto</i>") + "<br>" +
+        "Carga de la semana: <b>" + num(x.semC, 0) + "</b>" +
+        (Math.abs(x.semC - x.obj) > 0.5 ? " <small>(objetivo " + num(x.obj, 0) + ")</small>" : "") + "<br>" +
+        '<span style="color:#2f95cc">Forma</span> <b>' + num(x.ctl, 0) + "</b> · " +
+        '<span style="color:#5b3fa8">Fatiga</span> <b>' + num(x.atl, 0) + "</b> · " +
+        "Balance <b>" + (x.fo >= 0 ? "+" : "") + num(x.fo, 0) + "</b>";
+      caja.style.display = "";
+      var px = (cx / g.W) * r.width, w = caja.offsetWidth;
+      caja.style.left = Math.max(0, Math.min(r.width - w, px + (px > r.width / 2 ? -w - 10 : 10))) + "px";
+    }
+    return true;
+  }
+  function quitarDatoCurva() {
+    var cur = document.getElementById("curva-cursor"), caja = document.getElementById("curva-dato");
+    if (cur) cur.style.display = "none";
+    if (caja) caja.style.display = "none";
+  }
+
   function svgCurva(ser) {
     if (!ser.length) return "";
     var W = 1000, H = 190, HF = 96, n = ser.length;
@@ -7380,15 +7430,22 @@
       }
     });
     var area = "36," + H + " " + ctl + X(n - 1).toFixed(1) + "," + H;
+    curvaSer = ser; curvaGeo = { W: W, n: n, x0: 36, ancho: W - 76 };
     var min = ser.reduce(function (a, x) { return Math.min(a, x.fo); }, 0);
     var rojos = ser.filter(function (x) { return x.fo < -30; }).length;
-    return '<svg class="ramp-svg" viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' +
+    return '<div class="curva-caja" style="position:relative">' +
+      '<svg class="ramp-svg" data-curva="1" style="touch-action:pan-y;cursor:crosshair" viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' +
       ejes + '<line x1="36" y1="' + H + '" x2="' + (W - 40) + '" y2="' + H + '" stroke="#d6dde4"/>' +
       meses +
       '<polygon points="' + area + '" fill="#dcecf7" opacity=".6"/>' + barras +
       '<polyline points="' + atl + '" fill="none" stroke="#5b3fa8" stroke-width="1" opacity=".8"/>' +
       '<polyline points="' + ctl + '" fill="none" stroke="#4fb3e8" stroke-width="2.3"/>' +
+      '<line id="curva-cursor" x1="0" y1="0" x2="0" y2="' + H + '" stroke="#1f3b57" stroke-width="1" ' +
+        'stroke-dasharray="3 3" style="display:none"/>' +
       "</svg>" +
+      '<div id="curva-dato" style="display:none;position:absolute;top:4px;pointer-events:none;' +
+        'background:#fff;border:1px solid #d6dde4;border-radius:8px;padding:6px 9px;font-size:12px;' +
+        'line-height:1.45;box-shadow:0 2px 8px rgba(0,0,0,.08);white-space:nowrap"></div></div>' +
       leyenda([{ n: "forma (CTL)", color: "#4fb3e8" }, { n: "fatiga (ATL)", color: "#5b3fa8" },
                { n: "carga del día (escala de la derecha)", color: "#b9c6e2" }]) +
       '<p class="ramp-sub">Balance <small>— la banda roja es sobreentrenamiento</small></p>' +
@@ -9071,6 +9128,13 @@
 
   function conectar() {
     var cont = document.getElementById("vista-entreno");
+
+    /* la curva: recuadro con ratón o dedo */
+    cont.addEventListener("pointermove", function (e) { if (!datoCurva(e)) quitarDatoCurva(); });
+    cont.addEventListener("pointerdown", function (e) { if (!datoCurva(e)) quitarDatoCurva(); });
+    /* con el dedo, al levantarlo el navegador dispara «leave»: el recuadro se
+       queda puesto hasta que toques fuera de la curva */
+    cont.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") quitarDatoCurva(); });
 
     cont.addEventListener("click", function (e) {
       var t = e.target;
