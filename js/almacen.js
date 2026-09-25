@@ -351,7 +351,15 @@
            caloría le borraba la forma de pedir que había elegido en el gestor.
            Esos tres campos no son míos: los decide él y no viajan en el
            catálogo. Se rescatan antes de sustituir. */
-        var suyo = { pedir: ing.pedir, minimo: ing.minimo, lote: ing.lote };
+        /* Y EL ESTANTE TAMBIÉN ES SUYO (25-sep-2026). Poniendo la marca en los
+           nombres se le subió el `rev` a 130 fichas, y con él se llevó por
+           delante el estante de 27: el bacon, la burrata, los jamones, los
+           quesos… todos a «sin sitio». DÓNDE GUARDA CADA COSA EN SU CASA no lo
+           sabe el catálogo, lo decide él en la app, así que se rescata igual
+           que la forma de pedir. `formato` va por el mismo camino y por el
+           mismo motivo. */
+        var suyo = { pedir: ing.pedir, minimo: ing.minimo, lote: ing.lote,
+                     sitio: ing.sitio, formato: ing.formato };
         e.ingredientes[i] = JSON.parse(JSON.stringify(nuevo));
         Object.keys(suyo).forEach(function (k) {
           if (suyo[k] !== undefined && suyo[k] !== null) e.ingredientes[i][k] = suyo[k];
