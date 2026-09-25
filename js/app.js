@@ -890,7 +890,12 @@
         bloqueCasa += '<p class="aviso-grupo">Gasta lo que antes se estropea.</p>';
       }
       bloqueCasa += tengo.recetas.map(function (r) {
-        return botonReceta(r, "gasta " + esc(r.cuales.slice(0, 3).join(", ")) +
+        /* el precio va delante: lo que falta antes de lo que gasta */
+        var fal = (r.faltan || []).length
+          ? "falta " + esc(r.faltan.slice(0, 2).join(", ")) +
+            (r.faltan.length > 2 ? " y " + (r.faltan.length - 2) + " m\u00e1s" : "") + " \u00b7 "
+          : "";
+        return botonReceta(r, fal + "gasta " + esc(r.cuales.slice(0, 2).join(", ")) +
           " \u00b7 " + colaReceta(r.id));
       }).join("");
       if (tengo.productos.length) {

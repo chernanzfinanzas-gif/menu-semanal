@@ -448,6 +448,60 @@
         if (global.console) console.log("Tus correcciones traídas: " + corregidos.join(", "));
       }
 
+      /* ---------- RECETAS QUE APUNTAN A FANTASMAS ----------
+         Una línea de receta que señala una ficha OCULTA o que ya no existe deja
+         esa receta rota para siempre y en silencio: nunca se puede completar,
+         la lista de la compra pide algo que no está en ningún estante, y en el
+         selector sale «te falta» algo que sí tienes con otro nombre.
+
+         Encontrado el 25-sep-2026 persiguiendo dos quejas suyas: «me ofrece
+         perritos pero creo que no tengo salchichas» y «macarrones con chorizo…
+         solo falta el queso para gratinar». Ninguna de las dos era lo que
+         parecía. Medido: 4 líneas rotas en 2 recetas, las dos de las importadas
+         por IA y las dos marcadas como suyas —`editado`—, así que el catálogo
+         no las podía corregir nunca por mucho que yo les subiera el `rev`.
+
+         Dos reparaciones, las dos automáticas y las dos conservadoras:
+           1. El duplicado numerado. `chorizo_sarta_en_tacos_2` está oculta y
+              `chorizo_sarta_en_tacos` existe y se ve: es la misma cosa.
+           2. La versión del catálogo. Si la receta existe en la semilla con el
+              MISMO número de ingredientes y en esa posición hay una ficha que
+              sí se ve, se coge esa. Es como pasó con el pan, el kétchup y la
+              mahonesa de los perritos: la semilla ya tenía los nombres buenos.
+         Lo que no se pueda resolver así se queda como está y sale en el aviso
+         del catálogo: mejor una receta rota a la vista que una arreglada a
+         ojo. */
+      var _semRec = (SEMILLA_BASE && SEMILLA_BASE.recObj) || {};
+      var arregladas = [];
+      (e.recetas || []).forEach(function (r) {
+        if (!r || !r.ing || !r.ing.length) return;
+        var sem = _semRec[r.id];
+        var cambios = [];
+        r.ing.forEach(function (l, idx) {
+          var g = null;
+          for (var q = 0; q < e.ingredientes.length; q++)
+            if (e.ingredientes[q].id === l.i) { g = e.ingredientes[q]; break; }
+          if (g && !g.oculta) return;                 // la línea está bien
+          function viva(id) {
+            for (var q2 = 0; q2 < e.ingredientes.length; q2++)
+              if (e.ingredientes[q2].id === id && !e.ingredientes[q2].oculta) return true;
+            return false;
+          }
+          var base = String(l.i).replace(/_\d+$/, "");
+          if (base !== l.i && viva(base)) { cambios.push(l.i + " -> " + base); l.i = base; return; }
+          if (sem && sem.ing && sem.ing.length === r.ing.length) {
+            var sid = sem.ing[idx] && sem.ing[idx].i;
+            if (sid && sid !== l.i && viva(sid)) { cambios.push(l.i + " -> " + sid); l.i = sid; }
+          }
+        });
+        if (cambios.length) arregladas.push(r.n + ": " + cambios.join(", "));
+      });
+      if (arregladas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Recetas reparadas (" + arregladas.length + "): " +
+          arregladas.join(" | "));
+      }
+
       /* Los topes de sal viejos (2,0 y 1,5) venían de confundir miligramos de sodio
          con gramos de sal, y apretaban 2,5 veces más de lo que Carlos quería. Se
          suben a los que él fijó. Solo si siguen en los valores de fábrica: si los
@@ -2446,7 +2500,36 @@
        sólo pide la cebolla». Con el congelador fuera, esa receta no se ofrecía
        nunca y acababa comprando otro pescado teniendo ése dentro.
        El armario sigue fuera, y a propósito. */
-    URGENTES: ["nevera", "frutero", "congelador"],
+    /* LO QUE CORRE PRISA ES LA NEVERA ENTERA, Y ESTO ESTABA MAL (25-sep-2026).
+       Decía `["nevera", "frutero", "congelador"]`, y ahí hay un error de bulto:
+       «nevera» es el nombre de la ZONA, no de un estante, y esto se compara
+       contra el estante que devuelve `sitioDe`. O sea que nunca encajaba con
+       nada: sólo colaban el frutero y el congelador, que resulta que sí son
+       estantes.
+       Medido: 23 fichas de la nevera no contaban como perecederas —las 12 de
+       Carne y las 11 de la Puerta—. Carlos lo cazó con lo suyo: «me debería
+       ofrecer una receta con lomo de cerdo Duroc, que es la carne que tengo».
+       Estaba en Carne, y Carne no existía para esta cuenta.
+       Ahora se pregunta por la ZONA, que es lo que se quería decir desde el
+       principio: lo de la nevera corre prisa, lo del armario no. */
+    ZONAS_URGENTES: ["nevera"],
+    esUrgente: function (sitio) {
+      if (!sitio) return false;
+      var z = null;
+      this.SITIOS.forEach(function (s2) { if (s2.k === sitio) z = s2.zona; });
+      return !!z && this.ZONAS_URGENTES.indexOf(z) >= 0;
+    },
+
+    ACOMPANAN: ["guarnicion", "postre"],
+    vaEnLaToma: function (r, toma) {
+      var t = r.tipo || [];
+      if (!t.length) return false;
+      if (t.indexOf(toma) >= 0) return true;
+      if (toma !== "comida" && toma !== "cena") return false;
+      for (var i = 0; i < this.ACOMPANAN.length; i++)
+        if (t.indexOf(this.ACOMPANAN[i]) >= 0) return true;
+      return false;
+    },
 
     loQuePuedesGastar: function (toma) {
       var self = this, comp = this.comprometidoTodo();
@@ -2454,13 +2537,20 @@
       for (i = 0; i < this.SITIOS.length; i++) orden[this.SITIOS[i].k] = i;
 
       /* lo libre, por ingrediente */
+      /* TENERLO NO DEPENDE DE HABERLO COLOCADO (25-sep-2026). Esto se saltaba
+         todo lo que no tuviera estante, y con ello se caían fichas con stock
+         apuntado: la mozzarella, el requesón y el parmesano no están colocados,
+         así que unos macarrones con los trece ingredientes contados en casa
+         salían como que faltaban tres. Carlos lo vio al revés —«solo falta el
+         queso para gratinar»— y tenía más razón de la que creía: no faltaba ni
+         eso.
+         El estante sirve para saber si algo CORRE PRISA y para ordenar, no para
+         saber si lo tienes. Lo que dice si lo tienes es la cifra. */
       var libres = {};
       (this.estado.ingredientes || []).forEach(function (g) {
         if (g.oculta) return;
-        var sitio = self.sitioDe(g);
-        if (!sitio) return;
         var c = self.stockDe(g.id) - (comp[g.id] || 0);
-        if (c > 0.0001) libres[g.id] = { c: c, sitio: sitio, g: g };
+        if (c > 0.0001) libres[g.id] = { c: c, sitio: self.sitioDe(g) || "", g: g };
       });
 
       /* --- productos listos para comer tal cual --- */
@@ -2474,7 +2564,10 @@
                          sitio: x.sitio, libre: x.c, racion: cant });
       });
       productos.sort(function (a, b) {
-        if (orden[a.sitio] !== orden[b.sitio]) return orden[a.sitio] - orden[b.sitio];
+        /* lo que no tiene estante va al final, no delante por ser `undefined` */
+        var oa = orden[a.sitio] === undefined ? 999 : orden[a.sitio];
+        var ob = orden[b.sitio] === undefined ? 999 : orden[b.sitio];
+        if (oa !== ob) return oa - ob;
         return a.n.localeCompare(b.n);
       });
 
@@ -2506,6 +2599,11 @@
          llevan de 7 a 10 ingredientes. Exigir las diez exactas dejaría la lista
          vacía casi siempre, y por eso existe «te falta poco»: están todos los
          ingredientes que definen el plato y falta algo de acompañamiento. */
+      /* ¿ESTA RECETA PINTA EN ESTA TOMA? No basta con mirar `tipo`: hay 12
+         guarniciones y 18 postres que no llevan «comida» ni «cena» y sin
+         embargo es justo donde van. Se vio al podar por toma: desapareció
+         «Tomates asados en airfryer», que es una guarnición de comida de toda
+         la vida. En un picoteo no entran: un almuerzo no lleva guarnición. */
       function loTengo(l) {
         var g = self.ingrediente(l.i);
         if (!g) return false;
@@ -2524,21 +2622,64 @@
          es menor, sea lo que sea. Principal = el primero que no es pan, especia
          ni bebida, que es la regla ya medida en el catálogo (96 % de acierto
          contra lo que Carlos diría). */
+      var MENOR_CAT = ["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"];
+      /* minúsculas y sin tildes, para comparar nombres */
+      function _pelado(x) {
+        x = String(x || "").toLowerCase();
+        try { return x.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+        catch (e) { return x; }
+      }
       function principalDe(r) {
         var lin = r.ing || [];
         for (var k = 0; k < lin.length; k++) {
           var g = self.ingrediente(lin[k].i);
           if (!g) continue;
-          if (["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"].indexOf(g.cat) < 0) return lin[k].i;
+          if (MENOR_CAT.indexOf(g.cat) < 0) return lin[k].i;
         }
-        return lin.length ? lin[0].i : null;
+        return null;
       }
-      function menor(l, princ) {
+      function gramosDe(l) {
+        var g = self.ingrediente(l.i);
+        if (!g) return 0;
+        return g.u === "ud" ? l.c * (g.pesoUd || 100) : l.c;
+      }
+      /* ¿EL PLATO LLEVA ESTE INGREDIENTE EN EL NOMBRE? Si el nombre lo dice, es
+         del plato por definición: «macarrones con CHORIZO» sin chorizo no son
+         esos macarrones, por pocos gramos que sean. */
+      function nombrado(r, l) {
+        var g = self.ingrediente(l.i);
+        if (!g) return false;
+        var t = _pelado(r.n);
+        var pal = _pelado(g.n).split(/[^a-z0-9]+/);
+        for (var k = 0; k < pal.length; k++) {
+          if (pal[k].length > 4 && t.indexOf(pal[k]) >= 0) return true;
+        }
+        return false;
+      }
+      /* ACCESORIO POR CANTIDAD, NO SÓLO POR CATEGORÍA (25-sep-2026).
+         Carlos: «Macarrones con chorizo, cebolla caramelizada: solo falta el
+         queso para gratinar… debería ser otra opción relevante».
+
+         Tenía razón y la regla se quedaba corta. Iba por categoría, y el
+         parmesano es «Lácteos y huevos» igual que el requesón: uno son 110 g y
+         el plato se cae sin él, el otro son 15 g de escamas por encima. Lo que
+         los separa no es la categoría, es CUÁNTO pesa en el plato.
+
+         Medido sobre las 99 recetas con el umbral del 5 %: cambia 22, y lo que
+         degrada es exactamente lo que uno llamaría adorno — las nueces de las
+         ensaladas, las escamas de parmesano, la chía, el tomate deshidratado,
+         la albahaca. Ninguna receta se queda sin ingredientes mayores.
+
+         Con el freno del nombre: si el plato se llama por ello, es mayor
+         aunque sean diez gramos. */
+      function menor(l, princ, r, total) {
         var g = self.ingrediente(l.i);
         if (!g) return true;
         if (l.i === princ) return false;
+        if (nombrado(r, l)) return false;
         if (g.basico) return true;
-        return ["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"].indexOf(g.cat) >= 0;
+        if (MENOR_CAT.indexOf(g.cat) >= 0) return true;
+        return total > 0 && gramosDe(l) / total < 0.05;
       }
 
       var enteras = [], casi = [], recetas = [];
@@ -2546,8 +2687,18 @@
         if (r.grupo === "suelto") return;            // eso ya sale como producto
         var lineas = r.ing || [];
         if (!lineas.length) return;
-        var propia = (r.tipo || []).indexOf(toma) >= 0;
+        /* UN INGREDIENTE NO ES UN PLATO (25-sep-2026). Carlos: «no debería
+           ofrecer pan tostado Ortiz… y poco más debería ofrecer». Son siete en
+           todo el recetario —pan de mesa, pan tostado, agua con gas, Pepsi,
+           plátano, pistachos y patatas de bolsa— y ninguno es algo que decidas
+           cocinar: son acompañamientos, y el pan además entra solo como fijo.
+           Salían arriba del todo porque con un ingrediente siempre los tienes
+           completos. Para eso está la sección «Un ingrediente solo». */
+        if (lineas.length < 2) return;
+        var propia = self.vaEnLaToma(r, toma);
         var princ = principalDe(r);
+        var totalG = 0;
+        lineas.forEach(function (l) { totalG += gramosDe(l); });
 
         /* ---- ¿la puedo hacer entera? ---- */
         var faltan = [], faltanMayores = [], frescoQueGasta = 0, mayoresEnCasa = 0;
@@ -2555,12 +2706,12 @@
           var g = self.ingrediente(l.i);
           if (!loTengo(l)) {
             faltan.push(g ? g.n : l.i);
-            if (!menor(l, princ)) faltanMayores.push(g ? g.n : l.i);
+            if (!menor(l, princ, r, totalG)) faltanMayores.push(g ? g.n : l.i);
             return;
           }
-          if (!menor(l, princ)) mayoresEnCasa++;
+          if (!menor(l, princ, r, totalG)) mayoresEnCasa++;
           var x = libres[l.i];
-          if (x && self.URGENTES.indexOf(x.sitio) >= 0) frescoQueGasta += Math.min(l.c, x.c);
+          if (x && self.esUrgente(x.sitio)) frescoQueGasta += Math.min(l.c, x.c);
         });
 
         if (!faltan.length) {
@@ -2581,12 +2732,18 @@
         var gasta = 0, cuales = [];
         lineas.forEach(function (l) {
           var x = libres[l.i];
-          if (!x || self.URGENTES.indexOf(x.sitio) < 0) return;
+          if (!x || !self.esUrgente(x.sitio)) return;
           gasta += Math.min(l.c, x.c);
           cuales.push(x.g.n);
         });
         if (!gasta) return;
-        recetas.push({ id: r.id, n: r.n, gasta: gasta, cuales: cuales, propia: propia });
+        /* También dice QUÉ FALTA. Carlos, 25-sep-2026: «me ofrece perritos pero
+           creo que no tengo salchichas». Y no las tiene: la ficha de las
+           salchichas ni siquiera está colocada. La receta salía aquí porque
+           gasta una cebolla del frutero, que es verdad, pero enseñada a secas
+           parecía un «puedes hacer esto». Ahora se ve el precio. */
+        recetas.push({ id: r.id, n: r.n, gasta: gasta, cuales: cuales, propia: propia,
+                       faltan: faltan, faltanMayores: faltanMayores });
       });
 
       /* Dentro de cada escalón: primero lo que encaja con la toma, y luego lo
@@ -2601,13 +2758,37 @@
       casi.sort(ordenar);
       recetas.sort(function (a, b) {
         if (a.propia !== b.propia) return a.propia ? -1 : 1;
+        /* a igualdad, primero lo que menos te falta: una receta a la que le
+           falta un ingrediente es más útil que una a la que le faltan seis */
+        if (a.faltanMayores.length !== b.faltanMayores.length)
+          return a.faltanMayores.length - b.faltanMayores.length;
         return b.gasta - a.gasta;
       });
 
+      /* FUERA LOS DESAYUNOS DE UNA COMIDA (25-sep-2026). Carlos: «me ofrece
+         desayunos y cosas poco relevantes». La regla de antes era no descartar
+         nunca por toma —«las tomas son una sugerencia»— y con un solo escalón
+         se aguantaba, porque la lista era corta. Con tres escalones, el de «lo
+         puedes hacer entero» se llenaba de yogur con avena y leche con café:
+         son las recetas de dos ingredientes, y por eso salen completas siempre.
+         Ahora, si hay al menos tres de la toma en un escalón, las de otra toma
+         sobran. Si no llega a tres, se quedan: más vale una sugerencia rara que
+         una lista vacía. */
+      function podar(lista) {
+        var propias = lista.filter(function (x) { return x.propia; });
+        /* Sólo las de la toma, y punto. El primer intento dejaba pasar las
+           demás cuando el escalón quedaba vacío, con el argumento de que más
+           vale una sugerencia rara que nada. Probándolo se ve que no: en una
+           COMIDA, «lo puedes hacer entero: leche con café descafeinado» es peor
+           que no enseñar nada, porque el escalón de abajo sí trae las buenas.
+           Un escalón vacío no deja tirado a nadie: los otros dos siguen, y
+           arriba está el buscador con el recetario entero. */
+        return propias;
+      }
       return { productos: productos.slice(0, 14),
-               enteras: enteras.slice(0, 10),
-               casi: casi.slice(0, 8),
-               recetas: recetas.slice(0, 8) };
+               enteras: podar(enteras).slice(0, 10),
+               casi: podar(casi).slice(0, 8),
+               recetas: podar(recetas).slice(0, 8) };
     },
 
     /* ================= HOGAR =================
