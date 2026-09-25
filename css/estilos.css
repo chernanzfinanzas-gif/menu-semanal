@@ -504,8 +504,12 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
    entran siete u ocho por pantalla, que es lo que hace llevadera una pasada de
    ciento cincuenta. Los tres botones se reparten el ancho a partes iguales para
    que se acierte con el dedo sin mirar. */
-#rejilla-tengo .niveles{gap:5px; flex:1 1 100%}
-#rejilla-tengo .niveles .pas-b{flex:1 1 0; min-width:0}
+/* La lista lleva el mismo control que la ficha: menos, cifra, más. Y un
+   «Nada» al lado, que es la respuesta más frecuente y merece su botón. */
+#rejilla-tengo .niveles{gap:8px; flex:1 1 100%; align-items:center; justify-content:flex-start}
+#rejilla-tengo .niveles .btn.mini{padding:9px 14px; font-size:.95rem}
+#rejilla-tengo .niveles .cuenta-lista{min-width:44px; text-align:center;
+  font-size:1.15rem; font-weight:650}
 #rejilla-tengo .linea-tengo.anotada .nombre{font-weight:650}
 #rejilla-tengo .linea-tengo .donde{color:var(--gris)}
 
@@ -624,6 +628,8 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .ficha-pie .usos summary{font-size:.8rem; color:var(--gris); cursor:pointer; padding:4px 0}
 .ficha-pie .uso{font-size:.8rem; padding:3px 0 3px 10px; color:var(--gris)}
 .ficha-pie .uso.planificado{color:var(--tinta)}
+.ficha-pie .uso.yacomido{opacity:.75}
+.ficha-pie .uso .comido{color:var(--verde)}
 .ficha-pie .borrar{margin-top:8px; color:var(--rojo); border-color:var(--rojo)}
 .ficha-pie .bloqueado{margin-top:8px}
 @media(max-width:519px){

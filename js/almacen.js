@@ -1519,6 +1519,19 @@
     },
     /* Mover algo de estante. Es lo único que coloca: no hay regla que lo haga
        por su cuenta (ver ZONAS). */
+    /* ---------- «ESTO LO HE CAMBIADO YO» ----------
+       La app ya tenía dos marcas para eso —`editado`, que impide que el
+       catálogo pise una ficha, y `tocado`, la hora que decide quién gana entre
+       aparatos— pero mover un ingrediente de estante y borrarlo no las ponían.
+       Mientras nadie tocaba esas fichas no se notaba; en cuanto el catálogo
+       sube de revisión, tu cambio se revierte solo al abrir el otro aparato.
+       (25-sep-2026: ese mismo día subí la revisión de 46 fichas.) */
+    marcarTuyo: function (g) {
+      if (!g) return;
+      g.editado = true;
+      g.tocado = new Date().toISOString();
+    },
+
     ponerSitio: function (id, sitio) {
       var g = this.ingrediente(id);
       if (!g) return false;
@@ -1526,6 +1539,7 @@
       this.SITIOS.forEach(function (s) { if (s.k === sitio) vale = true; });
       if (!vale) return false;
       g.sitio = sitio;
+      this.marcarTuyo(g);
       /* el sitio de destino queda sin confirmar: acabas de meterle una línea
          que no estaba cuando lo contaste */
       if (!this.estado.stockSitios) this.estado.stockSitios = {};
@@ -1564,8 +1578,14 @@
             .map(function (g) {
               var f = self.fichaStock(g.id);
               var c = (f && f.c > 0) ? f.c : 0;
+              var ffm = self.fichaFormato(g);
               return {
                 id: g.id, n: g.n, u: g.u, pesoUd: g.pesoUd || 0, envase: g.envase || 0,
+                /* lo mismo que enseña el pase, para que la lista no hable otro
+                   idioma: cuántos envases hay y cómo se llama el envase */
+                pieza: self.tamanoPieza(g), piezas: self.piezasDe(g.id),
+                piezaUno: ffm.n[0], piezaVarias: ffm.n[1],
+                piezaUd: g.u === "ud",
                 racion: g.racion || 0, nivel: (f && f.nivel) || null,
                 c: c, anotado: !!f, f: (f && f.f) || null,
                 pte: (f && f.pte) || false,
@@ -1872,12 +1892,26 @@
        receta». Los planificados van primero: si el ingrediente sale en la cena
        del jueves, eso pesa más que salir en una receta que no piensas hacer. */
     platosDe: function (id) {
-      var self = this, planif = {};
+      /* «PLANIFICADO» ES LO QUE ESTÁ POR COMER, no lo que aparece en el plan.
+         Esto marcaba como planificado cualquier plato que estuviera en el plan,
+         incluidos los de días pasados y los que ya tienen el tic de comido; y
+         entonces la ficha se contradecía sola: arriba «ninguno planificado» —que
+         usa la cuenta buena— y abajo un plato marcado en negrita que él se había
+         comido el lunes. (Carlos, 25-sep-2026.)
+         Ahora se usa la misma regla que `comprometidoTodo`, y lo ya comido se
+         dice, que es un dato útil: sabes por qué se gastó. */
+      var self = this, hoy = Util.hoyISO(), planif = {}, comido = {};
       Object.keys(this.estado.plan || {}).forEach(function (f) {
         var dia = self.estado.plan[f];
         if (!dia) return;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (t) {
-          (dia[t] || []).forEach(function (rid) { planif[rid] = true; });
+          (dia[t] || []).forEach(function (rid) {
+            if (self.estaComido(f, t, rid)) { comido[rid] = f; return; }
+            if (f < hoy) return;                       // el pasado ya no espera
+            if (self.esFuera(f, t)) return;            // eso no sale de tu despensa
+            if (!self.tomaActiva(f, t)) return;
+            planif[rid] = true;
+          });
         });
       });
       var out = [];
@@ -1885,11 +1919,14 @@
         (r.ing || []).forEach(function (l) {
           if (l.i !== id) return;
           if (out.some(function (x) { return x.id === r.id; })) return;
-          out.push({ id: r.id, n: r.n, c: l.c, planificado: !!planif[r.id] });
+          out.push({ id: r.id, n: r.n, c: l.c,
+                     planificado: !!planif[r.id],
+                     comido: comido[r.id] || null });
         });
       });
       out.sort(function (a, b) {
         if (a.planificado !== b.planificado) return a.planificado ? -1 : 1;
+        if (!!a.comido !== !!b.comido) return a.comido ? -1 : 1;
         return a.n.localeCompare(b.n);
       });
       return out;
@@ -1915,6 +1952,7 @@
       var p = this.puedeBorrar(id);
       if (!p.si) return { ok: false, motivo: "lo usan platos", platos: p.platos };
       g.oculta = true;
+      this.marcarTuyo(g);
       if (this.estado.stock) delete this.estado.stock[id];
       this._sello++; this._compCache = null;
       this.guardar("ingredientes");

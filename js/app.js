@@ -3221,45 +3221,41 @@
   function detalleTengo(x, donde) {
     var d;
     if (x.pte === "corto") d = '<span style="color:var(--ambar)">se gastó más de lo apuntado</span>';
-    else if (!x.anotado || !x.nivel) d = "sin marcar";
-    else if (x.nivel === "nada") d = "no hay";
+    else if (!x.anotado && !x.nivel) d = "sin marcar";
+    else if (!(x.piezas > 0)) d = "no hay";
     else {
-      var n0 = x.nivel;
-      NIVELES.forEach(function (n) { if (n.k === x.nivel) n0 = n.n.toLowerCase(); });
-      d = (x.contado ? "hay " : "queda ") + n0;
-      if (x.comprometido > 0) d += " · el menú ya pide " +
+      /* LO QUE HAY, NO UN NIVEL. La lista decía «queda contado» y ofrecía
+         cuarto/mitad/lleno aunque ya hubieras contado dos botellas: ni enseñaba
+         tu cifra ni había forma de que cuadrara con ella. (Carlos, 25-sep-2026:
+         «como ya he contado debería poner lo que hay».) */
+      /* media botella es «botella», no «botellas» */
+      d = cifra(x.piezas) + " " + (x.piezas <= 1 ? x.piezaUno : x.piezaVarias);
+      if (x.pieza > 1 && !x.piezaUd)
+        d += " · " + esc(Util.cantidadReceta(x.piezas * x.pieza, x.u, x.pesoUd));
+      if (x.comprometido > 0) d += " · el menú pide " +
         esc(Util.cantidadReceta(x.comprometido, x.u, x.pesoUd));
       if (x.dias !== null) d += " · " + (x.dias === 0 ? "hoy" : "hace " + x.dias + " d");
     }
-    /* al buscar se sale de un estante concreto, así que hay que decir de dónde
-       es cada resultado: si no, marcas una cosa sin saber dónde mirarla */
     if (donde) d += ' <span class="donde">· ' + esc(donde) + "</span>";
     return d;
   }
 
+  /* La línea de la lista lleva el mismo control que la ficha —menos, cifra,
+     más—, para poder retocar una cosa suelta sin entrar en el pase. */
   function lineaTengo(x, donde) {
-    return '<div class="linea linea-pas linea-tengo' + (x.nivel ? " anotada" : "") +
+    var paso = x.piezaUd ? 1 : 0.5;
+    return '<div class="linea linea-pas linea-tengo' + (x.piezas > 0 ? " anotada" : "") +
       '" data-tengofila="' + esc(x.id) + '">' +
       '<div class="datos"><div class="nombre">' + esc(x.n) + "</div>" +
       '<div class="detalle">' + detalleTengo(x, donde) + "</div></div>" +
       '<div class="pas-btns niveles">' +
-        NIVELES.map(function (n) {
-          return btnTengo(x.id, n.k, x.nivel === n.k, n.n);
-        }).join("") +
+        '<button type="button" class="btn mini" data-cuentapaso="' + esc(x.id) + "|" + (-paso) + '">−</button>' +
+        '<span class="cuenta-lista">' + cifra(x.piezas || 0) + "</span>" +
+        '<button type="button" class="btn mini" data-cuentapaso="' + esc(x.id) + "|" + paso + '">+</button>' +
+        '<button type="button" class="btn mini" data-cuenta="' + esc(x.id) + '|0">Nada</button>' +
       "</div></div>";
   }
 
-  /* ---------- UN ESTANTE CADA VEZ ----------
-     Carlos, 24-sep-2026: «asegúrate de que abrir una localización y volver
-     atrás sea sencillo: un botón hacia atrás y el menú desplegable».
-
-     La nevera entera son 62 líneas; su puerta, 11. La pasada es física —estás
-     delante de un estante, no delante de una zona—, así que la pantalla enseña
-     primero la lista de estantes y luego UNO SOLO. Arriba, pegada, una barra
-     con «Volver» y un desplegable con los dieciocho: para pasar de la puerta al
-     congelador no hay que volver al índice ni buscar el sitio en un scroll de
-     doscientas líneas. La barra es pegajosa porque el botón de volver tiene que
-     estar donde el pulgar, no a seis pantallazos de distancia. */
   function repasoTxt(e) {
     return e.dias === null ? "sin repasar"
       : (e.dias === 0 ? "repasado hoy" : "repasado hace " + e.dias + " d");
@@ -3363,7 +3359,7 @@
     var botones = '<div class="cuenta-fila">' +
       '<button type="button" class="btn redondo" data-cuentapaso="' + esc(x.id) + "|" + (-paso) + '">−</button>' +
       '<div class="cifra"><b>' + cifra(n) + "</b><span>" +
-        esc(n === 1 ? x.piezaUno : x.piezaVarias) + "</span></div>" +
+        esc(n <= 1 ? x.piezaUno : x.piezaVarias) + "</span></div>" +
       '<button type="button" class="btn redondo" data-cuentapaso="' + esc(x.id) + "|" + paso + '">+</button>' +
       "</div>" +
       '<div class="atajos">' + x.atajos.map(function (v) {
@@ -3401,8 +3397,11 @@
             ? '<details class="usos"><summary>Sale en ' + x.platos.length +
               (x.platos.length === 1 ? " plato" : " platos") + "</summary>" +
               x.platos.map(function (pl) {
-                return '<div class="uso' + (pl.planificado ? " planificado" : "") + '">' +
-                  esc(pl.n) + (pl.planificado ? " <b>· planificado</b>" : "") + "</div>";
+                var cola = pl.planificado ? ' <b>· planificado</b>'
+                  : (pl.comido ? ' <span class="comido">· comido el ' +
+                     esc(Util.etiquetaFecha(pl.comido)) + "</span>" : "");
+                return '<div class="uso' + (pl.planificado ? " planificado" : "") +
+                  (pl.comido ? " yacomido" : "") + '">' + esc(pl.n) + cola + "</div>";
               }).join("") + "</details>"
             : "") +
           (x.borrable
@@ -3479,6 +3478,24 @@
       '<span data-repaso="1">' + repasoTxt(est) + "</span></h4>";
   }
 
+  /* ==================== EL PASE FICHA A FICHA ====================
+     Carlos, 25-sep-2026, idea nocturna: «¿Lo tengo? es un pase de fichas que
+     pasa de una a otra al marcar el producto. Un botón de iniciar, primera
+     ventana Nevera, confirmar, siguiente ventana Estante superior, confirmas,
+     ingrediente 1… y así hasta pasar por todo».
+
+     Cuatro pantallas, y el estado cabe en tres datos: qué vista, qué estante y
+     por qué ficha vas.
+       indice   la ronda: los doce estantes y cómo va cada uno
+       estante  la confirmación: «Puerta, 11 fichas» + empezar / lista / por visto
+       ficha    una sola cosa, sus botones, y al marcar salta a la siguiente
+       fin      el resumen del estante y el salto al siguiente
+
+     POR QUÉ UN ESTANTE Y NO LA CASA ENTERA (decisión suya): la nevera son 61
+     fichas y su puerta 11. Un túnel largo es como se le han muerto otros
+     proyectos, y además, si lo dejas en la ficha 60, las que quedan cuentan
+     como «no hay» y la compra las pide todas creyendo tú que hiciste la pasada.
+     Sellando estante a estante, lo que no terminas se ve sin terminar. */
   /* ==================== EL PASE FICHA A FICHA ====================
      Carlos, 25-sep-2026, idea nocturna: «¿Lo tengo? es un pase de fichas que
      pasa de una a otra al marcar el producto. Un botón de iniciar, primera
@@ -3589,11 +3606,9 @@
     if (!x) return;
     var det = fila.querySelector(".detalle");
     if (det) det.innerHTML = detalleTengo(x);
-    fila.classList.toggle("anotada", !!x.nivel);
-    fila.querySelectorAll("[data-tengo]").forEach(function (b) {
-      var r = b.getAttribute("data-tengo").split(":")[1];
-      b.classList.toggle("activo", r === x.nivel);
-    });
+    fila.classList.toggle("anotada", x.piezas > 0);
+    var c = fila.querySelector(".cuenta-lista");
+    if (c) c.textContent = cifra(x.piezas || 0);
     contadoresTengo();
   }
 
@@ -5286,7 +5301,8 @@
       if (bc) {
         var pc = bc.getAttribute("data-cuenta").split("|");
         Almacen.contarStock(pc[0], Number(pc[1]));
-        avanzarFicha(); return;
+        if (UI.pase.vista === "ficha") { avanzarFicha(); return; }
+        refrescarLineaTengo(pc[0]); return;
       }
       var bp = e.target.closest("[data-cuentapaso]");
       if (bp) {
@@ -5301,7 +5317,11 @@
         var paso2 = Number(pp[1]);
         var n2 = Math.round((act + paso2) * 100) / 100;
         Almacen.contarStock(pp[0], n2 > 0 ? n2 : 0);
-        pintarLoTengo(); return;
+        /* en la lista se refresca sólo esa línea: repintar cierra el estante y
+           te devuelve arriba, que es lo que él pidió que no pasara nunca */
+        if (UI.pase.vista === "ficha") pintarLoTengo();
+        else refrescarLineaTengo(pp[0]);
+        return;
       }
       var bb = e.target.closest("[data-paseborrar]");
       if (bb) {
