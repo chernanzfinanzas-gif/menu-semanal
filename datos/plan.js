@@ -272,7 +272,9 @@
          hechos, no por puntos, así que saltársela cuenta igual que saltarse una
          salida de bici sin necesidad de ponerle un número. Sus 23 puntos reales
          medidos viven en la carga activa, que es donde está el cansancio. */
-      fuerza: { n: 3, min: 45, nombres: ["Fuerza A", "Fuerza B", "Fuerza C"] },
+      /* 25-sep-2026: 30 y no 45. Norma de Carlos (24-sep): «las sesiones de
+         fuerza las prefiero de 25-30 minutos máximo siempre». */
+      fuerza: { n: 3, min: 30, nombres: ["Fuerza A", "Fuerza B", "Fuerza C"] },
       textos: {
         largo: "Salida larga",
         rodillo: "Bici Z2 en rodillo",

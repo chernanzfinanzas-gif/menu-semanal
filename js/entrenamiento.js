@@ -830,7 +830,17 @@
       ".ent-dia.fuera .q,.ent-dia.fuera .f{color:#8a7448}",
       ".ent-talla{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}",
       ".ent-talla select{padding:7px 9px;border:1px solid var(--borde);border-radius:10px;font:inherit}",
-      "@media(max-width:520px){.ent-semana{grid-template-columns:repeat(4,1fr)}.ent-cab img{width:52px;height:52px}}"
+      "@media(max-width:520px){.ent-semana{grid-template-columns:repeat(4,1fr)}.ent-cab img{width:52px;height:52px}}",
+      ".ent-semlinea{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;" +
+        "font-size:.82rem;color:var(--gris);margin:-4px 0 10px;padding:6px 10px;background:var(--azul-claro);" +
+        "border:1px solid var(--azul-borde);border-radius:10px}",
+      ".ent-semlinea .info{flex:1 1 260px;min-width:0;line-height:1.35}",
+      ".ent-semlinea .info b{color:var(--azul-hondo)}",
+      ".ent-semlinea .ctrl{display:flex;gap:6px 12px;align-items:center;flex-wrap:wrap;flex:0 1 auto;max-width:100%}",
+      ".ent-semlinea label{display:flex;align-items:center;gap:6px;white-space:nowrap;margin:0}",
+      ".ent-semlinea select{width:auto;max-width:100%;padding:3px 6px;border:1px solid var(--borde);border-radius:8px;font:inherit;font-size:.8rem;margin:0}",
+      ".ent-semlinea .racha-mini b{color:var(--azul-hondo)}",
+      "@media(max-width:520px){.ent-franja .ent-avisos{flex:none}}"
     ].join("\n");
     document.head.appendChild(s);
   }
@@ -7460,7 +7470,7 @@
       "</svg>" +
       '<div class="ramp-aviso' + (rojos ? " mal" : "") + '">' +
         (rojos
-          ? "Ojo: el plan te mete <b>" + rojos + " días</b> en zona de sobreentrenamiento."
+          ? "Ojo: el plan te mete <b>" + rojos + (rojos === 1 ? " día" : " días") + "</b> en zona de sobreentrenamiento."
           : "Lo más bajo que llega el balance es <b>" + num(min, 0) + "</b>, y el rojo empieza en −30: " +
             "<b>cero días en zona de sobreentrenamiento</b> en los " + ser.length + " de la proyección. " +
             "Y no es entrenando menos, es repartiendo la carga dentro de la semana y bajando de verdad cada cuarta.") +
@@ -7806,6 +7816,10 @@
 
     /* ---- pierna ---- */
     { n: "Sentadilla goblet",     pide: [["mancuerna", "rusa"]], nota: "El peso al pecho" },
+    /* Carlos, 25-sep-2026: la mochila cargada pasa de los 10 kg por mano sin
+       comprar hierro, y deja las manos libres. Se pesa en la báscula. */
+    { n: "Sentadilla con mochila", pide: [], bl: "pierna",
+      nota: "Mochila cargada y pesada en la báscula: pasa del techo de 10 kg sin comprar peso" },
     { n: "Sentadilla con banda",  pide: [["anilla"]], nota: "Pisada: poco abajo, mucho arriba" },
     { n: "Sentadilla búlgara",    pide: [["apoyo"]], nota: "El pie de atrás solo se apoya" },
     { n: "Zancadas",              pide: [], nota: "Con mancuernas si sobra" },
@@ -7820,6 +7834,8 @@
     { n: "Plancha",               pide: [], nota: "" },
     { n: "Elevación de piernas",  pide: [], nota: "" },
     { n: "Flexión lateral",       pide: [["mancuerna", "rusa"]], nota: "" },
+    { n: "Pallof",                pide: [["tubo"], ["anclaje"]], bl: "centro",
+      nota: "Antirrotación: el tubo tira de lado y tú no te dejas girar" },
     { n: "Extensión lumbar",      pide: [], nota: "" }
   ];
 
@@ -7967,7 +7983,7 @@
   }
 
 
-  /* ---- LAS DOS SESIONES ----
+  /* ---- LAS TRES SESIONES (la C desde el 25-sep-2026) ----
      No llevan su propia lista de ejercicios: NOMBRAN movimientos del catálogo
      de arriba. Así heredan solas de qué material dependen y si hoy se pueden
      hacer, y el día que entren las anillas la sesión B cambia sin tocar nada.
@@ -7999,6 +8015,22 @@
       { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: 4.5,
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
+    ]},
+    /* FUERZA C (diseñada el 24-sep, montada el 25-sep-2026). Lo que A y B no
+       tocan: pierna a una pierna, cadera, gemelo y centro en ROTACIÓN (A y B
+       solo tienen plancha, que es antiextensión). Norma de Carlos: 30 minutos
+       como máximo. Ninguno invita a bloquear el aire (regla del oído).
+       Sin día fijo: va donde la ponga el tablero de la semana. */
+    { id: "C", n: "Fuerza C", dia: null, diaTxt: "sin día fijo", min: 25, mov: [
+      { n: "Zancadas",            s: 2, r: "10 por pierna", kg: 15,
+        nota: "Estáticas: los pies no se mueven, se baja y se sube. Una mancuerna de 7,5 en cada mano" },
+      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
+        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos" },
+      { n: "Elevación de gemelos",s: 2, r: "15",          kg: 15,
+        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano" },
+      { n: "Pallof",              s: 2, r: "10 por lado", goma: 9,
+        nota: "Tubo azul en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado" },
+      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 15, nota: "Una de 7,5 en cada mano, sin balancear" }
     ]}
   ];
 
@@ -8019,7 +8051,12 @@
   /* Cuando el ejercicio se queda corto, por d\u00f3nde sigue. No es una sesi\u00f3n
      nueva: es el mismo hueco con m\u00e1s palanca. */
   var SIGUIENTE = {
-    "Sentadilla goblet":   "Sentadilla b\u00falgara, o con banda pisada",
+    "Sentadilla goblet":   "Sentadilla con mochila cargada; despu\u00e9s b\u00falgara, o con banda pisada",
+    "Zancadas":            "Mochila cargada en vez de mancuernas, o sentadilla b\u00falgara",
+    "Empuje de cadera":    "Banda de anilla sobre la cadera, sujeta al suelo con las mancuernas; o a una pierna",
+    "Elevaci\u00f3n de gemelos": "A una pierna, con la misma mancuerna",
+    "Curl de b\u00edceps":      "Goma plana pisada y enganchada a la mancuerna",
+    "Pallof":              "Tubo verde, o separarse un paso m\u00e1s del anclaje",
     "Peso muerto rumano":  "Peso muerto a una pierna",
     "Jal\u00f3n":              "Dominadas asistidas, cuando haya de d\u00f3nde colgarse",
     "Press de banca":      "M\u00e1s peso; y si falta, un cuarto ejercicio",
@@ -8524,20 +8561,10 @@
     h += "</div></div>";
     if (estSem && estSem.ofrece && estSem.ofrece.length) h += htmlOfrece(hoy, sem, estSem);
 
-    /* cabecera */
-    h += '<div class="tarjeta ent-cab">' +
-      '<img src="' + img + '" alt="" onerror="this.style.display=\'none\'">' +
-      '<div class="centro"><span class="ent-etq">Semana ' + sem.n + " · " + U.esc(pl.nombre) + "</span>" +
-      "<h2>El Plan</h2>" +
-      '<p class="nota-peque">' + U.etiquetaFecha(sem.desde) + " – " + U.etiquetaFecha(sem.hasta) +
-        " · carga objetivo <b>" + sem.carga + "</b>" + (sem.nota ? " · " + U.esc(sem.nota) : "") + "</p></div>" +
-      '<div class="ent-racha"><b>' + racha() + "</b><span>días seguidos</span></div>" +
-      '<div class="ent-talla"><span class="nota-peque">Esta semana va como</span><select id="ent-talla">' +
-      ["R", "A", "B", "S"].map(function (k) {
-        return '<option value="' + k + '"' + (k === talla ? " selected" : "") + ">" +
-          U.esc(P.plantillas[k].nombre) + "</option>";
-      }).join("") +
-      '</select><small class="pie">' + U.esc(pl.pie) + "</small></div></div>";
+    /* 25-sep-2026: la tarjeta grande de cabecera («Semana 1 · El Plan», fechas,
+       días seguidos y el selector) se fue. Carlos: «me parece todo muy grande…
+       y no sé si poder moverlo para ver las siguientes semanas». Su información
+       vive ahora en UNA línea dentro de «La semana», y sigue a las flechas. */
 
     /* qué decidió el pase del lunes, y por qué esta semana es la que es */
     h += htmlPaseAplicado(sem);
@@ -8558,6 +8585,24 @@
         })() + "</h2>" +
       '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
       "</div>" +
+      (function () {
+        var sx = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
+        if (!sx) return "";
+        var tx = tallaDe(sx), px = P.plantillas[tx] || {};
+        var pasada = sx.hasta < hoy, actual = hoy >= sx.desde && hoy <= sx.hasta;
+        return '<div class="ent-semlinea">' +
+          '<div class="info"><b>Semana ' + sx.n + " · " + U.esc(String(px.nombre || tx).replace(/^Semana\s+/, "")) + "</b> · " +
+            U.etiquetaFecha(sx.desde) + " – " + U.etiquetaFecha(sx.hasta) +
+            (sx.nota ? '<span class="nota"> · ' + U.esc(sx.nota) + "</span>" : "") + "</div>" +
+          '<div class="ctrl">' +
+            (actual ? '<span class="racha-mini"><b>' + racha() + "</b> días seguidos</span>" : "") +
+            '<label>va como <select id="ent-talla" data-sem-desde="' + sx.desde + '"' +
+              (pasada ? " disabled" : "") + ' title="' + U.esc(px.pie || "") + '">' +
+            ["R", "A", "B", "S"].map(function (k) {
+              return '<option value="' + k + '"' + (k === tx ? " selected" : "") + ">" +
+                U.esc(P.plantillas[k].nombre) + "</option>";
+            }).join("") + "</select></label></div></div>";
+      })() +
       "";
     /* ---------- LA BANDEJA Y EL TABLERO (24-sep-2026) ----------
        La tira de los siete días pasa a ser el tablero donde se reparten los
@@ -9467,8 +9512,10 @@
         return;                       // sin repintar: se perdería el cursor del texto
       }
       if (t.id === "ent-talla") {
-        var sem = semanaDe(U.hoyISO());
-        if (sem) { ent().talla[sem.desde] = t.value; A.guardar("entreno"); pintar(); }
+        /* la semana que se enseña (sigue a las flechas), no siempre la de hoy */
+        var desdeT = t.getAttribute("data-sem-desde");
+        var sem = desdeT ? semanaDe(desdeT) : semanaDe(U.hoyISO());
+        if (sem) { ent().talla[sem.desde] = t.value; A.guardar("entreno"); pintarConservando(); }
       }
     });
 
