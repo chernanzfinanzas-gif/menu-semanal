@@ -7347,16 +7347,29 @@
   function svgCurva(ser) {
     if (!ser.length) return "";
     var W = 1000, H = 190, HF = 96, n = ser.length;
-    var mx = 1;
-    ser.forEach(function (x) { mx = Math.max(mx, x.c, x.ctl, x.atl); });
-    function X(i) { return 36 + i * (W - 46) / (n - 1); }
+    /* 25-sep-2026: DOS ESCALAS. Con una sola, las barras de carga del día
+       (cientos de puntos) aplastaban forma y fatiga contra el suelo. Ahora las
+       líneas usan su propia escala (izquierda) y las barras la suya (derecha). */
+    var mx = 1, mxB = 1;
+    ser.forEach(function (x) { mx = Math.max(mx, x.ctl, x.atl); mxB = Math.max(mxB, x.c); });
+    mx = Math.ceil(mx * 1.1 / 10) * 10;
+    mxB = Math.ceil(mxB / 50) * 50;
+    function X(i) { return 36 + i * (W - 76) / (n - 1); }
     function Y(v) { return H - (v / mx) * (H - 10); }
+    function YB(v) { return H - (v / mxB) * (H - 10); }
+    var ejes = "";
+    [0, 0.5, 1].forEach(function (k) {
+      var y = (H - k * (H - 10)).toFixed(0);
+      ejes += '<line x1="36" y1="' + y + '" x2="' + (W - 40) + '" y2="' + y + '" stroke="#eef2f5"/>' +
+        '<text x="30" y="' + (+y + 3) + '" font-size="9" fill="#4fb3e8" text-anchor="end">' + Math.round(mx * k) + "</text>" +
+        '<text x="' + (W - 34) + '" y="' + (+y + 3) + '" font-size="9" fill="#9aa8c4">' + Math.round(mxB * k) + "</text>";
+    });
     var barras = "", ctl = "", atl = "", forma = "", meses = "";
     var fmin = -40, fmax = 25;
     function Yf(v) { return 6 + (fmax - v) / (fmax - fmin) * (HF - 16); }
     ser.forEach(function (x, i) {
-      if (x.c > 0) barras += '<rect x="' + (X(i) - 1.1).toFixed(1) + '" y="' + Y(x.c).toFixed(1) +
-        '" width="2.2" height="' + (H - Y(x.c)).toFixed(1) + '" fill="#dbe3f2"/>';
+      if (x.c > 0) barras += '<rect x="' + (X(i) - 1.1).toFixed(1) + '" y="' + YB(x.c).toFixed(1) +
+        '" width="2.2" height="' + (H - YB(x.c)).toFixed(1) + '" fill="#b9c6e2" opacity=".55"/>';
       ctl += X(i).toFixed(1) + "," + Y(x.ctl).toFixed(1) + " ";
       atl += X(i).toFixed(1) + "," + Y(x.atl).toFixed(1) + " ";
       forma += X(i).toFixed(1) + "," + Yf(Math.max(fmin, Math.min(fmax, x.fo))).toFixed(1) + " ";
@@ -7370,14 +7383,14 @@
     var min = ser.reduce(function (a, x) { return Math.min(a, x.fo); }, 0);
     var rojos = ser.filter(function (x) { return x.fo < -30; }).length;
     return '<svg class="ramp-svg" viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' +
-      '<line x1="36" y1="' + H + '" x2="' + (W - 8) + '" y2="' + H + '" stroke="#d6dde4"/>' +
-      meses + barras +
-      '<polygon points="' + area + '" fill="#dcecf7" opacity=".9"/>' +
+      ejes + '<line x1="36" y1="' + H + '" x2="' + (W - 40) + '" y2="' + H + '" stroke="#d6dde4"/>' +
+      meses +
+      '<polygon points="' + area + '" fill="#dcecf7" opacity=".6"/>' + barras +
       '<polyline points="' + atl + '" fill="none" stroke="#5b3fa8" stroke-width="1" opacity=".8"/>' +
       '<polyline points="' + ctl + '" fill="none" stroke="#4fb3e8" stroke-width="2.3"/>' +
       "</svg>" +
       leyenda([{ n: "forma (CTL)", color: "#4fb3e8" }, { n: "fatiga (ATL)", color: "#5b3fa8" },
-               { n: "carga del día", color: "#dbe3f2" }]) +
+               { n: "carga del día (escala de la derecha)", color: "#b9c6e2" }]) +
       '<p class="ramp-sub">Balance <small>— la banda roja es sobreentrenamiento</small></p>' +
       '<svg class="ramp-svg" viewBox="0 0 ' + W + " " + HF + '" preserveAspectRatio="xMidYMid meet">' +
       '<rect x="36" y="' + Yf(25).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(5) - Yf(25)).toFixed(0) + '" fill="#fdf6e6"/>' +
@@ -7977,7 +7990,13 @@
     return m ? m[1] : null;
   }
 
-  function abrirVideo(nombre) {
+  /* 25-sep-2026: el «cómo se hace» de la rutina EMERGENTE no hacía nada. La
+     ventana cuelga de #modal, fuera de la pestaña, y el clic de [data-video]
+     sólo lo atendía la pestaña. Ahora lo atiende también el manejador de la
+     ventana, y el vídeo lleva «Volver a la rutina» si vino de ella. */
+  var rutinaAbierta = null;
+
+  function abrirVideo(nombre, volverA) {
     var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
     var url = VIDEOS[nombre];
     if (!caja || !modal || !url) return;
@@ -7993,6 +8012,8 @@
     }
     h += '<p class="nota-peque">Si no se ve aqu\u00ed es que su autor no permite incrustarlo: ' +
       '<a href="' + U.esc(url) + '" target="_blank" rel="noopener">\u00e1brelo en YouTube</a>.</p>' +
+      (volverA ? '<button class="btn" type="button" data-volver-rutina="' + U.esc(volverA) + '" ' +
+        'style="width:100%;margin-top:14px">\u2190 Volver a la rutina</button>' : "") +
       '<button class="btn principal" type="button" data-cerrar-guia="1" ' +
       'style="width:100%;margin-top:14px">Cerrar</button>';
 
@@ -8245,6 +8266,7 @@
     SESIONES.forEach(function (x) { if (x.id === id) ses = x; });
     var cuerpo = cuerpoRutina(id, tengo(), true);
     if (!ses || cuerpo === null) return;
+    rutinaAbierta = id;
     caja.innerHTML = "<header><h2>" + U.esc(ses.n) + "</h2>" +
       '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
       cuerpo +
@@ -9441,6 +9463,11 @@
         }
         return;
       }
+      /* el «cómo se hace» de la rutina emergente: vive en la ventana */
+      var vidM = e.target.closest ? e.target.closest("[data-video]") : null;
+      if (vidM) { e.preventDefault(); abrirVideo(vidM.getAttribute("data-video"), rutinaAbierta); return; }
+      var volR = e.target.closest ? e.target.closest("[data-volver-rutina]") : null;
+      if (volR) { e.preventDefault(); abrirRutina(volR.getAttribute("data-volver-rutina")); return; }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarGuia(); });
