@@ -3686,7 +3686,11 @@
       });
 
       /* el yogur y el pan tostado de comida y cena van siempre */
-      this.olvidarVaciadas(fecha);   /* lo pides tú: los fijos vuelven */
+      /* La plantilla REHACE el día desde el molde, así que aquí sí se olvida
+         todo lo que habías decidido para ese día: las tomas que vaciaste y los
+         fijos que quitaste. Es lo que quieres al empezar de cero. */
+      this.olvidarVaciadas(fecha);
+      this.olvidarQuitados(fecha);
       puesto += this.ponerFijos(fecha);
 
       /* El bidón entra SIEMPRE en un día de ruta: es el único sitio del recetario
@@ -3727,6 +3731,50 @@
       if (d) delete d.sinFijos;
     },
 
+    /* ---------- QUITAR UN FIJO SIN VACIAR LA TOMA (25-sep-2026) ----------
+       El guardián de arriba mira si la TOMA quedó vacía. Carlos borró sólo el
+       yogur con copos de una comida que tenía otros cuatro platos, así que la
+       toma nunca estuvo vacía, no quedó ninguna marca, y al pulsar «Completar»
+       el yogur volvió. Su frase: «no sé si ese yogur con copos de avena lo
+       borré, volvió a ponerse solo.. creo recordar que lo borré».
+
+       Y lo había borrado. El fallo es que la app anotaba «has vaciado esta
+       toma» cuando lo que él había dicho era «hoy este plato no». Son dos cosas
+       distintas y ahora se anotan por separado: la decisión es POR PLATO.
+
+       Cuánto dura: sobrevive a «Completar», que sólo rellena huecos y no tiene
+       por qué resucitar lo que acabas de quitar. La PLANTILLA sí lo olvida,
+       porque rehace el día entero desde el molde — ahí estás empezando de cero
+       a propósito. Y volver a ponerlo a mano lo borra, como es lógico. */
+    quitarFijo: function (fecha, toma, receta) {
+      var esFijo = false;
+      (this.estado.config.fijos || []).forEach(function (f) {
+        if (f.r === receta && (f.tomas || []).indexOf(toma) >= 0) esFijo = true;
+      });
+      if (!esFijo) return false;
+      var d = this.asegurarDia(fecha);
+      if (!d.quitados) d.quitados = {};
+      if (!d.quitados[toma]) d.quitados[toma] = [];
+      if (d.quitados[toma].indexOf(receta) < 0) d.quitados[toma].push(receta);
+      return true;
+    },
+    olvidarQuitado: function (fecha, toma, receta) {
+      var d = this.estado.plan[fecha];
+      if (!d || !d.quitados || !d.quitados[toma]) return;
+      d.quitados[toma] = d.quitados[toma].filter(function (x) { return x !== receta; });
+      if (!d.quitados[toma].length) delete d.quitados[toma];
+      if (!Object.keys(d.quitados).length) delete d.quitados;
+    },
+    olvidarQuitados: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (d) delete d.quitados;
+    },
+    estaQuitado: function (fecha, toma, receta) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.quitados && d.quitados[toma] &&
+                d.quitados[toma].indexOf(receta) >= 0);
+    },
+
     ponerFijos: function (fecha) {
       if (this.esPasado(fecha)) return 0;
       var d = this.asegurarDia(fecha);
@@ -3737,6 +3785,7 @@
         (f.tomas || []).forEach(function (toma) {
           if (self.esFuera(fecha, toma)) return;
           if (self.estaVaciada(fecha, toma)) return;   /* la vaciaste tú */
+          if (self.estaQuitado(fecha, toma, f.r)) return;  /* este plato lo quitaste tú */
           if (ficha.mochila.indexOf(toma) >= 0) return;
           if (!d[toma]) d[toma] = [];
           if (d[toma].indexOf(f.r) >= 0) return;
@@ -3784,7 +3833,10 @@
       var objetivo = this.objetivoDelDia(fecha);
       if (!objetivo) return { motivo: "sin-objetivo" };
 
-      this.olvidarVaciadas(fecha);   /* lo pides tú: los fijos vuelven */
+      /* «Completar» rellena huecos: puede devolver los fijos a una toma que
+         vaciaste entera, pero NO resucita un plato que has quitado a propósito
+         hoy. Ésa es la diferencia con la plantilla. */
+      this.olvidarVaciadas(fecha);
       var puestos = this.ponerFijos(fecha);
 
       /* lo que ya hay esta semana, para no repetir */

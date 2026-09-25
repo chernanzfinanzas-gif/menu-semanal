@@ -1019,6 +1019,8 @@
       var dia = Almacen.asegurarDia(fecha);
       var estabaVacia = !(dia[toma] || []).length;
       dia[toma].push(idReceta);
+      /* si lo vuelves a poner tú, ya no está quitado */
+      Almacen.olvidarQuitado(fecha, toma, idReceta);
       if (estabaVacia) Almacen.ponerFijos(fecha);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
@@ -1335,8 +1337,12 @@
      Carlos lo volvió a sufrir: la ✕ de cada plato es `data-quitartodo`, no
      `data-quitar`, y el «−» del contador es un tercero. Si la toma se queda
      vacía por cualquiera de ellos, queda anotado y los fijos no vuelven solos. */
-  function tocarYGuardarToma(fecha, toma) {
+  /* `quitado` es la receta que se acaba de sacar, cuando se sabe cuál. Si es uno
+     de los fijos, queda anotado que HOY no lo quieres — que no es lo mismo que
+     haber vaciado la toma, y era justo lo que faltaba. */
+  function tocarYGuardarToma(fecha, toma, quitado) {
     var d = Almacen.estado.plan[fecha];
+    if (quitado) Almacen.quitarFijo(fecha, toma, quitado);
     if (d && !(d[toma] || []).length) Almacen.marcarVaciada(fecha, toma, true);
     Almacen.tocarDia(fecha);
     Almacen.guardar("plato");
@@ -5082,7 +5088,11 @@
       if (menos) {
         var pn = menos.getAttribute("data-menos").split("|");
         var dn = Almacen.estado.plan[pn[0]];
-        if (dn && dn[pn[1]]) { dn[pn[1]].splice(parseInt(pn[2], 10), 1); tocarYGuardarToma(pn[0], pn[1]); }
+        if (dn && dn[pn[1]]) {
+          var fueraN = dn[pn[1]][parseInt(pn[2], 10)];
+          dn[pn[1]].splice(parseInt(pn[2], 10), 1);
+          tocarYGuardarToma(pn[0], pn[1], fueraN);
+        }
         return;
       }
       var quitarT = e.target.closest("[data-quitartodo]");
@@ -5091,7 +5101,7 @@
         var dt = Almacen.estado.plan[qt[0]];
         if (dt && dt[qt[1]]) {
           dt[qt[1]] = dt[qt[1]].filter(function (x) { return x !== qt[2]; });
-          tocarYGuardarToma(qt[0], qt[1]);
+          tocarYGuardarToma(qt[0], qt[1], qt[2]);
         }
         return;
       }
@@ -5203,7 +5213,11 @@
       if (quitar) {
         var q = quitar.getAttribute("data-quitar").split("|");
         var dia = Almacen.estado.plan[q[0]];
-        if (dia && dia[q[1]]) { dia[q[1]].splice(+q[2], 1); tocarYGuardarToma(q[0], q[1]); }
+        if (dia && dia[q[1]]) {
+          var fueraQ = dia[q[1]][+q[2]];
+          dia[q[1]].splice(+q[2], 1);
+          tocarYGuardarToma(q[0], q[1], fueraQ);
+        }
         return;
       }
       var ficha = e.target.closest("[data-ficha]");
