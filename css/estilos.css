@@ -575,6 +575,9 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .pase-portada.fin .tic{font-size:2.4rem; color:var(--verde); line-height:1}
 .btn.grande{width:100%; max-width:320px; padding:15px 18px; font-size:1rem; font-weight:650;
   background:var(--verde); color:#fff; border-color:var(--verde)}
+/* Dentro de la ficha es el botón de «ya está», no el protagonista: los atajos
+   son lo que se toca. Se queda más bajo para que no compita con ellos. */
+.ficha-cuerpo .btn.grande{padding:11px 16px; font-size:.9rem; max-width:260px}
 
 /* la ficha */
 .ficha-pase{background:var(--blanco); border:1px solid var(--borde); border-radius:14px;
@@ -607,8 +610,11 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .cuenta-fila .cifra span{font-size:.74rem; color:var(--gris)}
 .btn.redondo{width:54px; height:54px; border-radius:50%; font-size:1.5rem; padding:0;
   display:flex; align-items:center; justify-content:center}
-.atajos{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:16px}
-.atajos .btn.mini{min-width:42px}
+/* Los atajos, en dos filas y gordos (Carlos, 25-sep-2026, probándolo en el
+   móvil). Cuatro columnas: con seis atajos salen 4+2 y con siete 4+3, así que
+   siempre son dos filas y cada botón se toca sin mirar. */
+.atajos{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px}
+.atajos .btn.mini{min-width:0; padding:15px 4px; font-size:1.05rem; font-weight:650}
 .atajos .btn.mini.activo{background:var(--verde); color:#fff; border-color:var(--verde)}
 .quees{font-size:.76rem; color:var(--gris); margin:-4px 0 14px}
 .niveles-ficha ~ .quees{margin-top:10px; margin-bottom:0}
