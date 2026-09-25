@@ -3242,17 +3242,22 @@
 
   /* La línea de la lista lleva el mismo control que la ficha —menos, cifra,
      más—, para poder retocar una cosa suelta sin entrar en el pase. */
+  /* UNA LÍNEA POR COSA, QUE PAREZCA UNA LISTA. Cada fila era una tarjeta con
+     los botones en un renglón aparte y ocupaba lo mismo que una ficha del
+     pase; con dieciséis en la puerta, eso es scroll para nada. (Carlos,
+     25-sep-2026: «debería ocupar menos… que parezca una lista».)
+     Ahora: nombre y estado a la izquierda, y a la derecha el mismo − cifra +.
+     Todo en un renglón. */
   function lineaTengo(x, donde) {
     var paso = x.piezaUd ? 1 : 0.5;
-    return '<div class="linea linea-pas linea-tengo' + (x.piezas > 0 ? " anotada" : "") +
+    return '<div class="linea linea-tengo' + (x.piezas > 0 ? " anotada" : "") +
       '" data-tengofila="' + esc(x.id) + '">' +
       '<div class="datos"><div class="nombre">' + esc(x.n) + "</div>" +
       '<div class="detalle">' + detalleTengo(x, donde) + "</div></div>" +
-      '<div class="pas-btns niveles">' +
+      '<div class="paso">' +
         '<button type="button" class="btn mini" data-cuentapaso="' + esc(x.id) + "|" + (-paso) + '">−</button>' +
         '<span class="cuenta-lista">' + cifra(x.piezas || 0) + "</span>" +
         '<button type="button" class="btn mini" data-cuentapaso="' + esc(x.id) + "|" + paso + '">+</button>' +
-        '<button type="button" class="btn mini" data-cuenta="' + esc(x.id) + '|0">Nada</button>' +
       "</div></div>";
   }
 
@@ -3378,9 +3383,16 @@
     cont.innerHTML =
       '<div class="ficha-pase">' +
         '<div class="ficha-cab">' +
-          '<button type="button" class="btn mini" data-paseatras="1"' +
-            (UI.pase.i ? "" : " disabled") + ">&lsaquo;</button>" +
-          '<div class="donde">' + esc(p.estante) + " · " + (UI.pase.i + 1) + " de " + p.fichas.length + "</div>" +
+          /* Atrás Y ADELANTE. Sólo había atrás, y apenas se veía. Carlos,
+             25-sep-2026: «debería permitir avanzar y atrasar para comprobar
+             cosas». Pasar de largo no contesta nada ni sella el estante: sólo
+             mueve la ficha, para poder mirar sin tocar. */
+          '<button type="button" class="btn nav" data-paseatras="1"' +
+            (UI.pase.i ? "" : " disabled") + ' aria-label="Anterior">&#8249;</button>' +
+          '<div class="donde">' + esc(p.estante) + "<span>" + (UI.pase.i + 1) +
+            " de " + p.fichas.length + "</span></div>" +
+          '<button type="button" class="btn nav" data-pasedelante="1"' +
+            (UI.pase.i + 1 < p.fichas.length ? "" : " disabled") + ' aria-label="Siguiente">&#8250;</button>' +
           '<button type="button" class="btn mini" data-pasesalir="1">Salir</button>' +
         "</div>" +
         '<div class="barra"><span style="width:' + pct + '%"></span></div>' +
@@ -5279,6 +5291,11 @@
       }
       if (e.target.closest("[data-paseatras]")) {
         if (UI.pase.i > 0) UI.pase.i--;
+        UI.pase.vista = "ficha"; pintarLoTengo(); return;
+      }
+      if (e.target.closest("[data-pasedelante]")) {
+        var pd = Almacen.pase(UI.pase.estante);
+        if (pd && UI.pase.i + 1 < pd.fichas.length) UI.pase.i++;
         UI.pase.vista = "ficha"; pintarLoTengo(); return;
       }
       var bs = e.target.closest("[data-pasesig]");

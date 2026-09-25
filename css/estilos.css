@@ -497,19 +497,29 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 /* ¿Lo tengo?: la cifra siempre visible —se escribe mucho más que en la pasada
    de antes de comprar, porque aquí no hay un menú que diga cuánto hace falta—
    y la línea ya anotada, con un punto de color para verla de lejos. */
-#rejilla-tengo .linea-tengo{margin:0 13px 6px}
-#rejilla-tengo .linea-tengo .detalle{display:block; font-size:.76rem; line-height:1.35}
-#rejilla-tengo .linea-tengo.anotada{border-left:3px solid var(--verde)}
+/* La lista, compacta: un renglón por cosa. Sin tarjeta, sin sombra y sin
+   hueco entre filas — una línea divisoria y ya. */
+#rejilla-tengo .linea-tengo{margin:0 13px; padding:9px 2px 9px 10px; gap:10px;
+  border:0; border-bottom:1px solid var(--borde); border-radius:0;
+  background:none; box-shadow:none; align-items:center; flex-wrap:nowrap}
+#rejilla-tengo .linea-tengo .datos{flex:1 1 auto; min-width:0}
+#rejilla-tengo .linea-tengo .nombre{font-size:.88rem; line-height:1.25;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#rejilla-tengo .linea-tengo .detalle{display:block; font-size:.72rem; line-height:1.3;
+  color:var(--gris); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#rejilla-tengo .linea-tengo.anotada{border-left:3px solid var(--verde); padding-left:7px}
+#rejilla-tengo .linea-tengo .paso{flex:0 0 auto; display:flex; align-items:center; gap:2px}
+#rejilla-tengo .linea-tengo .paso .btn.mini{width:36px; height:36px; padding:0;
+  border-radius:50%; font-size:1.1rem; display:flex; align-items:center; justify-content:center}
+#rejilla-tengo .linea-tengo .cuenta-lista{min-width:34px; text-align:center;
+  font-size:1rem; font-weight:650}
 /* Tres niveles y nada más. Sin campo de cifra la línea cabe en dos renglones y
    entran siete u ocho por pantalla, que es lo que hace llevadera una pasada de
    ciento cincuenta. Los tres botones se reparten el ancho a partes iguales para
    que se acierte con el dedo sin mirar. */
 /* La lista lleva el mismo control que la ficha: menos, cifra, más. Y un
    «Nada» al lado, que es la respuesta más frecuente y merece su botón. */
-#rejilla-tengo .niveles{gap:8px; flex:1 1 100%; align-items:center; justify-content:flex-start}
-#rejilla-tengo .niveles .btn.mini{padding:9px 14px; font-size:.95rem}
-#rejilla-tengo .niveles .cuenta-lista{min-width:44px; text-align:center;
-  font-size:1.15rem; font-weight:650}
+
 #rejilla-tengo .linea-tengo.anotada .nombre{font-weight:650}
 #rejilla-tengo .linea-tengo .donde{color:var(--gris)}
 
@@ -586,8 +596,16 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 /* la ficha */
 .ficha-pase{background:var(--blanco); border:1px solid var(--borde); border-radius:14px;
   margin:0 13px; overflow:hidden}
-.ficha-cab{display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--borde)}
-.ficha-cab .donde{flex:1; text-align:center; font-size:.78rem; color:var(--gris)}
+.ficha-cab{display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--borde)}
+.ficha-cab .donde{flex:1; text-align:center; font-size:.78rem; color:var(--gris);
+  line-height:1.2; min-width:0}
+.ficha-cab .donde span{display:block; font-size:.72rem; opacity:.8}
+/* Las flechas se tienen que ver: antes eran un «‹» de tamaño de texto dentro
+   de un botón pequeño y se perdían. (Carlos, 25-sep-2026.) */
+.btn.nav{flex:0 0 auto; width:42px; height:42px; padding:0; border-radius:50%;
+  font-size:1.5rem; line-height:1; display:flex; align-items:center; justify-content:center;
+  color:var(--verde); border-color:var(--verde-borde)}
+.btn.nav[disabled]{opacity:.3; color:var(--gris); border-color:var(--borde)}
 .ficha-pase .barra{height:3px; background:var(--gris-claro)}
 .ficha-pase .barra span{display:block; height:100%; background:var(--verde); transition:width .25s ease}
 .ficha-cuerpo{padding:22px 16px 16px; text-align:center}
