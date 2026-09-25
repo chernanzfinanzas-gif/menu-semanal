@@ -653,6 +653,10 @@
       ".ent-dia .dc i{font-size:.52rem;font-style:normal;font-weight:700;letter-spacing:.06em;" +
         "text-transform:uppercase;color:var(--gris)}",
       ".ent-dia.ok .dc b{color:var(--verde)}",
+      /* «fuerza» en vez de un cero: mismo sitio, mismo tamaño que el rótulo de
+         carga, y en el morado de los bloques de fuerza para que se reconozca de
+         un vistazo como lo que es. */
+      ".ent-dia .dc.solo-fuerza i{font-size:.58rem;color:var(--morado,#6b4fa0)}",
       ".sem-carga{display:block;font-size:.68rem;font-weight:700;color:var(--gris);" +
         "text-transform:uppercase;letter-spacing:.05em;margin-top:2px}",
       /* LA × DE NO DISP, más grande y más roja  ·  24-sep-2026 (Carlos).
@@ -8145,7 +8149,16 @@
     if (matVista === "material")    return pantMaterial(s);
     if (matVista === "movimientos") return pantMovimientos(s);
     if (matVista === "rutinas")     return pantRutinas(s);
-    if (matVista === "A" || matVista === "B") return pantRutina(matVista, s);
+    /* CUALQUIER SESIÓN, NO SÓLO LA A Y LA B (25-sep-2026). Estaba escrito a
+       mano: «si es A o si es B». El 25 se montó Fuerza C, se le puso su fila en
+       la lista —y al pulsarla no pasaba nada, porque la C no encajaba en esa
+       condición y caía en la portada. Carlos: «Rutinas de material y
+       movimientos, Fuerza C, no sale nada».
+       Ahora se pregunta a la propia lista de sesiones, así que la D del día que
+       haya una D funcionará sin tocar esta línea. */
+    for (var iS = 0; iS < SESIONES.length; iS++) {
+      if (SESIONES[iS].id === matVista) return pantRutina(matVista, s);
+    }
     return pantPortadaMat(s);
   }
 
@@ -8180,7 +8193,10 @@
     h += '<div class="ent-bloques">' +
       bloqueMV("rutinas", "Rutinas", "iconos/khb/3-pesas-corredor.webp",
                (toca ? "Hoy toca " + toca.n + ". " : "") +
-               "Fuerza A y Fuerza B: qu\u00e9 ejercicios, con qu\u00e9 peso y c\u00f3mo se hacen.") +
+               /* Los nombres salen de la lista: añadir una sesión no deja este
+                  texto mintiendo, que es lo que pasaba con la C. */
+               SESIONES.map(function (x) { return x.n; }).join(", ").replace(/, ([^,]*)$/, " y $1") +
+               ": qu\u00e9 ejercicios, con qu\u00e9 peso y c\u00f3mo se hacen.") +
       bloqueMV("movimientos", "Movimientos", "iconos/khb/7-yoga.webp",
                hechos + " de " + MOVIMIENTOS.length + " a mano. Lo que puedes hacer con lo que tienes, " +
                "m\u00fasculo a m\u00fasculo.") +
@@ -8705,9 +8721,31 @@
         (function () {
           if (!semF || noHab) return "";
           var c = cargaDeDia(f);
+          if (c === null) return "";
+          /* UN «0 CARGA» EN UN DÍA QUE ENTRENASTE ES MENTIRA POR OMISIÓN
+             (25-sep-2026). El viernes 25 tenía Fuerza B y la casilla decía
+             «0 CARGA». Carlos: «no ha añadido carga a las pesas hechas».
+
+             El cero es CORRECTO según lo que él mismo decidió —«la fuerza no se
+             mide en carga, se cuenta en sesiones: dos por semana, hechas o no
+             hechas, y nunca se recorta para cuadrar la carga»—, y la rampa
+             entera (130, 95, 105…) está calculada sin la fuerza dentro: meterle
+             ahora los 9-11 puntos medidos dejaría todas las semanas cortas de
+             golpe. Así que el número no se toca.
+             Lo que se arregla es lo que se LEE: donde la única sesión del día es
+             de fuerza, la esquina dice «fuerza» en vez de un cero que parece un
+             día perdido. El día que exista la carga activa, aquí irá su número.
+             Si además hay bici o caminata, el número sí significa algo y se
+             queda tal cual. */
+          var hayFuerza = false;
+          ss.forEach(function (x) { if (x.fam === "fuerza") hayFuerza = true; });
+          if (!c && hayFuerza) {
+            return '<span class="dc solo-fuerza" title="La fuerza no puntúa en la carga: ' +
+              'se cuenta por sesiones hechas o no hechas."><i>fuerza</i></span>';
+          }
           /* con su rótulo: un número suelto al lado del punto no dice qué es.
              (Carlos, 24-sep-2026.) */
-          return c === null ? "" : '<span class="dc"><b>' + c + "</b><i>carga</i></span>";
+          return '<span class="dc"><b>' + c + "</b><i>carga</i></span>";
         })() + "</span></div>";
     }
     h += "</div>";
