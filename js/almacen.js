@@ -4614,9 +4614,20 @@
           cajon: self.cajonDe(ing),
           tienda: self.tiendaDe(ing),
           unidad: ing.u,
-          texto: envases > 0
-            ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd))
-            : Util.formatearCantidad(comprar, ing.u),
+          /* LA CIFRA DEL PARÉNTESIS ES DE UN ENVASE, NO DE TODOS (25-sep-2026).
+             «2 × 6 ud (330 g)» son dos hueveras de seis huevos, y 330 g es lo
+             que pesa UNA. Doce huevos son 660. Se lee bien si separas el «2 ×»
+             y se lee mal si lo lees de corrido, y Carlos lo leyó de corrido —
+             con razón, porque en esta app los gramos son la moneda: la sal y
+             las calorías salen de ahí.
+             A partir de dos envases se dice también el total. Con uno solo no,
+             que sería repetir el mismo número dos veces. */
+          texto: envases > 1
+            ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd) +
+               " \u00b7 " + Util.cantidadReceta(envases * ing.envase, ing.u, ing.pesoUd) + " en total")
+            : (envases > 0
+                ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd))
+                : Util.formatearCantidad(comprar, ing.u)),
           pesoUd: ing.pesoUd || 0,
           /* Lo que pide el menú se enseña SIN redondear: `formatearCantidad` redondea
              a decenas porque está pensado para lo que se compra, y con ella dos gramos
