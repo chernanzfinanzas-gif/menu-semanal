@@ -25,6 +25,7 @@
     busquedaHogar: "",
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
+    buscaQuiero: "",        /* el buscador de «lo quiero esta vez», en la Compra */
     cajonHogar: "",
     busquedaDespensa: "",
     verTodoPend: false,     // caja de «comprado y sin comer»: enseñar los 8 primeros o todos
@@ -2694,6 +2695,22 @@
         Almacen.CAJONES.map(function (c) {
           return '<option value="' + esc(c.k) + '"' + (g.cajon === c.k ? " selected" : "") + '>' + esc(c.n) + '</option>';
         }).join("") + '</select></label></div>';
+    /* ---------- EL MÍNIMO EN CASA ----------
+       Para lo que ningún plato pide: bebidas, leche, zumo. Se cuenta en piezas
+       —latas, briks, botellas—, que es como se mira la nevera. (Carlos,
+       25-sep-2026: «cervezas Mahou 7 ud, el pack es de 12 o 24, sólo compro
+       cuando queden menos de 7».) */
+    html += '<div class="fila">' +
+      '<label class="campo" style="flex:1 1 150px"><span>Mínimo en casa</span>' +
+        '<input type="number" id="ig-minimo" min="0" step="1" value="' +
+          (g.minimo > 0 ? g.minimo : "") + '" placeholder="sin mínimo">' +
+        '<span class="nota-peque" style="font-weight:400">Cuántas piezas quieres tener ' +
+          'siempre. Si bajas de ahí, entra en la compra aunque ningún plato lo pida.</span></label>' +
+      '<label class="campo" style="flex:1 1 150px"><span>Se compra de</span>' +
+        '<input type="number" id="ig-lote" min="0" step="1" value="' +
+          (g.lote > 0 ? g.lote : "") + '" placeholder="1">' +
+        '<span class="nota-peque" style="font-weight:400">Piezas por lote: un pack de 12 ' +
+          'latas, 6 briks de leche. Se pide el lote entero.</span></label></div>';
     html += '<div class="fila">' +
       '<label class="campo" style="flex:1 1 150px"><span>Raci\u00f3n habitual (' + esc(g.u || "g") + ')</span>' +
         '<input type="number" id="ig-racion" min="0" step="0.5" value="' + (g.racion != null ? g.racion : "") + '">' +
@@ -2754,11 +2771,20 @@
         return;
       }
       var num = function (sel) { var v = parseFloat($(sel).value.replace(",", ".")); return isNaN(v) ? 0 : v; };
-      var res = {
-        id: g.id || ("ing_" + Date.now().toString(36)),
-        n: nombre, cat: $("#ig-cat").value, u: $("#ig-u").value,
-        sal: num("#ig-sal"), k: num("#ig-k"), p: num("#ig-p"), g: num("#ig-g"), h: num("#ig-h")
-      };
+      /* SE PARTE DE LA FICHA, NO DE CERO. (25-sep-2026.) Esto construía un
+         objeto nuevo con ocho campos y lo demás se perdía al guardar: el
+         formato, los trucos, la revisión, el mínimo… Se veía que alguien ya lo
+         había notado, porque `compra` y `nota` estaban rescatados a mano uno a
+         uno; el siguiente campo que añadiéramos volvía a caerse. Copiando la
+         ficha entera y pisando sólo lo del formulario, eso no vuelve a pasar. */
+      var res = JSON.parse(JSON.stringify(g || {}));
+      res.id = g.id || ("ing_" + Date.now().toString(36));
+      res.n = nombre; res.cat = $("#ig-cat").value; res.u = $("#ig-u").value;
+      res.sal = num("#ig-sal"); res.k = num("#ig-k");
+      res.p = num("#ig-p"); res.g = num("#ig-g"); res.h = num("#ig-h");
+      /* los que el formulario manda: si los dejas en blanco, se quitan */
+      ["pesoUd", "basico", "racion", "producto", "suplente", "envase", "cajon", "minimo", "lote"]
+        .forEach(function (k2) { delete res[k2]; });
       var peso = parseFloat($("#ig-peso").value);
       if (res.u === "ud" && peso > 0) res.pesoUd = peso;
       if ($("#ig-basico").checked) res.basico = true;
@@ -2775,7 +2801,10 @@
       if (caj) res.cajon = caj;
       var nota = $("#ig-nota").value.trim();
       if (nota) res.nota = nota; else if (g.nota) res.nota = g.nota;
-      if (g.compra) res.compra = g.compra;
+      var mn = parseFloat(String(($("#ig-minimo") || {}).value || "").replace(",", "."));
+      if (mn > 0) res.minimo = mn;
+      var lt = parseFloat(String(($("#ig-lote") || {}).value || "").replace(",", "."));
+      if (lt > 0) res.lote = lt;
       res.editado = true;          /* a partir de ahora manda el tuyo: no lo piso */
 
       var idx = -1;
@@ -3361,6 +3390,7 @@
        latas quieres docenas. (Carlos, 25-sep.) */
     var n = x.piezas || 0;
     var paso = x.piezaUd ? 1 : 0.5;
+    var quiero = Almacen.quiereEstaVez(x.id);
     var botones = '<div class="cuenta-fila">' +
       '<button type="button" class="btn redondo" data-cuentapaso="' + esc(x.id) + "|" + (-paso) + '">−</button>' +
       '<div class="cifra"><b>' + cifra(n) + "</b><span>" +
@@ -3378,7 +3408,14 @@
             ? ", para " + Math.round(x.porEnvase) + " platos" : "") + "</div>"
         : "") +
       '<button type="button" class="btn grande" data-pasesig="' + esc(x.id) + "|" + n +
-        '">Apuntar y seguir</button>';
+        '">Apuntar y seguir</button>' +
+      /* «LO QUIERO ESTA VEZ», DESDE LA FICHA. Estás mirando el estante, ves que
+         quedan dos cervezas y decides que esta semana quieres más: el momento de
+         decirlo es éste, no dentro de tres pantallas. Es un interruptor, no un
+         mínimo: entra en la próxima lista y al confirmar la compra se olvida. */
+      '<button type="button" class="btn mini quierolo' + (quiero ? " activo" : "") +
+        '" data-quiero="' + esc(x.id) + '">' +
+        (quiero ? "\u2713 lo quieres esta vez" : "Lo quiero esta vez") + "</button>";
 
     cont.innerHTML =
       '<div class="ficha-pase">' +
@@ -3846,6 +3883,7 @@
     $("#compra-personas").textContent = pers === 1 ? "1 persona" : pers + " personas";
 
     pintarRecados();
+    pintarQuiero();
 
     var hogar = Almacen.compraHogar();
     var visible = function (l) { return UI.ocultarComprados ? !l.marcado : true; };
@@ -3969,6 +4007,77 @@
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar pedidos";
   }
 
+  /* ============ «LO QUE QUIERO ESTA VEZ» ============
+     La tercera manera de que algo entre en la lista, y la que faltaba.
+
+     Carlos, 25-sep-2026, al ver adónde llevaba ponerle un mínimo a cada bebida:
+     «espera que voy a comprar de más… la idea es mejorar mi alimentación y no voy
+     a tener refrescos azucarados, no deberían tener un stock mínimo; debería
+     añadirse una categoría para añadir a la lista de la compra algo por
+     capricho». Y luego: «los productos temporales que no compro en lo general…
+     quiero una bolsa de doritos por ejemplo».
+
+     Tiene razón en lo de fondo, y es la diferencia entre las dos cosas:
+       un MÍNIMO es una orden permanente — la app se compromete a que en tu casa
+         siempre haya siete cervezas, y cada semana las repone sin preguntar.
+       un CAPRICHO es de una vez — un toque, entra en esta lista, y al confirmar
+         la compra se borra. La semana que viene no vuelve solo.
+     Por eso los doritos NO llevan mínimo: si esta semana los quieres, los pides
+     a propósito, y ese pequeño gesto es justo la fricción que no había. */
+  function pintarQuiero() {
+    var cont = $("#bloque-quiero");
+    if (!cont) return;
+    var lista = Almacen.loQueQuieres();
+    var q = sinTildes((UI.buscaQuiero || "").trim().toLowerCase());
+
+    var res = "";
+    if (q) {
+      var hits = (Almacen.estado.ingredientes || []).filter(function (g) {
+        return !g.oculta && sinTildes(g.n.toLowerCase()).indexOf(q) >= 0 &&
+               !Almacen.quiereEstaVez(g.id);
+      }).slice(0, 8);
+      res = hits.length
+        ? hits.map(function (g) {
+            return '<button type="button" class="btn mini" data-quiero="' + esc(g.id) +
+              '">+ ' + esc(g.n.length > 42 ? g.n.slice(0, 40) + "\u2026" : g.n) + "</button>";
+          }).join("")
+        : '<span class="nota-peque">Nada con ese nombre.</span>';
+    }
+
+    cont.innerHTML =
+      '<div class="tarjeta quiero-bloque">' +
+        '<div class="fila entre">' +
+          "<div><strong>Lo que quiero esta vez</strong>" +
+            '<div class="nota-peque">Lo que no compras de normal y hoy s\u00ed. Entra en esta lista ' +
+            "y al dar a \u00abHa llegado\u00bb se olvida: la semana que viene no vuelve solo.</div></div>" +
+        "</div>" +
+        '<div class="fila" style="margin-top:6px">' +
+          '<input type="text" id="buscar-quiero" placeholder="Buscar para a\u00f1adir\u2026" ' +
+            'value="' + esc(UI.buscaQuiero || "") + '" style="flex:1; min-width:170px">' +
+        "</div>" +
+        (res ? '<div class="quiero-hits">' + res + "</div>" : "") +
+        (lista.length
+          ? lista.map(function (x) {
+              return '<div class="linea linea-quiero">' +
+                '<div class="datos"><div class="nombre">' + esc(x.n) + "</div>" +
+                '<div class="detalle">' + cifra(x.piezas) + " " + esc(x.comoSeLlama) +
+                  (x.pieza > 1 ? " \u00b7 " + esc(Util.cantidadReceta(x.pieza * x.piezas, x.u, x.pesoUd)) : "") +
+                  "</div></div>" +
+                '<div class="paso">' +
+                  '<button type="button" class="btn mini" data-quieropaso="' + esc(x.id) +
+                    '|-1">\u2212</button>' +
+                  '<span class="cuenta-lista">' + cifra(x.piezas) + "</span>" +
+                  '<button type="button" class="btn mini" data-quieropaso="' + esc(x.id) +
+                    '|1">+</button>' +
+                "</div>" +
+                '<button type="button" class="btn mini borrar" data-quieroquita="' + esc(x.id) +
+                  '">Quitar</button>' +
+                "</div>";
+            }).join("")
+          : '<div class="nota-peque" style="margin-top:6px">Nada pedido por capricho.</div>') +
+      "</div>";
+  }
+
   /* LA LISTA DE RECADOS: lo que se pidió y no llegó, o no había. Se queda aquí
      hasta que se resuelva; no vuelve sola a la lista grande. */
   function pintarRecados() {
@@ -4050,15 +4159,36 @@
        pedido, que es lo que tiene que ser para poder pasarla a Amazon. */
     var nombre = l.producto || l.nombre;
     var clases = "linea" + (l.marcado ? " hecha" : "");
-    var porque = "el men\u00fa pide " + esc(l.pidePlan);
-    if (l.hay > 0) porque += " \u00b7 tienes " + esc(Util.cantidadReceta(l.hay, l.unidad, l.pesoUd));
-    if (l.recetas && l.recetas.length) {
-      porque += " \u00b7 " + esc(l.recetas.slice(0, 2).join(", ")) + (l.recetas.length > 2 ? "\u2026" : "");
+    /* POR QUÉ ESTÁ ESTA LÍNEA AQUÍ. Hay tres motivos distintos y hasta ahora
+       sólo se contaba uno: las líneas del mínimo salían con «el menú pide» y
+       nada detrás, porque el menú no pide nada de eso. Cada motivo dice lo suyo:
+         el menú   lo que gastan los platos, menos lo que tienes
+         mínimo    no puede faltar en casa, y cuánto falta para cubrirlo
+         capricho  lo has pedido tú para esta compra y sólo para ésta */
+    var etiq = "", porque;
+    if (l.porCapricho) {
+      etiq = ' <span class="etiqueta capricho">lo quieres esta vez</span>';
+      porque = "lo has pedido t\u00fa para esta compra";
+      if (l.pediste && l.piezas && l.pediste !== l.piezas) {
+        porque += " \u00b7 ped\u00edas " + cifra(l.pediste) + ", el envase trae " + cifra(l.piezas);
+      }
+      if (l.hay > 0) porque += " \u00b7 ya tienes " + esc(Util.cantidadReceta(l.hay, l.unidad, l.pesoUd));
+    } else if (l.porMinimo) {
+      etiq = ' <span class="etiqueta">no debe faltar</span>';
+      porque = "m\u00ednimo en casa " + cifra(l.minimo) + " " + esc(l.piezaNombre) +
+               " \u00b7 tienes " + cifra(l.tienesPiezas);
+      if (l.lote > 1) porque += " \u00b7 se compra de " + cifra(l.lote) + " en " + cifra(l.lote);
+    } else {
+      porque = "el men\u00fa pide " + esc(l.pidePlan);
+      if (l.hay > 0) porque += " \u00b7 tienes " + esc(Util.cantidadReceta(l.hay, l.unidad, l.pesoUd));
+      if (l.recetas && l.recetas.length) {
+        porque += " \u00b7 " + esc(l.recetas.slice(0, 2).join(", ")) + (l.recetas.length > 2 ? "\u2026" : "");
+      }
     }
     if (l.suplente) porque += " \u00b7 si no hay: " + esc(l.suplente);
     return '<div class="' + clases + '">' +
       '<input type="checkbox" data-marcar="' + esc(l.id) + '"' + (l.marcado ? " checked" : "") + ' title="Pedido">' +
-      '<div class="datos"><div class="nombre">' + esc(nombre) +
+      '<div class="datos"><div class="nombre">' + esc(nombre) + etiq +
         /* El aviso de que falta la marca solo tiene sentido en Amazon: en el s\u00faper
            ya sabes cu\u00e1l coger. Y es un bot\u00f3n, porque el sitio donde se pone la marca
            es justo este, cuando la tienes delante. */
@@ -5162,6 +5292,36 @@
         setTimeout(pintarCompra, 0);
       }
     });
+    $("#bloque-quiero").addEventListener("click", function (e) {
+      var a = e.target.closest("[data-quiero]");
+      if (a) {
+        Almacen.quererEstaVez(a.getAttribute("data-quiero"), true, 1);
+        UI.buscaQuiero = "";
+        pintarCompra(); return;
+      }
+      var pq = e.target.closest("[data-quieropaso]");
+      if (pq) {
+        var pr = pq.getAttribute("data-quieropaso").split("|");
+        var act = ((Almacen.estado.quiero || {})[pr[0]] || {}).p || 1;
+        var n = act + Number(pr[1]);
+        if (n < 1) Almacen.quererEstaVez(pr[0], false);
+        else Almacen.quererEstaVez(pr[0], true, n);
+        pintarCompra(); return;
+      }
+      var qq = e.target.closest("[data-quieroquita]");
+      if (qq) {
+        Almacen.quererEstaVez(qq.getAttribute("data-quieroquita"), false);
+        pintarCompra(); return;
+      }
+    });
+    $("#bloque-quiero").addEventListener("input", function (e) {
+      if (e.target.id !== "buscar-quiero") return;
+      UI.buscaQuiero = e.target.value;
+      pintarQuiero();
+      /* el repintado se lleva el foco y con \u00e9l lo que estabas escribiendo */
+      var c = $("#buscar-quiero");
+      if (c) { c.focus(); c.setSelectionRange(c.value.length, c.value.length); }
+    });
     $("#lista-recados").addEventListener("click", function (e) {
       var rec = e.target.closest("[data-recado]");
       if (rec) { Almacen.quitarRecado(rec.getAttribute("data-recado")); pintarCompra(); }
@@ -5339,6 +5499,14 @@
         if (UI.pase.vista === "ficha") pintarLoTengo();
         else refrescarLineaTengo(pp[0]);
         return;
+      }
+      var bq = e.target.closest("[data-quiero]");
+      if (bq) {
+        var idq = bq.getAttribute("data-quiero");
+        var yaq = Almacen.quiereEstaVez(idq);
+        Almacen.quererEstaVez(idq, !yaq, 1);
+        Util.toast(yaq ? "Quitado de la lista" : "A\u00f1adido a la pr\u00f3xima compra");
+        pintarLoTengo(); return;
       }
       var bb = e.target.closest("[data-paseborrar]");
       if (bb) {

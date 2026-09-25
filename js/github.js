@@ -136,6 +136,18 @@
       junto.stockSello     = ganaR ? selloR : selloL;
     }
 
+    /* Lo pedido a mano —faltas de hogar y caprichos— es una foto igual que la
+       despensa: manda entera la del lado que la tocó más tarde, para que borrar
+       propague. Ver `_sellarPedido` en almacen.js. */
+    var pedL = String(local.pedidoSello || ""), pedR = String(remoto.pedidoSello || "");
+    if (pedL || pedR) {
+      var ganaPed = pedR > pedL;
+      var fp = ganaPed ? remoto : local;
+      junto.hogar  = fp.hogar  || {};
+      junto.quiero = fp.quiero || {};
+      junto.pedidoSello = ganaPed ? pedR : pedL;
+    }
+
     var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
     junto.selloDia = {};
     for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];

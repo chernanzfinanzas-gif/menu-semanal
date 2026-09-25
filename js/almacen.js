@@ -136,6 +136,11 @@
                                   cada cuenta del menú tuviera que saltarse estas líneas. */
         hogar: {},             /* { hogarId: { falta: true, c: 2 } } — lo que marcas que
                                   te falta. Es del día a día, no del catálogo. */
+        quiero: {},            /* { ingId: { p: piezas, f: "YYYY-MM-DD" } } — lo que quieres
+                                  ESTA vez. Entra en la próxima lista y al confirmar la
+                                  compra se borra. No es un mínimo: no promete nada. */
+        pedidoSello: null,     /* cuándo se tocó por última vez lo pedido a mano (hogar +
+                                  quiero). Hace que borrar viaje entre aparatos. */
         perfil: {
           sexo: "h",           // "h" | "m"
           edad: null, altura: null, peso: null, pesoObjetivo: null,
@@ -561,6 +566,7 @@
       if (!e.despensa) e.despensa = {};
       if (!e.stock) e.stock = {};
       if (!e.hogar) e.hogar = {};
+      if (!e.quiero) e.quiero = {};
       if (!e.hogarLista) e.hogarLista = JSON.parse(JSON.stringify(global.DATOS_HOGAR || []));
       if (!e.stockSitios) e.stockSitios = {};
       /* LO QUE HABÍA MARCADO CON EL SÍ/NO VIEJO no se tira: pasa a stock como
@@ -624,7 +630,17 @@
       this._fotoDias = ahora;
     },
 
+    /* LO PEDIDO A MANO TAMBIÉN ES UNA FOTO (25-sep-2026).
+       Mismo agujero que se tapó con `stockSello`: `fusionar` es aditiva, así que
+       una marca borrada aquí volvía del repositorio. Con lo apuntado en la
+       despensa pasó y se vio; con lo pedido a mano pasaba igual y no se había
+       visto todavía —al confirmar la compra se borran las faltas de hogar y los
+       caprichos, y el siguiente aparato las resucitaba—. Así que hogar y quiero
+       mandan enteros desde el lado que los tocó el último. */
+    _sellarPedido: function () { this.estado.pedidoSello = new Date().toISOString(); },
+
     guardar: function (motivo) {
+      if (motivo === "hogar" || motivo === "quiero" || motivo === "compra") this._sellarPedido();
       this._sellarLoCambiado();
       this._sello++;              /* invalida la cuenta de lo comprometido */
       this._cacheEntreno = null;          // ver `hayEntreno`
@@ -2648,6 +2664,51 @@
     /* CONFIRMAR LA COMPRA. Lo normal es que todo haya llegado: solo se pasan las
        excepciones. `faltas` es { ingredienteId: cuantosEnvasesLlegaron }.
        Lo que llega sube el stock; lo que no, se va a la lista de recados. */
+    /* ---------- «LO QUIERO ESTA VEZ» ----------
+       Carlos, 25-sep-2026, al ver adónde llevaba ponerle mínimo a todo: «no voy
+       a tener refrescos azucarados, no deberían tener un stock mínimo; debería
+       añadirse una categoría para añadir a la lista de la compra algo por
+       capricho».
+
+       Y tenía razón en lo de fondo: un mínimo es una ORDEN PERMANENTE —la app
+       se compromete a que en tu casa siempre haya siete cervezas—. Eso vale
+       para la leche y es justo lo contrario de lo que quiere para un capricho.
+       Así que hay tres cosas distintas y esta era la que faltaba:
+         lo pide el menú   -> entra solo
+         no puede faltar   -> mínimo, y que sean pocas cosas
+         lo quiero HOY     -> esto: un toque, entra en la próxima compra, y al
+                              confirmarla se borra. Sin permanencia.
+       Por defecto, lo que no tiene mínimo NO está en casa: si quiere una bolsa
+       de doritos la pide esa semana a propósito, y ese pequeño esfuerzo es la
+       fricción que hoy no existía. */
+    quiereEstaVez: function (id) {
+      return !!(this.estado.quiero || {})[id];
+    },
+    quererEstaVez: function (id, si, piezas) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      if (!this.estado.quiero) this.estado.quiero = {};
+      if (si === false) delete this.estado.quiero[id];
+      else this.estado.quiero[id] = { p: piezas > 0 ? piezas : 1, f: Util.hoyISO() };
+      this.guardar("quiero");
+      return true;
+    },
+    loQueQuieres: function () {
+      var self = this, out = [];
+      Object.keys(this.estado.quiero || {}).forEach(function (id) {
+        var g = self.ingrediente(id);
+        if (!g || g.oculta) return;
+        var ff = self.FORMATOS[self.formatoDe(g)];
+        var p = self.estado.quiero[id].p || 1;
+        out.push({ id: id, n: g.n, piezas: p, u: g.u, pesoUd: g.pesoUd || 0,
+                   pieza: self.tamanoPieza(g),
+                   comoSeLlama: p === 1 ? ff.n[0] : ff.n[1],
+                   desde: self.estado.quiero[id].f || null });
+      });
+      out.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      return out;
+    },
+
     confirmarCompra: function (lineas, faltas) {
       var self = this;
       faltas = faltas || {};
@@ -2670,6 +2731,8 @@
           aRecados++;
         }
         delete self.estado.compraMarcada[l.id];
+        /* el capricho es de una vez: comprado, se olvida */
+        if (self.estado.quiero) delete self.estado.quiero[l.id];
       });
       this.guardar("compra");
       return { entraron: entraron, recados: aRecados };
@@ -4024,6 +4087,94 @@
         if (ing.basico) { basicos.push(linea); return; }
         if (!secciones[ing.cat]) secciones[ing.cat] = [];
         secciones[ing.cat].push(linea);
+      });
+
+      /* Lo que has pedido a propósito para esta compra. Va antes que el mínimo
+         porque si has dicho que lo quieres, lo quieres aunque tengas de sobra. */
+      Object.keys(this.estado.quiero || {}).forEach(function (id) {
+        var ing = self.ingrediente(id);
+        if (!ing || ing.oculta) return;
+        if (acumulado[id]) return;                  // ya lo pide un plato
+        var tamq = self.tamanoPieza(ing);
+        var pediste = self.estado.quiero[id].p || 1;
+        var ffq = self.FORMATOS[self.formatoDe(ing)];
+        /* CUÁNTAS UNIDADES DE COMPRA SON. No es decorativo: `confirmarCompra`
+           sube al stock `envase × envases`, así que con `envases: 0` sólo entraba
+           UN envase por muchos que pidieras —seis briks de leche entraban como
+           uno—. Y va redondeado HACIA ARRIBA porque la tienda vende lo que
+           vende: si pides dos Coca-Colas y el envase es un pack de doce, te
+           vienes con doce. Por eso lo que se enseña son las piezas que traes de
+           verdad, con `pediste` aparte para que la pantalla pueda decir que tú
+           habías pedido dos. */
+        var envq = ing.envase > 0 ? Math.max(1, Math.ceil(pediste * tamq / ing.envase)) : 0;
+        var pz = envq > 0 ? Math.round(envq * ing.envase / tamq * 100) / 100 : pediste;
+        var lq = {
+          id: id, nombre: ing.n, producto: ing.producto || "", suplente: ing.suplente || "",
+          cantidad: envq > 0 ? Math.round(envq * ing.envase * 100) / 100
+                             : Math.round(pediste * tamq * 100) / 100,
+          pide: 0, hay: self.stockDe(id), envase: ing.envase || 0,
+          envases: envq, apartado: 0,
+          cajon: self.cajonDe(ing), tienda: self.tiendaDe(ing), unidad: ing.u,
+          texto: pz + " " + (pz === 1 ? ffq.n[0] : ffq.n[1]),
+          pesoUd: ing.pesoUd || 0, pidePlan: "", recetas: [], enCasa: self.stockDe(id) > 0,
+          marcado: !!self.estado.compraMarcada[id],
+          porCapricho: true, piezas: pz, pediste: pediste,
+          nota: ing.nota || ""
+        };
+        if (ing.basico) { basicos.push(lq); return; }
+        if (!secciones[ing.cat]) secciones[ing.cat] = [];
+        secciones[ing.cat].push(lq);
+      });
+
+
+      /* ---------- LO QUE NO PLANIFICA NADIE: EL MÍNIMO EN CASA ----------
+         Carlos, 25-sep-2026: «las bebidas no se planifican, así que nunca las
+         pedirá. Pero sí podemos hacer un stock deseado. Cervezas Mahou, 7 ud:
+         el pack es de 12 o 24, y solo compro ese lote cuando queden menos de 7.
+         La leche desnatada, 4 briks: si tengo 4 no pido, si tengo 3 pido 6, que
+         es la unidad de pedido».
+
+         Es el punto de pedido de toda la vida, y resuelve el agujero de la
+         cerveza, el refresco, el zumo y la leche: cosas que ningún plato pide y
+         que por tanto la lista no miraba jamás. Dos números por ficha:
+           minimo  cuántas piezas quieres tener siempre  (7 latas, 4 briks)
+           lote    cuántas vienen en la unidad de compra (24 latas, 6 briks)
+         Si lo apuntado baja del mínimo, se piden los lotes que hagan falta para
+         cubrirlo, nunca menos de uno. Y no se toca nada de lo anterior: si un
+         plato ya lo pedía, esa línea manda y ésta no se añade. */
+      (this.estado.ingredientes || []).forEach(function (ing) {
+        if (ing.oculta || !(ing.minimo > 0)) return;
+        if ((self.estado.quiero || {})[ing.id]) return;   // ya entra por capricho
+        if (acumulado[ing.id]) return;              // el menú ya lo pide: esa línea manda
+        var tam = self.tamanoPieza(ing);
+        if (!(tam > 0)) return;
+        var hayP = Math.round(self.stockDe(ing.id) / tam * 100) / 100;
+        if (hayP >= ing.minimo - 0.0001) return;    // el mínimo está cubierto
+        var lote = ing.lote > 0 ? ing.lote : 1;
+        var lotes = Math.ceil((ing.minimo - hayP) / lote);
+        if (lotes < 1) lotes = 1;
+        var piezas = lotes * lote;
+        var ff = self.FORMATOS[self.formatoDe(ing)];
+        var linea2 = {
+          id: ing.id, nombre: ing.n, producto: ing.producto || "", suplente: ing.suplente || "",
+          cantidad: Math.round(piezas * tam * 100) / 100,
+          pide: 0, hay: Math.round(hayP * tam * 100) / 100,
+          envase: ing.envase || 0,
+          envases: ing.envase > 0 ? Math.max(1, Math.ceil(piezas * tam / ing.envase)) : 0,
+          apartado: 0,
+          cajon: self.cajonDe(ing), tienda: self.tiendaDe(ing), unidad: ing.u,
+          texto: piezas + " " + (piezas === 1 ? ff.n[0] : ff.n[1]),
+          pesoUd: ing.pesoUd || 0, pidePlan: "",
+          recetas: [], enCasa: hayP > 0,
+          marcado: !!self.estado.compraMarcada[ing.id],
+          /* para que la pantalla pueda decir POR QUÉ está aquí */
+          porMinimo: true, minimo: ing.minimo, lote: lote, piezas: piezas,
+          tienesPiezas: hayP, piezaNombre: hayP === 1 ? ff.n[0] : ff.n[1],
+          nota: ing.nota || ""
+        };
+        if (ing.basico) { basicos.push(linea2); return; }
+        if (!secciones[ing.cat]) secciones[ing.cat] = [];
+        secciones[ing.cat].push(linea2);
       });
 
       /* El orden en que se recorre el súper. Lo que no esté aquí sale al final,

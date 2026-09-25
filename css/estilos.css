@@ -1079,3 +1079,32 @@ button.enlace {
 }
 .titulo-toma .kcal-toma i{font-style:normal; color:var(--morado); font-weight:700}
 .titulo-toma .kcal-toma.hecha{color:var(--verde)}
+
+/* ============ «LO QUE QUIERO ESTA VEZ» (25-sep-2026) ============
+   La tercera puerta de entrada a la lista de la compra, al lado del menú y del
+   mínimo en casa. Se distingue en ámbar a propósito: no es un aviso ni un
+   error, es una decisión tuya y de una sola vez. */
+.etiqueta.capricho{background:#fff4e0; border-color:#e8c07a; color:#8a5a00}
+.quiero-bloque{margin-bottom:8px}
+.quiero-hits{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px}
+.quiero-hits .btn.mini{max-width:100%; white-space:normal; text-align:left; line-height:1.25}
+.linea-quiero{gap:10px; padding:9px 2px}
+.linea-quiero .datos{flex:1 1 auto; min-width:0}
+.linea-quiero .nombre{font-size:.88rem; line-height:1.25}
+.linea-quiero .detalle{display:block; font-size:.72rem; color:var(--gris)}
+.linea-quiero .paso{flex:0 0 auto; display:flex; align-items:center; gap:2px}
+.linea-quiero .paso .btn.mini{width:34px; height:34px; padding:0; font-size:1.05rem; line-height:1}
+.linea-quiero .cuenta-lista{min-width:32px; text-align:center; font-weight:600}
+/* En la ficha del pase va debajo de «Apuntar y seguir», centrado y discreto:
+   es la salida secundaria, no compite con la principal. */
+.ficha-cuerpo .btn.quierolo{display:block; margin:9px auto 0; border-style:dashed}
+.ficha-cuerpo .btn.quierolo.activo{background:#fff4e0; border-color:#e8c07a;
+  color:#8a5a00; border-style:solid; font-weight:600}
+
+/* LAS NOTAS NO PUEDEN COMERSE LA LISTA. En el detalle de cada línea va primero
+   el motivo —el menú, el mínimo, el capricho— y detrás la nota de la ficha, que
+   en algunos productos son cinco líneas de etiqueta nutricional. En el móvil eso
+   convertía la lista de la compra en un texto seguido. Se recorta a dos líneas:
+   el motivo siempre se ve, y la nota entera sigue estando en la ficha. */
+#lista-compra .linea .detalle{display:-webkit-box; -webkit-line-clamp:2;
+  -webkit-box-orient:vertical; overflow:hidden}
