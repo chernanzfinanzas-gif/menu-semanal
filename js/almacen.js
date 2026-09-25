@@ -2788,7 +2788,9 @@
       return { productos: productos.slice(0, 14),
                enteras: podar(enteras).slice(0, 10),
                casi: podar(casi).slice(0, 8),
-               recetas: podar(recetas).slice(0, 8) };
+               recetas: podar(recetas).slice(0, 8),
+               /* las listas completas, sin recortar: sólo las usan las pruebas */
+               _todas: { enteras: podar(enteras), casi: podar(casi), recetas: podar(recetas) } };
     },
 
     /* ================= HOGAR =================
