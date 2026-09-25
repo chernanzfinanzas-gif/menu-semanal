@@ -424,7 +424,9 @@
         html += '<label><span>Horas</span><input type="number" min="0.5" max="14" step="0.5" ' +
                 'data-rutahoras="' + fecha + '" value="' + (fr ? fr.h : '') + '" placeholder="4"></label>';
         html += fr
-          ? '<span class="quemado-ruta">≈ <b>' + fr.kcal + ' kcal</b> de más</span>'
+          ? '<span class="quemado-ruta">≈ <b>' + fr.kcal + ' kcal</b> de más</span>' +
+            '<button type="button" class="btn mini borrar" data-quitarruta="' + fecha +
+            '">Quitar salida</button>'
           : '<span class="quemado-ruta">Sin salida planificada</span>';
         html += '</div>';
         html += '<div class="nota-tipo">Desayuno y cena en casa; almuerzo, comida y merienda, de mochila. ' +
@@ -5008,7 +5010,18 @@
       var caja = e.target.closest(".plan-ruta");
       var idDep = (caja.querySelector("[data-rutaact]") || {}).value || "";
       var horas = parseFloat((caja.querySelector("[data-rutahoras]") || {}).value);
-      if (!idDep) return;                       // sin deporte no hay nada que calcular
+      if (!idDep) {
+        /* «— elige —» ES la forma de quitarla, y hasta hoy no hacía nada: el
+           `return` a secas dejaba la salida guardada y parecía que volvía sola.
+           (Carlos, 25-sep-2026: «la borro… y vuelve a salir la ruta».) */
+        var fue = Almacen.quitarRuta(fecha);
+        if (fue) {
+          var aq = Almacen.actividad(fue.a);
+          Util.toast("Salida quitada" + (aq ? ": " + aq.n.toLowerCase() : ""));
+        }
+        pintarMenu();
+        return;
+      }
       if (!(horas > 0)) {                       // deporte elegido y horas en blanco: propón las suyas
         var porDefecto = null;
         Almacen.DEPORTES_RUTA.forEach(function (x) { if (x.id === idDep) porDefecto = x.h; });
@@ -5077,6 +5090,19 @@
     });
 
     $("#rejilla-dias").addEventListener("click", function (e) {
+      /* EL BOTÓN VA AQUÍ Y NO EN EL `change` (25-sep-2026). Lo puse con los
+         controles de la ruta, que viven en el manejador de `change`, y un clic
+         no dispara `change`: el botón existía, se veía, y no hacía nada. */
+      var qr = e.target.closest("[data-quitarruta]");
+      if (qr) {
+        var fue2 = Almacen.quitarRuta(qr.getAttribute("data-quitarruta"));
+        if (fue2) {
+          var aq2 = Almacen.actividad(fue2.a);
+          Util.toast("Salida quitada" + (aq2 ? ": " + aq2.n.toLowerCase() : ""));
+        }
+        pintarMenu();
+        return;
+      }
       var tip = e.target.closest("[data-tipodia]");
       if (tip) {
         var pt = tip.getAttribute("data-tipodia").split("|");

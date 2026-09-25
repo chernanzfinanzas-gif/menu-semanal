@@ -4313,6 +4313,27 @@
       return { min: min, kcal: Math.round(this.kcalDeEntrada({ a: idDeporte, min: min })) };
     },
 
+    /* QUITAR LA SALIDA. No existía (25-sep-2026). El desplegable tenía un
+       «— elige —» que no hacía nada: `if (!idDep) return`. Así que una salida
+       planificada por error no se podía deshacer de ninguna manera, y Carlos se
+       encontró con que «la borro… y vuelve a salir la ruta». No volvía: es que
+       nunca se había ido.
+       Borra la salida y la actividad que puso el planificador. Lo que venga de
+       Garmin o lo apuntado a mano lleva otra marca y no se toca. */
+    quitarRuta: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (!d || !d.ruta) return null;
+      var era = d.ruta;
+      delete d.ruta;
+      var lista = (this.estado.actividad || {})[fecha];
+      if (lista) {
+        for (var i = lista.length - 1; i >= 0; i--) if (lista[i].ref === "ruta") lista.splice(i, 1);
+        if (!lista.length) delete this.estado.actividad[fecha];
+      }
+      this.guardar("ruta");
+      return era;
+    },
+
     /* Lo que hay planificado de salida ese día, o null. */
     fichaRuta: function (fecha) {
       var d = this.estado.plan[fecha];
