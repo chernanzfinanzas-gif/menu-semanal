@@ -2734,11 +2734,16 @@
       if (!g) return false;
       g.pedir = modo;
       /* Poner «no debe faltar» sin decir cuánto no significa nada: se arranca
-         con un mínimo de 1 y el lote del envase, y él lo ajusta. Y al salir de
-         ese modo el mínimo se borra, para que no quede una orden permanente
-         dormida en una ficha que ya no la usa. */
+         con un mínimo de 1 y un lote de 1, y él lo ajusta.
+
+         AL SALIR DE ESE MODO LOS NÚMEROS NO SE BORRAN (25-sep-2026). Los
+         borraba, con el argumento de no dejar una orden permanente dormida.
+         Pero la orden no la da el número: la da el MODO, y `generarCompra` ya
+         no mira el mínimo de nada que no esté en «no debe faltar». Borrarlos
+         solo servía para que un botón de lote —«todas las latas a lo pide el
+         menú»— se llevara por delante el 7 y el 24 de la Mahou, que costaron
+         una conversación entera. Se quedan guardados y en silencio. */
       if (modo === "minimo") { if (!(g.minimo > 0)) g.minimo = 1; if (!(g.lote > 0)) g.lote = 1; }
-      else { delete g.minimo; delete g.lote; }
       this.marcarTuyo(g);
       this.guardar("catalogo");
       return true;
