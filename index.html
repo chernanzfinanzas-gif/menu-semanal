@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=218">
-<link rel="stylesheet" href="css/actividad-khb.css?v=218">
+<link rel="stylesheet" href="css/estilos.css?v=219">
+<link rel="stylesheet" href="css/actividad-khb.css?v=219">
 </head>
 <body>
 
@@ -506,6 +506,20 @@
       </div>
       <p class="nota-peque" style="margin-top:10px">«Recargar recetario original» repone las recetas y los ingredientes que vienen con la app sin tocar tus menús ni tu despensa.</p>
     </div>
+
+    <!-- QUÉ VERSIÓN ESTÁS USANDO (25-sep-2026). No estaba en ninguna parte, y
+         hace falta cada vez que comprobamos algo: sin esto, ante un fallo no se
+         puede distinguir «el arreglo no funciona» de «tienes cargada la app de
+         antes del arreglo». La versión la escribe el propio index.html. -->
+    <div class="tarjeta">
+      <h3>Versión</h3>
+      <div class="fila entre">
+        <div><strong id="version-app">—</strong>
+          <div class="nota-peque">Si no coincide con la que te he dicho, la app cargada es la de antes.
+            Cierra la pestaña (o la app del móvil), vuelve a abrirla y míralo otra vez.</div></div>
+        <button class="btn mini" id="version-recargar" title="Vacía la caché y vuelve a cargar">Forzar recarga</button>
+      </div>
+    </div>
   </section>
 
 </main>
@@ -516,18 +530,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=218"></script>
-<script src="datos/recetas.js?v=218"></script>
-<script src="datos/nuevos.js?v=218"></script>
-<script src="datos/hogar.js?v=218"></script>
-<script src="datos/plantillas.js?v=218"></script>
-<script src="datos/actividades.js?v=218"></script>
-<script src="datos/plan.js?v=218"></script>
-<script src="js/util.js?v=218"></script>
-<script src="js/almacen.js?v=218"></script>
-<script src="js/github.js?v=218"></script>
-<script src="js/app.js?v=218"></script>
-<script src="js/actividad-khb.js?v=218"></script>
-<script src="js/entrenamiento.js?v=218"></script>
+<script src="datos/ingredientes.js?v=219"></script>
+<script src="datos/recetas.js?v=219"></script>
+<script src="datos/nuevos.js?v=219"></script>
+<script src="datos/hogar.js?v=219"></script>
+<script src="datos/plantillas.js?v=219"></script>
+<script src="datos/actividades.js?v=219"></script>
+<script src="datos/plan.js?v=219"></script>
+<script src="js/util.js?v=219"></script>
+<script src="js/almacen.js?v=219"></script>
+<script src="js/github.js?v=219"></script>
+<script src="js/app.js?v=219"></script>
+<script src="js/actividad-khb.js?v=219"></script>
+<script src="js/entrenamiento.js?v=219"></script>
 </body>
 </html>

@@ -6130,6 +6130,30 @@
       };
       lector.readAsText(f);
     });
+    /* La versión sale del propio `?v=` con el que index.html pide los ficheros:
+       así no hay un número escrito a mano que se quede viejo. Es LO QUE EL
+       NAVEGADOR TIENE CARGADO, que es justo lo que hay que saber. */
+    (function () {
+      var el = $("#version-app");
+      if (!el) return;
+      var v = "";
+      var marcas = document.querySelectorAll('script[src*="?v="], link[href*="?v="]');
+      for (var i = 0; i < marcas.length; i++) {
+        var u = marcas[i].src || marcas[i].href || "";
+        var m = u.match(/[?&]v=([0-9]+)/);
+        if (m) { v = m[1]; break; }
+      }
+      el.textContent = v ? "v" + v : "sin marca de versi\u00f3n";
+    })();
+    var br2 = $("#version-recargar");
+    if (br2) br2.addEventListener("click", function () {
+      var hecho = function () { location.reload(true); };
+      if (window.caches && caches.keys) {
+        caches.keys().then(function (ks) {
+          return Promise.all(ks.map(function (k) { return caches["delete"](k); }));
+        })["catch"](function () {})["then"](hecho, hecho);
+      } else hecho();
+    });
     $("#recargar-recetas").addEventListener("click", function () {
       if (!confirm("Se reponen las recetas e ingredientes originales. Tus menús y tu despensa no se tocan. ¿Seguimos?")) return;
       Almacen.estado.ingredientes = JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES));
