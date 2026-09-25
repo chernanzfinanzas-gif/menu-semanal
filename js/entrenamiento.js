@@ -8023,14 +8023,20 @@
        Sin día fijo: va donde la ponga el tablero de la semana. */
     { id: "C", n: "Fuerza C", dia: null, diaTxt: "sin día fijo", min: 25, mov: [
       { n: "Zancadas",            s: 2, r: "10 por pierna", kg: 15,
-        nota: "Estáticas: los pies no se mueven, se baja y se sube. Una mancuerna de 7,5 en cada mano" },
+        nota: "Estáticas: los pies no se mueven, se baja y se sube. Una mancuerna de 7,5 en cada mano",
+        garmin: "Sentadilla dividida con mancuernas" },
       { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
-        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos" },
+        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos",
+        garmin: "Levantamiento de barra sobre cadera, en banca" },
       { n: "Elevación de gemelos",s: 2, r: "15",          kg: 15,
-        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano" },
+        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano",
+        garmin: "Elevación de gemelos de pie con mancuernas" },
       { n: "Pallof",              s: 2, r: "10 por lado", goma: 9,
-        nota: "Tubo azul en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado" },
-      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 15, nota: "Una de 7,5 en cada mano, sin balancear" }
+        nota: "Tubo azul en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado",
+        /* Garmin no tiene Pallof: se apunta con el más cercano por músculo (oblicuos) */
+        garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" },
+      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 15, nota: "Una de 7,5 en cada mano, sin balancear",
+        garmin: "Curl de bíceps alterno con mancuerna" }
     ]}
   ];
 
@@ -8045,14 +8051,20 @@
     "Aperturas invertidas":  "https://www.youtube.com/shorts/5Yu8DTe4BAQ",
     "Peso muerto rumano":    "https://www.youtube.com/shorts/wfH61Y88fuo",
     "Press de hombros":      "https://www.youtube.com/shorts/mHnQ_tfbSYE",
-    "Jal\u00f3n":                "https://www.youtube.com/shorts/riFu4s62nr4"
+    "Jal\u00f3n":                "https://www.youtube.com/shorts/riFu4s62nr4",
+    /* 25-sep-2026, lo eligió Carlos: split squat (sentadilla dividida) */
+    "Zancadas":              "https://www.youtube.com/shorts/qW2ps30p9m4",
+    "Curl de bíceps":        "https://www.youtube.com/shorts/RLKsBPEBCzA",
+    "Pallof":                "https://www.youtube.com/shorts/wu3OWepazLw",
+    "Empuje de cadera":      "https://www.youtube.com/shorts/Udt20OGphzU",
+    "Elevación de gemelos":  "https://www.youtube.com/shorts/OsQkieeI-5I"
   };
 
   /* Cuando el ejercicio se queda corto, por d\u00f3nde sigue. No es una sesi\u00f3n
      nueva: es el mismo hueco con m\u00e1s palanca. */
   var SIGUIENTE = {
     "Sentadilla goblet":   "Sentadilla con mochila cargada; despu\u00e9s b\u00falgara, o con banda pisada",
-    "Zancadas":            "Mochila cargada en vez de mancuernas, o sentadilla b\u00falgara",
+    "Zancadas":            "Mochila cargada en vez de mancuernas, o sentadilla b\u00falgara (en el reloj: \u00abSentadilla dividida con mancuernas y pie trasero elevado\u00bb)",
     "Empuje de cadera":    "Banda de anilla sobre la cadera, sujeta al suelo con las mancuernas; o a una pierna",
     "Elevaci\u00f3n de gemelos": "A una pierna, con la misma mancuerna",
     "Curl de b\u00edceps":      "Goma plana pisada y enganchada a la mancuerna",
