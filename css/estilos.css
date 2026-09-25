@@ -1232,3 +1232,33 @@ button.enlace {
   border:5px solid transparent; border-top-color:#1f2a24; top:100%}
 .ayuda-globo.abajo::after{top:auto; bottom:100%;
   border-top-color:transparent; border-bottom-color:#1f2a24}
+
+/* ============ LA LISTA DE LA COMPRA EN EL MÓVIL (25-sep-2026) ============
+   Carlos, con la captura delante: «la visualización del móvil no es muy buena».
+   Y tenía razón, y el culpable fui yo: al añadir el total —«5 × 1 ud (250 g) ·
+   5 ud (1250 g) en total»— esa cifra pasó de tres palabras a nueve, y como va
+   en una sola línea sin partir, se llevaba el ancho entero. El nombre del
+   producto quedaba en una columna de una palabra, cayendo en vertical.
+
+   En una pantalla estrecha la línea se parte en dos alturas:
+     arriba   la casilla y el nombre, a todo el ancho, que es lo que se lee
+     abajo    la cantidad y los botones, alineados a la derecha
+   En el ordenador sigue en una sola línea, que ahí sobra sitio. */
+@media (max-width: 620px){
+  #lista-compra .linea{flex-wrap:wrap; row-gap:8px}
+  /* En el móvil la casilla mide 26 px y el hueco 12 —los agranda otra regla
+     para que se puedan tocar con el dedo—, así que el descuento es 38 y no 30.
+     Se deja holgura hasta 50 para que el nombre quepa AL LADO de la casilla y
+     la cantidad no tenga más remedio que bajar a la línea siguiente. */
+  #lista-compra .linea .datos{flex:1 1 calc(100% - 50px); min-width:0}
+  #lista-compra .linea .cant{order:3; flex:1 1 auto; white-space:normal;
+    padding-left:38px; font-size:.84rem; line-height:1.3}
+  /* `margin-left:auto` lo empuja a la derecha aunque la cantidad se haya
+     llevado toda la línea y el botón haya bajado a una tercera: si no, se
+     quedaba pegado al margen izquierdo, debajo de nada. */
+  #lista-compra .linea > .btn.mini{order:4; flex:0 0 auto; white-space:nowrap;
+    margin-left:auto}
+  /* el nombre ya no compite con nadie: puede ocupar las líneas que necesite */
+  #lista-compra .linea .nombre{line-height:1.3}
+  #lista-compra .linea .detalle{-webkit-line-clamp:3}
+}
