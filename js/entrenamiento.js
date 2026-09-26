@@ -2556,6 +2556,15 @@
      son 8 puntos. Se recalibra a las cuatro o cinco semanas mirando cuántas
      veces saltó y si tenía razón. */
   var EXTRA_SUELO = 5;
+
+  var ANIMO_TITULO = {
+    "en-su-sitio": "En su sitio: la carga hecha cae dentro del 10 % de lo previsto",
+    "pasado":      "Por encima: has hecho más carga de la que pedía el plan",
+    "corto":       "Por debajo: te quedaste corto de carga",
+    "fuerza":      "Día de fuerza: se cuenta por sesiones, no por carga",
+    "descanso":    "Descanso, que era lo que tocaba",
+    "en-marcha":   "Hoy, todavía por delante"
+  };
   function panelCargaExtra(lunes) {
     var hoyI = U.hoyISO();
     if (hoyI < lunes || hoyI > U.sumarDias(lunes, 6)) return "";
@@ -2572,6 +2581,34 @@
       '<span class="prov">umbral provisional, sin medir</span></div>';
   }
 
+  /* EL MUÑECO DEL DÍA  ·  26-sep-2026.
+     Carlos: «en el hueco entre el punto verde y la carga unos muñecos o
+     dibujos que reflejen lo que se ha conseguido… entrenando feliz, cansado o
+     haciendo el vago».
+
+     Seis estados y ni uno más. Cada dibujo tiene que leerse a 22 píxeles, y
+     con más de seis siluetas ya no se distinguen entre sí.
+
+     Si el fichero no está, no se ve nada y no se rompe nada: va por
+     `background-image`, no por <img>, así que un 404 no deja el icono roto.
+     Eso permite publicar esto antes de que existan los dibujos. */
+  function animoDia(iso, previsto, g, ss, esHoy, futuro) {
+    if (futuro || !ss) return "";
+    var soloDescanso = ss.length > 0, hayFuerza = false;
+    ss.forEach(function (x) {
+      if (!esDescanso(x)) soloDescanso = false;
+      if ((x.fam || familia(x.t)) === "fuerza") hayFuerza = true;
+    });
+    var hecho = g ? g.hecho : 0;
+    if (esHoy && !hecho) return "en-marcha";           // el día aún corre
+    if (soloDescanso && !hecho) return "descanso";     // descansar ERA el plan
+    if (!previsto && hayFuerza) return "fuerza";       // la fuerza no puntúa
+    if (!previsto) return "";
+    var b = bandaCarga(previsto, hecho);
+    if (esHoy && b === "bajo") return "en-marcha";     // todavía le queda día
+    return b === "dentro" ? "en-su-sitio" : (b === "alto" ? "pasado" : "corto");
+  }
+
   function estiloCargas() {
     if (document.getElementById("ent-css-cargas")) return;
     var e = document.createElement("style");
@@ -2579,15 +2616,92 @@
     /* Colores fijos, sin prefers-color-scheme: la app se queda clara aunque el
        sistema esté en oscuro (ya pasó el 21-sep con otro bloque). */
     e.textContent =
-      ".dc.b-dentro b{color:#1a7f4b}" +
-      ".dc.b-bajo b{color:#c0392b}" +
-      ".dc.b-alto b{color:#7d3c98}" +
-      ".dc b em{font-style:normal;font-weight:600;opacity:.95}" +
-      ".dc.extra{margin-left:6px}" +
-      ".dc.extra b{color:#b9770e}" +
-      ".sem-carga.b-dentro{color:#1a7f4b}" +
-      ".sem-carga.b-bajo{color:#c0392b}" +
-      ".sem-carga.b-alto{color:#7d3c98}" +
+      /* ESPECIFICIDAD: `.ent-dia.ok .dc b` (0,3,1) pisaba a `.dc.b-alto b`
+         (0,2,1), así que en un día cumplido el número salía SIEMPRE verde y la
+         banda no se veía. Se sube a (0,4,1) para ganarle en los dos estados.
+         Carlos lo vio antes que yo: mandó la captura y los colores no estaban. */
+      ".ent-dia .dc b .prev,.ent-dia.ok .dc b .prev{font-weight:600;color:#6b7a8a}" +
+      ".ent-dia .dc b em,.ent-dia.ok .dc b em{font-style:normal;font-weight:800;" +
+        "font-size:1.1em;margin-left:1px}" +
+      ".ent-dia .dc.b-dentro b em,.ent-dia.ok .dc.b-dentro b em{color:#15803d}" +
+      ".ent-dia .dc.b-bajo b em,.ent-dia.ok .dc.b-bajo b em{color:#c0392b}" +
+      ".ent-dia .dc.b-alto b em,.ent-dia.ok .dc.b-alto b em{color:#7d3c98}" +
+      ".ent-dia .dc b{font-size:.82rem}" +
+      ".ent-dia .dc.extra b,.ent-dia.ok .dc.extra b{color:#b9770e}" +
+      ".ent-dia .dc.extra i{color:#b9770e;opacity:.85}" +
+
+      /* LA BARRA DEL BORDE. Tres píxeles pegados al canto de abajo: se lee de
+         un vistazo sin tener que comparar dos números pequeños, y no le quita
+         sitio a nada. Llena = ha llegado o se ha pasado. */
+      ".ent-dia{position:relative}" +
+      ".ent-dia .barra-carga{position:absolute;left:0;right:0;bottom:0;height:3px;" +
+        "background:#e6ecf2;border-radius:0 0 10px 10px;overflow:hidden}" +
+      ".ent-dia .barra-carga i{display:block;height:100%;background:#9fb0c0;" +
+        "transition:width .25s}" +
+      ".ent-dia .barra-carga.b-dentro i{background:#15803d}" +
+      ".ent-dia .barra-carga.b-bajo i{background:#c0392b}" +
+      ".ent-dia .barra-carga.b-alto i{background:#7d3c98}" +
+
+      /* EL MUÑECO DEL DÍA  ·  DOS CAPAS.
+         Primero el .webp de `iconos/animo/`, y debajo un SVG de reserva metido
+         aquí mismo. Si el .webp no está —hoy no lo está: Carlos los va a
+         generar con Gemini—, el navegador se salta esa capa y se ve el SVG. En
+         cuanto suba los suyos, se pintan encima y mandan ellos, sin tocar una
+         línea de código.
+         Y va por `background-image` y no por <img> justo por eso: un 404 en un
+         <img> deja el icono roto a la vista; en un fondo, no deja nada. */
+      ".ent-dia .animo{width:34px;height:34px;flex:0 0 34px;background-repeat:no-repeat;" +
+        "background-position:center;background-size:contain;align-self:center}" +
+      ".a-en-su-sitio{background-image:url('iconos/animo/en-su-sitio.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%2315803d' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='30' cy='12' r='7' fill='%2315803d' stroke='none'/%3E%3Cpath d='M30 20 L28 38 M28 26 L16 31 M28 26 L42 21 M28 38 L19 54 M28 38 L43 49'/%3E%3C/svg%3E\")}" +
+      ".a-pasado{background-image:url('iconos/animo/pasado.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%237d3c98' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='19' cy='23' r='7' fill='%237d3c98' stroke='none'/%3E%3Cpath d='M25 27 L42 33 M33 30 L31 45 M42 33 L35 54 M42 33 L50 52'/%3E%3Ccircle cx='9' cy='15' r='2.5' fill='%237d3c98' stroke='none'/%3E%3Ccircle cx='14' cy='7' r='2' fill='%237d3c98' stroke='none'/%3E%3C/svg%3E\")}" +
+      ".a-corto{background-image:url('iconos/animo/corto.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23c0392b' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='14' cy='30' r='7' fill='%23c0392b' stroke='none'/%3E%3Cpath d='M21 34 L40 36 M40 36 L48 26 M48 26 L56 36 M23 29 L33 21 M6 52 L58 52'/%3E%3C/svg%3E\")}" +
+      ".a-fuerza{background-image:url('iconos/animo/fuerza.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%236b4fa0' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='25' r='7' fill='%236b4fa0' stroke='none'/%3E%3Cpath d='M32 32 L32 47 M32 35 L21 19 M32 35 L43 19 M18 16 L46 16 M32 47 L25 58 M32 47 L39 58'/%3E%3Cpath d='M16 10 L16 22 M48 10 L48 22'/%3E%3C/svg%3E\")}" +
+      ".a-descanso{background-image:url('iconos/animo/descanso.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%235a6e82' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='20' cy='37' r='7' fill='%235a6e82' stroke='none'/%3E%3Cpath d='M27 40 L50 40 M50 40 L57 33 M7 48 L58 48'/%3E%3Cpath d='M36 14 L47 14 L36 26 L47 26' stroke-width='4.5'/%3E%3C/svg%3E\")}" +
+      ".a-en-marcha{background-image:url('iconos/animo/en-marcha.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23133253' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='26' cy='13' r='7' fill='%23133253' stroke='none'/%3E%3Cpath d='M26 20 L24 36 M24 27 L12 33 M24 27 L38 29 M24 36 L17 53 M24 36 L40 45 L45 55'/%3E%3C/svg%3E\")}" +
+      /* MEDIDO EN EL BANCO (26-sep): en el portátil sobran 80 px entre el punto
+         y la carga, en un móvil de 430 quedan 25 y en uno de 360 solo 8. Así
+         que por debajo de 400 se quita la palabra «carga» —que la leyenda ya
+         explica— y el muñeco encoge. Antes que esconderlo, hacerle sitio. */
+      /* El muñeco hereda el hueco del punto, así que no hay que encogerlo
+         tanto: 22 px en el móvil, y por debajo de 360 se quita la palabra
+         «carga», que la leyenda de abajo ya explica. */
+      "@media (max-width:460px){.ent-dia .animo{width:22px;height:22px;flex:0 0 22px}}" +
+      "@media (max-width:360px){.ent-dia .dc i{display:none}}" +
+
+      /* EL GRANDE. Va en posición absoluta sobre la esquina del título, y el
+         título reserva ese ancho con un padding para que nunca se le meta
+         debajo. Medido: la tarjeta son 1072 px en el portátil y 406 en el
+         móvil, y el título ocupa mucho menos que eso en los dos. */
+      ".tarjeta.dia-abierto{position:relative}" +
+      ".dia-abierto>h2{padding-right:132px;min-height:34px}" +
+      ".animo-grande{position:absolute;top:8px;right:16px;width:118px;height:118px;" +
+        "background-repeat:no-repeat;background-position:center;background-size:contain;" +
+        "pointer-events:none;opacity:.96}" +
+      "@media (max-width:460px){.dia-abierto>h2{padding-right:100px}" +
+        ".animo-grande{width:90px;height:90px;top:4px;right:10px}}" +
+      "@media (max-width:360px){.dia-abierto>h2{padding-right:82px}" +
+        ".animo-grande{width:74px;height:74px}}" +
+
+      /* la leyenda: sin ella los colores son un acertijo */
+      ".leyenda-carga{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:#5b6b7c;" +
+        "display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}" +
+      ".leyenda-carga b{font-weight:700;color:#22303c}" +
+      ".leyenda-carga span{display:inline-flex;align-items:center;gap:5px}" +
+      ".leyenda-carga u{width:9px;height:9px;border-radius:3px;text-decoration:none;" +
+        "display:inline-block}" +
+      ".leyenda-carga .v{background:#15803d}.leyenda-carga .r{background:#c0392b}" +
+      ".leyenda-carga .m{background:#7d3c98}.leyenda-carga .a{background:#b9770e}" +
+
+      /* la cabecera de la semana: «cierra» es el dato que decide, y se separa */
+      ".sem-carga .cierra{margin-left:2px;font-weight:800}" +
+      ".sem-carga.b-dentro .cierra{color:#15803d}" +
+      ".sem-carga.b-bajo .cierra{color:#c0392b}" +
+      ".sem-carga.b-alto .cierra{color:#7d3c98}" +
+      /* La cabecera NO se tiñe entera: en rojo de punta a punta parecía una
+         alarma y tapaba el único dato que decide algo, que es «cierra». El
+         objetivo se queda en gris y el color va solo en la proyección.
+         (Carlos, 26-sep: «mejorar la visibilidad».) */
+      ".sem-carga{font-size:.74rem}" +
       ".carga-extra-aviso{margin:10px 0 2px;padding:11px 13px;border-radius:12px;" +
         "background:#fdf6e8;border:1px solid #efd9a8;color:#6b4e12;font-size:13px;" +
         "line-height:1.45}" +
@@ -8868,7 +8982,7 @@
           if (pr !== null) {
             var bn = bandaCarga(sx.carga || c, pr);
             if (bn) cls += " b-" + bn;
-            ins = " \u00b7 cierra " + pr;
+            ins = ' <span class="cierra">\u00b7 cierra ' + pr + "</span>";
           }
           return '<small class="' + cls + '">Carga ' + c +
             (sx.carga ? " de " + sx.carga : "") + ins + "</small>";
@@ -8947,6 +9061,22 @@
         : (f > hoy ? "pend" : (f === hoy ? "pend"
         : (cumplido ? "ok" : (resc && resc.estado === "ambar" ? "ambar" : "fallo")))));
       var ok = (estadoDia === "ok") || (f === hoy && cumplido);
+
+      /* EL MUÑECO OCUPA EL SITIO DEL PUNTO, NO UNO NUEVO  ·  26-sep-2026.
+         Primer intento: ponerlo en el hueco entre el punto y la carga, como
+         él lo pidió. Medido en el banco: en el portátil sobran 80 px, pero en
+         un móvil de 430 quedan 25 y en uno de 360 solo 8 — y al meterlo, el
+         «13 (18)» se partía en dos líneas y la casilla crecía. Peor que antes.
+
+         Y mirándolo bien, sobraba una cosa: el punto y el muñeco dicen LO
+         MISMO, y encima el fondo de la casilla ya está teñido (verde cumplido,
+         ámbar a tiempo, rojo fallado). O sea que el punto repetía por tercera
+         vez un dato que ya estaba dos veces. Quitarlo no pierde nada y el
+         muñeco entra sin robarle un píxel al número. */
+      var cDia = (semF && !noHab) ? cargaDeDia(f) : null;
+      var gDia = (semF && !noHab && f <= hoy) ? cargasDia(f, ss) : null;
+      var anDia = (semF && !noHab) ? animoDia(f, cDia || 0, gDia, ss, f === hoy, f > hoy) : "";
+
       h += '<div class="ent-dia ' + estadoDia + (f === hoy ? " hoy" : "") + (f === dia ? " sel" : "") + (ok ? " ok" : "") +
         '" data-dia="' + f + '" role="button" tabindex="0">' +
         /* LA CABECERA, EN DOS COLUMNAS como el pie: fecha a la izquierda y NO DISP
@@ -8979,7 +9109,10 @@
                   U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
-        '</span><span class="pie"><span class="p"></span>' +
+        '</span><span class="pie">' +
+        (anDia ? '<span class="animo a-' + anDia + '" title="' +
+                   U.esc(ANIMO_TITULO[anDia] || "") + '"></span>'
+               : '<span class="p"></span>') +
         (function () {
           if (!semF || noHab) return "";
           /* PREVISTO (HECHO), CON LA BANDA DEL ±10 %  ·  26-sep-2026.
@@ -8990,8 +9123,8 @@
              HOY NO SE PINTA ROJO. El día todavía está corriendo, y decirle a
              media tarde que va corto es ruido: solo se colorea cuando ya
              alcanzó o pasó, o cuando el día terminó. */
-          var c = cargaDeDia(f);
-          var g = (semF && f <= hoy) ? cargasDia(f, ss) : null;
+          /* ya calculados arriba, para el muñeco: no se repite el trabajo */
+          var c = cDia, g = gDia;
           var hayFuerza = false;
           ss.forEach(function (x) { if (x.fam === "fuerza") hayFuerza = true; });
           var piezas = [];
@@ -9005,14 +9138,18 @@
               piezas.push('<span class="dc solo-fuerza" title="La fuerza no puntúa en la carga: ' +
                 'se cuenta por sesiones hechas o no hechas."><i>fuerza</i></span>');
             } else {
-              var cls = "dc", ins = "";
+              var cls = "dc", ins = "", prev = String(c);
               if (g && (f < hoy || g.hecho > 0)) {
                 var bn = bandaCarga(c, g.hecho);
                 if (f === hoy && bn === "bajo") bn = "";
                 if (bn) cls += " b-" + bn;
+                /* lo PREVISTO pasa a gris y lo HECHO se lleva el peso y el
+                   color: los dos números en negrita del mismo tamaño se leían
+                   como un borrón. */
+                prev = '<span class="prev">' + c + "</span>";
                 ins = " <em>(" + g.hecho + ")</em>";
               }
-              piezas.push('<span class="' + cls + '"><b>' + c + ins + "</b><i>carga</i></span>");
+              piezas.push('<span class="' + cls + '"><b>' + prev + ins + "</b><i>carga</i></span>");
             }
           }
           /* la carga extra va APARTE y nunca se suma al previsto: es lo que se
@@ -9021,11 +9158,27 @@
             piezas.push('<span class="dc extra" title="Carga fuera del plan: ' +
               'actividad que no era ninguna sesión."><b>+' + g.extra + "</b><i>extra</i></span>");
           }
+          /* LA BARRA DEL CANTO. Lo que se ve antes de leer ningún número. */
+          if (g && c > 0 && (f < hoy || g.hecho > 0)) {
+            var bb = bandaCarga(c, g.hecho);
+            if (f === hoy && bb === "bajo") bb = "";
+            piezas.push('<span class="barra-carga' + (bb ? " b-" + bb : "") + '"><i style="width:' +
+              Math.min(100, Math.round((g.hecho / c) * 100)) + '%"></i></span>');
+          }
           return piezas.join("");
         })() + "</span></div>";
     }
     h += "</div>";
-    h += '<p class="nota-peque" style="margin-top:10px">' + U.esc(P.suelo) + "</p>";
+    /* LA LEYENDA. Sin ella los colores son un acertijo: Carlos pidió «mejorar
+       la visibilidad» y un código de color que nadie explica no es información,
+       es decoración. (26-sep-2026.) */
+    h += '<p class="leyenda-carga"><b>Carga: prevista (hecha).</b>' +
+      '<span><u class="v"></u>en su sitio</span>' +
+      '<span><u class="r"></u>por debajo</span>' +
+      '<span><u class="m"></u>por encima</span>' +
+      '<span><u class="a"></u>fuera del plan</span>' +
+      "<span>margen del 10 %</span></p>";
+    h += '<p class="nota-peque" style="margin-top:6px">' + U.esc(P.suelo) + "</p>";
     h += fichaSalida(lunes);
     h += panelAmbar(lunes);
     h += panelAvisos(lunes);
@@ -9040,7 +9193,23 @@
       ? "Hoy, " + DIA_LARGO[d.getDay()] + " " + U.etiquetaFecha(dia)
       : DIA_LARGO[d.getDay()].charAt(0).toUpperCase() + DIA_LARGO[d.getDay()].slice(1) + " " + U.etiquetaFecha(dia);
 
-    h += '<div class="tarjeta"><h2>' + titulo + "</h2>";
+    /* EL MUÑECO GRANDE  ·  26-sep-2026.
+       Carlos, sobre una captura con el hueco rodeado: «¿y si en el móvil el
+       muñeco saliese en el hueco amarillo?». Y tiene razón: en la casilla de
+       la tira caben 22 píxeles y ahí no hay dibujo que valga, pero al lado del
+       título del día abierto sobran 120 en el portátil y 90 en el móvil. Es
+       donde un dibujo con detalle se puede ver de verdad.
+
+       El pequeño de la tira y el grande de aquí son EL MISMO fichero: uno solo
+       que hay que generar, y escala. Por eso el fondo cuelga de la clase de
+       estado y no del sitio donde se pinta. */
+    var ssAbierto = ssDe(dia);
+    var anAbierto = animoDia(dia, cargaDeDia(dia) || 0,
+                             dia <= hoy ? cargasDia(dia, ssAbierto) : null,
+                             ssAbierto, dia === hoy, dia > hoy);
+    h += '<div class="tarjeta dia-abierto"><h2>' + titulo + "</h2>" +
+      (anAbierto ? '<span class="animo-grande a-' + anAbierto + '" title="' +
+        U.esc(ANIMO_TITULO[anAbierto] || "") + '"></span>' : "");
     if (!esHoy) h += '<button type="button" class="ent-volver" data-dia="' + hoy + '">‹ volver a hoy</button>';
 
     /* MARCAR EL DÍA COMO NO HÁBIL. Va aquí, en la ficha del día abierto, y no en la
