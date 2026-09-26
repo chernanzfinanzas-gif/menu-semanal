@@ -2650,8 +2650,27 @@
          línea de código.
          Y va por `background-image` y no por <img> justo por eso: un 404 en un
          <img> deja el icono roto a la vista; en un fondo, no deja nada. */
-      ".ent-dia .animo{width:34px;height:34px;flex:0 0 34px;background-repeat:no-repeat;" +
-        "background-position:center;background-size:contain;align-self:center}" +
+      /* EL MUÑECO VUELVE AL HUECO, Y EL PUNTO A SU SITIO  ·  26-sep-2026.
+         Le quité el punto verde para hacerle hueco al muñeco. Carlos: «el botón
+         verde desapareció, no sé si programado o por error». Programado, pero
+         mal: los días SIN muñeco —el futuro— sí conservaban el punto, así que
+         la tira quedaba a medias, unos días con punto y otros no. Peor que
+         cualquiera de las dos opciones.
+
+         Y la otra pega que vio: «los muñecos no salen del todo bien». Cierto, y
+         la medición ya lo decía y no le hice caso — en el sitio del punto caben
+         34 px y ahí un dibujo es un borrón.
+
+         Así que el punto vuelve SIEMPRE y el muñeco va al hueco que él pidió
+         desde el principio, a 40 px, y SOLO en pantalla ancha: medido, en el
+         portátil sobran 80 px entre el punto y la carga, pero en un móvil de
+         430 quedan 25 y en uno de 360 solo 8. Por debajo de 1000 px de pantalla
+         no se enseña, y el móvil se queda con el punto, los números y la barra
+         —que ya dicen lo mismo— más el muñeco grande de la tarjeta del día. */
+      ".ent-dia .animo{display:none;width:40px;height:40px;flex:0 0 40px;" +
+        "background-repeat:no-repeat;background-position:center;background-size:contain;" +
+        "align-self:center;margin:0 auto}" +
+      "@media (min-width:1000px){.ent-dia .animo{display:block}}" +
       ".a-en-su-sitio{background-image:url('iconos/animo/en-su-sitio.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%2315803d' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='30' cy='12' r='7' fill='%2315803d' stroke='none'/%3E%3Cpath d='M30 20 L28 38 M28 26 L16 31 M28 26 L42 21 M28 38 L19 54 M28 38 L43 49'/%3E%3C/svg%3E\")}" +
       ".a-pasado{background-image:url('iconos/animo/pasado.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%237d3c98' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='19' cy='23' r='7' fill='%237d3c98' stroke='none'/%3E%3Cpath d='M25 27 L42 33 M33 30 L31 45 M42 33 L35 54 M42 33 L50 52'/%3E%3Ccircle cx='9' cy='15' r='2.5' fill='%237d3c98' stroke='none'/%3E%3Ccircle cx='14' cy='7' r='2' fill='%237d3c98' stroke='none'/%3E%3C/svg%3E\")}" +
       ".a-corto{background-image:url('iconos/animo/corto.webp'),url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23c0392b' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='14' cy='30' r='7' fill='%23c0392b' stroke='none'/%3E%3Cpath d='M21 34 L40 36 M40 36 L48 26 M48 26 L56 36 M23 29 L33 21 M6 52 L58 52'/%3E%3C/svg%3E\")}" +
@@ -2665,7 +2684,6 @@
       /* El muñeco hereda el hueco del punto, así que no hay que encogerlo
          tanto: 22 px en el móvil, y por debajo de 360 se quita la palabra
          «carga», que la leyenda de abajo ya explica. */
-      "@media (max-width:460px){.ent-dia .animo{width:22px;height:22px;flex:0 0 22px}}" +
       "@media (max-width:360px){.ent-dia .dc i{display:none}}" +
 
       /* EL GRANDE USA LA VERSIÓN CÓMIC  ·  26-sep-2026.
@@ -2685,15 +2703,14 @@
          título reserva ese ancho con un padding para que nunca se le meta
          debajo. Medido: la tarjeta son 1072 px en el portátil y 406 en el
          móvil, y el título ocupa mucho menos que eso en los dos. */
-      ".tarjeta.dia-abierto{position:relative}" +
-      ".dia-abierto>h2{padding-right:132px;min-height:34px}" +
-      ".animo-grande{position:absolute;top:8px;right:16px;width:118px;height:118px;" +
+      ".dia-cab{display:flex;align-items:center;gap:16px}" +
+      ".dia-cab-txt{flex:1 1 auto;min-width:0}" +
+      ".animo-grande{flex:0 0 132px;width:132px;height:132px;align-self:center;" +
         "background-repeat:no-repeat;background-position:center;background-size:contain;" +
-        "pointer-events:none;opacity:.96}" +
-      "@media (max-width:460px){.dia-abierto>h2{padding-right:100px}" +
-        ".animo-grande{width:90px;height:90px;top:4px;right:10px}}" +
-      "@media (max-width:360px){.dia-abierto>h2{padding-right:82px}" +
-        ".animo-grande{width:74px;height:74px}}" +
+        "pointer-events:none}" +
+      "@media (max-width:640px){.dia-cab{gap:10px}" +
+        ".animo-grande{flex-basis:88px;width:88px;height:88px}}" +
+      "@media (max-width:380px){.animo-grande{flex-basis:70px;width:70px;height:70px}}" +
 
       /* EL MUÑECO DEL SEMÁFORO. En la esquina de su tarjeta, con el texto
          reservándole el ancho para que no se le meta debajo. Cuatro estados
@@ -9157,10 +9174,9 @@
                   U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
-        '</span><span class="pie">' +
+        '</span><span class="pie"><span class="p"></span>' +
         (anDia ? '<span class="animo a-' + anDia + '" title="' +
-                   U.esc(ANIMO_TITULO[anDia] || "") + '"></span>'
-               : '<span class="p"></span>') +
+                   U.esc(ANIMO_TITULO[anDia] || "") + '"></span>' : "") +
         (function () {
           if (!semF || noHab) return "";
           /* PREVISTO (HECHO), CON LA BANDA DEL ±10 %  ·  26-sep-2026.
@@ -9255,9 +9271,16 @@
     var anAbierto = animoDia(dia, cargaDeDia(dia) || 0,
                              dia <= hoy ? cargasDia(dia, ssAbierto) : null,
                              ssAbierto, dia === hoy, dia > hoy);
+    /* DOS COLUMNAS EN EL BLOQUE DEL DÍA  ·  26-sep-2026.
+       Carlos: «¿puedes dividir en 2 columnas el bloque del día, para dejar el
+       muñeco a la derecha centrado en el bloque?». Antes iba en posición
+       absoluta sobre la esquina del título, que es un apaño: el dibujo quedaba
+       pegado arriba y el texto tenía que reservarle ancho a mano con un
+       padding. Con dos columnas de verdad, el muñeco se centra solo respecto a
+       lo que haya —una sesión o cuatro— y el texto usa el ancho que le sobra
+       sin que nadie calcule nada. */
     h += '<div class="tarjeta dia-abierto"><h2>' + titulo + "</h2>" +
-      (anAbierto ? '<span class="animo-grande a-' + anAbierto + '" title="' +
-        U.esc(ANIMO_TITULO[anAbierto] || "") + '"></span>' : "");
+      '<div class="dia-cab"><div class="dia-cab-txt">';
     if (!esHoy) h += '<button type="button" class="ent-volver" data-dia="' + hoy + '">‹ volver a hoy</button>';
 
     /* MARCAR EL DÍA COMO NO HÁBIL. Va aquí, en la ficha del día abierto, y no en la
@@ -9342,6 +9365,11 @@
       });
       h += "</ul>";
     }
+
+    /* cierra la columna del texto y entra el muñeco, centrado en el bloque */
+    h += "</div>" +
+      (anAbierto ? '<span class="animo-grande a-' + anAbierto + '" title="' +
+        U.esc(ANIMO_TITULO[anAbierto] || "") + '"></span>' : "") + "</div>";
 
     /* Las medidas van en dos grupos: las que el método pide HOY, que son las
        obligatorias, y el resto, que están ahí por si te apetece medir.
