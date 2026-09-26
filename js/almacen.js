@@ -463,6 +463,23 @@
         if (global.console) console.log("Hogar actualizado (" + hogRefrescados.length + "): " + hogRefrescados.join(", "));
       }
 
+      /* Y RETIRAR UN ARTÍCULO DE HOGAR GANA A `editado`, igual que en el
+         catálogo de comida (26-sep-2026). Mismo motivo: que un producto salga
+         de la lista no es un dato de la ficha que su copia pueda ganar, es que
+         ese producto ya no se compra. Se lleva por delante lo apuntado de él. */
+      var hogRetirados = [];
+      (e.hogarLista || []).forEach(function (x) {
+        var s = hogSemilla[x.id];
+        if (!s || !s.oculta || x.oculta) return;
+        x.oculta = true;
+        delete (e.hogar || {})[x.id];
+        hogRetirados.push(x.n);
+      });
+      if (hogRetirados.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Hogar retirado (" + hogRetirados.length + "): " + hogRetirados.join(", "));
+      }
+
       /* ---------- LO QUE HAS CORREGIDO DESDE OTRO APARATO ----------
          Un ingrediente que ya tenías y que cambiaste en el móvil no puede entrar
          por `rev`: el `rev` es mío, de cuando mejoro el catálogo, y no sabe nada
