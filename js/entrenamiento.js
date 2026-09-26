@@ -2555,6 +2555,16 @@
      últimos 90 días solo hay 5 días con más de una actividad y la extra mediana
      son 8 puntos. Se recalibra a las cuatro o cinco semanas mirando cuántas
      veces saltó y si tenía razón. */
+  /* LOS DIBUJOS TAMBIÉN NECESITAN NÚMERO DE VERSIÓN  ·  26-sep-2026.
+     Cambié los 17 muñecos y Carlos siguió viendo los viejos: le puse versión
+     al JS y al CSS, pero los .webp iban a pelo, así que el navegador y el
+     service worker se quedaron con los que ya tenían guardados.
+
+     Va aquí, en una constante, y se aplica a TODAS las direcciones de golpe al
+     final de estiloCargas(). Para la próxima tanda de dibujos basta subir este
+     número —y el mismo en la lista de sw.js—, sin tocar ninguna url a mano. */
+  var VER_ICONOS = "253";
+
   var EXTRA_SUELO = 5;
 
   var ANIMO_TITULO = {
@@ -2769,6 +2779,10 @@
       ".carga-extra-aviso b{color:#5a400c}" +
       ".carga-extra-aviso .prov{display:block;margin-top:5px;font-size:11px;" +
         "color:#8a7038}";
+    /* el número de versión, puesto de una vez en las 23 direcciones */
+    e.textContent = e.textContent.replace(
+      /iconos\/animo\/([a-z-]+)\.webp/g,
+      "iconos/animo/$1.webp?v=" + VER_ICONOS);
     document.head.appendChild(e);
   }
 
