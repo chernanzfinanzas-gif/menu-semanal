@@ -2563,7 +2563,7 @@
      Va aquí, en una constante, y se aplica a TODAS las direcciones de golpe al
      final de estiloCargas(). Para la próxima tanda de dibujos basta subir este
      número —y el mismo en la lista de sw.js—, sin tocar ninguna url a mano. */
-  var VER_ICONOS = "253";
+  var VER_ICONOS = "255";
 
   var EXTRA_SUELO = 5;
 
