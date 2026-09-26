@@ -2703,6 +2703,22 @@
          título reserva ese ancho con un padding para que nunca se le meta
          debajo. Medido: la tarjeta son 1072 px en el portátil y 406 en el
          móvil, y el título ocupa mucho menos que eso en los dos. */
+      /* LA MARCA DEL DÍA PASADO: franja de color a la izquierda de la tarjeta
+         y una chapa junto al título. El color es el mismo que usa la tira, así
+         no hay dos idiomas de color en la misma pantalla. */
+      ".dia-abierto.otro-dia{border-left:5px solid #9fb0c0}" +
+      ".dia-abierto.otro-dia>h2{display:flex;flex-wrap:wrap;align-items:center;gap:10px}" +
+      ".chip-dia{font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:3px 10px;" +
+        "border-radius:999px;background:#eef2f6;color:#5b6b7c;white-space:nowrap}" +
+      ".dia-abierto.d-dentro{border-left-color:#15803d}" +
+      ".dia-abierto.d-dentro .chip-dia{background:#e7f5ec;color:#15803d}" +
+      ".dia-abierto.d-bajo{border-left-color:#c0392b}" +
+      ".dia-abierto.d-bajo .chip-dia{background:#fdeceb;color:#c0392b}" +
+      ".dia-abierto.d-alto{border-left-color:#7d3c98}" +
+      ".dia-abierto.d-alto .chip-dia{background:#f4ecf8;color:#7d3c98}" +
+      ".dia-abierto.d-fuerza{border-left-color:#6b4fa0}" +
+      ".dia-abierto.d-fuerza .chip-dia{background:#f1edf9;color:#6b4fa0}" +
+      ".dia-abierto.d-futuro{border-left-color:#9fb0c0}" +
       ".dia-cab{display:flex;align-items:center;gap:16px}" +
       ".dia-cab-txt{flex:1 1 auto;min-width:0}" +
       ".animo-grande{flex:0 0 132px;width:132px;height:132px;align-self:center;" +
@@ -9279,8 +9295,33 @@
        padding. Con dos columnas de verdad, el muñeco se centra solo respecto a
        lo que haya —una sesión o cuatro— y el texto usa el ancho que le sobra
        sin que nadie calcule nada. */
-    h += '<div class="tarjeta dia-abierto"><h2>' + titulo + "</h2>" +
-      '<div class="dia-cab"><div class="dia-cab-txt">';
+    /* QUE SE VEA QUE NO ES HOY  ·  26-sep-2026.
+       Carlos abrió el lunes 21 sin darse cuenta y echó en falta el gemelo y la
+       grasa, que ese día aún no medía. Tenía razón el enfado: la ficha de un
+       día pasado se parecía demasiado a la de hoy —cambiaba el título y poco
+       más—. Su idea: «marcar el día con un color relacionado en cómo acabó».
+
+       Así que la marca no es solo «esto no es hoy»: lleva el color de cómo
+       terminó ese día, el mismo de la tira y de la leyenda, para que la ficha
+       diga de un vistazo dónde estás y qué pasó. */
+    var marcaDia = "", textoMarca = "";
+    if (dia !== hoy) {
+      if (dia > hoy) { marcaDia = "futuro"; textoMarca = "Día por venir"; }
+      else if (noHabilDe(dia)) { marcaDia = "nohabil"; textoMarca = "Día pasado · no disponible"; }
+      else {
+        var comoAcabo = { "en-su-sitio": ["dentro", "en su sitio"],
+                          "pasado": ["alto", "por encima"],
+                          "corto": ["bajo", "por debajo"],
+                          "fuerza": ["fuerza", "día de fuerza"],
+                          "descanso": ["nohabil", "descanso"] }[anAbierto];
+        marcaDia = comoAcabo ? comoAcabo[0] : "nohabil";
+        textoMarca = "Día pasado" + (comoAcabo ? " · " + comoAcabo[1] : "");
+      }
+    }
+    h += '<div class="tarjeta dia-abierto' + (marcaDia ? " otro-dia d-" + marcaDia : "") +
+      '"><h2>' + titulo +
+      (textoMarca ? '<span class="chip-dia">' + U.esc(textoMarca) + "</span>" : "") +
+      "</h2>" + '<div class="dia-cab"><div class="dia-cab-txt">';
     if (!esHoy) h += '<button type="button" class="ent-volver" data-dia="' + hoy + '">‹ volver a hoy</button>';
 
     /* MARCAR EL DÍA COMO NO HÁBIL. Va aquí, en la ficha del día abierto, y no en la
