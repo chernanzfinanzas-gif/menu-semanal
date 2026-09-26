@@ -2668,6 +2668,19 @@
       "@media (max-width:460px){.ent-dia .animo{width:22px;height:22px;flex:0 0 22px}}" +
       "@media (max-width:360px){.ent-dia .dc i{display:none}}" +
 
+      /* EL GRANDE USA LA VERSIÓN CÓMIC  ·  26-sep-2026.
+         Carlos mandó dos láminas de Gemini, pictograma y cómic: «mira el
+         comic, me encanta». Comprobado a los dos tamaños: a 110 px el cómic
+         luce y a 22 px se empasta, mientras que el pictograma aguanta los
+         22 px perfectamente. Así que cada uno donde gana — el cómic en la
+         tarjeta del día, el pictograma en la tira. Si el cómic faltara, el
+         navegador se salta la capa y cae al pictograma. */
+      ".animo-grande.a-en-su-sitio{background-image:url('iconos/animo/en-su-sitio-comic.webp'),url('iconos/animo/en-su-sitio.webp')}" +
+      ".animo-grande.a-pasado{background-image:url('iconos/animo/pasado-comic.webp'),url('iconos/animo/pasado.webp')}" +
+      ".animo-grande.a-corto{background-image:url('iconos/animo/corto-comic.webp'),url('iconos/animo/corto.webp')}" +
+      ".animo-grande.a-fuerza{background-image:url('iconos/animo/fuerza-comic.webp'),url('iconos/animo/fuerza.webp')}" +
+      ".animo-grande.a-descanso{background-image:url('iconos/animo/descanso-comic.webp'),url('iconos/animo/descanso.webp')}" +
+      ".animo-grande.a-en-marcha{background-image:url('iconos/animo/en-marcha-comic.webp'),url('iconos/animo/en-marcha.webp')}" +
       /* EL GRANDE. Va en posición absoluta sobre la esquina del título, y el
          título reserva ese ancho con un padding para que nunca se le meta
          debajo. Medido: la tarjeta son 1072 px en el portátil y 406 en el
@@ -2681,6 +2694,21 @@
         ".animo-grande{width:90px;height:90px;top:4px;right:10px}}" +
       "@media (max-width:360px){.dia-abierto>h2{padding-right:82px}" +
         ".animo-grande{width:74px;height:74px}}" +
+
+      /* EL MUÑECO DEL SEMÁFORO. En la esquina de su tarjeta, con el texto
+         reservándole el ancho para que no se le meta debajo. Cuatro estados
+         reales —azul Sube, verde Normal, ámbar Suave, rojo Descansa— más el
+         de espera mientras está sin calibrar. */
+      ".ent-sem{position:relative}" +
+      ".ent-sem .sem-animo{display:block;width:86px;height:86px;margin:10px auto 2px;" +
+        "background-repeat:no-repeat;background-position:center;background-size:contain;" +
+        "pointer-events:none}" +
+      ".a-sem-espera{background-image:url('iconos/animo/sem-espera.webp')}" +
+      ".a-sem-azul{background-image:url('iconos/animo/sem-azul.webp')}" +
+      ".a-sem-verde{background-image:url('iconos/animo/sem-verde.webp')}" +
+      ".a-sem-ambar{background-image:url('iconos/animo/sem-ambar.webp')}" +
+      ".a-sem-rojo{background-image:url('iconos/animo/sem-rojo.webp')}" +
+      "@media (max-width:460px){.ent-sem .sem-animo{width:66px;height:66px;margin:8px auto 0}}" +
 
       /* la leyenda: sin ella los colores son un acertijo */
       ".leyenda-carga{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:#5b6b7c;" +
@@ -8930,6 +8958,19 @@
     var claseSem = estSem
       ? " encendido " + (estSem.id === "azul" ? "azulsem" : estSem.id)
       : ((hayConsulta ? " ambar" : " apagado"));
+    /* EL MUÑECO DEL SEMÁFORO  ·  26-sep-2026.
+       Carlos: «¿se puede poner también en el semáforo general del plan para
+       ilustrar cuál es mi estado? o serían muñecos distintos».
+
+       Distintos, sí, y él lo intuyó bien: los seis de la carga contestan a
+       «¿qué hiciste?» —pasado, día a día—, y el semáforo contesta a «¿cómo
+       estás ahora, puedes apretar hoy?». Otra pregunta, otro dibujo.
+
+       Y uno más que pidió él: como el semáforo NO opina hasta el 15 de octubre
+       (necesita tres semanas sin corticoide para calibrar los umbrales), hasta
+       entonces sale un muñeco esperando. Así el hueco no está vacío tres
+       semanas y de paso se entiende solo por qué no dice nada. */
+    var animoSem = estSem ? estSem.id : (hayConsulta ? "ambar" : "espera");
     h += '<div class="ent-sem' + claseSem + '">' +
       '<span class="et">Semáforo</span>' +
       "<b>" + (estSem ? U.esc(estSem.nombre)
@@ -8940,6 +8981,13 @@
           : "Se activa el " + U.etiquetaFecha(sem0.desde || "2026-10-15") + ", con tres semanas sin corticoide.")) +
       "</small>";
     if (estSem) h += htmlRazones(estSem.razones);
+    /* DEBAJO DEL TEXTO, NO EN LA ESQUINA. Primero lo puse arriba a la derecha
+       como en la tarjeta del día, pero esta tarjeta es la estrecha de la
+       franja: reservarle 84 px de ancho partía «Sin calibrar» en dos líneas y
+       el texto de abajo en cuatro. Aquí lo que sobra es alto —la tarjeta de
+       avisos de al lado es más alta y manda—, así que el muñeco va centrado
+       debajo y el texto recupera todo el ancho. */
+    h += '<span class="sem-animo a-sem-' + animoSem + '"></span>';
     h += "</div>";
     h += '<div class="ent-avisos' + (todosAv.length ? " pulsable" : "") + '"' +
       (todosAv.length ? ' role="button" tabindex="0" data-avisos="1"' : "") + ">" +
