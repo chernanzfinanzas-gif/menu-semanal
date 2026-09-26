@@ -2336,10 +2336,19 @@
           var d0 = new Date(String(a.fecha).replace(" ", "T"));
           if (!isNaN(d0.getTime())) ms = d0.getTime();
         }
+        /* 26-sep-2026: hasta hoy esto tiraba el `esfuerzo` de cada actividad,
+           así que la app tenía el dato de la carga hecha delante y no podía
+           verlo. Ahora viaja, junto con el tiempo de reloj y la hora de final,
+           que son los que hacen falta para fundir dos trozos de una salida. */
+        var minMov = Math.round(a.min_mov || a.min || 0);
+        var minTot = Math.round(a.min_total || a.min_mov || a.min || 0);
         return {
-          min: Math.round(a.min_mov || a.min || 0),
+          min: minMov,
+          minTot: minTot,
+          esf: Number(a.esfuerzo || 0),
           nombre: a.nombre || a.tipo || "Actividad",
           ms: ms,
+          fin: (ms === null) ? null : ms + minTot * 60000,
           fam: familia((a.nombre || "") + " " + (a.tipo || ""))
         };
       });
@@ -2352,11 +2361,256 @@
       (A.estado.actividades || []).forEach(function (c) { if (c.id === a.a) cat = c; });
       fuera.push({
         min: a.min || 0,
+        minTot: a.min || 0,
+        esf: 0,                      // el respaldo de Garmin no trae esfuerzo
         nombre: ex.n || (cat ? cat.n : "Actividad"),
+        ms: null,
+        fin: null,
         fam: familia((ex.n || "") + " " + (cat ? cat.n : "") + " " + (a.a || ""))
       });
     });
     return fuera;
+  }
+
+  /* ================== LAS DOS CARGAS  ·  26-sep-2026 ==================
+     Carlos: «la carga de entrenamiento es la carga que fija el entrenamiento y
+     la carga activa, todas las actividades que registre en el reloj… la carga
+     activa nos da el dato y nos sirve para alertar si una carga extra es
+     excesiva».
+
+     Y su simplificación, que es la que hizo esto pequeño: «en bicicleta outdoor
+     o indoor todo pasa a carga de entrenamiento realizada… en fuerza igual y
+     ese cambio solo afectaría a caminar». Medido sobre sus 365 actividades: eso
+     se lleva por delante 56 de los 78 pares de actividades consecutivas de la
+     misma familia el mismo día. El problema de emparejar solo hay que
+     resolverlo bien en caminar: 15 casos en trece meses.
+
+     LA FUERZA NO ENTRA EN NINGUNA DE LAS DOS CIFRAS DE CARGA. Sigue contándose
+     por sesiones hechas o no hechas (decidido el 25-sep), porque la rampa
+     —130, 95, 105…— se calculó sin ella. Si entrara en «hecho» pero no en
+     «previsto», todas las semanas saldrían pasadas. */
+
+  var FUSION_MIN = 60;                            // corte elegido por Carlos
+  var FAM_ENTERAS = { bici: 1, correr: 1 };       // cuentan aunque no emparejen
+  var FAM_SIN_CARGA = { fuerza: 1, movilidad: 1 };// no puntúan en la carga
+
+  /* DOS ACTIVIDADES CONTIGUAS DE LA MISMA FAMILIA SON UNA.
+     Carlos: «se apaga el reloj en una caminata y lo pongo en marcha otra
+     vez… tendré dos actividades pero solo una en el plan».
+
+     El corte es de una hora, y lo eligió él: «la sesión de caminar extra será
+     en períodos diferentes del día». Comprobado contra sus trece meses: da
+     exactamente el mismo resultado que un corte de 15 minutos (se funden 7
+     caminatas, quedan 16 separadas). El caso más cerca del límite son dos
+     paseos por Madrid a 73 minutos, así que quedan 13 de margen.
+
+     SE SOLAPAN vs VAN SEGUIDAS, que no es lo mismo y no se resuelve igual:
+       · hueco negativo  → es la MISMA salida grabada dos veces (le pasa en 3
+         pares del histórico, uno de ellos con una actividad entera contenida
+         dentro de otra). Se queda la mayor de cada cosa; sumar dobla la carga.
+       · hueco de 0 a 60 → son dos trozos de una salida. Se suman. */
+  function fusionadas(iso) {
+    var reg = registradas(iso).slice();
+    reg.sort(function (a, b) { return (a.ms || 0) - (b.ms || 0); });
+    var out = [];
+    reg.forEach(function (a) {
+      for (var i = 0; i < out.length; i++) {
+        var p = out[i];
+        if (p.fam !== a.fam) continue;
+        if (p.ms === null || a.ms === null || p.fin === null) continue;
+        var hueco = (a.ms - p.fin) / 60000;
+        if (hueco >= FUSION_MIN) continue;
+        if (hueco < 0) {                       // duplicada: la mayor de cada cosa
+          p.min = Math.max(p.min, a.min);
+          p.minTot = Math.max(p.minTot, a.minTot);
+          p.esf = Math.max(p.esf, a.esf);
+          p.dobles = (p.dobles || 0) + 1;
+        } else {                               // dos trozos: se suman
+          p.min += a.min;
+          p.minTot += a.minTot;
+          p.esf += a.esf;
+          p.trozos = (p.trozos || 1) + 1;
+        }
+        p.fin = Math.max(p.fin, a.fin === null ? p.fin : a.fin);
+        /* si uno de los trozos lleva el nombre del plan, manda ése */
+        if (!/khb/i.test(p.nombre || "") && /khb/i.test(a.nombre || "")) p.nombre = a.nombre;
+        return;
+      }
+      out.push({ min: a.min, minTot: a.minTot, esf: a.esf, nombre: a.nombre,
+                 ms: a.ms, fin: a.fin, fam: a.fam, trozos: 1, dobles: 0 });
+    });
+    return out;
+  }
+
+  /* las sesiones que toca ese día, sin tener que arrastrar semana y talla */
+  function ssDe(iso) {
+    var sem = semanaDe(iso);
+    if (!sem) return [];
+    return sesionesDe(iso, sem, tallaDe(sem)) || [];
+  }
+
+  /* CADA ACTIVIDAD A UNA SOLA SESIÓN Y CADA SESIÓN A UNA SOLA ACTIVIDAD.
+     El fallo del jueves 24: movió una ruta de caminar del viernes al jueves y
+     quedaron dos, una de mañana y otra de tarde; las dos sesiones cogían la
+     PRIMERA actividad que encajaba, o sea la misma, y la de la tarde no se
+     usaba nunca. Ahora se puntúan todos los cruces posibles y se reparten de
+     mejor a peor, tachando lo ya cogido.
+
+     La puntuación, de menos a más (gana la más baja):
+       · lleva «KHB» en el nombre → él se lo pone a mano en Actividad cuando
+         puede, y entonces no hay nada que adivinar. Cuando no puede, manda la
+         duración, que es lo que había.
+       · diferencia de minutos con lo que pedía la sesión.
+
+     NO SE GUARDA NUNCA. Se recalcula desde el plan de ese momento, cada vez.
+     Si se quedara pegado, él mueve el bloque a mañana —que es como corrige
+     cuando la app se equivoca— y el paseo de hoy seguiría apuntado a una
+     sesión que ya no está ahí. */
+  function emparejaDia(iso, ss) {
+    if (!ss) ss = ssDe(iso);
+    var act = fusionadas(iso), porSesion = {}, usado = {}, pares = [];
+    ss.forEach(function (sx, i) {
+      if (sinReloj(sx)) return;
+      var fam = sx.fam || familia(sx.t);
+      var libre = sx.grande || sx.largo || !fam || fam === "otra";
+      act.forEach(function (a, j) {
+        var vale = libre
+          ? (a.fam === "caminar" || a.fam === "bici" || a.fam === "correr")
+          : (a.fam === fam);
+        if (!vale) return;
+        pares.push({ i: i, j: j,
+                     pts: (/khb/i.test(a.nombre || "") ? 0 : 1000) +
+                          Math.abs((a.min || 0) - (sx.min || 0)) });
+      });
+    });
+    pares.sort(function (x, y) { return x.pts - y.pts; });
+    pares.forEach(function (p) {
+      if (porSesion[p.i] !== undefined || usado[p.j]) return;
+      porSesion[p.i] = p.j;
+      usado[p.j] = true;
+    });
+    return { act: act, porSesion: porSesion, usado: usado };
+  }
+
+  /* LOS CUATRO NÚMEROS DEL DÍA.
+       hecho   lo que cuenta contra el plan: lo emparejado, más la bici y el
+               correr enteros aunque no emparejen (regla suya).
+       extra   lo que se movió fuera del plan —en la práctica, caminar—. NO
+               suma en el objetivo de la semana: si sumara, un paseo con su
+               pareja le diría que se ha pasado de entrenamiento sin entrenar.
+       activa  todo lo que registró el reloj, fuerza incluida.
+       fuerza  aparte, porque no puntúa. */
+  function cargasDia(iso, ss) {
+    var e = emparejaDia(iso, ss);
+    var hecho = 0, extra = 0, activa = 0, fuerza = 0;
+    e.act.forEach(function (a, j) {
+      var v = Number(a.esf || 0);
+      activa += v;
+      if (FAM_SIN_CARGA[a.fam]) { fuerza += v; return; }
+      if (e.usado[j] || FAM_ENTERAS[a.fam]) hecho += v; else extra += v;
+    });
+    return { hecho: Math.round(hecho), extra: Math.round(extra),
+             activa: Math.round(activa), fuerza: Math.round(fuerza), emp: e };
+  }
+
+  /* LA BANDA DEL ±10 %, aprobada por él el 26-sep. Un solo criterio, y se usa
+     en los dos sitios: la casilla del día y la proyección de la semana. */
+  function bandaCarga(previsto, hecho) {
+    if (!(previsto > 0)) return hecho > 0 ? "alto" : "";
+    var r = hecho / previsto;
+    if (r < 0.9) return "bajo";      // rojo
+    if (r > 1.1) return "alto";      // morado
+    return "dentro";                 // verde
+  }
+
+  /* CÓMO VA A CERRAR LA SEMANA.
+     Caso suyo: «hago mi entrenamiento por la mañana y por la tarde me llaman
+     para echar una carrera en zwift corta y eso afectaría a la carga larga,
+     para tomar decisiones respecto al resto de la semana». Esa carrera no es
+     carga extra —la bici cuenta entera como entrenamiento—, lo que hace es
+     comerse el presupuesto. Así que el aviso de la semana no es «te has
+     pasado», es «así vas a acabar el domingo si haces lo que queda».
+
+     Los días pasados cuentan por lo HECHO, los futuros por lo PREVISTO, y hoy
+     por lo mayor de los dos: si ya ha entrenado de más, se ve al momento; si
+     aún no ha entrenado, la sesión sigue contando como que va a hacerla. */
+  function proyeccionSemana(lunes) {
+    var hoyI = U.hoyISO(), f = lunes, tot = 0, hubo = false;
+    for (var k = 0; k < 7; k++) {
+      var prev = cargaDeDia(f) || 0, hecho = 0;
+      if (f <= hoyI) { hecho = cargasDia(f, ssDe(f)).hecho; hubo = true; }
+      tot += (f < hoyI) ? hecho : (f === hoyI ? Math.max(hecho, prev) : prev);
+      f = U.sumarDias(f, 1);
+    }
+    return hubo ? Math.round(tot) : null;
+  }
+
+  /* AVISO DEL DÍA: el extra de ayer contra lo que toca hoy.
+     Carlos: «si el plan manda caminar 30 minutos igual los camino y luego a la
+     tarde voy a dar un paseo con mi pareja de dos horas… eso es lo que llamo yo
+     carga extra que puede afectar».
+
+     EL UMBRAL ESTÁ INVENTADO Y HAY QUE DECIRLO. «La mitad de lo previsto para
+     mañana», con suelo de 5 puntos. No se puede medir con lo que hay: en sus
+     últimos 90 días solo hay 5 días con más de una actividad y la extra mediana
+     son 8 puntos. Se recalibra a las cuatro o cinco semanas mirando cuántas
+     veces saltó y si tenía razón. */
+  var EXTRA_SUELO = 5;
+  function panelCargaExtra(lunes) {
+    var hoyI = U.hoyISO();
+    if (hoyI < lunes || hoyI > U.sumarDias(lunes, 6)) return "";
+    var ayer = U.sumarDias(hoyI, -1);
+    var g = cargasDia(ayer, ssDe(ayer));
+    if (!g.extra) return "";
+    var prevHoy = cargaDeDia(hoyI) || 0;
+    if (g.extra < Math.max(EXTRA_SUELO, prevHoy / 2)) return "";
+    return '<div class="carga-extra-aviso"><b>Ayer: ' + g.extra +
+      ' de carga fuera del plan.</b> ' +
+      (prevHoy > 0
+        ? "Hoy tienes " + prevHoy + " previstos. Mira si te cuadra antes de entrenar."
+        : "Hoy no hay nada previsto.") +
+      '<span class="prov">umbral provisional, sin medir</span></div>';
+  }
+
+  function estiloCargas() {
+    if (document.getElementById("ent-css-cargas")) return;
+    var e = document.createElement("style");
+    e.id = "ent-css-cargas";
+    /* Colores fijos, sin prefers-color-scheme: la app se queda clara aunque el
+       sistema esté en oscuro (ya pasó el 21-sep con otro bloque). */
+    e.textContent =
+      ".dc.b-dentro b{color:#1a7f4b}" +
+      ".dc.b-bajo b{color:#c0392b}" +
+      ".dc.b-alto b{color:#7d3c98}" +
+      ".dc b em{font-style:normal;font-weight:600;opacity:.95}" +
+      ".dc.extra{margin-left:6px}" +
+      ".dc.extra b{color:#b9770e}" +
+      ".sem-carga.b-dentro{color:#1a7f4b}" +
+      ".sem-carga.b-bajo{color:#c0392b}" +
+      ".sem-carga.b-alto{color:#7d3c98}" +
+      ".carga-extra-aviso{margin:10px 0 2px;padding:11px 13px;border-radius:12px;" +
+        "background:#fdf6e8;border:1px solid #efd9a8;color:#6b4e12;font-size:13px;" +
+        "line-height:1.45}" +
+      ".carga-extra-aviso b{color:#5a400c}" +
+      ".carga-extra-aviso .prov{display:block;margin-top:5px;font-size:11px;" +
+        "color:#8a7038}";
+    document.head.appendChild(e);
+  }
+
+  /* EL UMBRAL DEL 60 % SIGUE VIVO, PERO SOLO PARA UNA COSA.
+     Antes hacía dos trabajos: decidir qué actividad era la sesión Y decidir si
+     la habías cumplido. El sábado 26 un paseo de 73 minutos de reloj con 35 en
+     movimiento se quedaba a un minuto de la barra de una sesión de 60, y la app
+     lo tiraba ENTERO: el día se veía como si no hubiera salido de casa.
+
+     Propuse contar el tiempo total en vez del de movimiento y él lo rechazó:
+     «si solo he estado en movimiento 35 minutos me parece perfecto». Tenía
+     razón, el metro no se toca. Lo que se separa son los dos trabajos: el
+     emparejamiento elige, la banda juzga. */
+  function umbralSesion(sesion) {
+    var fam = sesion.fam || familia(sesion.t);
+    if (sesion.grande || sesion.largo || !fam) return MIN_SESION;
+    return Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
   }
 
   /* Hay sesiones que el reloj no registra nunca —la movilidad de cuello, por
@@ -2367,38 +2621,39 @@
     return l.indexOf(familia(sesion.t)) >= 0;
   }
 
-  /* ¿Hay una actividad medida que encaje con ESTA sesión? */
-  function relojPara(iso, sesion) {
+  /* ¿Qué actividad medida ES esta sesión? Sin barrera de minutos: aquí solo se
+     elige, no se juzga. Quien juzga es umbralSesion() en sesionHecha(). */
+  function relojPara(iso, sesion, i) {
     if (sinReloj(sesion)) return null;
-    var fam = sesion.fam || familia(sesion.t);
-    var reg = registradas(iso), umbral = Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
-    /* el bloque largo no tiene familia: vale bici, vale ruta, vale monte */
-    var libre = sesion.grande || sesion.largo || !fam;
-    if (libre) umbral = MIN_SESION;
-    for (var i = 0; i < reg.length; i++) {
-      if ((reg[i].fam === fam || (libre && (reg[i].fam === "caminar" || reg[i].fam === "bici"))) &&
-          reg[i].min >= umbral) return reg[i];
+    var ss = ssDe(iso);
+    if (i === undefined || i === null) {
+      for (var k = 0; k < ss.length; k++) {
+        if (ss[k] === sesion || (ss[k].t === sesion.t && ss[k].min === sesion.min)) { i = k; break; }
+      }
     }
-    return null;
+    if (i === undefined || i === null) return null;
+    var j = emparejaDia(iso, ss).porSesion[i];
+    return (j === undefined) ? null : emparejaDia(iso, ss).act[j];
   }
 
   /* ¿Hay una actividad que desmienta un «no»? Solo cuenta la que EMPEZÓ
      después de que pusieras el «no»: si desmarcas una sesión que el reloj ya
      había registrado, sigues diciendo «esa actividad no era la sesión», y eso
      manda. */
-  function desmienteAlNo(iso, sesion, m) {
+  function desmienteAlNo(iso, sesion, m, i) {
     var t = horaMarca(m);
     if (!t) return null;                     // «no» viejo, sin hora: manda siempre
-    var r = relojPara(iso, sesion);
-    return (r && r.ms && r.ms > t) ? r : null;
+    var r = relojPara(iso, sesion, i);
+    return (r && r.ms && r.ms > t && r.min >= umbralSesion(sesion)) ? r : null;
   }
 
   function sesionHecha(iso, sesion, i) {
     var m = marcaDe(iso, "s" + i), v = valorMarca(m);
     if (v === true) return true;
     if (sinReloj(sesion)) return false;        // sin reloj que valga, manda la casilla
-    if (v === "no") return !!desmienteAlNo(iso, sesion, m);
-    return !!relojPara(iso, sesion);
+    if (v === "no") return !!desmienteAlNo(iso, sesion, m, i);
+    var r = relojPara(iso, sesion, i);
+    return !!(r && r.min >= umbralSesion(sesion));
   }
 
   /* QUÉ SESIONES PUEDEN DAR UN DÍA POR CUMPLIDO.
@@ -8601,6 +8856,7 @@
        es lo primero que se hace al entrar. Tenerla al final obligaba a bajar
        toda la pantalla para mirar otro día y volver a subir. */
     var lunes = lunesVista || U.lunesDe(hoy);
+    estiloCargas();
     h += '<div class="tarjeta"><div class="ent-navsem">' +
       '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
       "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) +
@@ -8608,8 +8864,14 @@
           var sx = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
           var c = sx ? cargaDeSemana(sx) : null;
           if (c === null) return "";
-          return '<small class="sem-carga">Carga ' + c +
-            (sx.carga ? " de " + sx.carga : "") + "</small>";
+          var pr = proyeccionSemana(lunes), ins = "", cls = "sem-carga";
+          if (pr !== null) {
+            var bn = bandaCarga(sx.carga || c, pr);
+            if (bn) cls += " b-" + bn;
+            ins = " \u00b7 cierra " + pr;
+          }
+          return '<small class="' + cls + '">Carga ' + c +
+            (sx.carga ? " de " + sx.carga : "") + ins + "</small>";
         })() + "</h2>" +
       '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
       "</div>" +
@@ -8720,32 +8982,46 @@
         '</span><span class="pie"><span class="p"></span>' +
         (function () {
           if (!semF || noHab) return "";
-          var c = cargaDeDia(f);
-          if (c === null) return "";
-          /* UN «0 CARGA» EN UN DÍA QUE ENTRENASTE ES MENTIRA POR OMISIÓN
-             (25-sep-2026). El viernes 25 tenía Fuerza B y la casilla decía
-             «0 CARGA». Carlos: «no ha añadido carga a las pesas hechas».
+          /* PREVISTO (HECHO), CON LA BANDA DEL ±10 %  ·  26-sep-2026.
+             Carlos: «se podría poner entre paréntesis lo hecho de verdad con un
+             color sobre si se ha alcanzado el objetivo (verde) no se ha llegado
+             (rojo) o se ha sobrepasado (morado)».
 
-             El cero es CORRECTO según lo que él mismo decidió —«la fuerza no se
-             mide en carga, se cuenta en sesiones: dos por semana, hechas o no
-             hechas, y nunca se recorta para cuadrar la carga»—, y la rampa
-             entera (130, 95, 105…) está calculada sin la fuerza dentro: meterle
-             ahora los 9-11 puntos medidos dejaría todas las semanas cortas de
-             golpe. Así que el número no se toca.
-             Lo que se arregla es lo que se LEE: donde la única sesión del día es
-             de fuerza, la esquina dice «fuerza» en vez de un cero que parece un
-             día perdido. El día que exista la carga activa, aquí irá su número.
-             Si además hay bici o caminata, el número sí significa algo y se
-             queda tal cual. */
+             HOY NO SE PINTA ROJO. El día todavía está corriendo, y decirle a
+             media tarde que va corto es ruido: solo se colorea cuando ya
+             alcanzó o pasó, o cuando el día terminó. */
+          var c = cargaDeDia(f);
+          var g = (semF && f <= hoy) ? cargasDia(f, ss) : null;
           var hayFuerza = false;
           ss.forEach(function (x) { if (x.fam === "fuerza") hayFuerza = true; });
-          if (!c && hayFuerza) {
-            return '<span class="dc solo-fuerza" title="La fuerza no puntúa en la carga: ' +
-              'se cuenta por sesiones hechas o no hechas."><i>fuerza</i></span>';
+          var piezas = [];
+
+          if (c !== null) {
+            if (!c && hayFuerza && !(g && g.hecho)) {
+              /* UN «0 CARGA» EN UN DÍA QUE ENTRENASTE ES MENTIRA POR OMISIÓN
+                 (25-sep-2026). La fuerza no puntúa —decidido por él, y la rampa
+                 se calculó sin ella—, así que el cero es correcto; lo que se
+                 arregla es lo que se lee. */
+              piezas.push('<span class="dc solo-fuerza" title="La fuerza no puntúa en la carga: ' +
+                'se cuenta por sesiones hechas o no hechas."><i>fuerza</i></span>');
+            } else {
+              var cls = "dc", ins = "";
+              if (g && (f < hoy || g.hecho > 0)) {
+                var bn = bandaCarga(c, g.hecho);
+                if (f === hoy && bn === "bajo") bn = "";
+                if (bn) cls += " b-" + bn;
+                ins = " <em>(" + g.hecho + ")</em>";
+              }
+              piezas.push('<span class="' + cls + '"><b>' + c + ins + "</b><i>carga</i></span>");
+            }
           }
-          /* con su rótulo: un número suelto al lado del punto no dice qué es.
-             (Carlos, 24-sep-2026.) */
-          return '<span class="dc"><b>' + c + "</b><i>carga</i></span>";
+          /* la carga extra va APARTE y nunca se suma al previsto: es lo que se
+             movió fuera del plan, y mezclarla falsearía el seguimiento. */
+          if (g && g.extra > 0) {
+            piezas.push('<span class="dc extra" title="Carga fuera del plan: ' +
+              'actividad que no era ninguna sesión."><b>+' + g.extra + "</b><i>extra</i></span>");
+          }
+          return piezas.join("");
         })() + "</span></div>";
     }
     h += "</div>";
@@ -8753,6 +9029,7 @@
     h += fichaSalida(lunes);
     h += panelAmbar(lunes);
     h += panelAvisos(lunes);
+    h += panelCargaExtra(lunes);
     h += "</div>";
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
