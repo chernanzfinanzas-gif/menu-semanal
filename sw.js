@@ -1,9 +1,9 @@
 /* sw.js — caché para que la app abra sin conexión */
-var CACHE = "menu-semanal-v250";
+var CACHE = "menu-semanal-v251";
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=186",
-  "./js/util.js?v=186", "./js/almacen.js?v=186", "./js/github.js?v=186", "./js/app.js?v=186",
-  "./datos/ingredientes.js?v=186", "./datos/recetas.js?v=186", "./datos/nuevos.js?v=186", "./datos/hogar.js?v=186", "./datos/plantillas.js?v=186", "./datos/actividades.js?v=186", "./datos/plan.js?v=186", "./datos/mi-cocina.json", "./datos/mis-gustos.json", "./js/entrenamiento.js?v=186", "./js/actividad-khb.js?v=186", "./css/actividad-khb.css?v=186",
+  "./", "./index.html", "./css/estilos.css?v=250",
+  "./js/util.js?v=250", "./js/almacen.js?v=250", "./js/github.js?v=250", "./js/app.js?v=250",
+  "./datos/ingredientes.js?v=250", "./datos/recetas.js?v=250", "./datos/nuevos.js?v=250", "./datos/hogar.js?v=250", "./datos/plantillas.js?v=250", "./datos/actividades.js?v=250", "./datos/plan.js?v=250", "./datos/mi-cocina.json", "./datos/mis-gustos.json", "./js/entrenamiento.js?v=250", "./js/actividad-khb.js?v=250", "./css/actividad-khb.css?v=250",
   "./iconos/khb/1-arbol-pulso.webp", "./iconos/khb/2-frutas-tenedor.webp", "./iconos/khb/3-pesas-corredor.webp", "./iconos/khb/4-agua.webp", "./iconos/khb/5-sueno.webp", "./iconos/khb/6-zapatillas.webp", "./iconos/khb/7-yoga.webp", "./iconos/khb/8-recetario.webp", "./iconos/khb/9-podio.webp", "./iconos/khb/10-bici.webp", "./iconos/khb/11-montana.webp", "./media/cartel-h.webp", "./media/cartel-v.webp", "./manifest.webmanifest", "./iconos/icono.svg", "./iconos/animo/en-su-sitio.webp", "./iconos/animo/en-su-sitio-comic.webp", "./iconos/animo/pasado.webp", "./iconos/animo/pasado-comic.webp", "./iconos/animo/corto.webp", "./iconos/animo/corto-comic.webp", "./iconos/animo/fuerza.webp", "./iconos/animo/fuerza-comic.webp", "./iconos/animo/descanso.webp", "./iconos/animo/descanso-comic.webp", "./iconos/animo/en-marcha.webp", "./iconos/animo/en-marcha-comic.webp", "./iconos/animo/sem-espera.webp", "./iconos/animo/sem-azul.webp", "./iconos/animo/sem-verde.webp", "./iconos/animo/sem-ambar.webp", "./iconos/animo/sem-rojo.webp"
 ];
 
