@@ -320,6 +320,8 @@
       ".ent-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}",
       ".ent-item{display:flex;gap:12px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--borde);cursor:pointer}",
       ".ent-lista li:last-child .ent-item{border-bottom:0}",
+      ".ent-fuera-tit{margin:10px 0 2px;font-size:.8em;font-weight:600;opacity:.7}",
+      ".ent-fuera .ent-item{padding-left:6px;border-left:3px solid #7b61c9}",
       ".ent-item input{width:24px;height:24px;flex:none;margin-top:1px;accent-color:var(--azul)}",
       ".ent-item .txt{min-width:0}",
       ".ent-item b{font-weight:600;display:block}",
@@ -9431,6 +9433,31 @@
               '">que decida el reloj</button>' : "") + "</small>" : "") + "</span></label></li>";
       });
       h += "</ul>";
+    }
+
+    /* LO QUE HICISTE FUERA DEL PLAN  ·  27-sep-2026.
+       Carlos: «las dos cosas de bicicleta que he hecho de más no aparecen en la
+       hoja del plan, ha cogido la carga, pero no se ve en ningún sitio».
+       La lista de arriba solo enseña SESIONES del plan; una actividad que no
+       empareja con ninguna sumaba su carga (la bici cuenta entera) sin dejar
+       rastro de qué era. Aquí se enseña cada una, con sus minutos y su carga,
+       y diciendo dónde cuenta: en lo hecho (bici, correr), como extra
+       (caminar y demás) o en ninguna (fuerza, movilidad). */
+    if (dia <= hoy) {
+      var empA = emparejaDia(dia, ssAbierto), sueltas = [];
+      empA.act.forEach(function (a, j) { if (!empA.usado[j]) sueltas.push(a); });
+      if (sueltas.length) {
+        h += '<p class="ent-fuera-tit">Además hiciste</p><ul class="ent-lista ent-fuera">';
+        sueltas.forEach(function (a) {
+          var esf = Math.round(Number(a.esf || 0));
+          var donde = FAM_SIN_CARGA[a.fam] ? "no puntúa en la carga"
+            : (FAM_ENTERAS[a.fam] ? "suma en lo hecho" : "carga extra, fuera del plan");
+          h += '<li><span class="ent-item"><span class="txt"><b>' + U.esc(a.nombre || a.fam || "Actividad") +
+            "</b><small>" + Math.round(a.min || 0) + " min" +
+            (esf ? " · carga " + esf : "") + " · " + donde + "</small></span></span></li>";
+        });
+        h += "</ul>";
+      }
     }
 
     /* cierra la columna del texto y entra el muñeco, centrado en el bloque */
