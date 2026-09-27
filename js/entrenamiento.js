@@ -2707,14 +2707,20 @@
          comic, me encanta». Comprobado a los dos tamaños: a 110 px el cómic
          luce y a 22 px se empasta, mientras que el pictograma aguanta los
          22 px perfectamente. Así que cada uno donde gana — el cómic en la
-         tarjeta del día, el pictograma en la tira. Si el cómic faltara, el
-         navegador se salta la capa y cae al pictograma. */
-      ".animo-grande.a-en-su-sitio{background-image:url('iconos/animo/en-su-sitio-comic.webp'),url('iconos/animo/en-su-sitio.webp')}" +
-      ".animo-grande.a-pasado{background-image:url('iconos/animo/pasado-comic.webp'),url('iconos/animo/pasado.webp')}" +
-      ".animo-grande.a-corto{background-image:url('iconos/animo/corto-comic.webp'),url('iconos/animo/corto.webp')}" +
-      ".animo-grande.a-fuerza{background-image:url('iconos/animo/fuerza-comic.webp'),url('iconos/animo/fuerza.webp')}" +
-      ".animo-grande.a-descanso{background-image:url('iconos/animo/descanso-comic.webp'),url('iconos/animo/descanso.webp')}" +
-      ".animo-grande.a-en-marcha{background-image:url('iconos/animo/en-marcha-comic.webp'),url('iconos/animo/en-marcha.webp')}" +
+         tarjeta del día, el pictograma en la tira. UNA SOLA CAPA (27-sep-2026).
+         Antes llevaba dos —el cómic y debajo el pictograma «por si faltaba»—, y
+         eso era un error mío: CSS no usa la segunda capa de reserva, PINTA LAS
+         DOS, una encima de otra. Como los dos dibujos tienen la postura algo
+         distinta, el de abajo asomaba por los bordes: una cabeza fantasma, una
+         barra detrás de las piernas, rectángulos detrás de las pesas. Carlos:
+         «como si hubieran sido pintados sobre algo». Reproducido al píxel
+         apilando los dos webp. El `?v=` fuerza a traer la imagen de nuevo. */
+      ".animo-grande.a-en-su-sitio{background-image:url('iconos/animo/en-su-sitio-comic.webp?v=259')}" +
+      ".animo-grande.a-pasado{background-image:url('iconos/animo/pasado-comic.webp?v=259')}" +
+      ".animo-grande.a-corto{background-image:url('iconos/animo/corto-comic.webp?v=259')}" +
+      ".animo-grande.a-fuerza{background-image:url('iconos/animo/fuerza-comic.webp?v=259')}" +
+      ".animo-grande.a-descanso{background-image:url('iconos/animo/descanso-comic.webp?v=259')}" +
+      ".animo-grande.a-en-marcha{background-image:url('iconos/animo/en-marcha-comic.webp?v=259')}" +
       /* EL GRANDE. Va en posición absoluta sobre la esquina del título, y el
          título reserva ese ancho con un padding para que nunca se le meta
          debajo. Medido: la tarjeta son 1072 px en el portátil y 406 en el

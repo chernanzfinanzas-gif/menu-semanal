@@ -480,6 +480,34 @@
         if (global.console) console.log("Hogar retirado (" + hogRetirados.length + "): " + hogRetirados.join(", "));
       }
 
+      /* ── METER UN PRODUCTO EN LA LISTA DESDE EL CATÁLOGO (27-sep-2026) ─────
+         Carlos: «¿no puedes meter productos a la lista de la compra?». Le dije
+         que no y era falso a medias: la marca de «falta» vive en `estado.hogar`,
+         que es del aparato, y yo solo publico `datos/hogar.js` — pero el
+         catálogo ya entra en el estado por aquí, así que basta con abrirle una
+         puerta más.
+         Una ficha con `aLaLista:"AAAA-MM-DD"` se marca como que falta la primera
+         vez que la app ve ESA fecha, y nunca más. Es idempotente, así que no
+         pelea con él: si la desmarca, no resucita, porque la fecha ya está
+         aplicada. Para volver a meterla se pone una fecha nueva.
+         `hogarPuesto` es un objeto id→fecha, y la fusión del sync une objetos
+         clave a clave, así que la marca viaja bien entre el móvil y el portátil. */
+      if (!e.hogar) e.hogar = {};
+      if (!e.hogarPuesto) e.hogarPuesto = {};
+      var hogPuestos = [];
+      (global.DATOS_HOGAR || []).forEach(function (x) {
+        if (!x || !x.id || !x.aLaLista || x.oculta) return;
+        if (e.hogarPuesto[x.id] === x.aLaLista) return;      /* esa fecha ya se aplicó */
+        e.hogarPuesto[x.id] = x.aLaLista;
+        if (e.hogar[x.id] && e.hogar[x.id].falta) return;    /* ya estaba en la lista */
+        e.hogar[x.id] = { falta: true, c: 1 };
+        hogPuestos.push(x.n || x.id);
+      });
+      if (hogPuestos.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Hogar a la lista (" + hogPuestos.length + "): " + hogPuestos.join(", "));
+      }
+
       /* ---------- LO QUE HAS CORREGIDO DESDE OTRO APARATO ----------
          Un ingrediente que ya tenías y que cambiaste en el móvil no puede entrar
          por `rev`: el `rev` es mío, de cuando mejoro el catálogo, y no sabe nada
