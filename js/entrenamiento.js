@@ -4148,6 +4148,23 @@
     }
   };
 
+  /* EL RODILLO VIRTUAL  ·  27-sep-2026.
+     Km, desnivel y ruta del mundo virtual (Zwift / MyWhoosh) de cada sesión de
+     rodillo. No lo escribe el workflow: lo sube desde el portátil
+     `recoger-rodillo.py`, que lo lee de los ficheros que dejan esas dos apps
+     (ver `entrenos/virtual/LÉEME.md`). Fichero aparte y opcional, como la
+     curva: si no está, la ficha sale con los datos del reloj. */
+  var Rodillo = {
+    CLAVE: "khb-rodillo-v1",
+    RUTA: "datos/rodillo.json",
+    FRESCO_H: 6,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
   var Fuerza = {
     /* v2 y no v1 a propósito: la app ya se guardó el fichero que escribió el
        FIT, con los nombres adivinados y fecha de hoy, así que con la misma
@@ -4829,6 +4846,7 @@
         },
         fuerza: Fuerza.datos,
         curva: Curva.datos,
+        rodillo: Rodillo.datos,
         /* LOS DÍAS, para las medidas que no salen de las actividades (los
            pasos, y mañana las calorías). Dos fuentes: la ventana reciente
            manda, el histórico rellena lo de atrás.
@@ -4869,6 +4887,7 @@
     Nombres.cargar(repinta);
     Fuerza.cargar(repinta);
     Curva.cargar(repinta);
+    Rodillo.cargar(repinta);
     ActHistorico.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);
   }

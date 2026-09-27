@@ -781,6 +781,8 @@
        paso del FIT del workflow. Si no está, la ficha sale como antes. */
     var fuerza = (o.fuerza && o.fuerza.sesiones) ? o.fuerza.sesiones : (o.fuerza || null);
     var curva = (o.curva && o.curva.curvas) ? o.curva.curvas : (o.curva || null);
+    /* Las sesiones de Zwift y MyWhoosh que recoge el portátil (27-sep-2026). */
+    var rodillo = (o.rodillo && o.rodillo.sesiones) ? o.rodillo.sesiones : null;
     var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
     /* EL NOMBRE SE CAMBIA AQUÍ. El reloj llama «Benasque Navegar» a lo que es
        el Forau d'Aigualluts. Si la app le pasa esta función, la ficha enseña un
@@ -929,6 +931,46 @@
            Cerro de Almodóvar» contra «Madrid Ciclismo en ruta». */
         if (t.n) x.nombre = t.n;
         if (t.d != null && (x.desnivel == null || x.desnivel === 0)) x.desnivel = t.d;
+      });
+    }
+
+    /* EL RODILLO VIRTUAL  ·  27-sep-2026.
+       Desde el 28-sep el rodillo lo graba el RELOJ («Ciclismo en sala», con la
+       H10 y el Kickr), y Zwift o MyWhoosh ya no suben nada: así no hay
+       duplicados y hay latido a latido. Pero el reloj no sabe por dónde ibas.
+       Esos km y ese desnivel los trae `rodillo.json`, y aquí se casan con la
+       actividad del reloj por FECHA y HORA DE INICIO (±20 min, la más cercana,
+       cada sesión una sola vez).
+       Mandan los del mundo virtual, igual que se decidió para el histórico de
+       Zwift de 2022-2024 (`aplica_zwift.py`): el reloj estima la distancia con
+       el rodillo, el juego la calcula con la potencia y la pendiente. Los del
+       reloj no se pierden: quedan en kmReloj / desnivelReloj y la ficha los
+       enseña al lado. */
+    if (rodillo && rodillo.length) {
+      var sesRod = [];
+      rodillo.forEach(function (s) {
+        var d = new Date(s.inicio);
+        if (isNaN(d.getTime())) return;
+        sesRod.push({ s: s, usada: false,
+          fecha: d.getFullYear() + "-" + dosD(d.getMonth() + 1) + "-" + dosD(d.getDate()),
+          min: d.getHours() * 60 + d.getMinutes() });
+      });
+      todas.forEach(function (x) {
+        if (x.dep !== "rod" || !x.hora || !x.fecha) return;   // solo el rodillo, no la fuerza
+        var hm = String(x.hora).split(":"), mx = (+hm[0]) * 60 + (+hm[1]);
+        var f = String(x.fecha).slice(0, 10), mejor = null, dMin = 21;
+        sesRod.forEach(function (r) {
+          if (r.usada || r.fecha !== f) return;
+          var dd = Math.abs(r.min - mx);
+          if (dd < dMin) { dMin = dd; mejor = r; }
+        });
+        if (!mejor) return;
+        mejor.usada = true;
+        var s = mejor.s;
+        x.kmReloj = x.km; x.desnivelReloj = x.desnivel;
+        if (s.km != null) x.km = s.km;
+        if (s.desnivel != null) x.desnivel = s.desnivel;
+        x.virtual = { app: s.app, sitio: s.ruta || s.mundo || null };
       });
     }
 
@@ -1939,6 +1981,10 @@
         (aPie && rit != null ? dato("Ritmo", mmss(rit), " min/km") : "") +
         (!aPie && vel != null && x.km ? dato("Velocidad media", num(vel, 1), " km/h") : "") +
         dato("Desnivel", x.desnivel != null ? num(x.desnivel) : null, " m") +
+        /* el mundo virtual y, al lado, lo que midió el reloj (27-sep-2026) */
+        (x.virtual ? dato("Mundo virtual", (x.virtual.app === "zwift" ? "Zwift" : "MyWhoosh") +
+          (x.virtual.sitio ? " · " + esc(x.virtual.sitio) : "")) : "") +
+        (x.virtual && x.kmReloj != null ? dato("Distancia del reloj", num(x.kmReloj, 2), " km") : "") +
         (x.desnivelNeg != null ? dato("Bajada", num(x.desnivelNeg), " m") : "") +
         (x.altMin != null && x.altMax != null
           ? dato("Altura", num(x.altMin) + " – " + num(x.altMax), " m") : "") +
