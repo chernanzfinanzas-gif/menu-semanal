@@ -4827,6 +4827,9 @@
           /* y si esa sesión de rodillo fue Zwift, su propio emblema. Quién lo
              fue no se adivina: viene en la lista `zwift` de nombres.json */
           zwift: "iconos/khb/12-zwift.webp",
+          /* MyWhoosh (27-sep-2026): dibujo propio, no su logo —líneas de viento
+             en amarillo sobre la bici de rodillo de la familia KHB— */
+          mywhoosh: "iconos/khb/13-mywhoosh.webp",
           fue:  "iconos/khb/3-pesas-corredor.webp",
           and:  "iconos/khb/6-zapatillas.webp",
           pas:  "iconos/khb/6-zapatillas.webp",

@@ -2894,6 +2894,10 @@
        que Carlos renombró a mano, así que es el plan B, no el plan A. */
     function esZwift(x) {
       if (!x || x.dep !== "rod") return false;
+      /* Desde el 27-sep-2026 lo dice la propia sesión: si el portátil recogió
+         su fichero, se sabe de qué app era sin adivinar nada. Manda sobre la
+         lista vieja, que solo conoce el Zwift de antes. */
+      if (x.virtual) return x.virtual.app === "zwift";
       if (zwift) return !!zwift[String(x.id)];
       var t = x.tipo || "";
       return /^\s*zwift\b/i.test(x.nombre || "") ||
@@ -2910,13 +2914,17 @@
       if (esZwift(x) && iconos &&
           Object.prototype.hasOwnProperty.call(iconos, "zwift") && iconos.zwift) {
         clave = "zwift";
+      } else if (x && x.virtual && x.virtual.app === "mywhoosh" && iconos &&
+          Object.prototype.hasOwnProperty.call(iconos, "mywhoosh") && iconos.mywhoosh) {
+        clave = "mywhoosh";
       }
       var u = iconos && (Object.prototype.hasOwnProperty.call(iconos, clave)
                          ? iconos[clave] : iconos.otr);
       if (!u) return iconoSVG(dep);
       return '<span class="akhb-marca-caja">' +
         '<img class="akhb-marca" src="' + esc(u) + '" alt="' +
-        esc(clave === "zwift" ? "Zwift" : (NOMBRE_DEP[dep] || "Actividad")) +
+        esc(clave === "zwift" ? "Zwift" : clave === "mywhoosh" ? "MyWhoosh"
+            : (NOMBRE_DEP[dep] || "Actividad")) +
         '" onerror="this.remove()">' +
         iconoSVG(dep) + "</span>";
     }
