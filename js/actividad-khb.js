@@ -2557,7 +2557,10 @@
       anio: [["todos", "Todos"], ["10", "Últimos 10"]]
     };
     var cmp = { fams: null, met: "h", por: "sem", tramo: { sem: "12", mes: "12m", anio: "todos" },
-                anio: null, alt: true, ant: false, tabla: false };
+                anio: null, alt: true, ant: false, tabla: false,
+                /* PLEGADO al entrar (28-sep): sólo se ve la franja «Comparar»;
+                   al pulsarla se abre todo. Cerrado no calcula nada. */
+                abierto: false };
 
     function cmpMet() {
       for (var i = 0; i < CMP_MET.length; i++) if (CMP_MET[i].id === cmp.met) return CMP_MET[i];
@@ -2661,6 +2664,11 @@
     }
 
     function htmlComparar() {
+      var cab = '<button type="button" class="akhb-c-cab" data-cabre="1" aria-expanded="' + cmp.abierto + '">' +
+        '<span class="akhb-c-tit">Comparar</span>' +
+        '<span class="akhb-c-sub">semanas, meses o años · por actividad y medida</span>' +
+        '<span class="akhb-chev" aria-hidden="true"></span></button>';
+      if (!cmp.abierto) { cmp._T = null; return '<section class="akhb-c akhb-c-cerrado" aria-label="Comparar">' + cab + "</section>"; }
       var m = cmpMet(), fams = cmpFams(), T = cmpTramos();
       if (!T.length) return "";
       var multiMed = !m.suma && fams.length > 1;
@@ -2850,7 +2858,7 @@
       }
 
       return '<section class="akhb-c" aria-label="Comparar">' +
-        '<h3 class="akhb-c-tit">Comparar</h3>' + mandos +
+        cab + '<div class="akhb-c-cuerpo">' + mandos +
         '<div class="akhb-c-tjs">' + tiles + "</div>" +
         '<div class="akhb-c-graf"><div class="akhb-c-tip" role="tooltip"></div>' +
           '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(m.nom) + " por " +
@@ -2859,7 +2867,7 @@
         (nota ? '<p class="akhb-c-nota">' + nota + "</p>" : "") +
         '<button type="button" class="akhb-c-bt akhb-c-vertabla" data-ctabla="1" aria-expanded="' + cmp.tabla + '">' +
           (cmp.tabla ? "Ocultar los números" : "Ver los números") + "</button>" + tabla +
-        "</section>";
+        "</div></section>";
     }
 
     /* la etiqueta al pasar (o al tocar, en el móvil) */
@@ -2890,8 +2898,9 @@
 
     /* los mandos de Comparar: devuelve true si el clic era suyo */
     function pulsaComparar(e) {
-      var t = e.target.closest ? e.target.closest("[data-cfam],[data-cmet],[data-cpor],[data-ctramo],[data-cop],[data-ctabla]") : null;
+      var t = e.target.closest ? e.target.closest("[data-cabre],[data-cfam],[data-cmet],[data-cpor],[data-ctramo],[data-cop],[data-ctabla]") : null;
       if (!t || !estado.el.contains(t)) return false;
+      if (t.hasAttribute("data-cabre")) cmp.abierto = !cmp.abierto;
       if (t.hasAttribute("data-cfam")) {
         var g = t.getAttribute("data-cfam");
         if (g === "*") cmp.fams = null;
@@ -3663,6 +3672,7 @@
     return {
       montar: function (el) {
         estado.el = el;
+        cmp.abierto = false;           // cada vez que se entra, Comparar plegado
         el.addEventListener("click", alPulsar);
         el.addEventListener("change", cambiaComparar);
         pintar();
