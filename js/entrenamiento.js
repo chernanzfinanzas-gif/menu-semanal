@@ -847,6 +847,9 @@
       ".ent-semlinea select{width:auto;max-width:100%;padding:3px 6px;border:1px solid var(--borde);border-radius:8px;font:inherit;font-size:.8rem;margin:0}",
       ".ent-semlinea .racha-mini b{color:var(--azul-hondo)}",
       "@media(max-width:520px){.ent-franja .ent-avisos{flex:none}}",
+      /* ---- el aviso de la revisión de Garmin (v271) ---- */
+      ".aviso-garmin{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#fdf3dc;border:1px solid #efd08a;color:#5c4200;font-size:.88rem;line-height:1.4}",
+      ".aviso-garmin span{display:block;margin-top:3px}.aviso-garmin small{display:block;margin-top:5px;color:#7a6330}",
       /* ---- la ayuda de cada gráfica de Evolución (v270) ---- */
       ".evo-info{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--azul-borde);background:var(--azul-claro);" +
         "color:var(--azul-hondo);font:700 .85rem/1 inherit;cursor:pointer;padding:0;margin-left:8px;align-self:center}",
@@ -4325,6 +4328,44 @@
     cargar: Curva.cargar
   };
 
+  /* EL RESULTADO DE LA ÚLTIMA REVISIÓN DE GARMIN (v271, 28-sep-2026).
+     Lo sube revision-garmin.py después de cada revisión: { fecha, resultado
+     ("publicado" | "revisar"), motivos[], dias_nuevos, hasta, informe }.
+     Carlos: «ese aviso que salga arriba de Evolución y arriba de Actividad y
+     El Plan, que son las que más miro». Sólo se avisa cuando NO se publicó;
+     una revisión limpia es una línea discreta en «Hasta dónde llega». */
+  var RevGarmin = {
+    CLAVE: "khb-rev-garmin-v1",
+    RUTA: "datos/revision-garmin.json",
+    FRESCO_H: 1,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
+  function avisoGarmin() {
+    var r = RevGarmin.datos;
+    if (!r || r.resultado !== "revisar") return "";
+    var f = r.fecha ? U.etiquetaFecha(String(r.fecha).slice(0, 10)) : "";
+    return '<div class="aviso-garmin"><b>Garmin: la revisión del ' + U.esc(f) + " no se ha publicado.</b>" +
+      ((r.motivos || []).length ? "<span>" + U.esc(r.motivos.join(" · ")) + "</span>" : "") +
+      "<small>Tus datos siguen como estaban. El informe está en informes-salud › revisiones-garmin" +
+      (r.informe ? " (" + U.esc(r.informe) + ")" : "") + ": pídeselo a Claude y lo resolvéis.</small></div>";
+  }
+
+  function lineaRevGarmin() {
+    var r = RevGarmin.datos;
+    if (!r || !r.fecha) return "";
+    var f = U.etiquetaFecha(String(r.fecha).slice(0, 10));
+    return "<p>Última revisión de la exportación: <b>" + U.esc(f) + "</b> · " +
+      (r.resultado === "publicado"
+        ? "limpia y publicada" + (r.dias_nuevos ? ", " + r.dias_nuevos + " días nuevos" : "") +
+          (r.hasta ? ", datos hasta el " + U.esc(U.etiquetaFecha(r.hasta)) : "")
+        : "<b>no publicada</b>: mira el aviso de arriba") + ".</p>";
+  }
+
   function registrosEcg() { return (Ecg.datos && Ecg.datos.registros) || []; }
 
   /* ==================== EL ECG EN PAPEL ====================
@@ -6896,6 +6937,7 @@
                : "La siguiente, a partir de los " + CADA_DIAS_GARMIN + " días.") + "</p>")
       : "";
 
+    cab += lineaRevGarmin();
     return '<details class="evo-frescura' + (toca ? " toca" : "") + '">' +
       "<summary>Hasta dónde llega cada medida" +
       (toca ? ' <span class="evo-chip">toca pedir Garmin</span>' : "") + "</summary>" +
@@ -8271,12 +8313,14 @@
     if (!cont || !A.estado) return;
     aplicarPases();                         // lo primero: la cola al día antes de dibujar nada
     vestir(cont.classList.contains("activa"));
-    cont.innerHTML = (bloque === "plan") ? htmlPlan()
+    /* el aviso de Garmin, arriba de las tres pantallas que más mira */
+    var avisoG = (bloque === "plan" || bloque === "evolucion" || bloque === "actividad") ? avisoGarmin() : "";
+    cont.innerHTML = avisoG + ((bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion()
       : (bloque === "rampa") ? htmlRampa()
       : (bloque === "casos") ? htmlCasos()
       : (bloque === "material") ? htmlMaterial()
-      : (bloque === "actividad") ? htmlActividad() : htmlPortada();
+      : (bloque === "actividad") ? htmlActividad() : htmlPortada());
     if (bloque === "actividad") montarArchivo();
     if (!mantener) window.scrollTo(0, 0);
   }
@@ -11169,6 +11213,7 @@
     };
     Ecg.cargar(repintaSiDentro);
     EcgUltimo.cargar(repintaSiDentro);
+    RevGarmin.cargar(repintaSiDentro);
     TensionCorreo.cargar(repintaSiDentro);
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
       var n = Salud.sembrarPesos();
