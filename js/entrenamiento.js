@@ -847,6 +847,17 @@
       ".ent-semlinea select{width:auto;max-width:100%;padding:3px 6px;border:1px solid var(--borde);border-radius:8px;font:inherit;font-size:.8rem;margin:0}",
       ".ent-semlinea .racha-mini b{color:var(--azul-hondo)}",
       "@media(max-width:520px){.ent-franja .ent-avisos{flex:none}}",
+      /* ---- la ayuda de cada gráfica de Evolución (v270) ---- */
+      ".evo-info{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--azul-borde);background:var(--azul-claro);" +
+        "color:var(--azul-hondo);font:700 .85rem/1 inherit;cursor:pointer;padding:0;margin-left:8px;align-self:center}",
+      ".info-evo h3{font-size:.92rem;margin:14px 0 6px;color:var(--azul-hondo)}",
+      ".info-evo ul{margin:0;padding-left:18px}.info-evo li{margin:3px 0;font-size:.86rem;line-height:1.45}",
+      ".info-como{width:100%;border-collapse:collapse;font-size:.86rem}",
+      ".info-como td{padding:6px 4px;border-bottom:1px solid #e6ecf2;vertical-align:top}",
+      ".info-como td:first-child{color:#556}.info-como td:last-child{text-align:right;font-weight:600;white-space:nowrap}",
+      ".info-como tr.ojo td{background:#fdf3dc}.info-como tr.ojo td:last-child{color:#8a5a00}",
+      ".info-como small{display:block;font-weight:400;color:#667;white-space:normal}",
+      ".info-cardio{margin:12px 0 0;padding:8px 10px;border-radius:8px;background:#f3f6f9;font-size:.82rem;line-height:1.4}",
       /* ---- el ECG en papel (v269) ---- */
       ".ecg-papel{display:block;width:100%;height:auto;background:#fff;border:1px solid #f0caca;border-radius:4px;margin:6px 0}",
       ".ecg-cab{font-size:.8rem;line-height:1.45;color:#333;margin:0 0 6px}",
@@ -1313,7 +1324,7 @@
       if (x.pul) { p += x.pul; np++; }
     });
     return { sis: s / t.length, dia: d / t.length, pul: np ? p / np : null, n: t.length,
-             alta: (s / t.length) >= 140 || (d / t.length) >= 90 };
+             alta: (s / t.length) >= 135 || (d / t.length) >= 85 };   // umbral en casa (v270)
   }
 
   /* ---------- el CSV del tensiómetro ----------
@@ -5838,7 +5849,10 @@
   }
 
   function tarjetaEvo(titulo, valor, unidad, pie, cuerpo, nota) {
+    var ki = INFO_POR_TITULO[titulo];
     var h = '<div class="tarjeta evo-t"><div class="evo-cab"><h2>' + U.esc(titulo) + "</h2>" +
+      (ki ? '<button type="button" class="evo-info" data-evo-info="' + ki + '" title="Qué mide y cómo vas" ' +
+            'aria-label="Qué mide ' + U.esc(titulo) + ' y cómo vas">?</button>' : "") +
       (valor === null || valor === undefined ? "" :
         '<b class="evo-v">' + U.esc(String(valor)) + "</b>" +
         (unidad ? '<span class="evo-u">' + U.esc(unidad) + "</span>" : "")) + "</div>";
@@ -5846,6 +5860,230 @@
     h += cuerpo;
     if (nota) h += '<p class="evo-nota">' + nota + "</p>";
     return h + "</div>";
+  }
+
+  /* ==================== LA AYUDA DE CADA GRÁFICA (v270) ====================
+     Carlos, 28-sep-2026: «una ventana emergente con una explicación de lo que
+     se mide, lo que hay que vigilar y decir cómo va cada métrica». Tres partes
+     por tarjeta. «Cómo vas» se calcula con sus datos al abrir la ventana.
+     ÁMBAR SOLO AL CRUZAR UN UMBRAL CLARO (decisión suya): tensión 135/85,
+     cintura 102 y 0,5 de la altura, QTc 450, QRS 120, pulso en reposo +5 sobre
+     la base, sueño < 7 h, balance < -30, bajar peso más del 1 %/semana. Lo
+     demás, en neutro. Las cifras son criterios generales: si su médico le da
+     otros, mandan los del médico. */
+  var INFO_POR_TITULO = {
+    "Peso y composición": "peso", "Recuperación": "recu", "Batería y estrés": "bat",
+    "Forma y fatiga": "forma", "Cintura y rendimiento": "cintura", "Tensión": "tension",
+    "Corazón en reposo": "ecg", "El último ECG": "ecgUltimo"
+  };
+  var LINEA_CARDIO = "Esto no sustituye la revisión de cardiología: sirve para llevarle datos.";
+
+  function ultDias(n) { var h = U.hoyISO(); return { desde: U.sumarDias(h, -(n - 1)), hasta: h }; }
+  function mediaDe(s) { return s && s.length ? media(s) : null; }
+  function filaInfo(t, v, ojo, d) { return { t: t, v: v, ojo: !!ojo, d: d || "" }; }
+
+  var INFO_EVO = {
+    peso: {
+      titulo: "Peso y composición",
+      mide: ["El <b>peso</b> de la báscula. El de un día baila más de un kilo por agua y tránsito: la que cuenta es la <b>media de 7 días</b>.",
+             "La <b>masa magra</b>, lo que no es grasa: músculo, hueso, agua.",
+             "La <b>grasa</b> por dos caminos: la báscula (impedancia, se mueve con el agua) y la cinta (cintura y cuello, no depende del agua)."],
+      vigilar: ["Bajar a un ritmo de <b>0,5-1 % del peso por semana</b> (con 99 kg, entre medio kilo y un kilo). Más rápido suele llevarse músculo.",
+                "Que la <b>masa magra aguante</b> mientras baja el peso.",
+                "Pesarse siempre igual: al despertar, tras orinar, antes de beber y nunca después de entrenar."],
+      como: function () {
+        var m7 = mediaDe(seriePeso(ultDias(7)));
+        var h = U.hoyISO(), m4 = mediaDe(seriePeso({ desde: U.sumarDias(h, -34), hasta: U.sumarDias(h, -28) }));
+        var out = [filaInfo("Media de los últimos 7 días", m7 === null ? "sin pesadas" : num(m7) + " kg")];
+        if (m7 !== null && m4 !== null) {
+          var sem = (m7 - m4) / 4, pct = sem / m4 * 100;
+          out.push(filaInfo("Ritmo de las últimas 4 semanas", signo(sem) + " kg/semana",
+            pct < -1, pct < -1 ? "más rápido que el 1 % semanal: vigila la masa magra" :
+              (sem < 0 ? num(Math.abs(pct)) + " % por semana" : "")));
+        } else out.push(filaInfo("Ritmo de las últimas 4 semanas", "faltan pesadas de hace un mes"));
+        var obj = pesoObjetivo();
+        if (obj && m7 !== null) out.push(filaInfo("Objetivo", num(obj) + " kg", false, "faltan " + num(Math.max(0, m7 - obj)) + " kg"));
+        return out;
+      }
+    },
+    recu: {
+      titulo: "Recuperación",
+      mide: ["La <b>VFC</b> (variabilidad de la frecuencia cardíaca) de cada noche, medida por el reloj. Más alta suele ser mejor recuperación; lo que se lee es la media de 7 días contra <b>tu</b> franja.",
+             "El <b>pulso en reposo</b>: sube con el cansancio, la enfermedad, el calor o el alcohol.",
+             "El <b>sueño</b>: horas y fases."],
+      vigilar: ["VFC por debajo de tu franja <b>varios días seguidos</b>.",
+                "Pulso en reposo <b>5 lpm o más</b> sobre tu base: cansancio acumulado, algo que se incuba o mal descanso. Es señal de bajar la carga.",
+                "Dormir <b>menos de 7 horas</b> de forma habitual.",
+                "El corticoide baja la VFC y sube el pulso por sí solo: en esas semanas, no leerlo como cansancio."],
+      como: function () {
+        var bV = baseSalud("base_vfc"), bF = baseSalud("base_fcr");
+        var v7 = serieSalud("vfc7", ultDias(4)), vU = v7.length ? v7[v7.length - 1].v : null;
+        var f7 = mediaDe(serieSalud("fcr", ultDias(7)));
+        var s7 = mediaDe(serieSalud("sueno_min", ultDias(7)));
+        var out = [];
+        out.push(filaInfo("VFC, media de 7 días", vU === null ? "sin dato" : num(vU) + " ms", false,
+          bV && vU !== null ? "tu base: " + num(bV) + " ms (" + signo(vU - bV) + ")" : ""));
+        out.push(filaInfo("Pulso en reposo, 7 días", f7 === null ? "sin dato" : num(f7) + " lpm",
+          bF && f7 !== null && f7 - bF >= 5,
+          bF && f7 !== null ? "tu base: " + num(bF) + " lpm (" + signo(f7 - bF) + ")" : ""));
+        out.push(filaInfo("Sueño medio, 7 noches", s7 === null ? "sin dato" : hhmm(s7), s7 !== null && s7 < 420,
+          s7 !== null && s7 < 420 ? "por debajo de 7 h" : ""));
+        return out;
+      }
+    },
+    bat: {
+      titulo: "Batería y estrés",
+      mide: ["El <b>Body Battery</b> de Garmin: una estimación de 0 a 100 de la energía que te queda, hecha con la VFC, el estrés y el sueño.",
+             "El <b>estrés</b> del día (0-100), que Garmin saca también de la VFC."],
+      vigilar: ["<b>Despertar con poca batería</b> varios días seguidos.",
+                "Estrés medio alto de forma sostenida.",
+                "Son estimaciones de Garmin: sirven para compararte contigo mismo, no como número absoluto."],
+      como: function () {
+        var b7 = mediaDe(serieSalud("body_battery", ultDias(7))), b90 = mediaDe(serieSalud("body_battery", ultDias(90)));
+        var e7 = mediaDe(serieSalud("estres", ultDias(7))), e90 = mediaDe(serieSalud("estres", ultDias(90)));
+        return [
+          filaInfo("Batería más alta del día, 7 días", b7 === null ? "sin dato" : num(b7, 0), false,
+            b90 !== null && b7 !== null ? "media de 90 días: " + num(b90, 0) : ""),
+          filaInfo("Estrés medio, 7 días", e7 === null ? "sin dato" : num(e7, 0), false,
+            e90 !== null && e7 !== null ? "media de 90 días: " + num(e90, 0) : "")];
+      }
+    },
+    forma: {
+      titulo: "Forma y fatiga",
+      mide: ["La <b>forma</b> (CTL): la carga de entrenamiento acumulada de unas seis semanas. Sube despacio.",
+             "La <b>fatiga</b> (ATL): la de la última semana. Sube y baja rápido.",
+             "El <b>balance</b> = forma − fatiga. Negativo es venir cargado; positivo, descansado."],
+      vigilar: ["Balance <b>por debajo de −30</b> varios días: sobrecarga.",
+                "La forma subiendo <b>más de 5-8 puntos por semana</b>: rampa demasiado rápida.",
+                "Las <b>semanas de descarga</b>: son las que evitan lo que pasó en 2023."],
+      como: function () {
+        var c = serieSalud("ctl", ultDias(10)), a = serieSalud("atl", ultDias(10));
+        if (!c.length) return [filaInfo("Forma", "sin dato")];
+        var cu = c[c.length - 1].v, au = a.length ? a[a.length - 1].v : null;
+        var c7 = serieSalud("ctl", { desde: U.sumarDias(U.hoyISO(), -9), hasta: U.sumarDias(U.hoyISO(), -7) });
+        var bal = au === null ? null : cu - au;
+        var out = [filaInfo("Forma (CTL)", num(cu)), filaInfo("Fatiga (ATL)", au === null ? "—" : num(au))];
+        out.push(filaInfo("Balance", bal === null ? "—" : signo(bal), bal !== null && bal < -30,
+          bal !== null && bal < -30 ? "por debajo de −30" : ""));
+        if (c7.length) {
+          var d = cu - c7[c7.length - 1].v;
+          out.push(filaInfo("La forma en 7 días", signo(d) + " puntos", d > 8, d > 8 ? "rampa más rápida de lo aconsejado" : ""));
+        }
+        return out;
+      }
+    },
+    cintura: {
+      titulo: "Cintura y rendimiento",
+      mide: ["La <b>cintura</b> a la altura del ombligo. Es la medida que más dice de la grasa que rodea los órganos.",
+             "La cintura dividida por la altura.",
+             "Los <b>vatios por kilo</b>: suben si bajas peso o si subes potencia."],
+      vigilar: ["Cintura por debajo de <b>la mitad de tu altura</b> (" + Math.round(182 * 0.5) + " cm con 182).",
+                "Por encima de <b>102 cm</b>, riesgo alto.",
+                "Medir siempre igual: de pie, en ayunas, al final de una espiración normal."],
+      como: function () {
+        var s = serieApp("cintura", { desde: EVO_PRIMER_DIA, hasta: U.hoyISO() });
+        if (!s.length) return [filaInfo("Cintura", "sin medir todavía", false, "se mide los lunes")];
+        var u = s[s.length - 1], alt = alturaCm(), r = u.v / alt;
+        return [filaInfo("Última medida", num(u.v) + " cm", u.v >= 102, "del " + U.etiquetaFecha(u.f) + (u.v >= 102 ? " · por encima de 102" : "")),
+                filaInfo("Cintura ÷ altura", num(r, 2), r >= 0.5, r >= 0.5 ? "por encima de 0,50: faltan " + num(u.v - alt * 0.5) + " cm" : "por debajo de 0,50")];
+      }
+    },
+    tension: {
+      titulo: "Tensión",
+      mide: ["Las tomas del tensiómetro OMRON (y las que anotes a mano): la <b>alta</b> (sistólica) y la <b>baja</b> (diastólica).",
+             "La media de cada día y la media de 7 días."],
+      vigilar: ["En casa, el umbral de hipertensión es una <b>media de 135/85</b>. El de 140/90 es el de consulta, donde la bata blanca la sube.",
+                "Mirar la <b>media de varios días</b>, nunca una toma suelta. Tomas en las mismas condiciones: sentado, 5 minutos quieto, mismo brazo.",
+                "Un <b>cambio de nivel</b> que se mantiene semanas es dato para la consulta.",
+                "180/110, o tensión alta con dolor de cabeza fuerte, dolor en el pecho o alteración de la vista, no es para la app: es para urgencias."],
+      como: function () {
+        var out = [];
+        [[7, "Media de 7 días"], [30, "Media de 30 días"]].forEach(function (x) {
+          var m = mediaTension(ultDias(x[0]).desde, U.hoyISO());
+          out.push(filaInfo(x[1], m ? Math.round(m.sis) + "/" + Math.round(m.dia) : "sin tomas",
+            m && (m.sis >= 135 || m.dia >= 85), m ? m.n + (m.n === 1 ? " toma" : " tomas") +
+              (m.sis >= 135 || m.dia >= 85 ? " · en o por encima de 135/85" : "") : ""));
+        });
+        var t30 = tomasTension(ultDias(30).desde, U.hoyISO());
+        if (t30.length) {
+          var altas = t30.filter(function (t) { return t.sis >= 135 || t.dia >= 85; }).length;
+          out.push(filaInfo("Tomas por encima de 135/85, 30 días", Math.round(altas / t30.length * 100) + " %", false,
+            altas + " de " + t30.length));
+        }
+        var todas = tomasTension(EVO_PRIMER_DIA, U.hoyISO()), a = { s: 0, d: 0, n: 0 }, b = { s: 0, d: 0, n: 0 };
+        todas.forEach(function (t) { var o = t.f < "2026-06-01" ? a : b; o.s += t.sis; o.d += t.dia; o.n++; });
+        if (a.n >= 5 && b.n >= 5) {
+          out.push(filaInfo("Antes de junio de 2026", Math.round(a.s / a.n) + "/" + Math.round(a.d / a.n), false, a.n + " tomas"));
+          out.push(filaInfo("Desde el 1 de junio", Math.round(b.s / b.n) + "/" + Math.round(b.d / b.n), false, b.n + " tomas"));
+        }
+        return out;
+      }
+    },
+    ecg: {
+      titulo: "Corazón en reposo",
+      mide: ["Del ECG de cada mañana, sentado: el <b>pulso</b>.",
+             "El <b>QRS</b>: lo que tarda en activarse el ventrículo.",
+             "El <b>QTc</b>: lo que tarda el corazón en activarse y recuperarse, corregido por el pulso.",
+             "Los <b>latidos cortos</b>: uno que llega antes de tiempo seguido de uno largo, por minuto."],
+      vigilar: ["<b>Cambios de nivel</b> frente a tu línea base, no el número de un día.",
+                "QTc por encima de <b>unos 450 ms</b>: en hombres ya se considera alargado (la app pone su límite en 470).",
+                "QRS por encima de <b>120 ms</b>.",
+                "Latidos cortos que <b>aumentan</b>, que vienen <b>en rachas</b> o que notas: dato para cardiología.",
+                "Palpitaciones con mareo, desmayo o dolor en el pecho no son para la app: son para urgencias."],
+      cardio: true,
+      como: function () {
+        var rs = registrosEcg().filter(function (x) { return !x.revisar; });
+        if (!rs.length) return [filaInfo("ECG", "todavía ninguno")];
+        rs.sort(function (a, b) { return (a.f + a.h) < (b.f + b.h) ? -1 : 1; });
+        var u = rs[rs.length - 1], ult7 = rs.slice(-7);
+        var co = ult7.filter(function (x) { return x.cortos_min !== undefined; });
+        return [filaInfo("ECG sin ruido", rs.length + "", false, rs.length < 14 ? "la línea base sale con unas dos semanas" : ""),
+                filaInfo("Último pulso sentado", u.fc ? Math.round(u.fc) + " lpm" : "—", false, "del " + U.etiquetaFecha(u.f) + " a las " + u.h),
+                filaInfo("Último QRS", u.qrs ? Math.round(u.qrs) + " ms" : "—", u.qrs > 120, u.qrs > 120 ? "por encima de 120" : ""),
+                filaInfo("Último QTc", u.qtc ? Math.round(u.qtc) + " ms" : "—", u.qtc > 450, u.qtc > 450 ? "por encima de 450" : ""),
+                filaInfo("Latidos cortos, últimos " + co.length + " ECG", co.length ? num(mediaDe(co.map(function (x) { return { v: x.cortos_min }; }))) + " /min" : "—")];
+      }
+    },
+    ecgUltimo: {
+      titulo: "El último ECG",
+      mide: ["El trazado del último ECG sin ruido, de <b>una sola derivación</b> tomada con la banda de pecho, sobre papel de electro (25 mm/s, 10 mm/mV)."],
+      vigilar: ["Que el <b>ritmo sea regular</b>: picos a la misma distancia, o que cambie suave con la respiración.",
+                "Que los <b>picos se parezcan</b> entre sí.",
+                "Que no haya <b>pausas</b> de más de 2 segundos (10 cuadros grandes).",
+                "Una extrasístole suelta es frecuente en gente sana; lo que importa es si aumentan.",
+                "Una sola derivación sirve para el ritmo, no para ver la hipertrofia ni sustituye un electro de 12 derivaciones."],
+      cardio: true,
+      como: function () {
+        var d = EcgUltimo.datos;
+        if (!d) return [filaInfo("Trazado", "todavía no ha llegado")];
+        return [filaInfo("Fecha", U.etiquetaFecha(d.f) + " · " + d.h),
+                filaInfo("Pulso", d.fc ? Math.round(d.fc) + " lpm" : "—", false, d.fc_min && d.fc_max ? Math.round(d.fc_min) + "–" + Math.round(d.fc_max) : ""),
+                filaInfo("Extrasístoles según la app", String(d.ectopicos || 0)),
+                filaInfo("Latidos cortos en el registro", String(d.cortos || 0))];
+      }
+    }
+  };
+
+  function abrirInfoEvo(k) {
+    var g = INFO_EVO[k], caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!g || !caja || !modal) return;
+    var filas = [];
+    try { filas = g.como() || []; } catch (e) { filas = [filaInfo("Cómo vas", "no se ha podido calcular")]; }
+    var h = '<header><h2>' + U.esc(g.titulo) + '</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header><div class="info-evo">';
+    h += "<h3>Qué mide</h3><ul>" + g.mide.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
+    h += "<h3>Qué vigilar</h3><ul>" + g.vigilar.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
+    h += '<h3>Cómo vas</h3><table class="info-como">';
+    filas.forEach(function (f) {
+      h += "<tr" + (f.ojo ? ' class="ojo"' : "") + "><td>" + U.esc(f.t) + (f.d ? "<small>" + U.esc(f.d) + "</small>" : "") +
+        "</td><td>" + U.esc(f.v) + "</td></tr>";
+    });
+    h += "</table>";
+    if (g.cardio) h += '<p class="info-cardio">' + U.esc(LINEA_CARDIO) + "</p>";
+    h += '<p class="nota-peque" style="margin:10px 0 0">Son criterios generales. Si tu médico te ha dado otros, mandan los suyos.</p>';
+    h += '</div><button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Entendido</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
   }
 
   function sinDatos(texto, cuando) {
@@ -7233,8 +7471,9 @@
 
     /* ---------- 6. tensión (v269) ----------
        Una toma o dos al día, a veces ninguna: se dibuja la media de cada día
-       fina y la de 7 días gruesa, alta en rojo y baja en azul. Las líneas de
-       140 y 90 son el umbral de hipertensión en consulta. */
+       fina y la de 7 días gruesa, alta en rojo y baja en azul. Las líneas son
+       135 y 85: el umbral de hipertensión para tomas EN CASA (guías europeas).
+       El de 140/90 es el de consulta, y estaba puesto mal hasta la v270. */
     v = ventanaDe("tension");
     var tomasT = tomasTension(v.desde, v.hasta), pdT = {};
     tomasT.forEach(function (x) {
@@ -7251,13 +7490,13 @@
         desde: v.desde, hasta: v.hasta, alto: 120, arriba: "mmHg", unidadTip: "mmHg", min: 50, max: 150,
         alt: "Tensión alta y baja", par: ["alta", "baja"],
         explica: "Cada día, la media de sus tomas (fina) y la media de 7 días (gruesa). Rojo la alta, azul la baja.",
-        lineasH: [{ v: 140, color: "#eccf9a", etq: "140" }, { v: 90, color: "#eccf9a", etq: "90" }],
+        lineasH: [{ v: 135, color: "#eccf9a", etq: "135" }, { v: 85, color: "#eccf9a", etq: "85" }],
         series: [{ pts: sisD, color: ROJO_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: sisD.length < 3 },
                  { pts: mediaMovilDias(sisD, 7), color: ROJO, ancho: 1.6 },
                  { pts: diaD, color: AZUL_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: diaD.length < 3 },
                  { pts: mediaMovilDias(diaD, 7), color: AZUL, ancho: 1.6 }]
       }) + leyenda([{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL },
-                    { n: "140/90", color: "#eccf9a", guiones: true }]);
+                    { n: "135/85, umbral en casa", color: "#eccf9a", guiones: true }]);
       /* ANTES Y DESPUÉS DE JUNIO DE 2026, con todas las tomas y no solo las del
          tramo: es la pregunta que él se hace («desde el vértigo me ha subido»),
          y así la contesta el número en vez de la memoria. */
@@ -7302,8 +7541,8 @@
     h += tarjetaEvo("Corazón en reposo", eFc.length ? Math.round(eFc[eFc.length - 1].v) : null, "lpm",
       "Del ECG de la mañana, sentado. Lo que se mira es si cambia de nivel, no el número de un día.",
       mandoEvo("ecg") + tramoEvo("ecg") + cuerpoE,
-      eFc.length < 14 ? "Con " + eFc.length + (eFc.length === 1 ? " ECG" : " ECG") +
-        " todavía no hay línea base: el primer mes es a diario para tenerla." : "");
+      (eFc.length < 14 ? "Con " + eFc.length + " ECG todavía no hay línea base: el primer mes es a diario para tenerla. " : "") +
+        LINEA_CARDIO);
 
     /* ---------- 8. el último ECG, en papel (v269) ---------- */
     var dU = EcgUltimo.datos;
@@ -7312,7 +7551,7 @@
         "Del " + U.etiquetaFecha(dU.f) + " a las " + U.esc(dU.h) + ". Los primeros 10 segundos, en papel de electro.",
         tiraEcg(dU, 0) +
         '<button type="button" class="btn principal ecg-btn" data-ecg-papel="1">Verlo entero · guardar en PDF para el médico</button>',
-        "Una sola derivación, de la banda de pecho: sirve para ver el ritmo, no sustituye un electro de 12 derivaciones.");
+        "Una sola derivación, de la banda de pecho: sirve para ver el ritmo, no sustituye un electro de 12 derivaciones. " + LINEA_CARDIO);
     } else {
       h += tarjetaEvo("El último ECG", null, null, "", sinDatos(
         EcgUltimo.estado === "cargando" ? "Trayendo el trazado…" : "Todavía no ha llegado ningún trazado",
@@ -7492,7 +7731,7 @@
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.sis }; });
                  }, serie2: function () {
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.dia }; });
-                 }, etq2: "diastólica", par: ["alta", "baja"], techo: 140, etqTecho: "140",
+                 }, etq2: "diastólica", par: ["alta", "baja"], techo: 135, etqTecho: "135 · umbral en casa",
                  pie: "Azul la alta, roja la baja. Lo que se mira es la media de varios días, nunca una toma." },
       pulso: { n: "Pulso del tensiómetro", u: "ppm", dias: 30, serie: function () {
                  return tomasTension(v.desde, v.hasta).filter(function (t) { return t.pul; })
@@ -10139,7 +10378,7 @@
     var mt = mediaTension(U.sumarDias(dia, -6), dia);
     h += tarjeta("Tensión", mt ? Math.round(mt.sis) + "/" + Math.round(mt.dia) : null,
       mt ? "media de " + mt.n + (mt.n === 1 ? " toma" : " tomas") + " en 7 días · el color lo manda la alta" +
-           (mt.alta ? " · en o por encima de 140/90: dato para la revisión" : "")
+           (mt.alta ? " · en o por encima de 135/85, el umbral en casa: dato para la revisión" : "")
          : "sin tomas anotadas", "tension", null, mt ? mt.sis : null);
     if (mt && mt.pul) {
       h += tarjeta("Pulso del tensiómetro", Math.round(mt.pul) + " ppm",
@@ -10420,6 +10659,8 @@
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
       if (t.closest && t.closest("[data-ecg-papel]")) { e.preventDefault(); abrirEcgPapel(); return; }
+      var ie = t.closest ? t.closest("[data-evo-info]") : null;
+      if (ie) { e.preventDefault(); abrirInfoEvo(ie.getAttribute("data-evo-info")); return; }
       /* «que decida el reloj»: borra la marca manual y devuelve la sesión al
          estado neutro. Va dentro de un <label>, así que hay que frenar el
          clic o de paso marcaría la casilla. */
