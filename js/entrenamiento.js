@@ -1787,9 +1787,20 @@
 
   function ponerNoHabil(iso, motivo) {
     var e = ent();
+    var antes = e.noHabil[iso] || null;
     if (motivo) e.noHabil[iso] = { m: motivo, t: Date.now() };
     else delete e.noHabil[iso];
     cacheBolsillo = {};
+    /* AL DESMARCAR, LO QUE SE FUE VUELVE  ·  28-sep-2026.
+       Carlos marcó sin querer el domingo 27 como no disponible: la caminata de
+       65' se fue a otro día y al desmarcarlo no volvió. Ahora al marcar se
+       apunta QUÉ se movió (`mov`), y al desmarcar se devuelve. */
+    if (!motivo) {
+      var nDev = restaurarDia(iso, antes && antes.mov);
+      if (nDev && U.toast) U.toast(nDev === 1 ? "1 bloque devuelto a su día" : nDev + " bloques devueltos a su día");
+      A.guardar("entreno");
+      return;
+    }
     /* AL MARCARLO, LOS BLOQUES DE ESE DÍA SE RECOLOCAN SOLOS. Es lo que eligió
        Carlos: la app los reparte en los días hábiles que queden y él retoca lo que
        no le cuadre. Se guarda el reparto entero para que el movimiento sea real y
@@ -1797,16 +1808,63 @@
     var sem = semanaDe(iso);
     if (motivo && sem) {
       var b = bolsilloDe(sem) || [], mapa = repartoDe(sem) || {}, movidos = 0;
+      var mov = [];
       b.forEach(function (x) {
         if (mapa[x.id] !== iso) return;
         var d = mejorDiaPara(sem, mapa, x);
         mapa[x.id] = d;
+        mov.push(x.id);
         if (d) movidos++;
       });
+      e.noHabil[iso].mov = mov;
       repartoGuardado()[sem.desde] = mapa;
       if (movidos && U.toast) U.toast(movidos === 1 ? "1 bloque movido" : movidos + " bloques movidos");
     }
     A.guardar("entreno");
+  }
+
+  /* Devuelve a su día los bloques que se le quitaron al marcarlo no disponible.
+     Si se sabe cuáles (`ids`, apuntados desde el 28-sep), esos. Si no —marcas
+     de antes de este arreglo—, los que el reparto de partida pone en ese día. */
+  function restaurarDia(iso, ids) {
+    var sem = semanaDe(iso);
+    if (!sem) return 0;
+    var b = bolsilloDe(sem) || [];
+    if (!b.length) return 0;
+    var mapa = repartoDe(sem) || {}, n = 0, quiere = {};
+    if (ids && ids.length) ids.forEach(function (id) { quiere[id] = true; });
+    else {
+      var prop = repartoPropuesto(sem, b);
+      b.forEach(function (x) { if (prop[x.id] === iso) quiere[x.id] = true; });
+    }
+    b.forEach(function (x) {
+      if (quiere[x.id] && mapa[x.id] !== iso) { mapa[x.id] = iso; n++; }
+    });
+    if (n) repartoGuardado()[sem.desde] = mapa;
+    return n;
+  }
+
+  /* Lo que tiene un día, para preguntar antes de quitárselo. */
+  function bloquesDeDia(iso) {
+    var sem = semanaDe(iso);
+    if (!sem) return [];
+    var b = bolsilloDe(sem) || [], mapa = repartoDe(sem) || {};
+    return b.filter(function (x) { return mapa[x.id] === iso; });
+  }
+
+  /* ¿DE VERDAD?  ·  28-sep-2026. Marcar un día no disponible le quita el plan,
+     y la × está pegada a la fecha: se pulsa sin querer. Se pregunta siempre. */
+  function confirmaNoHabil(iso) {
+    var bl = bloquesDeDia(iso), d = U.desdeISO(iso);
+    var txt = "¿Marcar el " + DIA_LARGO[d.getDay()] + " " + U.etiquetaFecha(iso) + " como NO DISPONIBLE?";
+    if (bl.length) {
+      txt += "\n\nSe quitará el plan de ese día: " +
+        bl.map(function (x) { return cortoBloque(x); }).join(", ") +
+        ".\nLa app lo pasará a otros días de la semana. Si luego lo desmarcas, vuelve.";
+    } else {
+      txt += "\n\nEse día no tiene nada planificado.";
+    }
+    return window.confirm(txt);
   }
 
   function diasHabilesDe(sem) {
@@ -9006,6 +9064,21 @@
   }
 
   function htmlPlan() {
+    /* ARREGLO DE UNA VEZ  ·  28-sep-2026. El fin de semana del 26-27 se marcó y
+       desmarcó sin querer antes de que existiera la vuelta automática: la
+       caminata se quedó en otro día. Se devuelve una sola vez y se apunta. */
+    try {
+      var eA = ent();
+      if (!eA.arreglo27sep) {
+        eA.arreglo27sep = Date.now();
+        /* la semana 1 va escrita a mano, día a día: cada bloque sabe su día.
+           La caminata de 65' es del sábado 26; el domingo, el paseo corto. */
+        ["2026-09-26", "2026-09-27"].forEach(function (f) {
+          if (!noHabilDe(f)) restaurarDia(f, null);
+        });
+        A.guardar("entreno");
+      }
+    } catch (err) {}
     var hoy = U.hoyISO(), sem = semanaDe(hoy);
     var FLECHA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
       'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -9915,6 +9988,7 @@
         e.preventDefault();
         e.stopPropagation();
         var fnd = ndB.getAttribute("data-nd");
+        if (!noHabilDe(fnd) && !confirmaNoHabil(fnd)) return;
         ponerNoHabil(fnd, noHabilDe(fnd) ? null : "otro");
         pintarConservando();
         return;
@@ -9925,6 +9999,7 @@
       if (nhB) {
         e.preventDefault();
         var pr = nhB.getAttribute("data-nohabil").split(":");
+        if (pr[1] && !noHabilDe(pr[0]) && !confirmaNoHabil(pr[0])) return;
         ponerNoHabil(pr[0], pr[1] || null);
         pintarConservando();
         return;
