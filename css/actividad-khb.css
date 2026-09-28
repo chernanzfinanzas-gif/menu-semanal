@@ -251,6 +251,44 @@
 .akhb-mes.vacio { opacity: .45; cursor: default; }
 .akhb-todo { font-weight: 600; }
 
+/* ---- meses en barras (28-sep-2026): la tira de los años en pequeño ----
+   Trece columnas en rejilla para que quepan sin desplazar: comparar meses
+   exige verlos todos a la vez. «Todo el año» algo más ancha y separada. */
+.akhb-mbarras {
+  display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(12, minmax(0, 1fr));
+  gap: 4px; margin: 8px 0 14px;
+}
+.akhb-mb {
+  min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 1px solid var(--akhb-borde); background: var(--akhb-blanco);
+  border-radius: 8px; padding: 6px 2px 5px; cursor: pointer;
+  font: inherit; font-size: 11px; color: var(--akhb-gris); line-height: 1.1;
+}
+.akhb-mb .akhb-barra { height: 72px; }
+.akhb-mb-todo { margin-right: 6px; }
+.akhb-mb-n { font-size: 12px; font-weight: 600; color: var(--akhb-tinta); white-space: nowrap; }
+.akhb-mb-v { font-size: 10.5px; white-space: nowrap; max-width: 100%; overflow: hidden; }
+.akhb-mb-c { display: none; }
+.akhb-mb:hover:not(:disabled) { border-color: var(--akhb-azul); }
+.akhb-mb.sel {
+  border-color: var(--akhb-azul); background: var(--akhb-claro);
+  color: var(--akhb-hondo); font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--akhb-azul);
+}
+.akhb-mb.sel .akhb-mb-n { color: var(--akhb-hondo); }
+.akhb-mb.vacio { opacity: .45; cursor: default; }
+@media (max-width: 620px) {
+  .akhb-mbarras { gap: 2px; }
+  .akhb-mb { padding: 5px 0 4px; border-radius: 6px; gap: 3px; }
+  .akhb-mb .akhb-barra { height: 60px; border-radius: 3px; }
+  .akhb-mb-todo { margin-right: 4px; }
+  .akhb-mb-n { font-size: 10px; }
+  .akhb-mb-v { font-size: 9px; letter-spacing: -.03em; }
+  .akhb-mb.sel .akhb-mb-v { font-weight: 600; }
+  .akhb-mb-l { display: none; }
+  .akhb-mb-c { display: inline; }
+}
+
 /* ---- lista ---- */
 .akhb-titmes {
   margin: 18px 0 4px; font-size: 14px; font-weight: 700;

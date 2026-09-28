@@ -970,6 +970,19 @@
         x.kmReloj = x.km; x.desnivelReloj = x.desnivel;
         if (s.km != null) x.km = s.km;
         if (s.desnivel != null) x.desnivel = s.desnivel;
+        /* 28-sep: TODO LO QUE SALE DEL RECORRIDO manda también el juego. El
+           primer entreno enseñaba 30,69 km de Zwift con los 24,2 km/h del reloj
+           (sus 26,62 km en 66 min): dos fuentes en una misma ficha. Velocidad,
+           bajada y pendientes son del mundo virtual o no son de nada: el reloj
+           en una sala no baja ni sube. La del reloj se guarda en velReloj. */
+        x.velReloj = x.vel != null ? x.vel
+          : (x.kmReloj && x.min ? x.kmReloj / (x.min / 60) : null);
+        x.vel = s.vel != null ? s.vel
+          : (s.km && (s.min || x.min) ? s.km / ((s.min || x.min) / 60) : null);
+        x.ritmo = null;
+        x.desnivelNeg = s.desnivel_neg != null ? s.desnivel_neg : null;
+        x.pendMax = s.pend_max != null ? s.pend_max : null;
+        x.pendMedia = s.pend_media != null ? s.pend_media : null;
         x.virtual = { app: s.app, sitio: s.ruta || s.mundo || null };
       });
     }
@@ -1864,42 +1877,111 @@
         (aviso ? '<p class="akhb-aviso">' + aviso + "</p>" : "");
     }
 
-    /* Las casillas de los meses enseñan EL VALOR DE LA MEDIDA ELEGIDA, no el
-       número de actividades. Antes ponían siempre actividades, así que con
-       Kilómetros elegido la tira de arriba hablaba de kilómetros y las casillas
-       de debajo de otra cosa, sin decirlo. */
+    /* LOS MESES, EN BARRAS (28-sep-2026). Antes eran casillas con el número:
+       se leía cada mes pero no se COMPARABAN, que es lo que hacen las barras de
+       los años. Ahora son la misma tira en pequeño: misma medida, mismos
+       colores, mismo filtro de familias, y la que se pulsa abre su lista.
+       Delante va «Todo el año». En las que se suman su barra va llena —es el
+       reparto del año, doce veces más alta que un mes no cabría en la misma
+       escala—; en las que no se suman (velocidad, potencia…) sí entra en la
+       escala de los meses, porque un mes y el año se miden igual.
+       Caben las trece sin desplazar ni en el móvil: comparar meses exige
+       verlos todos a la vez. Allí la cifra va abreviada («12k»). */
+    function numCorto(v, m) {
+      var a = Math.abs(v);
+      if (a >= 10000) return num(v / 1000, 0) + "k";
+      if (a >= 1000) return num(v / 1000, 1) + "k";
+      return num(v, m.dec || 0);
+    }
+
     function htmlMeses() {
       /* Con «todos los años» puesto, los meses de UN año no filtran nada: la
          lista se los salta. Un control que no responde es peor que no estar,
          así que no está. */
       if (estado.todosAnios && ordenable(metricaActual()) && estado.orden !== "fecha") return "";
-      var m = metricaActual(), celdas = [];
+      var m = metricaActual(), y = estado.anio, cols = [], max = 0, vals = [];
+      var sumaNo = m.acumula === false;
       for (var i = 0; i < 12; i++) {
         var k = dosD(i + 1);
-        var d = reparto(estado.anio, k, m);
+        var d = reparto(y, k, m);
         var hay = (m.fuente === "dia") ? d.n > 0
-                : (m.fuente === "fuerza") ? sesionesConKilos(estado.anio, k).length > 0
+                : (m.fuente === "fuerza") ? sesionesConKilos(y, k).length > 0
                 : (m.fuente === "curva") ? d.n > 0
-                : (m.acumula === false) ? d.n > 0
-                : actsDe(estado.anio, k).length > 0;
-        var sel = estado.mes === k;
-        celdas.push('<button type="button" class="akhb-mes' + (sel ? " sel" : "") +
-          (hay ? "" : " vacio") + '"' + (hay ? "" : " disabled") +
-          ' data-mes="' + k + '" aria-pressed="' + !!sel + '">' +
-          MES_CORTO[i] + "<b>" + (hay && d.n ? num(d.n, m.dec) + m.suf : "·") +
-          (hay && d.n && m.aparte && m.aparte(d.n, d)
-            ? "<small>" + esc(m.aparte(d.n, d)) + "</small>" : "") +
-          "</b></button>");
+                : sumaNo ? d.n > 0
+                : actsDe(y, k).length > 0;
+        cols.push({ k: k, i: i, d: d, hay: hay });
+        if (hay && d.n) { max = Math.max(max, d.n); vals.push(d.n); }
       }
-      var todo = reparto(estado.anio, null, m);
-      return '<div class="akhb-meses">' +
-        '<button type="button" class="akhb-mes akhb-todo' + (estado.mes ? "" : " sel") +
-        '" data-mes="">Todo el año<b>' +
-        (todo.n ? num(todo.n, m.dec) + m.suf : "·") +
-        (todo.n && m.aparte && m.aparte(todo.n, todo)
-          ? "<small>" + esc(m.aparte(todo.n, todo)) + "</small>" : "") +
-        "</b></button>" +
-        celdas.join("") + "</div>";
+      var todo = reparto(y, null, m);
+      if (sumaNo && todo.n) { max = Math.max(max, todo.n); vals.push(todo.n); }
+      if (!max) max = 1;
+      /* el mismo suelo que en los años para las que no se suman */
+      var suelo = 0;
+      if (sumaNo && vals.length > 1) {
+        var lo = Math.min.apply(null, vals);
+        suelo = lo - (max - lo) * 0.25;
+        if (suelo < 0) suelo = 0;
+      }
+      function altura(n) {
+        if (!n) return 0;
+        var a = Math.max(7, Math.round((n - suelo) / ((max - suelo) || 1) * 100));
+        return a > 100 ? 100 : a;
+      }
+      function trozos(d, alto) {
+        if (!d.n || !alto) return "";
+        if (sumaNo) {
+          var solo = null, enc = 0, gi;
+          for (gi = 0; gi < ORDEN_FAM.length; gi++) {
+            if (activo(ORDEN_FAM[gi])) { enc++; solo = ORDEN_FAM[gi]; }
+          }
+          var col = (enc === 1) ? colorG(solo) : "var(--akhb-azul, #2f5c8a)";
+          return '<i style="height:' + alto + '%;background:' + col + '"></i>';
+        }
+        return gruposDe(m).filter(function (g) { return d.r[g]; }).map(function (g) {
+          return '<i style="height:' + (d.r[g] / d.n * alto).toFixed(2) +
+                 '%;background:' + colorG(g) + '"></i>';
+        }).join("");
+      }
+      /* lo que dice la etiqueta flotante: el número entero, su unidad y lo de
+         debajo que antes iba en la casilla (la equivalencia, o cuántas) */
+      function titulo(nombre, d) {
+        if (!d.n) return nombre + ": nada";
+        var t = nombre + ": " + num(d.n, m.dec) + (m.suf || "").replace(/ /g, " ");
+        if (!sumaNo && m.aparte && m.aparte(d.n, d)) t += " (" + m.aparte(d.n, d) + ")";
+        if (sumaNo && d.cuantas) t += " · " + d.cuantas + (d.cuantas === 1 ? " salida" : " salidas");
+        if (!sumaNo && d.r) {
+          gruposDe(m).forEach(function (g) {
+            if (d.r[g]) t += "\n" + NOMBRE_FAM[g] + ": " + num(d.r[g], m.dec);
+          });
+        }
+        return t;
+      }
+      function cifra(n, conUnidad) {
+        if (!n) return "·";
+        return '<span class="akhb-mb-l">' + num(n, m.dec) + (conUnidad ? m.suf : "") + "</span>" +
+               '<span class="akhb-mb-c">' + numCorto(n, m) + "</span>";
+      }
+
+      var altoTodo = sumaNo ? altura(todo.n) : (todo.n ? 100 : 0);
+      var h = '<div class="akhb-mbarras" role="group" aria-label="Meses de ' + y + '">' +
+        '<button type="button" class="akhb-mb akhb-mb-todo' + (estado.mes ? "" : " sel") +
+        '" data-mes="" aria-pressed="' + !estado.mes + '" title="' +
+        esc(titulo("Todo " + y, todo)) + '">' +
+        '<span class="akhb-mb-n"><span class="akhb-mb-l">Todo el año</span>' +
+        '<span class="akhb-mb-c">Año</span></span>' +
+        '<span class="akhb-barra">' + trozos(todo, altoTodo) + "</span>" +
+        '<span class="akhb-mb-v">' + cifra(todo.n, true) + "</span></button>";
+      cols.forEach(function (c) {
+        var sel = estado.mes === c.k, n = c.hay ? c.d.n : 0;
+        h += '<button type="button" class="akhb-mb' + (sel ? " sel" : "") +
+          (c.hay ? "" : " vacio") + '"' + (c.hay ? "" : " disabled") +
+          ' data-mes="' + c.k + '" aria-pressed="' + !!sel + '" title="' +
+          esc(titulo(MES[c.i] + " " + y, c.hay ? c.d : { n: 0 })) + '">' +
+          '<span class="akhb-mb-n">' + MES_CORTO[c.i] + "</span>" +
+          '<span class="akhb-barra">' + trozos(c.d, c.hay ? altura(n) : 0) + "</span>" +
+          '<span class="akhb-mb-v">' + cifra(n, false) + "</span></button>";
+      });
+      return h + "</div>";
     }
 
     function datosDe(x) {
@@ -1985,6 +2067,7 @@
         (x.virtual ? dato("Mundo virtual", (x.virtual.app === "zwift" ? "Zwift" : "MyWhoosh") +
           (x.virtual.sitio ? " · " + esc(x.virtual.sitio) : "")) : "") +
         (x.virtual && x.kmReloj != null ? dato("Distancia del reloj", num(x.kmReloj, 2), " km") : "") +
+        (x.virtual && x.velReloj != null ? dato("Velocidad del reloj", num(x.velReloj, 1), " km/h") : "") +
         (x.desnivelNeg != null ? dato("Bajada", num(x.desnivelNeg), " m") : "") +
         (x.altMin != null && x.altMax != null
           ? dato("Altura", num(x.altMin) + " – " + num(x.altMax), " m") : "") +
