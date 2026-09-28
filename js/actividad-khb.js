@@ -1784,7 +1784,8 @@
          del botón lo pone la app (opción `botonVolver`); el módulo no sabe ni
          tiene que saber a dónde vuelve. */
       var selector = '<div class="akhb-cabrow">' +
-        (botonVolver || "<span></span>") +
+        /* el volver se fue arriba del todo, encima de Comparar */
+        "" +
         '<div class="akhb-metricas" role="group" aria-label="Medida">' +
         METRICAS.filter(medidaPosible).map(function (x) {
           return '<button type="button" data-met="' + x.id + '" aria-pressed="' +
@@ -2527,10 +2528,402 @@
       return "Hasta el 14 de octubre, del archivo; desde el 15, de intervals.";
     }
 
+    /* ================= COMPARAR (28-sep-2026) =================
+       «Quiero comparar las últimas semanas, los últimos meses o los años, de
+       una actividad o de varias, con una medida u otra.» Va arriba del todo,
+       debajo del volver, con su propio estado: no toca la tira de los años.
+
+       Tres decisiones que no se ven y que cambian el número:
+       · Una semana SIN NADA es un cero, no un hueco. Si no, la mediana sólo
+         vería las semanas buenas. Pero si hubo actividades y ninguna trae el
+         dato (la carga antes de 2021), es un hueco: eso no se sabe.
+       · Velocidad, potencia y pulso NO se mezclan entre actividades: cada una
+         con su barra. La mediana del rodillo con un paseo no dice nada.
+       · El tramo en curso se compara «a estas alturas»: la raya negra de cada
+         barra es lo que llevaba ese tramo al mismo día. */
+    var CMP_MET = [
+      { id: "n",  nom: "Sesiones",    campo: null,       suma: true, dec: 0, u: "" },
+      { id: "h",  nom: "Duración",    campo: "min",      suma: true, div: 60, dec: 1, u: " h" },
+      { id: "km", nom: "Kilómetros",  campo: "km",       suma: true, dec: 0, u: " km" },
+      { id: "d",  nom: "Desnivel",    campo: "desnivel", suma: true, dec: 0, u: " m" },
+      { id: "c",  nom: "Carga",       campo: "carga",    suma: true, dec: 0, u: "" },
+      { id: "v",  nom: "Velocidad",   campo: "vel",      suma: false, dec: 1, u: " km/h", como: "vel" },
+      { id: "p",  nom: "Potencia",    campo: "pot",      suma: false, dec: 0, u: " W", como: "pot" },
+      { id: "fc", nom: "Pulso medio", campo: "pulso",    suma: false, dec: 0, u: " ppm" }
+    ];
+    var CMP_TRAMOS = {
+      sem: [["8", "8"], ["12", "12"], ["26", "26"], ["52", "52"], ["ano", "Año"]],
+      mes: [["12m", "Últimos 12"], ["ano", "Año"]],
+      anio: [["todos", "Todos"], ["10", "Últimos 10"]]
+    };
+    var cmp = { fams: null, met: "h", por: "sem", tramo: { sem: "12", mes: "12m", anio: "todos" },
+                anio: null, alt: true, ant: false, tabla: false };
+
+    function cmpMet() {
+      for (var i = 0; i < CMP_MET.length; i++) if (CMP_MET[i].id === cmp.met) return CMP_MET[i];
+      return CMP_MET[1];
+    }
+    function cmpFams() {
+      return ORDEN_FAM.filter(function (g) { return !cmp.fams || cmp.fams[g]; });
+    }
+    function cD(s) { var p = s.split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+    function cS(d) { return d.toISOString().slice(0, 10); }
+    function cMas(d, n) { return new Date(d.getTime() + n * 864e5); }
+    function cHoy() {
+      var d = new Date();
+      return d.getFullYear() + "-" + dosD(d.getMonth() + 1) + "-" + dosD(d.getDate());
+    }
+    /* el mismo día en el año elegido (el 29 de febrero cae al 28) */
+    function cRef() {
+      var hoy = cHoy(), y = cmp.anio || hoy.slice(0, 4);
+      if (y === hoy.slice(0, 4)) return hoy;
+      var md = hoy.slice(5);
+      if (md === "02-29") md = "02-28";
+      return y + "-" + md;
+    }
+
+    function cmpTramos() {
+      var hoyS = cHoy(), hoy = cD(hoyS), ref = cD(cRef()), out = [];
+      var y = ref.getUTCFullYear(), deHoy = (cRef() === hoyS);
+      function lunes(d) { return cMas(d, -((d.getUTCDay() + 6) % 7)); }
+      if (cmp.por === "sem") {
+        var t = cmp.tramo.sem, ultimo, primero;
+        if (t === "ano") {
+          ultimo = lunes(deHoy ? hoy : new Date(Date.UTC(y, 11, 31)));
+          primero = lunes(new Date(Date.UTC(y, 0, 1)));
+        } else {
+          ultimo = lunes(ref);
+          primero = cMas(ultimo, -7 * (+t - 1));
+        }
+        for (var ini = primero; ini <= ultimo; ini = cMas(ini, 7)) {
+          var fin = cMas(ini, 7), l2 = cMas(fin, -1);
+          out.push({ ini: cS(ini), fin: cS(fin), dias: 7,
+            et: ini.getUTCDate() + " " + MES_CORTO[ini.getUTCMonth()],
+            largo: "Semana del " + ini.getUTCDate() + " " + MES_CORTO[ini.getUTCMonth()] +
+                   " al " + l2.getUTCDate() + " " + MES_CORTO[l2.getUTCMonth()] + " " + l2.getUTCFullYear(),
+            prev: { ini: cS(cMas(ini, -364)), fin: cS(cMas(fin, -364)) } });
+        }
+      } else if (cmp.por === "mes") {
+        var lista = [], m0 = ref.getUTCMonth();
+        if (cmp.tramo.mes === "ano") {
+          for (var i = 0; i <= (deHoy ? m0 : 11); i++) lista.push([y, i]);
+        } else {
+          for (var j = 11; j >= 0; j--) { var mm = m0 - j, yy = y; while (mm < 0) { mm += 12; yy--; } lista.push([yy, mm]); }
+        }
+        lista.forEach(function (p, ix) {
+          var a = new Date(Date.UTC(p[0], p[1], 1)), b = new Date(Date.UTC(p[0], p[1] + 1, 1));
+          out.push({ ini: cS(a), fin: cS(b), dias: Math.round((b - a) / 864e5),
+            et: MES_CORTO[p[1]] + (p[1] === 0 || ix === 0 ? " " + String(p[0]).slice(2) : ""),
+            largo: MES[p[1]] + " " + p[0],
+            prev: { ini: cS(new Date(Date.UTC(p[0] - 1, p[1], 1))), fin: cS(new Date(Date.UTC(p[0] - 1, p[1] + 1, 1))) } });
+        });
+      } else {
+        var yh = hoy.getUTCFullYear(), desde = cmp.tramo.anio === "10" ? yh - 9 : +(anios[0] || yh);
+        for (var a2 = desde; a2 <= yh; a2++) {
+          var i2 = new Date(Date.UTC(a2, 0, 1)), f2 = new Date(Date.UTC(a2 + 1, 0, 1));
+          out.push({ ini: cS(i2), fin: cS(f2), dias: Math.round((f2 - i2) / 864e5),
+            et: String(a2), largo: String(a2), prev: null });
+        }
+      }
+      /* en curso = contiene hoy; lo que va, en días */
+      out.forEach(function (t) {
+        t.curso = (t.ini <= hoyS && hoyS < t.fin);
+        t.van = t.curso ? Math.round((hoy - cD(t.ini)) / 864e5) + 1 : t.dias;
+      });
+      return out;
+    }
+
+    /* el número de un tramo, repartido por familia */
+    function cmpValor(ini, fin, m, fams) {
+      var r = {}, v = {}, tot = 0, lista = [], acts = 0, dato = 0;
+      var primero = todas.length ? todas[0].fecha : "9999";
+      var def = m.como ? METRICAS.filter(function (z) { return z.id === m.como; })[0] : null;
+      for (var i = 0; i < todas.length; i++) {
+        var x = todas[i];
+        if (x.fecha < ini || x.fecha >= fin) continue;
+        var g = FAMILIA[x.dep] || "sala";
+        if (fams.indexOf(g) < 0) continue;
+        acts++;
+        if (def && !cuentaPara(def, x)) continue;       // el mismo suelo de duración que arriba
+        var q = m.campo ? x[m.campo] : 1;
+        if (q == null) continue;
+        dato++;
+        if (m.div) q = q / m.div;
+        if (m.suma) { r[g] = (r[g] || 0) + q; tot += q; }
+        else { (v[g] = v[g] || []).push(q); lista.push(q); }
+      }
+      if (!m.suma) {
+        for (var k in v) if (v.hasOwnProperty(k)) r[k] = mediana(v[k]);
+        return { r: r, n: dato ? mediana(lista) : null };
+      }
+      var dentro = fin > primero && ini <= cHoy();
+      return { r: r, n: !dentro ? null : (acts && !dato) ? null : tot };
+    }
+
+    function htmlComparar() {
+      var m = cmpMet(), fams = cmpFams(), T = cmpTramos();
+      if (!T.length) return "";
+      var multiMed = !m.suma && fams.length > 1;
+      var cur = T[T.length - 1];
+      var verAlt = cmp.alt && m.suma && cur.curso;
+      var verAnt = cmp.ant && cmp.por !== "anio" && !multiMed;
+      T.forEach(function (t) {
+        var d = cmpValor(t.ini, t.fin, m, fams); t.r = d.r; t.n = d.n;
+        if (verAnt && t.prev) t.pn = cmpValor(t.prev.ini, t.prev.fin, m, fams).n;
+        if (verAlt && t !== cur) t.alt = cmpValor(t.ini, cS(cMas(cD(t.ini), cur.van)), m, fams).n;
+      });
+      cmp._T = T; cmp._m = m; cmp._fams = fams; cmp._cur = cur;
+      var completos = T.filter(function (t) { return !t.curso && t.n != null; });
+      var med = mediana(completos.map(function (t) { return t.n; }));
+      var mejor = null;
+      completos.forEach(function (t) { if (mejor == null || t.n > mejor.n) mejor = t; });
+      var medAlt = verAlt ? mediana(T.filter(function (t) { return t !== cur && t.alt != null; })
+                                     .map(function (t) { return t.alt; })) : null;
+      function nomF(g) { return NOMBRE_FAM[g] || g; }
+      function pct(a, b) {
+        if (a == null || !b) return "";
+        var p = Math.round((a / b - 1) * 100);
+        return '<em class="' + (p >= 0 ? "akhb-c-bien" : "akhb-c-mal") + '">' + (p >= 0 ? "+" : "") + p + " %</em>";
+      }
+      function cifra(v) { return num(v, m.dec) == null ? "—" : num(v, m.dec); }
+
+      /* --- los mandos --- */
+      var anioAct = cHoy().slice(0, 4), anioSel = cmp.anio || anioAct;
+      var aniosSel = anios.slice().reverse();
+      if (aniosSel.indexOf(anioAct) < 0) aniosSel.unshift(anioAct);
+      var mandos =
+        '<div class="akhb-c-fila"><span class="akhb-c-rot">Actividad</span><span class="akhb-c-chips">' +
+        ORDEN_FAM.map(function (g) {
+          var si = !cmp.fams || !!cmp.fams[g];
+          return '<button type="button" class="akhb-c-bt akhb-c-fam' + (si ? " sel" : "") + '" data-cfam="' + g +
+            '" aria-pressed="' + si + '"><i style="background:' + colorG(g) + '"></i>' + esc(nomF(g)) + "</button>";
+        }).join("") +
+        (cmp.fams ? '<button type="button" class="akhb-c-bt" data-cfam="*">Todas</button>' : "") +
+        "</span></div>" +
+        '<div class="akhb-c-fila"><span class="akhb-c-rot">Medida</span><span class="akhb-c-chips">' +
+        CMP_MET.map(function (z) {
+          return '<button type="button" class="akhb-c-bt' + (z.id === m.id ? " sel" : "") + '" data-cmet="' + z.id +
+            '" aria-pressed="' + (z.id === m.id) + '">' + z.nom + "</button>";
+        }).join("") + "</span></div>" +
+        '<div class="akhb-c-fila"><span class="akhb-c-rot">Por</span><span class="akhb-c-chips">' +
+        '<span class="akhb-c-seg">' + [["sem", "Semanas"], ["mes", "Meses"], ["anio", "Años"]].map(function (p) {
+          return '<button type="button" class="akhb-c-bt' + (cmp.por === p[0] ? " sel" : "") + '" data-cpor="' + p[0] +
+            '" aria-pressed="' + (cmp.por === p[0]) + '">' + p[1] + "</button>";
+        }).join("") + "</span>" +
+        (cmp.por !== "anio"
+          ? '<select class="akhb-c-anio" data-canio="1" aria-label="Año">' + aniosSel.map(function (a) {
+              return '<option value="' + a + '"' + (a === anioSel ? " selected" : "") + ">" + a + "</option>";
+            }).join("") + "</select>" : "") +
+        '<span class="akhb-c-seg">' + CMP_TRAMOS[cmp.por].map(function (p) {
+          var s = cmp.tramo[cmp.por] === p[0];
+          return '<button type="button" class="akhb-c-bt' + (s ? " sel" : "") + '" data-ctramo="' + p[0] +
+            '" aria-pressed="' + s + '">' + p[1] + "</button>";
+        }).join("") + "</span></span></div>" +
+        '<div class="akhb-c-fila"><span class="akhb-c-rot">Añadir</span><span class="akhb-c-chips">' +
+        '<button type="button" class="akhb-c-bt akhb-c-op' + (cmp.alt ? " sel" : "") + '" data-cop="alt" aria-pressed="' + cmp.alt +
+          '"' + (m.suma && cur.curso ? "" : " disabled") + ">A estas alturas</button>" +
+        '<button type="button" class="akhb-c-bt akhb-c-op' + (cmp.ant ? " sel" : "") + '" data-cop="ant" aria-pressed="' + cmp.ant +
+          '"' + (cmp.por !== "anio" && !multiMed ? "" : " disabled") + ">Año anterior</button>" +
+        "</span></div>";
+
+      /* --- las tarjetas --- */
+      var nomCur = cur.curso ? { sem: "Esta semana", mes: "Este mes", anio: "Este año" }[cmp.por]
+                             : { sem: "Última semana", mes: "Último mes", anio: "Último año" }[cmp.por];
+      function tarjeta(t, v, pie) {
+        return '<div class="akhb-c-tj"><b>' + t + "</b><span>" + v + "</span><small>" + (pie || "") + "</small></div>";
+      }
+      var tiles;
+      if (multiMed) {
+        tiles = fams.slice(0, 4).map(function (g) {
+          var md = mediana(completos.map(function (t) { return t.r[g]; }).filter(function (x) { return x != null; }));
+          var c = cur.r[g];
+          return tarjeta('<i style="background:' + colorG(g) + '"></i>' + esc(nomF(g)),
+            cifra(c) + "<u>" + m.u + "</u>",
+            nomCur.toLowerCase() + " · mediana " + cifra(md) + " " + (c != null ? pct(c, md) : ""));
+        }).join("");
+      } else {
+        var vsMed = (cur.n != null && med) ? pct(cur.n, med) : "—";
+        tiles =
+          tarjeta(nomCur + (cur.curso && m.suma ? " (va)" : ""), cifra(cur.n) + "<u>" + m.u + "</u>",
+                  cur.curso ? "día " + cur.van + " de " + cur.dias : cur.largo) +
+          tarjeta("Mediana", cifra(med) + "<u>" + m.u + "</u>", "de " + completos.length + " tramos completos") +
+          (medAlt != null
+            ? tarjeta("A estas alturas", cifra(medAlt) + "<u>" + m.u + "</u>", "lo típico al día " + cur.van + " " + pct(cur.n, medAlt))
+            : tarjeta("Frente a la mediana", vsMed, cur.curso && m.suma ? "tramo sin terminar" : "")) +
+          tarjeta("Mejor", cifra(mejor && mejor.n) + "<u>" + m.u + "</u>", mejor ? mejor.largo : "");
+      }
+
+      /* --- el gráfico --- */
+      var W = Math.max(300, ((estado.el && estado.el.clientWidth) || 700) - 18), H = W < 500 ? 220 : 270;
+      var der = 8, arr = 18, aba = 30, ph = H - arr - aba, max = 0;
+      T.forEach(function (t) {
+        if (m.suma) max = Math.max(max, t.n || 0, t.pn || 0, t.alt || 0);
+        else { fams.forEach(function (g) { if (t.r[g] != null) max = Math.max(max, t.r[g]); }); max = Math.max(max, t.pn || 0); }
+      });
+      if (!max) max = 1;
+      var paso = Math.pow(10, Math.floor(Math.log(max / 4) / Math.LN10)), tick = paso;
+      [1, 2, 2.5, 5, 10].some(function (c) { if (max / (paso * c) <= 5) { tick = paso * c; return true; } return false; });
+      var top = Math.ceil(max / tick - 1e-9) * tick, dt = tick < 1 ? 1 : 0;
+      var izq = 14 + 6.2 * String(num(top, dt)).length, pw = W - izq - der;
+      function Y(v) { return arr + ph - (v / top) * ph; }
+      var n = T.length, banda = pw / n, g = "";
+      for (var v = 0; v <= top + 1e-9; v += tick) {
+        g += '<line x1="' + izq + '" x2="' + (W - der) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" class="akhb-c-rej"/>' +
+             '<text x="' + (izq - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end" class="akhb-c-eje">' + num(v, dt) + "</text>";
+      }
+      var cada = Math.ceil(n / (W < 500 ? 6 : 13));
+      var anchoB = Math.min(46, banda * (verAnt ? 0.52 : 0.72));
+      T.forEach(function (t, ix) {
+        var cx = izq + banda * ix + banda / 2, x0 = cx - (verAnt ? anchoB * 0.35 : anchoB / 2);
+        if (verAnt && t.pn != null) {
+          var aw = anchoB * 0.45;
+          g += '<rect x="' + (x0 - aw - 2) + '" y="' + Y(t.pn) + '" width="' + aw + '" height="' + (Y(0) - Y(t.pn)) +
+               '" rx="2" class="akhb-c-ant"/>';
+        }
+        if (t.n != null) {
+          if (m.suma) {
+            var yb = Y(0);
+            ORDEN_FAM.forEach(function (fg) {
+              var q = t.r[fg]; if (!q) return;
+              var h = (q / top) * ph;
+              g += '<rect x="' + x0 + '" y="' + (yb - h) + '" width="' + anchoB + '" height="' + h + '" fill="' + colorG(fg) + '"' +
+                   (t.curso ? ' fill-opacity=".55"' : "") + "/>";
+              yb -= h;
+              g += '<line x1="' + x0 + '" x2="' + (x0 + anchoB) + '" y1="' + yb + '" y2="' + yb + '" class="akhb-c-hueco"/>';
+            });
+            if (t.curso && t.n) g += '<rect x="' + x0 + '" y="' + Y(t.n) + '" width="' + anchoB + '" height="' + (Y(0) - Y(t.n)) +
+                                    '" class="akhb-c-curso"/>';
+          } else {
+            var sw = anchoB / Math.max(1, fams.length);
+            fams.forEach(function (fg, k) {
+              var q = t.r[fg]; if (q == null) return;
+              g += '<rect x="' + (x0 + k * sw + 0.5) + '" y="' + Y(q) + '" width="' + Math.max(1, sw - 1.5) + '" height="' + (Y(0) - Y(q)) +
+                   '" rx="2" fill="' + colorG(fg) + '"' + (t.curso ? ' fill-opacity=".55"' : "") + "/>";
+            });
+          }
+        }
+        if (t.alt != null) g += '<line x1="' + (x0 - 3) + '" x2="' + (x0 + anchoB + 3) + '" y1="' + Y(t.alt) + '" y2="' + Y(t.alt) +
+                                '" class="akhb-c-alt"/>';
+        /* la última siempre; las demás cada `cada`, sin pisar a la última */
+        if (ix === n - 1 || (ix % cada === 0 && n - 1 - ix >= Math.max(2, cada * 0.8)))
+          g += '<text x="' + Math.min(cx, W - der - 16) + '" y="' + (H - aba + 16) + '" text-anchor="middle" class="akhb-c-eje' + (t.curso ? " akhb-c-hoy" : "") + '">' +
+               esc(t.et) + "</text>";
+        g += '<rect class="akhb-c-hit" data-cix="' + ix + '" x="' + (izq + banda * ix) + '" y="' + arr + '" width="' + banda +
+             '" height="' + (ph + aba) + '" fill="transparent"/>';
+      });
+      if (med != null && !multiMed) {
+        g += '<line x1="' + izq + '" x2="' + (W - der) + '" y1="' + Y(med) + '" y2="' + Y(med) + '" class="akhb-c-med"/>' +
+             '<text x="' + (W - der) + '" y="' + (Y(med) - 5) + '" text-anchor="end" class="akhb-c-medt">mediana ' +
+             cifra(med) + m.u.replace(/ /g, " ") + "</text>";
+      }
+      g += '<line x1="' + izq + '" x2="' + (W - der) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" class="akhb-c-base"/>';
+
+      var ley = fams.map(function (fg) {
+        return '<span><i style="background:' + colorG(fg) + '"></i>' + esc(nomF(fg)) + "</span>";
+      }).join("");
+      if (verAlt) ley += '<span><i class="akhb-c-l-alt"></i>a estas alturas (día ' + cur.van + ")</span>";
+      if (verAnt) ley += '<span><i class="akhb-c-l-ant"></i>año anterior</span>';
+      if (cur.curso) ley += '<span><i class="akhb-c-l-curso"></i>en curso</span>';
+
+      var nota = "";
+      if (multiMed) nota = "En " + m.nom.toLowerCase() + " cada actividad va con su barra: juntas mezclarían cosas que no se comparan.";
+      if (cmp.por === "anio" && (m.id === "c" || !m.suma))
+        nota += (nota ? " " : "") + "Antes de octubre de 2021 el archivo sólo tiene horas, kilómetros y desnivel.";
+
+      /* --- la tabla, plegada: con 52 semanas es muy larga --- */
+      var tabla = "";
+      if (cmp.tabla) {
+        var porFam = fams.length > 1;
+        var cab = "<th>Tramo</th>" + (multiMed ? "" : "<th>" + esc(m.nom) + "</th>") +
+          (porFam ? fams.map(function (fg) { return "<th>" + esc(nomF(fg)) + "</th>"; }).join("") : "") +
+          (verAlt ? "<th>Al día " + cur.van + "</th>" : "") + (verAnt ? "<th>Año anterior</th>" : "") +
+          (multiMed ? "" : "<th>vs mediana</th>");
+        var filas = T.slice().reverse().map(function (t) {
+          return "<tr" + (t.curso ? ' class="curso"' : "") + "><td>" + esc(t.largo) + (t.curso ? " · en curso" : "") + "</td>" +
+            (multiMed ? "" : "<td><b>" + cifra(t.n) + "</b></td>") +
+            (porFam ? fams.map(function (fg) { return "<td>" + (t.r[fg] ? cifra(t.r[fg]) : "·") + "</td>"; }).join("") : "") +
+            (verAlt ? "<td>" + (t === cur ? cifra(t.n) : cifra(t.alt)) + "</td>" : "") +
+            (verAnt ? "<td>" + cifra(t.pn) + "</td>" : "") +
+            (multiMed ? "" : "<td>" + (t.n != null && med ? pct(t.n, med) : "—") + "</td>") + "</tr>";
+        }).join("");
+        tabla = '<div class="akhb-c-tabla"><table><thead><tr>' + cab + "</tr></thead><tbody>" + filas + "</tbody></table></div>";
+      }
+
+      return '<section class="akhb-c" aria-label="Comparar">' +
+        '<h3 class="akhb-c-tit">Comparar</h3>' + mandos +
+        '<div class="akhb-c-tjs">' + tiles + "</div>" +
+        '<div class="akhb-c-graf"><div class="akhb-c-tip" role="tooltip"></div>' +
+          '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(m.nom) + " por " +
+          { sem: "semanas", mes: "meses", anio: "años" }[cmp.por] + '">' + g + "</svg>" +
+          '<div class="akhb-c-ley">' + ley + "</div></div>" +
+        (nota ? '<p class="akhb-c-nota">' + nota + "</p>" : "") +
+        '<button type="button" class="akhb-c-bt akhb-c-vertabla" data-ctabla="1" aria-expanded="' + cmp.tabla + '">' +
+          (cmp.tabla ? "Ocultar los números" : "Ver los números") + "</button>" + tabla +
+        "</section>";
+    }
+
+    /* la etiqueta al pasar (o al tocar, en el móvil) */
+    function enchufaComparar() {
+      var caja = estado.el && estado.el.querySelector(".akhb-c-graf");
+      if (!caja || !cmp._T) return;
+      var tip = caja.querySelector(".akhb-c-tip"), T = cmp._T, m = cmp._m, fams = cmp._fams, cur = cmp._cur;
+      function ver(e) {
+        var h = e.target.closest ? e.target.closest(".akhb-c-hit") : null;
+        if (!h) return;
+        var t = T[+h.getAttribute("data-cix")];
+        var s = "<b>" + esc(t.largo) + (t.curso ? " (en curso)" : "") + "</b>";
+        var multiMed = !m.suma && fams.length > 1;
+        if (!multiMed) s += esc(m.nom) + ": " + (num(t.n, m.dec) || "—") + m.u;
+        fams.forEach(function (fg) {
+          if (t.r[fg] != null && fams.length > 1) s += "<br>" + esc(NOMBRE_FAM[fg]) + ": " + num(t.r[fg], m.dec);
+        });
+        if (t.alt != null) s += "<br>Al día " + cur.van + ": " + num(t.alt, m.dec);
+        if (t.pn != null) s += "<br>Un año antes: " + num(t.pn, m.dec);
+        tip.innerHTML = s; tip.style.opacity = 1;
+        var r = caja.getBoundingClientRect(), x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+        tip.style.left = Math.max(4, Math.min(r.width - tip.offsetWidth - 4, x - tip.offsetWidth / 2)) + "px";
+      }
+      caja.addEventListener("mousemove", ver);
+      caja.addEventListener("touchstart", ver, { passive: true });
+      caja.addEventListener("mouseleave", function () { tip.style.opacity = 0; });
+    }
+
+    /* los mandos de Comparar: devuelve true si el clic era suyo */
+    function pulsaComparar(e) {
+      var t = e.target.closest ? e.target.closest("[data-cfam],[data-cmet],[data-cpor],[data-ctramo],[data-cop],[data-ctabla]") : null;
+      if (!t || !estado.el.contains(t)) return false;
+      if (t.hasAttribute("data-cfam")) {
+        var g = t.getAttribute("data-cfam");
+        if (g === "*") cmp.fams = null;
+        else if (!cmp.fams) { cmp.fams = {}; cmp.fams[g] = 1; }       // la primera, sola
+        else if (cmp.fams[g]) {
+          delete cmp.fams[g];
+          var quedan = 0, k; for (k in cmp.fams) if (cmp.fams[k]) quedan++;
+          if (!quedan) cmp.fams = null;
+        } else cmp.fams[g] = 1;
+      }
+      if (t.hasAttribute("data-cmet")) cmp.met = t.getAttribute("data-cmet");
+      if (t.hasAttribute("data-cpor")) cmp.por = t.getAttribute("data-cpor");
+      if (t.hasAttribute("data-ctramo")) cmp.tramo[cmp.por] = t.getAttribute("data-ctramo");
+      if (t.hasAttribute("data-cop")) { var o = t.getAttribute("data-cop"); cmp[o] = !cmp[o]; }
+      if (t.hasAttribute("data-ctabla")) cmp.tabla = !cmp.tabla;
+      pintar();
+      return true;
+    }
+    function cambiaComparar(e) {
+      var s = e.target;
+      if (!s || !s.hasAttribute || !s.hasAttribute("data-canio")) return;
+      cmp.anio = s.value === cHoy().slice(0, 4) ? null : s.value;
+      pintar();
+    }
+
     function pintar() {
       if (!estado.el) return;
       estado.el.innerHTML =
         '<div class="akhb">' +
+          /* el volver arriba del todo y, debajo, Comparar (28-sep-2026) */
+          (botonVolver ? '<div class="akhb-volver">' + botonVolver + "</div>" : "") +
+          htmlComparar() +
           htmlResumen() +
           htmlAnios() +
           '<div class="akhb-cab"><h3>' + estado.anio + "</h3>" +
@@ -2539,6 +2932,7 @@
           '<div class="akhb-cuerpo">' + htmlLista() + "</div>" +
         "</div>";
       centraAnio();
+      enchufaComparar();
       pintarMapas();
     }
 
@@ -3181,6 +3575,7 @@
 
     /* ---------- clics ---------- */
     function alPulsar(e) {
+      if (pulsaComparar(e)) return;
       var b = e.target.closest
         ? e.target.closest("[data-borra],[data-borra-ver],[data-borra-si],[data-borra-no]") : null;
       if (b && estado.el.contains(b)) { e.stopPropagation(); borrar(b); return; }
@@ -3269,11 +3664,15 @@
       montar: function (el) {
         estado.el = el;
         el.addEventListener("click", alPulsar);
+        el.addEventListener("change", cambiaComparar);
         pintar();
         return this;
       },
       destruir: function () {
-        if (estado.el) estado.el.removeEventListener("click", alPulsar);
+        if (estado.el) {
+          estado.el.removeEventListener("click", alPulsar);
+          estado.el.removeEventListener("change", cambiaComparar);
+        }
         estado.el = null;
       },
       irA: function (anio, mes) {
