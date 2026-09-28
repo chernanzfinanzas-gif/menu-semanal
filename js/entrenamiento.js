@@ -846,7 +846,20 @@
       ".ent-semlinea label{display:flex;align-items:center;gap:6px;white-space:nowrap;margin:0}",
       ".ent-semlinea select{width:auto;max-width:100%;padding:3px 6px;border:1px solid var(--borde);border-radius:8px;font:inherit;font-size:.8rem;margin:0}",
       ".ent-semlinea .racha-mini b{color:var(--azul-hondo)}",
-      "@media(max-width:520px){.ent-franja .ent-avisos{flex:none}}"
+      "@media(max-width:520px){.ent-franja .ent-avisos{flex:none}}",
+      /* ---- el ECG en papel (v269) ---- */
+      ".ecg-papel{display:block;width:100%;height:auto;background:#fff;border:1px solid #f0caca;border-radius:4px;margin:6px 0}",
+      ".ecg-cab{font-size:.8rem;line-height:1.45;color:#333;margin:0 0 6px}",
+      ".ecg-cab b{color:#111}",
+      ".ecg-pie{font-size:.74rem;line-height:1.4;color:#555;margin:6px 0 0}",
+      ".ecg-btn{display:block;width:100%;margin-top:10px}",
+      "#ecg-imprimir{display:none}",
+      "@media print{body.imprime-ecg>*:not(#ecg-imprimir){display:none!important}" +
+        "body.imprime-ecg #ecg-imprimir{display:block;font-family:Arial,sans-serif;color:#000}" +
+        "body.imprime-ecg{background:#fff!important}" +
+        "#ecg-imprimir .ecg-papel{width:256mm;border:0;border-radius:0;margin:0 0 3mm;page-break-inside:avoid}" +
+        "#ecg-imprimir .ecg-cab{font-size:9pt}#ecg-imprimir .ecg-pie{font-size:8pt}" +
+        "@page{size:A4 landscape;margin:9mm}}"
     ].join("\n");
     document.head.appendChild(s);
   }
@@ -1240,6 +1253,23 @@
         var t = { f: f, h: String(x.fecha || "").slice(11, 16), sis: Math.round(x.sis),
                   dia: Math.round(x.dia), pul: x.pulso ? Math.round(x.pulso) : null,
                   arr: !!x.arritmia, origen: x.origen || "omron" };
+        if (!(t.sis > 0) || !(t.dia > 0)) return;
+        var k = claveToma(t);
+        if (vistas[k]) return;
+        vistas[k] = 1;
+        vistas["d" + t.f + "|" + t.sis + "/" + t.dia] = 1;
+        out.push(t);
+      });
+    }
+    /* las que baja del correo el portátil (datos/tension.json, 28-sep-2026) */
+    var tc = TensionCorreo.datos && TensionCorreo.datos.tomas;
+    if (tc) {
+      tc.forEach(function (x) {
+        var f = String(x.fecha || "").slice(0, 10);
+        if (!f || f < desde || f > hasta) return;
+        var t = { f: f, h: String(x.fecha || "").slice(11, 16), sis: Math.round(x.sis),
+                  dia: Math.round(x.dia), pul: x.pulso ? Math.round(x.pulso) : null,
+                  arr: !!x.arritmia, origen: "correo" };
         if (!(t.sis > 0) || !(t.dia > 0)) return;
         var k = claveToma(t);
         if (vistas[k]) return;
@@ -3095,6 +3125,7 @@
 
   function tocaMedida(m, iso) {
     var d = U.desdeISO(iso);
+    if (m.desde && iso < m.desde) return false;
     if (m.diaDelMes) return d.getDate() === m.diaDelMes;
     if (m.diariaHasta) return iso <= m.diariaHasta || (m.diasDespues || []).indexOf(d.getDay()) >= 0;
     return (m.dias || []).indexOf(d.getDay()) >= 0;
@@ -3657,6 +3688,22 @@
       ],
       fallos: "Medirlo en tensión. Y no le des importancia al número: se mueve 2-3 mm en meses y la cinta tiene ±5 mm de error. Es informativo."
     },
+    ecg: {
+      titulo: "Cómo hacer el ECG de la mañana",
+      boton: "ECG",
+      dibujo: "",
+      pasos: [
+        "Al levantarte, antes del café y de moverte mucho. <b>Moja bien los electrodos</b> de la banda y póntela.",
+        "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
+        "<b>ECG Analysis</b>: unos 3 minutos sentado, espalda apoyada y sin hablar. Al terminar, <b>mándalo por correo</b> como siempre: llega solo a la app en menos de un cuarto de hora.",
+        "Cierra ECG Analysis del todo: Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>. Si no, se queda con la banda y la otra app no la encuentra.",
+        "<b>Sensor Logger</b>, mientras estemos mirando los latidos cortos: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › compartir a OneDrive › salud › ecg › sensor-logger.",
+        "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
+      ],
+      fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen picos de 190 o 260 que no son del corazón, y ese ECG queda marcado con ruido. " +
+        "Un ECG suelto no dice nada: lo que se mira es la serie. Si notas palpitaciones, mareo o un vuelco, haz uno en ese momento aunque no toque. " +
+        "Un desmayo, dolor en el pecho o palpitaciones que no se van no son para la app: son para urgencias."
+    },
     peso: {
       titulo: "Cómo pesarse",
       dibujo: "",
@@ -3743,6 +3790,7 @@
   }
 
   function cerrarGuia() {
+    document.body.classList.remove("imprime-ecg");
     var modal = document.getElementById("modal");
     if (modal) modal.classList.remove("abierta");
     /* Sin esto el vídeo se queda sonando detrás de la ventana cerrada: quitar
@@ -4222,6 +4270,174 @@
     deCache: Curva.deCache,
     cargar: Curva.cargar
   };
+
+  /* EL ECG Y LA TENSIÓN DEL CORREO  ·  28-sep-2026.
+     Los dos los sube desde el portátil `recoger-ecg.py`, que los saca del
+     correo (ECG Analysis y la app del tensiómetro sólo saben mandar correos).
+     `ecg.json`: una fila por ECG con las cifras del informe de la app (fc,
+     qrs, qtc, vfc_app, ectopicos) y las medidas latido a latido (rmssd, sdnn,
+     cortos, cortos_min). `revisar: true` = con ruido de contacto: se enseña
+     pero no entra en las gráficas. `tension.json`: las tomas, con la misma
+     forma que las de salud.json. Ficheros aparte y opcionales, como el del
+     rodillo: si no están, la pantalla sale como antes. */
+  var Ecg = {
+    CLAVE: "khb-ecg-v1",
+    RUTA: "datos/ecg.json",
+    FRESCO_H: 1,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+  var TensionCorreo = {
+    CLAVE: "khb-tension-correo-v1",
+    RUTA: "datos/tension.json",
+    FRESCO_H: 1,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
+  /* El trazado del último ECG sin ruido (datos/ecg-ultimo.json, v269): unos
+     50 KB, así que va en su propio fichero y no dentro de ecg.json. */
+  var EcgUltimo = {
+    CLAVE: "khb-ecg-ultimo-v1",
+    RUTA: "datos/ecg-ultimo.json",
+    FRESCO_H: 1,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
+  function registrosEcg() { return (Ecg.datos && Ecg.datos.registros) || []; }
+
+  /* ==================== EL ECG EN PAPEL ====================
+     Como lo lee un médico: cuadrícula de 1 mm y 5 mm, 25 mm/s y 10 mm/mV,
+     tiras de 10 segundos con el pulso de calibración de 1 mV al principio.
+     El SVG va en milímetros de verdad, así al imprimir en A4 apaisado sale a
+     escala. Una sola derivación de banda de pecho, y así se dice en el papel. */
+  var ECG_MM_S = 25, ECG_MM_MV = 10, ECG_TIRA_S = 10, ECG_ALTO = 26, ECG_BASE = 16, ECG_CAL = 7;
+
+  function tiraEcg(d, t0) {
+    var fs = d.fs || 130, uv = d.uV || [];
+    var i0 = Math.round(t0 * fs), i1 = Math.min(uv.length, Math.round((t0 + ECG_TIRA_S) * fs));
+    if (i1 - i0 < 2) return "";
+    var W = ECG_CAL + ECG_TIRA_S * ECG_MM_S, H = ECG_ALTO, g = "", x, y;
+    for (x = 0; x <= W + 0.01; x += 1) {
+      g += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + H + '" stroke="' +
+        (Math.round(x) % 5 === 0 ? "#e8a3a3" : "#f7d9d9") + '" stroke-width="' + (Math.round(x) % 5 === 0 ? 0.22 : 0.1) + '"/>';
+    }
+    for (y = 0; y <= H + 0.01; y += 1) {
+      g += '<line x1="0" y1="' + y + '" x2="' + W + '" y2="' + y + '" stroke="' +
+        (Math.round(y) % 5 === 0 ? "#e8a3a3" : "#f7d9d9") + '" stroke-width="' + (Math.round(y) % 5 === 0 ? 0.22 : 0.1) + '"/>';
+    }
+    /* pulso de calibración: 1 mV = 10 mm de alto, 0,2 s de ancho */
+    var b = ECG_BASE, cal = "M0.5," + b + " H1.5 V" + (b - ECG_MM_MV) + " H" + (1.5 + 0.2 * ECG_MM_S) + " V" + b + " H" + ECG_CAL;
+    var pts = [];
+    for (var i = i0; i < i1; i++) {
+      var yy = b - (uv[i] / 1000) * ECG_MM_MV;
+      if (yy < 0.3) yy = 0.3; if (yy > H - 0.3) yy = H - 0.3;       // lo que se salga, al borde
+      pts.push((ECG_CAL + ((i - i0) / fs) * ECG_MM_S).toFixed(2) + "," + yy.toFixed(2));
+    }
+    return '<svg class="ecg-papel" viewBox="0 0 ' + W + " " + H + '" width="' + W + 'mm" height="' + H + 'mm" ' +
+      'preserveAspectRatio="xMinYMin meet" role="img" aria-label="ECG de ' + t0 + " a " + (t0 + ECG_TIRA_S) + ' segundos">' +
+      g + '<path d="' + cal + '" fill="none" stroke="#000" stroke-width="0.3"/>' +
+      '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#000" stroke-width="0.28" stroke-linejoin="round"/>' +
+      '<text x="' + (W - 1) + '" y="' + (H - 1) + '" font-size="2.4" text-anchor="end" fill="#8a4a4a">' +
+      t0 + "–" + Math.min(t0 + ECG_TIRA_S, Math.round(uv.length / fs)) + " s</text></svg>";
+  }
+
+  function cabeceraEcg(d) {
+    var nombre = (A.estado.perfil && A.estado.perfil.nombre) || (P.atleta && P.atleta.nombre) || "Carlos Hernanz";
+    var f = U.desdeISO(d.f), fecha = ("0" + f.getDate()).slice(-2) + "/" + ("0" + (f.getMonth() + 1)).slice(-2) + "/" + f.getFullYear();
+    var dur = d.dur_s || Math.round((d.uV || []).length / (d.fs || 130));
+    return '<p class="ecg-cab"><b>Electrocardiograma de reposo · una derivación</b><br>' +
+      U.esc(nombre) + " · " + fecha + " a las " + U.esc(d.h) + " · sentado, " + dur + " s<br>" +
+      "FC media <b>" + (d.fc ? Math.round(d.fc) : "—") + " lpm</b>" +
+      (d.fc_min && d.fc_max ? " (" + Math.round(d.fc_min) + "–" + Math.round(d.fc_max) + ")" : "") +
+      " · QRS <b>" + (d.qrs ? Math.round(d.qrs) : "—") + " ms</b> · QTc <b>" + (d.qtc ? Math.round(d.qtc) : "—") + " ms</b>" +
+      " · extrasístoles detectadas por la app: <b>" + (d.ectopicos || 0) + "</b><br>" +
+      "25 mm/s · 10 mm/mV · pulso de calibración de 1 mV al inicio de cada tira</p>";
+  }
+
+  var PIE_ECG = "Registro con banda de pecho Polar H10 y la app ECG Analysis for Polar H10: una sola derivación " +
+    "torácica. Sirve para valorar el ritmo (regularidad, extrasístoles, pausas); no sustituye un ECG de 12 " +
+    "derivaciones. Línea base corregida (filtro de monitor, ≈0,5 Hz). Las cifras las calcula la app de forma " +
+    "automática y no están revisadas por un profesional.";
+
+  function papelEcgEntero(d) {
+    var h = cabeceraEcg(d), dur = (d.uV || []).length / (d.fs || 130);
+    for (var t = 0; t < dur - 0.5; t += ECG_TIRA_S) h += tiraEcg(d, t);
+    return h + '<p class="ecg-pie">' + U.esc(PIE_ECG) + "</p>";
+  }
+
+  function abrirEcgPapel() {
+    var d = EcgUltimo.datos, caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!d || !caja || !modal) return;
+    caja.innerHTML = '<header><h2>El último ECG</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      papelEcgEntero(d) +
+      '<button class="btn principal ecg-btn" type="button" data-ecg-imprimir="1">Guardar en PDF o imprimir</button>' +
+      '<p class="nota-peque" style="margin:6px 0 0">En el móvil, en la ventana de imprimir elige «Guardar como PDF». Sale en A4 apaisado y a escala real.</p>';
+    modal.classList.add("abierta");
+  }
+
+  /* Imprimir SOLO el papel: se copia a un hueco fuera de la app y la hoja de
+     estilos de impresión esconde todo lo demás. Al volver se deshace. */
+  function imprimirEcg() {
+    var d = EcgUltimo.datos;
+    if (!d) return;
+    var hueco = document.getElementById("ecg-imprimir");
+    if (!hueco) { hueco = document.createElement("div"); hueco.id = "ecg-imprimir"; document.body.appendChild(hueco); }
+    hueco.innerHTML = papelEcgEntero(d);
+    document.body.classList.add("imprime-ecg");
+    var fuera = function () {
+      document.body.classList.remove("imprime-ecg");
+      window.removeEventListener("afterprint", fuera);
+    };
+    /* Se deshace al terminar de imprimir, o al cerrar la ventana del papel.
+       Nada de temporizador: en el móvil la vista previa tarda lo que tarda, y
+       quitarlo antes de tiempo imprimía la app entera en vez del electro. */
+    window.addEventListener("afterprint", fuera);
+    setTimeout(function () { window.print(); }, 50);
+  }
+
+  /* El ECG de ese día: el último sin ruido; si todos tienen ruido, el último. */
+  function ecgDelDia(iso) {
+    var mejor = null;
+    registrosEcg().forEach(function (x) {
+      if (x.f !== iso) return;
+      if (!mejor || (mejor.revisar && !x.revisar) || (!!mejor.revisar === !!x.revisar && x.h > mejor.h)) mejor = x;
+    });
+    return mejor;
+  }
+
+  /* El último ECG sin ruido hasta esa fecha */
+  function ultimoEcg(iso) {
+    var u = null;
+    registrosEcg().forEach(function (x) {
+      if (x.revisar || x.f > iso) return;
+      if (!u || x.f + x.h > u.f + u.h) u = x;
+    });
+    return u;
+  }
+
+  /* Serie de un campo del ECG, una por día (la última sin ruido) */
+  function serieEcg(campo, v) {
+    var porDia = {};
+    registrosEcg().forEach(function (x) {
+      if (x.revisar || x.f < v.desde || x.f > v.hasta) return;
+      var n = parseFloat(x[campo]);
+      if (isNaN(n)) return;
+      if (!porDia[x.f] || x.h > porDia[x.f].h) porDia[x.f] = { h: x.h, v: n };
+    });
+    return Object.keys(porDia).sort().map(function (f) { return { f: f, v: porDia[f].v }; });
+  }
 
   var Fuerza = {
     /* v2 y no v1 a propósito: la app ya se guardó el fichero que escribió el
@@ -7015,6 +7231,94 @@
       "La cintura es la medida que más se mueve con el plan, y la que más dice del riesgo.",
       mandoEvo("cintura") + tramoEvo("cintura") + cuerpo4, nota4);
 
+    /* ---------- 6. tensión (v269) ----------
+       Una toma o dos al día, a veces ninguna: se dibuja la media de cada día
+       fina y la de 7 días gruesa, alta en rojo y baja en azul. Las líneas de
+       140 y 90 son el umbral de hipertensión en consulta. */
+    v = ventanaDe("tension");
+    var tomasT = tomasTension(v.desde, v.hasta), pdT = {};
+    tomasT.forEach(function (x) {
+      if (!pdT[x.f]) pdT[x.f] = { s: 0, d: 0, n: 0 };
+      pdT[x.f].s += x.sis; pdT[x.f].d += x.dia; pdT[x.f].n++;
+    });
+    var diasT = Object.keys(pdT).sort();
+    var sisD = diasT.map(function (f) { return { f: f, v: pdT[f].s / pdT[f].n }; });
+    var diaD = diasT.map(function (f) { return { f: f, v: pdT[f].d / pdT[f].n }; });
+    var cuerpoT, notaT = "";
+    if (sisD.length) {
+      var ROJO_CL = "#e6c3bb", AZUL_CL = "#bacde1";
+      cuerpoT = grafica({
+        desde: v.desde, hasta: v.hasta, alto: 120, arriba: "mmHg", unidadTip: "mmHg", min: 50, max: 150,
+        alt: "Tensión alta y baja", par: ["alta", "baja"],
+        explica: "Cada día, la media de sus tomas (fina) y la media de 7 días (gruesa). Rojo la alta, azul la baja.",
+        lineasH: [{ v: 140, color: "#eccf9a", etq: "140" }, { v: 90, color: "#eccf9a", etq: "90" }],
+        series: [{ pts: sisD, color: ROJO_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: sisD.length < 3 },
+                 { pts: mediaMovilDias(sisD, 7), color: ROJO, ancho: 1.6 },
+                 { pts: diaD, color: AZUL_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: diaD.length < 3 },
+                 { pts: mediaMovilDias(diaD, 7), color: AZUL, ancho: 1.6 }]
+      }) + leyenda([{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL },
+                    { n: "140/90", color: "#eccf9a", guiones: true }]);
+      /* ANTES Y DESPUÉS DE JUNIO DE 2026, con todas las tomas y no solo las del
+         tramo: es la pregunta que él se hace («desde el vértigo me ha subido»),
+         y así la contesta el número en vez de la memoria. */
+      var todasT = tomasTension(EVO_PRIMER_DIA, U.hoyISO());
+      var antes = { s: 0, d: 0, n: 0 }, desp = { s: 0, d: 0, n: 0 };
+      todasT.forEach(function (x) { var o = x.f < "2026-06-01" ? antes : desp; o.s += x.sis; o.d += x.dia; o.n++; });
+      if (antes.n >= 5 && desp.n >= 5) {
+        notaT = "Antes de junio de 2026: <b>" + Math.round(antes.s / antes.n) + "/" + Math.round(antes.d / antes.n) +
+          "</b> de media (" + antes.n + " tomas). Desde el 1 de junio: <b>" + Math.round(desp.s / desp.n) + "/" +
+          Math.round(desp.d / desp.n) + "</b> (" + desp.n + " tomas).";
+      }
+    } else {
+      cuerpoT = sinDatos("Sin tomas en este tramo", "Llegan solas del correo del tensiómetro.");
+    }
+    var ultT = sisD.length ? Math.round(mediaMovilDias(sisD, 7)[sisD.length - 1].v) + "/" +
+      Math.round(mediaMovilDias(diaD, 7)[diaD.length - 1].v) : null;
+    h += tarjetaEvo("Tensión", ultT, "mmHg",
+      "Una toma suelta no dice nada: lo que se lee es la media de 7 días.",
+      mandoEvo("tension") + tramoEvo("tension") + cuerpoT, notaT);
+
+    /* ---------- 7. corazón en reposo: el ECG de la mañana (v269) ----------
+       Sin colores de bueno o malo, como en las tarjetas del día. Solo los ECG
+       sin ruido de contacto. */
+    v = ventanaDe("ecg");
+    var eFc = serieEcg("fc", v), eQt = serieEcg("qtc", v), eCo = serieEcg("cortos_min", v);
+    var cuerpoE;
+    if (eFc.length || eQt.length) {
+      var pocos = function (s) { return s.length < 3; };
+      cuerpoE = '<h3 class="evo-sub">Pulso sentado</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, alto: 70, arriba: "lpm", unidadTip: "lpm", alt: "Pulso del ECG",
+          series: [{ pts: eFc, color: AZUL, ancho: 1.4, soloPuntos: pocos(eFc) }] }) +
+        '<h3 class="evo-sub">QTc</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, alto: 70, arriba: "ms", unidadTip: "ms", alt: "QTc del ECG",
+          max: 480, lineasH: [{ v: 470, color: "#eccf9a", etq: "470" }],
+          series: [{ pts: eQt, color: AZUL, ancho: 1.4, soloPuntos: pocos(eQt) }] }) +
+        '<h3 class="evo-sub">Latidos cortos por minuto</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, alto: 70, arriba: "/min", unidadTip: "/min", alt: "Latidos cortos", min: 0,
+          series: [{ pts: eCo, color: AZUL, ancho: 1.4, soloPuntos: pocos(eCo) }] });
+    } else {
+      cuerpoE = sinDatos("Sin ECG en este tramo", "Llegan solos al mandarlos por correo desde ECG Analysis.");
+    }
+    h += tarjetaEvo("Corazón en reposo", eFc.length ? Math.round(eFc[eFc.length - 1].v) : null, "lpm",
+      "Del ECG de la mañana, sentado. Lo que se mira es si cambia de nivel, no el número de un día.",
+      mandoEvo("ecg") + tramoEvo("ecg") + cuerpoE,
+      eFc.length < 14 ? "Con " + eFc.length + (eFc.length === 1 ? " ECG" : " ECG") +
+        " todavía no hay línea base: el primer mes es a diario para tenerla." : "");
+
+    /* ---------- 8. el último ECG, en papel (v269) ---------- */
+    var dU = EcgUltimo.datos;
+    if (dU && dU.uV && dU.uV.length) {
+      h += tarjetaEvo("El último ECG", null, null,
+        "Del " + U.etiquetaFecha(dU.f) + " a las " + U.esc(dU.h) + ". Los primeros 10 segundos, en papel de electro.",
+        tiraEcg(dU, 0) +
+        '<button type="button" class="btn principal ecg-btn" data-ecg-papel="1">Verlo entero · guardar en PDF para el médico</button>',
+        "Una sola derivación, de la banda de pecho: sirve para ver el ritmo, no sustituye un electro de 12 derivaciones.");
+    } else {
+      h += tarjetaEvo("El último ECG", null, null, "", sinDatos(
+        EcgUltimo.estado === "cargando" ? "Trayendo el trazado…" : "Todavía no ha llegado ningún trazado",
+        "Lo sube el programa del portátil con el siguiente ECG que mandes."), "");
+    }
+
     h += htmlFrescura();
     h += volver;
     return h;
@@ -7044,6 +7348,13 @@
   function defHistoria(clave) {
     var v = { desde: "2019-01-01", hasta: U.hoyISO() };
     var D = {
+      ecgFc: { n: "ECG: pulso sentado", u: "lpm", dias: 60, serie: function () { return serieEcg("fc", v); },
+               pie: "Del ECG de la mañana, sentado. Solo cuentan los ECG sin ruido de contacto." },
+      ecgQtc: { n: "ECG: QTc", u: "ms", dias: 60, serie: function () { return serieEcg("qtc", v); },
+                techo: 470, etqTecho: "470 ms · límite de la app",
+                pie: "El intervalo QT corregido por el pulso, tal como lo calcula ECG Analysis. Lo que se mira es que no cambie de nivel." },
+      ecgCortos: { n: "ECG: latidos cortos", u: "/min", dias: 60, serie: function () { return serieEcg("cortos_min", v); },
+                   pie: "Latidos que llegan antes de tiempo seguidos de uno largo, por minuto. Con el pulso bajo pueden ser la respiración: se está comprobando con Sensor Logger." },
       peso: { n: "Peso", u: "kg", dias: 90, serie: function () { return seriePeso(v); },
               /* `mediaDesde: 0`: el peso se suaviza TAMBIÉN en el tramo de un
                  mes. Las demás empiezan a los tres meses porque con treinta
@@ -9567,6 +9878,19 @@
     P.medidas.forEach(function (m) { (tocaMedida(m, dia) ? tocanHoy : lasDemas).push(m); });
 
     function pintaMedida(m) {
+      /* el ECG no se teclea: la casilla dice si ha llegado y con qué pulso */
+      if (m.auto === "ecg") {
+        var re = ecgDelDia(dia), tocaE = tocaMedida(m, dia);
+        return '<label class="ent-medida' + (re ? " puesta" : "") + (tocaE ? " toca" : "") + '">' +
+          "<span>ECG (" + m.unidad + ")" +
+            '<button type="button" class="ent-ver" tabindex="-1" data-historia="ecgFc" title="Ver histórico" aria-label="Ver histórico del ECG">' +
+            ICONO_GRAF + "</button></span>" +
+          '<input type="text" readonly tabindex="-1" value="' + (re && re.fc ? Math.round(re.fc) : "") + '"' +
+            ' placeholder="' + (re ? "—" : "llega solo") + '">' +
+          "<small>" + (re ? (re.revisar ? "con ruido · repítelo" : "hecho a las " + U.esc(re.h))
+            : (Ecg.estado === "cargando" ? "mirando…" : "mándalo por correo")) + "</small>" +
+          "</label>";
+      }
       var v = valorDe(dia, m.id);
       var puesta = (v !== null && v !== undefined && v !== "");
       var ult = puesta ? null : ultimoValor(m.id, dia);
@@ -9591,11 +9915,12 @@
       h += '<button type="button" class="ent-ayuda" data-guia="*">' +
         '<span class="i">?</span>' +
         '<span class="t"><b>Ayuda: cómo se mide cada cosa</b>' +
-        "<small>Cintura, cuello, tensión, tobillo, peso… y cómo funciona esta pantalla</small></span>" +
+        "<small>Cintura, cuello, tensión, ECG, tobillo, peso… y cómo funciona esta pantalla</small></span>" +
         '<span class="v">›</span></button>';
       if (tocanHoy.length) {
         var faltan = 0;
         tocanHoy.forEach(function (m) {
+          if (m.auto === "ecg") { if (!ecgDelDia(dia)) faltan++; return; }
           var v = valorDe(dia, m.id);
           if (v === null || v === undefined || v === "") faltan++;
         });
@@ -9820,6 +10145,25 @@
       h += tarjeta("Pulso del tensiómetro", Math.round(mt.pul) + " ppm",
         "contraste independiente del pulso del reloj", "pulso", null, mt.pul);
     }
+
+    /* EL ECG DE LA MAÑANA (28-sep-2026). Tres tarjetas, sin color de bueno o
+       malo a propósito: no hay dirección «mejor» para estas cifras y un verde
+       o un rojo aquí se leería como un diagnóstico. Solo cuentan los ECG sin
+       ruido de contacto. */
+    var ue = ultimoEcg(dia);
+    var cuandoE = ue ? "del " + U.etiquetaFecha(ue.f) + " a las " + ue.h : "";
+    h += tarjeta("ECG · pulso sentado", ue && ue.fc ? Math.round(ue.fc) + " lpm" : null,
+      ue ? cuandoE + " · QRS " + (ue.qrs || "—") + " ms · extrasístoles según la app: " + (ue.ectopicos || 0)
+         : "sin ECG todavía: llegan solos al mandarlos por correo desde ECG Analysis",
+      "ecgFc", null, ue && ue.fc ? ue.fc : null);
+    h += tarjeta("ECG · QTc", ue && ue.qtc ? Math.round(ue.qtc) + " ms" : null,
+      ue ? cuandoE + " · la app lo da por normal entre 310 y 470 ms" : "del mismo ECG",
+      "ecgQtc", null, ue && ue.qtc ? ue.qtc : null);
+    h += tarjeta("ECG · latidos cortos", ue && ue.cortos_min !== undefined ? num(ue.cortos_min) + " /min" : null,
+      ue ? cuandoE + " · " + (ue.cortos || 0) + " en el registro: uno que llega antes y otro largo detrás. " +
+           "Se está mirando con Sensor Logger si siguen la respiración"
+         : "latido que llega antes seguido de uno largo",
+      "ecgCortos", null, ue && ue.cortos_min !== undefined ? ue.cortos_min : null);
 
     /* las tres de la báscula que intervals no baja y tecleas tú */
     [{ k: "musculo", n: "Músculo", u: " kg",
@@ -10075,6 +10419,7 @@
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
+      if (t.closest && t.closest("[data-ecg-papel]")) { e.preventDefault(); abrirEcgPapel(); return; }
       /* «que decida el reloj»: borra la marca manual y devuelve la sesión al
          estado neutro. Va dentro de un <label>, así que hay que frenar el
          clic o de paso marcaría la casilla. */
@@ -10340,6 +10685,8 @@
       /* el «cómo se hace» de la rutina emergente: vive en la ventana */
       var vidM = e.target.closest ? e.target.closest("[data-video]") : null;
       if (vidM) { e.preventDefault(); abrirVideo(vidM.getAttribute("data-video"), rutinaAbierta); return; }
+      /* el botón de imprimir el ECG vive en la ventana: se atiende aquí */
+      if (e.target.closest && e.target.closest("[data-ecg-imprimir]")) { e.preventDefault(); imprimirEcg(); return; }
       var volR = e.target.closest ? e.target.closest("[data-volver-rutina]") : null;
       if (volR) { e.preventDefault(); abrirRutina(volR.getAttribute("data-volver-rutina")); return; }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
@@ -10574,6 +10921,14 @@
     if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
     pintar();
     abrirEnElPlan();
+    /* el ECG y la tensión del correo: dos ficheros pequeños, en paralelo */
+    var repintaSiDentro = function () {
+      var v = document.getElementById("vista-entreno");
+      if (v && v.classList.contains("activa")) pintarConservando();
+    };
+    Ecg.cargar(repintaSiDentro);
+    EcgUltimo.cargar(repintaSiDentro);
+    TensionCorreo.cargar(repintaSiDentro);
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
       var n = Salud.sembrarPesos();
       if (n) U.toast(n === 1 ? "1 peso traído de intervals" : n + " pesos traídos de intervals");

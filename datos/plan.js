@@ -477,6 +477,14 @@
       { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,
         diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
         ayuda: "El que marca el tensiómetro en esa misma medida. Sirve de contraste con el pulso en reposo del reloj." },
+      /* EL ECG DE LA MAÑANA  ·  28-sep-2026. Con la Polar H10 y la app ECG
+         Analysis; el primer mes a diario para tener línea base, después lunes,
+         miércoles y viernes. No se teclea: el programa del portátil
+         (recoger-ecg.py) lo saca del correo y lo sube a datos/ecg.json, y la
+         casilla se marca sola cuando llega. */
+      { id: "ecg", nombre: "ECG", unidad: "lpm", auto: "ecg", guia: "ecg",
+        desde: "2026-09-28", diariaHasta: "2026-10-28", diasDespues: [1, 3, 5],
+        ayuda: "Al levantarte, sentado. Se marca solo cuando lo mandas por correo desde ECG Analysis." },
       { id: "tobillo", nombre: "Tobillo",    unidad: "cm",   paso: 0.5, min: 15, max: 45,
         diariaHasta: "2026-09-28", diasDespues: [1],
         ayuda: "Mide retención de líquidos, no grasa. Justo por encima de los huesos del tobillo, siempre la MISMA pierna y por la mañana. Con el corticoide, a diario." },
