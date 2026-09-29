@@ -3388,8 +3388,9 @@
     var deTienda = {};
     (Almacen.estado.ingredientes || []).forEach(function (g) {
       if (g.oculta || g.cat === "Restaurante y bar") return;
-      if (Almacen.cajonDe(g) !== "super") return;
-      var t = Almacen.tiendaDe(g) || "Sin tienda asignada";
+      var cj = Almacen.cajonDe(g);
+      if (cj !== "super" && cj !== "amazon") return;   /* suscripción y «aparte» no tienen lista */
+      var t = cj === "amazon" ? "Amazon" : (Almacen.tiendaDe(g) || "Sin tienda asignada");
       var zk = Almacen.zonaDeIngrediente(g.id) || "sinzona";
       var por = (deTienda[t] = deTienda[t] || {});
       (por[zk] = por[zk] || []).push({ id: g.id, n: g.n, producto: g.producto || "" });
@@ -4623,11 +4624,33 @@
         });
         return;
       }
+      /* AMAZON TAMBIÉN POR ZONA (Carlos, 29-sep-2026: «no veo Amazon entre los
+         sitios de compra»). Mismo criterio que el súper: zona y el orden que
+         haya puesto en Despensa → Orden de compra. Los básicos se quedan en su
+         propio bloque, que no es una zona de la casa sino un aviso. */
+      var zonasAmazon = {}, basicosAmazon = [];
       secs.forEach(function (sec) {
-        html += '<div class="seccion-compra"><h3>' + esc(sec.nombre) + '</h3>';
-        sec.lineas.forEach(function (l) { html += lineaCompraHTML(l, sec.basico); });
+        sec.lineas.forEach(function (l) {
+          if (sec.basico) { basicosAmazon.push(l); return; }
+          var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
+          (zonasAmazon[zk] = zonasAmazon[zk] || []).push(l);
+        });
+      });
+      Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]).forEach(function (zk) {
+        var lineas = zonasAmazon[zk];
+        if (!lineas || !lineas.length) return;
+        var zn = "Sin zona";
+        Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
+        lineas = Almacen.ordenarComoEnCompra(Almacen.claveCompra("Amazon", zk), lineas);
+        html += '<div class="seccion-compra"><h3>' + esc(zn) + '</h3>';
+        lineas.forEach(function (l) { html += lineaCompraHTML(l, false); });
         html += '</div>';
       });
+      if (basicosAmazon.length) {
+        html += '<div class="seccion-compra"><h3>Revisa la despensa (b\u00e1sicos)</h3>';
+        basicosAmazon.forEach(function (l) { html += lineaCompraHTML(l, true); });
+        html += '</div>';
+      }
       html += bloqueHogar(hg);
     });
 
