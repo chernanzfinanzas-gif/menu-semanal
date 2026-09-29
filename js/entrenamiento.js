@@ -1558,10 +1558,21 @@
   /* el hueco del calendario en el que cae un día, y qué peldaño le tocaría
      si todo hubiese ido bien */
   function tramoNatural(iso) {
+    /* LA ÚLTIMA FILA ESCRITA NO SE ACABA (29-sep-2026). Antes se exigía
+       `iso <= r.hasta` también en ella, y la 13 acaba el 20 de diciembre: el
+       crucero nunca pasaba de esa semana y el 21 El Plan habría dicho «Fuera del
+       plan», aunque `peldano()` sabe seguir hasta julio. Ahora las filas
+       escritas valen por sus fechas y la última abre el crucero, una semana por
+       hueco. Si mañana se escriben más semanas en plan.js, la última pasa a ser
+       la nueva y todo sigue solo (antes estaba atado al número 13). */
+    var ult = P.rampa.length - 1;
     for (var i = 0; i < P.rampa.length; i++) {
       var r = P.rampa[i];
-      if (iso >= r.desde && iso <= r.hasta) {
-        if (r.n < 13) return { i: i, desde: r.desde, hasta: r.hasta };
+      if (i < ult) {
+        if (iso >= r.desde && iso <= r.hasta) return { i: i, desde: r.desde, hasta: r.hasta };
+        continue;
+      }
+      if (iso >= r.desde) {
         var k = Math.floor(diasEntre(r.desde, U.lunesDe(iso)) / 7);     // crucero: una semana por hueco
         return { i: i + k, desde: U.lunesDe(iso), hasta: U.sumarDias(U.lunesDe(iso), 6) };
       }
@@ -1574,7 +1585,7 @@
     if (idx < 0) idx = 0;
     if (idx < P.rampa.length - 1) {
       var r = P.rampa[idx];
-      return { n: r.n, carga: r.carga, talla: r.talla, nota: r.nota, criterio: r.criterio };
+      return { n: r.n, carga: r.carga, talla: r.talla, nota: r.nota, notaFecha: r.notaFecha, criterio: r.criterio };
     }
     /* EL CRUCERO, pasada la semana 13.
        ANTES: repetía la carga de la 13 para siempre. O sea que la rampa se paraba
@@ -1616,15 +1627,76 @@
     return suma;
   }
 
+  /* ==================== LA DESCARGA NO SE CORRE SI YA TOCA ====================
+     Carlos, 29-sep-2026: «me parece bien lo del 90 % y que la descarga no corra».
+     Con la cola, repetir una semana corre toda la rampa, descarga incluida, y
+     salen cuatro semanas de carga seguidas antes de descansar. Normalmente no
+     pasa nada: la semana repetida fue floja (por debajo del 95 %) y hace de
+     medio descanso. Pero si las TRES semanas anteriores al hueco de la descarga
+     llegaron al 90 % de lo que pedían —la repetida se quedó en el 90-94 %, o el
+     pase repitió por falta de datos del reloj— la descarga SE QUEDA EN SU FECHA.
+     La semana de carga que desplaza va justo después, y la rampa sigue igual de
+     retrasada: descansar a tiempo no adelanta nada, sólo cambia el orden. */
+  var DESCARGA_FIJA = 0.90;
+  function huecoRampa(i) {
+    var d = (i === 0) ? P.rampa[0].desde : U.sumarDias(P.rampa[1].desde, 7 * (i - 1));
+    return { i: i, desde: d, hasta: (i === 0) ? P.rampa[0].hasta : U.sumarDias(d, 6) };
+  }
+  function esDescargaIdx(idx) { return /^\s*descarga/i.test((peldano(idx) || {}).nota || ""); }
+  var memoHueco = {}, memoFirma = "";
+  function firmaHueco() {
+    var reg = registroPase(), n = 0, sd = 0;
+    for (var k in reg) { n++; sd += (reg[k].d || 0); }
+    return U.hoyISO() + "|" + n + "|" + sd + "|" + (Salud.traidoEl || "") + "|" + (Salud.datos ? 1 : 0);
+  }
+  function descargaFija(t) {
+    var des = desfaseHasta(t.desde);
+    if (des >= 0 || t.i < 3 || !esDescargaIdx(t.i) || esDescargaIdx(t.i + des)) return false;
+    var hoy = U.hoyISO();
+    for (var k = 1; k <= 3; k++) {
+      var tA = huecoRampa(t.i - k);
+      if (tA.hasta > hoy) return false;                   // aún no se sabe cómo acaba
+      var iA = idxHueco(tA);
+      if (esDescargaIdx(iA)) return false;                // ya hubo descanso dentro
+      var c = cargaSemana(tA.desde, tA.hasta), obj = peldano(iA).carga;
+      if (c === null || !obj || c / obj < DESCARGA_FIJA) return false;
+    }
+    return true;
+  }
+  /* el peldaño que toca en un hueco del calendario: la cola del pase, salvo
+     que la descarga se quede en su fecha */
+  function idxHueco(t) {
+    var f = firmaHueco();
+    if (f !== memoFirma) { memoHueco = {}; memoFirma = f; }
+    if (memoHueco[t.desde] !== undefined) return memoHueco[t.desde];
+    var des = desfaseHasta(t.desde), r = t.i + des;
+    if (des < 0) {
+      if (descargaFija(t)) r = t.i;
+      else {
+        for (var j = 1; j <= -des && j <= t.i; j++) {
+          var tD = huecoRampa(t.i - j);
+          if (desfaseHasta(tD.desde) <= -j && descargaFija(tD)) { r = t.i + des - 1; break; }
+        }
+      }
+    }
+    memoHueco[t.desde] = r;
+    return r;
+  }
+  /* la nota que se enseña: la que viaja siempre; la de fecha, sólo en su hueco */
+  function notaDe(p, enSuFecha) {
+    return [p.nota, enSuFecha ? p.notaFecha : ""].filter(function (x) { return !!x; }).join(". ");
+  }
+
   function semanaDe(iso) {
     var t = tramoNatural(iso);
     if (!t) return null;
-    var des = desfaseHasta(t.desde), p = peldano(t.i + des);
+    var des = desfaseHasta(t.desde), ix = idxHueco(t), p = peldano(ix);
     return { n: p.n, desde: t.desde, hasta: t.hasta, carga: p.carga, talla: p.talla,
-             /* la nota describía esa semana en el calendario original; si vas
-                retrasado ya no es verdad, así que no se arrastra */
-             nota: des === 0 ? p.nota : "", criterio: p.criterio,
-             natural: peldano(t.i).n, desfase: des, idx: t.i + des };
+             /* la nota que viaja va siempre; la atada a una fecha, sólo si la
+                semana cae en su hueco del calendario original */
+             nota: notaDe(p, ix === t.i), criterio: p.criterio,
+             natural: peldano(t.i).n, desfase: des, idx: ix,
+             descargaFija: des < 0 && ix === t.i };
   }
 
   function tallaDe(sem) { return ent().talla[sem.desde] || sem.talla; }
@@ -5680,7 +5752,9 @@
     var reales = [], objetivos = [], hoy = U.hoyISO();
     var f = P.rampa[0].desde, hasta;
     for (var i = 0; i < RAMPA_SEMANAS; i++) {
-      var p = peldano(i);
+      /* lo que pedía El Plan de verdad en ese hueco (la cola del pase), no la
+         rampa original: es contra eso contra lo que se mide lo hecho */
+      var p = peldano(idxHueco({ i: i, desde: f }));
       /* la semana 1 son diez días, no siete: arrancó un viernes */
       var dias = (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
       hasta = U.sumarDias(f, dias - 1);
@@ -6341,7 +6415,15 @@
   }
 
   /* el peldaño de arriba y el de abajo, que es de lo que habla el pase */
-  function semanaSiguienteDe(sem) { return peldano((sem.idx === undefined ? 0 : sem.idx) + 1); }
+  function semanaSiguienteDe(sem) {
+    /* lo que de verdad toca en el hueco siguiente si esta semana sube: así
+       sale también la descarga que se queda en su fecha, y la nota correcta */
+    var sx = semanaDe(U.sumarDias(sem.hasta, 1));
+    if (sx) return sx;
+    var p = peldano((sem.idx === undefined ? 0 : sem.idx) + 1);
+    p.nota = notaDe(p, false);
+    return p;
+  }
   function semanaAbajoDe(sem) { return peldano(Math.max(0, (sem.idx === undefined ? 0 : sem.idx) - 1)); }
 
   /* cumplimiento: días con sesión hecha sobre días con sesión prevista */
@@ -6583,9 +6665,9 @@
          ventana, lo dictado queda dictado aunque aparezcan datos nuevos. */
       var fresco = !reg[t.desde] || (hoy <= U.sumarDias(t.hasta, 3));
       if (t.hasta < hoy && fresco) {
-        var p = peldano(t.i + desfaseHasta(t.desde));
+        var ixH = idxHueco(t), p = peldano(ixH);
         var sem = { n: p.n, desde: t.desde, hasta: t.hasta, carga: p.carga,
-                    talla: p.talla, criterio: p.criterio, idx: t.i + desfaseHasta(t.desde) };
+                    talla: p.talla, criterio: p.criterio, idx: ixH };
         var r = veredictoSemana(sem, t.hasta, true);
         var des0 = desfaseHasta(t.desde);
         var d = (P.pase.desfases || {})[r.v];
@@ -8844,7 +8926,8 @@
     var out = [], f = P.rampa[0].desde;
     for (var i = 0; i < RAMPA_SEMANAS; i++) {
       var des = cola ? desfaseHasta(f) : 0;
-      var p = peldano(i + des);
+      var ixC = cola ? idxHueco({ i: i, desde: f }) : i;
+      var p = peldano(ixC);
       var dias = (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
       var hasta = U.sumarDias(f, dias - 1);
       /* lo que cuesta su plantilla esos días, para saber cuánto hay que escalar */
@@ -8863,6 +8946,7 @@
                     crucero es «Crucero: tres semanas y la cuarta de descarga», y
                     sin el ^ TODAS salían marcadas como descarga. */
                  descarga: /^\s*descarga/i.test(p.nota || ""), des: des,
+                 fija: cola && des < 0 && ixC === i,
                  repite: out.length > 0 && out[out.length - 1].n === p.n });
       f = U.sumarDias(hasta, 1);
     }
@@ -9318,7 +9402,8 @@
       if (k > 16 && !x.descarga && k % 4 !== 0 && k !== cal.length - 1) return;
       if (k === 17) h += '<tr class="sep"><td colspan="7">· · · sigue subiendo hasta el techo · · ·</td></tr>';
       h += '<tr class="' + (x.descarga ? "desc" : "") + (hoy >= x.desde && hoy <= x.hasta ? " ahora" : "") + '">' +
-        '<td class="d">' + x.n + (x.repite ? ' <small class="ramp-rep">repite</small>' : "") + "</td><td>" +
+        '<td class="d">' + x.n + (x.repite ? ' <small class="ramp-rep">repite</small>' : "") +
+        (x.fija ? ' <small class="ramp-rep">en su fecha</small>' : "") + "</td><td>" +
         fechaCorta(x.desde) + '</td><td class="t">' + x.talla + "</td>" +
         '<td class="d b">' + num(x.carga, 0) + "</td>" + '<td class="d">' + celdaHecha(x) + "</td>" +
         '<td class="d t">' + (Math.abs(x.factor - 1) < 0.06 ? "tal cual"

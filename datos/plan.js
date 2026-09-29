@@ -163,9 +163,17 @@
       revisar: "2027-03-01"
     },
 
+    /* NOTAS DE CADA SEMANA, DE DOS TIPOS (Carlos, 29-sep-2026: «monta la de
+       separar las notas en dos tipos»).
+         · `nota` VIAJA con la semana: si el pase hace repetir y la cola se
+           corre, se sigue enseñando allí donde caiga (descarga, test, entra
+           intensidad…). El test de 20 minutos no es un bloque: si esta nota se
+           pierde, el test se pierde.
+         · `notaFecha` va ATADA A SU FECHA: sólo se enseña si la semana cae
+           en su hueco del calendario original (la revisión del 28, el corticoide…). */
     rampa: [
-      { n: 1, desde: "2026-09-18", hasta: "2026-09-27", carga: 196, talla: "R", criterio: "asistencia", nota: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
-      { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", nota: "Fin del corticoide. Revisión el 28. Entra la bici. Volver a medir el ritmo de caminar" },
+      { n: 1, desde: "2026-09-18", hasta: "2026-09-27", carga: 196, talla: "R", criterio: "asistencia", notaFecha: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
+      { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", notaFecha: "Fin del corticoide. Revisión el 28. Entra la bici. Volver a medir el ritmo de caminar" },
       { n: 3, desde: "2026-10-05", hasta: "2026-10-11", carga: 180, talla: "A", nota: "Primera semana de verdad" },
       { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 125, talla: "B", nota: "DESCARGA, no se negocia. El domingo, test de 20 minutos" },
       { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 200, talla: "A" },
@@ -173,7 +181,7 @@
       { n: 7, desde: "2026-11-02", hasta: "2026-11-08", carga: 250, talla: "A" },
       { n: 8, desde: "2026-11-09", hasta: "2026-11-15", carga: 175, talla: "B", nota: "DESCARGA, no se negocia. Noviembre es su mes de parón histórico" },
       { n: 9, desde: "2026-11-16", hasta: "2026-11-22", carga: 280, talla: "A" },
-      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 315, talla: "A", nota: "Segundo test el jueves 26" },
+      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 315, talla: "A", nota: "Segundo test, el jueves", notaFecha: "El jueves es el 26" },
       { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 355, talla: "A", nota: "Entra un día de intensidad" },
       { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 250, talla: "A", nota: "DESCARGA, no se negocia. Talla A escalada a la baja, no B: a este nivel la B se queda corta" },
       { n: 13, desde: "2026-12-14", hasta: "2026-12-20", carga: 400, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" },
