@@ -1782,6 +1782,80 @@
       return true;
     },
 
+    /* ================= EL ORDEN DE CASA =================
+       Carlos, 29-sep-2026: «Localización me dice dónde están las cosas, quiero
+       ordenarlas para seguir en orden visual de la nevera... huevos, mermeladas,
+       mantequilla, salsas, gazpacho. La cosa es que al preguntar ¿Lo tengo? me
+       pregunte en orden».
+
+       Hasta hoy el pase preguntaba por orden ALFABÉTICO, que no es el orden de
+       ninguna nevera: saltaba del entrecot al flan.
+
+       POR QUÉ NO VA DENTRO DE LA FICHA. Lo natural sería un campo `orden` en
+       cada ingrediente, pero cambiar una ficha obliga a marcarla como «tuya», y
+       una ficha tuya ya no la vuelve a actualizar el catálogo nunca. Ordenar 190
+       fichas las congelaría todas. Así que el orden vive aparte, en
+       `estado.ordenCasa = { estante: [ids] }`: la ficha no se toca y el catálogo
+       sigue pudiendo corregirle la marca, el precio o la sal.
+
+       Lo que no esté en la lista cae al final, por nombre. Así lo nuevo no se
+       cuela en medio sin avisar, que es lo que hace también Mercadona. */
+    posEnCasa: function (estanteK, id) {
+      var l = (this.estado.ordenCasa || {})[estanteK] || [];
+      var i = l.indexOf(id);
+      return i < 0 ? 99999 : i;
+    },
+
+    /* Ordena CUALQUIER lista que tenga `id` y `n`: sirve igual para las fichas
+       del catálogo que para las líneas ya calculadas de la despensa. */
+    ordenarComoEnCasa: function (estanteK, lista) {
+      var self = this;
+      return lista.slice().sort(function (a, b) {
+        var pa = self.posEnCasa(estanteK, a.id), pb = self.posEnCasa(estanteK, b.id);
+        if (pa !== pb) return pa - pb;
+        return String(a.n || "").localeCompare(String(b.n || ""));
+      });
+    },
+
+    /* Los ingredientes que viven hoy en un estante, ya en su orden. */
+    loDeEsteEstante: function (estanteK) {
+      var self = this;
+      var casa = (this.estado.ingredientes || []).filter(function (g) {
+        return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === estanteK;
+      });
+      return this.ordenarComoEnCasa(estanteK, casa);
+    },
+
+    /* Subir (dir -1) o bajar (dir 1) un ingrediente dentro de su estante. */
+    moverEnCasa: function (estanteK, id, dir) {
+      var lista = this.loDeEsteEstante(estanteK).map(function (g) { return g.id; });
+      var i = lista.indexOf(id);
+      if (i < 0) return false;
+      var j = i + (dir < 0 ? -1 : 1);
+      if (j < 0 || j >= lista.length) return false;
+      lista[i] = lista[j]; lista[j] = id;
+      if (!this.estado.ordenCasa) this.estado.ordenCasa = {};
+      this.estado.ordenCasa[estanteK] = lista;
+      this.guardar("orden");
+      return true;
+    },
+
+    /* Soltar un ingrediente en una posición concreta: lo que hace falta para
+       arrastrar en el ordenador. */
+    colocarEnCasa: function (estanteK, id, destino) {
+      var lista = this.loDeEsteEstante(estanteK).map(function (g) { return g.id; });
+      var i = lista.indexOf(id);
+      if (i < 0) return false;
+      lista.splice(i, 1);
+      if (destino < 0) destino = 0;
+      if (destino > lista.length) destino = lista.length;
+      lista.splice(destino, 0, id);
+      if (!this.estado.ordenCasa) this.estado.ordenCasa = {};
+      this.estado.ordenCasa[estanteK] = lista;
+      this.guardar("orden");
+      return true;
+    },
+
     /* ================= EL RECORRIDO: ¿LO TENGO? =================
        Carlos, 24-sep-2026: «voy mirando en el móvil para anotar lo que tengo,
        desde la nevera a la alacena».
@@ -2250,10 +2324,9 @@
         };
       }
 
-      var casa = (this.estado.ingredientes || []).filter(function (g) {
-        return !g.oculta && g.cat !== "Restaurante y bar" && self.sitioDe(g) === estanteK;
-      });
-      casa.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      /* En TU orden, no en el alfabético: el pase sigue el recorrido de la
+         nevera. Ver «EL ORDEN DE CASA». */
+      var casa = this.loDeEsteEstante(estanteK);
       var fichas = casa.map(function (g) {
         var f = self.fichaStock(g.id);
         var platos = self.platosDe(g.id);
@@ -2729,8 +2802,7 @@
                      comprometido: comp[g.id] || 0,
                      libre: Math.max(0, c - (comp[g.id] || 0)) });
       });
-      fuera.sort(function (a, b) { return a.n.localeCompare(b.n); });
-      return fuera;
+      return this.ordenarComoEnCasa(sitio, fuera);
     },
 
     /* ================= LO QUE PUEDES GASTAR =================

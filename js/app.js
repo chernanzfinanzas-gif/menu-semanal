@@ -24,6 +24,7 @@
     pase: { vista: "indice", estante: null, i: 0 },
     busquedaHogar: "",
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
+    estanteAbierto: "",     /* Localización: qué estante está desplegado, uno cada vez */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
     buscaQuiero: "",        /* el buscador de «lo quiero esta vez», en la Compra */
     paseHogar: { vista: "indice", ap: null, i: 0 },   /* el pase de Hogar, igual que el de ¿Lo tengo? */
@@ -4051,7 +4052,16 @@
      eso se nota en la pasada de la despensa y en la lista de la compra. */
   function lineaLoc(g, estanteActual) {
     var av = (locAvisos || {})[g.id];
+    /* Las flechas de ordenar: sólo dentro de un estante. En Pendiente no hay
+       orden que valga porque esas fichas todavía no están en ningún sitio. */
+    var flechas = estanteActual
+      ? '<div class="loc-mover">' +
+          '<button type="button" class="btn mini" data-locsube="' + esc(g.id) + '" aria-label="Subir ' + esc(g.n) + '">\u2191</button>' +
+          '<button type="button" class="btn mini" data-locbaja="' + esc(g.id) + '" aria-label="Bajar ' + esc(g.n) + '">\u2193</button>' +
+        '</div>'
+      : "";
     return '<div class="linea linea-loc" data-locfila="' + esc(g.id) + '">' +
+      flechas +
       '<div class="datos"><div class="nombre">' + esc(g.n) + '</div>' +
       '<div class="detalle">' + esc(g.cat) +
         (av ? ' · <b style="color:var(--ambar)">lo usa ' + esc(av.platos.slice(0, 2).join(", ")) +
@@ -4131,7 +4141,9 @@
     /* --- las tres zonas, en su orden --- */
     Almacen.ZONAS.filter(function (z) { return !z.soloHogar; }).forEach(function (z) {
       var deZona = z.estantes.map(function (e) {
-        return { e: e, ing: filtra(casa.filter(function (g) { return Almacen.sitioDe(g) === e.k; })) };
+        /* en el orden de la nevera, no en el alfabético */
+        return { e: e, ing: Almacen.ordenarComoEnCasa(e.k,
+          filtra(casa.filter(function (g) { return Almacen.sitioDe(g) === e.k; }))) };
       });
       var total = deZona.reduce(function (a, x) { return a + x.ing.length; }, 0);
       if (q && !total) return;
@@ -4139,10 +4151,17 @@
       html += '<details class="grupo-selec zona-loc"' + (abierta ? " open" : "") +
         ' data-zona="' + esc(z.k) + '"><summary><span class="tit">' + esc(z.n) + "</span>" +
         '<span class="cuantas">' + (total || "—") + "</span></summary>";
+      /* UN DESPLEGABLE POR ESTANTE (Carlos, 29-sep-2026): «los estantes de cada
+         localización deberían ser desplegables… ahora están abiertos y dificulta
+         navegar». Cerrados por defecto y sólo uno abierto a la vez; buscando se
+         abren todos, que es cuando quieres verlo todo de golpe. */
       deZona.forEach(function (x) {
-        html += '<h4 class="estante">' + esc(x.e.n) +
-          '<span>' + (x.ing.length || "vacío") + "</span></h4>";
+        var abiertoE = q ? true : (UI.estanteAbierto === x.e.k);
+        html += '<details class="grupo-selec estante-loc"' + (abiertoE ? " open" : "") +
+          ' data-estanteloc="' + esc(x.e.k) + '"><summary><span class="tit">' + esc(x.e.n) +
+          '</span><span class="cuantas">' + (x.ing.length || "—") + "</span></summary>";
         x.ing.forEach(function (g) { html += lineaLoc(g, x.e.k); });
+        html += "</details>";
       });
       html += "</details>";
     });
@@ -5911,8 +5930,36 @@
        clic dentro del `details`, así que abrir el desplegable cerraba la zona:
        el clic del `select` también casaba con `closest("[data-zona]")`. */
     $("#rejilla-loc").addEventListener("click", function (e) {
+      /* Subir o bajar dentro del estante. Va lo primero: estos botones viven
+         dentro del desplegable y si no se atiende aquí el clic sigue su camino. */
+      var mv = e.target.closest("[data-locsube]") || e.target.closest("[data-locbaja]");
+      if (mv) {
+        var idMv = mv.getAttribute("data-locsube") || mv.getAttribute("data-locbaja");
+        var dEstMv = mv.closest("[data-estanteloc]");
+        if (dEstMv) {
+          var kMv = dEstMv.getAttribute("data-estanteloc");
+          Almacen.moverEnCasa(kMv, idMv, mv.hasAttribute("data-locsube") ? -1 : 1);
+          UI.estanteAbierto = kMv;      /* que no se cierre al repintar */
+          pintarLocalizacion();
+        }
+        return;
+      }
       var sum = e.target.closest("summary");
       if (!sum) return;
+      /* La cabecera de un ESTANTE no debe plegar su zona: se atiende antes y se
+         sale. Y al abrir uno, los hermanos se cierran, que es lo que pidió
+         Carlos: «sólo abro el que quiero ver». */
+      var dEst = sum.closest("[data-estanteloc]");
+      if (dEst) {
+        var kEst = dEst.getAttribute("data-estanteloc");
+        var abriendo = !dEst.open;   /* el clic va antes del toggle del navegador */
+        UI.estanteAbierto = abriendo ? kEst : "";
+        if (abriendo && dEst.parentNode) {
+          var hermanos = dEst.parentNode.querySelectorAll("details[data-estanteloc]");
+          Array.prototype.forEach.call(hermanos, function (o) { if (o !== dEst) o.open = false; });
+        }
+        return;
+      }
       var d = sum.closest("[data-zona]");
       if (d) UI.zonaAbierta = UI.zonaAbierta === d.getAttribute("data-zona")
         ? null : d.getAttribute("data-zona");
