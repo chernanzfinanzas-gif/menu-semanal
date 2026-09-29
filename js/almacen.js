@@ -53,7 +53,9 @@
              Los fijó Carlos el 17-sep-2026: 4 g de sal al día como techo, que
              son 1.600 mg de sodio. El ámbar está mucho más abajo a propósito,
              porque su criterio es «reducir todo lo posible», no «llegar al tope». */
-          limiteSal: 4.0,      // g de sal/día: por encima = rojo
+          /* 29-sep-2026: sube a 4,75 g (1.900 mg de sodio), el máximo de su pauta
+             para el hidrops. Lo decidió Carlos. */
+          limiteSal: 4.75,     // g de sal/día: por encima = rojo
           /* Subido de 2,0 a 3,5 el 21-sep-2026. Los dos son gramos de SAL, no de
              sodio: 3,5 g de sal son 1.400 mg de sodio, dentro de la horquilla
              de una pauta baja en sodio (1.500-2.000 mg) y bastante por debajo
@@ -679,6 +681,15 @@
         e.config.avisoSal = 2.0;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
         if (global.console) console.log("Topes de sal actualizados a 4,0 / 2,0 g.");
+      }
+
+      /* TOPE DE SAL A 4,75 g  ·  29-sep-2026. Carlos: «subimos la sal a 4,75g».
+         Su 4 estaba grabado en el estado, así que cambiar el valor por omisión
+         no le llegaba: se sube una vez y se marca. Si lo cambia a mano, se respeta. */
+      if (!e.config.v_sal475) {
+        if (e.config.limiteSal === 4 || e.config.limiteSal === 4.0) e.config.limiteSal = 4.75;
+        e.config.v_sal475 = 1;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
       }
 
       /* CORRECCIÓN DE UNA SOLA VEZ. Durante unos minutos del 21-sep-2026 se

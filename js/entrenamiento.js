@@ -56,7 +56,7 @@
        tratamientos con las recomendaciones y así me puedes ofrecer la medicación
        diaria en el plan». Los datos NO van en el código (el repositorio del
        código es público): viven en datos/historial-medico.json del privado. */
-    { id: "historial", nombre: "Historial médico", img: "iconos/khb/4-agua.webp",
+    { id: "historial", nombre: "Historial médico", img: "iconos/khb/14-historial.webp",
       pie: "Patologías, tratamientos con sus fechas, recomendaciones, pruebas y citas.", listo: true }
   ];
 
@@ -4431,26 +4431,27 @@
      su revisión por correo, que la misma recogida deja en datos/revision-salud.json
      { fecha, hora, titulo, texto, avisos[], prueba_manana }.
      Carlos, 29-sep: «cuando esté todo haces tu revisión» y que se vea en la app. */
-  var ListaManana = {
-    CLAVE: "khb-lista-manana-v1",
-    RUTA: "datos/lista-manana.json",
+  /* Un solo fichero con todos los días: { dias: { fecha: { lista, revision } } }.
+     Carlos: «que la revisión quede guardada en el día que corresponde, como los
+     ejercicios». El Plan enseña la del día que tenga abierto. */
+  var DiarioSalud = {
+    CLAVE: "khb-diario-salud-v1",
+    RUTA: "datos/diario-salud.json",
     FRESCO_H: 0.25,
     datos: null, traidoEl: null, estado: "nada",
     deCache: Curva.deCache, cargar: Curva.cargar
   };
-  var RevSalud = {
-    CLAVE: "khb-revision-salud-v1",
-    RUTA: "datos/revision-salud.json",
-    FRESCO_H: 0.25,
-    datos: null, traidoEl: null, estado: "nada",
-    deCache: Curva.deCache, cargar: Curva.cargar
-  };
+  function diaDeSalud(f) { var D = DiarioSalud.datos; return (D && D.dias && D.dias[f]) || {}; }
   var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes, miércoles y viernes
 
   function panelManana() {
-    var hoy = U.hoyISO(), ayer = U.sumarDias(hoy, -1);
+    var hoyReal = U.hoyISO();
+    var hoy = (diaSel && semanaDe(diaSel)) ? diaSel : hoyReal;   // el día abierto en El Plan
+    if (hoy > hoyReal) return "";                                 // días que aún no han llegado
+    var esHoy = hoy === hoyReal, ayer = U.sumarDias(hoy, -1);
     var dSem = new Date(hoy + "T12:00:00").getDay();          // 0 domingo … 1 lunes
-    var L = ListaManana.datos, items;
+    var L = diaDeSalud(hoy).lista, items;
+    if (!esHoy && !L && !diaDeSalud(hoy).revision) return "";      // días de antes del diario
     if (L && L.fecha === hoy) {
       items = (L.items || []).slice();
     } else {
@@ -4466,23 +4467,26 @@
                    detalle: hechas === 4 ? "apuntadas" : "cinta, músculo, agua y masa ósea (" + hechas + " de 4)" });
     }
     var falta = items.filter(function (i) { return !i.ok; }).length;
-    var h = '<div class="manana' + (falta ? "" : " completa") + '"><div class="manana-cab"><b>Esta mañana</b>' +
+    var h = '<div class="manana' + (falta ? "" : " completa") + '"><div class="manana-cab"><b>' +
+      (esHoy ? "Esta mañana" : "La mañana del " + U.esc(U.etiquetaFecha(hoy))) + "</b>" +
       '<span>' + (falta ? "falta" + (falta === 1 ? " 1" : "n " + falta) : "todo recogido") + "</span></div><ul>";
     items.forEach(function (i) {
       h += '<li class="' + (i.ok ? "ok" : "no") + '"><span class="marca">' + (i.ok ? "✓" : "…") + "</span>" +
         "<b>" + U.esc(i.n) + "</b>" +
         (i.detalle ? " <small>" + U.esc(i.detalle) + (i.hora ? " · " + U.esc(i.hora) : "") + "</small>" : "") + "</li>";
     });
-    h += "</ul>" + (L && L.fecha === hoy && L.actualizado
-      ? '<p class="manana-pie">La recogida mira el correo cada 20 minutos · última vuelta a las ' + U.esc(L.actualizado) + ".</p>"
+    h += "</ul>" + (!esHoy ? ""
+      : (L && L.fecha === hoy && L.actualizado)
+      ? '<p class="manana-pie">La recogida mira el correo cada 20 minutos · último dato recogido a las ' + U.esc(L.actualizado) + ".</p>"
       : '<p class="manana-pie">Aún no ha llegado nada de hoy. La recogida mira el correo cada 20 minutos.</p>');
-    // la prueba que dejó la revisión de ayer
-    var R = RevSalud.datos;
-    if (R && R.fecha === ayer && R.prueba_manana)
-      h += '<div class="manana-prueba"><b>Hoy toca:</b> ' + U.esc(R.prueba_manana) + "</div>";
+    // la prueba que dejó la revisión del día anterior
+    var Rant = diaDeSalud(ayer).revision;
+    if (Rant && Rant.prueba_manana)
+      h += '<div class="manana-prueba"><b>' + (esHoy ? "Hoy toca" : "Ese día tocaba") + ":</b> " + U.esc(Rant.prueba_manana) + "</div>";
     h += "</div>";
-    // la revisión de hoy
-    if (R && R.fecha === hoy) {
+    // la revisión de ese día
+    var R = diaDeSalud(hoy).revision;
+    if (R) {
       h += '<div class="revision-claude"><div class="manana-cab"><b>' + U.esc(R.titulo || "Revisión de Claude") + "</b>" +
         "<span>Claude · " + U.esc(R.hora || "") + "</span></div>";
       (R.avisos || []).forEach(function (a) { h += '<p class="rev-aviso">' + U.esc(a) + "</p>"; });
@@ -11549,8 +11553,7 @@
     Ecg.cargar(repintaSiDentro);
     EcgUltimo.cargar(repintaSiDentro);
     RevGarmin.cargar(repintaSiDentro);
-    ListaManana.cargar(repintaSiDentro);
-    RevSalud.cargar(repintaSiDentro);
+    DiarioSalud.cargar(repintaSiDentro);
     TensionCorreo.cargar(repintaSiDentro);
     Historial.cargar(repintaSiDentro);
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
