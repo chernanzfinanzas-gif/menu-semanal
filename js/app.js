@@ -26,6 +26,7 @@
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     estanteAbierto: "",     /* Localización: qué estante está desplegado, uno cada vez */
     locCambios: 0,          /* cuántos estantes has cambiado sin recolocar la lista */
+    buscaOrden: "",         /* el buscador de la pantalla de Orden de compra */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
     buscaQuiero: "",        /* el buscador de «lo quiero esta vez», en la Compra */
     paseHogar: { vista: "indice", ap: null, i: 0 },   /* el pase de Hogar, igual que el de ¿Lo tengo? */
@@ -3253,16 +3254,17 @@
        «Comida» era la pantalla vieja de contar: la sustituye ¿Lo tengo?, que
        hace lo mismo recorriendo el mueble en vez de sólo lo ya apuntado. Se
        deja el bloque por si alguna ruta antigua lo pide. */
-    var validas = ["localizacion", "tengo", "pedir", "hogar", "comida"];
+    var validas = ["localizacion", "tengo", "pedir", "orden", "hogar", "comida"];
     UI.filaDesp = validas.indexOf(cual) >= 0 ? cual : "localizacion";
     var bl = { comida: $("#bloque-desp-comida"), hogar: $("#bloque-desp-hogar"),
                localizacion: $("#bloque-desp-localizacion"), tengo: $("#bloque-desp-tengo"),
-               pedir: $("#bloque-desp-pedir") };
+               pedir: $("#bloque-desp-pedir"), orden: $("#bloque-desp-orden") };
     Object.keys(bl).forEach(function (k) { if (bl[k]) bl[k].hidden = UI.filaDesp !== k; });
     $$("#selector-despensa [data-desp]").forEach(function (b) {
       b.classList.toggle("principal", b.getAttribute("data-desp") === UI.filaDesp);
     });
     if (UI.filaDesp === "pedir") pintarPedir();
+    else if (UI.filaDesp === "orden") pintarOrdenCompra();
     else if (UI.filaDesp === "hogar") pintarHogar();
     else if (UI.filaDesp === "localizacion") pintarLocalizacion();
     else if (UI.filaDesp === "tengo") pintarLoTengo();
@@ -3365,6 +3367,84 @@
 
      Y por eso el contenedor va primero en el orden: las 68 fichas sin formato
      salen arriba, porque sin contenedor no hay ni piezas ni lote ni mínimo. */
+  /* ==================== EL ORDEN DE LA COMPRA ====================
+     Carlos, 29-sep-2026: «lo que quiero es que haya una lista de compra con
+     todos los productos separados por supermercado y estante, y es ahí donde lo
+     ordeno de forma general para que luego en esa lista ya salgan ordenados
+     según la lista de Mercadona. Cuando hacemos algún cambio, se hace en esta
+     lista global».
+
+     Y tenía razón contra lo que yo había hecho primero: ordenar desde la compra
+     de la semana sólo ordena LO DE ESA SEMANA, así que la semana siguiente, con
+     otros productos, el orden se deshace. Aquí están todos los que se compran en
+     tienda, siempre, y el orden que salga de aquí es el que usa la lista.
+
+     Sólo tiendas de súper: Amazon no tiene lista de pasillo que igualar. */
+  function pintarOrdenCompra() {
+    var cont = $("#rejilla-orden");
+    if (!cont) return;
+    var q = sinTildes((UI.buscaOrden || "").trim().toLowerCase());
+
+    var deTienda = {};
+    (Almacen.estado.ingredientes || []).forEach(function (g) {
+      if (g.oculta || g.cat === "Restaurante y bar") return;
+      if (Almacen.cajonDe(g) !== "super") return;
+      var t = Almacen.tiendaDe(g) || "Sin tienda asignada";
+      var zk = Almacen.zonaDeIngrediente(g.id) || "sinzona";
+      var por = (deTienda[t] = deTienda[t] || {});
+      (por[zk] = por[zk] || []).push({ id: g.id, n: g.n, producto: g.producto || "" });
+    });
+
+    var ordenZonas = Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]);
+    var html = "", algo = false;
+
+    Object.keys(deTienda).sort().forEach(function (tienda) {
+      var bloques = "";
+      ordenZonas.forEach(function (zk) {
+        var lista = deTienda[tienda][zk];
+        if (!lista || !lista.length) return;
+        var zn = "Sin zona";
+        Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
+        var clave = Almacen.claveCompra(tienda, zk);
+        /* Se ordena SIEMPRE con la lista entera: así lo que se guarda al mover
+           lleva a todos, estén o no filtrados por el buscador. */
+        lista = Almacen.ordenarComoEnCompra(clave, lista);
+        var vistos = q
+          ? lista.filter(function (x) { return sinTildes(x.n.toLowerCase()).indexOf(q) >= 0; })
+          : lista;
+        if (!vistos.length) return;
+        algo = true;
+        bloques += '<div class="zona-compra" data-clavecompra="' + esc(clave) + '"' +
+                   (q ? ' data-filtrado="1"' : '') + '>' +
+          '<h4 class="estante">' + esc(zn) + '<span>' + lista.length + '</span></h4>';
+        vistos.forEach(function (x) {
+          bloques += '<div class="fila-compra" data-compfila="' + esc(x.id) + '">' +
+            '<div class="loc-mover">' +
+              '<button type="button" class="btn mini" data-ordsube="' + esc(x.id) + '" aria-label="Subir"' +
+                (q ? " disabled" : "") + '>↑</button>' +
+              '<button type="button" class="btn mini" data-ordbaja="' + esc(x.id) + '" aria-label="Bajar"' +
+                (q ? " disabled" : "") + '>↓</button>' +
+            '</div>' +
+            '<div class="linea"><div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
+            '<div class="detalle">' + esc(x.producto || "") + '</div></div></div>' +
+          '</div>';
+        });
+        bloques += '</div>';
+      });
+      if (!bloques) return;
+      html += '<h2 class="cajon-compra">' + esc(tienda) + '</h2>' + bloques;
+    });
+
+    if (!algo) {
+      html = '<div class="vacio">' + (q
+        ? "Nada con ese nombre entre lo que compras en tienda."
+        : "Todavía no hay productos con tienda asignada.") + "</div>";
+    } else if (q) {
+      html = '<div class="aviso">Buscando no se puede reordenar: borra la búsqueda para mover.</div>' + html;
+    }
+    cont.innerHTML = html;
+  }
+
   function pintarPedir() {
     var cont = $("#rejilla-pedir");
     if (!cont) return;
@@ -4526,13 +4606,10 @@
               html += '<div class="zona-compra" data-clavecompra="' + esc(clave) + '">' +
                       '<h4 class="estante">' + esc(zn) +
                       '<span>' + lineas.length + '</span></h4>';
-              lineas.forEach(function (l) {
-                html += '<div class="fila-compra" data-compfila="' + esc(l.id) + '">' +
-                  '<div class="loc-mover">' +
-                    '<button type="button" class="btn mini" data-compsube="' + esc(l.id) + '" aria-label="Subir">\u2191</button>' +
-                    '<button type="button" class="btn mini" data-compbaja="' + esc(l.id) + '" aria-label="Bajar">\u2193</button>' +
-                  '</div>' + lineaCompraHTML(l, false) + '</div>';
-              });
+              /* Aquí NO se ordena: esta lista sólo LEE el orden. Ordenar desde
+                 aquí ordenaría sólo lo de esta semana. Se hace en Despensa →
+                 Orden de compra, con todos los productos delante. */
+              lineas.forEach(function (l) { html += lineaCompraHTML(l, false); });
               html += '</div>';
             });
             html += '</div>';
@@ -5976,24 +6053,27 @@
     /* El pliegue SÓLO desde la cabecera de la zona. Estaba escuchando cualquier
        clic dentro del `details`, así que abrir el desplegable cerraba la zona:
        el clic del `select` también casaba con `closest("[data-zona]")`. */
-    /* Las flechas del orden de la compra. Se guarda EXACTAMENTE lo que se ve en
-       pantalla, leído del DOM, para que no dependa de lo guardado antes. */
-    var lc = $("#lista-compra");
-    if (lc) lc.addEventListener("click", function (e) {
-      var mv = e.target.closest("[data-compsube]") || e.target.closest("[data-compbaja]");
+    var bo = $("#buscar-orden");
+    if (bo) bo.addEventListener("input", function (e) {
+      UI.buscaOrden = e.target.value; pintarOrdenCompra();
+    });
+    var ro = $("#rejilla-orden");
+    if (ro) ro.addEventListener("click", function (e) {
+      var mv = e.target.closest("[data-ordsube]") || e.target.closest("[data-ordbaja]");
       if (!mv) return;
       var caja = mv.closest("[data-clavecompra]");
-      if (!caja) return;
-      var id = mv.getAttribute("data-compsube") || mv.getAttribute("data-compbaja");
+      if (!caja || caja.getAttribute("data-filtrado")) return;
+      var id = mv.getAttribute("data-ordsube") || mv.getAttribute("data-ordbaja");
       var ids = Array.prototype.map.call(caja.querySelectorAll("[data-compfila]"), function (f) {
         return f.getAttribute("data-compfila");
       });
       Almacen.moverEnCompra(caja.getAttribute("data-clavecompra"), ids, id,
-                            mv.hasAttribute("data-compsube") ? -1 : 1);
-      pintarCompra();
-      e.stopPropagation();
-    }, true);
+                            mv.hasAttribute("data-ordsube") ? -1 : 1);
+      pintarOrdenCompra();
+    });
 
+    /* Las flechas del orden de la compra. Se guarda EXACTAMENTE lo que se ve en
+       pantalla, leído del DOM, para que no dependa de lo guardado antes. */
     $("#rejilla-loc").addEventListener("click", function (e) {
       /* Subir o bajar dentro del estante. Va lo primero: estos botones viven
          dentro del desplegable y si no se atiende aquí el clic sigue su camino. */

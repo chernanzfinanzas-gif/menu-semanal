@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=289">
-<link rel="stylesheet" href="css/actividad-khb.css?v=289">
+<link rel="stylesheet" href="css/estilos.css?v=290">
+<link rel="stylesheet" href="css/actividad-khb.css?v=290">
 </head>
 <body>
 
@@ -215,6 +215,7 @@
       <button class="btn mini principal" data-desp="localizacion">Localización</button>
       <button class="btn mini" data-desp="tengo">¿Lo tengo?</button>
       <button class="btn mini" data-desp="pedir">Cómo se pide</button>
+        <button class="btn mini" data-desp="orden">Orden de compra</button>
       <button class="btn mini" data-desp="hogar">Hogar</button>
     </div>
 
@@ -251,6 +252,18 @@
         <button class="btn mini" id="tengo-reordenar" title="Vuelve a ordenar con lo anotado">Reordenar</button>
       </div>
       <div id="rejilla-tengo"></div>
+    </div>
+
+    <div id="bloque-desp-orden" hidden>
+      <div class="aviso">El orden en que salen los productos en <b>la lista de la compra</b>, tienda
+        por tienda y zona por zona. Aquí están TODOS los que compras, no solo los de esta semana:
+        se ordena una vez, para que coincida con tus listas de Mercadona, y la compra de cada semana
+        ya sale en ese orden. Lo que aún no has movido sale arriba, que es donde Mercadona pone
+        lo nuevo.</div>
+      <div class="fila" style="margin-bottom:10px">
+        <input type="text" id="buscar-orden" placeholder="Buscar un ingrediente…" style="flex:1; min-width:180px">
+      </div>
+      <div id="rejilla-orden"></div>
     </div>
 
     <div id="bloque-desp-pedir" hidden>
@@ -530,18 +543,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=289"></script>
-<script src="datos/recetas.js?v=289"></script>
-<script src="datos/nuevos.js?v=289"></script>
-<script src="datos/hogar.js?v=289"></script>
-<script src="datos/plantillas.js?v=289"></script>
-<script src="datos/actividades.js?v=289"></script>
-<script src="datos/plan.js?v=289"></script>
-<script src="js/util.js?v=289"></script>
-<script src="js/almacen.js?v=289"></script>
-<script src="js/github.js?v=289"></script>
-<script src="js/app.js?v=289"></script>
-<script src="js/actividad-khb.js?v=289"></script>
-<script src="js/entrenamiento.js?v=289"></script>
+<script src="datos/ingredientes.js?v=290"></script>
+<script src="datos/recetas.js?v=290"></script>
+<script src="datos/nuevos.js?v=290"></script>
+<script src="datos/hogar.js?v=290"></script>
+<script src="datos/plantillas.js?v=290"></script>
+<script src="datos/actividades.js?v=290"></script>
+<script src="datos/plan.js?v=290"></script>
+<script src="js/util.js?v=290"></script>
+<script src="js/almacen.js?v=290"></script>
+<script src="js/github.js?v=290"></script>
+<script src="js/app.js?v=290"></script>
+<script src="js/actividad-khb.js?v=290"></script>
+<script src="js/entrenamiento.js?v=290"></script>
 </body>
 </html>

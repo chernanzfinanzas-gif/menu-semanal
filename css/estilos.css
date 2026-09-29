@@ -486,7 +486,10 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 #loc-reordenar.avisa{background:var(--verde); color:#fff; border-color:var(--verde)}
 /* La compra, por zona y en el orden que tú pones (Carlos, 29-sep-2026). */
 .zona-compra{margin:6px 0 10px}
-.zona-compra > h4.estante{margin:10px 0 4px}
+.zona-compra > h4.estante{margin:12px 0 4px; padding:0 2px; font-size:.72rem; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--gris);
+  display:flex; gap:8px; align-items:baseline}
+.zona-compra > h4.estante span{font-weight:400; letter-spacing:0; text-transform:none; opacity:.75}
 .fila-compra{display:flex; align-items:center; gap:6px}
 .fila-compra > .linea{flex:1; min-width:0}
 .zona-loc.pendiente{border-color:var(--ambar); border-width:1.5px}
