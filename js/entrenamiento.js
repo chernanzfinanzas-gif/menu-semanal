@@ -891,6 +891,7 @@
       ".manana li small{color:#6b7785}.manana .marca{width:1.1em;text-align:center;font-weight:700}",
       ".manana li.ok .marca{color:#2f7a47}.manana li.no .marca{color:#b8871d}.manana li.no b{color:#7a5a10}",
       ".manana-pie{margin:6px 0 0;font-size:.75rem;color:#8a95a1}",
+      ".manana.futura{border-left-color:#9fb3c8;background:#fafcfe}.manana.futura li .marca{color:#9fb3c8}.manana.futura li b{color:#3d4b5a;font-weight:600}",
       ".manana-prueba{margin-top:8px;padding:7px 9px;border-radius:8px;background:#eaf2fb;color:#1f4a78}",
       ".revision-claude p{margin:5px 0}.rev-aviso{padding:6px 8px;border-radius:8px;background:#fdf3dc;color:#5c4200}",
       /* ---- la ayuda de cada gráfica de Evolución (v270) ---- */
@@ -4444,10 +4445,34 @@
   function diaDeSalud(f) { var D = DiarioSalud.datos; return (D && D.dias && D.dias[f]) || {}; }
   var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes, miércoles y viernes
 
+  /* Días que aún no han llegado: qué tocará medir y, si es mañana, la prueba
+     que dejó la revisión de hoy. Carlos, 29-sep: «los hoy toca de mañana y
+     días siguientes no se ven». */
+  function panelFuturo(dia, hoyReal) {
+    var dSem = new Date(dia + "T12:00:00").getDay();
+    var toca = ["Tensión", "Báscula"];
+    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5) toca.push("ECG", "Sensor Logger");
+    if (dSem === 1) toca.push("Medidas del lunes (cinta, músculo, agua y masa ósea)");
+    var esManana = dia === U.sumarDias(hoyReal, 1);
+    var h = '<div class="manana futura"><div class="manana-cab"><b>' +
+      (esManana ? "Mañana" : "El " + U.esc(U.etiquetaFecha(dia))) + " toca</b>" +
+      "<span>" + toca.length + " cosa" + (toca.length === 1 ? "" : "s") + "</span></div><ul>";
+    toca.forEach(function (n) { h += '<li><span class="marca">·</span><b>' + U.esc(n) + "</b></li>"; });
+    h += "</ul>";
+    var R = diaDeSalud(hoyReal).revision;
+    if (esManana) {
+      if (R && R.prueba_manana) h += '<div class="manana-prueba"><b>Prueba:</b> ' + U.esc(R.prueba_manana) + "</div>";
+      else if (!R) h += '<p class="manana-pie">Si hace falta una prueba, la dirá la revisión de hoy.</p>';
+    } else {
+      h += '<p class="manana-pie">Las pruebas se deciden cada mañana con la revisión del día anterior.</p>';
+    }
+    return h + "</div>";
+  }
+
   function panelManana() {
     var hoyReal = U.hoyISO();
     var hoy = (diaSel && semanaDe(diaSel)) ? diaSel : hoyReal;   // el día abierto en El Plan
-    if (hoy > hoyReal) return "";                                 // días que aún no han llegado
+    if (hoy > hoyReal) return panelFuturo(hoy, hoyReal);          // días que aún no han llegado
     var esHoy = hoy === hoyReal, ayer = U.sumarDias(hoy, -1);
     var dSem = new Date(hoy + "T12:00:00").getDay();          // 0 domingo … 1 lunes
     var L = diaDeSalud(hoy).lista, items;
