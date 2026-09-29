@@ -883,6 +883,16 @@
       /* ---- el aviso de la revisión de Garmin (v271) ---- */
       ".aviso-garmin{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#fdf3dc;border:1px solid #efd08a;color:#5c4200;font-size:.88rem;line-height:1.4}",
       ".aviso-garmin span{display:block;margin-top:3px}.aviso-garmin small{display:block;margin-top:5px;color:#7a6330}",
+      ".manana,.revision-claude{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #d8e2ec;font-size:.9rem;line-height:1.4}",
+      ".manana{border-left:4px solid #e0a82e}.manana.completa{border-left-color:#3f9a5b}.revision-claude{border-left:4px solid #3b6ea5}",
+      ".manana-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.manana-cab span{font-size:.78rem;color:#6b7785}",
+      ".manana.completa .manana-cab span{color:#2f7a47;font-weight:600}",
+      ".manana ul{list-style:none;margin:0;padding:0}.manana li{padding:3px 0;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}",
+      ".manana li small{color:#6b7785}.manana .marca{width:1.1em;text-align:center;font-weight:700}",
+      ".manana li.ok .marca{color:#2f7a47}.manana li.no .marca{color:#b8871d}.manana li.no b{color:#7a5a10}",
+      ".manana-pie{margin:6px 0 0;font-size:.75rem;color:#8a95a1}",
+      ".manana-prueba{margin-top:8px;padding:7px 9px;border-radius:8px;background:#eaf2fb;color:#1f4a78}",
+      ".revision-claude p{margin:5px 0}.rev-aviso{padding:6px 8px;border-radius:8px;background:#fdf3dc;color:#5c4200}",
       /* ---- la ayuda de cada gráfica de Evolución (v270) ---- */
       ".evo-info{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--azul-borde);background:var(--azul-claro);" +
         "color:var(--azul-hondo);font:700 .85rem/1 inherit;cursor:pointer;padding:0;margin-left:8px;align-self:center}",
@@ -3745,7 +3755,7 @@
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
         "<b>ECG Analysis</b>: unos 3 minutos sentado, espalda apoyada y sin hablar. Al terminar, <b>mándalo por correo</b> como siempre: llega solo a la app en menos de un cuarto de hora.",
         "Cierra ECG Analysis del todo: Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>. Si no, se queda con la banda y la otra app no la encuentra.",
-        "<b>Sensor Logger</b>, mientras estemos mirando los latidos cortos: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › compartir a OneDrive › salud › ecg › sensor-logger.",
+        "<b>Sensor Logger</b>, mientras estemos mirando los latidos cortos: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
         "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
       ],
       fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen picos de 190 o 260 que no son del corazón, y ese ECG queda marcado con ruido. " +
@@ -4412,6 +4422,77 @@
         ? "limpia y publicada" + (r.dias_nuevos ? ", " + r.dias_nuevos + " días nuevos" : "") +
           (r.hasta ? ", datos hasta el " + U.esc(U.etiquetaFecha(r.hasta)) : "")
         : "<b>no publicada</b>: mira el aviso de arriba") + ".</p>";
+  }
+
+  /* ==================== LA MAÑANA: LISTA Y REVISIÓN (v275) ====================
+     La recogida de GitHub (scripts/recoger-ecg.py, cada 20 min por la mañana)
+     escribe datos/lista-manana.json con lo que toca hoy y lo que ha llegado.
+     Cuando está completa sale el resumen «KHB salud»; Claude lo revisa y manda
+     su revisión por correo, que la misma recogida deja en datos/revision-salud.json
+     { fecha, hora, titulo, texto, avisos[], prueba_manana }.
+     Carlos, 29-sep: «cuando esté todo haces tu revisión» y que se vea en la app. */
+  var ListaManana = {
+    CLAVE: "khb-lista-manana-v1",
+    RUTA: "datos/lista-manana.json",
+    FRESCO_H: 0.25,
+    datos: null, traidoEl: null, estado: "nada",
+    deCache: Curva.deCache, cargar: Curva.cargar
+  };
+  var RevSalud = {
+    CLAVE: "khb-revision-salud-v1",
+    RUTA: "datos/revision-salud.json",
+    FRESCO_H: 0.25,
+    datos: null, traidoEl: null, estado: "nada",
+    deCache: Curva.deCache, cargar: Curva.cargar
+  };
+  var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes, miércoles y viernes
+
+  function panelManana() {
+    var hoy = U.hoyISO(), ayer = U.sumarDias(hoy, -1);
+    var dSem = new Date(hoy + "T12:00:00").getDay();          // 0 domingo … 1 lunes
+    var L = ListaManana.datos, items;
+    if (L && L.fecha === hoy) {
+      items = (L.items || []).slice();
+    } else {
+      items = [{ n: "Tensión", ok: false }, { n: "Báscula", ok: false }];
+      if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
+        items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
+    }
+    if (dSem === 1) {
+      var hechas = ["cintura", "musculo", "agua", "hueso"].filter(function (k) {
+        var v = medida(hoy, k); return v != null && v !== "";
+      }).length;
+      items.push({ n: "Medidas del lunes", ok: hechas === 4,
+                   detalle: hechas === 4 ? "apuntadas" : "cinta, músculo, agua y masa ósea (" + hechas + " de 4)" });
+    }
+    var falta = items.filter(function (i) { return !i.ok; }).length;
+    var h = '<div class="manana' + (falta ? "" : " completa") + '"><div class="manana-cab"><b>Esta mañana</b>' +
+      '<span>' + (falta ? "falta" + (falta === 1 ? " 1" : "n " + falta) : "todo recogido") + "</span></div><ul>";
+    items.forEach(function (i) {
+      h += '<li class="' + (i.ok ? "ok" : "no") + '"><span class="marca">' + (i.ok ? "✓" : "…") + "</span>" +
+        "<b>" + U.esc(i.n) + "</b>" +
+        (i.detalle ? " <small>" + U.esc(i.detalle) + (i.hora ? " · " + U.esc(i.hora) : "") + "</small>" : "") + "</li>";
+    });
+    h += "</ul>" + (L && L.fecha === hoy && L.actualizado
+      ? '<p class="manana-pie">La recogida mira el correo cada 20 minutos · última vuelta a las ' + U.esc(L.actualizado) + ".</p>"
+      : '<p class="manana-pie">Aún no ha llegado nada de hoy. La recogida mira el correo cada 20 minutos.</p>');
+    // la prueba que dejó la revisión de ayer
+    var R = RevSalud.datos;
+    if (R && R.fecha === ayer && R.prueba_manana)
+      h += '<div class="manana-prueba"><b>Hoy toca:</b> ' + U.esc(R.prueba_manana) + "</div>";
+    h += "</div>";
+    // la revisión de hoy
+    if (R && R.fecha === hoy) {
+      h += '<div class="revision-claude"><div class="manana-cab"><b>' + U.esc(R.titulo || "Revisión de Claude") + "</b>" +
+        "<span>Claude · " + U.esc(R.hora || "") + "</span></div>";
+      (R.avisos || []).forEach(function (a) { h += '<p class="rev-aviso">' + U.esc(a) + "</p>"; });
+      String(R.texto || "").split(/\n\s*\n/).forEach(function (par) {
+        if (par.trim()) h += "<p>" + U.esc(par.trim()).replace(/\n/g, "<br>") + "</p>";
+      });
+      if (R.prueba_manana) h += '<div class="manana-prueba"><b>Mañana:</b> ' + U.esc(R.prueba_manana) + "</div>";
+      h += "</div>";
+    }
+    return h;
   }
 
   function registrosEcg() { return (Ecg.datos && Ecg.datos.registros) || []; }
@@ -8363,7 +8444,7 @@
     vestir(cont.classList.contains("activa"));
     /* el aviso de Garmin, arriba de las tres pantallas que más mira */
     var avisoG = (bloque === "plan" || bloque === "evolucion" || bloque === "actividad") ? avisoGarmin() : "";
-    cont.innerHTML = avisoG + ((bloque === "plan") ? htmlPlan()
+    cont.innerHTML = avisoG + ((bloque === "plan") ? panelManana() + htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion()
       : (bloque === "rampa") ? htmlRampa()
       : (bloque === "casos") ? htmlCasos()
@@ -11468,6 +11549,8 @@
     Ecg.cargar(repintaSiDentro);
     EcgUltimo.cargar(repintaSiDentro);
     RevGarmin.cargar(repintaSiDentro);
+    ListaManana.cargar(repintaSiDentro);
+    RevSalud.cargar(repintaSiDentro);
     TensionCorreo.cargar(repintaSiDentro);
     Historial.cargar(repintaSiDentro);
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
