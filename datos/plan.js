@@ -508,15 +508,16 @@
       /* La báscula mide músculo, agua y masa ósea, pero intervals no los baja:
          de los 19 campos que devuelve no está ninguno de los tres. Así que el
          músculo se teclea a mano, mirando la app de Garmin el día que te pesas.
-         Sin día fijo y sin cuenta de pendientes: si se anota, suma; si no, no
-         pasa nada. */
+         Desde el 29-sep-2026 tocan los LUNES, con la cinta (lo decidió Carlos:
+         «músculo, agua y masa ósea se miden los lunes, junto a las medidas de
+         la cinta»). */
       { id: "musculo", nombre: "Músculo", unidad: "kg", paso: 0.1, min: 15, max: 80,
-        aMano: true, informativo: true,
+        aMano: true, informativo: true, dias: [1],
         ayuda: "Lo mide tu báscula pero no llega a intervals, así que este es el único sitio donde puede entrar. " +
                "Míralo en la app de Garmin el día que te peses y anótalo aquí cuando te acuerdes. " +
                "Con dos o tres al mes basta para ver si lo que pierdes es grasa o músculo." },
       { id: "agua", nombre: "Agua", unidad: "%", paso: 0.1, min: 25, max: 75,
-        aMano: true, informativo: true,
+        aMano: true, informativo: true, dias: [1],
         ayuda: "De la misma pantalla de Garmin que el músculo. Ojo con leerlo como un objetivo: sube cuando pierdes grasa, " +
                "pero también cuando retienes líquido, y con el corticoide te pueden estar pasando las dos cosas a la vez. " +
                "Por eso aquí no se pinta de color: es contexto para explicar el peso, no una meta." },
@@ -533,7 +534,7 @@
                "que no llegue o para corregirla. Y ojo el día que la masa ósea baile, porque " +
                "entonces el porcentaje de grasa de esa pesada tampoco vale." },
       { id: "hueso", nombre: "Masa ósea", unidad: "kg", paso: 0.1, min: 1, max: 8,
-        aMano: true, informativo: true,
+        aMano: true, informativo: true, dias: [1],
         ayuda: "Apenas se mueve en un adulto, así que vale de control de la propia báscula: si cambia mucho de un mes a otro, " +
                "lo que falla es la medición —pies mal colocados, humedad, hora distinta—, no tu esqueleto. " +
                "Y si ese día la ósea baila, el porcentaje de grasa de ese día tampoco vale." }

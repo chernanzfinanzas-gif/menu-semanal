@@ -20,6 +20,7 @@
   var MES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   var DIA_CORTO = ["D", "L", "M", "X", "J", "V", "S"];
   var MIN_SESION = 20;      // minutos a partir de los cuales el reloj marca el día como hecho
+  var irAlPlan = false;     // el arranque pide El Plan en vez de la portada
   var bloque = "portada";   // "portada" | "plan"
   var diaSel = null;        // día abierto en la tarjeta; null = hoy
   var lunesVista = null;    // lunes de la semana que se enseña abajo; null = la de hoy
@@ -432,6 +433,15 @@
       /* las obligatorias del día se ven de un vistazo, aunque estén vacías */
       ".ent-medidas.obligatorias .ent-medida input{border-color:var(--azul-borde);background:#fbfdff}",
       ".ent-medidas.obligatorias .ent-medida.puesta input{background:var(--azul-claro)}",
+      /* verde = llega sola; amarillo = a mano (29-sep-2026) */
+      ".ent-medidas .ent-medida.llega input{border-color:#6bb77b;background:#eef8f0}",
+      ".ent-medidas .ent-medida.amano input{border-color:#e2b93b;background:#fff7dc}",
+      ".ent-medidas .ent-medida.llega.puesta input,.ent-medidas .ent-medida.amano.puesta input{border-width:2px;font-weight:700}",
+      ".ent-origen{display:flex;flex-wrap:wrap;gap:6px 16px;margin:-2px 0 8px;font-size:.72rem;color:var(--gris)}",
+      ".ent-origen span{display:inline-flex;align-items:center;gap:6px}",
+      ".ent-origen u{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid}",
+      ".ent-origen u.llega{background:#eef8f0;border-color:#6bb77b}",
+      ".ent-origen u.amano{background:#fff7dc;border-color:#e2b93b}",
       /* importar el csv del tensiómetro */
       ".ent-tension{margin-top:14px;padding:11px 13px;border:1px dashed var(--azul-borde);",
       "  border-radius:12px;background:#fbfdff}",
@@ -10341,7 +10351,10 @@
     h += panelAvisos(lunes);
     h += panelCargaExtra(lunes);
     h += "</div>";
-    h += panelManana() + cabeza;
+    /* 29-sep-2026, orden pedido por Carlos: la semana, el semáforo y Hoy
+       (sesiones, medidas, lo que ha afectado), la medicación, Esta mañana con
+       la revisión, lo que estoy midiendo y lo que ha pasado esta semana. */
+    h += cabeza;
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
        Se calculó arriba, antes de la tira, para que la casilla salga marcada. */
@@ -10521,11 +10534,14 @@
     var tocanHoy = [], lasDemas = [];
     P.medidas.forEach(function (m) { (tocaMedida(m, dia) ? tocanHoy : lasDemas).push(m); });
 
+    /* 29-sep-2026: verde = llega sola (correo o intervals); amarillo = a mano. */
+    var LLEGAN = { peso: 1, grasa: 1, sistolica: 1, diastolica: 1, pulso: 1, ecg: 1 };
+    function claseOrigen(m) { return LLEGAN[m.id] ? " llega" : " amano"; }
     function pintaMedida(m) {
       /* el ECG no se teclea: la casilla dice si ha llegado y con qué pulso */
       if (m.auto === "ecg") {
         var re = ecgDelDia(dia), tocaE = tocaMedida(m, dia);
-        return '<label class="ent-medida' + (re ? " puesta" : "") + (tocaE ? " toca" : "") + '">' +
+        return '<label class="ent-medida' + claseOrigen(m) + (re ? " puesta" : "") + (tocaE ? " toca" : "") + '">' +
           "<span>ECG (" + m.unidad + ")" +
             '<button type="button" class="ent-ver" tabindex="-1" data-historia="ecgFc" title="Ver histórico" aria-label="Ver histórico del ECG">' +
             ICONO_GRAF + "</button></span>" +
@@ -10539,7 +10555,7 @@
       var puesta = (v !== null && v !== undefined && v !== "");
       var ult = puesta ? null : ultimoValor(m.id, dia);
       var toca = tocaMedida(m, dia);
-      return '<label class="ent-medida' + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
+      return '<label class="ent-medida' + claseOrigen(m) + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
         "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")" +
           (defHistoria(m.id) ? '<button type="button" class="ent-ver" tabindex="-1" data-historia="' + m.id +
             '" title="Ver histórico" aria-label="Ver histórico de ' + U.esc(m.nombre) + '">' + ICONO_GRAF + "</button>" : "") +
@@ -10570,6 +10586,8 @@
         });
         h += '<h3 class="ent-subt">Hoy toca medir' +
           '<span class="ent-cuenta">' + (faltan === 0 ? "todas anotadas" : faltan + " sin anotar") + "</span></h3>";
+        h += '<p class="ent-origen"><span><u class="llega"></u>llega sola, por correo o de la báscula</span>' +
+          '<span><u class="amano"></u>la apuntas tú</span></p>';
         h += '<div class="ent-medidas obligatorias">';
         tocanHoy.forEach(function (m) { h += pintaMedida(m); });
         h += "</div>";
@@ -10581,11 +10599,14 @@
         h += "</div>";
       }
       h += htmlObs(dia);
-      h += htmlImportarTension(dia);
+      /* 29-sep-2026: el CSV del tensiómetro ya no se importa aquí. Llega por
+         correo y la recogida lo sube a datos/tension.json. htmlImportarTension
+         se queda escrita por si algún día hace falta volver. */
     }
     h += "</div>";
 
     h += htmlMedicacionDia(dia);
+    h += panelManana();                     // Esta mañana y Tu revisión
     h += htmlMisMedidas(dia);
 
     /* lo que sale de todo eso: primero la lectura del día, luego el estado */
@@ -11365,7 +11386,11 @@
            Entrenamiento te dejaba en medio de Evolución o de Material, sin el
            índice a la vista. Entrar siempre por el mismo sitio vale más que
            ahorrarse un clic: la portada es el mapa de la pestaña. */
-        bloque = "portada";
+        /* …salvo cuando es el arranque de la mañana quien pulsa la pestaña:
+           entonces va a El Plan. Sin esta excepción la app abría en la
+           portada de Entrenamiento y no en El Plan (29-sep-2026). */
+        bloque = irAlPlan ? "plan" : "portada";
+        irAlPlan = false;
         diaSel = null; matEditando = null; matVista = null;
         pintar();
       }
@@ -11564,11 +11589,23 @@
       }
       var btn = document.querySelector('#pestanas [data-vista="entreno"]');
       if (!btn) return;                                       // sin pestaña no hay nada que hacer
-      bloque = "plan";
-      diaSel = null;
+      irAlPlan = true;                                        // lo lee el manejador de la pestaña
+      lunesVista = null;                                      // la semana de hoy
       btn.click();                                            // reusa el cambio de vista de siempre
     })();
   }
+
+  /* CADA MAÑANA, AUNQUE LA APP NO SE HAYA CERRADO  ·  29-sep-2026.
+     En el móvil la app se queda dormida en segundo plano y al volver sigue
+     donde se dejó: el arranque de arriba no se repite. Así que al volver a
+     verla, si la última vez que se vio fue otro día, se va a El Plan de hoy. */
+  var ultimoDiaVisto = U ? U.hoyISO() : null;
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    var hoyV = U.hoyISO();
+    if (ultimoDiaVisto && hoyV !== ultimoDiaVisto) abrirEnElPlan();
+    ultimoDiaVisto = hoyV;
+  });
 
   function arrancar() {
     if (!U || !A || !P) return;
