@@ -536,6 +536,17 @@
       ".ramp-dato b{display:block;font-size:1.28rem;line-height:1.2;color:var(--azul-hondo);",
       "  font-variant-numeric:tabular-nums}",
       ".ramp-dato.v b{color:var(--verde)}",
+      ".ramp-dato small{display:block;font-size:.72rem;color:var(--gris);line-height:1.3;margin-top:1px}",
+      ".ramp-dato small em{font-style:normal;font-weight:700}",
+      ".ramp-dato small em.mas{color:var(--verde)}",
+      ".ramp-dato small em.menos{color:#8a6110}",
+      ".ramp-bien{margin-top:10px;background:var(--verde-claro);border:1px solid var(--verde-borde);",
+      "  border-radius:10px;padding:9px 12px;font-size:.82rem;line-height:1.5}",
+      ".ramp-hb{display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px}",
+      ".ramp-hb small{color:var(--gris);font-size:.7rem}",
+      ".ramp-hb i{position:relative;display:block;width:56px;height:5px;background:#e8edf2;border-radius:3px}",
+      ".ramp-hb i u{position:absolute;left:0;top:0;bottom:0;border-radius:3px}",
+      ".ramp-hb i s{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--azul-hondo)}",
       ".ramp-svg{display:block;width:100%;height:auto;overflow:visible;max-width:100%}",
       ".ramp-sub{margin:13px 0 3px;font-size:.82rem;font-weight:700;color:var(--azul-hondo)}",
       ".ramp-sub small{font-weight:400;color:var(--gris)}",
@@ -7606,7 +7617,8 @@
           "Cuando la roja se queda arriba mucho tiempo, viene el parón.",
         series: [{ pts: ctl, color: AZUL, ancho: 1.5 },
                  { pts: atl, color: ROJO, ancho: diasEntre(v.desde, v.hasta) > 200 ? 0.7 : 1.1 }]
-      }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]);
+      }) + leyenda([{ n: "forma (CTL)", color: AZUL }, { n: "fatiga (ATL)", color: ROJO }]) +
+        htmlBalance(ctl, atl);
       if (cs.objetivos.length) {
         cuerpo3 += '<h3 class="evo-sub">Carga de cada semana contra el objetivo</h3>' + grafica({
           desde: cs.desde, hasta: cs.hasta, alto: 190, arriba: "carga semanal \u00b7 la rampa entera",
@@ -8832,39 +8844,50 @@
      último dato REAL que haya, no de cero: si no, la proyección empieza en un
      sitio donde no estás. */
   function curvaPrevista(cal) {
-    var hoy = U.hoyISO();
-    var uC = ultimoDato("ctl"), uA = ultimoDato("atl");
-    var ctl = uC ? uC.v : null, atl = uA ? uA.v : null;
-    if (ctl === null || ctl === undefined) ctl = 10;
-    if (atl === null || atl === undefined) atl = ctl;
-    var ser = [];
-    /* MODELO APROXIMADO DE REPARTO (Carlos, 25-sep-2026). La simulación NO sigue
-       las sesiones día a día: la salida larga se declara cada semana y, sin
-       declarar, la propuesta metía el 30 % en un solo día y dibujaba picos que
-       no son el plan. Aquí la carga de la semana se reparte 14 % de lunes a
-       viernes, 30 % el sábado y nada el domingo. Es la curva, no el plan. */
+    /* PREVISTO Y CONSEGUIDO (Carlos, 29-sep-2026: «¿se puede ir pintando el
+       progreso conseguido frente al previsto?»). Tres cosas por día:
+         · pc/pa — LO PREVISTO: la rampa tal cual, simulada desde la víspera de
+           la semana 1 con la carga que pide el plan. No mira nada de lo hecho.
+         · ctl/atl hasta hoy — LO CONSEGUIDO: lo que midió el reloj.
+         · ctl/atl desde mañana — LA PROYECCIÓN: el plan, arrancando de donde
+           estás de verdad.
+       ANTES arrancaba con la forma de HOY y volvía a sumar desde el 18-sep lo
+       ya hecho: lo contaba dos veces y toda la curva salía algo alta. */
+    var hoy = U.hoyISO(), dias = (Salud.datos && Salud.datos.dias) || {};
+    function real(iso) {
+      var d = dias[iso];
+      return (d && typeof d.ctl === "number" && typeof d.atl === "number") ? d : null;
+    }
+    var r0 = real(U.sumarDias(cal[0].desde, -1)), pc, pa;
+    if (r0) { pc = r0.ctl; pa = r0.atl; }
+    else {
+      var uC = ultimoDato("ctl"), uA = ultimoDato("atl");
+      pc = uC ? uC.v : 10; pa = uA ? uA.v : pc;
+    }
+    var qc = pc, qa = pa, ser = [];
+    /* MODELO APROXIMADO DE REPARTO (25-sep-2026): la carga de la semana se
+       reparte 14 % de lunes a viernes, 30 % el sábado y nada el domingo. Es la
+       curva, no el plan. */
     var REPARTO = [0, 0.14, 0.14, 0.14, 0.14, 0.14, 0.30];   // getDay(): 0 domingo
     function diaSem(iso) { return new Date(iso + "T12:00:00").getDay(); }
     cal.forEach(function (sem) {
       var suma = 0, d;
       for (d = 0; d < sem.dias; d++) suma += REPARTO[diaSem(U.sumarDias(sem.desde, d))];
-      var real7 = 0;
       for (d = 0; d < sem.dias; d++) {
         var iso = U.sumarDias(sem.desde, d);
-        var carga = suma > 0 ? sem.carga * REPARTO[diaSem(iso)] / suma : sem.carga / sem.dias;
-        /* los días ya vividos llevan lo que de verdad midió el reloj */
-        if (iso <= hoy) {
-          var real = cargaSemana(iso, iso);
-          if (real !== null) carga = real;
+        var cp = suma > 0 ? sem.carga * REPARTO[diaSem(iso)] / suma : sem.carga / sem.dias;
+        pc += (cp - pc) / 42; pa += (cp - pa) / 7;
+        var x = { f: iso, sn: sem.n, obj: sem.carga, desc: sem.descarga, cp: cp, pc: pc, pa: pa };
+        var rd = iso <= hoy ? real(iso) : null;
+        if (rd) {
+          x.medido = true; qc = rd.ctl; qa = rd.atl;
+          var c = cargaSemana(iso, iso); x.c = (c === null) ? 0 : c;
+        } else {
+          qc += (cp - qc) / 42; qa += (cp - qa) / 7; x.c = cp;
         }
-        real7 += carga;
-        ctl += (carga - ctl) / 42;
-        atl += (carga - atl) / 7;
-        ser.push({ f: iso, c: carga, ctl: ctl, atl: atl, fo: ctl - atl,
-                   sn: sem.n, obj: sem.carga, desc: sem.descarga });
+        x.ctl = qc; x.atl = qa; x.fo = qc - qa;
+        ser.push(x);
       }
-      /* la carga de la semana tal como sale en la curva (real + prevista) */
-      ser.forEach(function (x) { if (x.sn === sem.n) x.semC = real7; });
     });
     return ser;
   }
@@ -8882,100 +8905,282 @@
     var i = Math.round((sx - g.x0) / g.ancho * (g.n - 1));
     i = Math.max(0, Math.min(g.n - 1, i));
     var x = curvaSer[i], cx = g.x0 + i * g.ancho / (g.n - 1);
-    var cur = document.getElementById("curva-cursor"), caja = document.getElementById("curva-dato");
+    ["curva-cursor", "curva-cursor2"].forEach(function (id) {
+      var cur = document.getElementById(id);
+      if (cur) { cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.style.display = ""; }
+    });
+    var caja = document.getElementById("curva-dato"), marco = document.getElementById("curva-marco");
+    if (caja && marco) {
+      var z = zonaBal(x.fo), dif = x.ctl - x.pc;
+      caja.innerHTML = "<b>" + fechaCorta(x.f) + "</b> · semana " + x.sn + (x.desc ? " (descarga)" : "") +
+        (x.medido ? " · <i>medido</i>" : " · <i>previsto</i>") + "<br>" +
+        '<span style="color:#2f95cc">Forma</span> <b>' + num(x.ctl, 1) + "</b>" +
+        ' <small style="color:#6b7a88">(prevista ' + num(x.pc, 1) + ", " + (dif >= 0 ? "+" : "") + num(dif, 1) + ")</small><br>" +
+        '<span style="color:#5b3fa8">Fatiga</span> <b>' + num(x.atl, 0) + "</b> · Balance <b>" +
+        (x.fo >= 0 ? "+" : "") + num(x.fo, 0) + '</b> <span style="display:inline-block;padding:0 7px;border-radius:999px;' +
+        'color:#fff;font-size:11px;font-weight:700;background:' + z.h + '">' + z.n + "</span><br>" +
+        "Carga del día <b>" + num(x.c, 0) + "</b>" +
+        (x.medido ? ' <small style="color:#6b7a88">(prevista ' + num(x.cp, 0) + ")</small>" : "");
+      caja.style.display = "";
+      var mr = marco.getBoundingClientRect();
+      var px = (cx / g.W) * mr.width, w = caja.offsetWidth;
+      caja.style.left = Math.max(0, Math.min(mr.width - w, px + (px > mr.width / 2 ? -w - 10 : 10))) + "px";
+    }
+    return true;
+  }
+  function quitarDatoCurva() {
+    ["curva-cursor", "curva-cursor2", "curva-dato"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e) e.style.display = "none";
+    });
+  }
+
+  /* ==================== EL BALANCE, AL ESTILO INTERVALS (29-sep-2026) ====================
+     Carlos: «bajo la actual de forma y fatiga pon una similar a la que publica
+     intervals». Balance = forma − fatiga. La línea cambia de color según la
+     zona y las franjas van muy suaves; la gris, sin tinte. Límites en PUNTOS,
+     los clásicos (+25, +5, −10, −30). Intervals también puede enseñarlo en % de
+     la forma: si algún día se cambia, es aquí. Va pegada debajo, con el mismo
+     tramo de fechas, y al pasar el dedo marca el mismo día y dice la zona. */
+  var ZONAS_BAL = [
+    { id: "tran", n: "Transición",  de: 25,   a: 999, h: "#e2a500", f: "#fdf3dc" },
+    { id: "fres", n: "Fresco",      de: 5,    a: 25,  h: "#29a3de", f: "#eaf5fc" },
+    { id: "gris", n: "Zona gris",   de: -10,  a: 5,   h: "#a3a3a3", f: "#ffffff" },
+    { id: "opt",  n: "Óptima",      de: -30,  a: -10, h: "#27c24a", f: "#ebf8ee" },
+    { id: "ries", n: "Riesgo alto", de: -999, a: -30, h: "#e0141e", f: "#fdecec" }];
+  function zonaBal(b) {
+    for (var i = 0; i < ZONAS_BAL.length; i++) if (b >= ZONAS_BAL[i].de && b < ZONAS_BAL[i].a) return ZONAS_BAL[i];
+    return ZONAS_BAL[4];
+  }
+  var balSer = null, balGeo = null;
+
+  function htmlBalance(ctl, atl) {
+    var mA = {}; atl.forEach(function (p) { mA[p.f] = p.v; });
+    var S = [];
+    ctl.forEach(function (p) { if (mA[p.f] != null) S.push({ f: p.f, ctl: p.v, atl: mA[p.f], b: p.v - mA[p.f] }); });
+    var n = S.length;
+    if (n < 2) return "";
+    var disp = anchoCaja();
+    var W = disp > 520 ? Math.round(disp / 1.625) : 320, H = 112, x0 = 18, x1 = W - 4, yB = H - 12;
+    function X(i) { return x0 + i * (x1 - x0) / (n - 1); }
+    var bmin = -40, bmax = 30;
+    S.forEach(function (p) { bmin = Math.min(bmin, Math.floor(p.b / 10) * 10); bmax = Math.max(bmax, Math.ceil(p.b / 10) * 10); });
+    function Y(v) { return 4 + (yB - 4) * (bmax - v) / (bmax - bmin); }
+    var h = "";
+    ZONAS_BAL.forEach(function (z) {
+      var a = Math.min(bmax, z.a), d = Math.max(bmin, z.de);
+      if (a <= d) return;
+      h += '<rect x="' + x0 + '" y="' + Y(a).toFixed(1) + '" width="' + (x1 - x0) + '" height="' + (Y(d) - Y(a)).toFixed(1) +
+           '" fill="' + z.f + '"/><line x1="' + x0 + '" x2="' + x1 + '" y1="' + Y(d).toFixed(1) + '" y2="' + Y(d).toFixed(1) +
+           '" stroke="#e6e9ec" stroke-width=".6"/>' +
+           '<text x="' + (x0 + 3) + '" y="' + (Y(a) + 8).toFixed(1) + '" font-size="7" fill="' + z.h + '" font-weight="700" opacity=".85">' + z.n + "</text>";
+    });
+    [25, 5, -10, -30].forEach(function (v) {
+      if (v < bmin || v > bmax) return;
+      h += '<text x="' + (x0 - 2) + '" y="' + (Y(v) + 2.5).toFixed(1) + '" font-size="7" fill="#8a97a3" text-anchor="end">' + (v > 0 ? "+" : "") + v + "</text>";
+    });
+    h += '<line x1="' + x0 + '" x2="' + x1 + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '" stroke="#c9d0d6" stroke-width=".6" stroke-dasharray="3 3"/>';
+    var larga = n > 200;
+    S.forEach(function (p, i) {
+      if (p.f.slice(8) !== "01") return;
+      if (larga && (+p.f.slice(5, 7)) % 2 === 0) return;
+      h += '<line x1="' + X(i).toFixed(1) + '" x2="' + X(i).toFixed(1) + '" y1="4" y2="' + yB + '" stroke="#e3e9ef" stroke-dasharray="2 3" stroke-width=".6"/>' +
+           '<text x="' + (X(i) + 2).toFixed(1) + '" y="' + (H - 2) + '" font-size="7" fill="#8a97a3">' + MES_C[+p.f.slice(5, 7) - 1] + "</text>";
+    });
+    for (var i = 1; i < n; i++) {
+      var z = zonaBal((S[i - 1].b + S[i].b) / 2);
+      h += '<line x1="' + X(i - 1).toFixed(1) + '" y1="' + Y(S[i - 1].b).toFixed(1) + '" x2="' + X(i).toFixed(1) +
+           '" y2="' + Y(S[i].b).toFixed(1) + '" stroke="' + z.h + '" stroke-width="1.3" stroke-linecap="round"/>';
+    }
+    var u = S[n - 1], zu = zonaBal(u.b);
+    h += '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(u.b).toFixed(1) + '" r="2.4" fill="' + zu.h + '" stroke="#fff" stroke-width="1"/>';
+    h += '<line id="bal-cursor" x1="0" y1="4" x2="0" y2="' + yB + '" stroke="#1f3b57" stroke-width=".7" stroke-dasharray="3 3" style="display:none"/>';
+    balSer = S; balGeo = { W: W, n: n, x0: x0, ancho: x1 - x0 };
+
+    var cnt = {}; S.forEach(function (p) { var z2 = zonaBal(p.b); cnt[z2.id] = (cnt[z2.id] || 0) + 1; });
+    var barra = ZONAS_BAL.map(function (z2) {
+      return cnt[z2.id] ? '<span style="display:block;height:100%;width:' + (cnt[z2.id] / n * 100).toFixed(2) + '%;background:' + z2.h + '"></span>' : "";
+    }).join("");
+    var peor = S.reduce(function (a, p) { return p.b < a.b ? p : a; }, S[0]);
+    return '<div class="bal-caja" style="position:relative;margin-top:2px">' +
+      '<svg class="ramp-svg" data-balance="1" style="touch-action:pan-y;cursor:crosshair" viewBox="0 0 ' + W + " " + H +
+        '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Balance: forma menos fatiga">' + h + "</svg>" +
+      '<div id="bal-dato" style="display:none;position:absolute;top:2px;pointer-events:none;background:#fff;' +
+        'border:1px solid #d6dde4;border-radius:8px;padding:6px 9px;font-size:12px;line-height:1.45;' +
+        'box-shadow:0 2px 8px rgba(0,0,0,.08);white-space:nowrap"></div></div>' +
+      '<p class="nota-peque" style="margin:4px 0 6px"><b>Balance</b> = forma − fatiga, hoy <b>' + (u.b >= 0 ? "+" : "") + num(u.b, 0) +
+        '</b> <span style="display:inline-block;padding:0 7px;border-radius:999px;color:#fff;font-size:11px;font-weight:700;background:' +
+        zu.h + '">' + zu.n + "</span>. Por debajo de −30, sobrecarga; entre −10 y −30, entrenando bien; entre −10 y +5, zona gris; " +
+        "por encima de +5, descansado, y de +25, perdiendo forma.</p>" +
+      '<div style="display:flex;height:9px;border-radius:5px;overflow:hidden;margin:4px 0">' + barra + "</div>" +
+      '<p class="nota-peque" style="margin:2px 0 0">' + ZONAS_BAL.map(function (z2) {
+        return '<span style="white-space:nowrap;margin-right:10px"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' +
+          z2.h + '"></i> ' + z2.n + " <b>" + (cnt[z2.id] || 0) + "</b></span>";
+      }).join("") + "días en cada zona. Lo más bajo: <b>" + num(peor.b, 0) + "</b> el " + fechaCorta(peor.f) + ".</p>";
+  }
+
+  function datoBalance(ev) {
+    var svg = ev.target.closest ? ev.target.closest("svg[data-balance]") : null;
+    if (!svg || !balSer || !balGeo) return false;
+    var r = svg.getBoundingClientRect(), g = balGeo;
+    var sx = (ev.clientX - r.left) / r.width * g.W;
+    var i = Math.max(0, Math.min(g.n - 1, Math.round((sx - g.x0) / g.ancho * (g.n - 1))));
+    var p = balSer[i], z = zonaBal(p.b), cx = g.x0 + i * g.ancho / (g.n - 1);
+    var cur = document.getElementById("bal-cursor"), caja = document.getElementById("bal-dato");
     if (cur) { cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.style.display = ""; }
     if (caja) {
-      var hoy = U.hoyISO();
-      caja.innerHTML = "<b>" + fechaCorta(x.f) + "</b> · semana " + x.sn + (x.desc ? " (descarga)" : "") +
-        (x.f <= hoy ? " · <i>medido</i>" : " · <i>previsto</i>") + "<br>" +
-        "Carga de la semana: <b>" + num(x.semC, 0) + "</b>" +
-        (Math.abs(x.semC - x.obj) > 0.5 ? " <small>(objetivo " + num(x.obj, 0) + ")</small>" : "") + "<br>" +
-        '<span style="color:#2f95cc">Forma</span> <b>' + num(x.ctl, 0) + "</b> · " +
-        '<span style="color:#5b3fa8">Fatiga</span> <b>' + num(x.atl, 0) + "</b> · " +
-        "Balance <b>" + (x.fo >= 0 ? "+" : "") + num(x.fo, 0) + "</b>";
+      caja.innerHTML = "<b>" + fechaCorta(p.f) + " " + p.f.slice(0, 4) + "</b><br>" +
+        '<span style="color:#2f5c8a">Forma</span> <b>' + num(p.ctl, 0) + '</b> · <span style="color:#b3402f">Fatiga</span> <b>' +
+        num(p.atl, 0) + "</b><br>Balance <b>" + (p.b >= 0 ? "+" : "") + num(p.b, 0) + '</b> <span style="display:inline-block;' +
+        'padding:0 7px;border-radius:999px;color:#fff;font-size:11px;font-weight:700;background:' + z.h + '">' + z.n + "</span>";
       caja.style.display = "";
       var px = (cx / g.W) * r.width, w = caja.offsetWidth;
       caja.style.left = Math.max(0, Math.min(r.width - w, px + (px > r.width / 2 ? -w - 10 : 10))) + "px";
     }
     return true;
   }
-  function quitarDatoCurva() {
-    var cur = document.getElementById("curva-cursor"), caja = document.getElementById("curva-dato");
+  function quitarDatoBalance() {
+    var cur = document.getElementById("bal-cursor"), caja = document.getElementById("bal-dato");
     if (cur) cur.style.display = "none";
     if (caja) caja.style.display = "none";
   }
 
-  function svgCurva(ser) {
-    if (!ser.length) return "";
-    var W = 1000, H = 190, HF = 96, n = ser.length;
-    /* 25-sep-2026: DOS ESCALAS. Con una sola, las barras de carga del día
-       (cientos de puntos) aplastaban forma y fatiga contra el suelo. Ahora las
-       líneas usan su propia escala (izquierda) y las barras la suya (derecha). */
-    var mx = 1, mxB = 1;
-    ser.forEach(function (x) { mx = Math.max(mx, x.ctl, x.atl); mxB = Math.max(mxB, x.c); });
-    mx = Math.ceil(mx * 1.1 / 10) * 10;
-    mxB = Math.ceil(mxB / 50) * 50;
-    function X(i) { return 36 + i * (W - 76) / (n - 1); }
-    function Y(v) { return H - (v / mx) * (H - 10); }
-    function YB(v) { return H - (v / mxB) * (H - 10); }
-    var ejes = "";
+  /* La vista de la curva al entrar: «Lo que llevo» — de la semana 1 a seis
+     semanas por delante de hoy. Con la rampa entera, lo hecho es una rayita al
+     principio y no se ve cómo vas (Carlos, 29-sep-2026: «lo que llevo»). */
+  var rampaVista = "cerca";
+
+  function svgCurva(todo) {
+    if (!todo.length) return "";
+    var iHoy = -1;
+    todo.forEach(function (x, k) { if (x.medido) iHoy = k; });
+    var fin = rampaVista === "cerca" ? Math.min(todo.length - 1, Math.max(iHoy, 0) + 42) : todo.length - 1;
+    var ser = todo.slice(0, fin + 1), n = ser.length;
+    if (n < 2) return "";
+    var W = Math.max(320, Math.min(1000, anchoCaja())), H = 190, x0 = 30, x1 = W - 8;
+    function X(i) { return x0 + i * (x1 - x0) / (n - 1); }
+    var mx = 1, mB = 1;
+    ser.forEach(function (x) { mx = Math.max(mx, x.ctl, x.atl, x.pc, x.pa); mB = Math.max(mB, x.c, x.cp); });
+    mx = Math.ceil(mx * 1.1 / 10) * 10; mB = Math.ceil(mB / 25) * 25;
+    function Y(v) { return H - (v / mx) * (H - 12); }
+    function YB(v) { return H - (v / mB) * (H - 12) * 0.55; }
+    var s = "";
     [0, 0.5, 1].forEach(function (k) {
-      var y = (H - k * (H - 10)).toFixed(0);
-      ejes += '<line x1="36" y1="' + y + '" x2="' + (W - 40) + '" y2="' + y + '" stroke="#eef2f5"/>' +
-        '<text x="30" y="' + (+y + 3) + '" font-size="9" fill="#4fb3e8" text-anchor="end">' + Math.round(mx * k) + "</text>" +
-        '<text x="' + (W - 34) + '" y="' + (+y + 3) + '" font-size="9" fill="#9aa8c4">' + Math.round(mxB * k) + "</text>";
+      var y = (H - k * (H - 12)).toFixed(1);
+      s += '<line x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y + '" stroke="#eef2f5"/>' +
+        '<text x="' + (x0 - 5) + '" y="' + (+y + 3) + '" font-size="10" fill="#4fb3e8" text-anchor="end">' + Math.round(mx * k) + "</text>";
     });
-    var barras = "", ctl = "", atl = "", forma = "", meses = "";
-    var fmin = -40, fmax = 25;
-    function Yf(v) { return 6 + (fmax - v) / (fmax - fmin) * (HF - 16); }
+    var bw = Math.max(1.2, (x1 - x0) / n * 0.6), pocos = n <= 120;
     ser.forEach(function (x, i) {
-      if (x.c > 0) barras += '<rect x="' + (X(i) - 1.1).toFixed(1) + '" y="' + YB(x.c).toFixed(1) +
-        '" width="2.2" height="' + (H - YB(x.c)).toFixed(1) + '" fill="#b9c6e2" opacity=".55"/>';
-      ctl += X(i).toFixed(1) + "," + Y(x.ctl).toFixed(1) + " ";
-      atl += X(i).toFixed(1) + "," + Y(x.atl).toFixed(1) + " ";
-      forma += X(i).toFixed(1) + "," + Yf(Math.max(fmin, Math.min(fmax, x.fo))).toFixed(1) + " ";
       if (x.f.slice(8) === "01") {
-        meses += '<line x1="' + X(i).toFixed(0) + '" y1="0" x2="' + X(i).toFixed(0) + '" y2="' + H +
-          '" stroke="#e3e9ef" stroke-dasharray="2 4"/><text x="' + (X(i) + 3).toFixed(0) +
-          '" y="' + (H + 13) + '" font-size="9" fill="#8a97a3">' + MES_C[+x.f.slice(5, 7) - 1] + "</text>";
+        s += '<line x1="' + X(i).toFixed(1) + '" y1="0" x2="' + X(i).toFixed(1) + '" y2="' + H +
+          '" stroke="#e3e9ef" stroke-dasharray="2 4"/><text x="' + (X(i) + 3).toFixed(1) + '" y="' + (H + 13) +
+          '" font-size="10" fill="#8a97a3">' + MES_C[+x.f.slice(5, 7) - 1] + "</text>";
       }
+      if (x.c > 0) s += '<rect x="' + (X(i) - bw / 2).toFixed(1) + '" y="' + YB(x.c).toFixed(1) + '" width="' + bw.toFixed(1) +
+        '" height="' + (H - YB(x.c)).toFixed(1) + '" fill="' + (x.medido ? "#6cc08b" : "#cfdcea") + '" opacity="' + (x.medido ? 0.75 : 0.6) + '"/>';
+      /* la rayita: lo que pedía el plan ese día, encima de lo que hiciste */
+      if (x.medido && x.cp > 0 && pocos) s += '<line x1="' + (X(i) - bw / 2 - 1).toFixed(1) + '" x2="' + (X(i) + bw / 2 + 1).toFixed(1) +
+        '" y1="' + YB(x.cp).toFixed(1) + '" y2="' + YB(x.cp).toFixed(1) + '" stroke="#8fa3b5" stroke-width="1.5"/>';
     });
-    var area = "36," + H + " " + ctl + X(n - 1).toFixed(1) + "," + H;
-    curvaSer = ser; curvaGeo = { W: W, n: n, x0: 36, ancho: W - 76 };
-    var min = ser.reduce(function (a, x) { return Math.min(a, x.fo); }, 0);
-    var rojos = ser.filter(function (x) { return x.fo < -30; }).length;
-    return '<div class="curva-caja" style="position:relative">' +
-      '<svg class="ramp-svg" data-curva="1" style="touch-action:pan-y;cursor:crosshair" viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' +
-      ejes + '<line x1="36" y1="' + H + '" x2="' + (W - 40) + '" y2="' + H + '" stroke="#d6dde4"/>' +
-      meses +
-      '<polygon points="' + area + '" fill="#dcecf7" opacity=".6"/>' + barras +
-      '<polyline points="' + atl + '" fill="none" stroke="#5b3fa8" stroke-width="1" opacity=".8"/>' +
-      '<polyline points="' + ctl + '" fill="none" stroke="#4fb3e8" stroke-width="2.3"/>' +
-      '<line id="curva-cursor" x1="0" y1="0" x2="0" y2="' + H + '" stroke="#1f3b57" stroke-width="1" ' +
-        'stroke-dasharray="3 3" style="display:none"/>' +
-      "</svg>" +
-      '<div id="curva-dato" style="display:none;position:absolute;top:4px;pointer-events:none;' +
+    function linea(k, a, b) {
+      var p = "";
+      for (var i = Math.max(0, a); i <= Math.min(n - 1, b); i++) p += X(i).toFixed(1) + "," + Y(ser[i][k]).toFixed(1) + " ";
+      return p;
+    }
+    var hI = Math.min(iHoy, n - 1);
+    s += '<polyline points="' + linea("pa", 0, n - 1) + '" fill="none" stroke="#b7a9dd" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>';
+    if (hI >= 0) s += '<polyline points="' + linea("atl", 0, hI) + '" fill="none" stroke="#7b61c2" stroke-width="1.5"/>';
+    s += '<polyline points="' + linea("atl", Math.max(hI, 0), n - 1) + '" fill="none" stroke="#c4b6ea" stroke-width="1.2"/>';
+    s += '<polyline points="' + linea("pc", 0, n - 1) + '" fill="none" stroke="#8fa3b5" stroke-width="1.6" stroke-dasharray="6 4"/>';
+    s += '<polyline points="' + linea("ctl", Math.max(hI, 0), n - 1) + '" fill="none" stroke="#9fd3ef" stroke-width="2"/>';
+    if (hI >= 0) {
+      var hx = X(hI).toFixed(1), xh = ser[hI];
+      s += '<polyline points="' + linea("ctl", 0, hI) + '" fill="none" stroke="#2f95cc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<line x1="' + hx + '" x2="' + hx + '" y1="0" y2="' + H + '" stroke="#1f3b57" stroke-width="1" opacity=".5"/>' +
+        '<text x="' + (+hx + 4) + '" y="11" font-size="10.5" font-weight="700" fill="#1f3b57">hoy</text>' +
+        '<circle cx="' + hx + '" cy="' + Y(xh.pc).toFixed(1) + '" r="3" fill="#fff" stroke="#8fa3b5" stroke-width="1.5"/>' +
+        '<circle cx="' + hx + '" cy="' + Y(xh.ctl).toFixed(1) + '" r="4" fill="#2f95cc" stroke="#fff" stroke-width="1.5"/>';
+    }
+    s += '<line id="curva-cursor" x1="0" y1="0" x2="0" y2="' + H + '" stroke="#1f3b57" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+
+    /* ---- el balance, al estilo intervals: lo medido en color, lo que viene más claro ---- */
+    var H2 = 112, yB = H2 - 14, bmin = -40, bmax = 30;
+    ser.forEach(function (x) { bmin = Math.min(bmin, Math.floor(x.fo / 10) * 10); bmax = Math.max(bmax, Math.ceil(x.fo / 10) * 10); });
+    function Yb(v) { return 4 + (yB - 4) * (bmax - v) / (bmax - bmin); }
+    var t = "";
+    ZONAS_BAL.forEach(function (z) {
+      var a = Math.min(bmax, z.a), d = Math.max(bmin, z.de);
+      if (a <= d) return;
+      t += '<rect x="' + x0 + '" y="' + Yb(a).toFixed(1) + '" width="' + (x1 - x0) + '" height="' + (Yb(d) - Yb(a)).toFixed(1) +
+        '" fill="' + z.f + '"/><line x1="' + x0 + '" x2="' + x1 + '" y1="' + Yb(d).toFixed(1) + '" y2="' + Yb(d).toFixed(1) +
+        '" stroke="#e6e9ec" stroke-width=".8"/>' +
+        (Yb(d) - Yb(a) < 12 ? "" : '<text x="' + (x0 + 4) + '" y="' + (Yb(a) + 10).toFixed(1) + '" font-size="9.5" fill="' + z.h +
+          '" font-weight="700" opacity=".85">' + z.n + "</text>");
+    });
+    [25, 5, -10, -30].forEach(function (v) {
+      if (v < bmin || v > bmax) return;
+      t += '<text x="' + (x0 - 4) + '" y="' + (Yb(v) + 3).toFixed(1) + '" font-size="9.5" fill="#8a97a3" text-anchor="end">' + (v > 0 ? "+" : "") + v + "</text>";
+    });
+    ser.forEach(function (x, i) {
+      if (x.f.slice(8) !== "01") return;
+      t += '<line x1="' + X(i).toFixed(1) + '" x2="' + X(i).toFixed(1) + '" y1="4" y2="' + yB + '" stroke="#e3e9ef" stroke-dasharray="2 3"/>' +
+        '<text x="' + (X(i) + 3).toFixed(1) + '" y="' + (H2 - 2) + '" font-size="9.5" fill="#8a97a3">' + MES_C[+x.f.slice(5, 7) - 1] + "</text>";
+    });
+    for (var i = 1; i < n; i++) {
+      var z = zonaBal((ser[i - 1].fo + ser[i].fo) / 2), fut = i > hI;
+      t += '<line x1="' + X(i - 1).toFixed(1) + '" y1="' + Yb(ser[i - 1].fo).toFixed(1) + '" x2="' + X(i).toFixed(1) + '" y2="' +
+        Yb(ser[i].fo).toFixed(1) + '" stroke="' + z.h + '" stroke-width="' + (fut ? 1.6 : 2.4) + '" opacity="' + (fut ? 0.4 : 1) +
+        '" stroke-linecap="round"/>';
+    }
+    if (hI >= 0) {
+      t += '<line x1="' + X(hI).toFixed(1) + '" x2="' + X(hI).toFixed(1) + '" y1="4" y2="' + yB + '" stroke="#1f3b57" opacity=".5"/>' +
+        '<circle cx="' + X(hI).toFixed(1) + '" cy="' + Yb(ser[hI].fo).toFixed(1) + '" r="4" fill="' + zonaBal(ser[hI].fo).h + '" stroke="#fff" stroke-width="1.5"/>';
+    }
+    t += '<line id="curva-cursor2" x1="0" y1="4" x2="0" y2="' + yB + '" stroke="#1f3b57" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+    curvaSer = ser; curvaGeo = { W: W, n: n, x0: x0, ancho: x1 - x0 };
+
+    /* los días que VIENEN en el tramo, contados por zona */
+    var vienen = ser.slice(hI + 1), cnt = {};
+    vienen.forEach(function (x) { var q = zonaBal(x.fo).id; cnt[q] = (cnt[q] || 0) + 1; });
+    var peor = vienen.length ? vienen.reduce(function (m, x) { return x.fo < m.fo ? x : m; }, vienen[0]) : null;
+    var zh = hI >= 0 ? zonaBal(ser[hI].fo) : null;
+    var pill = function (zz) {
+      return '<span style="display:inline-block;padding:0 7px;border-radius:999px;color:#fff;font-size:11px;font-weight:700;background:' +
+        zz.h + '">' + zz.n + "</span>";
+    };
+    var CUR = 'style="touch-action:pan-y;cursor:crosshair"';
+    return '<div class="rangos-graf">' +
+        '<button type="button" class="evo-r' + (rampaVista === "cerca" ? " activo" : "") + '" data-ramp-vista="cerca">Lo que llevo</button>' +
+        '<button type="button" class="evo-r' + (rampaVista === "entera" ? " activo" : "") + '" data-ramp-vista="entera">La rampa entera</button></div>' +
+      '<div id="curva-marco" style="position:relative">' +
+      '<svg class="ramp-svg" data-curva="1" ' + CUR + ' viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' + s + "</svg>" +
+      leyenda([{ n: "forma prevista (guiones)", color: "#8fa3b5" }, { n: "forma conseguida", color: "#2f95cc" },
+               { n: "proyección desde hoy", color: "#9fd3ef" }, { n: "fatiga", color: "#7b61c2" },
+               { n: "carga hecha", color: "#6cc08b" }, { n: "carga prevista", color: "#cfdcea" }]) +
+      '<p class="ramp-sub">Balance <small>— lo medido en color, lo que viene más claro</small></p>' +
+      '<svg class="ramp-svg" data-curva="1" ' + CUR + ' viewBox="0 0 ' + W + " " + H2 + '" preserveAspectRatio="xMidYMid meet">' + t + "</svg>" +
+      '<div id="curva-dato" style="display:none;position:absolute;top:4px;pointer-events:none;z-index:3;' +
         'background:#fff;border:1px solid #d6dde4;border-radius:8px;padding:6px 9px;font-size:12px;' +
         'line-height:1.45;box-shadow:0 2px 8px rgba(0,0,0,.08);white-space:nowrap"></div></div>' +
-      leyenda([{ n: "forma (CTL)", color: "#4fb3e8" }, { n: "fatiga (ATL)", color: "#5b3fa8" },
-               { n: "carga del día (escala de la derecha)", color: "#b9c6e2" }]) +
-      '<p class="ramp-sub">Balance <small>— la banda roja es sobreentrenamiento</small></p>' +
-      '<svg class="ramp-svg" viewBox="0 0 ' + W + " " + HF + '" preserveAspectRatio="xMidYMid meet">' +
-      '<rect x="36" y="' + Yf(25).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(5) - Yf(25)).toFixed(0) + '" fill="#fdf6e6"/>' +
-      '<rect x="36" y="' + Yf(5).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(-10) - Yf(5)).toFixed(0) + '" fill="#eaf2fb"/>' +
-      '<rect x="36" y="' + Yf(-10).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(-30) - Yf(-10)).toFixed(0) + '" fill="#eaf6ec"/>' +
-      '<rect x="36" y="' + Yf(-30).toFixed(0) + '" width="' + (W - 44) + '" height="' + (Yf(-40) - Yf(-30)).toFixed(0) + '" fill="#fbeceb"/>' +
-      '<text x="30" y="' + (Yf(5) + 3).toFixed(0) + '" font-size="9" fill="#93a3b0" text-anchor="end">+5</text>' +
-      '<text x="30" y="' + (Yf(-30) + 3).toFixed(0) + '" font-size="9" fill="#93a3b0" text-anchor="end">−30</text>' +
-      '<polyline points="' + forma + '" fill="none" stroke="#3f7ea8" stroke-width="1.4"/>' +
-      "</svg>" +
-      '<div class="ramp-aviso' + (rojos ? " mal" : "") + '">' +
-        (rojos
-          ? "Ojo: el plan te mete <b>" + rojos + (rojos === 1 ? " día" : " días") + "</b> en zona de sobreentrenamiento."
-          : "Lo más bajo que llega el balance es <b>" + num(min, 0) + "</b>, y el rojo empieza en −30: " +
-            "<b>cero días en zona de sobreentrenamiento</b> en los " + ser.length + " de la proyección. " +
-            "Y no es entrenando menos, es repartiendo la carga dentro de la semana y bajando de verdad cada cuarta.") +
-      "</div>";
+      (zh ? '<p class="nota-peque" style="margin:6px 0 4px"><b>Balance</b> hoy <b>' + (ser[hI].fo >= 0 ? "+" : "") + num(ser[hI].fo, 0) +
+        "</b> " + pill(zh) + ". La barra cuenta los días que <b>vienen</b> en este tramo si se cumple el plan:</p>" : "") +
+      (vienen.length ? '<div style="display:flex;height:9px;border-radius:5px;overflow:hidden;margin:4px 0">' +
+        ZONAS_BAL.map(function (q) {
+          return cnt[q.id] ? '<span style="display:block;height:100%;width:' + (cnt[q.id] / vienen.length * 100).toFixed(2) +
+            '%;background:' + q.h + '"></span>' : "";
+        }).join("") + "</div>" +
+        '<p class="nota-peque" style="margin:2px 0 0">' + ZONAS_BAL.map(function (q) {
+          return '<span style="white-space:nowrap;margin-right:10px"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' +
+            q.h + '"></i> ' + q.n + " <b>" + (cnt[q.id] || 0) + "</b></span>";
+        }).join("") + "</p>" +
+        '<div class="ramp-aviso' + (cnt.ries ? " mal" : "") + '">' +
+          (cnt.ries
+            ? "Ojo: el plan te mete <b>" + cnt.ries + (cnt.ries === 1 ? " día" : " días") + "</b> en riesgo alto en este tramo. " +
+              "Lo más bajo: <b>" + num(peor.fo, 0) + "</b> el " + fechaCorta(peor.f) + "."
+            : "Lo más bajo que llega el balance en este tramo es <b>" + num(peor.fo, 0) + "</b> el " + fechaCorta(peor.f) +
+              ", y el riesgo alto empieza en −30: <b>cero días</b> en rojo.") +
+        "</div>" : "");
   }
 
   function htmlRampa() {
@@ -8985,6 +9190,22 @@
     var hoy = U.hoyISO(), cal = calendarioRampa();
     var sem = null, i;
     for (i = 0; i < cal.length; i++) if (hoy >= cal[i].desde && hoy <= cal[i].hasta) sem = cal[i];
+
+    /* PREVISTO Y CONSEGUIDO (29-sep-2026): la curva día a día y, por semana,
+       lo hecho frente al objetivo y lo que tocaría llevar a estas alturas */
+    var serC = curvaPrevista(cal), aEsta = {}, xHoy = null;
+    serC.forEach(function (x) {
+      if (x.f <= hoy) aEsta[x.sn] = (aEsta[x.sn] || 0) + x.cp;
+      if (x.medido) xHoy = x;
+    });
+    cal.forEach(function (x) {
+      x.curso = hoy >= x.desde && hoy <= x.hasta;
+      x.hecha = x.desde <= hoy ? cargaSemana(x.desde, x.hasta < hoy ? x.hasta : hoy) : null;
+      x.aEsta = aEsta[x.n] || 0;
+    });
+    var cerradas = cal.filter(function (x) { return x.hasta < hoy; });
+    var totH = 0, totE = 0;
+    cal.forEach(function (x) { if (x.desde <= hoy) { totH += x.hecha || 0; totE += x.curso ? x.aEsta : x.carga; } });
 
     /* ---- dónde estás hoy ---- */
     var uCtl = ultimoDato("ctl"), uAtl = ultimoDato("atl");
@@ -9009,27 +9230,49 @@
                  (ctl - atl >= 0 ? "+" : "") + num(ctl - atl, 0),
                  (ctl !== null && atl !== null && ctl - atl >= 0) ? "v" : "") +
         (sem ? ramoDato("Objetivo semana", num(sem.carga, 0), "") : "") +
+        (xHoy ? ramoDato("Forma prevista hoy", num(xHoy.pc, 1), "",
+            '<em class="' + (xHoy.ctl >= xHoy.pc ? "mas" : "menos") + '">llevas ' + (xHoy.ctl >= xHoy.pc ? "+" : "") +
+            num(xHoy.ctl - xHoy.pc, 1) + "</em>") : "") +
+        (totE > 0 ? ramoDato("Carga de la rampa", num(totH, 0), "",
+            "de " + num(totE, 0) + " a estas alturas · " + Math.round(totH / totE * 100) + " %") : "") +
+        (sem && sem.hecha !== null ? ramoDato("Semana " + sem.n + " en curso", num(sem.hecha, 0), "",
+            "de " + num(sem.carga, 0) + " · tocaría llevar " + num(sem.aEsta, 0)) : "") +
+        (cerradas.length ? ramoDato("Semanas cerradas", String(cerradas.length), "",
+            cerradas.slice(-4).map(function (x) {
+              return "S" + x.n + " " + (x.hecha === null ? "sin dato" : Math.round(x.hecha / x.carga * 100) + " %");
+            }).join(" · ")) : "") +
       "</div></div>";
 
     /* ---- la curva ---- */
-    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Cómo va a ir la curva</h2></div>' +
-      '<p class="nota-peque evo-pie">Proyección día a día hasta el final de la rampa. ' +
-      'Los días ya vividos llevan lo que midió el reloj; los que vienen, lo que pide el plan. ' +
-      'CTL a 42 días y ATL a 7, como intervals.</p>' +
-      svgCurva(curvaPrevista(cal)) + "</div>";
+    var resumen = "";
+    if (xHoy) {
+      var dif = xHoy.ctl - xHoy.pc, finC = serC[serC.length - 1], s1 = cal[0];
+      resumen = '<div class="ramp-bien">Vas <b>' + (dif >= 0 ? "por delante" : "por detrás") + "</b> de lo previsto: forma " +
+        num(xHoy.ctl, 1) + " contra " + num(xHoy.pc, 1) + "." +
+        (s1.hecha !== null && s1.hasta < hoy ? " La semana 1 pedía " + num(s1.carga, 0) + " y hiciste <b>" + num(s1.hecha, 0) +
+          "</b> (" + Math.round(s1.hecha / s1.carga * 100) + " %)." : "") +
+        " Si desde hoy cumples el plan tal cual, al final de la rampa llegas a <b>" + num(finC.ctl, 1) + "</b> contra " +
+        num(finC.pc, 1) + " previsto: la forma solo recuerda las últimas seis semanas, así que lo que vas " +
+        (dif >= 0 ? "por delante" : "por detrás") + " ahora se diluye, no se acumula.</div>";
+    }
+    h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Previsto y conseguido</h2></div>' +
+      '<p class="nota-peque evo-pie">La línea gris de guiones es la rampa tal como se escribió, sin tocar: lo previsto. ' +
+      'La azul gruesa es lo que ha medido el reloj: lo conseguido. Desde hoy, la azul clara es a dónde llegas si cumples ' +
+      'el plan desde donde estás. CTL a 42 días y ATL a 7, como intervals.</p>' +
+      svgCurva(serC) + resumen + "</div>";
 
     /* ---- la rampa ---- */
     h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>La rampa</h2></div>' +
       '<p class="nota-peque evo-pie">Las semanas en verde son descargas. No son opcionales: son lo que ' +
       'faltaba en 2025, y por eso llegó noviembre.</p><div class="ramp-tabla"><table>' +
-      "<tr><th>Sem</th><th>Desde</th><th>Talla</th><th class=\"d\">Objetivo</th>" +
+      "<tr><th>Sem</th><th>Desde</th><th>Talla</th><th class=\"d\">Objetivo</th><th class=\"d\">Hecha</th>" +
       "<th class=\"d\">Sesiones</th><th class=\"d\">Horas</th></tr>";
     cal.forEach(function (x, k) {
       if (k > 16 && !x.descarga && k % 4 !== 0 && k !== cal.length - 1) return;
-      if (k === 17) h += '<tr class="sep"><td colspan="6">· · · sigue subiendo hasta el techo · · ·</td></tr>';
+      if (k === 17) h += '<tr class="sep"><td colspan="7">· · · sigue subiendo hasta el techo · · ·</td></tr>';
       h += '<tr class="' + (x.descarga ? "desc" : "") + (hoy >= x.desde && hoy <= x.hasta ? " ahora" : "") + '">' +
         '<td class="d">' + x.n + "</td><td>" + fechaCorta(x.desde) + '</td><td class="t">' + x.talla + "</td>" +
-        '<td class="d b">' + num(x.carga, 0) + "</td>" +
+        '<td class="d b">' + num(x.carga, 0) + "</td>" + '<td class="d">' + celdaHecha(x) + "</td>" +
         '<td class="d t">' + (Math.abs(x.factor - 1) < 0.06 ? "tal cual"
             : (x.factor < 1 ? "−" : "+") + Math.round(Math.abs(x.factor - 1) * 100) + "%") + "</td>" +
         '<td class="d g">' + num(x.minutos * x.factor / 60, 1) + " h</td></tr>";
@@ -9084,11 +9327,22 @@
     return h;
   }
 
+  /* La columna «Hecha»: lo medido de la semana contra su objetivo. En la
+     semana en curso, la raya es lo que tocaría llevar a estas alturas. */
+  function celdaHecha(x) {
+    if (x.hecha === null || x.hecha === undefined) return '<span style="color:#b5c0ca">—</span>';
+    var pct = x.carga > 0 ? x.hecha / x.carga : 0;
+    var col = x.curso ? "var(--azul)" : (pct > 1.15 ? "#e2a500" : pct >= 0.9 ? "#27c24a" : "#e0141e");
+    return '<span class="ramp-hb"><span><b>' + num(x.hecha, 0) + "</b> <small>" + (x.curso ? "en curso" : Math.round(pct * 100) + " %") +
+      '</small></span><i><u style="width:' + Math.min(100, pct * 100).toFixed(0) + "%;background:" + col + '"></u>' +
+      (x.curso && x.carga > 0 ? '<s style="left:' + Math.min(100, x.aEsta / x.carga * 100).toFixed(0) + '%"></s>' : "") + "</i></span>";
+  }
+
   var PROYECTO_URL = "https://claude.ai/project/01a0ae2e-e01a-7148-a7cb-8a976a092827";
 
-  function ramoDato(rot, valor, clase) {
+  function ramoDato(rot, valor, clase, sub) {
     return '<div class="ramp-dato ' + (clase || "") + '"><span>' + U.esc(rot) + "</span><b>" +
-      U.esc(String(valor)) + "</b></div>";
+      U.esc(String(valor)) + "</b>" + (sub ? "<small>" + sub + "</small>" : "") + "</div>";
   }
   function regla(n, txt) {
     return '<div class="ramp-regla"><b>' + n + "</b><p>" + txt + "</p></div>";
@@ -10946,16 +11200,28 @@
     var cont = document.getElementById("vista-entreno");
 
     /* la curva: recuadro con ratón o dedo */
-    cont.addEventListener("pointermove", function (e) { if (!datoCurva(e)) quitarDatoCurva(); });
-    cont.addEventListener("pointerdown", function (e) { if (!datoCurva(e)) quitarDatoCurva(); });
+    cont.addEventListener("pointermove", function (e) {
+      if (!datoCurva(e)) quitarDatoCurva();
+      if (!datoBalance(e)) quitarDatoBalance();
+    });
+    cont.addEventListener("pointerdown", function (e) {
+      if (!datoCurva(e)) quitarDatoCurva();
+      if (!datoBalance(e)) quitarDatoBalance();
+    });
     /* con el dedo, al levantarlo el navegador dispara «leave»: el recuadro se
        queda puesto hasta que toques fuera de la curva */
-    cont.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") quitarDatoCurva(); });
+    cont.addEventListener("pointerleave", function (e) {
+      if (e.pointerType === "mouse") { quitarDatoCurva(); quitarDatoBalance(); }
+    });
 
     cont.addEventListener("click", function (e) {
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
-      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; matVista = null; pintar(); return; }
+      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; matVista = null; rampaVista = "cerca"; pintar(); return; }
+
+      /* Rampa de Entreno: «Lo que llevo» o «La rampa entera» */
+      var rv = t.closest ? t.closest("[data-ramp-vista]") : null;
+      if (rv) { rampaVista = rv.getAttribute("data-ramp-vista"); pintarConservando(); return; }
 
       /* --- material y movimientos: entrar en un bloque y volver a la portada --- */
       var mvIr = t.closest ? t.closest("[data-mv]") : null;
