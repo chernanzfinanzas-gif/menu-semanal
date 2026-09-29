@@ -88,6 +88,7 @@
       ".hm-est.activa{background:#fdeaea;color:#9a2b2b}",
       ".hm-lista{margin:4px 0 0;padding-left:18px}",
       ".hm-lista li{margin:3px 0}",
+      ".hm-docs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}",
       ".hm-avisos{background:#fdeaea;border:1px solid #efb8b8;border-radius:10px;padding:10px 12px}",
       ".hm-avisos b{color:#9a2b2b}",
       ".hm-tabla{width:100%;border-collapse:collapse;font-size:13px}",
@@ -8552,6 +8553,14 @@
         (p.estado ? '<span class="hm-est ' + U.esc(p.estado) + '">' + U.esc(p.estado) + "</span>" : "") + "</h3>" +
         (p.resumen ? '<p class="nota-peque">' + U.esc(p.resumen) + "</p>" : "") +
         ((p.detalle || []).length ? '<ul class="hm-lista">' + p.detalle.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "");
+      /* sus documentos: PDF del repositorio privado (documentos/), con el mismo
+         botón que los folios de Casos, que se abre en cualquier pantalla (v274) */
+      if ((p.documentos || []).length) {
+        h += '<div class="hm-docs">' + p.documentos.map(function (x) {
+          return '<button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.fichero) + '">' +
+            U.esc(x.t || "Abrir documento") + "</button>";
+        }).join("") + "</div>";
+      }
       var suyos = trs.filter(function (t) { return t.para === p.id && hmVigente(t, hoy); });
       if (suyos.length) h += '<p class="nota-peque">Tratamiento: ' + U.esc(suyos.map(function (t) { return t.nombre; }).join(" · ")) + "</p>";
       var antes = trs.filter(function (t) { return t.para === p.id && t.hasta && t.hasta < hoy; });
