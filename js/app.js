@@ -25,6 +25,7 @@
     busquedaHogar: "",
     sitioAbierto: "",       /* qué sitio de la casa está abierto al contar */
     estanteAbierto: "",     /* Localización: qué estante está desplegado, uno cada vez */
+    locCambios: 0,          /* cuántos estantes has cambiado sin recolocar la lista */
     buscaSitio: {},         /* { sitio: texto } — el buscador de dentro de cada sitio */
     buscaQuiero: "",        /* el buscador de «lo quiero esta vez», en la Compra */
     paseHogar: { vista: "indice", ap: null, i: 0 },   /* el pase de Hogar, igual que el de ¿Lo tengo? */
@@ -4108,6 +4109,20 @@
     });
   }
 
+  /* EL BOTÓN DE CONFIRMAR CAMBIOS (Carlos, 29-sep-2026): «se destaca si hay
+     algún cambio y se apaga cuando se ordenen o al principio si no hay cambios».
+     Cambiar el estante de una fila NO recoloca la lista —eso te haría perder por
+     dónde ibas— así que los cambios se acumulan y este botón los recoloca todos
+     de una vez. Apagado significa: no hay nada pendiente. */
+  function pintarBotonLoc() {
+    var b = $("#loc-reordenar");
+    if (!b) return;
+    var n = UI.locCambios || 0;
+    b.disabled = !n;
+    b.classList.toggle("avisa", !!n);
+    b.textContent = n ? "Confirmar cambios (" + n + ")" : "Confirmar cambios";
+  }
+
   function pintarLocalizacion() {
     var cont = $("#rejilla-loc");
     if (!cont) return;
@@ -4166,6 +4181,7 @@
       html += "</details>";
     });
     cont.innerHTML = html;
+    pintarBotonLoc();
   }
 
   /* ==================== HOGAR, COMO UN PASE ====================
@@ -5915,6 +5931,8 @@
       var id = sel.getAttribute("data-loc"), v = sel.value;
       if (v) Almacen.ponerSitio(id, v);
       else { var g0 = Almacen.ingrediente(id); if (g0) { delete g0.sitio; Almacen.guardar("ingrediente"); } }
+      UI.locCambios = (UI.locCambios || 0) + 1;
+      pintarBotonLoc();
       var fila = document.querySelector('[data-locfila="' + id + '"]');
       if (fila) {
         fila.classList.toggle("movida", !!v);
@@ -6146,6 +6164,7 @@
     if (bret) bret.addEventListener("click", function () { pintarLoTengo(); });
     var bre = $("#loc-reordenar");
     if (bre) bre.addEventListener("click", function () {
+      UI.locCambios = 0;
       pintarLocalizacion();
       var c = $("#rejilla-loc");
       if (c) try { c.scrollIntoView({ block: "start" }); } catch (e3) {}

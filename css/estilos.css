@@ -481,6 +481,9 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .zona-loc .cuantas{font-size:.76rem; color:var(--gris); border:1px solid var(--borde);
   border-radius:99px; padding:2px 9px; min-width:34px; text-align:center}
 .zona-loc .cuantas.avisa{color:#fff; background:var(--ambar); border-color:var(--ambar)}
+/* El botón de confirmar cambios de estante: apagado si no hay nada que confirmar,
+   y encendido en cuanto mueves algo (Carlos, 29-sep-2026). */
+#loc-reordenar.avisa{background:var(--verde); color:#fff; border-color:var(--verde)}
 .zona-loc.pendiente{border-color:var(--ambar); border-width:1.5px}
 .zona-loc.pendiente .tit{color:var(--ambar)}
 .zona-loc h4.estante{margin:10px 0 4px; padding:0 13px; font-size:.72rem; font-weight:700;
