@@ -1741,6 +1741,66 @@
       return z;
     },
 
+    /* ================= EL ORDEN DE LA COMPRA =================
+       Carlos, 29-sep-2026: «cuando me presentas la lista, has de presentarme
+       lista por tienda y zona (en Mercadona las seis que dijimos) y ahí puedo en
+       cada zona yo ordenar los productos como están en la lista de la compra de
+       Mercadona».
+
+       NO es el orden de casa. El de casa es cómo está colocada su nevera; éste
+       es el orden en que están los productos en SU lista de Mercadona, que se
+       llena según los va añadiendo y que él no puede reordenar allí. Así que se
+       reordena aquí hasta que las dos coincidan, y entonces comprar es bajar por
+       la lista sin buscar nada.
+
+       Va por TIENDA + ZONA porque ésas son sus listas: Nevera, Despensa,
+       Alacena, Hogar, Aseo y Menaje cocina.
+
+       LO NUEVO VA ARRIBA, no abajo: «los productos nuevos se pondrán al
+       principio de la lista en Mercadona». Un producto que todavía no está
+       ordenado sale el primero, que es justo donde Mercadona lo pone. */
+    claveCompra: function (tienda, zonaK) {
+      return String(tienda || "?") + "|" + String(zonaK || "?");
+    },
+
+    zonaDeIngrediente: function (id) {
+      var s = this.sitioDe(id);
+      if (!s) return null;
+      var z = this.zonaDe(s);
+      return z ? z.k : null;
+    },
+
+    posEnCompra: function (clave, id) {
+      var l = (this.estado.ordenCompra || {})[clave] || [];
+      var i = l.indexOf(id);
+      return i < 0 ? -1 : i;        /* lo que no está ordenado, arriba */
+    },
+
+    ordenarComoEnCompra: function (clave, lista) {
+      var self = this;
+      return lista.slice().sort(function (a, b) {
+        var pa = self.posEnCompra(clave, a.id), pb = self.posEnCompra(clave, b.id);
+        if (pa !== pb) return pa - pb;
+        return String(a.nombre || a.n || "").localeCompare(String(b.nombre || b.n || ""));
+      });
+    },
+
+    /* Subir (-1) o bajar (1) dentro de su lista de la tienda. `ids` es la lista
+       tal y como se está viendo en pantalla: así lo que se guarda es exactamente
+       el orden que él ve, sin depender de lo que hubiera guardado antes. */
+    moverEnCompra: function (clave, ids, id, dir) {
+      var lista = (ids || []).slice();
+      var i = lista.indexOf(id);
+      if (i < 0) return false;
+      var j = i + (dir < 0 ? -1 : 1);
+      if (j < 0 || j >= lista.length) return false;
+      lista[i] = lista[j]; lista[j] = id;
+      if (!this.estado.ordenCompra) this.estado.ordenCompra = {};
+      this.estado.ordenCompra[clave] = lista;
+      this.guardar("ordenCompra");
+      return true;
+    },
+
     sitioDe: function (id) {
       var g = typeof id === "string" ? this.ingrediente(id) : id;
       if (!g) return null;

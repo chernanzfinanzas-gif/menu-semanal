@@ -4504,8 +4504,37 @@
         Object.keys(porTienda).sort().forEach(function (nom) {
           var g = porTienda[nom];
           if (g.comida.length) {
+            /* DENTRO DE CADA TIENDA, POR ZONA Y EN TU ORDEN (Carlos, 29-sep-2026).
+               Sus listas de Mercadona son las zonas —Nevera, Despensa, Alacena— y
+               dentro de cada una el orden es el que él ha ido poniendo. Lo que
+               todavía no ha ordenado sale arriba, que es donde Mercadona pone lo
+               nuevo. */
             html += '<div class="seccion-compra"><h3>' + esc(nom) + '</h3>';
-            g.comida.forEach(function (l) { html += lineaCompraHTML(l, false); });
+            var porZona = {};
+            g.comida.forEach(function (l) {
+              var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
+              (porZona[zk] = porZona[zk] || []).push(l);
+            });
+            var ordenZonas = Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]);
+            ordenZonas.forEach(function (zk) {
+              var lineas = porZona[zk];
+              if (!lineas || !lineas.length) return;
+              var zn = "Sin zona";
+              Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
+              var clave = Almacen.claveCompra(nom, zk);
+              lineas = Almacen.ordenarComoEnCompra(clave, lineas);
+              html += '<div class="zona-compra" data-clavecompra="' + esc(clave) + '">' +
+                      '<h4 class="estante">' + esc(zn) +
+                      '<span>' + lineas.length + '</span></h4>';
+              lineas.forEach(function (l) {
+                html += '<div class="fila-compra" data-compfila="' + esc(l.id) + '">' +
+                  '<div class="loc-mover">' +
+                    '<button type="button" class="btn mini" data-compsube="' + esc(l.id) + '" aria-label="Subir">\u2191</button>' +
+                    '<button type="button" class="btn mini" data-compbaja="' + esc(l.id) + '" aria-label="Bajar">\u2193</button>' +
+                  '</div>' + lineaCompraHTML(l, false) + '</div>';
+              });
+              html += '</div>';
+            });
             html += '</div>';
           }
           if (g.casa.length) {
@@ -5947,6 +5976,24 @@
     /* El pliegue SÓLO desde la cabecera de la zona. Estaba escuchando cualquier
        clic dentro del `details`, así que abrir el desplegable cerraba la zona:
        el clic del `select` también casaba con `closest("[data-zona]")`. */
+    /* Las flechas del orden de la compra. Se guarda EXACTAMENTE lo que se ve en
+       pantalla, leído del DOM, para que no dependa de lo guardado antes. */
+    var lc = $("#lista-compra");
+    if (lc) lc.addEventListener("click", function (e) {
+      var mv = e.target.closest("[data-compsube]") || e.target.closest("[data-compbaja]");
+      if (!mv) return;
+      var caja = mv.closest("[data-clavecompra]");
+      if (!caja) return;
+      var id = mv.getAttribute("data-compsube") || mv.getAttribute("data-compbaja");
+      var ids = Array.prototype.map.call(caja.querySelectorAll("[data-compfila]"), function (f) {
+        return f.getAttribute("data-compfila");
+      });
+      Almacen.moverEnCompra(caja.getAttribute("data-clavecompra"), ids, id,
+                            mv.hasAttribute("data-compsube") ? -1 : 1);
+      pintarCompra();
+      e.stopPropagation();
+    }, true);
+
     $("#rejilla-loc").addEventListener("click", function (e) {
       /* Subir o bajar dentro del estante. Va lo primero: estos botones viven
          dentro del desplegable y si no se atiende aquí el clic sigue su camino. */
