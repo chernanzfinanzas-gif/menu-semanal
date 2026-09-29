@@ -4493,7 +4493,7 @@
       String(R.texto || "").split(/\n\s*\n/).forEach(function (par) {
         if (par.trim()) h += "<p>" + U.esc(par.trim()).replace(/\n/g, "<br>") + "</p>";
       });
-      if (R.prueba_manana) h += '<div class="manana-prueba"><b>Mañana:</b> ' + U.esc(R.prueba_manana) + "</div>";
+      if (R.prueba_manana) h += '<div class="manana-prueba"><b>' + (esHoy ? "Mañana" : "Para el día siguiente") + ":</b> " + U.esc(R.prueba_manana) + "</div>";
       h += "</div>";
     }
     return h;
