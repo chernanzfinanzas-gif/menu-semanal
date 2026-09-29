@@ -540,6 +540,8 @@
       ".ramp-dato small em{font-style:normal;font-weight:700}",
       ".ramp-dato small em.mas{color:var(--verde)}",
       ".ramp-dato small em.menos{color:#8a6110}",
+      ".ramp-rep{display:inline-block;font-size:.62rem;font-weight:700;color:#8a6110;background:var(--ambar-fondo);",
+      "  border-radius:5px;padding:0 4px;margin-left:3px;vertical-align:1px}",
       ".ramp-bien{margin-top:10px;background:var(--verde-claro);border:1px solid var(--verde-borde);",
       "  border-radius:10px;padding:9px 12px;font-size:.82rem;line-height:1.5}",
       ".ramp-hb{display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px}",
@@ -6547,6 +6549,14 @@
         : "Carga al " + Math.round(pct * 100) + " % del objetivo.") +
         (sal.limitar ? " Y hubo " + sal.limitar + " día" + (sal.limitar > 1 ? "s" : "") + " con lesión limitante." : "");
     }
+    /* PASARSE NO ADELANTA LA RAMPA (Carlos, 29-sep-2026: «añade esa línea»).
+       Se dice por escrito en el momento, porque subir de golpe tras una semana
+       sobrada es como llegaron los parones de 2022 y 2025. */
+    var exc = (P.pase.colorCarga || {}).exceso || 1.15;
+    if (v !== "pronto" && carga !== null && sem.carga && carga / sem.carga > exc) {
+      porque += " Te has pasado: " + Math.round(carga / sem.carga * 100) + " % de la carga pedida. " +
+        "Pasarse no adelanta la rampa" + (v === "subir" ? ": la que viene va según lo previsto, no más." : ".");
+    }
     /* Si la semana cae dentro de una pauta médica ya prevista, se dice: si no,
        el veredicto parecería que no ha visto los días marcados. */
     if (sal.parar >= 2 && sal.lesion === 0 && enTratamiento(sem, hasta)) {
@@ -8126,6 +8136,10 @@
             ". Pasa el dedo por encima para ver cada valor con su fecha."
       }) + leyFranja + "</div>";
 
+      /* FORMA Y FATIGA LLEVA SU BALANCE DEBAJO, como en Evolución (Carlos,
+         29-sep-2026: «en El Plan no sale el nuevo formato de balance»). */
+      if (clave === "ctl" && s1.length > 1 && s2.length > 1) h += htmlBalance(s1, s2, "modal");
+
       /* el resumen: dónde estás, hacia dónde vas y cuánto falta */
       var ult = s1[s1.length - 1] || s2[s2.length - 1];
       h += '<div class="hist-filas">';
@@ -8168,6 +8182,15 @@
     h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Cerrar</button>';
     caja.innerHTML = h;
     modal.classList.add("abierta");
+    /* el dedo sobre el balance de la ventana: la ventana vive fuera de la
+       vista de Entrenamiento, así que necesita sus propios oídos (una vez) */
+    if (!caja.getAttribute("data-oye-balance")) {
+      caja.setAttribute("data-oye-balance", "1");
+      var oye = function (e) { if (!datoBalance(e)) quitarDatoBalance(); };
+      caja.addEventListener("pointermove", oye);
+      caja.addEventListener("pointerdown", oye);
+      caja.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") quitarDatoBalance(); });
+    }
   }
 
   /* ---------- guías de sesión ----------
@@ -8813,10 +8836,15 @@
 
   /* El calendario entero de la rampa: cada semana con su carga, su talla, lo que
      cuesta su plantilla y el factor por el que habría que escalar las sesiones. */
-  function calendarioRampa() {
+  /* OPCIÓN A (Carlos, 29-sep-2026). `cola` = true da lo que El Plan pide de
+     verdad en cada hueco del calendario: si el pase hizo repetir, el peldaño
+     se corre (y con él la descarga). Sin `cola`, la rampa tal como se
+     escribió: es la vara de medir de la línea de lo previsto, y no se mueve. */
+  function calendarioRampa(cola) {
     var out = [], f = P.rampa[0].desde;
     for (var i = 0; i < RAMPA_SEMANAS; i++) {
-      var p = peldano(i);
+      var des = cola ? desfaseHasta(f) : 0;
+      var p = peldano(i + des);
       var dias = (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
       var hasta = U.sumarDias(f, dias - 1);
       /* lo que cuesta su plantilla esos días, para saber cuánto hay que escalar */
@@ -8834,7 +8862,8 @@
                  /* 25-sep-2026: ANCLADO AL PRINCIPIO. La nota de las semanas de
                     crucero es «Crucero: tres semanas y la cuarta de descarga», y
                     sin el ^ TODAS salían marcadas como descarga. */
-                 descarga: /^\s*descarga/i.test(p.nota || "") });
+                 descarga: /^\s*descarga/i.test(p.nota || ""), des: des,
+                 repite: out.length > 0 && out[out.length - 1].n === p.n });
       f = U.sumarDias(hasta, 1);
     }
     return out;
@@ -8843,7 +8872,8 @@
   /* La curva: CTL a 42 días y ATL a 7, igual que intervals. Se arranca del
      último dato REAL que haya, no de cero: si no, la proyección empieza en un
      sitio donde no estás. */
-  function curvaPrevista(cal) {
+  function curvaPrevista(cal, calO) {
+    calO = calO || cal;
     /* PREVISTO Y CONSEGUIDO (Carlos, 29-sep-2026: «¿se puede ir pintando el
        progreso conseguido frente al previsto?»). Tres cosas por día:
          · pc/pa — LO PREVISTO: la rampa tal cual, simulada desde la víspera de
@@ -8870,14 +8900,18 @@
        curva, no el plan. */
     var REPARTO = [0, 0.14, 0.14, 0.14, 0.14, 0.14, 0.30];   // getDay(): 0 domingo
     function diaSem(iso) { return new Date(iso + "T12:00:00").getDay(); }
-    cal.forEach(function (sem) {
+    cal.forEach(function (sem, k) {
+      var semO = calO[k] || sem;
       var suma = 0, d;
       for (d = 0; d < sem.dias; d++) suma += REPARTO[diaSem(U.sumarDias(sem.desde, d))];
       for (d = 0; d < sem.dias; d++) {
-        var iso = U.sumarDias(sem.desde, d);
-        var cp = suma > 0 ? sem.carga * REPARTO[diaSem(iso)] / suma : sem.carga / sem.dias;
-        pc += (cp - pc) / 42; pa += (cp - pa) / 7;
-        var x = { f: iso, sn: sem.n, obj: sem.carga, desc: sem.descarga, cp: cp, pc: pc, pa: pa };
+        var iso = U.sumarDias(sem.desde, d), rep = REPARTO[diaSem(iso)];
+        /* cp: lo que pide El Plan ese día (la cola); cpo: lo que pedía la rampa original */
+        var cp = suma > 0 ? sem.carga * rep / suma : sem.carga / sem.dias;
+        var cpo = suma > 0 ? semO.carga * rep / suma : semO.carga / semO.dias;
+        pc += (cpo - pc) / 42; pa += (cpo - pa) / 7;
+        var x = { f: iso, sn: sem.n, sd: sem.desde, obj: sem.carga, desc: sem.descarga, rep: sem.repite,
+                  cp: cp, cpo: cpo, pc: pc, pa: pa };
         var rd = iso <= hoy ? real(iso) : null;
         if (rd) {
           x.medido = true; qc = rd.ctl; qa = rd.atl;
@@ -8952,15 +8986,18 @@
     for (var i = 0; i < ZONAS_BAL.length; i++) if (b >= ZONAS_BAL[i].de && b < ZONAS_BAL[i].a) return ZONAS_BAL[i];
     return ZONAS_BAL[4];
   }
-  var balSer = null, balGeo = null;
+  /* Cada balance pintado guarda su serie aparte: puede haber dos a la vez
+     (Evolución y la ventana de la ficha «Forma y fatiga» de El Plan), y con
+     una sola variable el dedo en una leía los datos de la otra. */
+  var balDatos = {}, balN = 0;
 
-  function htmlBalance(ctl, atl) {
+  function htmlBalance(ctl, atl, tipo) {
     var mA = {}; atl.forEach(function (p) { mA[p.f] = p.v; });
     var S = [];
     ctl.forEach(function (p) { if (mA[p.f] != null) S.push({ f: p.f, ctl: p.v, atl: mA[p.f], b: p.v - mA[p.f] }); });
     var n = S.length;
     if (n < 2) return "";
-    var disp = anchoCaja();
+    var disp = anchoCaja(tipo);
     var W = disp > 520 ? Math.round(disp / 1.625) : 320, H = 112, x0 = 18, x1 = W - 4, yB = H - 12;
     function X(i) { return x0 + i * (x1 - x0) / (n - 1); }
     var bmin = -40, bmax = 30;
@@ -8995,7 +9032,9 @@
     var u = S[n - 1], zu = zonaBal(u.b);
     h += '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(u.b).toFixed(1) + '" r="2.4" fill="' + zu.h + '" stroke="#fff" stroke-width="1"/>';
     h += '<line id="bal-cursor" x1="0" y1="4" x2="0" y2="' + yB + '" stroke="#1f3b57" stroke-width=".7" stroke-dasharray="3 3" style="display:none"/>';
-    balSer = S; balGeo = { W: W, n: n, x0: x0, ancho: x1 - x0 };
+    var bid = "b" + (++balN);
+    balDatos[bid] = { S: S, g: { W: W, n: n, x0: x0, ancho: x1 - x0 } };
+    delete balDatos["b" + (balN - 6)];
 
     var cnt = {}; S.forEach(function (p) { var z2 = zonaBal(p.b); cnt[z2.id] = (cnt[z2.id] || 0) + 1; });
     var barra = ZONAS_BAL.map(function (z2) {
@@ -9003,7 +9042,7 @@
     }).join("");
     var peor = S.reduce(function (a, p) { return p.b < a.b ? p : a; }, S[0]);
     return '<div class="bal-caja" style="position:relative;margin-top:2px">' +
-      '<svg class="ramp-svg" data-balance="1" style="touch-action:pan-y;cursor:crosshair" viewBox="0 0 ' + W + " " + H +
+      '<svg class="ramp-svg" data-balance="' + bid + '" style="touch-action:pan-y;cursor:crosshair" viewBox="0 0 ' + W + " " + H +
         '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Balance: forma menos fatiga">' + h + "</svg>" +
       '<div id="bal-dato" style="display:none;position:absolute;top:2px;pointer-events:none;background:#fff;' +
         'border:1px solid #d6dde4;border-radius:8px;padding:6px 9px;font-size:12px;line-height:1.45;' +
@@ -9021,12 +9060,14 @@
 
   function datoBalance(ev) {
     var svg = ev.target.closest ? ev.target.closest("svg[data-balance]") : null;
-    if (!svg || !balSer || !balGeo) return false;
-    var r = svg.getBoundingClientRect(), g = balGeo;
+    var bd = svg ? balDatos[svg.getAttribute("data-balance")] : null;
+    if (!bd) return false;
+    var balSer = bd.S, r = svg.getBoundingClientRect(), g = bd.g;
     var sx = (ev.clientX - r.left) / r.width * g.W;
     var i = Math.max(0, Math.min(g.n - 1, Math.round((sx - g.x0) / g.ancho * (g.n - 1))));
     var p = balSer[i], z = zonaBal(p.b), cx = g.x0 + i * g.ancho / (g.n - 1);
-    var cur = document.getElementById("bal-cursor"), caja = document.getElementById("bal-dato");
+    quitarDatoBalance();
+    var cur = svg.querySelector("#bal-cursor"), caja = svg.parentNode.querySelector("#bal-dato");
     if (cur) { cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.style.display = ""; }
     if (caja) {
       caja.innerHTML = "<b>" + fechaCorta(p.f) + " " + p.f.slice(0, 4) + "</b><br>" +
@@ -9040,9 +9081,8 @@
     return true;
   }
   function quitarDatoBalance() {
-    var cur = document.getElementById("bal-cursor"), caja = document.getElementById("bal-dato");
-    if (cur) cur.style.display = "none";
-    if (caja) caja.style.display = "none";
+    var l = document.querySelectorAll("#bal-cursor, #bal-dato");
+    for (var i = 0; i < l.length; i++) l[i].style.display = "none";
   }
 
   /* La vista de la curva al entrar: «Lo que llevo» — de la semana 1 a seis
@@ -9187,22 +9227,24 @@
     if (!P || !P.rampa) return sinDatos("No hay plan cargado");
     var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
     var h = volver;
-    var hoy = U.hoyISO(), cal = calendarioRampa();
+    var hoy = U.hoyISO(), cal = calendarioRampa(true), calO = calendarioRampa(false);
     var sem = null, i;
     for (i = 0; i < cal.length; i++) if (hoy >= cal[i].desde && hoy <= cal[i].hasta) sem = cal[i];
 
     /* PREVISTO Y CONSEGUIDO (29-sep-2026): la curva día a día y, por semana,
        lo hecho frente al objetivo y lo que tocaría llevar a estas alturas */
-    var serC = curvaPrevista(cal), aEsta = {}, xHoy = null;
+    var serC = curvaPrevista(cal, calO), aEsta = {}, xHoy = null;
     serC.forEach(function (x) {
-      if (x.f <= hoy) aEsta[x.sn] = (aEsta[x.sn] || 0) + x.cp;
+      if (x.f <= hoy) aEsta[x.sd] = (aEsta[x.sd] || 0) + x.cp;
       if (x.medido) xHoy = x;
     });
     cal.forEach(function (x) {
       x.curso = hoy >= x.desde && hoy <= x.hasta;
       x.hecha = x.desde <= hoy ? cargaSemana(x.desde, x.hasta < hoy ? x.hasta : hoy) : null;
-      x.aEsta = aEsta[x.n] || 0;
+      x.aEsta = aEsta[x.desde] || 0;
     });
+    /* cuántas semanas vas por detrás de la rampa original por los pases */
+    var atras = sem ? -sem.des : 0;
     var cerradas = cal.filter(function (x) { return x.hasta < hoy; });
     var totH = 0, totE = 0;
     cal.forEach(function (x) { if (x.desde <= hoy) { totH += x.hecha || 0; totE += x.curso ? x.aEsta : x.carga; } });
@@ -9221,7 +9263,9 @@
       '<p class="nota-peque evo-pie">' +
         (sem ? "Semana " + sem.n + " de la rampa · del " + fechaCorta(sem.desde) + " al " +
                fechaCorta(sem.hasta) + " · talla " + sem.talla +
-               (sem.descarga ? " · DESCARGA" : "")
+               (sem.descarga ? " · DESCARGA" : "") +
+               (atras > 0 ? " · <b>" + atras + (atras === 1 ? " semana" : " semanas") +
+                 " por detrás de la rampa original</b>, por los pases" : "")
              : "Hoy no caes dentro de la rampa.") + U.esc(deCuando) + "</p>" +
       '<div class="ramp-datos">' +
         ramoDato("Forma (CTL)", ctl === null ? "—" : num(ctl, 0), "") +
@@ -9251,6 +9295,8 @@
         num(xHoy.ctl, 1) + " contra " + num(xHoy.pc, 1) + "." +
         (s1.hecha !== null && s1.hasta < hoy ? " La semana 1 pedía " + num(s1.carga, 0) + " y hiciste <b>" + num(s1.hecha, 0) +
           "</b> (" + Math.round(s1.hecha / s1.carga * 100) + " %)." : "") +
+        (atras > 0 ? " El pase te ha hecho repetir " + (atras === 1 ? "una semana" : atras + " semanas") +
+          ": lo que te pide El Plan va por detrás de la línea gris, y la gráfica lo enseña tal cual." : "") +
         " Si desde hoy cumples el plan tal cual, al final de la rampa llegas a <b>" + num(finC.ctl, 1) + "</b> contra " +
         num(finC.pc, 1) + " previsto: la forma solo recuerda las últimas seis semanas, así que lo que vas " +
         (dif >= 0 ? "por delante" : "por detrás") + " ahora se diluye, no se acumula.</div>";
@@ -9264,14 +9310,16 @@
     /* ---- la rampa ---- */
     h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>La rampa</h2></div>' +
       '<p class="nota-peque evo-pie">Las semanas en verde son descargas. No son opcionales: son lo que ' +
-      'faltaba en 2025, y por eso llegó noviembre.</p><div class="ramp-tabla"><table>' +
+      'faltaba en 2025, y por eso llegó noviembre. Es lo que te pide El Plan: si el pase hace repetir, ' +
+      'la semana sale dos veces y todo lo de detrás se corre, descarga incluida.</p><div class="ramp-tabla"><table>' +
       "<tr><th>Sem</th><th>Desde</th><th>Talla</th><th class=\"d\">Objetivo</th><th class=\"d\">Hecha</th>" +
       "<th class=\"d\">Sesiones</th><th class=\"d\">Horas</th></tr>";
     cal.forEach(function (x, k) {
       if (k > 16 && !x.descarga && k % 4 !== 0 && k !== cal.length - 1) return;
       if (k === 17) h += '<tr class="sep"><td colspan="7">· · · sigue subiendo hasta el techo · · ·</td></tr>';
       h += '<tr class="' + (x.descarga ? "desc" : "") + (hoy >= x.desde && hoy <= x.hasta ? " ahora" : "") + '">' +
-        '<td class="d">' + x.n + "</td><td>" + fechaCorta(x.desde) + '</td><td class="t">' + x.talla + "</td>" +
+        '<td class="d">' + x.n + (x.repite ? ' <small class="ramp-rep">repite</small>' : "") + "</td><td>" +
+        fechaCorta(x.desde) + '</td><td class="t">' + x.talla + "</td>" +
         '<td class="d b">' + num(x.carga, 0) + "</td>" + '<td class="d">' + celdaHecha(x) + "</td>" +
         '<td class="d t">' + (Math.abs(x.factor - 1) < 0.06 ? "tal cual"
             : (x.factor < 1 ? "−" : "+") + Math.round(Math.abs(x.factor - 1) * 100) + "%") + "</td>" +
