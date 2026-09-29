@@ -51,7 +51,13 @@
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
       pie: "Qué pasó aquella vez: los episodios medidos, uno a uno.", listo: true },
     { id: "material", nombre: "Material y movimientos", img: "iconos/khb/7-yoga.webp",
-      pie: "Lo que hay en casa y qué se puede hacer con ello, músculo a músculo.", listo: true }
+      pie: "Lo que hay en casa y qué se puede hacer con ello, músculo a músculo.", listo: true },
+    /* HISTORIAL MÉDICO  ·  29-sep-2026. Carlos: «quiero registrar mis patologías y
+       tratamientos con las recomendaciones y así me puedes ofrecer la medicación
+       diaria en el plan». Los datos NO van en el código (el repositorio del
+       código es público): viven en datos/historial-medico.json del privado. */
+    { id: "historial", nombre: "Historial médico", img: "iconos/khb/4-agua.webp",
+      pie: "Patologías, tratamientos con sus fechas, recomendaciones, pruebas y citas.", listo: true }
   ];
 
   /* ==================== ESTILOS ==================== */
@@ -62,6 +68,32 @@
     s.id = "estilos-entreno";
     s.textContent = [
       ":root{--azul:#2f5c8a;--azul-hondo:#133253;--azul-claro:#eaf0f6;--azul-borde:#cfdcea}",
+      /* ---- historial médico y medicación del día (v272) ---- */
+      ".tarjeta h2 .ent-cuenta{margin-left:10px}",
+      ".med-hora{margin:10px 0 4px;font-size:13px;font-weight:700;color:var(--azul-hondo)}",
+      ".med-toma{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--azul-borde)}",
+      ".med-toma:last-child{border-bottom:0}",
+      ".med-toma input{margin-top:3px;width:20px;height:20px;flex-shrink:0}",
+      ".med-toma.hecha .med-n{text-decoration:line-through;opacity:.6}",
+      ".med-n{font-weight:600}",
+      ".med-nota{display:block;font-size:12px;color:#6b7c8d;margin-top:2px}",
+      ".med-nota.ojo{color:#9a3b1e}",
+      ".med-quedan{display:inline-block;font-size:11px;background:var(--azul-claro);border:1px solid var(--azul-borde);" +
+        "border-radius:9px;padding:0 7px;margin-left:6px;font-weight:600;color:var(--azul-hondo)}",
+      ".med-quedan.fin{background:#fdf1e3;border-color:#efcf9f;color:#8a5a12}",
+      ".hm-pat{border:1px solid var(--azul-borde);border-radius:10px;padding:10px 12px;margin:8px 0}",
+      ".hm-pat h3{margin:0 0 4px;font-size:15px}",
+      ".hm-est{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:8px;" +
+        "padding:1px 7px;margin-left:6px;background:var(--azul-claro);color:var(--azul-hondo);vertical-align:middle}",
+      ".hm-est.activa{background:#fdeaea;color:#9a2b2b}",
+      ".hm-lista{margin:4px 0 0;padding-left:18px}",
+      ".hm-lista li{margin:3px 0}",
+      ".hm-avisos{background:#fdeaea;border:1px solid #efb8b8;border-radius:10px;padding:10px 12px}",
+      ".hm-avisos b{color:#9a2b2b}",
+      ".hm-tabla{width:100%;border-collapse:collapse;font-size:13px}",
+      ".hm-tabla td,.hm-tabla th{padding:5px 6px;border-bottom:1px solid var(--azul-borde);text-align:left;vertical-align:top}",
+      ".hm-tabla th{font-size:11px;text-transform:uppercase;color:#6b7c8d}",
+      ".hm-num{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}",
       /* ---- material y movimientos ---- */
       ".mat-linea{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;" +
         "padding:9px 0;border-bottom:1px solid var(--azul-borde)}",
@@ -1063,6 +1095,7 @@
     if (!e.entreno.largo) e.entreno.largo = {};   // la salida declarada, por semana
     if (!e.entreno.noHabil) e.entreno.noHabil = {};   // días que no se pueden entrenar
     if (!e.entreno.quitados) e.entreno.quitados = {}; // bloques retirados con motivo
+    if (!e.entreno.tomas) e.entreno.tomas = {};       // medicación tomada: {iso: {id@hora: ms}}
     return e.entreno;
   }
 
@@ -4307,6 +4340,20 @@
   var TensionCorreo = {
     CLAVE: "khb-tension-correo-v1",
     RUTA: "datos/tension.json",
+    FRESCO_H: 1,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
+  /* EL HISTORIAL MÉDICO (v272, 29-sep-2026). Lo escribe Claude cuando Carlos le
+     cuenta un cambio de pauta y sube solo por el buzón nube. Opcional: si no
+     está, El Plan sale como antes y el bloque lo dice. */
+  var Historial = {
+    CLAVE: "khb-historial-v1",
+    RUTA: "datos/historial-medico.json",
     FRESCO_H: 1,
     datos: null,
     traidoEl: null,
@@ -8320,6 +8367,7 @@
       : (bloque === "rampa") ? htmlRampa()
       : (bloque === "casos") ? htmlCasos()
       : (bloque === "material") ? htmlMaterial()
+      : (bloque === "historial") ? htmlHistorial()
       : (bloque === "actividad") ? htmlActividad() : htmlPortada());
     if (bloque === "actividad") montarArchivo();
     if (!mantener) window.scrollTo(0, 0);
@@ -8352,7 +8400,7 @@
       var a = document.activeElement, clave = null, ini = null, fin = null;
       if (a && a.getAttribute) {
         /* vale cualquier ancla estable, no solo una casilla de medida */
-        ["data-medida", "data-check", "data-historia"].forEach(function (at) {
+        ["data-medida", "data-check", "data-historia", "data-toma"].forEach(function (at) {
           if (!clave && a.getAttribute(at)) clave = "[" + at + '="' + a.getAttribute(at) + '"]';
         });
         try { ini = a.selectionStart; fin = a.selectionEnd; } catch (e) { ini = null; }
@@ -8378,6 +8426,193 @@
         }
       }
     }, 0);
+  }
+
+  /* ==================== HISTORIAL MÉDICO Y MEDICACIÓN (v272) ==================== */
+
+  var HM_MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+    "septiembre", "octubre", "noviembre", "diciembre"];
+  /* «2026-11» → «noviembre de 2026»; una fecha completa, como el resto */
+  function hmMes(f) {
+    f = String(f || "");
+    if (/^\d{4}-\d{2}$/.test(f)) return HM_MESES[+f.slice(5) - 1] + " de " + f.slice(0, 4);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return U.etiquetaFecha(f) + " de " + f.slice(0, 4);
+    return f;
+  }
+
+  function hmDatos() { return Historial.datos || null; }
+
+  /* ¿está vigente ese tratamiento el día iso? «desde» puede ser un año suelto */
+  function hmVigente(t, iso) {
+    if (!t || t.suspendido) return false;
+    var d = String(t.desde || ""), h = t.hasta ? String(t.hasta) : "";
+    if (d && d.length === 10 && iso < d) return false;
+    if (h && iso > h) return false;
+    return true;
+  }
+
+  function hmDiasEntre(a, b) {
+    return Math.round((U.desdeISO(b).getTime() - U.desdeISO(a).getTime()) / 86400000);
+  }
+
+  /* las tomas del día, por hora; las sin hora (crónicos) al final */
+  function hmTomasDe(iso) {
+    var d = hmDatos(), out = [];
+    if (!d) return out;
+    (d.tratamientos || []).forEach(function (t) {
+      if (!hmVigente(t, iso)) return;
+      var hs = (t.tomas && t.tomas.length) ? t.tomas : [""];
+      hs.forEach(function (h) { out.push({ t: t, hora: h, id: t.id + "@" + (h || "dia") }); });
+    });
+    out.sort(function (a, b) { return (a.hora || "99") < (b.hora || "99") ? -1 : (a.hora || "99") > (b.hora || "99") ? 1 : 0; });
+    return out;
+  }
+
+  function hmQuedan(t, iso) {
+    if (!t.hasta || t.cronico) return "";
+    var n = hmDiasEntre(iso, t.hasta);
+    if (n < 0) return "";
+    if (n === 0) return '<span class="med-quedan fin">último día</span>';
+    return '<span class="med-quedan' + (n <= 2 ? " fin" : "") + '">' + (n === 1 ? "queda 1 día más" : "quedan " + n + " días más") + "</span>";
+  }
+
+  function htmlMedicacionDia(dia) {
+    var d = hmDatos();
+    if (!d) return "";                        // sin fichero, El Plan como siempre
+    var tomas = hmTomasDe(dia);
+    if (!tomas.length) return "";
+    var hechas = (ent().tomas && ent().tomas[dia]) || {}, n = 0, h = "", horaAnt = null;
+    tomas.forEach(function (x) {
+      var hora = x.hora || "A tu hora de siempre";
+      if (hora !== horaAnt) { h += '<div class="med-hora">' + U.esc(hora) + "</div>"; horaAnt = hora; }
+      var ok = !!hechas[x.id]; if (ok) n++;
+      var notas = [];
+      if (x.t.conComida && !/comida/i.test(x.t.notas || "")) notas.push("con comida");
+      if (x.t.notas) notas.push(x.t.notas);
+      h += '<label class="med-toma' + (ok ? " hecha" : "") + '">' +
+        '<input type="checkbox" data-toma="' + U.esc(x.id) + '" data-toma-dia="' + dia + '"' + (ok ? " checked" : "") + ">" +
+        '<span><span class="med-n">' + U.esc(x.t.nombre) + "</span> · " + U.esc(x.t.dosis || "") +
+        hmQuedan(x.t, dia) +
+        (notas.length ? '<span class="med-nota' + (/NUNCA|No interrumpir/.test(x.t.notas || "") ? " ojo" : "") + '">' +
+          U.esc(notas.join(" · ")) + "</span>" : "") + "</span></label>";
+    });
+    var esHoy = dia === U.hoyISO();
+    return '<div class="tarjeta"><h2>Medicación ' + (esHoy ? "de hoy" : "del " + U.esc(U.etiquetaFecha(dia))) +
+      '<span class="ent-cuenta">' + n + " de " + tomas.length + "</span></h2>" + h +
+      '<p class="nota-peque" style="margin-top:8px">Las pautas son las de tu historial médico ' +
+      '(<a role="button" tabindex="0" data-bloque="historial" style="cursor:pointer;text-decoration:underline">ver</a>). Para cambiar algo, díselo a Claude.</p></div>';
+  }
+
+  /* cumplimiento de los últimos 7 días que ya han pasado o son hoy */
+  function hmCumplimiento() {
+    var hoy = U.hoyISO(), tot = 0, hech = 0, i, iso, tt = ent().tomas || {};
+    for (i = 0; i < 7; i++) {
+      iso = U.aISO ? U.aISO(new Date(U.desdeISO(hoy).getTime() - i * 86400000)) : null;
+      if (!iso) break;
+      hmTomasDe(iso).forEach(function (x) { tot++; if (tt[iso] && tt[iso][x.id]) hech++; });
+    }
+    return { tot: tot, hech: hech };
+  }
+
+  function htmlHistorial() {
+    var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
+    var d = hmDatos(), hoy = U.hoyISO();
+    if (!d) {
+      return volver + '<div class="tarjeta"><h2>Historial médico</h2><p class="nota-peque">' +
+        (Historial.estado === "cargando" || Historial.estado === "nada" ? "Cargando del repositorio privado…"
+          : "Todavía no está <b>datos/historial-medico.json</b> en el repositorio privado. Sube solo con la siguiente recogida del portátil.") +
+        "</p></div>";
+    }
+    var h = volver, trs = d.tratamientos || [];
+    var act = trs.filter(function (t) { return hmVigente(t, hoy) || (t.desde && t.desde > hoy); });
+    var fin = trs.filter(function (t) { return t.hasta && t.hasta < hoy; });
+
+    /* avisos primero: es lo que hay que ver sin buscar */
+    if ((d.avisos || []).length) {
+      h += '<div class="tarjeta"><div class="hm-avisos"><b>Consultar sin esperar si…</b><ul class="hm-lista">' +
+        d.avisos.map(function (a) { return "<li>" + U.esc(a) + "</li>"; }).join("") + "</ul></div></div>";
+    }
+
+    var c = hmCumplimiento();
+    h += '<div class="tarjeta"><h2>Tratamientos en curso</h2>';
+    if (c.tot) h += '<p class="nota-peque">Tomas marcadas en los últimos 7 días: <b>' + c.hech + " de " + c.tot + "</b>.</p>";
+    h += '<table class="hm-tabla"><tr><th>Qué</th><th>Cuándo</th><th>Hasta</th></tr>';
+    act.forEach(function (t) {
+      h += "<tr><td><b>" + U.esc(t.nombre) + "</b><br><small>" + U.esc(t.dosis || "") +
+        (t.conComida && !/comida/i.test(t.notas || "") ? " · con comida" : "") + (t.notas ? " · " + U.esc(t.notas) : "") +
+        (t.pauta ? "<br>Pauta: " + U.esc(t.pauta) : "") + "</small></td>" +
+        '<td class="hm-num">' + U.esc((t.tomas && t.tomas.length) ? t.tomas.join(" y ") : "a diario") + "</td>" +
+        "<td>" + (t.cronico || !t.hasta ? "crónico" : U.esc(U.etiquetaFecha(t.hasta)) + "<br>" + hmQuedan(t, hoy)) + "</td></tr>";
+    });
+    h += "</table></div>";
+
+    h += '<div class="tarjeta"><h2>Patologías</h2>';
+    (d.patologias || []).forEach(function (p) {
+      h += '<div class="hm-pat"><h3>' + U.esc(p.nombre) +
+        (p.estado ? '<span class="hm-est ' + U.esc(p.estado) + '">' + U.esc(p.estado) + "</span>" : "") + "</h3>" +
+        (p.resumen ? '<p class="nota-peque">' + U.esc(p.resumen) + "</p>" : "") +
+        ((p.detalle || []).length ? '<ul class="hm-lista">' + p.detalle.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "");
+      var suyos = trs.filter(function (t) { return t.para === p.id && hmVigente(t, hoy); });
+      if (suyos.length) h += '<p class="nota-peque">Tratamiento: ' + U.esc(suyos.map(function (t) { return t.nombre; }).join(" · ")) + "</p>";
+      var antes = trs.filter(function (t) { return t.para === p.id && t.hasta && t.hasta < hoy; });
+      if (antes.length) h += '<p class="nota-peque">Antes: ' + U.esc(antes.map(function (t) { return t.nombre + " (" + hmMes(t.hasta) + ")"; }).join(" · ")) + "</p>";
+      h += "</div>";
+    });
+    h += "</div>";
+
+    if ((d.recomendaciones || []).length || d.sal) {
+      h += '<div class="tarjeta"><h2>Recomendaciones</h2><ul class="hm-lista">' +
+        (d.recomendaciones || []).map(function (r) { return "<li>" + U.esc(r.t) + "</li>"; }).join("") + "</ul>";
+      if (d.sal) {
+        var s = d.sal, tope = (A.estado.config && A.estado.config.limiteSal) || 4;
+        h += '<h3 class="ent-subt">Sal</h3><p class="nota-peque">Máximo diario de la pauta: <b>' +
+          String(s.maxDia_g).replace(".", ",") + " g de sal</b> (" + s.sodio_mg + " mg de sodio). " + U.esc(s.referencia || "") +
+          "<br>" + U.esc(s.conversion || "") + " · Etiquetas por 100 g: " + U.esc(s.semaforo100g || "") +
+          "<br>Tope que usa ahora el menú: <b>" + String(tope).replace(".", ",") + " g</b> (se cambia en Ajustes).</p>";
+        if ((s.reparto || []).length) {
+          h += '<table class="hm-tabla">' + s.reparto.map(function (r) {
+            return "<tr><td>" + U.esc(r[0]) + '</td><td class="hm-num">' + String(r[1].toFixed(2)).replace(".", ",") + " g</td></tr>";
+          }).join("") + "</table>";
+        }
+      }
+      h += "</div>";
+    }
+
+    if ((d.pruebas || []).length) {
+      h += '<div class="tarjeta"><h2>Pruebas</h2><table class="hm-tabla"><tr><th>Fecha</th><th>Prueba</th><th>Resultado</th></tr>';
+      d.pruebas.slice().sort(function (a, b) { return a.f < b.f ? 1 : -1; }).forEach(function (p) {
+        h += "<tr><td>" + U.esc(U.etiquetaFecha(p.f)) + (p.h ? "<br><small>" + U.esc(p.h) + "</small>" : "") + "</td>" +
+          "<td>" + U.esc(p.tipo) + (p.oido ? " · " + U.esc(p.oido) : "") + "</td>" +
+          "<td>" + (p.ptp_db != null ? '<span class="hm-num">' + p.ptp_db + " dB</span> " : "") +
+          (p.nota ? "<small>" + U.esc(p.nota) + "</small>" : "") + "</td></tr>";
+      });
+      h += "</table></div>";
+    }
+
+    if ((d.citas || []).length) {
+      h += '<div class="tarjeta"><h2>Próximas citas</h2>';
+      d.citas.forEach(function (ci) {
+        h += '<div class="hm-pat"><h3>' + U.esc(ci.que) + "</h3><p class=\"nota-peque\">" + U.esc(hmMes(ci.f)) + "</p>" +
+          ((ci.pendiente || []).length ? '<ul class="hm-lista">' + ci.pendiente.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "") + "</div>";
+      });
+      h += "</div>";
+    }
+
+    if ((d.antecedentes || []).length) {
+      h += '<div class="tarjeta"><h2>Antecedentes</h2><ul class="hm-lista">' +
+        d.antecedentes.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul></div>";
+    }
+
+    if (fin.length) {
+      h += '<div class="tarjeta"><h2>Tratamientos terminados</h2><ul class="hm-lista">' +
+        fin.map(function (t) { return "<li><b>" + U.esc(t.nombre) + "</b> · " + U.esc(t.dosis || "") + " · " + (t.desde ? U.esc(hmMes(t.desde)) + " – " : "hasta ") + U.esc(hmMes(t.hasta)) +
+          (t.notas ? "<br><small>" + U.esc(t.notas) + "</small>" : "") + "</li>"; }).join("") +
+        "</ul></div>";
+    }
+
+    h += '<p class="nota-peque" style="text-align:center">Actualizado el ' + U.esc(U.etiquetaFecha(d.actualizado || hoy)) +
+      ". Para añadir o cambiar algo, cuéntaselo a Claude: actualiza el fichero privado y aparece aquí solo.</p>";
+    return h + '<button type="button" class="ent-atras abajo" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
   }
 
   function htmlPortada() {
@@ -10224,6 +10459,7 @@
     }
     h += "</div>";
 
+    h += htmlMedicacionDia(dia);
     h += htmlMisMedidas(dia);
 
     /* lo que sale de todo eso: primero la lectura del día, luego el estado */
@@ -10863,6 +11099,15 @@
 
     cont.addEventListener("change", function (e) {
       var dia = (diaSel && semanaDe(diaSel)) ? diaSel : U.hoyISO(), t = e.target;
+      var tm = t.getAttribute("data-toma");
+      if (tm) {
+        var dT = t.getAttribute("data-toma-dia") || dia, tt = ent().tomas;
+        if (t.checked) { if (!tt[dT]) tt[dT] = {}; tt[dT][tm] = Date.now(); }
+        else if (tt[dT]) { delete tt[dT][tm]; if (!Object.keys(tt[dT]).length) delete tt[dT]; }
+        A.guardar("entreno");
+        pintarConservando();
+        return;
+      }
       var id = t.getAttribute("data-check");
       if (id) {
         /* al desmarcar una sesión que venía del reloj, se guarda un «no» explícito:
@@ -11215,6 +11460,7 @@
     EcgUltimo.cargar(repintaSiDentro);
     RevGarmin.cargar(repintaSiDentro);
     TensionCorreo.cargar(repintaSiDentro);
+    Historial.cargar(repintaSiDentro);
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
       var n = Salud.sembrarPesos();
       if (n) U.toast(n === 1 ? "1 peso traído de intervals" : n + " pesos traídos de intervals");
