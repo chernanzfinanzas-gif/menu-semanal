@@ -1916,6 +1916,28 @@
       return true;
     },
 
+    /* ================= ARRASTRAR: GUARDAR LO QUE SE VE =================
+       Carlos, 29-sep-2026: «las flechas sirven pero son lentas».
+       Al soltar, la pantalla ya tiene el orden bueno: se guarda tal cual, sin
+       recalcular nada. Sólo se acepta la lista ENTERA del estante (arrastrar
+       queda apagado mientras haya un filtro de busqueda puesto), para no
+       borrar del orden lo que en ese momento no se estuviera viendo. */
+    fijarOrdenCasa: function (estanteK, ids) {
+      if (!estanteK || !ids || !ids.length) return false;
+      if (!this.estado.ordenCasa) this.estado.ordenCasa = {};
+      this.estado.ordenCasa[estanteK] = ids.slice();
+      this.guardar("orden");
+      return true;
+    },
+
+    fijarOrdenCompra: function (clave, ids) {
+      if (!clave || !ids || !ids.length) return false;
+      if (!this.estado.ordenCompra) this.estado.ordenCompra = {};
+      this.estado.ordenCompra[clave] = ids.slice();
+      this.guardar("ordenCompra");
+      return true;
+    },
+
     /* ================= EL RECORRIDO: ¿LO TENGO? =================
        Carlos, 24-sep-2026: «voy mirando en el móvil para anotar lo que tengo,
        desde la nevera a la alacena».

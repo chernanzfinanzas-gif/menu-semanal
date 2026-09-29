@@ -3367,6 +3367,76 @@
 
      Y por eso el contenedor va primero en el orden: las 68 fichas sin formato
      salen arriba, porque sin contenedor no hay ni piezas ni lote ni mínimo. */
+  /* ==================== ARRASTRAR (SOLO CON RATON) ====================
+     Carlos, 29-sep-2026: «puedes poner ese comportamiento en la app web y
+     anularlo en el móvil» y luego «las flechas sirven pero son lentas».
+
+     Las flechas se quedan: en el móvil son lo único que hay, porque el arrastre
+     de HTML no existe en una pantalla táctil, y poner `draggable` en el móvil
+     además estorba al desplazar con el dedo. Así que esto se enciende sólo si
+     el aparato tiene puntero fino, o sea ratón.
+
+     Funciona moviendo la fila DE VERDAD mientras arrastras, no pintando una
+     raya de destino: ves el hueco abrirse donde va a caer. Al soltar, el orden
+     bueno ya está en la pantalla y sólo hay que guardarlo.
+
+     Dos reglas: no se salta de grupo (un producto no cambia de estante ni de
+     tienda arrastrando, para eso está el selector), y no se arrastra con el
+     buscador puesto, porque entonces la pantalla no tiene todas las fichas y
+     guardar lo que se ve borraría del orden las que están escondidas. */
+  var HAY_RATON = !!(window.matchMedia && window.matchMedia("(pointer: fine)").matches);
+
+  function montarArrastre(cont, selFila, selGrupo, alSoltar) {
+    if (!HAY_RATON || !cont || cont.getAttribute("data-arrastre")) return;
+    cont.setAttribute("data-arrastre", "1");
+    var cogida = null, grupo = null;
+
+    function soltar() {
+      if (cogida) cogida.classList.remove("cogida");
+      cogida = null; grupo = null;
+    }
+
+    cont.addEventListener("dragstart", function (e) {
+      var ag = e.target.closest ? e.target.closest(".agarre") : null;
+      if (!ag) return;
+      var fila = ag.closest(selFila);
+      var gr = fila && fila.closest(selGrupo);
+      if (!fila || !gr || gr.getAttribute("data-filtrado")) { e.preventDefault(); return; }
+      cogida = fila; grupo = gr;
+      fila.classList.add("cogida");
+      try {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", fila.getAttribute("data-locfila") ||
+                                             fila.getAttribute("data-compfila") || "x");
+        if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(fila, 12, 12);
+      } catch (x) {}
+    });
+
+    cont.addEventListener("dragover", function (e) {
+      if (!cogida) return;
+      var fila = e.target.closest ? e.target.closest(selFila) : null;
+      if (!fila || fila === cogida || fila.closest(selGrupo) !== grupo) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = "move"; } catch (x) {}
+      var r = fila.getBoundingClientRect();
+      var arriba = (e.clientY - r.top) < r.height / 2;
+      fila.parentNode.insertBefore(cogida, arriba ? fila : fila.nextSibling);
+    });
+
+    cont.addEventListener("drop", function (e) {
+      if (!cogida) return;
+      e.preventDefault();
+      var gr = grupo;
+      var ids = Array.prototype.map.call(gr.querySelectorAll(selFila), function (f) {
+        return f.getAttribute("data-locfila") || f.getAttribute("data-compfila");
+      });
+      soltar();
+      alSoltar(gr, ids);
+    });
+
+    cont.addEventListener("dragend", soltar);
+  }
+
   /* ==================== EL ORDEN DE LA COMPRA ====================
      Carlos, 29-sep-2026: «lo que quiero es que haya una lista de compra con
      todos los productos separados por supermercado y estante, y es ahí donde lo
@@ -3421,6 +3491,7 @@
         vistos.forEach(function (x) {
           bloques += '<div class="fila-compra" data-compfila="' + esc(x.id) + '">' +
             '<div class="loc-mover">' +
+              (HAY_RATON && !q ? '<span class="agarre" draggable="true" title="Arrastrar para colocar" aria-hidden="true">\u283F</span>' : '') +
               '<button type="button" class="btn mini" data-ordsube="' + esc(x.id) + '" aria-label="Subir"' +
                 (q ? " disabled" : "") + '>↑</button>' +
               '<button type="button" class="btn mini" data-ordbaja="' + esc(x.id) + '" aria-label="Bajar"' +
@@ -4138,6 +4209,7 @@
        orden que valga porque esas fichas todavía no están en ningún sitio. */
     var flechas = estanteActual
       ? '<div class="loc-mover">' +
+          (HAY_RATON ? '<span class="agarre" draggable="true" title="Arrastrar para colocar" aria-hidden="true">\u283F</span>' : '') +
           '<button type="button" class="btn mini" data-locsube="' + esc(g.id) + '" aria-label="Subir ' + esc(g.n) + '">\u2191</button>' +
           '<button type="button" class="btn mini" data-locbaja="' + esc(g.id) + '" aria-label="Bajar ' + esc(g.n) + '">\u2193</button>' +
         '</div>'
@@ -4254,6 +4326,7 @@
       deZona.forEach(function (x) {
         var abiertoE = q ? true : (UI.estanteAbierto === x.e.k);
         html += '<details class="grupo-selec estante-loc"' + (abiertoE ? " open" : "") +
+          (q ? ' data-filtrado="1"' : '') +
           ' data-estanteloc="' + esc(x.e.k) + '"><summary><span class="tit">' + esc(x.e.n) +
           '</span><span class="cuantas">' + (x.ing.length || "—") + "</span></summary>";
         x.ing.forEach(function (g) { html += lineaLoc(g, x.e.k); });
@@ -6093,6 +6166,19 @@
       Almacen.moverEnCompra(caja.getAttribute("data-clavecompra"), ids, id,
                             mv.hasAttribute("data-ordsube") ? -1 : 1);
       pintarOrdenCompra();
+    });
+
+    /* Y lo mismo arrastrando, para el que esté en el ordenador. */
+    if (ro) montarArrastre(ro, "[data-compfila]", "[data-clavecompra]", function (gr, ids) {
+      Almacen.fijarOrdenCompra(gr.getAttribute("data-clavecompra"), ids);
+      pintarOrdenCompra();
+    });
+
+    montarArrastre($("#rejilla-loc"), "[data-locfila]", "[data-estanteloc]", function (gr, ids) {
+      var k = gr.getAttribute("data-estanteloc");
+      Almacen.fijarOrdenCasa(k, ids);
+      UI.estanteAbierto = k;          /* que no se cierre al repintar */
+      pintarLocalizacion();
     });
 
     /* Las flechas del orden de la compra. Se guarda EXACTAMENTE lo que se ve en

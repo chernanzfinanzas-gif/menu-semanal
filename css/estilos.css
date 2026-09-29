@@ -492,6 +492,18 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .zona-compra > h4.estante span{font-weight:400; letter-spacing:0; text-transform:none; opacity:.75}
 .fila-compra{display:flex; align-items:center; gap:6px}
 .fila-compra > .linea{flex:1; min-width:0}
+
+/* ===== EL AGARRE PARA ARRASTRAR (Carlos, 29-sep-2026: «las flechas sirven
+   pero son lentas») ===== Sólo se pinta con ratón: la app decide en el
+   momento de escribir la línea, y esto es por si acaso. La fila que llevas
+   cogida se queda medio transparente para que se vea dónde estaba. */
+.agarre{cursor:grab; user-select:none; color:var(--gris); opacity:.55;
+  font-size:1rem; line-height:1; padding:2px 3px; border-radius:6px}
+.agarre:hover{opacity:1; background:var(--gris-claro)}
+.agarre:active{cursor:grabbing}
+.linea-loc.cogida, .fila-compra.cogida{opacity:.4}
+.linea-loc.cogida{border-style:dashed}
+@media (pointer:coarse){ .agarre{display:none} }
 .zona-loc.pendiente{border-color:var(--ambar); border-width:1.5px}
 .zona-loc.pendiente .tit{color:var(--ambar)}
 .zona-loc h4.estante{margin:10px 0 4px; padding:0 13px; font-size:.72rem; font-weight:700;
