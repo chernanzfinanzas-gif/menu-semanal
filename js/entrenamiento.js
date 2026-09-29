@@ -801,6 +801,7 @@
       ".ent-navsem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}",
       ".ent-navsem h2{margin:0;flex:1;text-align:center}",
       ".ent-navsem .btn{flex:none}",
+      ".ent-navsem .btn.icono{min-width:56px;height:52px;padding:0 12px;font-size:34px;font-weight:700;line-height:1;border-radius:12px}",
       ".ent-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}",
       ".ent-dia{background:var(--gris-claro);border:1px solid var(--borde);border-radius:10px;padding:7px 4px;",
       "  text-align:center;min-height:86px;display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer}",
@@ -8473,7 +8474,7 @@
     vestir(cont.classList.contains("activa"));
     /* el aviso de Garmin, arriba de las tres pantallas que más mira */
     var avisoG = (bloque === "plan" || bloque === "evolucion" || bloque === "actividad") ? avisoGarmin() : "";
-    cont.innerHTML = avisoG + ((bloque === "plan") ? panelManana() + htmlPlan()
+    cont.innerHTML = avisoG + ((bloque === "plan") ? htmlPlan()
       : (bloque === "evolucion") ? htmlEvolucion()
       : (bloque === "rampa") ? htmlRampa()
       : (bloque === "casos") ? htmlCasos()
@@ -10122,6 +10123,11 @@
        es lo primero que se hace al entrar. Tenerla al final obligaba a bajar
        toda la pantalla para mirar otro día y volver a subir. */
     var lunes = lunesVista || U.lunesDe(hoy);
+    /* 29-sep-2026: LA SEMANA VA LO PRIMERO. Se elige el día arriba y todo lo
+       de debajo va con él. Lo que había antes (semáforo, avisos, pase) se
+       guarda y se pone detrás, con la tarjeta de salud del día delante. */
+    var cabeza = h.slice(volver.length);
+    h = volver;
     estiloCargas();
     h += '<div class="tarjeta"><div class="ent-navsem">' +
       '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
@@ -10335,6 +10341,7 @@
     h += panelAvisos(lunes);
     h += panelCargaExtra(lunes);
     h += "</div>";
+    h += panelManana() + cabeza;
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
        Se calculó arriba, antes de la tira, para que la casilla salga marcada. */
@@ -11120,6 +11127,10 @@
         var base = lunesVista || U.lunesDe(U.hoyISO());
         var nuevo = U.sumarDias(base, 7 * parseInt(ns.getAttribute("data-semana"), 10));
         lunesVista = (nuevo === U.lunesDe(U.hoyISO())) ? null : nuevo;
+        /* 29-sep-2026, Carlos: al cambiar de semana se quedaba abierto el día
+           de la otra y se liaba. Ahora el día va con la semana: en otra semana
+           se abre su lunes; al volver a la de hoy, hoy. */
+        diaSel = lunesVista ? nuevo : null;
         pintar();
         return;
       }
