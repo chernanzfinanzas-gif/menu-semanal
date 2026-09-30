@@ -105,7 +105,8 @@
              los pone sola al rellenar o al completar el día. */
           fijos: [
             { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
-            { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] }
+            { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] },
+            { r: "pan_ortiz_mesa",     tomas: ["comida", "cena"] }
           ],
 
           /* Cómo se reparte el objetivo del día entre las cinco tomas. Es el reparto
@@ -638,9 +639,23 @@
       if (!e.config.fijos) {
         e.config.fijos = [
           { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
-          { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] }
+          { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] },
+          { r: "pan_ortiz_mesa",     tomas: ["comida", "cena"] }
         ];
         añadidos.push("fijos de comida y cena");
+      }
+      /* EL PAN DE SUSANA ENTRA UNA SOLA VEZ (30-sep-2026). Quien ya tenía sus
+         fijos guardados no los recibe por la línea de arriba, que solo actúa
+         cuando no hay ninguno. Se añade aquí, y se deja la marca para no volver
+         a ponerlo nunca más: si él lo quita, se queda quitado. */
+      if (!e.config.panDeElla) {
+        var _yaEsta = false;
+        (e.config.fijos || []).forEach(function (f) { if (f.r === "pan_ortiz_mesa") _yaEsta = true; });
+        if (!_yaEsta) {
+          e.config.fijos.push({ r: "pan_ortiz_mesa", tomas: ["comida", "cena"] });
+          añadidos.push("el pan tostado de Susana en comida y cena");
+        }
+        e.config.panDeElla = 1;
       }
       if (!e.config.repartoTomas) {
         e.config.repartoTomas = { desayuno: 0.22, almuerzo: 0.10, comida: 0.33, merienda: 0.10, cena: 0.25 };
@@ -1230,6 +1245,7 @@
         if (puestos.length) {
           var gf = self.agrupar(puestos);
           gf.orden.forEach(function (id) {
+            if (self.esDeOtro(id)) return;      /* tampoco fuera de casa */
             var nn = self.nutrEn(fecha, id);
             var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
             t.k += nn.k * f; t.p += nn.p * f; t.g += nn.g * f; t.h += nn.h * f;
@@ -1243,6 +1259,7 @@
       var g = self.agrupar(dia[toma]);
       g.orden.forEach(function (id) {
         if (soloComido && !self.estaComido(fecha, toma, id)) return;
+        if (self.esDeOtro(id)) return;          /* el plato de Susana no son tus calorías */
         var n = self.nutrEn(fecha, id);
         var f = self.factorPlato(fecha, toma, id, g.veces[id]);
         t.k += n.k * f; t.p += n.p * f; t.g += n.g * f; t.h += n.h * f;
@@ -1586,6 +1603,43 @@
     /* POR CUÁNTO SE MULTIPLICA ese plato en ese día. Sin corrección, por las
        veces que esté puesto. Con corrección, por lo que diga la corrección, que
        ya es el total. */
+    /* ---------- DE QUIÉN ES EL PLATO (30-sep-2026) ----------
+       Carlos: «mi pan es 1/2 de panecillo sin sal de mercadona y cuenta en las
+       calorías. Susana toma 3 tostadas pan tostado de Mercadona y no cuenta para
+       las calorías».
+
+       Una receta puede llevar `dueno`:
+         "yo"    el plato es suyo: se compra UNA ración aunque comáis dos, y cuenta.
+         "ella"  el plato es de Susana: se compra UNA ración, SALE de la despensa
+                 igual que cualquier otra cosa, y NO cuenta en sus calorías ni en
+                 su sal. Solo se pone los días que ella come.
+         (nada)  es de los dos: se compra por comensales y cuenta una ración.
+
+       El yogur con copos es el tercer caso y por eso ya funcionaba bien: la compra
+       pide dos y las calorías cuentan una. El pan era el que fallaba por los dos
+       lados. Ver `claude/cada-uno-come-su-pan.md`.
+
+       OJO, LA DISTINCIÓN QUE IMPORTA: esto NO se resuelve en `factorPlato`. Ese
+       factor lo usan también el compromiso de despensa y el descuento al marcar
+       comido, y el pan de Susana SÍ sale de la despensa: si allí valiera cero, el
+       stock contaría pan que ya os habéis comido. Lo que no cuenta son sus
+       calorías, y eso se filtra en `nutrToma`, que es por donde pasan todas las
+       sumas del día. */
+    duenoDe: function (recetaId) {
+      var rec = typeof recetaId === "string" ? this.receta(recetaId) : recetaId;
+      return (rec && rec.dueno) || "";
+    },
+    /* ¿Este plato se lo come otro? Entonces no suma en TUS números. */
+    esDeOtro: function (recetaId) {
+      var d = this.duenoDe(recetaId);
+      return !!d && d !== "yo";
+    },
+    /* Un plato con dueño se compra y se descuenta para UNA persona, coman los que
+       coman: es de quien es. Sin dueño, para los que se sienten a la mesa. */
+    comensalesDePlato: function (rec, personas) {
+      return this.duenoDe(rec) ? 1 : personas;
+    },
+
     factorPlato: function (fecha, toma, recetaId, veces) {
       var real = this.cantidadReal(fecha, toma, recetaId);
       if (!real) return veces || 1;
@@ -2727,7 +2781,7 @@
             if (self.estaComido(fecha, toma, rid)) return;   // ya comido: ya descontado
             var rec = self.receta(rid);
             if (!rec) return;
-            var raciones = personas * g.veces[rid];
+            var raciones = self.comensalesDePlato(rec, personas) * g.veces[rid];
             if (rec.tanda) { tandas[rid] = (tandas[rid] || 0) + raciones; return; }
             var factor = raciones / (rec.raciones || 1);
             (rec.ing || []).forEach(function (l) {
@@ -2782,6 +2836,8 @@
        marcar comido deshace justo lo que reservó planificar. */
     racionesDeCasa: function (fecha, toma, recetaId, veces) {
       var personas = this.comensales(fecha, toma) || 1;
+      /* Un plato con dueño sale de la despensa para uno solo (30-sep-2026). */
+      personas = this.comensalesDePlato(this.receta(recetaId), personas) || 1;
       var f = this.factorPlato(fecha, toma, recetaId, veces || 1);
       return (personas - 1) * (veces || 1) + f;
     },
@@ -4439,7 +4495,7 @@
 
         if (ficha.mochila.indexOf(t.k) >= 0) {
           if (!pool.length) return;
-          var aptas = pool.filter(function (r) { return !r.oculta && (r.tipo || []).indexOf(t.k) >= 0; });
+          var aptas = pool.filter(function (r) { return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(t.k) >= 0; });
           if (!aptas.length) aptas = pool;
           /* reparto estable: el mismo día siempre propone lo mismo */
           var semilla = 0, s = fecha + t.k;
@@ -4561,6 +4617,10 @@
           if (self.estaVaciada(fecha, toma)) return;   /* la vaciaste tú */
           if (self.estaQuitado(fecha, toma, f.r)) return;  /* este plato lo quitaste tú */
           if (ficha.mochila.indexOf(toma) >= 0) return;
+          /* EL PLATO DE SUSANA SOLO LOS DÍAS QUE ELLA COME (30-sep-2026). Carlos:
+             «estos productos se ponen si es comida para 2, si es comida para una
+             solo sale el panecillo». */
+          if (self.esDeOtro(f.r) && self.comensales(fecha, toma) < 2) return;
           if (!d[toma]) d[toma] = [];
           if (d[toma].indexOf(f.r) >= 0) return;
           d[toma].push(f.r);
@@ -4657,7 +4717,7 @@
         var busco = Math.max(80, Math.min(cuota, restante));
 
         var candidatas = (pool && ficha.mochila.indexOf(t.k) >= 0 ? pool : self.estado.recetas)
-          .filter(function (r) { return !r.oculta && (r.tipo || []).indexOf(t.k) >= 0; });
+          .filter(function (r) { return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(t.k) >= 0; });
         if (!candidatas.length && pool && ficha.mochila.indexOf(t.k) >= 0) candidatas = pool;
         if (!candidatas.length) return;
 
@@ -4692,7 +4752,7 @@
           falta = objetivo - self.nutrDia(fecha).k;
           if (falta < 100) return;
           var guar = self.estado.recetas.filter(function (r) {
-            return !r.oculta && (r.tipo || []).indexOf("guarnicion") >= 0 &&
+            return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf("guarnicion") >= 0 &&
                    (d[toma] || []).indexOf(r.id) < 0;
           });
           if (!guar.length) return;
@@ -4721,7 +4781,7 @@
           if (falta < 180) return;
           var base = (pool && ficha.mochila.indexOf(toma) >= 0) ? pool : self.estado.recetas;
           var aptas = base.filter(function (r) {
-            return !r.oculta && (r.tipo || []).indexOf(toma) >= 0 && (d[toma] || []).indexOf(r.id) < 0;
+            return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(toma) >= 0 && (d[toma] || []).indexOf(r.id) < 0;
           });
           if (!aptas.length) return;
           var salHoy = self.salDia(fecha);
@@ -4985,11 +5045,13 @@
             if (opciones.saltarComido && self.estaComido(fecha, toma, rid)) return;
             /* Las TANDAS se apuntan aparte y se resuelven al final: no se puede comprar
                un cuarto de bandeja de barritas. Ver `tandas` más abajo. */
+            /* Un plato con dueño se compra para uno solo: ver `duenoDe`. */
+            var pers = self.comensalesDePlato(rec, personas);
             if (rec.tanda) {
-              porciones[rid] = (porciones[rid] || 0) + personas;
+              porciones[rid] = (porciones[rid] || 0) + pers;
               return;
             }
-            var factor = personas / (rec.raciones || 1);
+            var factor = pers / (rec.raciones || 1);
             (rec.ing || []).forEach(function (l) {
               if (!acumulado[l.i]) acumulado[l.i] = { cantidad: 0, recetas: {} };
               acumulado[l.i].cantidad += l.c * factor;
