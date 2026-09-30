@@ -5915,6 +5915,73 @@
   }
 
   /* media de los últimos n días, no de los últimos n puntos */
+  /* LA GRÁFICA DE LA TENSIÓN, UNA SOLA PARA TODA LA APP (1-oct-2026).
+     La usan Evolución y la ventana que se abre desde las casillas de El Plan.
+     Carlos: «mira a ver si puedes mejorar el gráfico de tensión de El Plan».
+     La de la ventana pintaba cada toma suelta —tres por la mañana y tres por
+     la tarde hacían un zigzag vertical en el mismo día—, no distinguía
+     mañana y tarde y tenía los colores al revés que Evolución.
+     Línea fina: media de la MAÑANA de cada día. Puntos: la de la TARDE
+     (desde las 12:00). Gruesa: media de 7 días con todas las tomas. Rojo la
+     alta, azul la baja; naranja y morado, las de la tarde. */
+  function graficaTension(desde, hasta, alto) {
+    var ROJO = "#b3402f", AZUL = "#2f5c8a", ROJO_CL = "#e6c3bb", AZUL_CL = "#bacde1",
+        NARANJA_T = "#d98b2b", MORADO_T = "#7b5ea7";
+    var tomasT = tomasTension(desde, hasta), pdT = {}, pdM = {}, pdTa = {};
+    tomasT.forEach(function (x) {
+      if (!pdT[x.f]) pdT[x.f] = { s: 0, d: 0, n: 0 };
+      pdT[x.f].s += x.sis; pdT[x.f].d += x.dia; pdT[x.f].n++;
+      var o = (x.h && x.h >= "12:00") ? pdTa : pdM;
+      if (!o[x.f]) o[x.f] = { s: 0, d: 0, n: 0 };
+      o[x.f].s += x.sis; o[x.f].d += x.dia; o[x.f].n++;
+    });
+    var med = function (pd, k) { return Object.keys(pd).sort().map(function (f) { return { f: f, v: pd[f][k] / pd[f].n }; }); };
+    var sisD = med(pdT, "s"), diaD = med(pdT, "d");
+    var sisM = med(pdM, "s"), diaM = med(pdM, "d"), sisTa = med(pdTa, "s"), diaTa = med(pdTa, "d");
+    var out = { sisD: sisD, diaD: diaD, nota: "", ult: null, html: "" };
+    if (!sisD.length) {
+      out.html = sinDatos("Sin tomas en este tramo", "Llegan solas del correo del tensiómetro.");
+      return out;
+    }
+    var mS = mediaMovilDias(sisD, 7), mD = mediaMovilDias(diaD, 7);
+    /* la escala se ajusta a sus cifras (antes, fija de 50 a 150: la mitad de
+       la caja vacía); 85 y 135 siempre dentro, que son las líneas que importan */
+    var loD = Math.min.apply(null, tomasT.map(function (x) { return x.dia; }));
+    var hiS = Math.max.apply(null, tomasT.map(function (x) { return x.sis; }));
+    var yMin = Math.min(70, Math.floor((loD - 5) / 10) * 10), yMax = Math.max(140, Math.ceil((hiS + 5) / 10) * 10);
+    var series = [{ pts: sisM, color: ROJO_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: sisM.length < 3 },
+                  { pts: mS, color: ROJO, ancho: 1.6 },
+                  { pts: diaM, color: AZUL_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: diaM.length < 3 },
+                  { pts: mD, color: AZUL, ancho: 1.6 }];
+    if (sisTa.length) series.push({ pts: sisTa, color: NARANJA_T, soloPuntos: true, marcarUltimo: false },
+                                  { pts: diaTa, color: MORADO_T, soloPuntos: true, marcarUltimo: false });
+    var ley = [{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL }];
+    if (sisTa.length) ley.push({ n: "alta de la tarde", color: NARANJA_T }, { n: "baja de la tarde", color: MORADO_T });
+    ley.push({ n: "135/85, umbral en casa", color: "#eccf9a", guiones: true });
+    out.html = grafica({
+      desde: desde, hasta: hasta, alto: alto || 120, arriba: "mmHg", unidadTip: "mmHg", min: yMin, max: yMax,
+      alt: "Tensión alta y baja", par: ["alta", "baja"],
+      explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja.",
+      lineasH: [{ v: 135, color: "#eccf9a", etq: "135" }, { v: 85, color: "#eccf9a", etq: "85" }],
+      series: series
+    }) + leyenda(ley);
+    /* la diferencia mañana → tarde, solo con días que tengan las dos */
+    var ambos = Object.keys(pdTa).filter(function (f) { return pdM[f]; });
+    if (ambos.length) {
+      var am = { s: 0, d: 0 }, at = { s: 0, d: 0 };
+      ambos.forEach(function (f) {
+        am.s += pdM[f].s / pdM[f].n; am.d += pdM[f].d / pdM[f].n;
+        at.s += pdTa[f].s / pdTa[f].n; at.d += pdTa[f].d / pdTa[f].n;
+      });
+      var k = ambos.length;
+      out.nota = "Mañana y tarde (" + k + (k === 1 ? " día con las dos" : " días con las dos") + "): mañana <b>" +
+        Math.round(am.s / k) + "/" + Math.round(am.d / k) + "</b>, tarde <b>" +
+        Math.round(at.s / k) + "/" + Math.round(at.d / k) + "</b>. ";
+    }
+    out.ult = Math.round(mS[mS.length - 1].v) + "/" + Math.round(mD[mD.length - 1].v);
+    return out;
+  }
+
   function mediaMovilDias(serie, n) {
     var out = [];
     for (var i = 0; i < serie.length; i++) {
@@ -8020,61 +8087,9 @@
        135 y 85: el umbral de hipertensión para tomas EN CASA (guías europeas).
        El de 140/90 es el de consulta, y estaba puesto mal hasta la v270. */
     v = ventanaDe("tension");
-    /* MAÑANA Y TARDE · 30-sep-2026. Carlos: «las gráficas de tensión deben
-       reflejar la variación mañana / tarde». La línea fina es la media de la
-       mañana de cada día; los puntos, la de la tarde (desde las 12:00); la
-       gruesa, la media de 7 días con todas las tomas. Lo tecleado sin hora
-       cuenta como mañana, que es cuando se la toma. */
-    var tomasT = tomasTension(v.desde, v.hasta), pdT = {}, pdM = {}, pdTa = {};
-    tomasT.forEach(function (x) {
-      if (!pdT[x.f]) pdT[x.f] = { s: 0, d: 0, n: 0 };
-      pdT[x.f].s += x.sis; pdT[x.f].d += x.dia; pdT[x.f].n++;
-      var o = (x.h && x.h >= "12:00") ? pdTa : pdM;
-      if (!o[x.f]) o[x.f] = { s: 0, d: 0, n: 0 };
-      o[x.f].s += x.sis; o[x.f].d += x.dia; o[x.f].n++;
-    });
-    var diasT = Object.keys(pdT).sort();
-    var sisD = diasT.map(function (f) { return { f: f, v: pdT[f].s / pdT[f].n }; });
-    var diaD = diasT.map(function (f) { return { f: f, v: pdT[f].d / pdT[f].n }; });
-    var diasM = Object.keys(pdM).sort(), diasTa = Object.keys(pdTa).sort();
-    var sisM = diasM.map(function (f) { return { f: f, v: pdM[f].s / pdM[f].n }; });
-    var diaM = diasM.map(function (f) { return { f: f, v: pdM[f].d / pdM[f].n }; });
-    var sisTa = diasTa.map(function (f) { return { f: f, v: pdTa[f].s / pdTa[f].n }; });
-    var diaTa = diasTa.map(function (f) { return { f: f, v: pdTa[f].d / pdTa[f].n }; });
-    var cuerpoT, notaT = "";
+    var gT = graficaTension(v.desde, v.hasta, 120);
+    var cuerpoT = gT.html, notaT = gT.nota, sisD = gT.sisD, diaD = gT.diaD;
     if (sisD.length) {
-      var ROJO_CL = "#e6c3bb", AZUL_CL = "#bacde1", NARANJA_T = "#d98b2b", MORADO_T = "#7b5ea7";
-      var seriesT = [{ pts: sisM, color: ROJO_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: sisM.length < 3 },
-                     { pts: mediaMovilDias(sisD, 7), color: ROJO, ancho: 1.6 },
-                     { pts: diaM, color: AZUL_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: diaM.length < 3 },
-                     { pts: mediaMovilDias(diaD, 7), color: AZUL, ancho: 1.6 }];
-      if (sisTa.length) {
-        seriesT.push({ pts: sisTa, color: NARANJA_T, soloPuntos: true, marcarUltimo: false },
-                     { pts: diaTa, color: MORADO_T, soloPuntos: true, marcarUltimo: false });
-      }
-      var leyT = [{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL }];
-      if (sisTa.length) leyT.push({ n: "alta de la tarde", color: NARANJA_T }, { n: "baja de la tarde", color: MORADO_T });
-      leyT.push({ n: "135/85, umbral en casa", color: "#eccf9a", guiones: true });
-      cuerpoT = grafica({
-        desde: v.desde, hasta: v.hasta, alto: 120, arriba: "mmHg", unidadTip: "mmHg", min: 50, max: 150,
-        alt: "Tensión alta y baja", par: ["alta", "baja"],
-        explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja.",
-        lineasH: [{ v: 135, color: "#eccf9a", etq: "135" }, { v: 85, color: "#eccf9a", etq: "85" }],
-        series: seriesT
-      }) + leyenda(leyT);
-      /* la diferencia mañana → tarde, solo con días que tengan las dos */
-      var ambos = diasTa.filter(function (f) { return pdM[f]; });
-      if (ambos.length) {
-        var am = { s: 0, d: 0 }, at = { s: 0, d: 0 };
-        ambos.forEach(function (f) {
-          am.s += pdM[f].s / pdM[f].n; am.d += pdM[f].d / pdM[f].n;
-          at.s += pdTa[f].s / pdTa[f].n; at.d += pdTa[f].d / pdTa[f].n;
-        });
-        var k = ambos.length;
-        notaT += "Mañana y tarde (" + k + (k === 1 ? " día con las dos" : " días con las dos") + "): mañana <b>" +
-          Math.round(am.s / k) + "/" + Math.round(am.d / k) + "</b>, tarde <b>" +
-          Math.round(at.s / k) + "/" + Math.round(at.d / k) + "</b>. ";
-      }
       /* ANTES Y DESPUÉS DE JUNIO DE 2026, con todas las tomas y no solo las del
          tramo: es la pregunta que él se hace («desde el vértigo me ha subido»),
          y así la contesta el número en vez de la memoria. */
@@ -8086,11 +8101,8 @@
           "</b> de media (" + antes.n + " tomas). Desde el 1 de junio: <b>" + Math.round(desp.s / desp.n) + "/" +
           Math.round(desp.d / desp.n) + "</b> (" + desp.n + " tomas).";
       }
-    } else {
-      cuerpoT = sinDatos("Sin tomas en este tramo", "Llegan solas del correo del tensiómetro.");
     }
-    var ultT = sisD.length ? Math.round(mediaMovilDias(sisD, 7)[sisD.length - 1].v) + "/" +
-      Math.round(mediaMovilDias(diaD, 7)[diaD.length - 1].v) : null;
+    var ultT = gT.ult;
     h += tarjetaEvo("Tensión", ultT, "mmHg",
       "Una toma suelta no dice nada: lo que se lee es la media de 7 días.",
       mandoEvo("tension") + tramoEvo("tension") + cuerpoT +
@@ -8331,6 +8343,27 @@
     if (rango) rangoHist = rango;
     if (!RANGOS_HIST.some(function (r) { return r.id === rangoHist; })) rangoHist = "1a";
     histAbierta = clave;
+    /* la tensión tiene su propia gráfica, la misma que Evolución */
+    if (clave === "tension" || clave === "sistolica" || clave === "diastolica") {
+      var dT = null;
+      for (var iT = 0; iT < RANGOS.length; iT++) if (RANGOS[iT].id === rangoHist && RANGOS[iT].d) dT = RANGOS[iT].d;
+      var hastaT = U.hoyISO(), desdeT = U.sumarDias(hastaT, -(dT || 365));
+      var gTen = graficaTension(desdeT, hastaT, 150);
+      var hT = '<header><h2>Tensión</h2>' +
+        '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+        '<div class="evo-rangos">';
+      RANGOS_HIST.forEach(function (r) {
+        hT += '<button type="button" class="evo-r' + (r.id === rangoHist ? " activo" : "") +
+          '" data-histrango="' + r.id + '">' + U.esc(r.n) + "</button>";
+      });
+      hT += "</div>" + (gTen.ult ? '<p class="nota-peque" style="margin:0 0 6px">Media de 7 días: <b>' + gTen.ult + "</b> mmHg</p>" : "") +
+        gTen.html + (gTen.nota ? '<p class="nota-peque" style="margin-top:6px">' + gTen.nota + "</p>" : "") +
+        '<p class="nota-peque" style="margin-top:6px">Una toma suelta no dice nada: lo que se lee es la media de varios días. ' +
+        "El informe para el médico está en Evolución › Tensión.</p>";
+      caja.innerHTML = hT;
+      modal.classList.add("abierta");
+      return;
+    }
     var s1 = d.serie() || [], s2 = d.serie2 ? (d.serie2() || []) : [];
     /* el tramo recorta las dos series, igual que el selector de Evolución */
     var corte = null, diasTramo = 0;
