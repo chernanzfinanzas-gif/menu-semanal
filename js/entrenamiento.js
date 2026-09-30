@@ -1397,9 +1397,15 @@
       vistas["d" + t.f + "|" + t.sis + "/" + t.dia] = 1;
       out.push(t);
     });
+    /* 30-sep-2026: lo tecleado solo cuenta como toma los días en que el
+       tensiómetro no mandó nada. Carlos tecleaba la MEDIA de sus tomas, y se
+       sumaba como una toma más («s/h» en el informe), torciendo las medias. */
+    var conAparato = {};
+    out.forEach(function (x) { conAparato[x.f] = 1; });
     var m = ent().medidas;
     for (var f in m) {
       if (f < desde || f > hasta) continue;
+      if (conAparato[f]) continue;
       var s = parseFloat(m[f].sistolica), d = parseFloat(m[f].diastolica), p = parseFloat(m[f].pulso);
       if (!(s > 0) || !(d > 0)) continue;
       var t2 = { f: f, h: "", sis: Math.round(s), dia: Math.round(d), pul: p > 0 ? Math.round(p) : null, origen: "mano" };
