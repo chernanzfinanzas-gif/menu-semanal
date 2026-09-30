@@ -503,6 +503,15 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .agarre:active{cursor:grabbing}
 .linea-loc.cogida, .fila-compra.cogida{opacity:.4}
 .linea-loc.cogida{border-style:dashed}
+
+/* ===== LA OFERTA DEL SUPLENTE (Carlos, 30-sep-2026) =====
+   Sale colgando de la línea que has marcado como no llegada, sangrada para que
+   se lea como consecuencia de esa marca y no como otra fila más de la lista. */
+.suplente-of{display:flex; align-items:center; gap:8px; margin:-2px 0 8px 40px;
+  padding:6px 10px; border-radius:8px; background:var(--verde-claro);
+  border:1px solid var(--verde-borde); font-size:.82rem; color:var(--tinta); cursor:pointer}
+.suplente-of b{color:var(--verde)}
+.suplente-of input{margin:0}
 @media (pointer:coarse){ .agarre{display:none} }
 .zona-loc.pendiente{border-color:var(--ambar); border-width:1.5px}
 .zona-loc.pendiente .tit{color:var(--ambar)}

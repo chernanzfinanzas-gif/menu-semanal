@@ -3552,20 +3552,57 @@
     quiereEstaVez: function (id) {
       return !!(this.estado.quiero || {})[id];
     },
-    quererEstaVez: function (id, si, piezas) {
+    /* `donde` fuerza la tienda SOLO para esta vez (lo usa el suplente). */
+    quererEstaVez: function (id, si, piezas, donde) {
       var g = this.ingrediente(id);
       if (!g) return false;
       if (!this.estado.quiero) this.estado.quiero = {};
       if (si === false) delete this.estado.quiero[id];
-      else this.estado.quiero[id] = { p: piezas > 0 ? piezas : 1, f: Util.hoyISO() };
+      else {
+        var q = { p: piezas > 0 ? piezas : 1, f: Util.hoyISO() };
+        if (donde) q.donde = donde;
+        this.estado.quiero[id] = q;
+      }
       this.guardar("quiero");
       return true;
+    },
+
+    /* ================= EL SUPLENTE =================
+       Carlos, 30-sep-2026: «una cosa es dejar los productos de amazon para
+       ofrecer sustituto si no viene el de Mercadona… pido cottage y no hay o lo
+       anulan, al ponerlo como no entregado sugiere el sustituto de amazon».
+
+       Hay DOS clases de suplente, y las dos salieron de su catálogo el mismo día:
+
+         · OTRO PRODUCTO de reserva. La ficha titular lleva `suplenteId` con el id
+           de la reserva; la reserva lleva `reserva:true` y `oculta:true` para que
+           no se compre sola. Es el caso del requesón (El Pastoret cubre al de
+           Mercadona) y del cottage (el Arla cubre al Hacendado).
+
+         · EL MISMO PRODUCTO en otra tienda. La ficha lleva `tiendaAlt`. Es el de
+           las salchichas Oscar Mayer: «si no la hay en mercadona, la misma se
+           compra en amazon».
+
+       Ojo con el campo `suplente` a secas, que YA existía en cinco fichas: es
+       texto libre para leerlo tú, no un id. No se toca. */
+    elSuplenteDe: function (id) {
+      var g = this.ingrediente(id);
+      if (!g) return null;
+      if (g.suplenteId) {
+        var s = this.ingrediente(g.suplenteId);
+        if (s) return { tipo: "otro", id: s.id, n: s.n,
+                        donde: this.tiendaDe(s) || "Amazon" };
+      }
+      if (g.tiendaAlt) return { tipo: "mismo", id: g.id, n: g.n, donde: g.tiendaAlt };
+      return null;
     },
     loQueQuieres: function () {
       var self = this, out = [];
       Object.keys(this.estado.quiero || {}).forEach(function (id) {
         var g = self.ingrediente(id);
-        if (!g || g.oculta) return;
+        /* Una RESERVA está oculta para que no se compre sola, pero si se ha
+           pedido a propósito —porque el titular no llegó— tiene que salir. */
+        if (!g || (g.oculta && !g.reserva)) return;
         var ff = self.FORMATOS[self.formatoDe(g)];
         var p = self.estado.quiero[id].p || 1;
         out.push({ id: id, n: g.n, piezas: p, u: g.u, pesoUd: g.pesoUd || 0,
@@ -3577,11 +3614,12 @@
       return out;
     },
 
-    confirmarCompra: function (lineas, faltas) {
+    confirmarCompra: function (lineas, faltas, alSuplente) {
       var self = this;
       faltas = faltas || {};
+      alSuplente = alSuplente || {};
       if (!this.estado.recados) this.estado.recados = {};
-      var entraron = 0, aRecados = 0;
+      var entraron = 0, aRecados = 0, suplentes = 0;
       (lineas || []).forEach(function (l) {
         if (!self.estaPedido(l.id)) return;
         var pedidos = l.envases || 1;
@@ -3594,16 +3632,29 @@
           self.estado.stock[l.id] = { c: Math.round(ahora * 100) / 100, f: Util.hoyISO() };
           entraron++;
         }
+        /* EL BORRADO DEL CAPRICHO VA ANTES QUE EL SUPLENTE, y no es un detalle:
+           cuando el suplente es EL MISMO producto en otra tienda, lo que se
+           apunta en `quiero` lleva su propio id, y si el borrado fuera despues
+           se borraria a si mismo. Lo destapo la prueba de las salchichas. */
+        if (self.estado.quiero) delete self.estado.quiero[l.id];
         if (llegaron < pedidos) {
-          self.estado.recados[l.id] = { c: pedidos - llegaron, f: Util.hoyISO(), tipo: "comida" };
-          aRecados++;
+          var sup = alSuplente[l.id] ? self.elSuplenteDe(l.id) : null;
+          if (sup) {
+            /* Al suplente, no a recados: lo que no llegó se pide en la otra
+               tienda ESTA VEZ. Si es el mismo producto, va con la tienda
+               forzada; si es otro, su ficha ya sabe dónde se compra. */
+            self.quererEstaVez(sup.id, true, pedidos - llegaron,
+                               sup.tipo === "mismo" ? sup.donde : null);
+            suplentes++;
+          } else {
+            self.estado.recados[l.id] = { c: pedidos - llegaron, f: Util.hoyISO(), tipo: "comida" };
+            aRecados++;
+          }
         }
         delete self.estado.compraMarcada[l.id];
-        /* el capricho es de una vez: comprado, se olvida */
-        if (self.estado.quiero) delete self.estado.quiero[l.id];
       });
       this.guardar("compra");
-      return { entraron: entraron, recados: aRecados };
+      return { entraron: entraron, recados: aRecados, suplentes: suplentes };
     },
 
     /* Lo de Hogar, al confirmar: no hay stock que subir, solo se quita la marca
@@ -5074,11 +5125,12 @@
          porque si has dicho que lo quieres, lo quieres aunque tengas de sobra. */
       Object.keys(this.estado.quiero || {}).forEach(function (id) {
         var ing = self.ingrediente(id);
-        if (!ing || ing.oculta) return;
+        if (!ing || (ing.oculta && !ing.reserva)) return;
         if (self.modoPedir(ing) === "nunca") return;
         if (acumulado[id]) return;                  // ya lo pide un plato
         var tamq = self.tamanoPieza(ing);
         var pediste = self.estado.quiero[id].p || 1;
+        var dondeQ = self.estado.quiero[id].donde || null;   /* tienda forzada por el suplente */
         var ffq = self.FORMATOS[self.formatoDe(ing)];
         /* CUÁNTAS UNIDADES DE COMPRA SON. No es decorativo: `confirmarCompra`
            sube al stock `envase × envases`, así que con `envases: 0` sólo entraba
@@ -5096,7 +5148,8 @@
                              : Math.round(pediste * tamq * 100) / 100,
           pide: 0, hay: self.stockDe(id), envase: ing.envase || 0,
           envases: envq, apartado: 0,
-          cajon: self.cajonDe(ing), tienda: self.tiendaDe(ing), unidad: ing.u,
+          cajon: dondeQ ? (dondeQ === "Amazon" ? "amazon" : "super") : self.cajonDe(ing),
+          tienda: dondeQ || self.tiendaDe(ing), unidad: ing.u,
           texto: pz + " " + (pz === 1 ? ffq.n[0] : ffq.n[1]),
           pesoUd: ing.pesoUd || 0, pidePlan: "", recetas: [], enCasa: self.stockDe(id) > 0,
           marcado: !!self.estado.compraMarcada[id],

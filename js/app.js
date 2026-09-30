@@ -5955,14 +5955,27 @@
 
       var html = '<header><h2>Ha llegado la compra</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
       html += '<p class="nota-peque">Todo lo pedido entra en casa. <b>Marca solo lo que no haya venido.</b></p>';
+      /* EL SUPLENTE (Carlos, 30-sep-2026): «pido cottage y no hay o lo anulan, al
+         ponerlo como no entregado sugiere el sustituto de amazon». La casilla
+         del suplente sale ESCONDIDA y aparece sólo al marcar que no ha llegado:
+         hasta que algo falta, no hay nada que decidir. */
       var pinta = function (id, nombre, cuantos, esHogar) {
-        return '<div class="linea">' +
+        var sup = esHogar ? null : Almacen.elSuplenteDe(id);
+        return '<div class="linea-falta" data-falta-de="' + esc(id) + '">' +
+          '<div class="linea">' +
           '<input type="checkbox" data-falto="' + esc(id) + '" title="No ha llegado">' +
           '<div class="datos"><div class="nombre">' + esc(nombre) + '</div>' +
           '<div class="detalle">' + (cuantos > 1 ? "pediste " + cuantos : "") + '</div></div>' +
           (esHogar || cuantos <= 1 ? '' :
             '<input type="number" class="stock-cant" data-llegaron="' + esc(id) + '" min="0" max="' + cuantos +
             '" step="1" value="0" style="width:62px; text-align:right" title="Cu\u00e1ntos llegaron">') +
+          '</div>' +
+          (sup ? '<label class="suplente-of" data-suplente-de="' + esc(id) + '" style="display:none">' +
+                   '<input type="checkbox" data-pedir-suplente="' + esc(id) + '" checked> ' +
+                   (sup.tipo === "mismo"
+                     ? 'P\u00eddelo en <b>' + esc(sup.donde) + '</b>'
+                     : 'En su lugar, <b>' + esc(sup.n) + '</b> en ' + esc(sup.donde)) +
+                 '</label>' : '') +
           '</div>';
       };
       if (lineas.length) {
@@ -5978,20 +5991,31 @@
               '<button class="btn" data-cerrar>Cancelar</button></div>';
       abrirModal(html);
 
+      /* Marcar que algo no ha llegado enciende su oferta de suplente. */
+      $("#modal").addEventListener("change", function (e) {
+        var c = e.target.closest ? e.target.closest("[data-falto]") : null;
+        if (!c) return;
+        var of = document.querySelector('[data-suplente-de="' + c.getAttribute("data-falto") + '"]');
+        if (of) of.style.display = c.checked ? "" : "none";
+      });
+
       $("#cf-ok").addEventListener("click", function () {
-        var faltas = {}, faltasHogar = {};
+        var faltas = {}, faltasHogar = {}, alSuplente = {};
         $$("#modal [data-falto]").forEach(function (c) {
           if (!c.checked) return;
           var id = c.getAttribute("data-falto");
           var n = document.querySelector('[data-llegaron="' + id + '"]');
           faltas[id] = n ? (parseInt(n.value, 10) || 0) : 0;
           faltasHogar[id] = true;
+          var sp = document.querySelector('[data-pedir-suplente="' + id + '"]');
+          if (sp && sp.checked) alSuplente[id] = true;
         });
-        var res = Almacen.confirmarCompra(lineas, faltas);
+        var res = Almacen.confirmarCompra(lineas, faltas, alSuplente);
         Almacen.confirmarHogar(casa.map(function (x) { return x.id; }), faltasHogar);
         cerrarModal(); pintarCompra(); pintarDespensa();
         Util.toast("Entraron " + res.entraron + " en la despensa" +
-                   (res.recados ? " \u00b7 " + res.recados + " a recados" : ""));
+                   (res.recados ? " \u00b7 " + res.recados + " a recados" : "") +
+                   (res.suplentes ? " \u00b7 " + res.suplentes + " al suplente" : ""));
       });
     });
     $("#compra-recalcular").addEventListener("click", pintarCompra);
