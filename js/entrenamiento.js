@@ -5961,8 +5961,11 @@
     out.html = grafica({
       desde: desde, hasta: hasta, alto: alto || 120, arriba: "mmHg", unidadTip: "mmHg", min: yMin, max: yMax,
       alt: "Tensión alta y baja", par: ["alta", "baja"],
-      explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja.",
+      explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja. Al pasar el dedo: la media de todas las tomas de ese día.",
       lineasH: [{ v: 135, color: "#eccf9a", etq: "135" }, { v: 85, color: "#eccf9a", etq: "85" }],
+      /* el globo: media de TODAS las tomas de ese día, en números enteros */
+      tipPar: [sisD.map(function (x) { return { f: x.f, v: Math.round(x.v) }; }),
+               diaD.map(function (x) { return { f: x.f, v: Math.round(x.v) }; })],
       series: series
     }) + leyenda(ley);
     /* la diferencia mañana → tarde, solo con días que tengan las dos */
@@ -6276,6 +6279,10 @@
        juntas: enseñar solo una mitad de la tensión no dice nada. */
     if (o.par && series.length > 1 && series[0].pts && series[0].pts.length &&
         series[1].pts && series[1].pts.length) { princ = series[0]; sec = series[1]; }
+    /* `o.tipPar`: la pareja que lee el globo, cuando no son las dos primeras
+       líneas dibujadas (la tensión: el globo dice la media del día, alta y
+       baja, y las líneas son mañana, tarde y medias de 7 días). 1-oct-2026. */
+    if (o.tipPar && o.tipPar[0].length && o.tipPar[1].length) { princ = { pts: o.tipPar[0] }; sec = { pts: o.tipPar[1] }; }
     if (!princ) series.forEach(function (x) { if (x.tip) princ = x; });
     if (!princ) series.forEach(function (x) { if (!x.barras && (!princ || x.pts.length > princ.pts.length)) princ = x; });
     if (!princ) princ = series[0];
