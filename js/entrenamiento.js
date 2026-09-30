@@ -390,6 +390,16 @@
       "  text-transform:uppercase;color:var(--azul);border:1px solid var(--azul-borde);",
       "  background:var(--azul-claro);border-radius:999px;padding:0 6px;line-height:1.5}",
       ".ent-medida.toca input{border-color:var(--azul)}",
+      /* ALINEADAS POR FILAS · 30-sep-2026. Carlos: «intenta alinear las casillas».
+         El hueco que sobraba en una casilla se lo comía el título y la caja
+         bajaba; con el texto de dos líneas de la tensión, las de al lado
+         quedaban a otra altura. Con subgrid, título, caja y texto de debajo
+         son tres filas comunes a toda la fila de casillas. */
+      "@supports (grid-template-rows:subgrid){" +
+        ".ent-medidas{row-gap:0}" +
+        ".ent-medida{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;margin-bottom:8px}" +
+        ".ent-medida span{align-self:end}" +
+        ".ent-medida small{align-self:start}}",
       ".ent-medida small{display:block;margin-top:3px;font-size:.62rem;color:var(--gris);line-height:1.25}",
       /* botones de guía y su ventana */
       ".ent-mas{margin-top:10px;background:none;border:1px dashed var(--azul-borde);color:var(--azul);",
