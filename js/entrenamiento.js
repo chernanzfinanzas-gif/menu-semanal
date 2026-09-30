@@ -936,12 +936,30 @@
       ".ecg-pie{font-size:.74rem;line-height:1.4;color:#555;margin:6px 0 0}",
       ".ecg-btn{display:block;width:100%;margin-top:10px}",
       "#ecg-imprimir{display:none}",
+      /* ---- la tensión en papel (v295) ---- */
+      ".ten-svg{display:block;width:100%;height:auto;background:#fff;border:1px solid #e3e7ee;border-radius:4px;margin:4px 0 8px}",
+      ".ten-h{font-size:.85rem;margin:12px 0 4px}",
+      ".ten-res{width:100%;border-collapse:collapse;font-size:.8rem;margin:4px 0 8px}",
+      ".ten-res td{padding:3px 6px;border-bottom:1px solid #eef0f4;vertical-align:top}.ten-res td:first-child{color:#556;width:44%}",
+      ".ten-tab{width:100%;border-collapse:collapse;font-size:.74rem}",
+      ".ten-tab th,.ten-tab td{border:1px solid #e3e7ee;padding:3px 5px;text-align:left;vertical-align:top}",
+      ".ten-tab th{background:#f3f6f9;font-weight:600}",
+      ".ten-ley{font-size:.72rem;color:#556;margin:0 0 6px}.ten-ley i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 8px}",
+      ".ten-ley i.gu{width:14px;height:0;border-radius:0;border-top:2px dashed #d9a441;vertical-align:middle}",
+      ".ten-med{font-size:.8rem;margin:2px 0 6px;padding-left:18px}",
+      ".ten-per{display:flex;gap:6px;margin:0 0 8px}",
+      "#ten-imprimir{display:none}",
+      "@media print{body.imprime-ten>*:not(#ten-imprimir){display:none!important}" +
+        "body.imprime-ten #ten-imprimir{display:block;font-family:Arial,sans-serif;color:#000}" +
+        "body.imprime-ten{background:#fff!important}" +
+        "#ten-imprimir .ten-svg{border:0;page-break-inside:avoid}#ten-imprimir .ten-tab tr{page-break-inside:avoid}" +
+        "#ten-imprimir .ecg-cab{font-size:9pt}#ten-imprimir .ecg-pie{font-size:8pt}}",
       "@media print{body.imprime-ecg>*:not(#ecg-imprimir){display:none!important}" +
         "body.imprime-ecg #ecg-imprimir{display:block;font-family:Arial,sans-serif;color:#000}" +
         "body.imprime-ecg{background:#fff!important}" +
         "#ecg-imprimir .ecg-papel{width:256mm;border:0;border-radius:0;margin:0 0 3mm;page-break-inside:avoid}" +
         "#ecg-imprimir .ecg-cab{font-size:9pt}#ecg-imprimir .ecg-pie{font-size:8pt}" +
-        "@page{size:A4 landscape;margin:9mm}}"
+        "#ecg-imprimir{page:ecgapaisado}@page ecgapaisado{size:A4 landscape;margin:9mm}@page{size:A4;margin:10mm}}"
     ].join("\n");
     document.head.appendChild(s);
   }
@@ -1385,6 +1403,30 @@
     return out.sort(function (a, b) {
       return (a.f + (a.h || "")) < (b.f + (b.h || "")) ? -1 : 1;
     });
+  }
+
+  /* LA TENSIÓN DE LA MAÑANA · 30-sep-2026. Carlos: «cuando llegue lo de
+     OMRON debe ponerse el valor medio» y «pon la de la mañana». Media de las
+     tomas del aparato (no las tecleadas) de antes de las 12:00 de ese día. */
+  var TENS_CAMPO = { sistolica: "sis", diastolica: "dia", pulso: "pul" };
+  function tensionManana(iso) {
+    var t = tomasTension(iso, iso).filter(function (x) {
+      return x.origen !== "mano" && x.h && x.h < "12:00";
+    });
+    if (!t.length) return null;
+    var s = 0, d = 0, p = 0, np = 0;
+    t.forEach(function (x) { s += x.sis; d += x.dia; if (x.pul) { p += x.pul; np++; } });
+    return { sis: Math.round(s / t.length), dia: Math.round(d / t.length),
+             pul: np ? Math.round(p / np) : null, n: t.length, h1: t[0].h, h2: t[t.length - 1].h };
+  }
+  /* la última mañana con tomas del aparato hasta ese día (para el «último …») */
+  function ultimaTensionManana(iso) {
+    var t = tomasTension(U.sumarDias(iso, -90), iso).filter(function (x) {
+      return x.origen !== "mano" && x.h && x.h < "12:00";
+    });
+    if (!t.length) return null;
+    var f = t[t.length - 1].f;
+    return { f: f, m: tensionManana(f) };
   }
 
   function mediaTension(desde, hasta) {
@@ -4713,6 +4755,178 @@
     setTimeout(function () { window.print(); }, 50);
   }
 
+  /* ==================== LA TENSIÓN EN PAPEL (v295) ====================
+     30-sep-2026. Carlos: «del mismo tipo que el electro, una tabla con las
+     medidas de cada día de mañana y tarde y lo que se pueda ofrecer si lo pide
+     un médico: un gráfico para ver cómo sube, horas de toma…». Lo que mira un
+     médico con una AMPA: medias de mañana y de tarde, cuántas pasan de 135/85,
+     extremos, a qué hora se tomó cada una y qué medicación había. */
+  var tenPapelDias = 30;
+
+  function tenFecha(iso) {
+    var f = U.desdeISO(iso);
+    return ("0" + f.getDate()).slice(-2) + "/" + ("0" + (f.getMonth() + 1)).slice(-2) + "/" + f.getFullYear();
+  }
+  function tenMedia(l) {
+    if (!l.length) return null;
+    var s = 0, d = 0, p = 0, np = 0;
+    l.forEach(function (x) { s += x.sis; d += x.dia; if (x.pul) { p += x.pul; np++; } });
+    return { sis: Math.round(s / l.length), dia: Math.round(d / l.length), pul: np ? Math.round(p / np) : null, n: l.length };
+  }
+  function tenTxt(m) { return m ? m.sis + "/" + m.dia : "—"; }
+  function esTarde(x) { return !!(x.h && x.h >= "12:00"); }
+
+  /* puntos de cada toma sobre los días del periodo */
+  function tenSvgDias(tomas, desde, hasta) {
+    var W = 300, H = 120, L = 26, R = 6, T = 6, B = 16, lo = 50, hi = 170;
+    var d0 = U.desdeISO(desde).getTime(), d1 = U.desdeISO(hasta).getTime() + 864e5, sp = Math.max(1, d1 - d0);
+    var X = function (x) {
+      var hh = x.h ? (parseInt(x.h.slice(0, 2), 10) + parseInt(x.h.slice(3, 5), 10) / 60) : 8;
+      return L + ((U.desdeISO(x.f).getTime() + hh * 36e5 - d0) / sp) * (W - L - R);
+    };
+    var Y = function (v) { return T + (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (H - T - B); };
+    var g = "";
+    [60, 80, 100, 120, 140, 160].forEach(function (v) {
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#e6e9ee" stroke-width=".4"/>' +
+        '<text x="' + (L - 2) + '" y="' + (Y(v) + 1.5) + '" font-size="5" text-anchor="end" fill="#667">' + v + "</text>";
+    });
+    [135, 85].forEach(function (v) {
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#d9a441" stroke-width=".6" stroke-dasharray="3 2"/>';
+    });
+    g += '<text x="' + L + '" y="' + (H - 4) + '" font-size="5" fill="#667">' + tenFecha(desde) + "</text>" +
+      '<text x="' + (W - R) + '" y="' + (H - 4) + '" font-size="5" text-anchor="end" fill="#667">' + tenFecha(hasta) + "</text>";
+    tomas.forEach(function (x) {
+      var cx = X(x).toFixed(1), t = esTarde(x);
+      g += '<line x1="' + cx + '" x2="' + cx + '" y1="' + Y(x.sis) + '" y2="' + Y(x.dia) + '" stroke="' + (t ? "#e8c9a0" : "#cdd6e2") + '" stroke-width=".5"/>' +
+        '<circle cx="' + cx + '" cy="' + Y(x.sis).toFixed(1) + '" r="1.5" fill="' + (t ? "#d98b2b" : "#b3402f") + '"/>' +
+        '<circle cx="' + cx + '" cy="' + Y(x.dia).toFixed(1) + '" r="1.5" fill="' + (t ? "#7b5ea7" : "#2f5c8a") + '"/>';
+    });
+    return '<svg class="ten-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Tomas de tensión por día">' + g + "</svg>";
+  }
+
+  /* las mismas tomas colocadas por la hora del día: se ve si sube por la tarde */
+  function tenSvgHoras(tomas) {
+    var W = 300, H = 110, L = 26, R = 6, T = 6, B = 16, lo = 50, hi = 170, h0 = 5, h1 = 24;
+    var X = function (hh) { return L + ((hh - h0) / (h1 - h0)) * (W - L - R); };
+    var Y = function (v) { return T + (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (H - T - B); };
+    var g = "";
+    [60, 80, 100, 120, 140, 160].forEach(function (v) {
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#e6e9ee" stroke-width=".4"/>' +
+        '<text x="' + (L - 2) + '" y="' + (Y(v) + 1.5) + '" font-size="5" text-anchor="end" fill="#667">' + v + "</text>";
+    });
+    [135, 85].forEach(function (v) {
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#d9a441" stroke-width=".6" stroke-dasharray="3 2"/>';
+    });
+    for (var hh = 6; hh <= 24; hh += 3)
+      g += '<text x="' + X(hh) + '" y="' + (H - 4) + '" font-size="5" text-anchor="middle" fill="#667">' + hh + " h</text>";
+    tomas.forEach(function (x) {
+      if (!x.h) return;
+      var v = parseInt(x.h.slice(0, 2), 10) + parseInt(x.h.slice(3, 5), 10) / 60;
+      if (v < h0) v = h0;
+      var cx = X(v).toFixed(1), t = esTarde(x);
+      g += '<circle cx="' + cx + '" cy="' + Y(x.sis).toFixed(1) + '" r="1.5" fill="' + (t ? "#d98b2b" : "#b3402f") + '" fill-opacity=".8"/>' +
+        '<circle cx="' + cx + '" cy="' + Y(x.dia).toFixed(1) + '" r="1.5" fill="' + (t ? "#7b5ea7" : "#2f5c8a") + '" fill-opacity=".8"/>';
+    });
+    return '<svg class="ten-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Tomas de tensión por hora del día">' + g + "</svg>";
+  }
+
+  function papelTension(dias) {
+    var hasta = U.hoyISO(), desde = U.sumarDias(hasta, -(dias - 1));
+    var tomas = tomasTension(desde, hasta);
+    var nombre = (A.estado.perfil && A.estado.perfil.nombre) || (P.atleta && P.atleta.nombre) || "Carlos Hernanz";
+    var h = '<p class="ecg-cab"><b>Automedida de la presión arterial en domicilio (AMPA)</b><br>' +
+      U.esc(nombre) + " · del " + tenFecha(desde) + " al " + tenFecha(hasta) + " (" + dias + " días)<br>" +
+      "Tensiómetro de brazo OMRON X7 Smart AFib (HEM-7380T1), validado clínicamente, con detección de fibrilación auricular.</p>";
+    if (!tomas.length) return h + '<p class="nota-peque">No hay tomas en este periodo.</p>';
+
+    var man = tomas.filter(function (x) { return !esTarde(x); }), tar = tomas.filter(esTarde);
+    var todas = tenMedia(tomas), mM = tenMedia(man), mT = tenMedia(tar);
+    var altas = tomas.filter(function (x) { return x.sis >= 135 || x.dia >= 85; }).length;
+    var maxS = tomas.reduce(function (a, x) { return !a || x.sis > a.sis ? x : a; }, null);
+    var minS = tomas.reduce(function (a, x) { return !a || x.sis < a.sis ? x : a; }, null);
+    var arr = tomas.filter(function (x) { return x.arr; }).length;
+    var porDia = {};
+    tomas.forEach(function (x) { (porDia[x.f] = porDia[x.f] || []).push(x); });
+    var diasCon = Object.keys(porDia).sort();
+    var tomasHora = tomas.filter(function (x) { return x.h; }).map(function (x) { return x.h; }).sort();
+
+    h += '<table class="ten-res"><tbody>' +
+      "<tr><td>Media de todas las tomas</td><td><b>" + tenTxt(todas) + "</b> mmHg" +
+        (todas.pul ? " · pulso " + todas.pul : "") + " · " + todas.n + " tomas en " + diasCon.length + " días</td></tr>" +
+      "<tr><td>Mañana (antes de las 12:00)</td><td><b>" + tenTxt(mM) + "</b>" + (mM ? " · " + mM.n + (mM.n === 1 ? " toma" : " tomas") : "") + "</td></tr>" +
+      "<tr><td>Tarde (desde las 12:00)</td><td><b>" + tenTxt(mT) + "</b>" + (mT ? " · " + mT.n + (mT.n === 1 ? " toma" : " tomas") : " · sin tomas de tarde") + "</td></tr>" +
+      "<tr><td>Tomas ≥ 135/85</td><td><b>" + altas + "</b> de " + tomas.length + " (" + Math.round(100 * altas / tomas.length) + " %)</td></tr>" +
+      "<tr><td>Máxima / mínima (alta)</td><td>" + maxS.sis + "/" + maxS.dia + " el " + tenFecha(maxS.f) + (maxS.h ? " a las " + maxS.h : "") +
+        " · " + minS.sis + "/" + minS.dia + " el " + tenFecha(minS.f) + (minS.h ? " a las " + minS.h : "") + "</td></tr>" +
+      (tomasHora.length ? "<tr><td>Horas de toma</td><td>de " + tomasHora[0] + " a " + tomasHora[tomasHora.length - 1] + "</td></tr>" : "") +
+      "<tr><td>Aviso de fibrilación auricular / arritmia del aparato</td><td><b>" + arr + "</b> " + (arr === 1 ? "toma" : "tomas") + "</td></tr>" +
+      "</tbody></table>";
+
+    h += '<h3 class="ten-h">Cada toma, por días</h3>' + tenSvgDias(tomas, desde, hasta) +
+      '<h3 class="ten-h">Las mismas tomas, por hora del día</h3>' + tenSvgHoras(tomas) +
+      '<p class="ten-ley"><i style="background:#b3402f"></i>alta mañana <i style="background:#2f5c8a"></i>baja mañana ' +
+      '<i style="background:#d98b2b"></i>alta tarde <i style="background:#7b5ea7"></i>baja tarde ' +
+      '<i class="gu"></i>135/85, umbral en domicilio</p>';
+
+    /* la tabla: una fila por día, de lo más reciente a lo más antiguo */
+    var fila = function (l) {
+      if (!l.length) return "<td>—</td>";
+      var m = tenMedia(l);
+      return "<td>" + l.map(function (x) {
+        return (x.h || "s/h") + " " + x.sis + "/" + x.dia + (x.pul ? " (" + x.pul + ")" : "") + (x.arr ? " ⚠" : "");
+      }).join("<br>") + (l.length > 1 ? '<br><b>media ' + m.sis + "/" + m.dia + "</b>" : "") + "</td>";
+    };
+    h += '<h3 class="ten-h">Registro diario</h3><table class="ten-tab"><thead><tr>' +
+      "<th>Día</th><th>Mañana · hora alta/baja (pulso)</th><th>Tarde · hora alta/baja (pulso)</th><th>Media del día</th></tr></thead><tbody>";
+    diasCon.slice().reverse().forEach(function (f) {
+      var l = porDia[f], md = tenMedia(l);
+      h += "<tr><td>" + tenFecha(f) + "</td>" + fila(l.filter(function (x) { return !esTarde(x); })) +
+        fila(l.filter(esTarde)) + "<td><b>" + tenTxt(md) + "</b></td></tr>";
+    });
+    h += "</tbody></table>";
+
+    /* medicación en el periodo: la prednisona, por ejemplo, sube la tensión */
+    var hm = hmDatos(), trat = (hm && hm.tratamientos) || P.tratamientos || [];
+    var enPeriodo = trat.filter(function (t) { return (!t.hasta || t.hasta >= desde) && (!t.desde || t.desde <= hasta); });
+    if (enPeriodo.length) {
+      h += '<h3 class="ten-h">Medicación durante el periodo</h3><ul class="ten-med">' +
+        enPeriodo.map(function (t) {
+          return "<li>" + U.esc(t.nombre) + (t.dosis ? ", " + U.esc(t.dosis) : "") +
+            (t.desde ? " · del " + tenFecha(t.desde) : "") + (t.hasta ? " al " + tenFecha(t.hasta) : "") + "</li>";
+        }).join("") + "</ul>";
+    }
+    return h + '<p class="ecg-pie">Tomas enviadas por el propio tensiómetro (con su hora) y, si las hay, anotadas a mano ' +
+      "(«s/h»: sin hora). Umbral de hipertensión en domicilio: 135/85 mmHg (guías europeas). ⚠: el aparato marcó " +
+      "posible fibrilación auricular o latido irregular en esa toma. Datos sin revisar por un profesional.</p>";
+  }
+
+  function abrirTensionPapel() {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    caja.innerHTML = '<header><h2>Tensión para el médico</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      '<div class="ten-per">' + [7, 30, 90].map(function (n) {
+        return '<button type="button" class="btn' + (n === tenPapelDias ? " principal" : "") + '" data-ten-dias="' + n + '">' + n + " días</button>";
+      }).join("") + "</div>" +
+      papelTension(tenPapelDias) +
+      '<button class="btn principal ecg-btn" type="button" data-ten-imprimir="1">Guardar en PDF o imprimir</button>' +
+      '<p class="nota-peque" style="margin:6px 0 0">En el móvil, en la ventana de imprimir elige «Guardar como PDF». Sale en A4 vertical.</p>';
+    modal.classList.add("abierta");
+  }
+
+  function imprimirTension() {
+    var hueco = document.getElementById("ten-imprimir");
+    if (!hueco) { hueco = document.createElement("div"); hueco.id = "ten-imprimir"; document.body.appendChild(hueco); }
+    hueco.innerHTML = papelTension(tenPapelDias);
+    document.body.classList.add("imprime-ten");
+    var fuera = function () {
+      document.body.classList.remove("imprime-ten");
+      window.removeEventListener("afterprint", fuera);
+    };
+    window.addEventListener("afterprint", fuera);
+    setTimeout(function () { window.print(); }, 50);
+  }
+
   /* El ECG de ese día: el último sin ruido; si todos tienen ruido, el último. */
   function ecgDelDia(iso) {
     var mejor = null;
@@ -7790,28 +8004,61 @@
        135 y 85: el umbral de hipertensión para tomas EN CASA (guías europeas).
        El de 140/90 es el de consulta, y estaba puesto mal hasta la v270. */
     v = ventanaDe("tension");
-    var tomasT = tomasTension(v.desde, v.hasta), pdT = {};
+    /* MAÑANA Y TARDE · 30-sep-2026. Carlos: «las gráficas de tensión deben
+       reflejar la variación mañana / tarde». La línea fina es la media de la
+       mañana de cada día; los puntos, la de la tarde (desde las 12:00); la
+       gruesa, la media de 7 días con todas las tomas. Lo tecleado sin hora
+       cuenta como mañana, que es cuando se la toma. */
+    var tomasT = tomasTension(v.desde, v.hasta), pdT = {}, pdM = {}, pdTa = {};
     tomasT.forEach(function (x) {
       if (!pdT[x.f]) pdT[x.f] = { s: 0, d: 0, n: 0 };
       pdT[x.f].s += x.sis; pdT[x.f].d += x.dia; pdT[x.f].n++;
+      var o = (x.h && x.h >= "12:00") ? pdTa : pdM;
+      if (!o[x.f]) o[x.f] = { s: 0, d: 0, n: 0 };
+      o[x.f].s += x.sis; o[x.f].d += x.dia; o[x.f].n++;
     });
     var diasT = Object.keys(pdT).sort();
     var sisD = diasT.map(function (f) { return { f: f, v: pdT[f].s / pdT[f].n }; });
     var diaD = diasT.map(function (f) { return { f: f, v: pdT[f].d / pdT[f].n }; });
+    var diasM = Object.keys(pdM).sort(), diasTa = Object.keys(pdTa).sort();
+    var sisM = diasM.map(function (f) { return { f: f, v: pdM[f].s / pdM[f].n }; });
+    var diaM = diasM.map(function (f) { return { f: f, v: pdM[f].d / pdM[f].n }; });
+    var sisTa = diasTa.map(function (f) { return { f: f, v: pdTa[f].s / pdTa[f].n }; });
+    var diaTa = diasTa.map(function (f) { return { f: f, v: pdTa[f].d / pdTa[f].n }; });
     var cuerpoT, notaT = "";
     if (sisD.length) {
-      var ROJO_CL = "#e6c3bb", AZUL_CL = "#bacde1";
+      var ROJO_CL = "#e6c3bb", AZUL_CL = "#bacde1", NARANJA_T = "#d98b2b", MORADO_T = "#7b5ea7";
+      var seriesT = [{ pts: sisM, color: ROJO_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: sisM.length < 3 },
+                     { pts: mediaMovilDias(sisD, 7), color: ROJO, ancho: 1.6 },
+                     { pts: diaM, color: AZUL_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: diaM.length < 3 },
+                     { pts: mediaMovilDias(diaD, 7), color: AZUL, ancho: 1.6 }];
+      if (sisTa.length) {
+        seriesT.push({ pts: sisTa, color: NARANJA_T, soloPuntos: true, marcarUltimo: false },
+                     { pts: diaTa, color: MORADO_T, soloPuntos: true, marcarUltimo: false });
+      }
+      var leyT = [{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL }];
+      if (sisTa.length) leyT.push({ n: "alta de la tarde", color: NARANJA_T }, { n: "baja de la tarde", color: MORADO_T });
+      leyT.push({ n: "135/85, umbral en casa", color: "#eccf9a", guiones: true });
       cuerpoT = grafica({
         desde: v.desde, hasta: v.hasta, alto: 120, arriba: "mmHg", unidadTip: "mmHg", min: 50, max: 150,
         alt: "Tensión alta y baja", par: ["alta", "baja"],
-        explica: "Cada día, la media de sus tomas (fina) y la media de 7 días (gruesa). Rojo la alta, azul la baja.",
+        explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja.",
         lineasH: [{ v: 135, color: "#eccf9a", etq: "135" }, { v: 85, color: "#eccf9a", etq: "85" }],
-        series: [{ pts: sisD, color: ROJO_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: sisD.length < 3 },
-                 { pts: mediaMovilDias(sisD, 7), color: ROJO, ancho: 1.6 },
-                 { pts: diaD, color: AZUL_CL, ancho: 0.8, marcarUltimo: false, soloPuntos: diaD.length < 3 },
-                 { pts: mediaMovilDias(diaD, 7), color: AZUL, ancho: 1.6 }]
-      }) + leyenda([{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL },
-                    { n: "135/85, umbral en casa", color: "#eccf9a", guiones: true }]);
+        series: seriesT
+      }) + leyenda(leyT);
+      /* la diferencia mañana → tarde, solo con días que tengan las dos */
+      var ambos = diasTa.filter(function (f) { return pdM[f]; });
+      if (ambos.length) {
+        var am = { s: 0, d: 0 }, at = { s: 0, d: 0 };
+        ambos.forEach(function (f) {
+          am.s += pdM[f].s / pdM[f].n; am.d += pdM[f].d / pdM[f].n;
+          at.s += pdTa[f].s / pdTa[f].n; at.d += pdTa[f].d / pdTa[f].n;
+        });
+        var k = ambos.length;
+        notaT += "Mañana y tarde (" + k + (k === 1 ? " día con las dos" : " días con las dos") + "): mañana <b>" +
+          Math.round(am.s / k) + "/" + Math.round(am.d / k) + "</b>, tarde <b>" +
+          Math.round(at.s / k) + "/" + Math.round(at.d / k) + "</b>. ";
+      }
       /* ANTES Y DESPUÉS DE JUNIO DE 2026, con todas las tomas y no solo las del
          tramo: es la pregunta que él se hace («desde el vértigo me ha subido»),
          y así la contesta el número en vez de la memoria. */
@@ -7819,7 +8066,7 @@
       var antes = { s: 0, d: 0, n: 0 }, desp = { s: 0, d: 0, n: 0 };
       todasT.forEach(function (x) { var o = x.f < "2026-06-01" ? antes : desp; o.s += x.sis; o.d += x.dia; o.n++; });
       if (antes.n >= 5 && desp.n >= 5) {
-        notaT = "Antes de junio de 2026: <b>" + Math.round(antes.s / antes.n) + "/" + Math.round(antes.d / antes.n) +
+        notaT += "Antes de junio de 2026: <b>" + Math.round(antes.s / antes.n) + "/" + Math.round(antes.d / antes.n) +
           "</b> de media (" + antes.n + " tomas). Desde el 1 de junio: <b>" + Math.round(desp.s / desp.n) + "/" +
           Math.round(desp.d / desp.n) + "</b> (" + desp.n + " tomas).";
       }
@@ -7830,7 +8077,9 @@
       Math.round(mediaMovilDias(diaD, 7)[diaD.length - 1].v) : null;
     h += tarjetaEvo("Tensión", ultT, "mmHg",
       "Una toma suelta no dice nada: lo que se lee es la media de 7 días.",
-      mandoEvo("tension") + tramoEvo("tension") + cuerpoT, notaT);
+      mandoEvo("tension") + tramoEvo("tension") + cuerpoT +
+        (sisD.length ? '<button type="button" class="btn principal ecg-btn" data-ten-papel="1">Informe para el médico · guardar en PDF</button>' : ""),
+      notaT);
 
     /* ---------- 7. corazón en reposo: el ECG de la mañana (v269) ----------
        Sin colores de bueno o malo, como en las tarjetas del día. Solo los ECG
@@ -10942,6 +11191,19 @@
       var puesta = (v !== null && v !== undefined && v !== "");
       var ult = puesta ? null : ultimoValor(m.id, dia);
       var toca = tocaMedida(m, dia);
+      /* la tensión del aparato: si no has tecleado nada, la media de la mañana */
+      var auto = null;
+      if (!puesta && TENS_CAMPO[m.id]) {
+        var tm = tensionManana(dia);
+        if (tm && tm[TENS_CAMPO[m.id]] != null) {
+          auto = tm; v = tm[TENS_CAMPO[m.id]]; puesta = true;
+        } else {
+          var ut = ultimaTensionManana(dia);
+          if (ut && ut.m && ut.m[TENS_CAMPO[m.id]] != null && (!ult || ut.f >= ult.f))
+            ult = { v: ut.m[TENS_CAMPO[m.id]], f: ut.f };
+        }
+      }
+      var dec = (m.paso && m.paso < 1) ? 1 : 0;
       return '<label class="ent-medida' + claseOrigen(m) + (puesta ? " puesta" : "") + (toca ? " toca" : "") + '">' +
         "<span>" + U.esc(m.nombre) + " (" + m.unidad + ")" +
           (defHistoria(m.id) ? '<button type="button" class="ent-ver" tabindex="-1" data-historia="' + m.id +
@@ -10952,8 +11214,10 @@
           : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
             (ult ? ' placeholder="' + ult.v + '"' : "") +
             ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') +
-        '<small>' + (puesta ? "anotado hoy"
-          : (ult ? "último " + num(ult.v) + " · " + U.etiquetaFecha(ult.f) : "sin medir todavía")) + "</small>" +
+        '<small>' + (auto ? "media del tensiómetro · " + auto.n + (auto.n === 1 ? " toma" : " tomas") +
+              " (" + (auto.h1 === auto.h2 ? auto.h1 : auto.h1 + "–" + auto.h2) + ")"
+          : puesta ? "anotado hoy"
+          : (ult ? "último " + num(ult.v, dec) + " · " + U.etiquetaFecha(ult.f) : "sin medir todavía")) + "</small>" +
         "</label>";
     }
 
@@ -10969,6 +11233,10 @@
         tocanHoy.forEach(function (m) {
           if (m.auto === "ecg") { if (!ecgDelDia(dia)) faltan++; return; }
           var v = valorDe(dia, m.id);
+          if (TENS_CAMPO[m.id] && (v === null || v === undefined || v === "")) {
+            var tmF = tensionManana(dia);
+            if (tmF && tmF[TENS_CAMPO[m.id]] != null) return;
+          }
           if (v === null || v === undefined || v === "") faltan++;
         });
         h += '<h3 class="ent-subt">Hoy toca medir' +
@@ -11485,6 +11753,7 @@
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
       if (t.closest && t.closest("[data-ecg-papel]")) { e.preventDefault(); abrirEcgPapel(); return; }
+      if (t.closest && t.closest("[data-ten-papel]")) { e.preventDefault(); abrirTensionPapel(); return; }
       var ie = t.closest ? t.closest("[data-evo-info]") : null;
       if (ie) { e.preventDefault(); abrirInfoEvo(ie.getAttribute("data-evo-info")); return; }
       /* «que decida el reloj»: borra la marca manual y devuelve la sesión al
@@ -11767,6 +12036,9 @@
       if (vidM) { e.preventDefault(); abrirVideo(vidM.getAttribute("data-video"), rutinaAbierta); return; }
       /* el botón de imprimir el ECG vive en la ventana: se atiende aquí */
       if (e.target.closest && e.target.closest("[data-ecg-imprimir]")) { e.preventDefault(); imprimirEcg(); return; }
+      if (e.target.closest && e.target.closest("[data-ten-imprimir]")) { e.preventDefault(); imprimirTension(); return; }
+      var tdi = e.target.closest ? e.target.closest("[data-ten-dias]") : null;
+      if (tdi) { e.preventDefault(); tenPapelDias = parseInt(tdi.getAttribute("data-ten-dias"), 10) || 30; abrirTensionPapel(); return; }
       var volR = e.target.closest ? e.target.closest("[data-volver-rutina]") : null;
       if (volR) { e.preventDefault(); abrirRutina(volR.getAttribute("data-volver-rutina")); return; }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();

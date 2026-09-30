@@ -477,13 +477,13 @@
       /* Las de arriba salen el día que tocan; cualquier otra se anota con
          «Anotar otra medida», porque la fecha manda sobre el día de la semana. */
       { id: "sistolica",  nombre: "T. alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
-        diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
+        dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
         ayuda: "La alta es la SISTÓLICA, el número grande del tensiómetro. Los corticoides la suben." },
       { id: "diastolica", nombre: "T. baja", unidad: "mmHg", paso: 1, min: 30, max: 160,
-        diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
+        dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
         ayuda: "La baja es la DIASTÓLICA, el segundo número." },
       { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,
-        diariaHasta: "2026-09-28", diasDespues: [1, 4], guia: "tension",
+        dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
         ayuda: "El que marca el tensiómetro en esa misma medida. Sirve de contraste con el pulso en reposo del reloj." },
       /* EL ECG DE LA MAÑANA  ·  28-sep-2026. Con la Polar H10 y la app ECG
          Analysis; el primer mes a diario para tener línea base, después lunes,
