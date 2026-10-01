@@ -148,6 +148,51 @@
       junto.pedidoSello = ganaPed ? pedR : pedL;
     }
 
+    /* ── EL ORDEN DE LOS ESTANTES, CADA UNO CON SU HORA (1-oct-2026) ──────
+       Carlos: «en el móvil solo leeré el stock… y la ordenaré en el ordenador».
+       Y el móvil le estaba borrando el orden que acababa de colocar en el
+       ordenador, sin haberlo tocado: el orden viajaba con el sello GLOBAL del
+       estado, así que ganaba el aparato que hubiera guardado algo —cualquier
+       cosa— más tarde. Hacer el stock en el móvil bastaba.
+
+       Ahora cada estante lleva su propia hora (`ordenSello`, ver `sellarOrden`
+       en almacen.js) y se resuelve ESTANTE A ESTANTE: gana quien ordenó ESE
+       estante más tarde. Un aparato que solo lee no tiene hora para ese
+       estante, así que no pisa nada. Es el mismo remedio que ya llevaban el
+       stock, lo pedido a mano y los días corregidos.
+
+       Y vale para los dos órdenes: el de casa (la nevera) y el de compra. */
+    function fusionarOrden(grupo, campo) {
+      var sL = (local.ordenSello || {})[grupo] || {};
+      var sR = (remoto.ordenSello || {})[grupo] || {};
+      var oL = local[campo] || {}, oR = remoto[campo] || {};
+      var res = {}, sello = {}, k;
+      var claves = {};
+      for (k in oL) if (Object.prototype.hasOwnProperty.call(oL, k)) claves[k] = 1;
+      for (k in oR) if (Object.prototype.hasOwnProperty.call(oR, k)) claves[k] = 1;
+      for (k in claves) {
+        if (!Object.prototype.hasOwnProperty.call(claves, k)) continue;
+        var hL = String(sL[k] || ""), hR = String(sR[k] || "");
+        var ganaR;
+        if (hL || hR) ganaR = hR > hL;          /* alguien lo ordenó: manda la hora */
+        else ganaR = remotoManda;               /* ninguno: como antes, el sello global */
+        var elegido = ganaR ? oR[k] : oL[k];
+        /* Si el que gana no tiene lista para ese estante, se queda la del otro:
+           no tiene sentido quedarse sin orden pudiendo conservar uno. */
+        if (!elegido || !elegido.length) elegido = ganaR ? oL[k] : oR[k];
+        if (elegido && elegido.length) res[k] = elegido.slice();
+        var hMax = hL > hR ? hL : hR;
+        if (hMax) sello[k] = hMax;
+      }
+      if (Object.keys(res).length) junto[campo] = res;
+      if (Object.keys(sello).length) {
+        if (!junto.ordenSello) junto.ordenSello = {};
+        junto.ordenSello[grupo] = sello;
+      }
+    }
+    fusionarOrden("casa", "ordenCasa");
+    fusionarOrden("compra", "ordenCompra");
+
     var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
     junto.selloDia = {};
     for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];

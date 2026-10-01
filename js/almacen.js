@@ -1851,6 +1851,7 @@
       lista[i] = lista[j]; lista[j] = id;
       if (!this.estado.ordenCompra) this.estado.ordenCompra = {};
       this.estado.ordenCompra[clave] = lista;
+      this.sellarOrden("compra", clave);
       this.guardar("ordenCompra");
       return true;
     },
@@ -1914,6 +1915,26 @@
 
        Lo que no esté en la lista cae al final, por nombre. Así lo nuevo no se
        cuela en medio sin avisar, que es lo que hace también Mercadona. */
+    /* ---------- LA HORA DE CADA ESTANTE (1-oct-2026) ----------
+       Carlos: «en el móvil solo leeré el stock… y la ordenaré en el ordenador».
+
+       El orden de casa y el de compra viajaban entre aparatos con UN SOLO sello
+       de hora para todo el estado. Así que bastaba con hacer el stock en el
+       móvil para que el móvil ganara en todo —también en un orden que nunca
+       había tocado— y le borrase al ordenador lo que acababa de colocar. Es el
+       mismo fallo que se llevó por delante los días 21 y 22, los ✓ de lo comido
+       y la despensa del 25-sep, y se arregla igual: cada cosa con su hora.
+
+       Desde hoy, cada estante guarda CUÁNDO se ordenó. Al sincronizar gana el
+       aparato que tocó ESE estante más tarde, no el que guardó cualquier otra
+       cosa después. Un aparato que solo lee no tiene hora y por tanto no pisa
+       nada. */
+    sellarOrden: function (grupo, clave) {
+      if (!this.estado.ordenSello) this.estado.ordenSello = {};
+      if (!this.estado.ordenSello[grupo]) this.estado.ordenSello[grupo] = {};
+      this.estado.ordenSello[grupo][clave] = new Date().toISOString();
+    },
+
     posEnCasa: function (estanteK, id) {
       var l = (this.estado.ordenCasa || {})[estanteK] || [];
       var i = l.indexOf(id);
@@ -1950,6 +1971,7 @@
       lista[i] = lista[j]; lista[j] = id;
       if (!this.estado.ordenCasa) this.estado.ordenCasa = {};
       this.estado.ordenCasa[estanteK] = lista;
+      this.sellarOrden("casa", estanteK);
       this.guardar("orden");
       return true;
     },
@@ -1966,6 +1988,7 @@
       lista.splice(destino, 0, id);
       if (!this.estado.ordenCasa) this.estado.ordenCasa = {};
       this.estado.ordenCasa[estanteK] = lista;
+      this.sellarOrden("casa", estanteK);
       this.guardar("orden");
       return true;
     },
@@ -1980,6 +2003,7 @@
       if (!estanteK || !ids || !ids.length) return false;
       if (!this.estado.ordenCasa) this.estado.ordenCasa = {};
       this.estado.ordenCasa[estanteK] = ids.slice();
+      this.sellarOrden("casa", estanteK);
       this.guardar("orden");
       return true;
     },
@@ -1988,6 +2012,7 @@
       if (!clave || !ids || !ids.length) return false;
       if (!this.estado.ordenCompra) this.estado.ordenCompra = {};
       this.estado.ordenCompra[clave] = ids.slice();
+      this.sellarOrden("compra", clave);
       this.guardar("ordenCompra");
       return true;
     },
