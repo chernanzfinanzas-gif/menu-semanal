@@ -39,6 +39,28 @@
   function esObjeto(x) { return !!x && typeof x === "object" && !Array.isArray(x); }
   function vacio(x) { return x === undefined || x === null || x === ""; }
 
+  /* ===== DECIR POR QUÉ, NO SÓLO QUE NO  ·  1-oct-2026 =====
+     Ese día la app estuvo una tarde entera diciendo «No se pudo guardar» sin una
+     palabra más. El motivo real —GitHub rechazaba el fichero por tamaño— sólo
+     estaba en la consola del navegador, donde Carlos no tiene por qué entrar, y
+     se acabó diagnosticando a ciegas deduciendo por el peso del fichero. Esto es
+     para que no vuelva a pasar: el motivo, en castellano y en pantalla. */
+  function motivoHttp(st, msg) {
+    msg = String(msg || "");
+    if (st === 401) return "la clave de GitHub no vale o ha caducado";
+    if (st === 403) {
+      if (/rate limit/i.test(msg)) return "GitHub ha cortado por exceso de peticiones; espera un rato";
+      return "la clave no tiene permiso para ESCRIBIR en el repositorio";
+    }
+    if (st === 404) return "no encuentro el repositorio (nombre, rama o permisos de la clave)";
+    if (st === 413 || /too large|size is/i.test(msg)) {
+      return "el fichero es DEMASIADO GRANDE para GitHub (el tope al escribir es 1 MB)";
+    }
+    if (st === 422) return "GitHub rechaza el contenido" + (msg ? ": " + msg : "");
+    if (st === 409) return "choque con otro aparato que no se ha podido resolver";
+    return "GitHub respondi\u00f3 " + st + (msg ? " \u00b7 " + msg : "");
+  }
+
   function fusionar(a, b, bManda) {
     if (esObjeto(a) && esObjeto(b)) {
       var fuera = {}, k;
@@ -423,7 +445,13 @@
             return self.guardar();
           });
         }
-        if (!r.ok) throw new Error("GitHub respondió " + r.status);
+        if (!r.ok) {
+          return r.text().then(function (t) {
+            var m = "";
+            try { m = (JSON.parse(t) || {}).message || ""; } catch (e2) {}
+            throw new Error(motivoHttp(r.status, m));
+          });
+        }
         return r.json().then(function (j) {
           Almacen.estado.sync.sha = j.content.sha;
           Almacen.estado.sync.ultima = new Date().toISOString();
@@ -434,7 +462,14 @@
         });
       }).catch(function (e) {
         self.ocupado = false;
-        self.indicar("No se pudo guardar", "error");
+        var porque = (e && e.message) ? String(e.message) : "no s\u00e9 por qu\u00e9";
+        /* el motivo se queda a la vista: el aviso se va solo, el indicador no */
+        self.indicar("No se pudo guardar \u00b7 " + porque, "error");
+        if (Util && Util.toast) Util.toast("No se pudo guardar: " + porque);
+        try {
+          Almacen.estado.sync = Almacen.estado.sync || {};
+          Almacen.estado.sync.ultimoFallo = { f: new Date().toISOString(), porque: porque };
+        } catch (e3) {}
         console.warn("Sync guardar:", e);
         return false;
       });
