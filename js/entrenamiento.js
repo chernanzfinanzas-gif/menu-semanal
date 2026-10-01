@@ -3372,7 +3372,14 @@
 
   function tareasDelDia(iso) {
     var fuera = [];
-    (P.tratamientos || []).forEach(function (t) {
+    /* 1-oct-2026: la prednisona salía dos veces —aquí (de plan.js) y en
+       «Medicación de hoy» (del historial médico)— y marcarla en una no la
+       marcaba en la otra. Desde el 29-sep la medicación manda en el historial,
+       así que si está cargado, «Hoy» no repite las tomas. P.tratamientos se
+       queda: sombrea el corticoide en Evolución y lo usa el pase de la semana. */
+    var hmT = hmDatos();
+    var conMedicacion = !!(hmT && hmT.tratamientos && hmT.tratamientos.length);
+    if (!conMedicacion) (P.tratamientos || []).forEach(function (t) {
       if (iso >= t.desde && iso <= t.hasta) fuera.push({ id: "tr_" + t.id, nombre: t.nombre, ayuda: t.ayuda, sello: "pauta" });
     });
     (P.tareas || []).forEach(function (t) {
@@ -9141,7 +9148,8 @@
     return '<div class="tarjeta"><h2>Medicación ' + (esHoy ? "de hoy" : "del " + U.esc(U.etiquetaFecha(dia))) +
       '<span class="ent-cuenta">' + n + " de " + tomas.length + "</span></h2>" + h +
       '<p class="nota-peque" style="margin-top:8px">Las pautas son las de tu historial médico ' +
-      '(<a role="button" tabindex="0" data-bloque="historial" style="cursor:pointer;text-decoration:underline">ver</a>). Para cambiar algo, díselo a Claude.</p></div>';
+      '(<a role="button" tabindex="0" data-bloque="historial" style="cursor:pointer;text-decoration:underline">ver</a>).</p>' +
+      '<button type="button" class="btn" data-med-abrir="1" style="margin-top:6px">Añadir, cambiar o dejar un medicamento</button></div>';
   }
 
   /* cumplimiento de los últimos 7 días que ya han pasado o son hoy */
@@ -9153,6 +9161,259 @@
       hmTomasDe(iso).forEach(function (x) { tot++; if (tt[iso] && tt[iso][x.id]) hech++; });
     }
     return { tot: tot, hech: hech };
+  }
+
+  /* ==================== EDITOR DE LA MEDICACIÓN (1-oct-2026) ====================
+     Carlos: «¿se podría poner en medicación un formulario para añadir nuevas
+     medicinas yo? Y quitar tratamientos si se abandonan. Un editor de esa
+     tabla en definitiva». Hasta hoy el historial lo escribía sólo Claude
+     desde el chat; ahora la medicación también se toca desde aquí.
+     · «Dejar de tomarlo» NO borra: pone la fecha de fin. Así se queda en el
+       historial y la app puede seguir explicando esas fechas (la tensión con
+       la prednisona, por ejemplo). Borrar sólo para lo añadido por error.
+     · Se guarda en datos/historial-medico.json del privado, releyendo antes el
+       fichero y aplicando el cambio sobre lo último: si Claude lo ha tocado
+       desde el chat, no se pisa nada. Si choca, reintenta solo. */
+  var medEd = { vista: "lista", id: null, dejando: null, borrando: null, estado: "" };
+
+  function medIdNuevo(nombre) {
+    var s = String(nombre || "med").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24);
+    return (s || "med") + "-" + Date.now().toString(36);
+  }
+
+  function hmGuardarCambio(cambio, mensaje, listo, intento) {
+    var c = Salud.cfg();
+    intento = intento || 1;
+    if (!Salud.configurado()) { listo(false, "falta la configuración de GitHub"); return; }
+    var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+      encodeURIComponent(c.repo) + "/contents/" + Historial.RUTA;
+    var cab = { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json" };
+    fetch(url + "?ref=" + encodeURIComponent(c.rama || "main") + "&t=" + Date.now(), { headers: cab, cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var doc = {}, sha = j && j.sha;
+        if (j && j.content) { try { doc = JSON.parse(Salud.deB64(j.content)) || {}; } catch (e) { doc = {}; } }
+        if (!doc.tratamientos) doc.tratamientos = [];
+        var error = cambio(doc);
+        if (error) { listo(false, error); return; }
+        doc.actualizado = U.hoyISO();
+        var txt = JSON.stringify(doc, null, 1);
+        var by = new TextEncoder().encode(txt), bin = "", i;
+        for (i = 0; i < by.length; i++) bin += String.fromCharCode(by[i]);
+        var cuerpo = { message: "Medicación: " + mensaje, content: btoa(bin), branch: c.rama || "main" };
+        if (sha) cuerpo.sha = sha;
+        return fetch(url, { method: "PUT", headers: cab, body: JSON.stringify(cuerpo) }).then(function (r) {
+          if (r.ok) {
+            Historial.datos = doc; Historial.traidoEl = Date.now(); Historial.estado = "ok";
+            try { localStorage.setItem(Historial.CLAVE, JSON.stringify({ sha: null, datos: doc, traidoEl: Historial.traidoEl })); } catch (e) {}
+            listo(true);
+            return;
+          }
+          if ((r.status === 409 || r.status === 422) && intento < 3) {
+            setTimeout(function () { hmGuardarCambio(cambio, mensaje, listo, intento + 1); }, 400);
+            return;
+          }
+          listo(false, r.status === 403 ? "la clave no puede escribir en el repositorio" : "GitHub dice que no (" + r.status + ")");
+        });
+      })
+      .catch(function () { listo(false, "sin conexión con GitHub"); });
+  }
+
+  var MED_HORAS = ["08:00", "14:00", "20:00", "22:00"];
+
+  function medFormulario(t) {
+    var d = hmDatos() || {}, nuevo = !t;
+    t = t || { desde: U.hoyISO(), tomas: ["08:00"] };
+    var tomas = t.tomas || [], otras = tomas.filter(function (h) { return MED_HORAS.indexOf(h) < 0; });
+    var cron = !!t.cronico || (!nuevo && !t.hasta);
+    var h = '<div class="med-ed-form">' +
+      '<label class="med-ed-campo"><span>Nombre del medicamento</span><input type="text" data-med-campo="nombre" value="' + U.esc(t.nombre || "") + '" placeholder="Ej.: Serc (betahistina) 24 mg"></label>' +
+      '<label class="med-ed-campo"><span>Dosis de cada toma</span><input type="text" data-med-campo="dosis" value="' + U.esc(t.dosis || "") + '" placeholder="Ej.: 1 comprimido"></label>' +
+      '<div class="med-ed-campo"><span>A qué horas</span><div class="med-ed-horas">' +
+        MED_HORAS.map(function (x) {
+          return '<label class="med-ed-chip"><input type="checkbox" data-med-hora="' + x + '"' + (tomas.indexOf(x) >= 0 ? " checked" : "") + "> " + x + "</label>";
+        }).join("") +
+        '<label class="med-ed-chip">Otra: <input type="time" data-med-campo="otra" value="' + U.esc(otras[0] || "") + '"></label>' +
+      '</div><small>Sin ninguna hora marcada sale como «a tu hora de siempre».</small></div>' +
+      '<label class="med-ed-check"><input type="checkbox" data-med-campo="conComida"' + (t.conComida ? " checked" : "") + "> Se toma con comida</label>" +
+      '<div class="med-ed-fila">' +
+        '<label class="med-ed-campo"><span>Desde</span><input type="date" data-med-campo="desde" value="' + U.esc(/^\d{4}-\d{2}-\d{2}$/.test(t.desde || "") ? t.desde : "") + '">' +
+          (t.desde && !/^\d{4}-\d{2}-\d{2}$/.test(t.desde) ? "<small>Ahora pone «" + U.esc(t.desde) + "». Déjalo vacío para conservarlo.</small>" : "") + "</label>" +
+        '<label class="med-ed-campo"><span>Hasta</span><input type="date" data-med-campo="hasta" value="' + U.esc(t.hasta || "") + '"' + (cron ? " disabled" : "") + "></label>" +
+      "</div>" +
+      '<label class="med-ed-check"><input type="checkbox" data-med-campo="cronico"' + (cron ? " checked" : "") + "> Crónico, sin fecha de fin</label>" +
+      '<label class="med-ed-campo"><span>Para qué</span><select data-med-campo="para"><option value="">—</option>' +
+        (d.patologias || []).map(function (p) {
+          return '<option value="' + U.esc(p.id) + '"' + (t.para === p.id ? " selected" : "") + ">" + U.esc(p.nombre) + "</option>";
+        }).join("") + "</select></label>" +
+      '<label class="med-ed-campo"><span>Notas</span><textarea data-med-campo="notas" rows="2" placeholder="Ej.: nunca por la noche">' + U.esc(t.notas || "") + "</textarea></label>" +
+      '<div class="med-ed-botones"><button type="button" class="btn principal" data-med-guardar="1">Guardar</button>' +
+      '<button type="button" class="btn" data-med-cancelar="1">Cancelar</button></div>';
+    if (!nuevo) {
+      h += medEd.borrando === t.id
+        ? '<div class="med-ed-borrar"><b>¿Borrarlo del todo?</b> Desaparece también del historial, como si nunca lo hubieras tomado. ' +
+          'Si lo has dejado, usa mejor «Dejar de tomarlo».<div class="med-ed-botones">' +
+          '<button type="button" class="btn peligro" data-med-borrar-ok="' + U.esc(t.id) + '">Sí, borrarlo</button>' +
+          '<button type="button" class="btn" data-med-borrar-no="1">No</button></div></div>'
+        : '<p class="nota-peque"><a role="button" tabindex="0" data-med-borrar="' + U.esc(t.id) + '">Lo añadí por error: borrarlo</a></p>';
+    }
+    return h + "</div>";
+  }
+
+  function medLista() {
+    var d = hmDatos() || {}, hoy = U.hoyISO();
+    var act = (d.tratamientos || []).filter(function (t) { return hmVigente(t, hoy) || (t.desde && t.desde > hoy && !t.suspendido); });
+    var h = "";
+    if (!act.length) h += '<p class="nota-peque">No hay ningún tratamiento en curso.</p>';
+    act.forEach(function (t) {
+      var cuando = (t.tomas && t.tomas.length) ? t.tomas.join(" y ") : "a tu hora de siempre";
+      var hasta = (t.cronico || !t.hasta) ? "crónico" : "hasta el " + U.etiquetaFecha(t.hasta);
+      var futuro = t.desde && t.desde > hoy ? " · empieza el " + U.etiquetaFecha(t.desde) : "";
+      h += '<div class="med-ed-item"><div><b>' + U.esc(t.nombre) + "</b><small>" + U.esc((t.dosis ? t.dosis + " · " : "") + cuando + " · " + hasta + futuro) + "</small></div>" +
+        '<div class="med-ed-acc"><button type="button" class="btn" data-med-editar="' + U.esc(t.id) + '">Editar</button>' +
+        '<button type="button" class="btn" data-med-dejar="' + U.esc(t.id) + '">Dejar de tomarlo</button></div>';
+      if (medEd.dejando === t.id) {
+        h += '<div class="med-ed-dejar"><label class="med-ed-campo"><span>Último día que lo tomas</span>' +
+          '<input type="date" data-med-campo="fin" value="' + hoy + '"></label>' +
+          '<label class="med-ed-campo"><span>Motivo (si quieres)</span><input type="text" data-med-campo="motivo" placeholder="Ej.: terminó la pauta, me sentaba mal…"></label>' +
+          '<div class="med-ed-botones"><button type="button" class="btn principal" data-med-dejar-ok="' + U.esc(t.id) + '">Confirmar</button>' +
+          '<button type="button" class="btn" data-med-cancelar="1">Cancelar</button></div></div>';
+      }
+      h += "</div>";
+    });
+    return h + '<button type="button" class="btn principal med-ed-nuevo" data-med-nuevo="1">+ Añadir un medicamento</button>' +
+      '<p class="nota-peque">Lo que dejas de tomar no se borra: se queda en el historial con su fecha de fin.</p>';
+  }
+
+  function abrirEditorMed() {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    if (!document.getElementById("estilos-med-editor")) {
+      var st = document.createElement("style"); st.id = "estilos-med-editor";
+      st.textContent = [
+        ".med-ed-item{border-bottom:1px solid var(--borde,#dfe5e2);padding:9px 0}",
+        ".med-ed-item>div:first-child small{display:block;color:var(--gris,#667a70);font-size:12.5px;margin-top:2px}",
+        ".med-ed-acc{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}",
+        ".med-ed-acc .btn{padding:5px 10px;font-size:13px}",
+        ".med-ed-dejar{background:var(--azul-claro,#eaf0f6);border-radius:9px;padding:9px 10px;margin-top:8px}",
+        ".med-ed-nuevo{width:100%;margin-top:12px}",
+        ".med-ed-form{display:grid;gap:10px}",
+        ".med-ed-campo{display:grid;gap:4px;font-size:13px}",
+        ".med-ed-campo>span{font-weight:600;color:var(--tinta,#1f2a24)}",
+        ".med-ed-campo input[type=text],.med-ed-campo input[type=date],.med-ed-campo select,.med-ed-campo textarea{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--borde,#dfe5e2);border-radius:8px;background:#fff;width:100%;box-sizing:border-box}",
+        ".med-ed-campo small{color:var(--gris,#667a70);font-size:11.5px}",
+        ".med-ed-horas{display:flex;flex-wrap:wrap;gap:6px}",
+        ".med-ed-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--borde,#dfe5e2);border-radius:20px;padding:5px 10px;font-size:14px;background:#fff}",
+        ".med-ed-chip input[type=time]{font:inherit;border:0;padding:0}",
+        ".med-ed-check{display:flex;gap:8px;align-items:center;font-size:14px}",
+        ".med-ed-fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
+        ".med-ed-botones{display:flex;gap:8px;margin-top:4px}",
+        ".med-ed-borrar{background:#fdecea;border:1px solid #f3c2bc;border-radius:9px;padding:9px 10px;font-size:13px}",
+        ".btn.peligro{background:#b23a30;color:#fff;border-color:#b23a30}",
+        ".med-ed-estado{font-size:13px;margin:8px 0 0}",
+        ".med-ed-estado.mal{color:#b23a30}",
+        ".med-ed-estado.bien{color:#13875e}",
+        "[data-med-borrar]{color:#b23a30;cursor:pointer;text-decoration:underline}"
+      ].join("\n");
+      document.head.appendChild(st);
+    }
+    var d = hmDatos();
+    var t = (medEd.vista === "form" && medEd.id && d) ? (d.tratamientos || []).filter(function (x) { return x.id === medEd.id; })[0] : null;
+    var titulo = medEd.vista === "form" ? (t ? "Editar " + t.nombre : "Añadir un medicamento") : "Tu medicación";
+    caja.innerHTML = "<header><h2>" + U.esc(titulo) + "</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      (!d ? '<p class="nota-peque">El historial médico todavía no se ha cargado. Ciérralo y vuelve a abrirlo en unos segundos.</p>'
+          : medEd.vista === "form" ? medFormulario(t) : medLista()) +
+      (medEd.estado ? '<p class="med-ed-estado ' + (medEd.estado.charAt(0) === "!" ? "mal" : "bien") + '">' +
+        U.esc(medEd.estado.replace(/^!/, "")) + "</p>" : "");
+    modal.classList.add("abierta");
+  }
+
+  function medLeerFormulario() {
+    var caja = document.getElementById("modal-caja"), v = {};
+    caja.querySelectorAll("[data-med-campo]").forEach(function (el) {
+      v[el.getAttribute("data-med-campo")] = el.type === "checkbox" ? el.checked : String(el.value || "").trim();
+    });
+    v.tomas = [];
+    caja.querySelectorAll("[data-med-hora]").forEach(function (el) { if (el.checked) v.tomas.push(el.getAttribute("data-med-hora")); });
+    if (v.otra && v.tomas.indexOf(v.otra) < 0) v.tomas.push(v.otra);
+    v.tomas.sort();
+    return v;
+  }
+
+  function medTrasGuardar(texto) {
+    return function (ok, error) {
+      medEd.estado = ok ? texto : "!No se ha guardado: " + error + ". Tus datos siguen como estaban.";
+      if (ok) { medEd.vista = "lista"; medEd.id = null; medEd.dejando = null; medEd.borrando = null; }
+      abrirEditorMed();
+      if (ok) pintarConservando();
+    };
+  }
+
+  /* lo que se pulsa dentro de la ventana; devuelve true si era suyo */
+  function medClick(e) {
+    var el = e.target.closest ? e.target.closest("[data-med-nuevo],[data-med-editar],[data-med-dejar],[data-med-dejar-ok],[data-med-cancelar],[data-med-guardar],[data-med-borrar],[data-med-borrar-ok],[data-med-borrar-no]") : null;
+    if (!el) {
+      /* «crónico» enciende y apaga la fecha de fin */
+      var cr = e.target.closest && e.target.closest('[data-med-campo="cronico"]');
+      if (cr) { var hs = document.querySelector('[data-med-campo="hasta"]'); if (hs) hs.disabled = cr.checked; }
+      return false;
+    }
+    e.preventDefault();
+    medEd.estado = "";
+    if (el.hasAttribute("data-med-nuevo")) { medEd.vista = "form"; medEd.id = null; abrirEditorMed(); return true; }
+    if (el.hasAttribute("data-med-editar")) { medEd.vista = "form"; medEd.id = el.getAttribute("data-med-editar"); medEd.borrando = null; abrirEditorMed(); return true; }
+    if (el.hasAttribute("data-med-dejar")) { medEd.dejando = el.getAttribute("data-med-dejar"); abrirEditorMed(); return true; }
+    if (el.hasAttribute("data-med-cancelar")) { medEd.vista = "lista"; medEd.id = null; medEd.dejando = null; medEd.borrando = null; abrirEditorMed(); return true; }
+    if (el.hasAttribute("data-med-borrar")) { medEd.borrando = el.getAttribute("data-med-borrar"); abrirEditorMed(); return true; }
+    if (el.hasAttribute("data-med-borrar-no")) { medEd.borrando = null; abrirEditorMed(); return true; }
+    if (el.hasAttribute("data-med-dejar-ok")) {
+      var idD = el.getAttribute("data-med-dejar-ok"), v = medLeerFormulario();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v.fin || "")) { medEd.estado = "!Falta el último día."; abrirEditorMed(); return true; }
+      el.disabled = true; el.textContent = "Guardando…";
+      hmGuardarCambio(function (doc) {
+        var t = doc.tratamientos.filter(function (x) { return x.id === idD; })[0];
+        if (!t) return "ese tratamiento ya no está en el historial";
+        if (t.desde && /^\d{4}-\d{2}-\d{2}$/.test(t.desde) && v.fin < t.desde) return "el último día es anterior al primero";
+        t.hasta = v.fin; t.cronico = false;
+        t.fin = { fecha: v.fin, motivo: v.motivo || null, anotado: U.hoyISO(), desde: "app" };
+      }, "deja " + idD, medTrasGuardar("Hecho: deja de salir en la medicación diaria a partir del día siguiente al último."));
+      return true;
+    }
+    if (el.hasAttribute("data-med-borrar-ok")) {
+      var idB = el.getAttribute("data-med-borrar-ok");
+      el.disabled = true; el.textContent = "Borrando…";
+      hmGuardarCambio(function (doc) {
+        var n = doc.tratamientos.length;
+        doc.tratamientos = doc.tratamientos.filter(function (x) { return x.id !== idB; });
+        if (doc.tratamientos.length === n) return "ese tratamiento ya no está en el historial";
+      }, "borra " + idB, medTrasGuardar("Borrado."));
+      return true;
+    }
+    if (el.hasAttribute("data-med-guardar")) {
+      var f = medLeerFormulario(), idE = medEd.id;
+      if (!f.nombre) { medEd.estado = "!Falta el nombre."; abrirEditorMed(); return true; }
+      var dOrig = (idE && hmDatos()) ? ((hmDatos().tratamientos || []).filter(function (x) { return x.id === idE; })[0] || {}).desde : null;
+      if (!f.desde && dOrig) f.desde = String(dOrig);          // «2001» o «2011-04»: se conserva tal cual
+      if (!f.desde) { medEd.estado = "!Falta la fecha de inicio."; abrirEditorMed(); return true; }
+      if (!f.cronico && f.hasta && f.hasta < f.desde) { medEd.estado = "!La fecha de fin es anterior a la de inicio."; abrirEditorMed(); return true; }
+      el.disabled = true; el.textContent = "Guardando…";
+      hmGuardarCambio(function (doc) {
+        var t = idE ? doc.tratamientos.filter(function (x) { return x.id === idE; })[0] : null;
+        if (idE && !t) return "ese tratamiento ya no está en el historial";
+        if (!t) { t = { id: medIdNuevo(f.nombre), alta: { fecha: U.hoyISO(), desde: "app" } }; doc.tratamientos.push(t); }
+        t.nombre = f.nombre; t.dosis = f.dosis || "";
+        t.tomas = f.tomas; t.conComida = !!f.conComida;
+        t.desde = f.desde;
+        if (f.cronico) { t.cronico = true; delete t.hasta; } else { t.cronico = false; if (f.hasta) t.hasta = f.hasta; else delete t.hasta; }
+        if (f.para) t.para = f.para; else delete t.para;
+        if (f.notas) t.notas = f.notas; else delete t.notas;
+        t.editado = U.hoyISO();
+      }, (idE ? "edita " : "añade ") + f.nombre, medTrasGuardar(idE ? "Guardado." : "Añadido."));
+      return true;
+    }
+    return false;
   }
 
   function htmlHistorial() {
@@ -9175,7 +9436,8 @@
     }
 
     var c = hmCumplimiento();
-    h += '<div class="tarjeta"><h2>Tratamientos en curso</h2>';
+    h += '<div class="tarjeta"><h2>Tratamientos en curso</h2>' +
+      '<button type="button" class="btn" data-med-abrir="1" style="margin-bottom:8px">Añadir, cambiar o dejar un medicamento</button>';
     if (c.tot) h += '<p class="nota-peque">Tomas marcadas en los últimos 7 días: <b>' + c.hech + " de " + c.tot + "</b>.</p>";
     h += '<table class="hm-tabla"><tr><th>Qué</th><th>Cuándo</th><th>Hasta</th></tr>';
     act.forEach(function (t) {
@@ -11910,6 +12172,11 @@
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
       if (t.closest && t.closest("[data-ecg-papel]")) { e.preventDefault(); abrirEcgPapel(); return; }
       if (t.closest && t.closest("[data-ten-papel]")) { e.preventDefault(); abrirTensionPapel(); return; }
+      if (t.closest && t.closest("[data-med-abrir]")) {
+        e.preventDefault(); medEd = { vista: "lista", id: null, dejando: null, borrando: null, estado: "" };
+        if (!hmDatos()) Historial.cargar(function () { abrirEditorMed(); });
+        abrirEditorMed(); return;
+      }
       var ie = t.closest ? t.closest("[data-evo-info]") : null;
       if (ie) { e.preventDefault(); abrirInfoEvo(ie.getAttribute("data-evo-info")); return; }
       /* «que decida el reloj»: borra la marca manual y devuelve la sesión al
@@ -12196,6 +12463,7 @@
       if (e.target.closest && e.target.closest("[data-ten-imprimir]")) { e.preventDefault(); imprimirTension(); return; }
       var tdi = e.target.closest ? e.target.closest("[data-ten-dias]") : null;
       if (tdi) { e.preventDefault(); tenPapelDias = parseInt(tdi.getAttribute("data-ten-dias"), 10) || 30; abrirTensionPapel(); return; }
+      if (medClick(e)) return;
       var volR = e.target.closest ? e.target.closest("[data-volver-rutina]") : null;
       if (volR) { e.preventDefault(); abrirRutina(volR.getAttribute("data-volver-rutina")); return; }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
