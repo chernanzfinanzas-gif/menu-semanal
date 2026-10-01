@@ -1934,9 +1934,41 @@
     }
     var vBici = (rit.bici && rit.bici.v) || 45, vCam = (rit.caminar && rit.caminar.v) || 25;
 
+    /* ===== LA IDENTIDAD DE UN BLOQUE ES LO QUE ES, NO SU SITIO EN LA COLA =====
+       1-oct-2026. Es el fallo que Carlos vio como «se ha cambiado solo… ha
+       cambiado los entrenamientos de fuerza», y costó media tarde encontrarlo
+       porque no lo provoca nada que él haga.
+
+       Hasta hoy el id era `b0, b1, b2…`: el número de orden en que se generan,
+       que es salida, rodillos, caminatas y LA FUERZA AL FINAL. Y la colocación
+       en días se guarda por ese id, en `ent().reparto`.
+
+       Así que bastaba con que apareciera un rodillo más —medido: con 7 días
+       hábiles y salida de 35 puntos, al pasar la carga de 160 a 165 los rodillos
+       van de 3 a 4— para que todo lo de detrás se corriera un puesto. El día que
+       guardaba «b4 = Fuerza A» pasaba a tener el rodillo nuevo, Fuerza A
+       aterrizaba en el día de Fuerza B, y B en el de C. Nadie había tocado nada.
+       Y la fuerza se llevaba SIEMPRE el golpe, por ir la última de la fila.
+
+       Ahora cada bloque se llama por lo que es: `largo`, `rod-1`, `cam-2`,
+       `fza-A`. Un rodillo que aparece o desaparece ya no mueve a los demás, y
+       Fuerza B se queda donde tú la pusiste.
+
+       `idv` es el id viejo, y sólo vive para que `migrarIdsBloques` pueda
+       traducir lo que ya estaba guardado. */
+    function idEstable(fam, texto, i, extra) {
+      if (extra && extra.largo) return "largo";
+      if (fam === "fuerza") {
+        var letra = String(texto).replace(/^fuerza\s*/i, "").split(/[,\s]/)[0];
+        if (letra) return "fza-" + letra.toUpperCase();
+      }
+      var raiz = fam === "bici" ? "rod" : (fam === "caminar" ? "cam" : fam);
+      return raiz + "-" + (i + 1);
+    }
     function mete(fam, texto, n, min, extra) {
       for (var i = 0; i < n; i++) {
-        var b = { id: "b" + num, t: texto, min: min, fam: fam };
+        var b = { id: idEstable(fam, texto, i, extra), idv: "b" + num,
+                  t: texto, min: min, fam: fam };
         num++;
         if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) b[k] = extra[k];
         out.push(b);
@@ -2506,6 +2538,54 @@
   }
 
   function repartoGuardado() { var e = ent(); if (!e.reparto) e.reparto = {}; return e.reparto; }
+
+  /* ========== TRADUCIR LO QUE YA ESTABA GUARDADO  ·  1-oct-2026 ==========
+     El reparto por días y los bloques quitados con motivo están escritos con los
+     ids viejos (`b0, b1…`). Se traducen UNA sola vez, emparejando cada uno con
+     el bloque que ocupa HOY esa posición, que es exactamente lo que significaba
+     el id viejo.
+
+     LO QUE ESTA MIGRACIÓN NO PUEDE HACER, y conviene decirlo: si una semana ya
+     se había descolocado por el fallo, aquí se traduce la colocación TAL COMO
+     ESTÁ, equivocada incluida. Esto para la hemorragia; no reescribe el pasado.
+     La semana que esté torcida se recoloca a mano una vez y ya no se vuelve a
+     mover.
+
+     Un id viejo sin pareja —porque esa semana tiene ahora menos bloques— se deja
+     caer a propósito: el bloque reaparece como «sin colocar», que se ve y se
+     arregla de un toque, mientras que un id huérfano guardado no se ve nunca. */
+  function migrarIdsBloques() {
+    var e = ent();
+    if (e.idsEstables) return 0;
+    var n = 0, huerfanos = 0;
+    ["reparto", "quitados"].forEach(function (clave) {
+      var d = e[clave];
+      if (!d) return;
+      Object.keys(d).forEach(function (desde) {
+        var viejo = d[desde];
+        if (!viejo || typeof viejo !== "object") return;
+        var sem = semanaDe(desde);
+        if (!sem) return;
+        var b = bolsilloDe(sem) || [], mapa = {};
+        b.forEach(function (x) { if (x.idv) mapa[x.idv] = x.id; });
+        var nuevo = {}, toco = false;
+        Object.keys(viejo).forEach(function (bid) {
+          if (!/^b[0-9]+$/.test(bid)) { nuevo[bid] = viejo[bid]; return; }
+          toco = true;
+          if (mapa[bid]) nuevo[mapa[bid]] = viejo[bid];
+          else huerfanos++;
+        });
+        if (toco) { d[desde] = nuevo; n++; }
+      });
+    });
+    e.idsEstables = 1;
+    A.guardar("entreno");
+    if (n && global.console) {
+      global.console.log("Bloques con nombre propio: " + n + " semanas traducidas" +
+        (huerfanos ? ", " + huerfanos + " bloques vuelven a «sin colocar»" : ""));
+    }
+    return n;
+  }
 
   /* dónde está cada bloque de esta semana. Null = sin colocar, en la bandeja. */
   function repartoDe(sem) {
@@ -12733,6 +12813,7 @@
     ponerTip();
     ponerArrastre();
     if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
+    try { migrarIdsBloques(); } catch (e) { if (global.console) global.console.warn("migrar ids:", e); }
     pintar();
     abrirEnElPlan();
     /* el ECG y la tensión del correo: dos ficheros pequeños, en paralelo */

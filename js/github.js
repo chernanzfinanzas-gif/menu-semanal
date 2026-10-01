@@ -289,10 +289,44 @@
     },
 
     /* Lo que viaja al repositorio: todo menos el token */
+    /* ===== EL CATÁLOGO NO SUBE AQUÍ  ·  1-oct-2026 =====
+       Lo que paró la app una tarde entera, y por un kilobyte.
+
+       La API de GitHub sólo deja ESCRIBIR ficheros de hasta 1 MiB (1.048.576
+       bytes). Medido el 1-oct: `estado.json` pesaba 1.049.769. Se pasaba por
+       1.193 bytes. Leer no tiene tope, así que «Probar conexión» decía que todo
+       iba bien y cada guardado fallaba con «No se pudo guardar». Cruzó la línea
+       justo al cargar la compra de Mercadona, que metió 200 productos al stock.
+
+       Y lo que lo engordaba no era nada suyo: el 79 % del fichero eran los
+       `ingredientes` y las `recetas` del catálogo entero, QUE YA VIAJAN en los
+       `datos/*.js` que se publican con el .bat. Se subía el catálogo dos veces.
+
+       Así que aquí sube sólo lo SUYO: `novedades()` es exactamente lo que no
+       venía en el catálogo o lo que él ha corregido — la misma cuenta que usa
+       `datos/nuevos.js`. El estado pasa de 1.025 KB a unos 220: la quinta parte
+       del tope, con sitio para años.
+
+       POR QUÉ ES SEGURO PODARLO: al bajar, `fusionarListas` une por `id` y es
+       aditiva, así que una lista corta nunca borra la larga del otro lado. Y en
+       un aparato nuevo, el bloque de ALTAS de `almacen.js` completa el catálogo
+       desde los ficheros publicados. Lo suyo viaja; lo que es igual en todas
+       partes, no. */
     paquete: function () {
       var copia = JSON.parse(JSON.stringify(Almacen.estado));
       if (copia.config && copia.config.github) copia.config.github.token = "";
       delete copia.sync;
+      try {
+        var mio = Almacen.novedades ? Almacen.novedades() : null;
+        if (mio && mio.ingredientes && mio.recetas) {
+          copia.ingredientes = mio.ingredientes;
+          copia.recetas = mio.recetas;
+          copia.catalogoFuera = 1;        /* marca: este paquete viene podado */
+        }
+      } catch (e) {
+        /* si algo falla al podar, se sube entero: mejor grande que incompleto */
+        if (global.console) global.console.warn("podar catalogo:", e);
+      }
       return copia;
     },
 
