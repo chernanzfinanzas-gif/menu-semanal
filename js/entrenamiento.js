@@ -2555,37 +2555,48 @@
      caer a propósito: el bloque reaparece como «sin colocar», que se ve y se
      arregla de un toque, mientras que un id huérfano guardado no se ve nunca. */
   function migrarIdsBloques() {
-    var e = ent();
-    if (e.idsEstables) return 0;
-    var n = 0, huerfanos = 0;
+    var e = ent(), n = 0, vaciadas = 0;
     ["reparto", "quitados"].forEach(function (clave) {
       var d = e[clave];
       if (!d) return;
       Object.keys(d).forEach(function (desde) {
         var viejo = d[desde];
         if (!viejo || typeof viejo !== "object") return;
+        /* REPARAR LO QUE ESTROPEÓ LA PRIMERA VERSIÓN DE ESTO (1-oct-2026): dejó
+           semanas con el reparto en {} y eso saca los siete bloques a «SIN
+           COLOCAR» con todos los días en descanso. Un reparto vacío no es un
+           reparto: se borra y vuelve la propuesta. */
+        if (!Object.keys(viejo).length) { delete d[desde]; vaciadas++; n++; return; }
+        var pendientes = Object.keys(viejo).filter(function (k) { return /^b[0-9]+$/.test(k); });
+        if (!pendientes.length) return;                 /* ya está traducida */
         var sem = semanaDe(desde);
         if (!sem) return;
         var b = bolsilloDe(sem) || [], mapa = {};
         b.forEach(function (x) { if (x.idv) mapa[x.idv] = x.id; });
-        var nuevo = {}, toco = false;
+        var nuevo = {}, puestos = 0;
         Object.keys(viejo).forEach(function (bid) {
           if (!/^b[0-9]+$/.test(bid)) { nuevo[bid] = viejo[bid]; return; }
-          toco = true;
-          if (mapa[bid]) nuevo[mapa[bid]] = viejo[bid];
-          else huerfanos++;
+          if (mapa[bid]) { nuevo[mapa[bid]] = viejo[bid]; puestos++; }
         });
-        if (toco) { d[desde] = nuevo; n++; }
+        /* NUNCA DEJAR LA SEMANA EN BLANCO  ·  1-oct-2026, y lo vio Carlos en la
+           primera versión de esto: si no se pudo traducir NADA, guardar un objeto
+           vacío hacía que `repartoDe` encontrase un reparto —vacío— y sacase los
+           siete bloques a «SIN COLOCAR», con todos los días en descanso. Peor que
+           no hacer nada. Si no hay nada que traducir se BORRA la entrada, y la
+           semana vuelve a la propuesta automática, que es lo que había antes. */
+        if (!puestos) { delete d[desde]; vaciadas++; n++; return; }
+        d[desde] = nuevo;
+        n++;
       });
     });
-    e.idsEstables = 1;
-    A.guardar("entreno");
+    if (n) A.guardar("entreno");
     if (n && global.console) {
       global.console.log("Bloques con nombre propio: " + n + " semanas traducidas" +
-        (huerfanos ? ", " + huerfanos + " bloques vuelven a «sin colocar»" : ""));
+        (vaciadas ? ", " + vaciadas + " vuelven a la propuesta" : ""));
     }
     return n;
   }
+
 
   /* dónde está cada bloque de esta semana. Null = sin colocar, en la bandeja. */
   function repartoDe(sem) {
