@@ -1740,6 +1740,18 @@
     memoHueco[t.desde] = r;
     return r;
   }
+  /* LA CARGA DEL PELDAÑO EN EL HUECO DONDE CAE (1-oct-2026). La semana 1 dura
+     diez días (arrancó un viernes) y su 196 es para diez. Si el pase la hace
+     repetir en un hueco de siete, pedir 196 en siete días era pedir MÁS que la
+     semana 2 (160): repetir salía más duro que subir. Se ajusta a los días. */
+  function diasHueco(i) {
+    return (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
+  }
+  function cargaHueco(ix, i) {
+    var c = peldano(ix).carga, dP = diasHueco(ix), dH = diasHueco(i);
+    return dP === dH ? c : Math.round(c * dH / dP);
+  }
+
   /* la nota que se enseña: la que viaja siempre; la de fecha, sólo en su hueco */
   function notaDe(p, enSuFecha) {
     return [p.nota, enSuFecha ? p.notaFecha : ""].filter(function (x) { return !!x; }).join(". ");
@@ -1749,7 +1761,7 @@
     var t = tramoNatural(iso);
     if (!t) return null;
     var des = desfaseHasta(t.desde), ix = idxHueco(t), p = peldano(ix);
-    return { n: p.n, desde: t.desde, hasta: t.hasta, carga: p.carga, talla: p.talla,
+    return { n: p.n, desde: t.desde, hasta: t.hasta, carga: cargaHueco(ix, t.i), talla: p.talla,
              /* la nota que viaja va siempre; la atada a una fecha, sólo si la
                 semana cae en su hueco del calendario original */
              nota: notaDe(p, ix === t.i), criterio: p.criterio,
@@ -6054,11 +6066,11 @@
     for (var i = 0; i < RAMPA_SEMANAS; i++) {
       /* lo que pedía El Plan de verdad en ese hueco (la cola del pase), no la
          rampa original: es contra eso contra lo que se mide lo hecho */
-      var p = peldano(idxHueco({ i: i, desde: f }));
+      var ixS = idxHueco({ i: i, desde: f }), p = peldano(ixS);
       /* la semana 1 son diez días, no siete: arrancó un viernes */
       var dias = (i === 0) ? (diasEntre(P.rampa[0].desde, P.rampa[0].hasta) + 1) : 7;
       hasta = U.sumarDias(f, dias - 1);
-      objetivos.push({ f: f, v: p.carga, n: p.n });
+      objetivos.push({ f: f, v: cargaHueco(ixS, i), n: p.n });
       if (f <= hoy) {
         var c = cargaSemana(f, hasta < hoy ? hasta : hoy);
         if (c !== null) reales.push({ f: f, v: c, n: p.n });
@@ -6958,6 +6970,12 @@
      la cola. No hay botón que tocar: si el pase dice repetir, se repite. Se
      recorren todos los huecos cerrados, así que da igual cuántos domingos
      lleves sin abrir la app. */
+  /* ¿llegan los datos del reloj hasta ese día? */
+  function datosCubren(iso) {
+    var d = Salud.datos && Salud.datos.dias && Salud.datos.dias[iso];
+    return !!(d && typeof d.atl === "number");
+  }
+
   function aplicarPases() {
     if (!P.pase) return 0;
     var reg = registroPase(), hoy = U.hoyISO(), nuevos = 0, guarda = 0;
@@ -6967,10 +6985,21 @@
          y del CSV llegan con retraso, y un veredicto dictado el lunes a las
          ocho con la mitad de la semana sin sincronizar sería falso. Pasada la
          ventana, lo dictado queda dictado aunque aparezcan datos nuevos. */
-      var fresco = !reg[t.desde] || (hoy <= U.sumarDias(t.hasta, 3));
+      /* SIN DATOS DEL RELOJ NO HAY PASE (1-oct-2026). Ese día la app dictó el
+         de la semana 1 antes de tener salud.json: sólo vio casillas («0 de 12»),
+         y como era el primer cálculo y la ventana de tres días ya había pasado,
+         lo congeló en el acto. Ahora: si los datos no llegan hasta el último
+         día de la semana, no se dicta nada (y lo que se dictó a ciegas se
+         quita); y un pase dictado sin datos no se congela nunca. */
+      var antesP = reg[t.desde];
+      var fresco = !antesP || !antesP.conDatos || (hoy <= U.sumarDias(t.hasta, 3));
+      if (t.hasta < hoy && fresco && !datosCubren(t.hasta)) {
+        if (antesP && !antesP.conDatos) { delete reg[t.desde]; nuevos++; }
+        break;                              // lo que viene detrás depende de éste
+      }
       if (t.hasta < hoy && fresco) {
         var ixH = idxHueco(t), p = peldano(ixH);
-        var sem = { n: p.n, desde: t.desde, hasta: t.hasta, carga: p.carga,
+        var sem = { n: p.n, desde: t.desde, hasta: t.hasta, carga: cargaHueco(ixH, t.i),
                     talla: p.talla, criterio: p.criterio, idx: ixH };
         var r = veredictoSemana(sem, t.hasta, true);
         var des0 = desfaseHasta(t.desde);
@@ -6980,8 +7009,8 @@
         if ((t.i + 1) + desSig < 0) desSig = -(t.i + 1);   // el suelo es el primer peldaño
         var antes = reg[t.desde];
         var nuevo = { v: r.v, porque: r.porque, n: sem.n, carga: sem.carga,
-                      d: desSig - des0, aplicado: (antes && antes.aplicado) || hoy };
-        if (!antes || antes.v !== nuevo.v || antes.d !== nuevo.d || antes.porque !== nuevo.porque) {
+                      d: desSig - des0, aplicado: (antes && antes.conDatos && antes.aplicado) || hoy, conDatos: true };
+        if (!antes || antes.v !== nuevo.v || antes.d !== nuevo.d || antes.porque !== nuevo.porque || !antes.conDatos) {
           reg[t.desde] = nuevo;
           nuevos++;
         }
@@ -9244,9 +9273,10 @@
           if (costeSesion(x) > 0) minutos += x.min || 0;
         });
       }
-      out.push({ n: p.n, desde: f, hasta: hasta, dias: dias, carga: p.carga,
+      var cargaH = cargaHueco(ixC, i);
+      out.push({ n: p.n, desde: f, hasta: hasta, dias: dias, carga: cargaH,
                  talla: p.talla, nota: p.nota, coste: coste, minutos: minutos,
-                 factor: coste > 0 ? p.carga / coste : 1,
+                 factor: coste > 0 ? cargaH / coste : 1,
                  /* 25-sep-2026: ANCLADO AL PRINCIPIO. La nota de las semanas de
                     crucero es «Crucero: tres semanas y la cuarta de descarga», y
                     sin el ^ TODAS salían marcadas como descarga. */
