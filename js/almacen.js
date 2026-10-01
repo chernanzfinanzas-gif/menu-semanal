@@ -1177,6 +1177,7 @@
           if (puestos.length) {
             var gf = self.agrupar(puestos);
             gf.orden.forEach(function (id) {
+              if (self.esDeOtro(id)) return;    /* tampoco fuera de casa */
               total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, gf.veces[id]);
             });
             return;
@@ -1187,6 +1188,13 @@
         }
         var g = self.agrupar(dia[toma]);
         g.orden.forEach(function (id) {
+          /* EL PAN DE SUSANA NO SUMA SU SAL (1-oct-2026). El filtro estaba en
+             `nutrToma` —las calorías— y aquí no, porque la sal del día no pasa
+             por ahí: tiene su propia suma. Medido: 3 rebanadas en comida y cena
+             le metían 1,24 g de sal al día, el 62 % de su umbral ámbar, de pan
+             que no se come él. El comentario de `duenoDe` decía que `nutrToma`
+             era «por donde pasan todas las sumas del día»; no era verdad. */
+          if (self.esDeOtro(id)) return;
           total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, g.veces[id]);
         });
       });
@@ -1639,8 +1647,10 @@
        factor lo usan también el compromiso de despensa y el descuento al marcar
        comido, y el pan de Susana SÍ sale de la despensa: si allí valiera cero, el
        stock contaría pan que ya os habéis comido. Lo que no cuenta son sus
-       calorías, y eso se filtra en `nutrToma`, que es por donde pasan todas las
-       sumas del día. */
+       calorías y su sal, y eso se filtra en DOS sitios, no en uno: `nutrToma`
+       para las calorías y `salDia` para la sal. Este comentario decía «nutrToma,
+       que es por donde pasan todas las sumas del día» y era falso: la sal tiene
+       su propia suma y durante un día entero contó la de ella (1-oct-2026). */
     duenoDe: function (recetaId) {
       var rec = typeof recetaId === "string" ? this.receta(recetaId) : recetaId;
       return (rec && rec.dueno) || "";
@@ -5062,6 +5072,31 @@
       return mejor;
     },
 
+    /* Cuántas veces sale cada plato en la semana de esa fecha. Lo usa el
+       compositor para no ofrecerte el lunes lo mismo que ya comes el martes. */
+    vecesEnLaSemana: function (fecha) {
+      var cuenta = {}, lunes = Util.lunesDe(fecha), self = this;
+      for (var i = 0; i < 7; i++) {
+        var d = this.estado.plan[Util.sumarDias(lunes, i)];
+        if (!d) continue;
+        Util.TOMAS.forEach(function (t) {
+          (d[t.k] || []).forEach(function (id) { cuenta[id] = (cuenta[id] || 0) + 1; });
+        });
+      }
+      return cuenta;
+    },
+
+    /* CUÁNTO CABE TODAVÍA EN ESTA TOMA: la misma cuenta que hace «Completar»,
+       sacada aparte para que el selector pueda ofrecer combinaciones del tamaño
+       que de verdad toca y no del tamaño de un plato cualquiera. El suelo de 80
+       es el mismo de allí: por debajo no hay nada que proponer. */
+    huecoDeToma: function (fecha, toma) {
+      var cuota = (this.cuotaTomas(fecha) || {})[toma] || 0;
+      var ya = this.nutrToma(fecha, toma).k;
+      var restante = this.objetivoDelDia(fecha) - this.nutrDia(fecha).k;
+      return Math.max(80, Math.round(Math.min(cuota - ya, restante)));
+    },
+
     /* ---------- EL COMPOSITOR ----------
        Devuelve las mejores combinaciones de 1 a 3 piezas para la cuota `busco`.
        Se prueban todas (24 piezas son 24 + 300 + 2.600 combinaciones: nada) y se
@@ -5075,12 +5110,22 @@
       var self = this;
       var piezas = this.piezasDeMerienda(toma, busco, opc.pool);
       if (!piezas.length) return [];
-      var libres = opc.libres || null;
-      var yaSemana = opc.yaEnLaSemana || {};
+      /* Si no se los dan, se los busca él: así el selector puede pedirle
+         combinaciones con una sola línea y salen igual de bien que las de
+         «Completar», mirando la despensa y lo que ya hay esta semana. */
+      var libres = opc.libres || this.libresTodo();
+      var yaSemana = opc.yaEnLaSemana || this.vecesEnLaSemana(fecha);
       var salYa = opc.salYa != null ? opc.salYa : this.salDia(fecha);
       var excluir = opc.excluir || [];
       var cuantas = opc.cuantas || 1;
       var ideas = [];
+
+      /* LA DESPENSA, UNA VEZ POR PIEZA Y NO UNA VEZ POR COMBINACIÓN. Con 59
+         piezas se prueban unas 36.000 combinaciones, y preguntar ahí dentro qué
+         falta de cada receta son 50.000 vueltas a `faltaParaHacer`: 295 ms en el
+         ordenador, que en su móvil es la ventana congelándose al abrirla. La
+         despensa no cambia durante la cuenta, así que se pregunta antes. */
+      piezas.forEach(function (p) { p.pena = self.penalizaDespensa(p.r, libres); });
 
       function anota(lista) {
         var pat = self.patronDe(lista);
@@ -5091,7 +5136,7 @@
           if (!vistos[p.id]) {
             vistos[p.id] = true; distintas++;
             nota += (yaSemana[p.id] || 0) * 120;
-            despensa += self.penalizaDespensa(p.r, libres);
+            despensa += p.pena;
           } else repes++;
         });
         /* LA DESPENSA SE PROMEDIA, NO SE SUMA, y esto no es un detalle: sumándola,

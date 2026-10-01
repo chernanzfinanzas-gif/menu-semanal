@@ -621,7 +621,19 @@
                          : '<span class="nom" title="Esta receta ya no est\u00e1 en el recetario; ' +
                            'el nombre y los n\u00fameros son los que ten\u00eda ese d\u00eda">' +
                            sinViudas(esc(nombre)) + '</span>') +
-                      '<span class="pl-kcal">' + Util.kcal(n.k * fac) + '</span>' +
+                      /* EL PLATO DE SUSANA DICE QUE NO CUENTA (1-oct-2026).
+                         Hasta hoy la fila pintaba sus 137 kcal igual que las de
+                         él, mientras la cabecera del día —que sí filtra por
+                         dueño— no las sumaba. Los platos no cuadraban con el
+                         total y en pantalla no había nada que lo explicara.
+                         Ahora la fila lo dice, y las cifras de ella van al
+                         título por si quiere verlas. */
+                      (Almacen.esDeOtro(rid)
+                        ? '<span class="pl-kcal ajena" title="' +
+                            esc(Util.kcal(n.k * fac)) + " y " +
+                            esc(Util.sal(Almacen.salEn(fecha, rid) * fac)) +
+                            ' de sal que no cuentan en tu día: este plato no es tuyo">no cuenta</span>'
+                        : '<span class="pl-kcal">' + Util.kcal(n.k * fac) + '</span>') +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
                       '</div>' +
@@ -980,9 +992,45 @@
             ordenar(sueltos).map(boton).join("") +
             '</details>';
 
-    /* El orden: en un almuerzo o una merienda, primero el ingrediente solo;
-       en una comida o una cena, primero las recetas. */
-    html += bloqueCasa + (esPicoteo ? (bloqueSueltos + bloquePreferente)
+    /* ---------- COMBINACIONES PARA LAS CALORÍAS QUE TOCAN (1-oct-2026) ----------
+       Carlos, viendo que el + de la merienda le ofrecía recetas: «¿podemos hacer
+       que al pulsar el + en merienda o almuerzo añada una combinación de las
+       calorías previstas (aproximado) o una lista en primer lugar con
+       combinaciones para elegir?».
+
+       Lo segundo, que es lo que él pone primero: una LISTA para elegir. Una
+       merienda no es un plato, es un lote de una a tres cosas que suman lo que le
+       toca a esa toma — y lo que le toca lo sabe la app, porque es la cuota del
+       día menos lo que ya haya puesto ahí.
+
+       Va una idea de cada patrón —batido, recuperador, fruta con fruto seco,
+       desecados, yogur— y no las seis mejores, que serían seis maneras de comer
+       frutos secos. Al tocar una entran TODAS sus piezas de golpe, cada una como
+       su plato: así cada una descuenta su stock y va a la compra por separado,
+       que es lo que ya sabe hacer el resto de la app. */
+    var bloqueKits = "";
+    if (esPicoteo) {
+      var hueco = Almacen.huecoDeToma(fecha, toma);
+      var ideas = Almacen.componerMerienda(fecha, toma, hueco, { porPatron: true, cuantas: 6 });
+      if (ideas.length) {
+        bloqueKits = '<details class="grupo-selec kits" data-fijo="1" open>' +
+          '<summary><span class="tit">Combinaciones de ' + Util.kcal(hueco) + '</span>' +
+          '<span class="cuantas">' + ideas.length + '</span></summary>' +
+          '<p class="aviso-grupo">Lo que le toca a ' + esc(toma) + ' hoy. Al tocar una entran todas sus piezas.</p>' +
+          ideas.map(function (x) {
+            return '<button data-combina="' + esc(x.ids.join(",")) + '" ' +
+                   'data-nombre="' + esc(x.nombres.join(" ").toLowerCase()) + '">' +
+                   esc(x.nombres.join("  +  ")) +
+                   '<small>' + Util.kcal(x.k) + ' \u00b7 ' + Util.sal(x.sal) + ' de sal \u00b7 ' +
+                   esc(x.patronN) + '</small></button>';
+          }).join("") +
+          '</details>';
+      }
+    }
+
+    /* El orden: en un almuerzo o una merienda, primero las combinaciones y luego
+       el ingrediente solo; en una comida o una cena, primero las recetas. */
+    html += bloqueKits + bloqueCasa + (esPicoteo ? (bloqueSueltos + bloquePreferente)
                                     : (bloquePreferente + bloqueSueltos));
 
     /* y después el recetario entero, por grupos de alimento */
@@ -1069,6 +1117,23 @@
     });
     ajustarSuelto();
 
+    /* Una combinación entra como lo que es: varios platos en la misma toma. Se
+       escribe una vez y se guarda una vez, para no repintar seis veces. */
+    function meterVarios(ids) {
+      var dia = Almacen.asegurarDia(fecha);
+      var estabaVacia = !(dia[toma] || []).length;
+      ids.forEach(function (id) {
+        dia[toma].push(id);
+        Almacen.olvidarQuitado(fecha, toma, id);
+      });
+      if (estabaVacia) Almacen.ponerFijos(fecha);
+      Almacen.tocarDia(fecha);
+      Almacen.guardar("plato");
+      cerrarModal();
+      pintarMenu();
+      Util.toast(ids.length > 1 ? "Puestas " + ids.length + " cosas" : "Puesto");
+    }
+
     function meter(idReceta) {
       var dia = Almacen.asegurarDia(fecha);
       var estabaVacia = !(dia[toma] || []).length;
@@ -1099,6 +1164,8 @@
         if (idc) meter(idc);
         return;
       }
+      var kit = e.target.closest("[data-combina]");
+      if (kit) { meterVarios(kit.getAttribute("data-combina").split(",")); return; }
       var b = e.target.closest("[data-elegir]");
       if (!b) return;
       /* Si la toma estaba VACÍA, es que está montando esa comida desde cero, así que

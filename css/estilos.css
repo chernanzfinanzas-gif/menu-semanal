@@ -244,6 +244,8 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .resumen-act{padding:6px 12px 2px; font-size:.76rem; color:var(--gris)}
 .resumen-act b{color:var(--tinta)}
 .actividad-dia .titulo-toma .btn.mini{padding:2px 9px; font-size:.72rem}
+/* Lo que se come otro: ni calorías ni sal tuyas, y que se vea. */
+.plato .pl-kcal.ajena{color:var(--gris,#8a8a8e);font-weight:400;font-size:.82em;white-space:nowrap}
 .plato.no-cuenta{opacity:.5}
 .plato.no-cuenta .sal{text-decoration:line-through}
 .nota-tipo.cadena{background:var(--verde-claro); color:var(--verde)}
@@ -340,6 +342,14 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 }
 .grupo-selec button[data-elegir],
 .grupo-selec button[data-casa]{margin-left:18px; width:calc(100% - 18px)}
+
+/* LAS COMBINACIONES DE LA MERIENDA. El nombre son dos o tres productos con sus
+   «+» en medio, así que la fila tiene que poder ocupar dos líneas sin cortar
+   ninguno por la mitad; el pie (calorías, sal y qué patrón es) va debajo. */
+.grupo-selec.kits button[data-combina]{
+  margin-left:18px; width:calc(100% - 18px);
+  white-space:normal; line-height:1.35; text-align:left}
+.grupo-selec.kits button[data-combina] small{display:block; margin-top:2px}
 /* La vista previa de lo que ha devuelto la IA, antes de guardar nada */
 .previo-ia{margin-top:12px; padding:12px; border:1px solid var(--verde-borde);
            border-radius:var(--radio); background:var(--verde-claro)}
