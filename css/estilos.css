@@ -140,7 +140,7 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 /* Completar y Vaciar van juntos al final de la fila. Se achican un punto para
    que los dos quepan en un móvil sin partir la línea (Carlos, 23-sep-2026:
    «junto a completar un botón de vaciar… reduce el tamaño para que entren los dos»). */
-.tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia{padding:4px 7px; font-size:.72rem}
+.tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia,.tipo-dia .cerrar-dia{padding:4px 7px; font-size:.72rem}
 /* deporte y horas de un día de ruta */
 .plan-ruta{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
   padding:10px 12px; border-bottom:1px solid var(--borde); background:#fbfcfb}
@@ -258,7 +258,7 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
      «no salen los textos, de en casa o en ruta»). Antes se escondían porque
      «Ruta o bici larga» no cabía; ahora pone «Outdoor» y entra de sobra. */
   .pest-tipo{padding:4px 6px; font-size:.7rem; gap:3px}
-  .tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia{padding:4px 6px; font-size:.7rem}
+  .tipo-dia .rellenar-dia,.tipo-dia .vaciar-dia,.tipo-dia .cerrar-dia{padding:4px 6px; font-size:.7rem}
 }
 
 /* resumen de energía del día */

@@ -52,7 +52,9 @@
      que no se PLANIFICA: marcar lo que comiste sigue estando disponible siempre,
      porque eso es registro y suele apuntarse después. */
   function cerrado(fecha) {
-    return Almacen.esPasado(fecha) && !UI.desbloqueados[fecha];
+    if (UI.desbloqueados[fecha]) return false;
+    /* pasado por el calendario, o cerrado a mano con el botón (1-oct-2026) */
+    return Almacen.esPasado(fecha) || Almacen.diaCerrado(fecha);
   }
 
   function esMovil() { return window.matchMedia("(max-width:767px)").matches; }
@@ -356,7 +358,7 @@
                            (color === "libre" ? ' \u00b7 sin tope' : '') + '</span>' +
                            '<span class="salto-chips"></span>' +
                            chipDiferencia(objetivo, nutr.k, tieneAlgo) : '') +
-              (Almacen.esPasado(fecha)
+              (Almacen.esPasado(fecha) || Almacen.diaCerrado(fecha)
                 ? '<button class="btn mini abrir-dia solo-edicion" data-abrir="' + fecha + '">' +
                   (cerr ? 'Editar' : 'Cerrar') + '</button>'
                 : '') +
@@ -404,6 +406,20 @@
             ? '<button class="btn principal mini vaciar-dia" data-desvaciar="' + fecha + '" ' +
               'title="Devuelve lo que acabas de vaciar">Deshacer</button>'
             : '';
+        /* CERRAR EL DÍA (1-oct-2026). Carlos: «un botón de cerrar para fijar
+           cuando se acabe el día y se haya comido todo». Sólo en días de hoy o
+           anteriores —cerrar el jueves que viene no significa nada— y sólo si
+           hay algo puesto. Avisa de cuántos platos va a marcar, porque marcar
+           es descontar de la despensa y eso no se deshace solo. */
+        if (fecha <= Util.hoyISO() && tieneAlgo) {
+          var quedan = Almacen.sinMarcar(fecha);
+          html += '<button class="btn mini cerrar-dia" data-cerrardia="' + fecha + '" ' +
+                  'title="' + (quedan
+                    ? 'Marca como comido lo que queda (' + quedan + '), lo saca de la despensa y deja los n\u00fameros fijos'
+                    : 'Deja el d\u00eda fijo: los n\u00fameros ya no cambian aunque cambien las recetas') +
+                  '">Cerrar</button>';
+        }
+
         /* El botón «Plantilla» de cada día se quitó el 21-sep-2026: Carlos no hace
            plantillas de un solo día, así que copiar la plantilla día a día no le
            servía para nada y robaba sitio en una cabecera que ya lleva cuatro
@@ -6093,6 +6109,23 @@
       var cap = e.target.closest("[data-capricho]");
       if (cap) { abrirSelectorCapricho(cap.getAttribute("data-capricho")); return; }
 
+      var cd = e.target.closest("[data-cerrardia]");
+      if (cd) {
+        var fcd = cd.getAttribute("data-cerrardia");
+        var pend = Almacen.sinMarcar(fcd);
+        var aviso = pend
+          ? "Cerrar el día:\n\n\u00b7 se marcan como comidos los " + pend +
+            (pend === 1 ? " plato que queda" : " platos que quedan") +
+            "\n\u00b7 se descuentan de la despensa\n\u00b7 los números quedan fijos\n\n¿Seguimos?"
+          : "Todo está ya marcado. ¿Dejamos el día fijo?";
+        if (!confirm(aviso)) return;
+        var hechos = Almacen.cerrarDia(fcd);
+        delete UI.desbloqueados[fcd];
+        pintarMenu();
+        Util.toast(hechos ? "Día cerrado · " + hechos + (hechos === 1 ? " plato marcado" : " platos marcados")
+                          : "Día cerrado");
+        return;
+      }
       var vac = e.target.closest("[data-vaciardia]");
       if (vac) { vaciarDia(vac.getAttribute("data-vaciardia")); return; }
       var des = e.target.closest("[data-desvaciar]");
@@ -6170,6 +6203,10 @@
         var fa = ab.getAttribute("data-abrir");
         if (UI.desbloqueados[fa]) delete UI.desbloqueados[fa];
         else UI.desbloqueados[fa] = true;
+        /* Si lo cerraste tú con el botón y lo vuelves a abrir, es que no habías
+           terminado: se quita la marca. En un día ya pasado no hay marca que
+           quitar — ése lo cierra el calendario. (1-oct-2026) */
+        if (UI.desbloqueados[fa] && !Almacen.esPasado(fa)) Almacen.abrirDia(fa);
         pintarMenu();
         return;
       }

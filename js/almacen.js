@@ -1126,6 +1126,67 @@
       var r = this.receta(id);
       return r ? r.n : "";
     },
+    /* ---------- CERRAR EL DÍA A MANO (1-oct-2026) ----------
+       Carlos: «las fichas de los días de menú que tengan, además de completar y
+       vaciar, un botón de cerrar para fijar cuando se acabe el día y se haya
+       comido todo».
+
+       Hasta hoy un día sólo se cerraba de dos maneras: marcando el ✓ plato a
+       plato, o esperando a que pasara de fecha y lo cerrara el arranque. Cerrar
+       a mano hace de golpe lo mismo que haría el ✓ en cada plato, que es más de
+       lo que parece: le hace la FOTO —los números quedan fijos aunque la receta
+       cambie mañana— y lo SACA DE LA DESPENSA, que es el único momento en que la
+       app sabe que la comida se consumió de verdad.
+
+       Dos cuidados. Uno: se recorre `agrupar`, no la lista pelada, porque un
+       plato puesto dos veces tiene un solo ✓ y descontarlo dos veces vaciaría la
+       despensa de mentira. Dos: la marca `cerrado` es explícita y no se deduce de
+       que haya fotos — un día a medio marcar tiene fotos y no está cerrado. */
+    cerrarDia: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (!d) return 0;
+      var self = this, n = 0;
+      Util.TOMAS.forEach(function (t) {
+        var g = self.agrupar(d[t.k]);
+        g.orden.forEach(function (id) {
+          if (self.estaComido(fecha, t.k, id)) return;
+          self.marcarComido(fecha, t.k, id, true);
+          n++;
+        });
+      });
+      /* los caprichos no llevan ✓ —se apuntan después de comerlos— pero su foto
+         sí hay que hacerla, o mañana los reescribiría el recetario */
+      (d.capricho || []).forEach(function (id) { self.congelarPlato(fecha, id); });
+      d.cerrado = new Date().toISOString();
+      this.sellarDia(fecha);
+      this.guardar("cerrar");
+      return n;
+    },
+    abrirDia: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (!d || !d.cerrado) return false;
+      delete d.cerrado;
+      this.sellarDia(fecha);
+      this.guardar("cerrar");
+      return true;
+    },
+    diaCerrado: function (fecha) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.cerrado);
+    },
+    /* cuántos platos quedan por marcar, para poder avisar antes de cerrar */
+    sinMarcar: function (fecha) {
+      var d = this.estado.plan[fecha];
+      if (!d) return 0;
+      var self = this, n = 0;
+      Util.TOMAS.forEach(function (t) {
+        self.agrupar(d[t.k]).orden.forEach(function (id) {
+          if (!self.estaComido(fecha, t.k, id)) n++;
+        });
+      });
+      return n;
+    },
+
     /* ¿este día está congelado? (para decirlo en la ficha) */
     diaCongelado: function (fecha) {
       var d = this.estado.fotos && this.estado.fotos[fecha];
