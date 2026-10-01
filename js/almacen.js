@@ -3039,6 +3039,132 @@
       return false;
     },
 
+    /* LO QUE HAY DE VERDAD DISPONIBLE, ingrediente a ingrediente: el stock menos
+       lo que ya está prometido a un plato del plan. Lo usan el selector manual y
+       el completador, y por eso vive aquí y no dentro de ninguno de los dos. */
+    libresTodo: function () {
+      var self = this, comp = this.comprometidoTodo(), libres = {};
+      (this.estado.ingredientes || []).forEach(function (g) {
+        if (g.oculta) return;
+        var c = self.stockDe(g.id) - (comp[g.id] || 0);
+        if (c > 0.0001) libres[g.id] = { c: c, sitio: self.sitioDe(g) || "", g: g };
+      });
+      return libres;
+    },
+
+    /* ================= ¿QUÉ ME FALTA PARA HACER ESTE PLATO? =================
+       Extraído el 1-oct-2026 de dentro de `loQuePuedesGastar`, donde vivía como
+       un puñado de funciones privadas. El motivo: «Completar» va a usar la MISMA
+       regla que el selector manual, y una regla que vive en dos sitios acaba
+       diciendo dos cosas distintas. Aquí está entera y la usan los dos.
+       No se ha cambiado ni una coma de la lógica: sólo ha cambiado de casa. */
+    /* ¿TENGO ESTA LÍNEA DE LA RECETA EN CASA? Mira lo LIBRE, no el stock: lo que
+       ya está prometido a otro plato no se puede prometer dos veces. */
+    tengoLinea: function (l, libres) {
+      var self = this;
+      var g = self.ingrediente(l.i);
+      if (!g) return false;
+      if (g.basico) return self.stockDe(l.i) > 0.0001 || !self.fichaStock(l.i) ||
+                          !!(self.fichaStock(l.i) || {}).pte;
+      var x = libres[l.i];
+      return !!x && x.c >= l.c - 0.0001;
+    },
+    /* Un ingrediente MENOR no define el plato: los básicos, las especias, el
+       pan y las bebidas. Es la misma familia que ya se salta la app para
+       decidir cuál es el ingrediente principal de una receta.
+
+       CON UNA EXCEPCIÓN, y se vio probándolo: el arroz es básico, así que en
+       un arroz meloso quedaba de accesorio y la receta salía como «te falta
+       poco» faltando el arroz. El ingrediente PRINCIPAL de una receta nunca
+       es menor, sea lo que sea. Principal = el primero que no es pan, especia
+       ni bebida, que es la regla ya medida en el catálogo (96 % de acierto
+       contra lo que Carlos diría). */
+    MENOR_CAT: ["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"],
+    /* minúsculas y sin tildes, para comparar nombres */
+    _pelado: function (x) {
+      x = String(x || "").toLowerCase();
+      try { return x.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+      catch (e) { return x; }
+    },
+    principalDe: function (r) {
+      var lin = r.ing || [];
+      for (var k = 0; k < lin.length; k++) {
+        var g = this.ingrediente(lin[k].i);
+        if (!g) continue;
+        if (this.MENOR_CAT.indexOf(g.cat) < 0) return lin[k].i;
+      }
+      return null;
+    },
+    gramosDeLinea: function (l) {
+      var g = this.ingrediente(l.i);
+      if (!g) return 0;
+      return g.u === "ud" ? l.c * (g.pesoUd || 100) : l.c;
+    },
+    /* ¿EL PLATO LLEVA ESTE INGREDIENTE EN EL NOMBRE? Si el nombre lo dice, es
+       del plato por definición: «macarrones con CHORIZO» sin chorizo no son
+       esos macarrones, por pocos gramos que sean. */
+    nombradoEn: function (r, l) {
+      var g = this.ingrediente(l.i);
+      if (!g) return false;
+      var t = this._pelado(r.n);
+      var pal = this._pelado(g.n).split(/[^a-z0-9]+/);
+      for (var k = 0; k < pal.length; k++) {
+        if (pal[k].length > 4 && t.indexOf(pal[k]) >= 0) return true;
+      }
+      return false;
+    },
+    /* ACCESORIO POR CANTIDAD, NO SÓLO POR CATEGORÍA (25-sep-2026).
+       Carlos: «Macarrones con chorizo, cebolla caramelizada: solo falta el
+       queso para gratinar… debería ser otra opción relevante».
+
+       Tenía razón y la regla se quedaba corta. Iba por categoría, y el
+       parmesano es «Lácteos y huevos» igual que el requesón: uno son 110 g y
+       el plato se cae sin él, el otro son 15 g de escamas por encima. Lo que
+       los separa no es la categoría, es CUÁNTO pesa en el plato.
+
+       Medido sobre las 99 recetas con el umbral del 5 %: cambia 22, y lo que
+       degrada es exactamente lo que uno llamaría adorno — las nueces de las
+       ensaladas, las escamas de parmesano, la chía, el tomate deshidratado,
+       la albahaca. Ninguna receta se queda sin ingredientes mayores.
+
+       Con el freno del nombre: si el plato se llama por ello, es mayor
+       aunque sean diez gramos. */
+    menorEnPlato: function (l, princ, r, total) {
+      var g = this.ingrediente(l.i);
+      if (!g) return true;
+      if (l.i === princ) return false;
+      if (this.nombradoEn(r, l)) return false;
+      if (g.basico) return true;
+      if (this.MENOR_CAT.indexOf(g.cat) >= 0) return true;
+      return total > 0 && this.gramosDeLinea(l) / total < 0.05;
+    },
+
+
+    /* El resumen por receta: qué falta, qué de lo que falta importa, y cuánto
+       fresco salvarías haciéndola. Es lo que antes calculaba a mano el bucle de
+       `loQuePuedesGastar` y ahora comparte con el completador. */
+    faltaParaHacer: function (r, libres) {
+      var self = this, lineas = r.ing || [];
+      var princ = this.principalDe(r), totalG = 0;
+      lineas.forEach(function (l) { totalG += self.gramosDeLinea(l); });
+      var faltan = [], faltanMayores = [], fresco = 0, mayoresEnCasa = 0, mayores = 0;
+      lineas.forEach(function (l) {
+        var g = self.ingrediente(l.i);
+        var esMenor = self.menorEnPlato(l, princ, r, totalG);
+        if (!esMenor) mayores++;
+        if (!self.tengoLinea(l, libres)) {
+          faltan.push(g ? g.n : l.i);
+          if (!esMenor) faltanMayores.push(g ? g.n : l.i);
+          return;
+        }
+        if (!esMenor) mayoresEnCasa++;
+        var x = libres[l.i];
+        if (x && self.esUrgente(x.sitio)) fresco += Math.min(l.c, x.c);
+      });
+      return { faltan: faltan, faltanMayores: faltanMayores, fresco: fresco,
+               mayores: mayores, mayoresEnCasa: mayoresEnCasa, lineas: lineas.length };
+    },
+
     loQuePuedesGastar: function (toma) {
       var self = this, comp = this.comprometidoTodo();
       var orden = {}, i;
@@ -3054,12 +3180,7 @@
          eso.
          El estante sirve para saber si algo CORRE PRISA y para ordenar, no para
          saber si lo tienes. Lo que dice si lo tienes es la cifra. */
-      var libres = {};
-      (this.estado.ingredientes || []).forEach(function (g) {
-        if (g.oculta) return;
-        var c = self.stockDe(g.id) - (comp[g.id] || 0);
-        if (c > 0.0001) libres[g.id] = { c: c, sitio: self.sitioDe(g) || "", g: g };
-      });
+      var libres = this.libresTodo();
 
       /* --- productos listos para comer tal cual --- */
       var productos = [];
@@ -3112,84 +3233,6 @@
          embargo es justo donde van. Se vio al podar por toma: desapareció
          «Tomates asados en airfryer», que es una guarnición de comida de toda
          la vida. En un picoteo no entran: un almuerzo no lleva guarnición. */
-      function loTengo(l) {
-        var g = self.ingrediente(l.i);
-        if (!g) return false;
-        if (g.basico) return self.stockDe(l.i) > 0.0001 || !self.fichaStock(l.i) ||
-                              !!(self.fichaStock(l.i) || {}).pte;
-        var x = libres[l.i];
-        return !!x && x.c >= l.c - 0.0001;
-      }
-      /* Un ingrediente MENOR no define el plato: los básicos, las especias, el
-         pan y las bebidas. Es la misma familia que ya se salta la app para
-         decidir cuál es el ingrediente principal de una receta.
-
-         CON UNA EXCEPCIÓN, y se vio probándolo: el arroz es básico, así que en
-         un arroz meloso quedaba de accesorio y la receta salía como «te falta
-         poco» faltando el arroz. El ingrediente PRINCIPAL de una receta nunca
-         es menor, sea lo que sea. Principal = el primero que no es pan, especia
-         ni bebida, que es la regla ya medida en el catálogo (96 % de acierto
-         contra lo que Carlos diría). */
-      var MENOR_CAT = ["Especias y arom\u00e1ticos", "Panader\u00eda", "Bebidas"];
-      /* minúsculas y sin tildes, para comparar nombres */
-      function _pelado(x) {
-        x = String(x || "").toLowerCase();
-        try { return x.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-        catch (e) { return x; }
-      }
-      function principalDe(r) {
-        var lin = r.ing || [];
-        for (var k = 0; k < lin.length; k++) {
-          var g = self.ingrediente(lin[k].i);
-          if (!g) continue;
-          if (MENOR_CAT.indexOf(g.cat) < 0) return lin[k].i;
-        }
-        return null;
-      }
-      function gramosDe(l) {
-        var g = self.ingrediente(l.i);
-        if (!g) return 0;
-        return g.u === "ud" ? l.c * (g.pesoUd || 100) : l.c;
-      }
-      /* ¿EL PLATO LLEVA ESTE INGREDIENTE EN EL NOMBRE? Si el nombre lo dice, es
-         del plato por definición: «macarrones con CHORIZO» sin chorizo no son
-         esos macarrones, por pocos gramos que sean. */
-      function nombrado(r, l) {
-        var g = self.ingrediente(l.i);
-        if (!g) return false;
-        var t = _pelado(r.n);
-        var pal = _pelado(g.n).split(/[^a-z0-9]+/);
-        for (var k = 0; k < pal.length; k++) {
-          if (pal[k].length > 4 && t.indexOf(pal[k]) >= 0) return true;
-        }
-        return false;
-      }
-      /* ACCESORIO POR CANTIDAD, NO SÓLO POR CATEGORÍA (25-sep-2026).
-         Carlos: «Macarrones con chorizo, cebolla caramelizada: solo falta el
-         queso para gratinar… debería ser otra opción relevante».
-
-         Tenía razón y la regla se quedaba corta. Iba por categoría, y el
-         parmesano es «Lácteos y huevos» igual que el requesón: uno son 110 g y
-         el plato se cae sin él, el otro son 15 g de escamas por encima. Lo que
-         los separa no es la categoría, es CUÁNTO pesa en el plato.
-
-         Medido sobre las 99 recetas con el umbral del 5 %: cambia 22, y lo que
-         degrada es exactamente lo que uno llamaría adorno — las nueces de las
-         ensaladas, las escamas de parmesano, la chía, el tomate deshidratado,
-         la albahaca. Ninguna receta se queda sin ingredientes mayores.
-
-         Con el freno del nombre: si el plato se llama por ello, es mayor
-         aunque sean diez gramos. */
-      function menor(l, princ, r, total) {
-        var g = self.ingrediente(l.i);
-        if (!g) return true;
-        if (l.i === princ) return false;
-        if (nombrado(r, l)) return false;
-        if (g.basico) return true;
-        if (MENOR_CAT.indexOf(g.cat) >= 0) return true;
-        return total > 0 && gramosDe(l) / total < 0.05;
-      }
-
       var enteras = [], casi = [], recetas = [];
       this.visibles().forEach(function (r) {
         if (r.grupo === "suelto") return;            // eso ya sale como producto
@@ -3204,23 +3247,11 @@
            completos. Para eso está la sección «Un ingrediente solo». */
         if (lineas.length < 2) return;
         var propia = self.vaEnLaToma(r, toma);
-        var princ = principalDe(r);
-        var totalG = 0;
-        lineas.forEach(function (l) { totalG += gramosDe(l); });
 
         /* ---- ¿la puedo hacer entera? ---- */
-        var faltan = [], faltanMayores = [], frescoQueGasta = 0, mayoresEnCasa = 0;
-        lineas.forEach(function (l) {
-          var g = self.ingrediente(l.i);
-          if (!loTengo(l)) {
-            faltan.push(g ? g.n : l.i);
-            if (!menor(l, princ, r, totalG)) faltanMayores.push(g ? g.n : l.i);
-            return;
-          }
-          if (!menor(l, princ, r, totalG)) mayoresEnCasa++;
-          var x = libres[l.i];
-          if (x && self.esUrgente(x.sitio)) frescoQueGasta += Math.min(l.c, x.c);
-        });
+        var res = self.faltaParaHacer(r, libres);
+        var faltan = res.faltan, faltanMayores = res.faltanMayores;
+        var frescoQueGasta = res.fresco, mayoresEnCasa = res.mayoresEnCasa;
 
         if (!faltan.length) {
           enteras.push({ id: r.id, n: r.n, propia: propia, fresco: frescoQueGasta,
@@ -4794,6 +4825,40 @@
       return nota;
     },
 
+    /* ---------- CUÁNTO PENALIZA TENER QUE IR A COMPRAR ----------
+       Carlos, 1-oct-2026: «cuando planifico una toma intentará ofrecerme platos
+       que tengan casi todos los ingredientes en stock». El selector manual ya lo
+       hacía desde el 25-sep; el botón «Completar» no miraba la despensa en
+       absoluto: elegía por tamaño del plato, sal y variedad, y nada más.
+
+       POR QUÉ NO SE CUENTA «FALTAN 2 DE 7». Medido sobre las 86 recetas con tres
+       o más ingredientes valorados: el ingrediente más caro se lleva el 56 % del
+       coste en la receta mediana, y en 55 de las 86 se lleva más de la mitad.
+       Mientras tanto el aceite sale en 72 recetas y pesa el 3,4 % del coste, y la
+       pimienta en 49 pesando el 0,6 %. Contar cosas pondría el orégano al nivel
+       del salmón. Lo que decide si puedes cenar eso hoy es si tienes el pescado.
+
+       Así que se cuenta lo que ya distingue el selector: los ingredientes MAYORES
+       —el principal, los que dan nombre al plato, y todo lo que no sea básico,
+       especia, pan o bebida ni un adorno de menos del 5 % del peso—. Misma regla,
+       misma casa: `faltaParaHacer`.
+
+       `pesoDespensa` es el precio en puntos de que falte TODO lo importante. A 300
+       equivale a repetir un plato esa semana, que es el otro criterio blando. En 0
+       el completador vuelve a ignorar la despensa. Si se sube mucho, se acaba
+       comiendo lo mismo hasta vaciar la nevera, y por eso no se sube solo. */
+    penalizaDespensa: function (r, libres) {
+      var peso = this.estado.config.pesoDespensa;
+      if (peso === 0) return 0;
+      if (!(peso > 0)) peso = 300;
+      if (!libres || !(r.ing || []).length) return 0;
+      var f = this.faltaParaHacer(r, libres);
+      if (!f.faltan.length) return 0;                       // entero en casa: sale gratis
+      /* falta sólo acompañamiento: casi gratis, pero no gratis del todo */
+      if (!f.faltanMayores.length) return peso * 0.15;
+      return peso * (f.faltanMayores.length / (f.mayores || 1));
+    },
+
     completarDia: function (fecha, plantillaId) {
       if (this.esPasado(fecha)) return { motivo: "pasado" };
       var self = this;
@@ -4822,6 +4887,15 @@
 
       var reparto = this.estado.config.repartoTomas || {};
       var pool = ficha.mochila.length ? this.llevables() : null;
+
+      /* LA DESPENSA, VIVA DURANTE TODO EL RELLENO (1-oct-2026). No basta con
+         mirarla una vez al empezar: si el lunes se lleva el salmón, el martes ya
+         no lo tiene. Como `comprometidoTodo` se calcula sobre el plan y aquí
+         estamos escribiendo EN el plan, basta con tirar la caché después de cada
+         plato puesto y volver a preguntar. Sin esto, el completador plantaría el
+         mismo salmón tres días seguidos creyendo que le queda. */
+      var libres = this.libresTodo();
+      var refrescarDespensa = function () { self._compCache = null; libres = self.libresTodo(); };
 
       /* Se recorren las tomas de mayor a menor peso: los platos grandes primero,
          porque son los que deciden si el día cuadra. */
@@ -4866,13 +4940,15 @@
           var k = self.nutrReceta(r).k;
           var sal = self.salReceta(r);
           var nota = Math.abs(k - busco) + (yaEnLaSemana[r.id] || 0) * 300 +
-                     self.penalizaSal(fecha, salYa, sal);
+                     self.penalizaSal(fecha, salYa, sal) +
+                     self.penalizaDespensa(r, libres);
           if (nota < mejorNota) { mejorNota = nota; mejor = r; }
         });
         if (!mejor) return;
         /* el plato va DELANTE de los fijos, que son el acompañamiento */
         d[t.k] = [mejor.id].concat(puestosYa);
         yaEnLaSemana[mejor.id] = (yaEnLaSemana[mejor.id] || 0) + 1;
+        refrescarDespensa();
         puestos++;
       });
 
@@ -4899,12 +4975,14 @@
           var eleg = null, mejor = Infinity;
           guar.forEach(function (r) {
             var nota = Math.abs(self.nutrReceta(r).k - falta) + (yaEnLaSemana[r.id] || 0) * 300 +
-                       self.penalizaSal(fecha, salHoy2, self.salReceta(r));
+                       self.penalizaSal(fecha, salHoy2, self.salReceta(r)) +
+                       self.penalizaDespensa(r, libres);
             if (nota < mejor) { mejor = nota; eleg = r; }
           });
           if (!eleg) return;
           d[toma].push(eleg.id);
           yaEnLaSemana[eleg.id] = (yaEnLaSemana[eleg.id] || 0) + 1;
+          refrescarDespensa();
           puestos++;
         });
       }
@@ -4927,12 +5005,14 @@
           var elegida = null, nota = Infinity;
           aptas.forEach(function (r) {
             var n = Math.abs(self.nutrReceta(r).k - falta) + (yaEnLaSemana[r.id] || 0) * 300 +
-                    self.penalizaSal(fecha, salHoy, self.salReceta(r));
+                    self.penalizaSal(fecha, salHoy, self.salReceta(r)) +
+                    self.penalizaDespensa(r, libres);
             if (n < nota) { nota = n; elegida = r; }
           });
           if (!elegida) return;
           d[toma].push(elegida.id);
           yaEnLaSemana[elegida.id] = (yaEnLaSemana[elegida.id] || 0) + 1;
+          refrescarDespensa();
           puestos++;
         });
       }
