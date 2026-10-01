@@ -45,6 +45,42 @@
      estaba en la consola del navegador, donde Carlos no tiene por qué entrar, y
      se acabó diagnosticando a ciegas deduciendo por el peso del fichero. Esto es
      para que no vuelva a pasar: el motivo, en castellano y en pantalla. */
+  /* ===== LEER EL FICHERO SEA DEL TAMAÑO QUE SEA  ·  1-oct-2026 =====
+     EL CALLEJÓN SIN SALIDA QUE PARÓ LA APP UNA TARDE, y el error que lo delató
+     fue «No se pudo guardar · Unexpected end of JSON input».
+
+     La API de contenidos de GitHub sólo devuelve `content` —el fichero en
+     base64— cuando pesa MENOS DE 1 MB. Por encima lo manda VACÍO y sólo trae la
+     ficha: el `sha` y un `download_url`. Aquí se hacía `JSON.parse(deB64(j.content))`
+     a pelo, así que el día que `estado.json` pasó de 1 MB —el 1-oct, al cargar la
+     compra de Mercadona con sus 200 productos— la app dejó de poder LEER el
+     remoto. Y sin leerlo no puede fusionar, y sin fusionar no puede escribir, y
+     sin escribir el fichero no adelgaza nunca. Un callejón perfecto: cuanto más
+     crecía, menos se podía arreglar solo.
+
+     Y encima mentía: «Probar conexión» seguía diciendo que todo iba bien, porque
+     esa comprobación sólo mira si el repositorio existe.
+
+     Ahora, si no viene `content`, se baja por `download_url`, que la API manda
+     también para los ficheros grandes y que en un repositorio privado ya trae su
+     propio permiso. */
+  function contenidoDe(j) {
+    if (j && j.content) {
+      try { return Promise.resolve(JSON.parse(deB64(j.content))); }
+      catch (e) { /* venía cortado: se intenta por la otra vía */ }
+    }
+    if (j && j.download_url) {
+      return fetch(j.download_url, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error("no se pudo leer el fichero del repositorio (" + r.status + ")");
+        return r.text();
+      }).then(function (t) {
+        try { return JSON.parse(t); }
+        catch (e) { throw new Error("el fichero del repositorio no es un JSON v\u00e1lido"); }
+      });
+    }
+    return Promise.reject(new Error("el repositorio no devolvi\u00f3 el contenido del fichero"));
+  }
+
   function motivoHttp(st, msg) {
     msg = String(msg || "");
     if (st === 401) return "la clave de GitHub no vale o ha caducado";
@@ -360,7 +396,9 @@
         if (r.status === 404) { self.indicar("Repositorio vacío", ""); self.marcarAlDia(); return false; }
         if (!r.ok) throw new Error("GitHub respondió " + r.status);
         return r.json().then(function (j) {
-          var remoto = JSON.parse(deB64(j.content));
+          return contenidoDe(j).then(function (remoto) { return { j: j, remoto: remoto }; });
+        }).then(function (par) {
+          var j = par.j, remoto = par.remoto;
           var antes = huella(Almacen.estado);
           var junto = fusionarConRemoto(remoto, j.sha);
           var despues = huella(junto);
@@ -437,8 +475,9 @@
             if (!r2.ok) throw new Error("conflicto irresoluble");
             return r2.json();
           }).then(function (j) {
-            var remoto = JSON.parse(deB64(j.content));
-            var junto = fusionarConRemoto(remoto, j.sha);
+            return contenidoDe(j).then(function (remoto) { return { j: j, remoto: remoto }; });
+          }).then(function (par) {
+            var junto = fusionarConRemoto(par.remoto, par.j.sha);
             Almacen.reemplazar(junto);
             self.ocupado = false;
             self.indicar("Juntando con el otro aparato\u2026", "trabajando");
