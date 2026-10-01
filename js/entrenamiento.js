@@ -6978,8 +6978,18 @@
     return !!(d && typeof d.atl === "number");
   }
 
+  /* ¿Ha traído ya este aparato lo último de GitHub en esta sesión? Sin eso el
+     pase no decide: con el estado a medias dictó «7 de 12» el 1-oct a las 0:01.
+     Sin sincronización configurada no hay nada que esperar. */
+  function estadoAlDia() {
+    var S = global.Sync;
+    if (!S || !S.configurado || !S.configurado()) return true;
+    return !!S.alDiaEnSesion;
+  }
+
   function aplicarPases() {
     if (!P.pase) return 0;
+    if (!estadoAlDia()) return 0;
     var reg = registroPase(), hoy = U.hoyISO(), nuevos = 0, guarda = 0;
     var t = tramoNatural(P.rampa[0].desde);
     while (t && guarda++ < 500) {
@@ -12563,6 +12573,14 @@
     /* Para poder enseñar de dónde sale el número, que si no parece magia. */
     tasas: tasasKcalMin
   };
+
+  /* cuando la sincronización termina, el pase pendiente se calcula ya y, si
+     cambia algo, se repinta lo que se esté viendo */
+  global.addEventListener("khb-sync-al-dia", function () {
+    try {
+      if (aplicarPases() > 0 && document.getElementById("vista-entreno")) pintarConservando();
+    } catch (e) { console.warn("pase tras sincronizar:", e); }
+  });
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar);
   else arrancar();

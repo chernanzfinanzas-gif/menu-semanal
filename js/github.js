@@ -256,13 +256,16 @@
       if (!this.configurado()) return Promise.resolve(false);
       this.indicar("Consultando…", "trabajando");
       return this.api("GET").then(function (r) {
-        if (r.status === 404) { self.indicar("Repositorio vacío", ""); return false; }
+        if (r.status === 404) { self.indicar("Repositorio vacío", ""); self.marcarAlDia(); return false; }
         if (!r.ok) throw new Error("GitHub respondió " + r.status);
         return r.json().then(function (j) {
           var remoto = JSON.parse(deB64(j.content));
           var antes = huella(Almacen.estado);
           var junto = fusionarConRemoto(remoto, j.sha);
           var despues = huella(junto);
+          /* ya se ha juntado lo de GitHub con lo de aquí: desde ahora este
+             aparato decide con el estado completo (lo mira el pase semanal) */
+          self.alDiaEnSesion = true;
 
           if (antes !== despues) {
             /* La fusión ha traído algo que aquí no había */
@@ -279,6 +282,7 @@
              aparato hasta que alguien tocara algo. */
           if (huella(remoto) !== despues) self.programarGuardado();
 
+          self.marcarAlDia();
           return antes !== despues;
         });
       }).catch(function (e) {
@@ -286,6 +290,16 @@
         console.warn("Sync cargar:", e);
         return false;
       });
+    },
+
+    /* EL PASE ESPERA A LA SINCRONIZACIÓN (1-oct-2026). El historial del repo
+       enseñó que un aparato que aún no había traído lo último dictó «Repetir,
+       7 de 12» con las casillas a medias. Mientras esto no sea true en la
+       sesión, el pase de Entrenamiento no decide; al ponerse, se le avisa. */
+    alDiaEnSesion: false,
+    marcarAlDia: function () {
+      this.alDiaEnSesion = true;
+      try { global.dispatchEvent(new Event("khb-sync-al-dia")); } catch (e) {}
     },
 
     programarGuardado: function () {
