@@ -4866,6 +4866,28 @@
                 d.quitados[toma].indexOf(receta) >= 0);
     },
 
+    /* ---------- EL ORDEN DE UNA TOMA (1-oct-2026) ----------
+       Carlos: «he añadido otra receta para aumentar las calorías y me sale abajo
+       de la lista; ¿podrían los platos principales de la comida ocupar los
+       platos principales arriba?».
+
+       La regla ya existía en «Completar» —«el plato va DELANTE de los fijos, que
+       son el acompañamiento»— pero sólo allí: al añadir a mano, el plato se
+       empujaba al final de la lista y acababa debajo del pan. Aquí se ordena de
+       una vez y para todos los caminos: lo que eliges tú arriba, el
+       acompañamiento de siempre abajo, y dentro de cada grupo nadie se mueve. */
+    ordenarToma: function (fecha, toma) {
+      var d = this.estado.plan[fecha];
+      if (!d || !d[toma] || d[toma].length < 2) return;
+      var esFijo = {};
+      (this.estado.config.fijos || []).forEach(function (f) {
+        if ((f.tomas || []).indexOf(toma) >= 0) esFijo[f.r] = true;
+      });
+      var propios = [], fijos = [];
+      d[toma].forEach(function (id) { (esFijo[id] ? fijos : propios).push(id); });
+      d[toma] = propios.concat(fijos);
+    },
+
     ponerFijos: function (fecha) {
       if (this.esPasado(fecha)) return 0;
       var d = this.asegurarDia(fecha);
@@ -5402,6 +5424,10 @@
           puestos++;
         });
       }
+
+      /* Las guarniciones se han ido añadiendo al final de la lista, así que el
+         orden se rehace: plato y guarnición arriba, yogur, panes y bebida abajo. */
+      Util.TOMAS.forEach(function (t) { self.ordenarToma(fecha, t.k); });
 
       /* Y si todavía falta, se refuerzan el almuerzo y la merienda con un segundo
          bocado, que es donde cabe sin desmontar el día. */

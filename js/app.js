@@ -1127,6 +1127,7 @@
       });
       Almacen.marcarVaciada(fecha, toma, false);
       Almacen.ponerFijos(fecha);
+      Almacen.ordenarToma(fecha, toma);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
       cerrarModal();
@@ -1153,6 +1154,7 @@
          montar esa comida, así que la toma deja de estar «vaciada». */
       Almacen.marcarVaciada(fecha, toma, false);
       Almacen.ponerFijos(fecha);
+      Almacen.ordenarToma(fecha, toma);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
       cerrarModal();
