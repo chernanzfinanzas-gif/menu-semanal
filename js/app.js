@@ -3395,14 +3395,41 @@
      guardar lo que se ve borraría del orden las que están escondidas. */
   var HAY_RATON = !!(window.matchMedia && window.matchMedia("(pointer: fine)").matches);
 
+  /* ARRASTRAR Y QUE SE GUARDE SIEMPRE (1-oct-2026).
+     Carlos: «al arrastrar a veces no sale sin guardar», y «no ha salido en
+     todos los casos».
+
+     El fallo: la fila se recoloca en cuanto pasas por encima de otra —eso es
+     el `dragover`, y es lo que ves—, pero el guardado colgaba del `drop`. Y el
+     navegador SOLO dispara `drop` si el `dragover` pidió permiso con
+     `preventDefault`, cosa que aquí solo pasaba estando justo encima de otra
+     fila del mismo grupo. Si soltabas en un hueco, en el margen, sobre la
+     propia fila que llevabas o fuera del grupo, no había `drop`: la fila se
+     quedaba movida en pantalla y el orden NO se guardaba. De ahí el «a veces».
+
+     El arreglo: se apunta si la fila llegó a moverse, y se guarda tanto en el
+     `drop` como en el `dragend` —que ese sí lo dispara el navegador SIEMPRE,
+     sueltes donde sueltes, incluso si cancelas con Escape—. La marca se apaga
+     al guardar, así que nunca se guarda dos veces. */
   function montarArrastre(cont, selFila, selGrupo, alSoltar) {
     if (!HAY_RATON || !cont || cont.getAttribute("data-arrastre")) return;
     cont.setAttribute("data-arrastre", "1");
-    var cogida = null, grupo = null;
+    var cogida = null, grupo = null, movida = false;
+
+    /* Guarda lo que se ve, si es que algo llegó a moverse. */
+    function guardarSiMovio() {
+      if (!grupo || !movida) return;
+      var gr = grupo;
+      var ids = Array.prototype.map.call(gr.querySelectorAll(selFila), function (f) {
+        return f.getAttribute("data-locfila") || f.getAttribute("data-compfila");
+      }).filter(function (x) { return !!x; });
+      movida = false;
+      if (ids.length) alSoltar(gr, ids);
+    }
 
     function soltar() {
       if (cogida) cogida.classList.remove("cogida");
-      cogida = null; grupo = null;
+      cogida = null; grupo = null; movida = false;
     }
 
     cont.addEventListener("dragstart", function (e) {
@@ -3429,21 +3456,24 @@
       try { e.dataTransfer.dropEffect = "move"; } catch (x) {}
       var r = fila.getBoundingClientRect();
       var arriba = (e.clientY - r.top) < r.height / 2;
+      var antes = cogida.previousSibling;
       fila.parentNode.insertBefore(cogida, arriba ? fila : fila.nextSibling);
+      if (cogida.previousSibling !== antes) movida = true;
     });
 
     cont.addEventListener("drop", function (e) {
       if (!cogida) return;
       e.preventDefault();
-      var gr = grupo;
-      var ids = Array.prototype.map.call(gr.querySelectorAll(selFila), function (f) {
-        return f.getAttribute("data-locfila") || f.getAttribute("data-compfila");
-      });
+      guardarSiMovio();
       soltar();
-      alSoltar(gr, ids);
     });
 
-    cont.addEventListener("dragend", soltar);
+    /* `dragend` lo dispara el navegador SIEMPRE al acabar el arrastre, haya
+       habido `drop` o no. Es la red que faltaba. */
+    cont.addEventListener("dragend", function () {
+      guardarSiMovio();
+      soltar();
+    });
   }
 
   /* ==================== EL ORDEN DE LA COMPRA ====================
