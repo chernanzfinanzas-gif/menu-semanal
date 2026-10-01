@@ -636,6 +636,22 @@
         };
         añadidos.push("almuerzo y merienda: solo para él y solo si entrena");
       }
+      /* EL ESTANTE «CARNE» SE RETIRÓ el 1-oct-2026 y lo que siguiera allí se
+         pasa a «Estante arriba», que es donde están en su nevera. Sin esto, una
+         ficha con el estante viejo se quedaría sin sitio y caería a Pendiente:
+         funcionaría, pero le haría recolocar a mano algo que ya estaba bien. */
+      if (!e.config.carneRetirada) {
+        var _movidas = 0;
+        (e.ingredientes || []).forEach(function (g) {
+          if (g && g.sitio === "carne") { g.sitio = "est_arriba"; _movidas++; }
+        });
+        if (e.ordenCasa && e.ordenCasa.carne) delete e.ordenCasa.carne;
+        if (e.ordenSello && e.ordenSello.casa && e.ordenSello.casa.carne) delete e.ordenSello.casa.carne;
+        if (e.stockSitios && e.stockSitios.carne) delete e.stockSitios.carne;
+        e.config.carneRetirada = 1;
+        if (_movidas) añadidos.push(_movidas + " de Carne a Estante arriba");
+      }
+
       if (!e.config.fijos) {
         e.config.fijos = [
           { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
@@ -1707,12 +1723,13 @@
         { k: "est_arriba", n: "Estante arriba" },
         { k: "est_abajo",  n: "Estante abajo" },
         { k: "cajones",    n: "Cajones" },
-        /* Estante propio para la carne (Carlos, 25-sep-2026). No es un cajón
-           físico: es que las catorce fichas de carnicería no tenían sitio y no
-           salían en ningún pase, y repartirlas por la nevera las volvía a
-           esconder. Va antes del frutero porque en el recorrido la carne se
-           mira con lo frío y no con la fruta. */
-        { k: "carne",      n: "Carne" },
+        /* EL ESTANTE «CARNE» SE RETIRA (Carlos, 1-oct-2026): «Carne pasa todo a
+           Estante arriba y desaparece». Nació el 25-sep para que las catorce
+           fichas de carnicería, que no tenían sitio, salieran en algún pase. Ya
+           están colocadas en «Estante arriba», que es donde están de verdad en
+           su nevera, y el estante se quedó vacío: un estante vacío en el pase es
+           una pregunta de más cada vez. Lo que quede marcado con el estante
+           viejo se pasa solo a «Estante arriba» al abrir la app, ver más abajo. */
         { k: "frutero",    n: "Frutero" },
         { k: "congelador", n: "Congelador" }
       ] },
