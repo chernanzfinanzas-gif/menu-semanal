@@ -47,6 +47,12 @@
       pie: "A dónde va el plan y por qué: la rampa, la curva prevista y los puntos clave.", listo: true },
     { id: "evolucion", nombre: "Evolución", img: "iconos/khb/1-arbol-pulso.webp",
       pie: "Cómo voy: peso y cintura, VFC, pulso en reposo, sueño y vatios por kilo.", listo: true },
+    /* MIS AVANCES  ·  1-oct-2026. Carlos: «una pestaña Mis Avances con gráficos
+       de cómo mejora potencia media, deriva y más cosas… es la evolución de
+       este plan». Al lado de Evolución: Evolución es el cuerpo (peso, VFC,
+       sueño), Avances es el rendimiento sesión a sesión dentro del plan. */
+    { id: "avances", nombre: "Mis Avances", img: "iconos/khb/10-bici.webp",
+      pie: "Cómo evoluciono en este plan: deriva, vatios por pulsación, potencia, cadencia, carga y FTP.", listo: true },
     { id: "actividad", nombre: "Actividad", img: "iconos/khb/6-zapatillas.webp",
       pie: "Qué he hecho: el archivo entero, año por año y mes por mes, con su mini mapa.", listo: true },
     { id: "casos", nombre: "Casos", img: "iconos/khb/9-podio.webp",
@@ -5585,6 +5591,42 @@
     return out;
   }
 
+  /* ==================== MIS AVANCES (1-oct-2026) ====================
+     La pantalla la dibuja AvancesKHB (js/avances-khb.js) con el análisis de
+     cada sesión que viaja en rodillo.json, las actividades de salud.json y la
+     rampa de DATOS_PLAN. Aquí sólo se le pasan los datos y se ponen las
+     flechas de volver. */
+  function prepararAvances() {
+    var repinta = function () { if (bloque === "avances") pintar(true); };
+    Rodillo.cargar(repinta);
+    /* el histórico y la curva, para el fantasma de la subida de 2022 */
+    ActHistorico.cargar(repinta);
+    Curva.cargar(repinta);
+  }
+
+  function htmlAvances() {
+    var cuerpo;
+    if (!window.AvancesKHB) {
+      cuerpo = '<p class="nota-peque">No se ha cargado <b>js/avances-khb.js</b>.</p>';
+    } else if (!Rodillo.datos) {
+      cuerpo = '<p class="nota-peque">Trayendo las sesiones de rodillo…</p>';
+    } else {
+      cuerpo = AvancesKHB.html({
+        sesiones: Rodillo.datos.sesiones || [],
+        actividades: (Salud.datos && Salud.datos.actividades) || [],
+        todas: actividadesJuntas(),
+        curvas: (Curva.datos && Curva.datos.curvas) || null,
+        plan: P, hoy: U.hoyISO()
+      });
+    }
+    return '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>" +
+      '<div class="tarjeta"><h2>Mis Avances</h2>' +
+      '<p class="nota-peque">Cómo evolucionas dentro de este plan, sesión a sesión. Cada rodillo se analiza ' +
+      'solo a los pocos minutos de acabar; el pasado sale sólo como referencia, en gris.</p>' +
+      cuerpo + "</div>" +
+      '<button type="button" class="ent-atras abajo" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
+  }
+
   function htmlActividad() {
     var falta = !Archivo.datos && Archivo.estado !== "ok";
     var aviso = "";
@@ -5674,6 +5716,10 @@
         fuerza: Fuerza.datos,
         curva: Curva.datos,
         rodillo: Rodillo.datos,
+        /* la referencia «tu mejor mes antes del plan» era mayo de 2026 y Carlos
+           pidió el 1-oct-2026 no comparar con 2026 (subida con sobreesfuerzo):
+           la ficha compara sólo con la anterior y con el inicio del plan */
+        refRodillo: null,
         /* LOS DÍAS, para las medidas que no salen de las actividades (los
            pasos, y mañana las calorías). Dos fuentes: la ventana reciente
            manda, el histórico rellena lo de atrás.
@@ -8962,6 +9008,7 @@
       : (bloque === "casos") ? htmlCasos()
       : (bloque === "material") ? htmlMaterial()
       : (bloque === "historial") ? htmlHistorial()
+      : (bloque === "avances") ? htmlAvances()
       : (bloque === "actividad") ? htmlActividad() : htmlPortada());
     if (bloque === "actividad") montarArchivo();
     if (!mantener) window.scrollTo(0, 0);
@@ -12008,6 +12055,7 @@
       if (b) {
         bloque = b.getAttribute("data-bloque");
         if (bloque === "actividad") prepararArchivo();   // pide sus ficheros al entrar
+        if (bloque === "avances") prepararAvances();
         if (bloque === "casos") prepararCasos();
         pintar();
         return;

@@ -696,3 +696,59 @@
   .akhb-c-tjs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .akhb-c-tj span { font-size: 18px; }
 }
+
+/* ---------- el análisis de la sesión de rodillo (1-oct-2026) ----------
+   Debajo del mapa y los datos, a lo ancho, como las pesas: objetivos, cuatro
+   cifras, lo que dicen los números, los tramos uno a uno y la nota. */
+.akhb-analisis { grid-column: 1 / -1; display: grid; gap: 10px; min-width: 0; }
+.akhb-analisis > * { min-width: 0; }
+.akhb-an-obj td, .akhb-an-obj th { white-space: normal; }
+.akhb-analisis h5 {
+  margin: 2px 0 0; font-size: 11px; font-weight: 600; color: var(--akhb-gris);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.akhb-an-pers { margin: 0; font-size: 12.5px; color: var(--akhb-gris); line-height: 1.4; }
+.akhb-an-si { color: #1baf7a; font-weight: 700; }
+.akhb-an-no { color: #d0453a; font-weight: 700; }
+.akhb-an-obj td:last-child { width: 28px; text-align: center; }
+.akhb-an-cifras {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;
+}
+.akhb-an-cifra {
+  background: var(--akhb-blanco); border: 1px solid var(--akhb-borde); border-radius: 10px;
+  padding: 9px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.akhb-an-et {
+  font-size: 10.5px; font-weight: 600; color: var(--akhb-gris);
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.akhb-an-v { font-size: 20px; font-weight: 700; color: var(--akhb-tinta); line-height: 1.15; }
+.akhb-an-sub, .akhb-an-cmp { font-size: 11.5px; color: var(--akhb-gris); line-height: 1.3; }
+.akhb-an-mejor { color: #13875e; }
+.akhb-an-peor { color: #b23a30; }
+.akhb-an-lect {
+  margin: 0; font-size: 13px; line-height: 1.45; color: var(--akhb-tinta);
+  background: var(--akhb-claro); border-radius: 9px; padding: 9px 12px;
+}
+.akhb-an-bl tbody tr.akhb-an-cad th, .akhb-an-bl tbody tr.akhb-an-cad td {
+  font-weight: 500; color: var(--akhb-gris);
+}
+.akhb-an-alto { color: #b23a30 !important; }
+.akhb-an-dur { font-size: 11px; font-weight: 400; color: var(--akhb-gris); }
+.akhb-an-nota {
+  background: var(--akhb-blanco); border: 1px dashed var(--akhb-borde); border-radius: 10px;
+  padding: 9px 12px; font-size: 13px; color: var(--akhb-tinta); line-height: 1.45;
+}
+.akhb-an-nota p { margin: 4px 0 0; }
+.akhb-an-cmp { display: block; }
+.akhb-an-rec {
+  background: #fff8ec; border: 1px solid #f0dcb4; border-radius: 9px; padding: 9px 12px;
+  font-size: 13px; line-height: 1.45; color: var(--akhb-tinta);
+}
+.akhb-an-rec-t { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #9a6a12; }
+.akhb-an-rec ul { margin: 6px 0 0; padding-left: 18px; }
+.akhb-an-rec li + li { margin-top: 5px; }
+@media (max-width: 620px) {
+  .akhb-an-cifras { grid-template-columns: 1fr 1fr; }
+  .akhb-an-v { font-size: 17px; }
+}

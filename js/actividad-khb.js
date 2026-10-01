@@ -783,6 +783,9 @@
     var curva = (o.curva && o.curva.curvas) ? o.curva.curvas : (o.curva || null);
     /* Las sesiones de Zwift y MyWhoosh que recoge el portátil (27-sep-2026). */
     var rodillo = (o.rodillo && o.rodillo.sesiones) ? o.rodillo.sesiones : null;
+    /* el mejor mes de rodillo antes del plan (lo calcula AvancesKHB): sólo
+       como referencia de «cómo estaba», 1-oct-2026 */
+    var refRodillo = o.refRodillo || null;
     var botonVolver = typeof o.botonVolver === "string" ? o.botonVolver : "";
     /* EL NOMBRE SE CAMBIA AQUÍ. El reloj llama «Benasque Navegar» a lo que es
        el Forau d'Aigualluts. Si la app le pasa esta función, la ficha enseña un
@@ -948,6 +951,13 @@
        enseña al lado. */
     if (rodillo && rodillo.length) {
       var sesRod = [];
+      /* para cada sesión analizada, la analizada anterior: la ficha compara */
+      var anteriorAn = {}, ultAn = null, primerAn = null;
+      rodillo.slice().sort(function (p, q) { return p.inicio < q.inicio ? -1 : 1; }).forEach(function (s) {
+        if (!s.analisis || s.analisis.nada) return;
+        anteriorAn[s.inicio] = ultAn; ultAn = s.analisis;
+        if (!primerAn) primerAn = { a: s.analisis, inicio: s.inicio };
+      });
       rodillo.forEach(function (s) {
         var d = new Date(s.inicio);
         if (isNaN(d.getTime())) return;
@@ -984,6 +994,13 @@
         x.pendMax = s.pend_max != null ? s.pend_max : null;
         x.pendMedia = s.pend_media != null ? s.pend_media : null;
         x.virtual = { app: s.app, sitio: s.ruta || s.mundo || null };
+        /* 1-oct-2026: el análisis de la sesión y la nota de lo hablado */
+        x.analisis = (s.analisis && !s.analisis.nada) ? s.analisis : null;
+        x.analisisAnt = (s.analisis && !s.analisis.nada) ? (anteriorAn[s.inicio] || null) : null;
+        /* el inicio sólo si no es la misma que la anterior: si no, sale repetido */
+        x.analisisIni = (primerAn && primerAn.inicio !== s.inicio &&
+                         primerAn.a !== anteriorAn[s.inicio]) ? primerAn : null;
+        x.notaSesion = s.nota || null;
       });
     }
 
@@ -2051,6 +2068,148 @@
       return m + ":" + dosD(s - m * 60);
     }
 
+    /* ---------- el análisis de la sesión de rodillo ----------
+       1-oct-2026. Lo calcula analisis_rodillo.py en el portátil con el FIT de
+       Zwift y viaja dentro de rodillo.json. Previsto contra hecho, la deriva y
+       los bloques uno a uno; debajo, la nota de lo hablado con Claude. La
+       lectura automática sólo dice lo que los números dicen: el porqué lo
+       pone la nota. */
+    function htmlAnalisis(x) {
+      var a = x.analisis;
+      if (!a) return "";
+      var p = a.previsto, ant = x.analisisAnt;
+      var SI = '<span class="akhb-an-si">✔</span>', NO = '<span class="akhb-an-no">✘</span>';
+      var titulo = a.libre ? "Sesión libre" : esc(a.sesion || "");
+      var cab = "<h5>Análisis de la sesión · " + titulo + "</h5>" +
+        (p && p.persigue ? '<p class="akhb-an-pers">' + esc(p.persigue) + "</p>" : "") +
+        (a.libre ? '<p class="akhb-an-pers">No hay entreno previsto con el que casarla, así que ' +
+          "no hay objetivos: sólo los números, medidos igual que siempre (sin calentamiento " +
+          "ni vuelta a la calma), para poder compararla.</p>" : "");
+
+      var objs = (a.objetivos || []).map(function (o) {
+        var prev = o.que === "Deriva" ? "&lt; " + o.previsto + " %"
+          : /Pulso/.test(o.que) ? "0 min por encima"
+          : o.que === "Minutos de cadencia" ? o.previsto + " de " + o.previsto
+          : o.previsto + (o.ud ? " " + o.ud : "");
+        var hecho = o.que === "Deriva" ? num(o.hecho, 1) + " %"
+          : /Pulso/.test(o.que) ? num(o.hecho, 0) + " min por encima"
+          : o.que === "Minutos de cadencia" ? o.hecho + " de " + o.previsto
+          : num(o.hecho) + (o.ud ? " " + o.ud : "");
+        return "<tr><th>" + esc(o.que) + "</th><td>" + prev + "</td><td>" + hecho + "</td><td>" +
+          (o.ok ? SI : NO) + "</td></tr>";
+      }).join("");
+      var tablaObj = objs ? '<table class="akhb-tf akhb-an-obj"><thead><tr><th>Objetivo</th>' +
+        "<th>Previsto</th><th>Hecho</th><th></th></tr></thead><tbody>" + objs + "</tbody></table>" : "";
+
+      var ini = x.analisisIni;
+      function cmpIni(v, va, dec, suf, mejorSiBaja) {
+        var d0 = new Date(ini.inicio), et = isNaN(d0.getTime()) ? "el inicio" :
+          "el inicio (" + d0.getDate() + " " + MES_CORTO[d0.getMonth()] + ")";
+        return cmp(v, va, dec, suf, mejorSiBaja).replace("contra la anterior", "contra " + et)
+          .replace("igual que la anterior", "igual que " + et);
+      }
+      function cmp(v, va, dec, suf, mejorSiBaja) {
+        if (v == null || va == null) return "";
+        var d = v - va;
+        if (Math.abs(d) < Math.pow(10, -(dec || 0)) / 2) return '<span class="akhb-an-cmp">igual que la anterior</span>';
+        var bien = mejorSiBaja ? d < 0 : d > 0;
+        return '<span class="akhb-an-cmp ' + (bien ? "akhb-an-mejor" : "akhb-an-peor") + '">' +
+          (d > 0 ? "+" : "−") + num(Math.abs(d), dec) + (suf || "") + " contra la anterior</span>";
+      }
+      var cifras = [
+        ["Deriva", a.deriva != null ? num(a.deriva, 1) + " %" : null,
+         a.ppm_1 != null ? "pulso " + num(a.ppm_1) + " → " + num(a.ppm_2) + " de una mitad a otra" : "",
+         (ant ? cmp(a.deriva, ant.deriva, 1, " puntos", true) : "") +
+         (ini ? cmpIni(a.deriva, ini.a.deriva, 1, " puntos", true) : "")],
+        ["Vatios por pulsación", a.w_ppm != null ? num(a.w_ppm, 2) : null,
+         num(a.w, 0) + " W a " + num(a.ppm, 0) + " ppm de media",
+         (ant ? cmp(a.w_ppm, ant.w_ppm, 2, "", false) : "") +
+         (ini ? cmpIni(a.w_ppm, ini.a.w_ppm, 2, "", false) : "") +
+         (refRodillo ? '<span class="akhb-an-cmp">en ' + esc(refRodillo.et) + ", tu mejor mes antes del plan: " +
+           num(refRodillo.wppm, 2) + "</span>" : "")],
+        ["Cadencia habitual", a.rpm != null ? a.rpm + " rpm" : null,
+         a.rpm != null && a.rpm < 85 ? "por debajo de las 85-95 cómodas en zona 2" : "", ""],
+        ["Carga", a.carga != null ? num(a.carga) : null, "calculada con FTP " + a.ftp, ""]
+      ].filter(function (c) { return c[1] != null; }).map(function (c) {
+        return '<div class="akhb-an-cifra"><span class="akhb-an-et">' + c[0] + "</span>" +
+          '<span class="akhb-an-v">' + c[1] + "</span>" +
+          (c[2] ? '<span class="akhb-an-sub">' + c[2] + "</span>" : "") + (c[3] || "") + "</div>";
+      }).join("");
+
+      var NOMBRE = { cal: "Calentamiento", vc: "Vuelta a la calma", lib: "Libre", otro: "Otro tramo" };
+      var techo = p && p.techo;
+      var bloques = (a.bloques || []).length > 1 ? (a.bloques || []).map(function (b) {
+        var nom = b.t === "z" ? "Bloque " + b.n : b.t === "cad" ? "  Minuto a " + b.rpm_obj + " rpm" : NOMBRE[b.t] || b.t;
+        var alto = techo && b.max != null && b.max > techo && (b.t === "z" || b.t === "cad");
+        return '<tr class="' + (b.t === "cad" ? "akhb-an-cad" : "") + '"><th>' + nom +
+          ' <span class="akhb-an-dur">' + Math.round(b.s / 60) + "′</span></th>" +
+          "<td>" + (b.w != null ? b.w : "—") + "</td>" +
+          "<td>" + (b.ppm != null ? b.ppm : "—") + "</td>" +
+          '<td class="' + (alto ? "akhb-an-alto" : "") + '">' + (b.max != null ? b.max : "—") + "</td>" +
+          "<td>" + (b.rpm != null ? b.rpm : "—") + (b.ok === true ? " " + SI : b.ok === false ? " " + NO : "") + "</td></tr>";
+      }).join("") : "";
+      var tablaBl = bloques ? '<table class="akhb-tf akhb-an-bl"><thead><tr><th>Tramo</th><th>W</th>' +
+        "<th>Pulso</th><th>Máx" + (techo ? " (techo " + techo + ")" : "") + "</th><th>rpm</th></tr></thead><tbody>" +
+        bloques + "</tbody></table>" : "";
+
+      var lect = [];
+      if (a.primer_sobre && !a.bajo_potencia)
+        lect.push("El pulso pasó del techo de " + techo + " desde el bloque " + a.primer_sobre +
+          " (" + num(a.min_sobre, 0) + " min por encima) y la potencia no se bajó.");
+      else if (a.primer_sobre && a.bajo_potencia)
+        lect.push("El pulso pasó del techo desde el bloque " + a.primer_sobre + " y se bajó la potencia, como pide la regla.");
+      if (a.deriva != null && a.deriva >= 5)
+        lect.push("Con la deriva por encima del 5 %, al final el corazón tuvo que trabajar más para dar los mismos vatios.");
+      else if (a.deriva != null)
+        lect.push("La deriva queda por debajo del 5 %: el pulso aguantó estable para la misma potencia.");
+      var lectura = lect.length ? '<p class="akhb-an-lect">' + lect.join(" ") + "</p>" : "";
+
+      /* PARA LA PRÓXIMA (1-oct-2026, Carlos: «añadir comentarios como el de la
+         cadencia y recomendaciones de eso»). Reglas fijas sobre los números de
+         la sesión, nada inventado: si una regla no se cumple, no sale. Lo que
+         cambia el plan no se decide aquí: va a la revisión de la semana. */
+      var rec = [];
+      if (a.rpm != null && a.rpm < 80) {
+        rec.push("<b>Cadencia baja para " + num(a.w, 0) + " W.</b> A " + a.rpm + " rpm cada pedalada lleva más " +
+          "fuerza y el trabajo se carga en las piernas. Prueba a subir a 80-85 rpm en un bloque, con los mismos " +
+          "vatios, y mira el pulso: si sube 3-4 ppm o más, vuelve a tu cadencia; si no cambia, quédate en 80-85.");
+      } else if (a.rpm != null && a.rpm < 85) {
+        rec.push("<b>Cadencia algo baja</b> (" + a.rpm + " rpm). Vigilar que no baje de 80 a medida que suban los vatios.");
+      }
+      var cadMal = (a.bloques || []).filter(function (b) { return b.t === "cad" && b.ok === false; });
+      if (cadMal.length) {
+        rec.push("<b>Minuto de técnica sin hacer</b>: " + cadMal.map(function (b) { return "el " + b.n + ".º a " + b.rpm + " rpm"; })
+          .join(", ") + ". Cuando Zwift avise, sube la cadencia sin tocar la potencia: el ERG la mantiene.");
+      }
+      if (a.primer_sobre && !a.bajo_potencia) {
+        rec.push("<b>Pulso por encima del techo sin bajar vatios.</b> Cuando pase de " + techo + ", baja 5 W con el botón –; " +
+          "si con 10 W menos sigue por encima, ese día el cuerpo pide menos y la sesión se cumple igual.");
+      }
+      if (x.temp != null && x.temp >= 26) {
+        rec.push("<b>Calor.</b> El reloj marcó " + num(x.temp, 0) + " °C (mide pegado a la piel, así que exagera algo). " +
+          "El calor sube el pulso y la deriva por sí solo: ventilador de frente y beber durante la sesión.");
+      }
+      if (a.deriva != null && a.deriva >= 5) {
+        rec.push(ant && ant.deriva != null && ant.deriva >= 5
+          ? "<b>Deriva alta dos sesiones seguidas.</b> Para la revisión de la semana: puede que la potencia de zona 2 esté alta para el momento actual."
+          : "<b>Deriva por encima del 5 %.</b> Una sola sesión no es tendencia; si se repite en la próxima, a la revisión de la semana.");
+      }
+      if (!rec.length && !a.libre) rec.push("Sesión cumplida sin nada que corregir: repetir así.");
+      var recom = rec.length ? '<div class="akhb-an-rec"><b class="akhb-an-rec-t">Para la próxima</b><ul>' +
+        rec.map(function (r) { return "<li>" + r + "</li>"; }).join("") + "</ul></div>" : "";
+
+      var n = x.notaSesion;
+      var nota = '<div class="akhb-an-nota">' +
+        (n && n.texto ? "<b>Lo hablado</b>" + (n.fecha ? ' <span class="akhb-an-dur">' + esc(n.fecha) + "</span>" : "") +
+          "<p>" + esc(n.texto).replace(/\n/g, "<br>") + "</p>"
+         : '<span class="akhb-an-dur">Sin nota todavía: se añade al comentar la sesión con Claude.</span>') +
+        "</div>";
+
+      return '<div class="akhb-analisis">' + cab + tablaObj +
+        (cifras ? '<div class="akhb-an-cifras">' + cifras + "</div>" : "") +
+        lectura + recom + tablaBl + nota + "</div>";
+    }
+
     function htmlFicha(x, clave) {
       var aPie = !!A_PIE[x.dep], rit = ritmoDe(x), vel = velDe(x);
       var parado = (x.minTotal != null && x.min != null && x.minTotal - x.min >= 2)
@@ -2219,6 +2378,7 @@
         "</figure>" +
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
+        htmlAnalisis(x) +
       "</div>";
     }
 

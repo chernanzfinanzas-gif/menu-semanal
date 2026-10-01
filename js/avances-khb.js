@@ -1,0 +1,539 @@
+/* ============================================================================
+   AvancesKHB — «Mis Avances»: cómo evoluciono DENTRO DE ESTE PLAN.
+   1 de octubre de 2026 · Carlos HB & Claude.
+
+   Lo pidió Carlos: «una pestaña Mis Avances con gráficos de cómo mejora
+   potencia media, deriva y más cosas», y enseguida lo precisó: «es la
+   evolución de este plan, no tener en cuenta el pasado. El pasado sirve para
+   ver cómo fue y cómo estoy respecto a entonces, pero lo que me interesa es
+   cómo evoluciono en este plan».
+
+   Así que:
+   · El eje de tiempo empieza el primer día del plan (DATOS_PLAN.rampa[0]).
+   · Cada punto es una sesión de rodillo ANALIZADA (analisis_rodillo.py, que
+     viaja en rodillo.json): deriva, vatios por pulsación, potencia, pulso,
+     cadencia y objetivos cumplidos, todo medido con la misma regla.
+   · El pasado entra como UNA línea discontinua de referencia: el mejor mes de
+     rodillo antes del plan (mediana de vatios por pulsación, mín. 4 sesiones).
+   · Carga de cada semana: la hecha (todas las actividades) contra la de la rampa.
+   · FTP: la declarada, la de cada test cuando lo haya, y el objetivo.
+
+   NO DEPENDE DE NADA: recibe los datos y devuelve HTML. Sin librerías: SVG a
+   mano, con su tooltip (<title>) y su tabla de datos debajo de cada gráfico.
+
+     AvancesKHB.html({ sesiones: <rodillo.json>.sesiones,
+                       actividades: <salud.json>.actividades,
+                       plan: DATOS_PLAN, hoy: "AAAA-MM-DD" })
+   ========================================================================== */
+
+(function (global) {
+  "use strict";
+
+  /* El objetivo lo fijó Carlos (plan-zwift, 28-sep-2026): 280 W con 75-80 kg.
+     La fecha no se pone hasta tener dos tests. */
+  var FTP_OBJETIVO = 280;
+  var MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  var DIA = 86400000;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+  function num(v, dec) {
+    if (v == null || isNaN(v)) return "—";
+    return Number(v).toLocaleString("es-ES", { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 });
+  }
+  function dosD(n) { return (n < 10 ? "0" : "") + n; }
+  function iso(d) { return d.getFullYear() + "-" + dosD(d.getMonth() + 1) + "-" + dosD(d.getDate()); }
+  function fechaDe(s) { var d = new Date(s); return isNaN(d.getTime()) ? null : d; }
+  function diaCorto(f) { var p = f.split("-"); return (+p[2]) + " " + MES[(+p[1]) - 1]; }
+  function msDe(f) { var p = f.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).getTime(); }
+  function mediana(v) {
+    v = v.filter(function (x) { return x != null && !isNaN(x); }).sort(function (a, b) { return a - b; });
+    if (!v.length) return null;
+    var m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+  function esRodillo(a) { return a && (a.rodillo === true || a.tipo === "VirtualRide"); }
+
+  /* ---------- los datos ---------- */
+  function sesionesDelPlan(sesiones, inicio) {
+    var out = [];
+    (sesiones || []).forEach(function (s) {
+      var a = s.analisis, d = fechaDe(s.inicio);
+      if (!a || a.nada || !d) return;
+      var f = iso(d);
+      if (f < inicio) return;
+      var ok = 0, tot = 0;
+      (a.objetivos || []).forEach(function (o) { tot++; if (o.ok) ok++; });
+      out.push({ f: f, t: d.getTime(), a: a, ok: ok, tot: tot, min: s.min,
+                 nombre: a.libre ? "Sesión libre" : (a.sesion || "Rodillo") });
+    });
+    return out.sort(function (p, q) { return p.t - q.t; });
+  }
+
+  /* El mejor mes de rodillo ANTES del plan: la referencia de «cómo estaba». */
+  function referencia(actividades, inicio) {
+    var porMes = {};
+    (actividades || []).forEach(function (a) {
+      var f = String(a.fecha || "").slice(0, 10);
+      if (!f || f >= inicio || !esRodillo(a)) return;
+      if ((a.min_mov || 0) < 30 || !a.pot_media || !a.pulso_med) return;
+      (porMes[f.slice(0, 7)] = porMes[f.slice(0, 7)] || []).push(a);
+    });
+    var mejor = null;
+    Object.keys(porMes).forEach(function (m) {
+      var l = porMes[m];
+      if (l.length < 4) return;
+      var wp = mediana(l.map(function (a) { return a.pot_media / a.pulso_med; }));
+      if (!mejor || wp > mejor.wppm) {
+        mejor = { mes: m, n: l.length, wppm: wp,
+                  w: mediana(l.map(function (a) { return a.pot_media; })),
+                  ppm: mediana(l.map(function (a) { return a.pulso_med; })),
+                  rpm: mediana(l.map(function (a) { return a.cadencia; })) };
+      }
+    });
+    if (mejor) {
+      var p = mejor.mes.split("-");
+      mejor.et = MES[(+p[1]) - 1] + " " + p[0];
+    }
+    return mejor;
+  }
+
+  function semanasDelPlan(plan, actividades, hoy) {
+    var r = (plan && plan.rampa) || [];
+    return r.map(function (w) {
+      var hecha = 0, n = 0;
+      (actividades || []).forEach(function (a) {
+        var f = String(a.fecha || "").slice(0, 10);
+        if (f >= w.desde && f <= w.hasta && a.esfuerzo != null) { hecha += a.esfuerzo; n++; }
+      });
+      return { n: w.n, desde: w.desde, hasta: w.hasta, prevista: w.carga, hecha: hecha, act: n,
+               descarga: /DESCARGA/i.test(w.nota || ""), test: /test/i.test(w.nota || ""),
+               curso: hoy >= w.desde && hoy <= w.hasta, futura: hoy < w.desde };
+    });
+  }
+
+  /* La FTP declarada sale de la tarea del plan («Poner la FTP en 155 W…»). */
+  function ftpDeclarada(plan, inicio) {
+    var t = ((plan && plan.tareas) || []).filter(function (x) { return x.id && /^ftp\d+/.test(x.id); })[0];
+    var w = t ? +String(t.id).replace(/\D/g, "") : null;
+    return w ? { w: w, f: inicio } : null;
+  }
+
+  /* ---------- un gráfico de línea, un solo eje ----------
+     o = { id, puntos:[{x:ms, y, f, et}], dom:[ms0, ms1], umbral:{y, et, malo:"arriba"|"abajo"},
+           ref:{y, et}, banda:[y0,y1,et], semanas, fmt(y), suf, dec, minY, maxY } */
+  /* El ancho del dibujo se decide al pintar: a 640 en un móvil las letras
+     quedaban de 5 px. En pantalla estrecha se dibuja a 360 y se lee igual. */
+  var W = 640, H = 190, M = { l: 44, r: 58, t: 14, b: 30 };
+  function medidas() {
+    var estrecha = global.innerWidth && global.innerWidth < 620;
+    W = estrecha ? 360 : 640; H = estrecha ? 200 : 190;
+    M = estrecha ? { l: 36, r: 50, t: 14, b: 30 } : { l: 44, r: 58, t: 14, b: 30 };
+  }
+
+  function grafico(o) {
+    var pts = o.puntos;
+    var ys = pts.map(function (p) { return p.y; });
+    if (o.umbral) ys.push(o.umbral.y);
+    if (o.ref) ys.push(o.ref.y);
+    if (o.banda) ys.push(o.banda[0], o.banda[1]);
+    if (o.extra) ys = ys.concat(o.extra);
+    var y0 = o.minY != null ? o.minY : Math.min.apply(null, ys);
+    var y1 = o.maxY != null ? o.maxY : Math.max.apply(null, ys);
+    if (y1 - y0 < (o.rangoMin || 1)) { var c = (y0 + y1) / 2; y0 = c - (o.rangoMin || 1) / 2; y1 = c + (o.rangoMin || 1) / 2; }
+    var pad = (y1 - y0) * 0.12; y0 -= pad; y1 += pad;
+    var x0 = o.dom[0], x1 = o.dom[1];
+    function X(v) { return M.l + (v - x0) / (x1 - x0) * (W - M.l - M.r); }
+    function Y(v) { return H - M.b - (v - y0) / (y1 - y0) * (H - M.t - M.b); }
+    var s = [];
+    /* las semanas de descarga y de test, como fondo: dicen por qué un punto cae */
+    (o.semanas || []).forEach(function (w) {
+      var a = msDe(w.desde), b = msDe(w.hasta) + DIA;
+      if (b < x0 || a > x1) return;
+      if (w.descarga || w.test) {
+        s.push('<rect class="av-desc" x="' + X(Math.max(a, x0)).toFixed(1) + '" y="' + M.t + '" width="' +
+          (X(Math.min(b, x1)) - X(Math.max(a, x0))).toFixed(1) + '" height="' + (H - M.t - M.b) + '"/>' +
+          '<text class="av-desc-t" x="' + (X(Math.max(a, x0)) + 4).toFixed(1) + '" y="' + (M.t + 10) + '">' +
+          (w.test && w.descarga ? "descarga · test" : w.test ? "test" : "descarga") + "</text>");
+      }
+    });
+    /* rejilla: tres valores en el eje y */
+    for (var k = 0; k <= 2; k++) {
+      var yv = y0 + pad + (y1 - y0 - 2 * pad) * k / 2;
+      s.push('<line class="av-grid" x1="' + M.l + '" x2="' + (W - M.r) + '" y1="' + Y(yv).toFixed(1) + '" y2="' + Y(yv).toFixed(1) + '"/>' +
+        '<text class="av-eje" x="' + (M.l - 6) + '" y="' + (Y(yv) + 3.5).toFixed(1) + '" text-anchor="end">' + o.fmt(yv) + "</text>");
+    }
+    /* eje x: el lunes de cada semana del plan, con su número */
+    (o.semanas || []).forEach(function (w) {
+      var a = msDe(w.desde);
+      if (a < x0 || a > x1) return;
+      s.push('<line class="av-tick" x1="' + X(a).toFixed(1) + '" x2="' + X(a).toFixed(1) + '" y1="' + (H - M.b) + '" y2="' + (H - M.b + 4) + '"/>' +
+        '<text class="av-eje" x="' + X(a).toFixed(1) + '" y="' + (H - M.b + 15) + '" text-anchor="middle">S' + w.n + "</text>" +
+        '<text class="av-eje av-eje2" x="' + X(a).toFixed(1) + '" y="' + (H - M.b + 26) + '" text-anchor="middle">' + diaCorto(w.desde) + "</text>");
+    });
+    if (o.banda) {
+      s.push('<rect class="av-banda" x="' + M.l + '" width="' + (W - M.l - M.r) + '" y="' + Y(o.banda[1]).toFixed(1) +
+        '" height="' + (Y(o.banda[0]) - Y(o.banda[1])).toFixed(1) + '"/>' +
+        '<text class="av-et-der" x="' + (W - M.r + 4) + '" y="' + (Y((o.banda[0] + o.banda[1]) / 2) + 3).toFixed(1) + '">' + o.banda[2] + "</text>");
+    }
+    if (o.umbral) {
+      s.push('<line class="av-umbral" x1="' + M.l + '" x2="' + (W - M.r) + '" y1="' + Y(o.umbral.y).toFixed(1) + '" y2="' + Y(o.umbral.y).toFixed(1) + '"/>' +
+        '<text class="av-et-der av-umbral-t" x="' + (W - M.r + 4) + '" y="' + (Y(o.umbral.y) + 3).toFixed(1) + '">' + o.umbral.et + "</text>");
+    }
+    if (o.ref) {
+      s.push('<line class="av-ref" x1="' + M.l + '" x2="' + (W - M.r) + '" y1="' + Y(o.ref.y).toFixed(1) + '" y2="' + Y(o.ref.y).toFixed(1) + '"/>' +
+        '<text class="av-et-der av-ref-t" x="' + (W - M.r + 4) + '" y="' + (Y(o.ref.y) + 3).toFixed(1) + '">' + o.ref.et + "</text>");
+    }
+    if (o.escalones) {               /* la FTP: un valor que dura hasta el siguiente */
+      var d = "";
+      o.escalones.forEach(function (e, i) {
+        var xa = X(Math.max(e.x, x0)), xb = X(i + 1 < o.escalones.length ? o.escalones[i + 1].x : x1);
+        d += (i ? "L" : "M") + xa.toFixed(1) + " " + Y(e.y).toFixed(1) + "L" + xb.toFixed(1) + " " + Y(e.y).toFixed(1);
+      });
+      s.push('<path class="av-linea" d="' + d + '"/>');
+    } else if (pts.length > 1) {
+      s.push('<path class="av-linea" d="' + pts.map(function (p, i) {
+        return (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y).toFixed(1);
+      }).join("") + '"/>');
+    }
+    pts.forEach(function (p, i) {
+      var ult = i === pts.length - 1;
+      s.push('<g class="av-pt' + (p.mal ? " av-mal" : "") + '"><circle class="av-hit" cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.y).toFixed(1) + '" r="12"/>' +
+        '<circle class="av-dot" cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.y).toFixed(1) + '" r="4.5"/>' +
+        "<title>" + esc(diaCorto(p.f) + " · " + p.et + ": " + o.fmt(p.y) + (o.suf || "")) + "</title></g>" +
+        (ult ? '<text class="av-et-pt" x="' + (X(p.x) + 8).toFixed(1) + '" y="' + (Y(p.y) - 8).toFixed(1) + '">' + o.fmt(p.y) + (o.suf || "") + "</text>" : ""));
+    });
+    if (!pts.length && !o.escalones) {
+      s.push('<text class="av-vacio" x="' + (W / 2) + '" y="' + (H / 2) + '" text-anchor="middle">Sin sesiones analizadas todavía</text>');
+    }
+    return '<svg class="av-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(o.titulo) + '">' + s.join("") + "</svg>";
+  }
+
+  function tabla(cab, filas) {
+    return '<details class="av-datos"><summary>Ver los datos</summary><table><thead><tr>' +
+      cab.map(function (c) { return "<th>" + c + "</th>"; }).join("") + "</tr></thead><tbody>" +
+      filas.map(function (f) { return "<tr>" + f.map(function (c, i) { return (i ? "<td>" : "<th>") + c + (i ? "</td>" : "</th>"); }).join("") + "</tr>"; }).join("") +
+      "</tbody></table></details>";
+  }
+
+  function tarjeta(titulo, sub, cuerpo, pie) {
+    return '<section class="av-tarjeta"><h3>' + titulo + "</h3>" +
+      (sub ? '<p class="av-sub">' + sub + "</p>" : "") + cuerpo +
+      (pie ? '<p class="av-pie">' + pie + "</p>" : "") + "</section>";
+  }
+
+  function cambio(a, b, dec, suf, mejorSiBaja) {
+    if (a == null || b == null) return "";
+    var d = b - a;
+    if (Math.abs(d) < Math.pow(10, -(dec || 0)) / 2) return '<span class="av-igual">igual</span>';
+    var bien = mejorSiBaja ? d < 0 : d > 0;
+    return '<span class="' + (bien ? "av-mejor" : "av-peor") + '">' + (d > 0 ? "+" : "−") + num(Math.abs(d), dec) + (suf || "") + "</span>";
+  }
+
+  /* ---------- EL FANTASMA: tú en tu subida anterior ----------
+     Carlos, 1-oct-2026: «x meses antes de tu tope estabas en este punto…
+     ahora estás aquí». Comprobado ese día que hoy está más bajo que en
+     cualquier momento desde 2021, así que no se busca «cuándo estuve así»:
+     se ALINEA POR SEMANAS desde el inicio de cada subida. La de 2022 empieza
+     con su primer rodillo, el 18-nov-2021 (antes no hay rodillo: comprobado
+     en el archivo 2013-2021). Las semanas 1-10 de entonces no tienen vatios:
+     el reloj grababa sin el potenciómetro; el primero es del 31-ene-2022.
+     LOS VATIOS DE ENTONCES SE CORRIGEN: se midieron con pedales Assioma y
+     Carlos estima que marcaban un 10 % más que la Kickr Bike. Es SU
+     estimación, sin medir: se mide con una sesión con los pedales montados
+     en la Kickr, y entonces se cambia FACTOR y nada más. */
+  var FANTASMA = { inicio: "2021-11-18", et: "2022", factor: 0.90,
+    aviso: "Vatios de 2022 (pedales Assioma) corregidos −10 %: estimación tuya, sin medir todavía." };
+
+  function esBici(a) { return a && (a.rodillo === true || a.tipo === "VirtualRide" || a.tipo === "Ride"); }
+
+  function porSemanas(acts, curvas, inicio, factor, nSem) {
+    var i0 = msDe(inicio), out = [];
+    for (var k = 1; k <= nSem; k++) out.push({ k: k, min: 0, n: 0, wp: [], m20: null });
+    (acts || []).forEach(function (a) {
+      if (!esBici(a)) return;
+      var f = String(a.fecha || "").slice(0, 10);
+      if (!f) return;
+      var k = Math.floor((msDe(f) - i0) / (7 * DIA)) + 1;
+      if (k < 1 || k > nSem) return;
+      var s = out[k - 1];
+      s.n++; s.min += a.min_mov || 0;
+      if (a.pot_media && a.pulso_med && (a.min_mov || 0) >= 30) s.wp.push(a.pot_media * factor / a.pulso_med);
+      var c = curvas && a.id && curvas[a.id];
+      if (c && c["1200"]) s.m20 = Math.max(s.m20 || 0, c["1200"] * factor);
+    });
+    out.forEach(function (s) { s.wppm = mediana(s.wp); s.h = s.min / 60; });
+    return out;
+  }
+
+  /* gráfico por semanas de la subida, dos series en el mismo eje */
+  function graficoSem(o) {
+    var ser = o.series, K = o.K, ys = [];
+    ser.forEach(function (S) { S.puntos.forEach(function (p) { if (p.y != null) ys.push(p.y); }); });
+    if (!ys.length) return '<p class="av-sub">Sin datos todavía.</p>';
+    var y0 = o.minY != null ? o.minY : Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    if (y1 - y0 < (o.rangoMin || 1)) { var c = (y0 + y1) / 2; y0 = c - o.rangoMin / 2; y1 = c + o.rangoMin / 2; if (o.minY != null) { y0 = o.minY; } }
+    var pad = (y1 - y0) * 0.12; y1 += pad; if (o.minY == null) y0 -= pad;
+    function X(k) { return M.l + (k - 1) / (K - 1) * (W - M.l - M.r); }
+    function Y(v) { return H - M.b - (v - y0) / (y1 - y0) * (H - M.t - M.b); }
+    var s = [];
+    for (var g = 0; g <= 2; g++) {
+      var yv = y0 + (y1 - y0) * (g / 2) * 0.9 + (g ? 0 : 0);
+      s.push('<line class="av-grid" x1="' + M.l + '" x2="' + (W - M.r) + '" y1="' + Y(yv).toFixed(1) + '" y2="' + Y(yv).toFixed(1) + '"/>' +
+        '<text class="av-eje" x="' + (M.l - 6) + '" y="' + (Y(yv) + 3.5).toFixed(1) + '" text-anchor="end">' + o.fmt(yv) + "</text>");
+    }
+    var paso = K > 16 ? 4 : K > 8 ? 2 : 1;
+    for (var k = 1; k <= K; k += paso) {
+      s.push('<text class="av-eje" x="' + X(k).toFixed(1) + '" y="' + (H - M.b + 15) + '" text-anchor="middle">' + k + "</text>");
+    }
+    s.push('<text class="av-eje av-eje2" x="' + ((M.l + W - M.r) / 2) + '" y="' + (H - M.b + 27) + '" text-anchor="middle">semana de la subida</text>');
+    if (o.hoyK) {
+      s.push('<line class="av-hoy" x1="' + X(o.hoyK).toFixed(1) + '" x2="' + X(o.hoyK).toFixed(1) + '" y1="' + M.t + '" y2="' + (H - M.b) + '"/>' +
+        '<text class="av-desc-t" x="' + (X(o.hoyK) + 3).toFixed(1) + '" y="' + (M.t + 9) + '">hoy</text>');
+    }
+    ser.forEach(function (S) {
+      var tramos = [], cur = [];
+      S.puntos.forEach(function (p) { if (p.y == null) { if (cur.length) tramos.push(cur); cur = []; } else cur.push(p); });
+      if (cur.length) tramos.push(cur);
+      tramos.forEach(function (t) {
+        if (t.length > 1) s.push('<path class="' + S.clase + '" d="' + t.map(function (p, i) {
+          return (i ? "L" : "M") + X(p.k).toFixed(1) + " " + Y(p.y).toFixed(1); }).join("") + '"/>');
+      });
+      var ult = null;
+      S.puntos.forEach(function (p) {
+        if (p.y == null) return; ult = p;
+        s.push('<g><circle class="av-hit" cx="' + X(p.k).toFixed(1) + '" cy="' + Y(p.y).toFixed(1) + '" r="10"/>' +
+          '<circle class="' + S.clase + '-dot" cx="' + X(p.k).toFixed(1) + '" cy="' + Y(p.y).toFixed(1) + '" r="' + (S.clase === "av-fant" ? 3 : 4.5) + '"/>' +
+          "<title>" + esc(S.nombre + " · semana " + p.k + ": " + o.fmt(p.y) + (o.suf || "")) + "</title></g>");
+      });
+      if (ult) s.push('<text class="av-et-pt ' + S.clase + '-t" x="' + (X(ult.k) + 7).toFixed(1) + '" y="' + (Y(ult.y) + 4).toFixed(1) + '">' + S.nombre + "</text>");
+    });
+    return '<svg class="av-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(o.titulo) + '">' + s.join("") + "</svg>";
+  }
+
+  function htmlFantasma(o, inicioPlan, hoy) {
+    if (!o.todas || !o.todas.length) return "";
+    var F = FANTASMA;
+    var hoyK = Math.floor((msDe(hoy) - msDe(inicioPlan)) / (7 * DIA)) + 1;
+    var K = Math.max(hoyK + 6, 12);
+    var ent = porSemanas(o.todas, o.curvas, F.inicio, F.factor, 120);
+    var aho = porSemanas(o.todas, o.curvas, inicioPlan, 1, K);
+    if (!ent.some(function (s) { return s.n; })) return "";
+    var entK = ent.slice(0, K);
+    function serie(lista, campo, hasta) {
+      return lista.map(function (s) { return { k: s.k, y: (hasta && s.k > hasta) ? null : (s[campo] != null && (campo !== "h" || s.n || s.k <= hasta) ? s[campo] : null) }; });
+    }
+    var leyenda = '<div class="av-leyenda"><span><i class="av-l-hecha"></i>Ahora (desde el ' + diaCorto(inicioPlan) + ")</span>" +
+      '<span><i class="av-l-fant"></i>' + F.et + " (desde el " + diaCorto(F.inicio) + " de 2021)</span></div>";
+    var g1 = graficoSem({ titulo: "Vatios por pulsación", K: K, hoyK: hoyK, fmt: function (v) { return num(v, 2); }, rangoMin: 0.3,
+      series: [{ nombre: F.et, clase: "av-fant", puntos: serie(entK, "wppm") },
+               { nombre: "ahora", clase: "av-ahora", puntos: serie(aho, "wppm", hoyK) }] });
+    var g2 = graficoSem({ titulo: "Horas de bici por semana", K: K, hoyK: hoyK, fmt: function (v) { return num(v, 0); }, suf: " h", rangoMin: 4, minY: 0,
+      series: [{ nombre: F.et, clase: "av-fant", puntos: entK.map(function (s) { return { k: s.k, y: s.h }; }) },
+               { nombre: "ahora", clase: "av-ahora", puntos: aho.map(function (s) { return { k: s.k, y: s.k <= hoyK ? s.h : null }; }) }] });
+    var g3 = graficoSem({ titulo: "Mejores 20 minutos", K: K, hoyK: hoyK, fmt: function (v) { return num(v, 0); }, suf: " W", rangoMin: 40,
+      series: [{ nombre: F.et, clase: "av-fant", puntos: serie(entK, "m20") },
+               { nombre: "ahora", clase: "av-ahora", puntos: serie(aho, "m20", hoyK) }] });
+
+    /* la comparación en palabras, en la última semana con dato de las dos */
+    var txt = [], primeroEnt = null;
+    for (var i = 0; i < ent.length; i++) if (ent[i].wppm != null) { primeroEnt = ent[i]; break; }
+    var ultAho = null;
+    aho.forEach(function (s) { if (s.k <= hoyK && s.wppm != null) ultAho = s; });
+    if (ultAho) {
+      var mismo = ent[ultAho.k - 1];
+      if (mismo && mismo.wppm != null) {
+        txt.push("En la semana " + ultAho.k + " de " + F.et + " ibas a " + num(mismo.wppm, 2) + " vatios por pulsación; ahora, a " + num(ultAho.wppm, 2) + ".");
+      } else if (primeroEnt) {
+        txt.push("En la semana " + ultAho.k + " de " + F.et + " todavía no medías vatios. El primer dato de entonces es de la semana " +
+          primeroEnt.k + ": " + num(primeroEnt.wppm, 2) + " vatios por pulsación. Ahora, en la semana " + ultAho.k + ": " + num(ultAho.wppm, 2) + ".");
+      }
+    }
+    var hAho = aho.slice(0, hoyK).reduce(function (t, s) { return t + s.h; }, 0);
+    var hEnt = ent.slice(0, hoyK).reduce(function (t, s) { return t + s.h; }, 0);
+    txt.push("Horas de bici acumuladas hasta esta semana: " + num(hAho, 1) + " h ahora, " + num(hEnt, 1) + " h en " + F.et + ".");
+    for (var j = 0; j < ent.length; j++) {
+      if (ent[j].m20 != null && ent[j].m20 * 0.95 >= FTP_OBJETIVO) {
+        var d = new Date(msDe(F.inicio) + (ent[j].k - 1) * 7 * DIA);
+        txt.push("Aquella subida llegó a una FTP de " + FTP_OBJETIVO + " (ya corregida) en la semana " + ent[j].k +
+          " (" + MES[d.getMonth()] + " " + d.getFullYear() + "): algo más de un año.");
+        break;
+      }
+    }
+    return tarjeta("Tú ahora y tú en " + F.et,
+      "Las dos subidas alineadas por semanas desde su primer día. No es para competir con aquel: es para ver si el ritmo de mejora se parece. " +
+      F.aviso,
+      leyenda +
+      '<h4 class="av-h4">Vatios por pulsación</h4>' + g1 +
+      '<h4 class="av-h4">Horas de bici por semana</h4>' + g2 +
+      '<h4 class="av-h4">Mejores 20 minutos</h4>' + g3 +
+      '<p class="av-sub av-nota20">Ahora, hasta el test, tus mejores 20 minutos salen de sesiones suaves: no son tu tope. Se comparan de verdad desde el test.</p>' +
+      '<p class="av-lect">' + txt.join(" ") + "</p>" +
+      tabla(["Semana", F.et + " W/ppm", "ahora W/ppm", F.et + " h", "ahora h", F.et + " 20′", "ahora 20′"],
+        entK.map(function (s, i) { var a = aho[i];
+          return [String(s.k), num(s.wppm, 2), a && a.k <= hoyK ? num(a.wppm, 2) : "", num(s.h, 1), a && a.k <= hoyK ? num(a.h, 1) : "",
+                  num(s.m20, 0), a && a.k <= hoyK ? num(a.m20, 0) : ""]; })), "");
+  }
+
+  /* ---------- la pantalla ---------- */
+  function html(o) {
+    var plan = o.plan || {}, r = plan.rampa || [];
+    if (!r.length) return '<p class="nota-peque">No encuentro la rampa del plan (datos/plan.js).</p>';
+    var hoy = o.hoy || iso(new Date());
+    medidas();
+    var inicio = r[0].desde, fin = r[r.length - 1].hasta;
+    var ses = sesionesDelPlan(o.sesiones, inicio);
+    /* SIN REFERENCIA DEL PASADO RECIENTE (Carlos, 1-oct-2026): «no compares la
+       subida de 2026… fue de sobreesfuerzo y no sé si todo lo que tengo ahora
+       tiene que ver con esa fatiga… olvida 2026». La comparación con el pasado
+       queda sólo en el fantasma de 2022. `referencia()` se conserva por si se
+       pide otra vez, pero no se usa. */
+    var ref = null;
+    var sem = semanasDelPlan(plan, o.actividades, hoy);
+    var actual = sem.filter(function (w) { return w.curso; })[0];
+    /* la ventana: desde el principio del plan hasta una semana después de hoy,
+       con un mínimo de cuatro semanas para que dos puntos no ocupen todo */
+    var x0 = msDe(inicio), x1 = Math.max(msDe(hoy) + 7 * DIA, x0 + 28 * DIA);
+    if (x1 > msDe(fin) + DIA) x1 = msDe(fin) + DIA;
+    var dom = [x0, x1];
+    var semVis = sem.filter(function (w) { return msDe(w.desde) <= x1; });
+
+    var prim = ses[0], ult = ses[ses.length - 1];
+    var horas = ses.reduce(function (t, s) { return t + (s.min || 0); }, 0) / 60;
+    var ftpD = ftpDeclarada(plan, inicio);
+    var tests = ses.filter(function (s) { return s.a.ftp_test; });
+    var ftpAhora = tests.length ? tests[tests.length - 1].a.ftp_test : (ftpD ? ftpD.w : null);
+
+    /* --- cifras de cabecera --- */
+    function cifra(et, v, sub) {
+      return '<div class="av-cifra"><span class="av-et">' + et + '</span><span class="av-v">' + v + "</span>" +
+        (sub ? '<span class="av-csub">' + sub + "</span>" : "") + "</div>";
+    }
+    var cab = '<div class="av-cifras">' +
+      cifra("Semana del plan", actual ? actual.n + " de " + r.length : "—",
+            actual ? [actual.descarga ? "descarga" : "", actual.test ? "con test" : "", "empezó el " + diaCorto(inicio)]
+              .filter(Boolean).join(" · ") : "") +
+      cifra("Rodillo analizado", ses.length + (ses.length === 1 ? " sesión" : " sesiones"), num(horas, 1) + " h") +
+      cifra("Deriva", ult && ult.a.deriva != null ? num(ult.a.deriva, 1) + " %" : "—",
+            prim && ult && prim !== ult ? "al empezar " + num(prim.a.deriva, 1) + " % · " + cambio(prim.a.deriva, ult.a.deriva, 1, " pt", true) : "objetivo &lt; 5 %") +
+      cifra("Vatios por pulsación", ult ? num(ult.a.w_ppm, 2) : "—",
+            (prim && ult && prim !== ult ? "al empezar " + num(prim.a.w_ppm, 2) + " · " + cambio(prim.a.w_ppm, ult.a.w_ppm, 2, "", false) : "") +
+            (ref ? (prim && ult && prim !== ult ? "<br>" : "") + "en " + ref.et + ": " + num(ref.wppm, 2) : "")) +
+      cifra("FTP", ftpAhora ? ftpAhora + " W" : "—",
+            (tests.length ? "medida en test" : "declarada, sin test") + " · objetivo " + FTP_OBJETIVO + " W") +
+      "</div>";
+
+    var P = function (campo, fmtMal) {
+      return ses.filter(function (s) { return s.a[campo] != null; }).map(function (s) {
+        return { x: s.t, y: s.a[campo], f: s.f, et: s.nombre, mal: fmtMal ? fmtMal(s) : false };
+      });
+    };
+    var semFondo = semVis;
+
+    var gDeriva = tarjeta("Deriva cardiaca",
+      "Cuánto sube el pulso de la primera a la segunda mitad del bloque principal con los mismos vatios. Bajar es mejorar.",
+      grafico({ titulo: "Deriva", puntos: P("deriva", function (s) { return s.a.deriva >= 5; }), dom: dom,
+                umbral: { y: 5, et: "5 %" }, semanas: semFondo, fmt: function (v) { return num(v, 1); }, suf: " %", rangoMin: 4, minY: 0 }) +
+      tabla(["Sesión", "Deriva", "Pulso 1.ª mitad", "2.ª mitad"],
+            ses.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.deriva, 1) + " %", num(s.a.ppm_1, 0), num(s.a.ppm_2, 0)]; })),
+      "Por debajo del 5 % es base aeróbica sólida para esa potencia. Las sesiones libres se miden igual, sin calentamiento ni vuelta a la calma.");
+
+    var gEf = tarjeta("Vatios por pulsación",
+      "Potencia media dividida por el pulso medio del bloque principal: cuánto trabajo saca el corazón de cada latido. Subir es mejorar.",
+      grafico({ titulo: "Vatios por pulsación", puntos: P("w_ppm"), dom: dom, semanas: semFondo,
+                ref: ref ? { y: ref.wppm, et: ref.et } : null, fmt: function (v) { return num(v, 2); }, rangoMin: 0.2 }) +
+      tabla(["Sesión", "W/ppm", "W", "ppm"],
+            ses.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.w_ppm, 2), num(s.a.w, 0), num(s.a.ppm, 0)]; })),
+      ref ? "La línea gris es tu mejor mes de rodillo antes del plan (" + ref.et + ", " + ref.n +
+        " sesiones, " + num(ref.w, 0) + " W a " + num(ref.ppm, 0) + " ppm). Está medida sobre la sesión entera, así que es una referencia aproximada." : "");
+
+    var gPot = tarjeta("Potencia del bloque principal",
+      "Los vatios que se sostuvieron, sin calentamiento ni vuelta a la calma. Sube a medida que la rampa pide más.",
+      grafico({ titulo: "Potencia", puntos: P("w"), dom: dom, semanas: semFondo,
+                ref: ref ? { y: ref.w, et: ref.et } : null, fmt: function (v) { return num(v, 0); }, suf: " W", rangoMin: 20 }), "");
+
+    var gPulso = tarjeta("Pulso medio del bloque principal",
+      "El otro lado de la misma cuenta. Leer junto a la potencia: el mismo pulso con más vatios es mejora.",
+      grafico({ titulo: "Pulso", puntos: P("ppm"), dom: dom, semanas: semFondo,
+                fmt: function (v) { return num(v, 0); }, suf: " ppm", rangoMin: 15 }), "");
+
+    var gCad = tarjeta("Cadencia habitual",
+      "Las vueltas por minuto en el bloque principal, sin contar los minutos de técnica. La banda es lo cómodo en zona 2.",
+      grafico({ titulo: "Cadencia", puntos: P("rpm", function (s) { return s.a.rpm < 80; }), dom: dom, semanas: semFondo,
+                banda: [85, 95, "85-95"], fmt: function (v) { return num(v, 0); }, suf: " rpm", rangoMin: 20 }), "");
+
+    /* objetivos cumplidos: una barra por sesión con ficha prevista */
+    var conObj = ses.filter(function (s) { return s.tot; });
+    var barras = conObj.length ? (function () {
+      var bw = 26, gap = 14, w = Math.max(320, conObj.length * (bw + gap) + 40), h = 120, base = 92;
+      var svg = conObj.map(function (s, i) {
+        var x = 20 + i * (bw + gap), hOk = s.ok / s.tot * 70, hNo = 70 - hOk;
+        return '<g><rect class="av-bno" x="' + x + '" y="' + (base - 70) + '" width="' + bw + '" height="' + Math.max(0, hNo - 1) + '" rx="3"/>' +
+          '<rect class="av-bok" x="' + x + '" y="' + (base - hOk) + '" width="' + bw + '" height="' + hOk + '" rx="3"/>' +
+          '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - 74) + '" text-anchor="middle">' + s.ok + "/" + s.tot + "</text>" +
+          '<text class="av-eje" x="' + (x + bw / 2) + '" y="' + (base + 14) + '" text-anchor="middle">' + diaCorto(s.f) + "</text>" +
+          "<title>" + esc(diaCorto(s.f) + " · " + s.nombre + ": " + s.ok + " de " + s.tot + " objetivos") + "</title></g>";
+      }).join("");
+      return '<svg class="av-svg-bar" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Objetivos cumplidos">' + svg + "</svg>";
+    })() : '<p class="av-sub">Todavía no hay sesiones con ficha prevista.</p>';
+    var gObj = tarjeta("Objetivos cumplidos por sesión",
+      "Potencia, techo de pulso, deriva, minutos de cadencia y carga: cuántos se cumplieron de los que ponía la sesión.",
+      barras + (conObj.length ? tabla(["Sesión"].concat(["Objetivos"]),
+        conObj.map(function (s) {
+          return [diaCorto(s.f) + " · " + esc(s.nombre), (s.a.objetivos || []).map(function (x) {
+            return (x.ok ? "✔ " : "✘ ") + esc(x.que); }).join(" · ")];
+        })) : ""), "");
+
+    /* carga semanal: prevista (hueca) contra hecha (llena) */
+    var semHasta = sem.filter(function (w) { return !w.futura; });
+    var cargaSvg = (function () {
+      var lista = sem.slice(0, Math.max(semHasta.length + 2, 4));
+      var max = Math.max.apply(null, lista.map(function (w) { return Math.max(w.prevista || 0, w.hecha || 0); })) || 1;
+      var bw = 30, gap = 16, w = lista.length * (bw + gap) + 30, h = 150, base = 118, alto = 92;
+      return '<svg class="av-svg-bar" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Carga semanal">' +
+        lista.map(function (s, i) {
+          var x = 15 + i * (bw + gap), hp = s.prevista / max * alto, hh = s.hecha / max * alto;
+          var pct = s.prevista ? Math.round(s.hecha / s.prevista * 100) : null;
+          return "<g>" + '<rect class="av-prev" x="' + x + '" y="' + (base - hp) + '" width="' + bw + '" height="' + hp + '" rx="3"/>' +
+            (s.futura ? "" : '<rect class="av-hecha' + (s.curso ? " av-curso" : "") + '" x="' + (x + 5) + '" y="' + (base - hh) + '" width="' + (bw - 10) + '" height="' + hh + '" rx="3"/>') +
+            (s.futura ? "" : '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - Math.max(hp, hh) - 5) + '" text-anchor="middle">' + pct + " %</text>") +
+            '<text class="av-eje" x="' + (x + bw / 2) + '" y="' + (base + 14) + '" text-anchor="middle">S' + s.n + "</text>" +
+            '<text class="av-eje av-eje2" x="' + (x + bw / 2) + '" y="' + (base + 25) + '" text-anchor="middle">' +
+              (s.descarga ? "desc." : s.test ? "test" : s.curso ? "en curso" : "") + "</text>" +
+            "<title>" + esc("Semana " + s.n + " (" + diaCorto(s.desde) + "): " + (s.futura ? "prevista " + s.prevista :
+              "hecha " + num(s.hecha) + " de " + s.prevista + (s.curso ? " (en curso)" : ""))) + "</title></g>";
+        }).join("") + "</svg>";
+    })();
+    var gCarga = tarjeta("Carga de cada semana",
+      "Lo hecho (barra llena, todas las actividades) contra lo que pedía la rampa (barra hueca).",
+      '<div class="av-leyenda"><span><i class="av-l-hecha"></i>Hecha</span><span><i class="av-l-prev"></i>Prevista</span></div>' +
+      cargaSvg + tabla(["Semana", "Prevista", "Hecha", "Actividades"],
+        semHasta.map(function (s) { return ["S" + s.n + " · " + diaCorto(s.desde) + (s.curso ? " (en curso)" : ""), s.prevista, num(s.hecha), s.act]; })),
+      "La semana en curso se va llenando. Las de descarga piden menos a propósito.");
+
+    /* FTP: escalones (declarada, luego cada test) y el objetivo */
+    var esc0 = ftpD ? [{ x: x0, y: ftpD.w }] : [];
+    tests.forEach(function (t) { esc0.push({ x: t.t, y: t.a.ftp_test }); });
+    var gFtp = tarjeta("FTP",
+      "La potencia que podrías sostener una hora. Hasta el primer test es la declarada (" + (ftpD ? ftpD.w : "—") +
+      " W); cada test la mide de verdad (el 95 % de los mejores 20 minutos).",
+      grafico({ titulo: "FTP", puntos: tests.map(function (t) { return { x: t.t, y: t.a.ftp_test, f: t.f, et: "test" }; }),
+                escalones: esc0, dom: dom, semanas: semFondo, umbral: { y: FTP_OBJETIVO, et: "objetivo" },
+                extra: ftpD ? [ftpD.w] : [], fmt: function (v) { return num(v, 0); }, suf: " W", minY: 100 }) +
+      (ftpAhora ? '<p class="av-sub">Con ' + ftpAhora + " W, para llegar a " + FTP_OBJETIVO + " faltan " +
+        (FTP_OBJETIVO - ftpAhora) + " W (" + Math.round((FTP_OBJETIVO / ftpAhora - 1) * 100) + " %). " +
+        "La fecha del objetivo se pone con dos tests: el primero da el punto de partida y el segundo, la velocidad de mejora.</p>" : ""),
+      "");
+
+    var aviso = ses.length < 3 ? '<p class="av-aviso">Con ' + ses.length + (ses.length === 1 ? " sesión" : " sesiones") +
+      " todavía no hay tendencia: los gráficos se van llenando con cada rodillo. Una sesión suelta dice cómo fue ese día, no hacia dónde vas.</p>" : "";
+
+    var gFant = htmlFantasma(o, inicio, hoy);
+    return '<div class="av">' + cab + aviso + gFant + gDeriva + gEf + gPot + gPulso + gCad + gObj + gCarga + gFtp + "</div>";
+  }
+
+  global.AvancesKHB = { html: html, _referencia: referencia, _sesiones: sesionesDelPlan, FANTASMA: FANTASMA };
+})(this);

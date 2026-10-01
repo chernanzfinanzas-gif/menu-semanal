@@ -1,0 +1,83 @@
+/* «Mis Avances» (1-oct-2026). Claro siempre, como el resto de la app: sin
+   prefers-color-scheme (ver entrenamiento.js, 21-sep). Una sola línea por
+   gráfico, en el azul de Entrenamiento; el gris discontinuo es el pasado y el
+   ámbar, el umbral que marca el plan. */
+.av { display: grid; gap: 14px; }
+.av-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.av-cifra {
+  background: var(--blanco, #fff); border: 1px solid var(--borde, #dfe5e2); border-radius: 10px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.av-et { font-size: 10.5px; font-weight: 600; color: var(--gris, #667a70); letter-spacing: .05em; text-transform: uppercase; }
+.av-v { font-size: 22px; font-weight: 700; color: var(--tinta, #1f2a24); line-height: 1.15; }
+.av-csub { font-size: 11.5px; color: var(--gris, #667a70); line-height: 1.35; }
+.av-mejor { color: #13875e; font-weight: 600; }
+.av-peor { color: #b23a30; font-weight: 600; }
+.av-igual { color: var(--gris, #667a70); }
+.av-aviso {
+  margin: 0; font-size: 13px; line-height: 1.45; color: var(--tinta, #1f2a24);
+  background: var(--azul-claro, #eaf0f6); border-radius: 9px; padding: 9px 12px;
+}
+.av-tarjeta {
+  background: var(--blanco, #fff); border: 1px solid var(--borde, #dfe5e2); border-radius: 12px;
+  padding: 12px 14px; min-width: 0;
+}
+.av-tarjeta h3 { margin: 0 0 3px; font-size: 15px; color: var(--azul-hondo, #133253); }
+.av-sub, .av-pie { margin: 0 0 8px; font-size: 12.5px; color: var(--gris, #667a70); line-height: 1.4; }
+.av-pie { margin: 6px 0 0; }
+.av-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.av-svg-bar { display: block; max-width: 100%; height: auto; overflow: visible; }
+.av-grid { stroke: var(--borde, #dfe5e2); stroke-width: 1; }
+.av-tick { stroke: #b9c4bf; stroke-width: 1; }
+.av-eje { fill: var(--gris, #667a70); font-size: 10.5px; }
+.av-eje2 { font-size: 9.5px; opacity: .8; }
+.av-desc { fill: #f1f3f2; }
+.av-desc-t { fill: #8a978f; font-size: 9.5px; }
+.av-banda { fill: #e6efe9; }
+.av-umbral { stroke: #c98a1b; stroke-width: 1.5; stroke-dasharray: 5 4; }
+.av-umbral-t { fill: #9a6a12; }
+.av-ref { stroke: #8a978f; stroke-width: 1.5; stroke-dasharray: 2 4; }
+.av-ref-t { fill: #6b776f; }
+.av-et-der { font-size: 10.5px; font-weight: 600; }
+.av-linea { fill: none; stroke: var(--azul, #2f5c8a); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.av-dot { fill: var(--azul, #2f5c8a); stroke: var(--blanco, #fff); stroke-width: 2; }
+.av-mal .av-dot { fill: #b23a30; }
+.av-hit { fill: transparent; cursor: default; }
+.av-pt:hover .av-dot { r: 6; }
+.av-et-pt { fill: var(--tinta, #1f2a24); font-size: 11.5px; font-weight: 700; }
+.av-vacio { fill: var(--gris, #667a70); font-size: 12px; }
+.av-bok { fill: var(--azul, #2f5c8a); }
+.av-bno { fill: #e3e8e6; }
+.av-prev { fill: none; stroke: #9fb3c8; stroke-width: 1.5; stroke-dasharray: 3 2; }
+.av-hecha { fill: var(--azul, #2f5c8a); }
+.av-curso { fill: #7d9cbb; }
+.av-leyenda { display: flex; gap: 14px; font-size: 12px; color: var(--gris, #667a70); margin-bottom: 4px; }
+.av-leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.av-l-hecha { background: var(--azul, #2f5c8a); }
+.av-l-prev { border: 1.5px dashed #9fb3c8; }
+.av-datos { margin-top: 6px; font-size: 12.5px; }
+.av-datos summary { cursor: pointer; color: var(--azul, #2f5c8a); font-weight: 600; }
+.av-datos table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.av-datos th, .av-datos td { text-align: right; padding: 5px 6px; border-top: 1px solid var(--borde, #dfe5e2); }
+.av-datos thead th { font-size: 10.5px; color: var(--gris, #667a70); text-transform: uppercase; letter-spacing: .04em; }
+.av-datos tbody th, .av-datos thead th:first-child { text-align: left; font-weight: 600; }
+@media (max-width: 620px) {
+  .av-cifras { grid-template-columns: 1fr 1fr; }
+  .av-v { font-size: 18px; }
+}
+
+/* el fantasma de la subida anterior: gris discontinuo; ahora, azul */
+.av-fant { fill: none; stroke: #8a978f; stroke-width: 2; stroke-dasharray: 5 4; }
+.av-fant-dot { fill: #fff; stroke: #8a978f; stroke-width: 1.6; }
+.av-fant-t { fill: #6b776f; }
+.av-ahora { fill: none; stroke: var(--azul, #2f5c8a); stroke-width: 2; }
+.av-ahora-dot { fill: var(--azul, #2f5c8a); stroke: #fff; stroke-width: 2; }
+.av-ahora-t { fill: var(--azul-hondo, #133253); }
+.av-l-fant { border-top: 2px dashed #8a978f; height: 0 !important; width: 16px !important; border-radius: 0 !important; }
+.av-hoy { stroke: var(--azul-borde, #cfdcea); stroke-width: 1.5; }
+.av-h4 { margin: 10px 0 2px; font-size: 12.5px; color: var(--tinta, #1f2a24); }
+.av-lect {
+  margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--tinta, #1f2a24);
+  background: var(--azul-claro, #eaf0f6); border-radius: 9px; padding: 9px 12px;
+}
+.av-nota20 { margin-top: 4px; }
