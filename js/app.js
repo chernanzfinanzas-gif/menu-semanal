@@ -4769,6 +4769,33 @@
     if (!html) html = '<div class="vacio">Todo pedido. Cuando llegue, dale a \u00abHa llegado\u00bb.</div>';
     $("#lista-compra").innerHTML = html;
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar pedidos";
+    refrescarBotonRecibida();
+  }
+
+  /* CARGAR UNA COMPRA YA RECIBIDA  ·  1-oct-2026
+     Carlos, el dia que llego el pedido de Mercadona: «una lista de compra de
+     mercadona con los productos de este ticket para que lo confirme y pasen al
+     stock». Y una hora antes, cerrando la idea de parsear tickets dentro de la
+     app: «no meter recibos a mano que van a traer cosas de estas».
+     Asi que el reparto queda: EL TICKET LO LEO YO y dejo el resultado en
+     `datos/compra-recibida.js`; el pulsa un boton, la lista aparece ya tachada
+     como pedida, y con «Ha llegado» entra todo en la despensa por el camino de
+     siempre —`confirmarCompra`—, sin inventar un segundo camino al stock.
+     Lo que no case con una ficha no se mete a la fuerza: se dice y se queda
+     fuera. UNA SOLA VEZ POR COMPRA: la `ref` se apunta y el boton desaparece,
+     que si no, dos clics meten la compra dos veces y nadie se entera. */
+  function compraRecibidaPendiente() {
+    var c = window.COMPRA_RECIBIDA;
+    if (!c || !c.lineas || !c.lineas.length) return null;
+    var ya = (Almacen.estado.config && Almacen.estado.config.comprasCargadas) || {};
+    return ya[c.ref] ? null : c;
+  }
+  function refrescarBotonRecibida() {
+    var b = $("#compra-recibida");
+    if (!b) return;
+    var c = compraRecibidaPendiente();
+    b.hidden = !c;
+    if (c) b.textContent = "Cargar " + (c.n || "compra recibida");
   }
 
   /* ============ «LO QUE QUIERO ESTA VEZ» ============
@@ -6058,6 +6085,24 @@
       });
     });
     $("#compra-recalcular").addEventListener("click", pintarCompra);
+    $("#compra-recibida").addEventListener("click", function () {
+      var c = compraRecibidaPendiente();
+      if (!c) return;
+      var puestas = 0, sinFicha = [];
+      c.lineas.forEach(function (l) {
+        if (!l || !l.i) return;
+        if (!Almacen.ingrediente(l.i)) { sinFicha.push(l.i); return; }
+        Almacen.quererEstaVez(l.i, true, l.p > 0 ? l.p : 1);
+        Almacen.ponerPedido(l.i, true);
+        puestas++;
+      });
+      if (!Almacen.estado.config.comprasCargadas) Almacen.estado.config.comprasCargadas = {};
+      Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
+      Almacen.guardar("config");
+      pintarCompra();
+      Util.toast(puestas + " productos en la lista, ya pedidos. Ahora pulsa \u00abHa llegado\u00bb" +
+                 (sinFicha.length ? " \u00b7 " + sinFicha.length + " sin ficha, fuera" : ""));
+    });
     var bp = $("#compra-pasada");
     if (bp) bp.addEventListener("click", abrirPasada);
     $("#compra-ocultar").addEventListener("click", function () { UI.ocultarComprados = !UI.ocultarComprados; pintarCompra(); });
