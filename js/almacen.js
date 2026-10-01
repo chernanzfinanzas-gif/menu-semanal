@@ -244,15 +244,46 @@
       if (!e.config) e.config = this.estadoInicial().config;
       if (!e.config.github) e.config.github = { usuario: "", repo: "", rama: "main", token: "" };
 
-      /* LA BEBIDA DE LA MESA, UNA VEZ (1-oct-2026). Los fijos viven en el estado
-         guardado, que manda sobre los de fábrica: añadirlo arriba no le llega a
-         un móvil que ya tiene los suyos. Se añade aquí, una sola vez y con marca,
-         para que si algún día lo quita no se lo volvamos a plantar al arrancar. */
-      if (!e.config.bebidaDeMesa) {
-        e.config.bebidaDeMesa = 1;
-        if (!e.config.fijos) e.config.fijos = [];
-        var hayBebida = e.config.fijos.some(function (f) { return /^beb_agua_gas/.test(f.r); });
-        if (!hayBebida) e.config.fijos.push({ r: "beb_agua_gas_limon_750", tomas: ["comida", "cena"] });
+      /* LA BEBIDA DE LA MESA (1-oct-2026). Los fijos viven en el estado guardado,
+         que manda sobre los de fábrica: añadirlo a la configuración inicial no le
+         llega a un móvil que ya tiene los suyos. Se añade aquí, con marca, para
+         que si algún día lo quita no se lo volvamos a plantar al arrancar.
+
+         Y LOS DÍAS QUE YA ESTABAN MONTADOS. Primer intento, v327: se añadió el
+         fijo y no apareció en ninguna comida. Carlos: «no me ha añadido la
+         bebida». El fijo estaba puesto y la receta también; lo que pasa es que un
+         fijo sólo entra en un día cuando pones un plato o pulsas «Completar», y
+         en una comida ya montada no vuelve a pasar nadie. Así que se mete también
+         en lo ya planificado, con tres cautelas: sólo de hoy en adelante, sólo
+         donde YA hay algo puesto —un día vacío se queda vacío, que para eso está
+         «Completar»— y nunca donde se come fuera o donde él la haya quitado.
+
+         La marca es un número, no un sí/no: la v327 dejó `1` en los móviles que
+         ya la recibieron, y esto tiene que correr también ahí. */
+      if (!e.config.fijos) e.config.fijos = [];
+      if (!(e.config.bebidaDeMesa >= 2)) {
+        var yaFijo = e.config.fijos.some(function (f) { return /^beb_agua_gas/.test(f.r); });
+        if (!yaFijo) e.config.fijos.push({ r: "beb_agua_gas_limon_750", tomas: ["comida", "cena"] });
+        var laBebida = (e.config.fijos.filter(function (f) { return /^beb_agua_gas/.test(f.r); })[0] || {}).r;
+        var desde = Util.hoyISO(), metidas = 0, self2 = this;
+        if (laBebida) {
+          Object.keys(e.plan || {}).forEach(function (f) {
+            if (f < desde) return;
+            ["comida", "cena"].forEach(function (t) {
+              var lista = (e.plan[f] || {})[t];
+              if (!lista || !lista.length) return;                  /* vacía: no se rellena */
+              if (self2.esFuera(f, t)) return;                      /* fuera de casa no se sirve */
+              if (self2.estaQuitado(f, t, laBebida)) return;        /* la quitaste tú */
+              if (lista.some(function (id) { return /^beb_agua_gas/.test(id); })) return;
+              lista.push(laBebida); metidas++;
+            });
+          });
+        }
+        e.config.bebidaDeMesa = 2;
+        if (metidas && global.console) {
+          console.log("Bebida de mesa puesta en " + metidas +
+            (metidas === 1 ? " toma ya planificada" : " tomas ya planificadas"));
+        }
       }
       if (!e.ingredientes || !e.ingredientes.length) e.ingredientes = JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || []));
       if (!e.recetas || !e.recetas.length) e.recetas = JSON.parse(JSON.stringify(global.DATOS_RECETAS || []));
