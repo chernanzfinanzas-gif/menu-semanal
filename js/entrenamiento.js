@@ -2612,6 +2612,19 @@
     b.forEach(function (x) {
       if (mapa[x.id] && noHabilDe(mapa[x.id])) mapa[x.id] = mejorDiaPara(sem, mapa, x);
     });
+    /* ===== RED DE SEGURIDAD: UNA SEMANA EN BLANCO NUNCA  ·  1-oct-2026 =====
+       Si lo guardado no casa con NINGÚN bloque de los de hoy —ids de un formato
+       anterior, una migración que se quedó a medias, la semana que cambió de
+       forma— el resultado es la tira entera en «sin colocar» y los siete días en
+       descanso. Eso no es un reparto vacío: es un reparto que no sirve, y mentir
+       diciendo que no hay plan es peor que proponer uno.
+
+       Carlos lo vio en pantalla el 1-oct y preguntó «¿tiene que salir en
+       blanco?». No: si nada casa, se vuelve a la propuesta automática, que al
+       menos pone cada cosa en un día y se puede retocar de un toque. */
+    var algunoPuesto = false;
+    for (var k = 0; k < b.length; k++) { if (mapa[b[k].id]) { algunoPuesto = true; break; } }
+    if (!algunoPuesto) return repartoPropuesto(sem, b);
     return mapa;
   }
 
