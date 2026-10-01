@@ -784,7 +784,9 @@
       "  font-size:.78rem;line-height:1.3}",
       ".est-tarj .chispa{margin-top:3px}",
       ".est-tarj .est-val{flex:none;font-size:1.2rem;font-weight:700;line-height:1.15;",
-      "  color:var(--azul-hondo);font-variant-numeric:tabular-nums}",
+      "  color:var(--azul-hondo);font-variant-numeric:tabular-nums;text-align:right}",
+      ".est-tarj .est-val .est-fecha{display:block;margin-top:2px;font-size:.68rem;font-weight:600;",
+      "  color:var(--gris);white-space:nowrap}",
       ".est-barra{margin-top:9px;height:6px;border-radius:999px;background:#dfe7ee;",
       "  position:relative;overflow:visible}",
       ".est-barra i{position:absolute;top:0;bottom:0;left:0;border-radius:999px}",
@@ -8885,7 +8887,15 @@
      Mismo rectángulo que «Lo que dicen tus medidas»: barra de color a la
      izquierda, título, el valor grande a la derecha, la barra de referencia y
      la tendencia al pie. */
-  function tarjeta(nombre, valor, contra, clave, t, crudo) {
+  /* la fecha de la medida, debajo del valor (Carlos, 1-oct-2026: «debajo del
+     valor de la medida debería decir la fecha de dicha medición») */
+  function fechaMedida(f) {
+    var hoy = U.hoyISO();
+    if (f === hoy) return "hoy";
+    if (f === U.sumarDias(hoy, -1)) return "ayer";
+    return fechaCorta(f);
+  }
+  function tarjeta(nombre, valor, contra, clave, t, crudo, fecha) {
     var tt = t || (clave ? tendenciaVisible(clave, U.hoyISO()) : null);
     var est = tt ? tt.estado : "nada";
     var abre = clave && defHistoria(clave);
@@ -8901,7 +8911,8 @@
       '<div class="est-cab"><span class="est-txt"><b>' + U.esc(nombre) + "</b>" +
         (contra ? "<small>" + U.esc(contra) + "</small>" : "") + "</span>" +
         (clave ? chispa(clave) : "") +
-        '<span class="est-val">' + (valor === null || valor === undefined ? "—" : valor) + "</span></div>" +
+        '<span class="est-val">' + (valor === null || valor === undefined ? "—" : valor) +
+          (fecha ? '<small class="est-fecha">' + U.esc(fechaMedida(fecha)) + "</small>" : "") + "</span></div>" +
       (clave && crudo !== null && crudo !== undefined ? barraRef(clave, crudo, tt) : "") +
       (etiqueta ? '<em class="est-tend">' + U.esc(etiqueta) + "</em>" : "") +
       "</" + (abre ? "button" : "div") + ">";
@@ -11506,14 +11517,14 @@
       "El color aparece a partir de la cuarta medida.</p>";
 
     MIS_MEDIDAS.forEach(function (m) {
-      var u = ultimaMedida(dia, m.k), pie = u ? "del " + U.etiquetaFecha(u.f) : "sin anotar todavía";
+      var u = ultimaMedida(dia, m.k), pie = u ? "" : "sin anotar todavía";
       /* el tobillo se lee contra su propia media: es lo que distingue líquido
          de grasa, y antes se decía en una lectura aparte */
       if (m.k === "tobillo" && u) {
         var tb = serieMedida("tobillo", dia, 21), prev = tb.slice(0, -1), mp = media(prev);
         if (mp !== null) {
           var dt = u.v - mp;
-          pie += " · " + (Math.abs(dt) < 0.05 ? "igual que tu media de " + prev.length + " días"
+          pie += (pie ? " · " : "") + (Math.abs(dt) < 0.05 ? "igual que tu media de " + prev.length + " días"
             : signo(dt) + " cm sobre tu media de " + prev.length + " días") +
             (dt >= 0.7 ? " — eso es líquido, no grasa" : "");
         }
@@ -11536,21 +11547,23 @@
           } else {
             lect = " — sin tobillo ese día no se puede saber si es músculo o líquido";
           }
-          pie += " · " + (Math.abs(dg) < 0.05 ? "igual que la anterior" : signo(dg) + " cm desde la anterior") + lect;
+          pie += (pie ? " · " : "") + (Math.abs(dg) < 0.05 ? "igual que la anterior" : signo(dg) + " cm desde la anterior") + lect;
         }
       }
-      h += tarjeta(m.n, u ? num(u.v) + m.u : null, pie, m.k, null, u ? u.v : null);
+      h += tarjeta(m.n, u ? num(u.v) + m.u : null, pie, m.k, null, u ? u.v : null, u ? u.f : null);
     });
 
     /* la tensión va con sus dos cifras, así que se cuenta aparte */
     var mt = mediaTension(U.sumarDias(dia, -6), dia);
+    var ultT = null;
+    tomasTension(U.sumarDias(dia, -6), dia).forEach(function (x) { if (!ultT || x.f > ultT) ultT = x.f; });
     h += tarjeta("Tensión", mt ? Math.round(mt.sis) + "/" + Math.round(mt.dia) : null,
       mt ? "media de " + mt.n + (mt.n === 1 ? " toma" : " tomas") + " en 7 días · el color lo manda la alta" +
            (mt.alta ? " · en o por encima de 135/85, el umbral en casa: dato para la revisión" : "")
-         : "sin tomas anotadas", "tension", null, mt ? mt.sis : null);
+         : "sin tomas anotadas", "tension", null, mt ? mt.sis : null, ultT);
     if (mt && mt.pul) {
       h += tarjeta("Pulso del tensiómetro", Math.round(mt.pul) + " ppm",
-        "contraste independiente del pulso del reloj", "pulso", null, mt.pul);
+        "contraste independiente del pulso del reloj", "pulso", null, mt.pul, ultT);
     }
 
     /* EL ECG DE LA MAÑANA (28-sep-2026). Tres tarjetas, sin color de bueno o
@@ -11558,19 +11571,19 @@
        o un rojo aquí se leería como un diagnóstico. Solo cuentan los ECG sin
        ruido de contacto. */
     var ue = ultimoEcg(dia);
-    var cuandoE = ue ? "del " + U.etiquetaFecha(ue.f) + " a las " + ue.h : "";
+    var cuandoE = ue ? "a las " + ue.h : "";
     h += tarjeta("ECG · pulso sentado", ue && ue.fc ? Math.round(ue.fc) + " lpm" : null,
       ue ? cuandoE + " · QRS " + (ue.qrs || "—") + " ms · extrasístoles según la app: " + (ue.ectopicos || 0)
          : "sin ECG todavía: llegan solos al mandarlos por correo desde ECG Analysis",
-      "ecgFc", null, ue && ue.fc ? ue.fc : null);
+      "ecgFc", null, ue && ue.fc ? ue.fc : null, ue ? ue.f : null);
     h += tarjeta("ECG · QTc", ue && ue.qtc ? Math.round(ue.qtc) + " ms" : null,
       ue ? cuandoE + " · la app lo da por normal entre 310 y 470 ms" : "del mismo ECG",
-      "ecgQtc", null, ue && ue.qtc ? ue.qtc : null);
+      "ecgQtc", null, ue && ue.qtc ? ue.qtc : null, ue ? ue.f : null);
     h += tarjeta("ECG · latidos cortos", ue && ue.cortos_min !== undefined ? num(ue.cortos_min) + " /min" : null,
       ue ? cuandoE + " · " + (ue.cortos || 0) + " en el registro: uno que llega antes y otro largo detrás. " +
            "Se está mirando con Sensor Logger si siguen la respiración"
          : "latido que llega antes seguido de uno largo",
-      "ecgCortos", null, ue && ue.cortos_min !== undefined ? ue.cortos_min : null);
+      "ecgCortos", null, ue && ue.cortos_min !== undefined ? ue.cortos_min : null, ue ? ue.f : null);
 
     /* las tres de la báscula que intervals no baja y tecleas tú */
     [{ k: "musculo", n: "Músculo", u: " kg",
@@ -11582,8 +11595,8 @@
     ].forEach(function (m) {
       var u = ultimaMedida(dia, m.k) || ultimoDeSalud(m.k, dia);
       h += tarjeta(m.n, u ? num(u.v) + m.u : null,
-        u ? "del " + U.etiquetaFecha(u.f) + " · lo anotas tú desde la app de Garmin" : m.vacio,
-        m.k, null, u ? u.v : null);
+        u ? "lo anotas tú desde la app de Garmin" : m.vacio,
+        m.k, null, u ? u.v : null, u ? u.f : null);
     });
 
     /* Las dos grasas van juntas y en este orden, porque solo sirven una al
@@ -11592,20 +11605,20 @@
     var gc = grasaPorCinta(dia);
     var gb = ultimoDeSalud("grasa", dia);
     h += tarjeta("Grasa por cinta", gc ? num(gc.pct) + " %" : null,
-      gc ? "de la cintura y el cuello del " + U.etiquetaFecha(gc.fecha) + " · no depende del agua"
-         : "hacen falta cintura y cuello", "grasaCinta", null, gc ? gc.pct : null);
+      gc ? "de la cintura y el cuello de ese día · no depende del agua"
+         : "hacen falta cintura y cuello", "grasaCinta", null, gc ? gc.pct : null, gc ? gc.fecha : null);
     h += tarjeta("Grasa por báscula", gb ? num(gb.v) + " %" : null,
       gb
-        ? "del " + U.etiquetaFecha(gb.f) + " · por impedancia, se mueve con el agua" +
+        ? "por impedancia, se mueve con el agua" +
           (gc ? " · " + (Math.abs(gc.pct - gb.v) < 1
             ? "a menos de un punto de la cinta: las dos valen"
             : num(Math.abs(gc.pct - gb.v)) + " puntos de diferencia con la cinta") : "")
         : "aún no ha bajado ninguna de intervals",
-      "grasa", null, gb ? gb.v : null);
+      "grasa", null, gb ? gb.v : null, gb ? gb.f : null);
     var mg = ultimoDeSalud("magra", dia);
     if (mg) h += tarjeta("Masa magra", num(mg.v) + " kg",
-      "del " + U.etiquetaFecha(mg.f) + " · de la báscula · lo que el plan quiere que aguante",
-      "magra", null, mg.v);
+      "de la báscula · lo que el plan quiere que aguante",
+      "magra", null, mg.v, mg.f);
     return h + "</div>";
   }
 

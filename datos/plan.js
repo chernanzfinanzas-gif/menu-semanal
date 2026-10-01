@@ -173,7 +173,7 @@
            en su hueco del calendario original (la revisión del 28, el corticoide…). */
     rampa: [
       { n: 1, desde: "2026-09-18", hasta: "2026-09-27", carga: 196, talla: "R", criterio: "asistencia", notaFecha: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
-      { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", notaFecha: "Fin del corticoide. Revisión el 28. Entra la bici. Volver a medir el ritmo de caminar" },
+      { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", notaFecha: "Revisión el 28. El corticoide sigue hasta el domingo 4. Entra la bici. Volver a medir el ritmo de caminar" },
       { n: 3, desde: "2026-10-05", hasta: "2026-10-11", carga: 180, talla: "A", nota: "Primera semana de verdad" },
       { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 125, talla: "B", nota: "DESCARGA, no se negocia. El domingo, test de 20 minutos" },
       { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 200, talla: "A" },
@@ -678,7 +678,7 @@
 
     /* ---------- tratamiento y tareas sueltas ---------- */
     tratamientos: [
-      { id: "prednisona", nombre: "Prednisona de la mañana", desde: "2026-09-14", hasta: "2026-09-28",
+      { id: "prednisona", nombre: "Prednisona de la mañana", desde: "2026-09-14", hasta: "2026-10-04",   // fin real el domingo 4-oct (Carlos, 1-oct); antes ponía el 28-sep
         ayuda: "Por la mañana; la segunda dosis a mediodía, nunca de noche. No interrumpir de golpe." }
     ],
 
