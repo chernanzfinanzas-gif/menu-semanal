@@ -357,9 +357,13 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 /* LA FILA DEL «INGREDIENTE SOLO» CON SU × PARA BORRARLO DEL RECETARIO. */
 .grupo-selec .fila-suelto{display:flex; align-items:stretch; gap:6px; margin-left:18px}
 .grupo-selec .fila-suelto button[data-elegir]{margin-left:0; width:auto; flex:1 1 auto; min-width:0}
-.grupo-selec .fila-suelto [data-elegirajeno]{
-  width:auto; min-width:62px; padding:4px 6px; font-size:11px; line-height:1.15;
-  color:var(--gris); border-radius:8px}
+/* «no me cuenta» en el selector: una etiqueta pequeña al margen, no un botón que
+   compita con el nombre del producto. Letra de 10 px y dos líneas apretadas. */
+.grupo-selec .fila-suelto .btn-ajeno{
+  flex:0 0 auto; align-self:center; width:50px; padding:4px 2px;
+  border:1px solid var(--borde); border-radius:8px; background:none;
+  color:var(--gris); font-size:10px; line-height:1.1; text-align:center; cursor:pointer}
+.grupo-selec .fila-suelto .btn-ajeno:hover{color:var(--verde); border-color:var(--verde)}
 .grupo-selec .fila-suelto .borra-suelto{
   flex:0 0 auto; align-self:center; width:30px; height:30px; line-height:1;
   border:1px solid var(--borde); border-radius:8px; background:none;

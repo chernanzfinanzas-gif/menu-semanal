@@ -1145,8 +1145,8 @@
              apagada de un toque; en la fila del plato se enciende si al final te
              la tomas tú. */
           return '<div class="fila-suelto">' + botonReceta(r, pieDe(r)) +
-            '<button class="quitar borra-suelto" data-elegirajeno="' + esc(r.id) +
-            '" title="Ponerla sin que te cuente: se compra igual, pero no suma a tus calor\u00edas">' +
+            '<button class="btn-ajeno" data-elegirajeno="' + esc(r.id) +
+            '" title="Ponerla para otro: una unidad, y no suma a tus calor\u00edas ni a tu sal">' +
             'no me<br>cuenta</button></div>';
         }).join("") +
         '</details>';
@@ -1236,8 +1236,11 @@
                      deTipo("principal"), true, null) +
         seccionPapel("Guarniciones", deTipo("guarnicion"), false,
           "Para subir las calorías del día sin cambiar el plato.") +
-        seccionPapel("Panes", deTipo("pan"), false, null) +
-        seccionPapel("Postres", deTipo("postre"), false, null) +
+        /* Panes y postres llevan también el atajo de «no me cuenta» (Carlos,
+           1-oct-2026): son lo otro que se pone en la mesa para quien sea. El pan
+           tostado de Susana no lo lleva porque su ficha ya dice que es de ella. */
+        seccionPapel("Panes", deTipo("pan"), false, null, true) +
+        seccionPapel("Postres", deTipo("postre"), false, null, true) +
         seccionPapel("Para beber", bebidas, false, null, true);
     }
 
