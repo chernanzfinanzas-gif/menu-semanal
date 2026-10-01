@@ -2670,6 +2670,7 @@
           minTot: minTot,
           esf: Number(a.esfuerzo || 0),
           nombre: a.nombre || a.tipo || "Actividad",
+          id: a.id || null,          // 1-oct-2026: para abrir su ficha desde «Hoy»
           ms: ms,
           fin: (ms === null) ? null : ms + minTot * 60000,
           fam: familia((a.nombre || "") + " " + (a.tipo || ""))
@@ -2759,7 +2760,7 @@
         if (!/khb/i.test(p.nombre || "") && /khb/i.test(a.nombre || "")) p.nombre = a.nombre;
         return;
       }
-      out.push({ min: a.min, minTot: a.minTot, esf: a.esf, nombre: a.nombre,
+      out.push({ min: a.min, minTot: a.minTot, esf: a.esf, nombre: a.nombre, id: a.id || null,
                  ms: a.ms, fin: a.fin, fam: a.fam, trozos: 1, dobles: 0 });
     });
     return out;
@@ -5753,7 +5754,14 @@
       });
     }
     archivoUI.montar(hueco);
+    /* venía de «ver la ficha» en El Plan: se abre esa salida. Unos segundos,
+       porque cada fichero del archivo que llega rehace el módulo y la cerraría. */
+    if (fichaPendiente) {
+      if (Date.now() < fichaPendiente.hasta && archivoUI.irASalida) archivoUI.irASalida(fichaPendiente.id);
+      else fichaPendiente = null;
+    }
   }
+  var fichaPendiente = null;
 
   /* Los tres ficheros del archivo, pedidos una sola vez al entrar en la pata.
      Cada uno repinta cuando llega, así que la pantalla se va completando en
@@ -11512,6 +11520,10 @@
         id: id, nombre: s.t + (s.min ? " · " + s.min + " min" : ""),
         hecho: sesionHecha(dia, s, i), ayuda: ayuda,
         sello: porElReloj ? "reloj" : "",
+        /* 1-oct-2026, Carlos: «cuando hago una actividad por el reloj se tacha…
+           pero no puedo acceder a la ficha más que saliendo a actividades y
+           buscarla». La actividad que la dio por hecha, para ir a su ficha. */
+        actId: (tarde && tarde.id) || ((porElReloj || v !== "no") && reloj && reloj.id) || null,
         /* sin este enlace no hay forma de volver a «sin marca», que es el único
            estado en el que decide el reloj: marcar guarda true, desmarcar
            guarda «no», y no había tercera posición */
@@ -11543,6 +11555,8 @@
               '">cómo se hace</button>' : "") +
             (f.rutina ? '<button type="button" class="ent-comose" data-ver-rutina="' + f.rutina +
               '">ver la rutina</button>' : "") +
+            (f.actId && f.hecho ? '<button type="button" class="ent-comose" data-ver-actividad="' + U.esc(f.actId) +
+              '">ver la ficha</button>' : "") +
           "</b>" + (f.ayuda ? "<small>" + U.esc(f.ayuda) +
             (f.borrable ? ' <button type="button" class="ent-soltar" data-soltar="' + f.borrable +
               '">que decida el reloj</button>' : "") + "</small>" : "") + "</span></label></li>";
@@ -12172,6 +12186,13 @@
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
       if (t.closest && t.closest("[data-ecg-papel]")) { e.preventDefault(); abrirEcgPapel(); return; }
       if (t.closest && t.closest("[data-ten-papel]")) { e.preventDefault(); abrirTensionPapel(); return; }
+      var verAct = t.closest ? t.closest("[data-ver-actividad]") : null;
+      if (verAct) {
+        e.preventDefault();
+        fichaPendiente = { id: verAct.getAttribute("data-ver-actividad"), hasta: Date.now() + 8000 };
+        bloque = "actividad"; prepararArchivo(); pintar();
+        return;
+      }
       if (t.closest && t.closest("[data-med-abrir]")) {
         e.preventDefault(); medEd = { vista: "lista", id: null, dejando: null, borrando: null, estado: "" };
         if (!hmDatos()) Historial.cargar(function () { abrirEditorMed(); });

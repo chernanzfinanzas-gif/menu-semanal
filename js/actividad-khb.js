@@ -3845,6 +3845,8 @@
         }
         estado.el = null;
       },
+      /* abre la ficha de esa actividad (id de intervals), en su mes (1-oct-2026) */
+      irASalida: function (id) { if (id) irAlRecord("id:" + id); },
       irA: function (anio, mes) {
         if (porAnio[anio]) { estado.anio = anio; estado.mes = mes || null; estado.abierta = null; pintar(); }
       },
