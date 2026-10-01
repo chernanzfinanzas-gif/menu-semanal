@@ -2671,7 +2671,18 @@
 
   function moverBloque(sem, bid, iso) {
     var r = repartoGuardado();
-    if (!r[sem.desde]) r[sem.desde] = repartoDe(sem) || {};
+    /* SE PARTE SIEMPRE DE LO QUE `repartoDe` DA POR BUENO  ·  1-oct-2026.
+       Antes esto era `if (!r[sem.desde]) r[sem.desde] = repartoDe(sem)`, o sea:
+       sólo se rellenaba cuando NO había nada guardado. Y ahí estaba el agujero.
+       Si lo guardado no casaba con los bloques de hoy —ids de otro formato, una
+       migración a medias—, `repartoDe` devolvía la propuesta para PINTAR, pero
+       aquí se escribía el día nuevo encima de la entrada vieja y rota. Resultado:
+       el bloque movido quedaba colocado, los otros seis se quedaban sin día, y la
+       red de seguridad ya no saltaba porque «alguno está puesto».
+       Carlos lo vio al primer intento: «he movido uno y se ha puesto todo a cero».
+       Ahora se normaliza siempre: lo que `repartoDe` devuelve es lo bueno —lo
+       guardado si sirve, la propuesta si no— y sobre eso se mueve. */
+    r[sem.desde] = repartoDe(sem) || {};
     /* la marca viaja con el bloque: las casillas se guardan por día y posición,
        así que mover sin llevarse la marca la dejaría en el día viejo */
     var antes = r[sem.desde][bid] || null;
@@ -11372,6 +11383,13 @@
           '" draggable="true" data-blq="' + x.sem.desde + ":" + x.b.id + '">' +
           U.esc(x.b.t) + (x.b.min ? " · " + x.b.min + " min" : "") + "</button>";
       });
+      /* UN TOQUE EN VEZ DE SEIS  ·  1-oct-2026. Cuando una semana se queda con
+         los bloques sueltos —pasó esa tarde arreglando los ids— colocarlos uno a
+         uno son seis o siete toques. Este botón aplica el reparto automático a la
+         semana entera y luego él retoca lo que no le cuadre, que es como eligió
+         que funcionara el tablero desde el principio. */
+      h += '<button type="button" class="bl-quitar" data-repartir="' +
+           U.esc(sueltos[0].sem.desde) + '">Repartirlos por m\u00ed</button>';
       h += "</div></div>";
     }
     h += '<div class="ent-semana">';
@@ -12377,6 +12395,20 @@
          Entrenamiento —«plan», «rampa», «evolucion»—, y este manejador va
          delante de aquél. Con el mismo nombre se tragaba todos los clics y no
          abría ninguna sección. (24-sep-2026.) */
+      var rep = t.closest ? t.closest("[data-repartir]") : null;
+      if (rep) {
+        e.preventDefault(); e.stopPropagation();
+        var semR = semanaDe(rep.getAttribute("data-repartir"));
+        if (semR) {
+          var bR = bolsilloDe(semR) || [];
+          repartoGuardado()[semR.desde] = repartoPropuesto(semR, bR);
+          bloqueSel = null;
+          A.guardar("entreno");
+          if (U.toast) U.toast("Semana repartida. Mueve lo que no te cuadre.");
+          pintar();
+        }
+        return;
+      }
       var bb = t.closest ? t.closest("[data-blq]") : null;
       if (bb) {
         e.preventDefault(); e.stopPropagation();
