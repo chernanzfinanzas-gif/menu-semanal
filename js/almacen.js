@@ -1803,7 +1803,26 @@
       if (!real) return veces || 1;
       var rec = this.receta(recetaId);
       if (!rec) return veces || 1;
-      if (this.unidadReal(rec) === "rac") return real.c;
+
+      /* ========== LA CORRECCIÓN Y LA RECETA TIENEN QUE HABLAR LA MISMA LENGUA
+         (1-oct-2026, después de que la app enseñara 64.000 kcal) ==========
+
+         Aquí se multiplica el plato por lo que de verdad comiste. Si la receta se
+         mide en RACIONES, el factor es ese número tal cual; si se mide en gramos,
+         es gramos partido por los gramos previstos. El fallo estaba en que nadie
+         comprobaba que las dos cosas fueran lo mismo: unas fichas se publicaron
+         sin ingredientes, `unidadReal` no supo en qué se miden y contestó
+         «raciones», y entonces los 400 ml apuntados de leche se tomaron como 400
+         RACIONES. 160 kcal × 400 = 64.000. Lo mismo con 15 g de almendra: 1.394.
+
+         Dos guardias, y las dos son baratas: una receta sin ingredientes no
+         multiplica nada, y una corrección en gramos no se usa jamás como si
+         fuera un número de raciones. Ante la duda, el factor son las veces que
+         está puesto el plato, que es lo que siempre fue antes de corregir. */
+      if (!(rec.ing || []).length) return veces || 1;
+      var uni = this.unidadReal(rec);
+      if ((real.u === "rac") !== (uni === "rac")) return veces || 1;
+      if (uni === "rac") return real.c;
       var prev = this.cantidadPrevista(rec);
       return prev > 0 ? (real.c / prev) : (veces || 1);
     },

@@ -385,16 +385,29 @@ window.DATOS_RECETAS = [
      NO se tocan, a propósito: sus piezas de fruta entera (plátano, manzana
      reineta, melocotón), los yogures griegos, el panecillo entero, la leche
      entera, y todo lo de comer fuera —las tapas de bar, el jamón, el lacón, los
-     refrescos—, que no son merienda y no tienen bloque que las sustituya. */
-  { id:"solo_almendras_15", n:"Almendra tostada SIN SAL añadida · 15 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: la sustituye el bloque de 100 de almendra (15 g), lo mismo con el nombre del producto bueno.", oculta:true },
-  { id:"solo_nueces_20", n:"Nueces crudas sin sal · 20 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 143 kcal, no era un bloque; la sustituye el de 15 g (107).", oculta:true },
-  { id:"solo_copos_avena_10", n:"Copos de avena · 10 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 38 kcal; el bloque son 25 g (94).", oculta:true },
-  { id:"solo_copos_avena_20", n:"Copos de avena · 20 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 75 kcal; el bloque son 25 g (94).", oculta:true },
-  { id:"solo_miel_5", n:"Miel de flores · 5 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 17 kcal; el bloque son 30 g (100).", oculta:true },
-  { id:"solo_miel_7", n:"Miel de flores · 7 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 23 kcal; el bloque son 30 g (100).", oculta:true },
-  { id:"solo_orejones_10", n:"Orejones · 10 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 27 kcal; el bloque son 35 g (95).", oculta:true },
-  { id:"solo_queso_burgos_sinsal_144", n:"Queso de Burgos sin sal · 144 g", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 239 kcal; el bloque son 60 g (100).", oculta:true },
-  { id:"solo_leche_desnatada_400", n:"Leche desnatada · 400 ml", rev:9, tipo:[], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[], pasos:["Retirada."], trucos:[], nota:"RETIRADA el 1-oct-2026: 160 kcal; el bloque son 250 ml (100).", oculta:true },
+     refrescos—, que no son merienda y no tienen bloque que las sustituya.
+
+     ================= EL ERROR QUE COSTÓ 64.000 KCAL =================
+     La primera versión de estas entradas iba con `ing:[]`, porque sólo quería
+     marcarlas ocultas y di por hecho que el resto de la ficha no viajaba. SÍ
+     VIAJA: estas entradas SUSTITUYEN la receta en su móvil. Y una receta sin
+     ingredientes rompe `unidadReal`, que entonces devuelve «raciones» en vez de
+     gramos, y con eso `factorPlato` toma la corrección de «lo que comiste de
+     verdad» COMO SI FUERA UN NÚMERO DE RACIONES: 400 ml de leche se volvieron
+     400 raciones, 64.000 kcal; 15 g de almendra, 1.394.
+
+     Carlos lo vio en la pantalla de la semana: el lunes 28 marcaba 25.765 kcal y
+     29,50 g de sal. Por eso cada retirada lleva aquí SU ingrediente de verdad.
+     Una entrada de retirada no es un hueco: es la misma receta, oculta. */
+  { id:"solo_almendras_15", n:"Almendra tostada SIN SAL añadida · 15 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"almendras",c:15}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): la sustituye el bloque de 100 de almendra (15 g), lo mismo con el nombre del producto bueno.", oculta:true },
+  { id:"solo_nueces_20", n:"Nueces crudas sin sal · 20 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"nueces",c:20}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 143 kcal, no era un bloque; la sustituye el de 15 g (107).", oculta:true },
+  { id:"solo_copos_avena_10", n:"Copos de avena integrales · 10 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"copos_avena",c:10}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 38 kcal; el bloque son 25 g (94).", oculta:true },
+  { id:"solo_copos_avena_20", n:"Copos de avena integrales · 20 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"copos_avena",c:20}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 75 kcal; el bloque son 25 g (94).", oculta:true },
+  { id:"solo_miel_5", n:"Miel de flores · 5 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"miel",c:5}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 17 kcal; el bloque son 30 g (100).", oculta:true },
+  { id:"solo_miel_7", n:"Miel de flores · 7 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"miel",c:7}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 23 kcal; el bloque son 30 g (100).", oculta:true },
+  { id:"solo_orejones_10", n:"Orejones de albaricoque · 10 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"orejones",c:10}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 27 kcal; el bloque son 35 g (95).", oculta:true },
+  { id:"solo_queso_burgos_sinsal_144", n:"Queso fresco de Burgos SIN SAL · 144 g", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"queso_burgos_sinsal",c:144}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 239 kcal; el bloque son 60 g (100).", oculta:true },
+  { id:"solo_leche_desnatada_400", n:"Leche desnatada con calcio Hacendado · 400 ml", rev:10, tipo:["almuerzo","merienda"], grupo:"retirado", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"leche_desnatada",c:400}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"RETIRADA de las listas el 1-oct-2026 (lleva sus ingredientes a propósito: ver el aviso de la cabecera): 160 kcal; el bloque son 250 ml (100).", oculta:true },
 
   /* ---- LAS CERVEZAS (1-oct-2026) ----
      Carlos: «cervezas son cosas que bebe Susana y puedo apuntar pero las
