@@ -1714,7 +1714,24 @@
     /* En qué se mide la corrección: un producto de un solo ingrediente se corrige
        en gramos o mililitros; una receta de varias cosas, en raciones, porque
        nadie pesa cada ingrediente de unas lentejas. */
+    /* ---------- EN QUÉ SE MIDE UNA RACIÓN (1-oct-2026) ----------
+       Normalmente, si la receta es un solo ingrediente, se mide en lo que se
+       mida ese ingrediente: 15 g de almendra se apuntan en gramos de almendra.
+       Pero hay recetas donde eso es FALSO y engaña, y hoy pasó:
+
+         «Agua con gas de limón · 750 ml» lleva UN ingrediente, 44 ml de
+         concentrado. Al marcarla, la casilla pedía mililitros y Carlos escribió
+         750 —el vaso, que es lo que se bebe y lo que dice el nombre—. La app
+         entendió 750 ml DE SIROPE y le puso 3,00 g de sal en el día en vez de
+         0,18: 2,87 g fantasma, de los 7,91 que marcaba.
+
+       No era culpa suya: el nombre decía 750 y la casilla pedía otra cosa. Así
+       que una receta puede declarar `medida: {c, u}` —«esto se mide en 750 ml de
+       bebida»— y entonces manda eso. Vale para cualquier receta cuya ración no
+       sea el peso de su ingrediente: un concentrado, un sobre que se disuelve,
+       un caldo. Y media botella son 375: el factor sale solo. */
     unidadReal: function (rec) {
+      if (rec && rec.medida && rec.medida.u) return rec.medida.u;
       if (!rec || (rec.ing || []).length !== 1) return "rac";
       var g = this.ingrediente(rec.ing[0].i);
       if (!g) return "rac";
@@ -1723,6 +1740,7 @@
 
     /* Lo previsto, en esa misma unidad. */
     cantidadPrevista: function (rec) {
+      if (rec && rec.medida && rec.medida.u && rec.medida.c > 0) return rec.medida.c;
       if (this.unidadReal(rec) === "rac") return 1;
       return this.gramosDeLinea(rec.ing[0]);
     },
