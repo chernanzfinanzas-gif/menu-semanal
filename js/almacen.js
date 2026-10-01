@@ -2205,6 +2205,45 @@
       return g.u === "ud" ? "suelto" : "bote";
     },
 
+    /* ---------- LOS ATAJOS DE CONTAR, CUANDO EL PRODUCTO VIENE EN PACK ----------
+       Carlos, 1-oct-2026: «en Activia yogur el máximo de stock podría ser mayor».
+       Tenía razón y el defecto era de fábrica: los atajos del formato «suelto»
+       son 0-1-2-3-4-6-12, pensados para piezas que se compran a granel, y el
+       Activia viene en pack de OCHO. Con dos packs en casa hay 16 yogures y el
+       atajo más alto llegaba a 12, así que había que dar doce toques al + o
+       conformarse con un número falso. Lo mismo con el flan, que viene de cuatro:
+       ni el 8 estaba en la lista.
+
+       Si el producto declara `envase`, los atajos salen de ahí: medio pack, el
+       pack, dos packs. Es la misma idea que ya había —«en un tarro quieres
+       cuartos y en las latas quieres docenas»— un paso más allá: en un pack
+       quieres packs. Sólo donde se cuentan piezas enteras; donde se cuenta con
+       decimales (tarros, botellas, bolsas) no se toca nada. */
+    atajosDe: function (g, ff) {
+      ff = ff || this.fichaFormato(g);
+      if (!ff || !ff.atajos) return [0, 1, 2, 3, 4];
+      var base = Number(g && g.envase) || 0;
+      if (!g || g.u !== "ud") return ff.atajos;
+      /* Los del formato NO SE QUITAN, se añade lo que falta: el pack y dos packs.
+         Quitarlos sería peor el remedio —el pack de 2 se quedaría sin el 3 y sin
+         el 6— y además los atajos son sugerencias, no una lista cerrada.
+
+         Y SE PONE UN TOPE DE 12 POR PACK, medido sobre sus 316 fichas: por
+         encima de esa docena, `envase` ya no cuenta cosas que se cuenten de una
+         en una, cuenta rebanadas, galletas, pastillas de sacarina o dientes de
+         ajo. Sin tope salían atajos de 143 galletas y de 1.700 pastillas. Donde
+         se cuenta con decimales (el pan de molde son medios paquetes) tampoco se
+         toca: si algún atajo del formato lleva coma, se deja como está. */
+      if (base < 3 || base > 12 || base !== Math.round(base)) return ff.atajos;
+      if (!ff.atajos.every(function (v) { return v === Math.round(v); })) return ff.atajos;
+      var fuera = {}, limpio = [];
+      ff.atajos.concat([base, base * 2]).forEach(function (v) {
+        if (v > 24 || fuera[v]) return;
+        fuera[v] = 1; limpio.push(v);
+      });
+      return limpio.sort(function (a, b) { return a - b; });
+    },
+
     fichaFormato: function (g) { return this.FORMATOS[this.formatoDe(g)]; },
 
     nombrePieza: function (g, n) {
@@ -2517,7 +2556,7 @@
           pieza: tam,
           piezaUno: ff.n[0],
           piezaVarias: ff.n[1],
-          atajos: ff.atajos,
+          atajos: self.atajosDe(g, ff),
           piezaUd: g.u === "ud",
           racionUso: self.racionUso(g),
           envase: g.envase || 0,
@@ -4859,6 +4898,271 @@
       return peso * (f.faltanMayores.length / (f.mayores || 1));
     },
 
+    /* ============ LA MERIENDA NO SE ESCRIBE, SE COMPONE (1-oct-2026) ============
+       Carlos: «Las meriendas no tienen recetas como así. Son combinaciones de
+       ingredientes únicos: pieza de fruta, ración de frutos secos, batido de
+       proteína, batido de recuperación... La idea de ir sumando ingredientes
+       únicos o recetas pequeñas para que sumen la cantidad de calorías
+       precisas.» Y los patrones, con sus palabras: «batido de proteínas
+       (leche+proteína), recuperador (agua+evorecovery), combinaciones de fruta y
+       fruto seco, combinación de dátiles/orejones/pasas + fruto seco, yogur y
+       fruto seco».
+
+       EL MODELO NO HACE FALTA CAMBIARLO. Una toma del plan ya es una LISTA de
+       recetas, así que «manzana y 25 g de almendras» es la toma con dos piezas
+       dentro. No hay que inventar un plato nuevo ni guardar gramajes sueltos:
+       se eligen piezas del repertorio de «ingrediente solo» (ver la cabecera de
+       las piezas en datos/recetas.js) y la toma suma lo que sumen.
+
+       LA REGLA, MEDIDA ANTES DE ESCRIBIRLA. Hay dos clases de pieza y no se
+       comportan igual: la que no se puede partir (una pera son 97 kcal, un mango
+       282, te lo comes entero o no) y la que se pesa (frutos secos, desecados,
+       polvos). Con 24 piezas y parejas, los objetivos de 140 y 300 kcal se
+       cuadran con holgura y el de 400 se queda corto si no se repite pieza. De
+       ahí: DE UNA A TRES PIEZAS, y una misma pieza puede ir dos veces (50 g de
+       almendra son dos raciones de 25, no una receta nueva).
+
+       LAS FAMILIAS VAN AQUÍ, EN EL CÓDIGO, NO EN LAS FICHAS. Por dos razones.
+       Una: el `cat` del catálogo mete en «Aperitivos y frutos secos» las
+       almendras, los dátiles y la crema de cacahuete, que en una merienda no
+       hacen el mismo papel. Y dos, la que de verdad manda: una ficha que Carlos
+       haya tocado en el móvil lleva `editado` y NO recibe campos nuevos del
+       catálogo, así que una familia guardada en la ficha llegaría a unos
+       productos y a otros no, y el compositor funcionaría distinto aquí y allí.
+       El código viaja entero siempre. Para añadir un producto a una familia se
+       escribe aquí y se sube; no hay que tocar ninguna ficha. */
+    FAMILIAS_MERIENDA: {
+      fruta: ["platano", "pera", "mango", "pina_fresca", "frambuesas", "arandanos",
+              "manzana_golden", "manzana_reineta", "melocoton", "fruta_temporada",
+              "albaricoque", "naranja", "kiwi", "uvas", "sandia", "melon", "ciruela",
+              "nectarina", "higos", "cerezas", "mandarina", "fresas", "pomelo"],
+      seco: ["almendras", "avellanas", "nueces", "pistachos_sinsal", "pistachos_sal",
+             "cacahuetes_sinsal", "cacahuetes_sal", "pinones", "anacardos"],
+      desecado: ["datiles", "orejones", "pasas", "mango_deshidratado", "ciruelas_pasas",
+                 "higos_secos", "arandanos_rojos_secos"],
+      lacteo: ["yogur_activia", "yogur_griego", "yogur_natural", "requeson",
+               "queso_cottage", "flan_proteinas", "leche_desnatada", "leche",
+               "leche_sin_lactosa", "skyr", "kefir"],
+      polvo: ["evowhey", "evorecovery"],
+      /* el `extra` no estructura una merienda, la remata: va de tercero y solo
+         uno. Medio pan de chocolate negro o una cucharada de crema. */
+      extra: ["chocolate_negro", "crema_cacahuete", "miel", "copos_avena",
+              "cacao_puro", "chia", "canela"]
+    },
+
+    /* LOS PATRONES, los suyos. Dos son RECETAS y no mezclas de familias: un
+       batido es proteína disuelta en leche, no «un lácteo y un polvo juntos», y
+       el recuperador es el Evorecovery en agua. Por eso esos dos llevan `exige`:
+       no basta con que las familias cuadren, tiene que estar la pieza que les da
+       nombre. Sin esto el compositor ofrecía «Batido de proteínas: Evowhey + un
+       yogur Activia», que no es un batido ni es nada. */
+    PATRONES_MERIENDA: [
+      { k: "batido",        n: "Batido de proteínas",          fam: ["lacteo", "polvo", "fruta"], exige: "batido" },
+      { k: "recuperador",   n: "Recuperador",                  fam: ["polvo", "fruta"], exige: "recuperador" },
+      { k: "polvo-fruta",   n: "Proteína y fruta",             fam: ["polvo", "fruta"] },
+      { k: "fruta-seco",    n: "Fruta y fruto seco",           fam: ["fruta", "seco"] },
+      { k: "desecado-seco", n: "Desecados y fruto seco",       fam: ["desecado", "seco"] },
+      { k: "lacteo-seco",   n: "Yogur y fruto seco",           fam: ["lacteo", "seco"] },
+      { k: "fruta-lacteo",  n: "Fruta y lácteo",               fam: ["fruta", "lacteo"] },
+      { k: "fruta-desecado",n: "Fruta y desecados",            fam: ["fruta", "desecado"] },
+      { k: "lacteo-fruta-seco", n: "Yogur con fruta y fruto seco", fam: ["lacteo", "fruta", "seco"] },
+      { k: "fruta",         n: "Fruta",                        fam: ["fruta"] },
+      { k: "seco",          n: "Frutos secos",                 fam: ["seco"] },
+      { k: "desecado",      n: "Desecados",                    fam: ["desecado"] },
+      { k: "lacteo",        n: "Lácteos",                      fam: ["lacteo"] }
+    ],
+
+    /* QUÉ PAPEL HACE UNA PIEZA. Se miran TODOS sus ingredientes, no sólo el
+       primero: una receta es mezclable sólo si todo lo que lleva cae en alguna
+       familia. Con eso, los «Bastones de calabacín con crema de requesón» y el
+       «Pan sin sal con requesón» salen solos del juego de las mezclas —el
+       calabacín y el pan no son familia de merienda— en vez de colarse como
+       lácteos y acabar emparejados con un batido de proteínas.
+
+       Devuelve: fams (las familias que aporta, sin contar los extras), otro (si
+       lleva algo que no es de ninguna familia: entonces va sola), papel (batido o
+       recuperador, cuando la receta ES eso) y extraSola (la pieza que es sólo un
+       remate: chocolate, miel, crema de cacahuete). */
+    papelDePieza: function (r) {
+      var fams = this.FAMILIAS_MERIENDA, nombres = Object.keys(fams);
+      var ing = r.ing || [], lista = [], otro = false, extras = 0;
+      ing.forEach(function (l) {
+        var f = null;
+        for (var j = 0; j < nombres.length; j++) {
+          if (fams[nombres[j]].indexOf(l.i) >= 0) { f = nombres[j]; break; }
+        }
+        if (!f) { otro = true; return; }
+        if (f === "extra") { extras++; return; }
+        if (lista.indexOf(f) < 0) lista.push(f);
+      });
+      var papel = "";
+      if (lista.indexOf("polvo") >= 0 && lista.indexOf("lacteo") >= 0) papel = "batido";
+      else if (ing.length === 1 && ing[0].i === "evorecovery") papel = "recuperador";
+      return {
+        fams: lista, otro: otro, papel: papel,
+        compuesta: ing.length > 1,
+        extraSola: ing.length === 1 && extras === 1 && !lista.length
+      };
+    },
+
+    /* EL REPERTORIO para una toma: recetas pequeñas, suyas, no retiradas, que
+       valgan para esa toma. El tope de tamaño evita que entre un plato de
+       verdad: una merienda de 300 no se compone con una lasaña de 600. */
+    piezasDeMerienda: function (toma, busco, pool) {
+      var self = this;
+      var tope = Math.max(360, (busco || 0) * 1.35);
+      return (pool || this.estado.recetas)
+        .filter(function (r) {
+          if (r.oculta || self.esDeOtro(r)) return false;
+          if ((r.tipo || []).indexOf(toma) < 0) return false;
+          if (!(r.ing || []).length) return false;
+          var k = self.nutrReceta(r).k;
+          return k >= 20 && k <= tope;
+        })
+        .map(function (r) {
+          var pap = self.papelDePieza(r);
+          return { r: r, id: r.id, n: r.n, k: self.nutrReceta(r).k,
+                   sal: self.salReceta(r), fams: pap.fams, otro: pap.otro,
+                   papel: pap.papel, compuesta: pap.compuesta, extraSola: pap.extraSola };
+        });
+    },
+
+    /* ¿ES UNA MEZCLA QUE TIENE SENTIDO? Una pieza sola siempre vale. Para dos o
+       tres: nada que lleve ingredientes de fuera de las familias, las familias
+       que hay tienen que caber en UN patrón —y si el patrón exige una pieza, que
+       esté—, un remate como mucho, y ninguna pieza más de dos veces. Repetir
+       vale para lo que es una sola cosa (50 g de almendra son dos raciones de
+       25), no para una receta: dos manzanas asadas no son una merienda.
+       Devuelve el patrón que la explica, o null. */
+    patronDe: function (piezas) {
+      if (!piezas.length || piezas.length > 3) return null;
+      if (piezas.length === 1) return { k: "sola", n: piezas[0].n, sola: true };
+      var cuenta = {}, fam = {}, extras = 0, papeles = {}, malo = false;
+      piezas.forEach(function (p) {
+        cuenta[p.id] = (cuenta[p.id] || 0) + 1;
+        if (p.otro) malo = true;
+        if (p.compuesta && cuenta[p.id] > 1) malo = true;
+        if (cuenta[p.id] > 2) malo = true;
+        if (p.extraSola) extras++;
+        if (p.papel) papeles[p.papel] = true;
+        p.fams.forEach(function (f) { fam[f] = true; });
+      });
+      if (malo || extras > 1) return null;
+      var familias = Object.keys(fam);
+      if (!familias.length) return null;           /* sólo remates no es una merienda */
+      /* el patrón que la explica es el MÁS AJUSTADO de los que la admiten: entre
+         «Fruta» y «Fruta y fruto seco», dos peras son «Fruta». */
+      var mejor = null;
+      this.PATRONES_MERIENDA.forEach(function (pat) {
+        if (pat.exige && !papeles[pat.exige]) return;
+        var cabe = familias.every(function (f) { return pat.fam.indexOf(f) >= 0; });
+        if (!cabe) return;
+        if (!mejor || pat.fam.length < mejor.fam.length) mejor = pat;
+      });
+      return mejor;
+    },
+
+    /* ---------- EL COMPOSITOR ----------
+       Devuelve las mejores combinaciones de 1 a 3 piezas para la cuota `busco`.
+       Se prueban todas (24 piezas son 24 + 300 + 2.600 combinaciones: nada) y se
+       puntúan con los mismos criterios que el resto del completador —distancia a
+       la cuota, sal del día, lo que falta de la despensa, repetir en la semana—
+       más dos propios: cuantas menos piezas mejor, y pasarse de la cuota pesa
+       más que quedarse corto, porque una merienda se queda corta y no pasa nada.
+       `cuantas` es cuántas ideas distintas se devuelven, para poder ofrecerlas. */
+    componerMerienda: function (fecha, toma, busco, opc) {
+      opc = opc || {};
+      var self = this;
+      var piezas = this.piezasDeMerienda(toma, busco, opc.pool);
+      if (!piezas.length) return [];
+      var libres = opc.libres || null;
+      var yaSemana = opc.yaEnLaSemana || {};
+      var salYa = opc.salYa != null ? opc.salYa : this.salDia(fecha);
+      var excluir = opc.excluir || [];
+      var cuantas = opc.cuantas || 1;
+      var ideas = [];
+
+      function anota(lista) {
+        var pat = self.patronDe(lista);
+        if (!pat) return;
+        var k = 0, sal = 0, nota = 0, vistos = {}, despensa = 0, distintas = 0, repes = 0;
+        lista.forEach(function (p) {
+          k += p.k; sal += p.sal;
+          if (!vistos[p.id]) {
+            vistos[p.id] = true; distintas++;
+            nota += (yaSemana[p.id] || 0) * 120;
+            despensa += self.penalizaDespensa(p.r, libres);
+          } else repes++;
+        });
+        /* LA DESPENSA SE PROMEDIA, NO SE SUMA, y esto no es un detalle: sumándola,
+           dos piezas distintas pagaban DOS veces el viaje a la tienda y una pieza
+           repetida sólo una, así que el compositor acababa ofreciendo 60 g de
+           cacahuete en vez de fruta con fruto seco. La merienda entera es UN
+           plato a estos efectos, y tiene que puntuar en la misma escala que el
+           plato único con el que compite. */
+        if (distintas) nota += despensa / distintas;
+        /* repetir la misma pieza vale para el gramaje, pero su merienda ideal son
+           «lotes de DOS PRODUCTOS»: que cueste algo, poco. */
+        nota += repes * 45;
+        var dif = k - busco;
+        nota += dif > 0 ? dif * 1.6 : -dif;            /* pasarse cuesta más */
+        nota += self.penalizaSal(fecha, salYa, sal);
+        /* NO SE PENALIZA LA PAREJA. Carlos: «lo ideal es proponer merienda de las
+           calorías previstas con LOTES DE DOS PRODUCTOS». Una y dos cuestan lo
+           mismo; la tercera pieza sí paga, que es el remate y no la estructura. */
+        if (lista.length > 2) nota += (lista.length - 2) * 60;
+        ideas.push({
+          ids: lista.map(function (p) { return p.id; }),
+          nombres: lista.map(function (p) { return p.n; }),
+          k: Math.round(k), sal: sal, patron: pat.k,
+          patronN: pat.sola ? "Una sola cosa" : pat.n,
+          piezas: lista.length, nota: nota
+        });
+      }
+
+      var utiles = piezas.filter(function (p) { return excluir.indexOf(p.id) < 0; });
+      var i, j, l;
+      for (i = 0; i < utiles.length; i++) {
+        anota([utiles[i]]);
+        for (j = i; j < utiles.length; j++) {
+          anota([utiles[i], utiles[j]]);
+          for (l = j; l < utiles.length; l++) anota([utiles[i], utiles[j], utiles[l]]);
+        }
+      }
+      ideas.sort(function (a, b) { return a.nota - b.nota; });
+
+      /* PARA OFRECER: la mejor de CADA patrón, en el orden en que Carlos los
+         dijo. No es lo mismo que las cinco mejores: las cinco mejores pueden ser
+         cinco maneras de comer frutos secos. Él quiere ver el batido, el
+         recuperador, la fruta con fruto seco, los desecados y el yogur, y
+         elegir. */
+      if (opc.porPatron) {
+        var porK = {};
+        ideas.forEach(function (x) { if (!porK[x.patron]) porK[x.patron] = x; });
+        var fila = [];
+        this.PATRONES_MERIENDA.forEach(function (pat) {
+          if (porK[pat.k]) { fila.push(porK[pat.k]); delete porK[pat.k]; }
+        });
+        if (porK.sola) { fila.push(porK.sola); delete porK.sola; }
+        Object.keys(porK).forEach(function (k) { fila.push(porK[k]); });
+        return cuantas > 1 ? fila.slice(0, cuantas) : fila;
+      }
+
+      /* ideas DISTINTAS: no sirve devolver cinco variantes del mismo patrón con
+         la misma base. Una por patrón, y luego las que sobren. */
+      var elegidas = [], patronesVistos = {};
+      ideas.forEach(function (x) {
+        if (elegidas.length >= cuantas) return;
+        if (patronesVistos[x.patron]) return;
+        patronesVistos[x.patron] = true; elegidas.push(x);
+      });
+      ideas.forEach(function (x) {
+        if (elegidas.length >= cuantas) return;
+        if (elegidas.indexOf(x) < 0) elegidas.push(x);
+      });
+      return elegidas;
+    },
+
     completarDia: function (fecha, plantillaId) {
       if (this.esPasado(fecha)) return { motivo: "pasado" };
       var self = this;
@@ -4935,6 +5239,27 @@
         if (!candidatas.length) return;
 
         var salYa = self.salDia(fecha);
+
+        /* LA MERIENDA Y EL ALMUERZO SE COMPONEN, NO SE ELIGEN (1-oct-2026).
+           Carlos: «Las meriendas no tienen recetas como así». Aquí se deja de
+           buscar EL plato que más se acerque a la cuota y se compone la toma con
+           una o dos piezas que la cuadren. Si el compositor no encuentra nada
+           —no hay piezas para esa toma, o la sal del día lo veta todo— se sigue
+           por el camino de siempre, que es elegir una receta. */
+        if (t.k === "merienda" || t.k === "almuerzo") {
+          var idea = self.componerMerienda(fecha, t.k, busco, {
+            libres: libres, yaEnLaSemana: yaEnLaSemana, salYa: salYa,
+            pool: (pool && ficha.mochila.indexOf(t.k) >= 0) ? pool : null
+          })[0];
+          if (idea) {
+            d[t.k] = idea.ids.concat(puestosYa);
+            idea.ids.forEach(function (id) { yaEnLaSemana[id] = (yaEnLaSemana[id] || 0) + 1; });
+            refrescarDespensa();
+            puestos++;
+            return;
+          }
+        }
+
         var mejor = null, mejorNota = Infinity;
         candidatas.forEach(function (r) {
           var k = self.nutrReceta(r).k;
