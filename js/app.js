@@ -1121,12 +1121,12 @@
        escribe una vez y se guarda una vez, para no repintar seis veces. */
     function meterVarios(ids) {
       var dia = Almacen.asegurarDia(fecha);
-      var estabaVacia = !(dia[toma] || []).length;
       ids.forEach(function (id) {
         dia[toma].push(id);
         Almacen.olvidarQuitado(fecha, toma, id);
       });
-      if (estabaVacia) Almacen.ponerFijos(fecha);
+      Almacen.marcarVaciada(fecha, toma, false);
+      Almacen.ponerFijos(fecha);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
       cerrarModal();
@@ -1136,11 +1136,23 @@
 
     function meter(idReceta) {
       var dia = Almacen.asegurarDia(fecha);
-      var estabaVacia = !(dia[toma] || []).length;
       dia[toma].push(idReceta);
       /* si lo vuelves a poner tú, ya no está quitado */
       Almacen.olvidarQuitado(fecha, toma, idReceta);
-      if (estabaVacia) Almacen.ponerFijos(fecha);
+      /* LOS FIJOS ENTRAN SIEMPRE QUE PONES UN PLATO (1-oct-2026). Carlos: «no me
+         pone el yogur con copos de avena y los tipos de pan de cada comensal de
+         forma automática al añadir un plato principal».
+
+         Antes sólo entraban si la toma estaba VACÍA, y eso dejaba fuera el caso
+         normal: una comida que ya tiene algo y a la que le pones el principal.
+         Lo que de verdad decide es OTRA COSA, y es la regla que él mismo fijó
+         hoy: «si bebo otra cosa lo borro, o si no tomo pan lo borro; una vez
+         borrado que no aparezca aunque ponga otro plato». Eso es `quitarFijo`,
+         que anota POR PLATO lo que has quitado y ya lo respeta `ponerFijos`.
+         Con esa marca por plato, el candado por toma sobraba: poner un plato es
+         montar esa comida, así que la toma deja de estar «vaciada». */
+      Almacen.marcarVaciada(fecha, toma, false);
+      Almacen.ponerFijos(fecha);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
       cerrarModal();

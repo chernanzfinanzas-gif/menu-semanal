@@ -272,5 +272,47 @@ window.DATOS_RECETAS = [
   { id:"solo_requeson_60", n:"Requesón mezcla Hacendado · 60 g", rev:1, tipo:["almuerzo","merienda"], grupo:"suelto", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"requeson",c:60}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"Ingrediente solo del repertorio de MERIENDA (1-oct-2026). Vale 83 kcal y existe para que el completador pueda sumar de uno a tres y cuadrar la cuota de la toma. Cuenta en la lista de la compra." },
   { id:"solo_flan_proteinas_1", n:"Flan +Proteínas 0 % · 1 ud", rev:1, tipo:["almuerzo","merienda"], grupo:"suelto", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"flan_proteinas",c:1}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"Ingrediente solo del repertorio de MERIENDA (1-oct-2026). Vale 62 kcal y existe para que el completador pueda sumar de uno a tres y cuadrar la cuota de la toma. Cuenta en la lista de la compra." },
   { id:"solo_crema_cacahuete_15", n:"Crema de cacahuete 100 % Hacendado · 15 g", rev:1, tipo:["almuerzo","merienda"], grupo:"suelto", raciones:1, min:0, tools:["sin-cocinar"], ing:[{i:"crema_cacahuete",c:15}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"Ingrediente solo del repertorio de MERIENDA (1-oct-2026). Vale 91 kcal y existe para que el completador pueda sumar de uno a tres y cuadrar la cuota de la toma. Cuenta en la lista de la compra." },
-  { id:"solo_chocolate_negro_10", n:"Chocolate negro 85 % cacao Hacendado · 10 g", rev:1, tipo:["almuerzo","merienda"], grupo:"suelto", raciones:1, min:0, tools:["sin-cocinar"], llevable:true, ing:[{i:"chocolate_negro",c:10}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"Ingrediente solo del repertorio de MERIENDA (1-oct-2026). Vale 60 kcal y existe para que el completador pueda sumar de uno a tres y cuadrar la cuota de la toma. Cuenta en la lista de la compra." }
+  { id:"solo_chocolate_negro_10", n:"Chocolate negro 85 % cacao Hacendado · 10 g", rev:1, tipo:["almuerzo","merienda"], grupo:"suelto", raciones:1, min:0, tools:["sin-cocinar"], llevable:true, ing:[{i:"chocolate_negro",c:10}], pasos:["Tal cual, sin preparar nada."], trucos:[], nota:"Ingrediente solo del repertorio de MERIENDA (1-oct-2026). Vale 60 kcal y existe para que el completador pueda sumar de uno a tres y cuadrar la cuota de la toma. Cuenta en la lista de la compra." },
+
+  /* ============ EL AGUA CON GAS DE LA MESA (1-oct-2026) ============
+     Carlos: «debería apuntar 750 ml de agua con gas con un sirope (en general, y
+     si se pudiese elegir el sabor sería muy útil)».
+
+     750 ml son 33 ml de concentrado, la misma proporción que el litro (44 ml).
+     Van los tres sabores porque el sabor se elige: uno es el fijo que la app
+     pone sola en comida y cena, y si ese día bebe otro, lo borra y pone el que
+     sea desde el +. Borrado no vuelve, que es la regla de los fijos.
+
+     La diferencia entre ellos no son las calorías —ninguno llega a 4 por
+     botella— sino la SAL y el PRECIO, medidos sobre sus fichas:
+
+       Pepsi Zero   0,10 g de sal   1,20 € la botella de 750 ml
+       Limón Zero   0,13 g          0,52 €
+       7UP Zero     0,34 g          0,37 €
+
+     A dos botellas al día son 0,20 g contra 0,68: medio gramo de diferencia por
+     cambiar de botella, sobre un tope de 4,75. El 7UP es el más barato y el más
+     salado; el limón es el término medio y por eso es el que pone la app. */
+  { id:"beb_agua_gas_limon_750", n:"Agua con gas de limón · 750 ml (SodaStream Limón Zero)", rev:1,
+    tipo:["almuerzo","comida","merienda","cena"], grupo:"suelto", raciones:1, min:1, tools:["sin-cocinar"],
+    ing:[{i:"sodastream_limon",c:33}],
+    pasos:["Carbonata 750 ml de agua con la SodaStream y añade 33 ml de concentrado: tres cuartos de la marca del tapón."],
+    trucos:["1,3 kcal y 0,13 g de sal la botella. Dos al día son 0,26 g: el 5 % de tu tope por beber con sabor.",
+            "Un envase de 440 ml de concentrado da trece botellas de éstas, a 0,52 € cada una. A dos al día, casi una semana por envase.",
+            "La Pepsi Zero tiene menos sal (0,10) pero cuesta más del doble y lleva cafeína; el 7UP cuesta menos pero triplica la sal."],
+    nota:"El de la mesa, el que pone la app sola en comida y cena. Si ese día bebes otra cosa, bórralo y pon el que sea: borrado no vuelve a aparecer solo." },
+  { id:"beb_agua_gas_7up_750", n:"7UP Zero SodaStream · 750 ml", rev:1,
+    tipo:["almuerzo","comida","merienda","cena"], grupo:"suelto", raciones:1, min:1, tools:["sin-cocinar"],
+    ing:[{i:"sodastream_7up",c:33}],
+    pasos:["750 ml de agua carbonatada con 33 ml de concentrado."],
+    trucos:["3,8 kcal y 0,34 g de sal la botella: la más salada de las tres, el triple que la Pepsi.",
+            "Dos al día son 0,68 g de sal, el 14 % de tu tope. El Limón Zero sabe a lo mismo y deja esas dos botellas en 0,26 g.",
+            "Es la más barata: 0,37 € la botella, frente a 0,52 del limón y 1,20 de la Pepsi."] },
+  { id:"beb_agua_gas_pepsi_750", n:"Pepsi Zero SodaStream · 750 ml", rev:1,
+    tipo:["almuerzo","comida","merienda","cena"], grupo:"suelto", raciones:1, min:1, tools:["sin-cocinar"],
+    ing:[{i:"sodastream_pepsi",c:33}],
+    pasos:["750 ml de agua carbonatada con 33 ml de concentrado."],
+    trucos:["1,6 kcal y 0,10 g de sal la botella: es la MENOS salada de las tres.",
+            "LLEVA CAFEÍNA: en la cena no es lo mismo que el limón.",
+            "Y la más cara con diferencia: 1,20 € la botella, contra 0,52 del limón y 0,37 del 7UP. El envase de concentrado cuesta 15,99 €."] }
 ];

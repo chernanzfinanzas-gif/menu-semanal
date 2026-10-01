@@ -104,9 +104,13 @@
              parte de la plantilla: son suyos y van igual el día que improvisa. La app
              los pone sola al rellenar o al completar el día. */
           fijos: [
-            { r: "postre_yogur_avena", tomas: ["comida", "cena"] },
-            { r: "pan_tostado_mesa",   tomas: ["comida", "cena"] },
-            { r: "pan_ortiz_mesa",     tomas: ["comida", "cena"] }
+            { r: "postre_yogur_avena",     tomas: ["comida", "cena"] },
+            { r: "pan_tostado_mesa",       tomas: ["comida", "cena"] },
+            { r: "pan_ortiz_mesa",         tomas: ["comida", "cena"] },
+            /* La bebida de la mesa (1-oct-2026). Carlos: «también debería apuntar
+               750 ml de agua con gas con un sirope». El sabor se elige borrando
+               éste y poniendo otro desde el +; borrado no vuelve ese día. */
+            { r: "beb_agua_gas_limon_750", tomas: ["comida", "cena"] }
           ],
 
           /* Cómo se reparte el objetivo del día entre las cinco tomas. Es el reparto
@@ -239,6 +243,17 @@
       var e = this.estado;
       if (!e.config) e.config = this.estadoInicial().config;
       if (!e.config.github) e.config.github = { usuario: "", repo: "", rama: "main", token: "" };
+
+      /* LA BEBIDA DE LA MESA, UNA VEZ (1-oct-2026). Los fijos viven en el estado
+         guardado, que manda sobre los de fábrica: añadirlo arriba no le llega a
+         un móvil que ya tiene los suyos. Se añade aquí, una sola vez y con marca,
+         para que si algún día lo quita no se lo volvamos a plantar al arrancar. */
+      if (!e.config.bebidaDeMesa) {
+        e.config.bebidaDeMesa = 1;
+        if (!e.config.fijos) e.config.fijos = [];
+        var hayBebida = e.config.fijos.some(function (f) { return /^beb_agua_gas/.test(f.r); });
+        if (!hayBebida) e.config.fijos.push({ r: "beb_agua_gas_limon_750", tomas: ["comida", "cena"] });
+      }
       if (!e.ingredientes || !e.ingredientes.length) e.ingredientes = JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || []));
       if (!e.recetas || !e.recetas.length) e.recetas = JSON.parse(JSON.stringify(global.DATOS_RECETAS || []));
       if (!e.plantillas || !e.plantillas.length) e.plantillas = JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || []));
