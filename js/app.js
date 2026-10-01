@@ -628,28 +628,31 @@
                          total y en pantalla no había nada que lo explicara.
                          Ahora la fila lo dice, y las cifras de ella van al
                          título por si quiere verlas. */
-                      /* LAS CALORÍAS SON EL INTERRUPTOR (1-oct-2026). Carlos:
-                         «cervezas son cosas que bebe Susana y puedo apuntar pero
-                         las calorías no me cuentan». Tocar la cifra apaga y
-                         enciende ese plato en TU cuenta, ese día y esa toma. Un
-                         plato con dueño escrito en la ficha —el pan de ella— no
-                         se toca aquí: ése es siempre suyo. */
-                      (Almacen.esDeOtro(rid)
-                        ? '<span class="pl-kcal ajena" title="' +
-                            esc(Util.kcal(n.k * fac)) + " y " +
-                            esc(Util.sal(Almacen.salEn(fecha, rid) * fac)) +
-                            ' de sal que no cuentan en tu día: este plato no es tuyo">no cuenta</span>'
-                        : (cerr
-                          ? '<span class="pl-kcal">' + Util.kcal(n.k * fac) + '</span>'
-                          : '<button class="pl-kcal boton' +
-                              (Almacen.esAjeno(fecha, t.k, rid) ? " ajena" : "") +
-                              '" data-nocuenta="' + fecha + '|' + t.k + '|' + esc(rid) + '" title="' +
-                              (Almacen.esAjeno(fecha, t.k, rid)
-                                ? esc(Util.kcal(n.k * fac)) + ' que no te cuentan — tocar para que vuelvan a contar'
-                                : 'No me cuenta: se compra igual, pero no suma a tus calor\u00edas ni a tu sal') +
-                              '">' +
-                              (Almacen.esAjeno(fecha, t.k, rid) ? "no cuenta" : Util.kcal(n.k * fac)) +
-                            '</button>')) +
+                      /* LAS CALORÍAS SON EL INTERRUPTOR, EN LOS DOS SENTIDOS.
+                         Carlos, 1-oct-2026: «cervezas son cosas que bebe Susana
+                         y puedo apuntar pero las calorías no me cuentan», y
+                         después: «¿y si un día me quiero tomar una cerveza yo?
+                         ¿O pan Ortiz?».
+
+                         Así que tocar la cifra apaga y enciende ese plato en TU
+                         cuenta, ese día y esa toma, mande lo que mande la ficha.
+                         Un plato con dueño empieza apagado y se puede encender;
+                         uno normal empieza encendido y se puede apagar. En un
+                         día cerrado no se toca: ahí ya está todo dicho. */
+                      (function () {
+                        var fuera = Almacen.noMeCuenta(fecha, t.k, rid);
+                        var cifra = Util.kcal(n.k * fac);
+                        if (cerr) {
+                          return '<span class="pl-kcal' + (fuera ? " ajena" : "") + '">' +
+                                 (fuera ? "no cuenta" : cifra) + '</span>';
+                        }
+                        return '<button class="pl-kcal boton' + (fuera ? " ajena" : "") +
+                          '" data-nocuenta="' + fecha + '|' + t.k + '|' + esc(rid) + '" title="' +
+                          (fuera
+                            ? esc(cifra) + ' que hoy no te cuentan \u2014 tocar para que cuenten'
+                            : 'No me cuenta: se compra igual, pero no suma a tus calor\u00edas ni a tu sal') +
+                          '">' + (fuera ? "no cuenta" : cifra) + '</button>';
+                      })() +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
                       '</div>' +
@@ -1127,13 +1130,25 @@
              " \u00b7 " + Util.sal(Almacen.salReceta(r)) + " de sal" +
              (r.min ? " \u00b7 " + r.min + " min" : "");
     };
-    var seccionPapel = function (titulo, lista, abierta, aviso) {
+    var seccionPapel = function (titulo, lista, abierta, aviso, conAjeno) {
       if (!lista.length) return "";
       return '<details class="grupo-selec" data-fijo="1"' + (abierta ? " open" : "") + '>' +
         '<summary><span class="tit">' + esc(titulo) + '</span>' +
         '<span class="cuantas">' + lista.length + '</span></summary>' +
         (aviso ? '<p class="aviso-grupo">' + esc(aviso) + '</p>' : '') +
-        ordenar(lista).map(function (r) { return botonReceta(r, pieDe(r)); }).join("") +
+        ordenar(lista).map(function (r) {
+          if (!conAjeno || Almacen.esDeOtro(r.id)) return botonReceta(r, pieDe(r));
+          /* EL ATAJO PARA LO QUE SE BEBE OTRO (1-oct-2026). Carlos: «si quiero
+             poner una cerveza a Susana que no cuente, ¿dónde la busco?». Estaba
+             donde tenía que estar —en «Para beber»— pero ponerla y luego apagarla
+             en la fila son dos gestos y el segundo no se ve venir. Aquí entra ya
+             apagada de un toque; en la fila del plato se enciende si al final te
+             la tomas tú. */
+          return '<div class="fila-suelto">' + botonReceta(r, pieDe(r)) +
+            '<button class="quitar borra-suelto" data-elegirajeno="' + esc(r.id) +
+            '" title="Ponerla sin que te cuente: se compra igual, pero no suma a tus calor\u00edas">' +
+            'no me<br>cuenta</button></div>';
+        }).join("") +
         '</details>';
     };
 
@@ -1214,7 +1229,7 @@
           "Cada uno vale unas 100 kcal. Vas sumando hasta la cuota de la toma.") +
         seccionPapel("Piezas enteras", piezas, false,
           "Lo que no se parte: una pieza vale lo que vale.") +
-        seccionPapel("Para beber", bebidas, false, null);
+        seccionPapel("Para beber", bebidas, false, null, true);
     } else {
       bloquePapeles =
         seccionPapel(toma === "desayuno" ? "Desayunos" : "Platos principales",
@@ -1223,7 +1238,7 @@
           "Para subir las calorías del día sin cambiar el plato.") +
         seccionPapel("Panes", deTipo("pan"), false, null) +
         seccionPapel("Postres", deTipo("postre"), false, null) +
-        seccionPapel("Para beber", bebidas, false, null);
+        seccionPapel("Para beber", bebidas, false, null, true);
     }
 
     /* El orden: en un picoteo, primero las combinaciones hechas y luego los
@@ -1335,9 +1350,10 @@
       Util.toast(ids.length > 1 ? "Puestas " + ids.length + " cosas" : "Puesto");
     }
 
-    function meter(idReceta) {
+    function meter(idReceta, ajeno) {
       var dia = Almacen.asegurarDia(fecha);
       dia[toma].push(idReceta);
+      if (ajeno) Almacen.marcarAjeno(fecha, toma, idReceta, true);
       /* si lo vuelves a poner tú, ya no está quitado */
       Almacen.olvidarQuitado(fecha, toma, idReceta);
       /* LOS FIJOS ENTRAN SIEMPRE QUE PONES UN PLATO (1-oct-2026). Carlos: «no me
@@ -1405,6 +1421,8 @@
         }
         return;
       }
+      var ea = e.target.closest("[data-elegirajeno]");
+      if (ea) { meter(ea.getAttribute("data-elegirajeno"), true); return; }
       var kit = e.target.closest("[data-combina]");
       if (kit) { meterVarios(kit.getAttribute("data-combina").split(",")); return; }
       var b = e.target.closest("[data-elegir]");
@@ -6207,12 +6225,21 @@
       var nc = e.target.closest("[data-nocuenta]");
       if (nc) {
         var pn = nc.getAttribute("data-nocuenta").split("|");
-        var ahora = Almacen.esAjeno(pn[0], pn[1], pn[2]);
-        Almacen.marcarAjeno(pn[0], pn[1], pn[2], !ahora);
+        var estaFuera = Almacen.noMeCuenta(pn[0], pn[1], pn[2]);
+        var deOtro = Almacen.esDeOtro(pn[2]);
+        if (estaFuera) {
+          /* que vuelva a contar: se quita la marca de hoy y, si la ficha dice
+             que es de otro, se pone la marca contraria, que gana a la ficha */
+          Almacen.marcarAjeno(pn[0], pn[1], pn[2], false);
+          if (deOtro) Almacen.marcarMio(pn[0], pn[1], pn[2], true);
+        } else {
+          Almacen.marcarMio(pn[0], pn[1], pn[2], false);
+          if (!deOtro) Almacen.marcarAjeno(pn[0], pn[1], pn[2], true);
+        }
         Almacen.tocarDia(pn[0]);
         Almacen.guardar("plato");
         pintarMenu();
-        Util.toast(ahora ? "Vuelve a contarte" : "Ya no te cuenta");
+        Util.toast(estaFuera ? "Hoy te cuenta" : "Hoy no te cuenta");
         return;
       }
       var com = e.target.closest("[data-comido]");

@@ -1753,9 +1753,40 @@
       var d = this.estado.plan[fecha];
       return !!(d && d.ajenos && d.ajenos[toma] && d.ajenos[toma].indexOf(receta) >= 0);
     },
-    /* La pregunta completa: ¿cuenta ESTE plato, en ESTE día y ESTA toma? */
+
+    /* ---------- Y AL REVÉS: «HOY ME LO TOMO YO» (1-oct-2026) ----------
+       Carlos: «¿y si un día me quiero tomar una cerveza yo? ¿O pan Ortiz?».
+
+       El `dueno` de la ficha dice de quién es SIEMPRE, y eso deja sin salida el
+       día que la excepción pasa: el pan tostado de ella no contaba nunca, ni
+       aunque se lo comiera él. Esto es la marca contraria a `ajenos` y gana a la
+       ficha: hoy, en esta toma, este plato SÍ es mío. Las dos marcas son del día,
+       no de la receta, y así la ficha puede decir lo que pasa el 95 % de los
+       días sin impedir el otro 5 %. */
+    marcarMio: function (fecha, toma, receta, si) {
+      var d = this.asegurarDia(fecha);
+      if (si) {
+        if (!d.mios) d.mios = {};
+        if (!d.mios[toma]) d.mios[toma] = [];
+        if (d.mios[toma].indexOf(receta) < 0) d.mios[toma].push(receta);
+        return;
+      }
+      if (!d.mios || !d.mios[toma]) return;
+      d.mios[toma] = d.mios[toma].filter(function (x) { return x !== receta; });
+      if (!d.mios[toma].length) delete d.mios[toma];
+      if (!Object.keys(d.mios).length) delete d.mios;
+    },
+    esMio: function (fecha, toma, receta) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.mios && d.mios[toma] && d.mios[toma].indexOf(receta) >= 0);
+    },
+
+    /* La pregunta completa: ¿cuenta ESTE plato, en ESTE día y ESTA toma? El orden
+       manda: lo marcado hoy gana a lo que diga la ficha, en los dos sentidos. */
     noMeCuenta: function (fecha, toma, receta) {
-      return this.esDeOtro(receta) || this.esAjeno(fecha, toma, receta);
+      if (this.esAjeno(fecha, toma, receta)) return true;
+      if (this.esMio(fecha, toma, receta)) return false;
+      return this.esDeOtro(receta);
     },
     /* Un plato con dueño se compra y se descuenta para UNA persona, coman los que
        coman: es de quien es. Sin dueño, para los que se sienten a la mesa. */
