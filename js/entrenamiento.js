@@ -884,6 +884,10 @@
       "  padding:9px 11px;margin:10px 0}",
       ".bl-bandeja .et{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;",
       "  color:var(--gris);font-weight:700;margin-bottom:6px}",
+      /* La ficha de una salida dentro de la emergente: que haga su scroll
+         propio y no empuje la ventana fuera de la pantalla. (1-oct-2026.) */
+      ".ficha-act-hueco{max-height:72vh;overflow:auto;-webkit-overflow-scrolling:touch}",
+      ".ficha-act-hueco .khb-archivo{margin:0}",
       ".bl-chips{display:flex;gap:6px;flex-wrap:wrap}",
       ".bl-chips .dia-bl{display:inline-block;width:auto;margin-top:0;font-size:.72rem;padding:4px 10px}",
       ".bl-moviendo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;",
@@ -4145,7 +4149,52 @@
     modal.classList.add("abierta");
   }
 
+  /* ===== LA FICHA DE UNA ACTIVIDAD, EN UNA EMERGENTE  ·  1-oct-2026 =====
+     Carlos: «"Ver la ficha" se va a Actividades y luego no hay forma de volver
+     al mismo sitio. Sería mejor que la ficha la presentase en una ventana
+     emergente que se pudiese cerrar».
+
+     Y tenía razón: ese botón sale desde El Plan, desde el día, desde la semana…
+     y te dejaba en otra pata, con el tablero perdido y sin botón de vuelta.
+
+     Se monta una SEGUNDA instancia del módulo del archivo dentro de la ventana,
+     con las mismas opciones (`opcionesArchivo`), y se le pide esa actividad. El
+     módulo está bien encerrado —cada `crear()` lleva su propio estado y sus
+     propios oyentes— así que conviven sin pisarse. Al cerrar se destruye, que si
+     no se quedan oyentes colgados en un trozo de DOM que ya no existe. */
+  var fichaModal = null;
+
+  function cerrarFichaModal() {
+    if (!fichaModal) return;
+    try { if (fichaModal.destruir) fichaModal.destruir(); } catch (e) {}
+    fichaModal = null;
+  }
+
+  function abrirFichaActividad(id) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return false;
+    if (!global.ActividadKHB || !global.ActividadKHB.crear) return false;
+    cerrarFichaModal();
+    caja.innerHTML = '<header><h2>La ficha de la salida</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">\u00d7</button></header>' +
+      '<div id="ficha-act-hueco" class="ficha-act-hueco"></div>';
+    modal.classList.add("abierta");
+    var hueco = document.getElementById("ficha-act-hueco");
+    if (!hueco) return false;
+    try {
+      fichaModal = ActividadKHB.crear(opcionesArchivo());
+      fichaModal.montar(hueco);
+      if (fichaModal.irASalida) fichaModal.irASalida(id);
+      return true;
+    } catch (e) {
+      if (global.console) global.console.warn("ficha en emergente:", e);
+      cerrarFichaModal();
+      return false;
+    }
+  }
+
   function cerrarGuia() {
+    cerrarFichaModal();
     document.body.classList.remove("imprime-ecg");
     var modal = document.getElementById("modal");
     if (modal) modal.classList.remove("abierta");
@@ -5692,6 +5741,95 @@
     }
   };
 
+  /* LAS OPCIONES DEL ARCHIVO, EN UN SOLO SITIO  ·  1-oct-2026.
+     Estaban escritas dentro de `pintarArchivo`, así que la ficha de una
+     actividad sólo se podía ver yéndose a la pata de Actividades. Carlos:
+     «"Ver la ficha" se va a Actividades y luego no hay forma de volver al
+     mismo sitio. Sería mejor que la ficha la presentase en una ventana
+     emergente que se pudiese cerrar». Para abrir una segunda instancia del
+     módulo dentro de la emergente hacen falta las MISMAS opciones, y copiarlas
+     sería tener dos versiones que se separan al primer cambio. */
+  function opcionesArchivo() {
+    return {
+      /* El mapa de adorno del mini mapa. HIKE (OpenHikingMap) porque es
+         mundial —117 de las 703 rutas están fuera de España y el IGN se
+         acaba en la frontera— y porque a este tamaño es el que cuenta algo:
+         curvas de nivel y los nombres de los cerros. OSM estándar no sirve:
+         su servidor devuelve 403 a las apps que no están en su lista.
+         La atribución es obligatoria y va debajo del mapa. */
+      capaMapa: {
+        url: "https://tile.openmaps.fr/openhikingmap/{z}/{x}/{y}.png",
+        maxZ: 17,
+        atrib: '\u00a9 <a href="https://www.openstreetmap.org/copyright" ' +
+               'target="_blank" rel="noopener">OpenStreetMap</a> contributors \u00b7 ' +
+               'teselas de <a href="https://openmaps.fr/" target="_blank" ' +
+               'rel="noopener">openmaps.fr</a>'
+      },
+      /* Los iconos de la marca, los mismos que la portada de Entrenamiento.
+         10-bici y 11-montana están en el repo pero no en la copia local de
+         iconos/khb, así que ojo si algún día se sincroniza a la inversa. */
+      iconos: {
+        sen:  "iconos/khb/11-montana.webp",
+        bici: "iconos/khb/10-bici.webp",
+        /* el rodillo NO lleva la bici de calle: `null` pide el dibujo del
+           módulo, que es la misma bici subida a su pie de apoyo */
+        rod:  null,
+        /* y si esa sesión de rodillo fue Zwift, su propio emblema. Quién lo
+           fue no se adivina: viene en la lista `zwift` de nombres.json */
+        zwift: "iconos/khb/12-zwift.webp",
+        /* MyWhoosh (27-sep-2026): dibujo propio, no su logo —líneas de viento
+           en amarillo sobre la bici de rodillo de la familia KHB— */
+        mywhoosh: "iconos/khb/13-mywhoosh.webp",
+        fue:  "iconos/khb/3-pesas-corredor.webp",
+        and:  "iconos/khb/6-zapatillas.webp",
+        pas:  "iconos/khb/6-zapatillas.webp",
+        cor:  "iconos/khb/6-zapatillas.webp",
+        otr:  "iconos/khb/9-podio.webp"
+      },
+      botonVolver: '<button type="button" class="ent-atras" data-volver="1">' +
+        FLECHA + "Volver a Entrenamiento</button>",
+      historico: Nombres.aplicar(Archivo.datos),
+      trazos: Trazos.datos,
+      zwift: Nombres.zwift,
+      /* el nombre se cambia en la ficha y se guarda en datos/nombres.json */
+      alRenombrar: function (id, nombre, listo) { Nombres.guardar(id, nombre, listo); },
+      /* el botón de borrar de la ficha; la ruta llega ya resuelta desde allí */
+      alBorrar: function (id, modo, ruta, datos, listo) {
+        Borrado.pedir(id, modo, ruta, datos, listo);
+      },
+      fuerza: Fuerza.datos,
+      curva: Curva.datos,
+      rodillo: Rodillo.datos,
+      /* la referencia «tu mejor mes antes del plan» era mayo de 2026 y Carlos
+         pidió el 1-oct-2026 no comparar con 2026 (subida con sobreesfuerzo):
+         la ficha compara sólo con la anterior y con el inicio del plan */
+      refRodillo: null,
+      /* LOS DÍAS, para las medidas que no salen de las actividades (los
+         pasos, y mañana las calorías). Dos fuentes: la ventana reciente
+         manda, el histórico rellena lo de atrás.
+
+         El histórico NO se carga al entrar en la pata: son cientos de KB
+         para una medida que a lo mejor nadie pulsa. Se pide sólo cuando el
+         módulo lo necesita, y mientras llega lo dice en pantalla. */
+      dias: (Salud.datos && Salud.datos.dias) || null,
+      diasHist: (Historico.datos && Historico.datos.dias) || null,
+      traerDias: function (listo) {
+        Historico.cargar(function () {
+          listo((Historico.datos && Historico.datos.dias) || {});
+        });
+      },
+      actividades: Nombres.aplicar(actividadesJuntas()),
+      rutas: (Rutas.datos || []),
+      traerGeo: function (celda) {
+        if (geoCache[celda]) return Promise.resolve(geoCache[celda]);
+        return fetch(BASE_MAPAS + "rutas/geo-" + celda + ".json")
+          .then(function (r) { return r.ok ? r.json() : {}; })
+          .then(function (g) { geoCache[celda] = g || {}; return geoCache[celda]; })
+          .catch(function () { return {}; });
+      }
+    };
+  }
+
   var archivoUI = null;        // la instancia del módulo, con su año y mes abiertos
   var geoCache = {};           // celda → geometría, para no pedirla dos veces
 
@@ -5789,84 +5927,7 @@
     if (!Salud.datos && !Archivo.datos) return;      // nada que enseñar todavía
 
     if (!archivoUI) {
-      archivoUI = ActividadKHB.crear({
-        /* El mapa de adorno del mini mapa. HIKE (OpenHikingMap) porque es
-           mundial —117 de las 703 rutas están fuera de España y el IGN se
-           acaba en la frontera— y porque a este tamaño es el que cuenta algo:
-           curvas de nivel y los nombres de los cerros. OSM estándar no sirve:
-           su servidor devuelve 403 a las apps que no están en su lista.
-           La atribución es obligatoria y va debajo del mapa. */
-        capaMapa: {
-          url: "https://tile.openmaps.fr/openhikingmap/{z}/{x}/{y}.png",
-          maxZ: 17,
-          atrib: '\u00a9 <a href="https://www.openstreetmap.org/copyright" ' +
-                 'target="_blank" rel="noopener">OpenStreetMap</a> contributors \u00b7 ' +
-                 'teselas de <a href="https://openmaps.fr/" target="_blank" ' +
-                 'rel="noopener">openmaps.fr</a>'
-        },
-        /* Los iconos de la marca, los mismos que la portada de Entrenamiento.
-           10-bici y 11-montana están en el repo pero no en la copia local de
-           iconos/khb, así que ojo si algún día se sincroniza a la inversa. */
-        iconos: {
-          sen:  "iconos/khb/11-montana.webp",
-          bici: "iconos/khb/10-bici.webp",
-          /* el rodillo NO lleva la bici de calle: `null` pide el dibujo del
-             módulo, que es la misma bici subida a su pie de apoyo */
-          rod:  null,
-          /* y si esa sesión de rodillo fue Zwift, su propio emblema. Quién lo
-             fue no se adivina: viene en la lista `zwift` de nombres.json */
-          zwift: "iconos/khb/12-zwift.webp",
-          /* MyWhoosh (27-sep-2026): dibujo propio, no su logo —líneas de viento
-             en amarillo sobre la bici de rodillo de la familia KHB— */
-          mywhoosh: "iconos/khb/13-mywhoosh.webp",
-          fue:  "iconos/khb/3-pesas-corredor.webp",
-          and:  "iconos/khb/6-zapatillas.webp",
-          pas:  "iconos/khb/6-zapatillas.webp",
-          cor:  "iconos/khb/6-zapatillas.webp",
-          otr:  "iconos/khb/9-podio.webp"
-        },
-        botonVolver: '<button type="button" class="ent-atras" data-volver="1">' +
-          FLECHA + "Volver a Entrenamiento</button>",
-        historico: Nombres.aplicar(Archivo.datos),
-        trazos: Trazos.datos,
-        zwift: Nombres.zwift,
-        /* el nombre se cambia en la ficha y se guarda en datos/nombres.json */
-        alRenombrar: function (id, nombre, listo) { Nombres.guardar(id, nombre, listo); },
-        /* el botón de borrar de la ficha; la ruta llega ya resuelta desde allí */
-        alBorrar: function (id, modo, ruta, datos, listo) {
-          Borrado.pedir(id, modo, ruta, datos, listo);
-        },
-        fuerza: Fuerza.datos,
-        curva: Curva.datos,
-        rodillo: Rodillo.datos,
-        /* la referencia «tu mejor mes antes del plan» era mayo de 2026 y Carlos
-           pidió el 1-oct-2026 no comparar con 2026 (subida con sobreesfuerzo):
-           la ficha compara sólo con la anterior y con el inicio del plan */
-        refRodillo: null,
-        /* LOS DÍAS, para las medidas que no salen de las actividades (los
-           pasos, y mañana las calorías). Dos fuentes: la ventana reciente
-           manda, el histórico rellena lo de atrás.
-
-           El histórico NO se carga al entrar en la pata: son cientos de KB
-           para una medida que a lo mejor nadie pulsa. Se pide sólo cuando el
-           módulo lo necesita, y mientras llega lo dice en pantalla. */
-        dias: (Salud.datos && Salud.datos.dias) || null,
-        diasHist: (Historico.datos && Historico.datos.dias) || null,
-        traerDias: function (listo) {
-          Historico.cargar(function () {
-            listo((Historico.datos && Historico.datos.dias) || {});
-          });
-        },
-        actividades: Nombres.aplicar(actividadesJuntas()),
-        rutas: (Rutas.datos || []),
-        traerGeo: function (celda) {
-          if (geoCache[celda]) return Promise.resolve(geoCache[celda]);
-          return fetch(BASE_MAPAS + "rutas/geo-" + celda + ".json")
-            .then(function (r) { return r.ok ? r.json() : {}; })
-            .then(function (g) { geoCache[celda] = g || {}; return geoCache[celda]; })
-            .catch(function () { return {}; });
-        }
-      });
+      archivoUI = ActividadKHB.crear(opcionesArchivo());
     }
     archivoUI.montar(hueco);
     /* venía de «ver la ficha» en El Plan: se abre esa salida. Unos segundos,
@@ -12311,8 +12372,13 @@
       var verAct = t.closest ? t.closest("[data-ver-actividad]") : null;
       if (verAct) {
         e.preventDefault();
-        fichaPendiente = { id: verAct.getAttribute("data-ver-actividad"), hasta: Date.now() + 8000 };
-        bloque = "actividad"; prepararArchivo(); pintar();
+        var idAct = verAct.getAttribute("data-ver-actividad");
+        /* Si por lo que sea no se puede montar la emergente, se hace lo de antes
+           —irse a Actividades— en vez de dejar el botón muerto. */
+        if (!abrirFichaActividad(idAct)) {
+          fichaPendiente = { id: idAct, hasta: Date.now() + 8000 };
+          bloque = "actividad"; prepararArchivo(); pintar();
+        }
         return;
       }
       if (t.closest && t.closest("[data-med-abrir]")) {
