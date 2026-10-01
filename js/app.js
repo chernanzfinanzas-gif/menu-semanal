@@ -628,12 +628,28 @@
                          total y en pantalla no había nada que lo explicara.
                          Ahora la fila lo dice, y las cifras de ella van al
                          título por si quiere verlas. */
+                      /* LAS CALORÍAS SON EL INTERRUPTOR (1-oct-2026). Carlos:
+                         «cervezas son cosas que bebe Susana y puedo apuntar pero
+                         las calorías no me cuentan». Tocar la cifra apaga y
+                         enciende ese plato en TU cuenta, ese día y esa toma. Un
+                         plato con dueño escrito en la ficha —el pan de ella— no
+                         se toca aquí: ése es siempre suyo. */
                       (Almacen.esDeOtro(rid)
                         ? '<span class="pl-kcal ajena" title="' +
                             esc(Util.kcal(n.k * fac)) + " y " +
                             esc(Util.sal(Almacen.salEn(fecha, rid) * fac)) +
                             ' de sal que no cuentan en tu día: este plato no es tuyo">no cuenta</span>'
-                        : '<span class="pl-kcal">' + Util.kcal(n.k * fac) + '</span>') +
+                        : (cerr
+                          ? '<span class="pl-kcal">' + Util.kcal(n.k * fac) + '</span>'
+                          : '<button class="pl-kcal boton' +
+                              (Almacen.esAjeno(fecha, t.k, rid) ? " ajena" : "") +
+                              '" data-nocuenta="' + fecha + '|' + t.k + '|' + esc(rid) + '" title="' +
+                              (Almacen.esAjeno(fecha, t.k, rid)
+                                ? esc(Util.kcal(n.k * fac)) + ' que no te cuentan — tocar para que vuelvan a contar'
+                                : 'No me cuenta: se compra igual, pero no suma a tus calor\u00edas ni a tu sal') +
+                              '">' +
+                              (Almacen.esAjeno(fecha, t.k, rid) ? "no cuenta" : Util.kcal(n.k * fac)) +
+                            '</button>')) +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
                       '</div>' +
@@ -811,8 +827,16 @@
   function abrirSelector(fecha, toma) {
     var todas = Almacen.visibles()
       .sort(function (a, b) { return a.n.localeCompare(b.n); });
-    /* En un día de ruta lo que manda no es la toma, es si cabe en la mochila. */
-    var ruta = Almacen.fichaTipoDia(fecha).soloLlevables;
+    /* En un día de ruta lo que manda no es la toma, es si cabe en la mochila.
+
+       OJO, ESTO ESTABA MUERTO (encontrado el 1-oct-2026). Preguntaba por
+       `soloLlevables`, un campo que NO EXISTE en `TIPOS_DIA`: siempre valía
+       undefined, así que «Para la mochila» no se mostró jamás y en un día de
+       ruta el selector ofrecía lo mismo que en casa. Lo que distingue el día lo
+       dice `mochila`, que además es POR TOMA —en una ruta el almuerzo, la comida
+       y la merienda van en la mochila; la cena es en casa— y así es como lo mira
+       el completador desde siempre. */
+    var ruta = (Almacen.fichaTipoDia(fecha).mochila || []).indexOf(toma) >= 0;
     var propias, resto, rotuloA, rotuloB;
     if (ruta) {
       propias = todas.filter(function (r) { return r.llevable; });
@@ -939,7 +963,23 @@
       bloqueCasa += '</details>';
     }
 
+    /* ---------- LA CUENTA, A LA VISTA (1-oct-2026) ----------
+       Carlos: «y voy eligiendo yo hasta alcanzar lo que toque». Para eso hay que
+       ver cuánto se lleva y cuánto falta SIN cerrar la ventana y volver a
+       mirar el día. La cuota es la de esa toma ese día —la que calcula el
+       reparto según el ejercicio previsto—, y lo que llevas es lo que ya hay
+       puesto ahí, con el filtro de dueño: el pan de Susana no suma. */
+    var cuotaToma = Math.round((Almacen.cuotaTomas(fecha) || {})[toma] || 0);
+    var llevaToma = Math.round(Almacen.nutrToma(fecha, toma).k);
     var html = '<header><h2>Añadir a ' + toma + '</h2><button class="cerrar" data-cerrar>×</button></header>';
+    if (cuotaToma > 0) {
+      var faltan = cuotaToma - llevaToma;
+      html += '<p class="cuenta-toma' + (faltan <= 20 ? " llena" : "") + '">' +
+              '<b>' + Util.kcal(llevaToma) + '</b> de ' + Util.kcal(cuotaToma) +
+              (faltan > 20 ? ' \u00b7 te faltan <b>' + Util.kcal(faltan) + '</b>'
+                           : (faltan < -20 ? ' \u00b7 te has pasado de ' + Util.kcal(-faltan)
+                                           : ' \u00b7 ya est\u00e1')) + '</p>';
+    }
     html += '<input type="text" id="filtro-selector" placeholder="Filtrar entre todas…">';
     html += '<div class="lista-selec por-grupos" id="lista-selector">';
 
@@ -988,8 +1028,20 @@
               '<span id="suelto-uni">ud</span>' +
               '<button class="btn principal mini" id="suelto-add">Añadir</button>' +
             '</div>' +
-            (sueltos.length ? '<p class="aviso-grupo">Los que ya has usado antes:</p>' : '') +
-            ordenar(sueltos).map(boton).join("") +
+            (sueltos.length ? '<p class="aviso-grupo">Los que ya has usado antes. La \u00d7 borra del recetario los que no estés usando: un dedazo no tiene por qué quedarse para siempre.</p>' : '') +
+            /* LA × PARA DESHACER UN DEDAZO (1-oct-2026). Carlos: «luego en
+               ingrediente único pones un error y se queda en la lista». Y era
+               verdad: «Panecillo sin sal · 42½ ud (3.613 g)» se creó de un toque
+               mal dado y no había forma de quitarlo de aquí. Sólo se ofrece la ×
+               en lo que NO está usado en ningún día del plan ni es un fijo;
+               borrar algo que ya comiste dejaría el día cojo. */
+            ordenar(sueltos).map(function (r) {
+              var fijo = Almacen.recetaEnUso(r.id);
+              return '<div class="fila-suelto">' + boton(r) +
+                (fijo ? '' : '<button class="quitar borra-suelto" data-borrasuelto="' + esc(r.id) +
+                   '" title="Borrar del recetario">\u00d7</button>') +
+                '</div>';
+            }).join("") +
             '</details>';
 
     /* ---------- COMBINACIONES PARA LAS CALORÍAS QUE TOCAN (1-oct-2026) ----------
@@ -1028,9 +1080,157 @@
       }
     }
 
-    /* El orden: en un almuerzo o una merienda, primero las combinaciones y luego
-       el ingrediente solo; en una comida o una cena, primero las recetas. */
-    html += bloqueKits + bloqueCasa + (esPicoteo ? (bloqueSueltos + bloquePreferente)
+    /* ---------- EL SELECTOR POR PAPELES (1-oct-2026) ----------
+       Carlos: «no me parece cómodo el selector de platos… no encuentro lo de
+       beber, no encuentro el pan de Ortiz de Susana». Y luego, la estructura que
+       quiere: «comidas y cenas con categoría de panes, postres, bebidas, y los
+       platos principales y algunos platos de guarnición para añadir calorías si
+       es necesario».
+
+       Lo que cambia es el criterio de ordenación: ya no es el GRUPO DE ALIMENTO
+       —legumbre, pescado azul— sino el PAPEL que hace esa receta en la mesa. El
+       pan y las bebidas estaban en «suelto», enterrados dentro de «Un
+       ingrediente solo», que sale plegado y con el catálogo entero detrás; y son
+       justo lo que se pone todos los días sin pensarlo.
+
+       El papel se deduce de los datos, sin listas escritas a mano, y el ORDEN en
+       que se pregunta importa: bebida, postre, pan, guarnición y, si no es nada
+       de eso, principal. Una receta es BEBIDA si todos sus ingredientes son de
+       la categoría «Bebidas»; es PAN si todos son de «Panadería». El día que
+       entre un producto nuevo, su receta cae en su sitio sola. */
+    var catsDe = function (r) {
+      var c = {};
+      (r.ing || []).forEach(function (l) {
+        var g = Almacen.ingrediente(l.i);
+        if (g) c[g.cat || "?"] = 1;
+      });
+      return Object.keys(c);
+    };
+    var todoDe = function (r, re) {
+      var c = catsDe(r);
+      return c.length > 0 && c.every(function (x) { return re.test(x); });
+    };
+    var papelDe = function (r) {
+      if (todoDe(r, /^bebidas?$/i)) return "bebida";
+      if ((r.tipo || []).indexOf("postre") >= 0 || r.grupo === "postre") return "postre";
+      if (todoDe(r, /^panader[ií]a$/i)) return "pan";
+      if ((r.tipo || []).indexOf("guarnicion") >= 0) return "guarnicion";
+      return "principal";
+    };
+    var yaPuesto = {};
+    ((Almacen.estado.plan[fecha] || {})[toma] || []).forEach(function (id) { yaPuesto[id] = true; });
+
+    /* el pie de cada botón: lo que hace falta para decidir en un vistazo */
+    var pieDe = function (r) {
+      var dueno = Almacen.duenoDe(r.id);
+      return (dueno && dueno !== "yo" ? "no te cuenta" : Util.kcal(Almacen.nutrReceta(r).k)) +
+             " \u00b7 " + Util.sal(Almacen.salReceta(r)) + " de sal" +
+             (r.min ? " \u00b7 " + r.min + " min" : "");
+    };
+    var seccionPapel = function (titulo, lista, abierta, aviso) {
+      if (!lista.length) return "";
+      return '<details class="grupo-selec" data-fijo="1"' + (abierta ? " open" : "") + '>' +
+        '<summary><span class="tit">' + esc(titulo) + '</span>' +
+        '<span class="cuantas">' + lista.length + '</span></summary>' +
+        (aviso ? '<p class="aviso-grupo">' + esc(aviso) + '</p>' : '') +
+        ordenar(lista).map(function (r) { return botonReceta(r, pieDe(r)); }).join("") +
+        '</details>';
+    };
+
+    /* LOS BLOQUES DE 100, para almuerzo y merienda. Carlos: «que ofrezca los
+       ingredientes en cantidades que tengan 100 calorías (margen de 90 a 120)…
+       y voy eligiendo yo hasta alcanzar lo que toque». No se reconocen por el
+       nombre ni por una lista: se reconocen porque VALEN eso. Lo que se sale de
+       la banda y es de una sola cosa es una PIEZA —un plátano no se parte— y va
+       en su propia sección, con lo que vale cada una. */
+    var unaCosa = todas.filter(function (r) {
+      return !yaPuesto[r.id] && (!ruta || r.llevable) &&
+             r.grupo === "suelto" && (r.ing || []).length === 1 &&
+             (r.tipo || []).indexOf(toma) >= 0 && papelDe(r) !== "bebida";
+    });
+    var bloques100 = unaCosa.filter(function (r) {
+      var k = Almacen.nutrReceta(r).k; return k >= 88 && k <= 122;
+    });
+    var piezas = unaCosa.filter(function (r) {
+      var k = Almacen.nutrReceta(r).k; return k > 122 || (k >= 25 && k < 88);
+    });
+
+    var bebidas = todas.filter(function (r) {
+      return !yaPuesto[r.id] && (r.tipo || []).indexOf(toma) >= 0 && papelDe(r) === "bebida";
+    });
+    /* EN UN DÍA DE RUTA MANDA LA MOCHILA, no la toma: sólo entra lo que se come
+       frío y aguanta el día. Se filtra aquí y vale para todas las secciones. */
+    var cabeHoy = function (r) { return !ruta || r.llevable; };
+    var deTipo = function (quiero) {
+      return todas.filter(function (r) {
+        if (yaPuesto[r.id] || !cabeHoy(r)) return false;
+        var t = r.tipo || [];
+        var vale = t.indexOf(toma) >= 0 ||
+                   (quiero === "guarnicion" && t.indexOf("guarnicion") >= 0) ||
+                   (quiero === "postre" && t.indexOf("postre") >= 0);
+        return vale && papelDe(r) === quiero;
+      });
+    };
+
+    /* ---------- PARA LA RUTA: LO QUE MÁS DA POR LO QUE MENOS PESA ----------
+       Carlos: «los días de salidas externas que aparezcan productos de alta
+       capacidad calórica específicos de ruta». En una salida el problema no es
+       encontrar calorías, es llevarlas encima: lo que cuenta es cuántas da cada
+       100 gramos que cargas. Medido sobre sus 43 llevables, el rango va de 716
+       kcal/100 g de la nuez a 39 del melocotón — un orden de magnitud y media.
+       Se ordena por densidad y se corta en 250, que es donde acaban los
+       desecados y empiezan las frutas frescas, que son agua. */
+    var densidad = function (r) {
+      var g = 0;
+      (r.ing || []).forEach(function (l) { g += Almacen.gramosDeLinea(l); });
+      return g > 0 ? Almacen.nutrReceta(r).k / g * 100 : 0;
+    };
+    var bloqueRuta = "";
+    if (ruta) {
+      var densas = todas.filter(function (r) {
+        return !yaPuesto[r.id] && r.llevable && !Almacen.esDeOtro(r.id) &&
+               densidad(r) >= 250 && Almacen.nutrReceta(r).k >= 80;
+      }).sort(function (a, b) { return densidad(b) - densidad(a); }).slice(0, 14);
+      if (densas.length) {
+        bloqueRuta = '<details class="grupo-selec" data-fijo="1" open>' +
+          '<summary><span class="tit">Para la ruta</span>' +
+          '<span class="cuantas">' + densas.length + '</span></summary>' +
+          '<p class="aviso-grupo">Lo que m\u00e1s alimenta por lo que menos pesa, de m\u00e1s a menos.</p>' +
+          densas.map(function (r) {
+            var g = 0;
+            (r.ing || []).forEach(function (l) { g += Almacen.gramosDeLinea(l); });
+            return botonReceta(r, Util.kcal(Almacen.nutrReceta(r).k) + " en " + Math.round(g) +
+              " g \u00b7 " + Math.round(densidad(r)) + " kcal/100 g \u00b7 " +
+              Util.sal(Almacen.salReceta(r)) + " de sal");
+          }).join("") +
+          '</details>';
+      }
+    }
+
+    var bloquePapeles = "";
+    if (esPicoteo) {
+      bloquePapeles =
+        seccionPapel("Bloques de 100", bloques100, true,
+          "Cada uno vale unas 100 kcal. Vas sumando hasta la cuota de la toma.") +
+        seccionPapel("Piezas enteras", piezas, false,
+          "Lo que no se parte: una pieza vale lo que vale.") +
+        seccionPapel("Para beber", bebidas, false, null);
+    } else {
+      bloquePapeles =
+        seccionPapel(toma === "desayuno" ? "Desayunos" : "Platos principales",
+                     deTipo("principal"), true, null) +
+        seccionPapel("Guarniciones", deTipo("guarnicion"), false,
+          "Para subir las calorías del día sin cambiar el plato.") +
+        seccionPapel("Panes", deTipo("pan"), false, null) +
+        seccionPapel("Postres", deTipo("postre"), false, null) +
+        seccionPapel("Para beber", bebidas, false, null);
+    }
+
+    /* El orden: en un picoteo, primero las combinaciones hechas y luego los
+       bloques para montarla uno mismo; en una comida o una cena, los papeles de
+       la mesa. Debajo, en los dos casos, lo que hay en casa y el recetario. */
+    html += bloqueRuta + (esPicoteo ? (bloqueKits + bloquePapeles) : bloquePapeles) +
+            bloqueCasa + (esPicoteo ? (bloqueSueltos + bloquePreferente)
                                     : (bloquePreferente + bloqueSueltos));
 
     /* y después el recetario entero, por grupos de alimento */
@@ -1157,8 +1357,22 @@
       Almacen.ordenarToma(fecha, toma);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
-      cerrarModal();
       pintarMenu();
+      /* EN UN PICOTEO LA VENTANA NO SE CIERRA (1-oct-2026). Una merienda se monta
+         sumando dos o tres bloques, y cerrar y volver a abrir tres veces para
+         llegar a 350 kcal es justo lo que él no quiere hacer. Se vuelve a pintar
+         el selector —con la cuenta ya actualizada arriba— y se sigue eligiendo.
+         En una comida o una cena se cierra, que ahí eliges UN plato. */
+      if (esPicoteo) {
+        var falta = Math.round((Almacen.cuotaTomas(fecha) || {})[toma] || 0) -
+                    Math.round(Almacen.nutrToma(fecha, toma).k);
+        cerrarModal();
+        abrirSelector(fecha, toma);
+        if (falta > 20) Util.toast("Te faltan " + Util.kcal(falta));
+        else Util.toast("Ya est\u00e1: " + Util.kcal(Math.round(Almacen.nutrToma(fecha, toma).k)));
+      } else {
+        cerrarModal();
+      }
     }
 
     $("#suelto-add").addEventListener("click", function () {
@@ -1176,6 +1390,19 @@
         var par = casa.getAttribute("data-casa").split("|");
         var idc = Almacen.crearSuelto(par[0], parseFloat(par[1]), [toma]);
         if (idc) meter(idc);
+        return;
+      }
+      var bs = e.target.closest("[data-borrasuelto]");
+      if (bs) {
+        var idb = bs.getAttribute("data-borrasuelto");
+        var rb = Almacen.receta(idb);
+        if (rb && confirm("¿Borrar «" + rb.n + "» del recetario?")) {
+          Almacen.estado.recetas = Almacen.estado.recetas.filter(function (r) { return r.id !== idb; });
+          Almacen.guardar("receta");
+          Util.toast("Borrado");
+          cerrarModal();
+          abrirSelector(fecha, toma);
+        }
         return;
       }
       var kit = e.target.closest("[data-combina]");
@@ -5975,6 +6202,17 @@
       if (rl) {
         var rr = rl.getAttribute("data-real").split("|");
         abrirCantidadReal(rr[0], rr[1], rr[2]);
+        return;
+      }
+      var nc = e.target.closest("[data-nocuenta]");
+      if (nc) {
+        var pn = nc.getAttribute("data-nocuenta").split("|");
+        var ahora = Almacen.esAjeno(pn[0], pn[1], pn[2]);
+        Almacen.marcarAjeno(pn[0], pn[1], pn[2], !ahora);
+        Almacen.tocarDia(pn[0]);
+        Almacen.guardar("plato");
+        pintarMenu();
+        Util.toast(ahora ? "Vuelve a contarte" : "Ya no te cuenta");
         return;
       }
       var com = e.target.closest("[data-comido]");

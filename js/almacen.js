@@ -1223,7 +1223,7 @@
           if (puestos.length) {
             var gf = self.agrupar(puestos);
             gf.orden.forEach(function (id) {
-              if (self.esDeOtro(id)) return;    /* tampoco fuera de casa */
+              if (self.noMeCuenta(fecha, toma, id)) return;   /* tampoco fuera de casa */
               total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, gf.veces[id]);
             });
             return;
@@ -1240,7 +1240,7 @@
              le metían 1,24 g de sal al día, el 62 % de su umbral ámbar, de pan
              que no se come él. El comentario de `duenoDe` decía que `nutrToma`
              era «por donde pasan todas las sumas del día»; no era verdad. */
-          if (self.esDeOtro(id)) return;
+          if (self.noMeCuenta(fecha, toma, id)) return;
           total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, g.veces[id]);
         });
       });
@@ -1315,7 +1315,7 @@
         if (puestos.length) {
           var gf = self.agrupar(puestos);
           gf.orden.forEach(function (id) {
-            if (self.esDeOtro(id)) return;      /* tampoco fuera de casa */
+            if (self.noMeCuenta(fecha, toma, id)) return;   /* tampoco fuera de casa */
             var nn = self.nutrEn(fecha, id);
             var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
             t.k += nn.k * f; t.p += nn.p * f; t.g += nn.g * f; t.h += nn.h * f;
@@ -1329,7 +1329,7 @@
       var g = self.agrupar(dia[toma]);
       g.orden.forEach(function (id) {
         if (soloComido && !self.estaComido(fecha, toma, id)) return;
-        if (self.esDeOtro(id)) return;          /* el plato de Susana no son tus calorías */
+        if (self.noMeCuenta(fecha, toma, id)) return;   /* el plato de Susana no son tus calorías */
         var n = self.nutrEn(fecha, id);
         var f = self.factorPlato(fecha, toma, id, g.veces[id]);
         t.k += n.k * f; t.p += n.p * f; t.g += n.g * f; t.h += n.h * f;
@@ -1372,6 +1372,25 @@
        COMPRA.
        Queda guardado en el recetario, así que la segunda manzana ya está hecha.
        Y si ya existe uno igual, se reutiliza en vez de duplicarlo. */
+    /* ¿ESTÁ ESTA RECETA USADA EN ALGÚN SITIO? Para saber si se puede borrar sin
+       estropear nada: cualquier día del plan —pasado incluido, que ahí está lo
+       que comiste— o la lista de fijos. (1-oct-2026, para poder tirar los
+       «ingredientes solos» que salen de un dedazo.) */
+    recetaEnUso: function (id) {
+      var usada = false;
+      (this.estado.config.fijos || []).forEach(function (f) { if (f.r === id) usada = true; });
+      if (usada) return true;
+      var plan = this.estado.plan || {};
+      Object.keys(plan).forEach(function (f) {
+        if (usada) return;
+        ["desayuno", "almuerzo", "comida", "merienda", "cena", "capricho"].forEach(function (t) {
+          if (usada) return;
+          if ((plan[f][t] || []).indexOf(id) >= 0) usada = true;
+        });
+      });
+      return usada;
+    },
+
     crearSuelto: function (idIng, cant, tomas) {
       var g = this.ingrediente(idIng);
       cant = Number(cant);
@@ -1706,10 +1725,46 @@
       var d = this.duenoDe(recetaId);
       return !!d && d !== "yo";
     },
+
+    /* ---------- «ESTO NO ME CUENTA», PLATO A PLATO (1-oct-2026) ----------
+       Carlos: «cervezas son cosas que bebe Susana y puedo apuntar pero las
+       calorías no me cuentan».
+
+       El dueño de la receta (`dueno`) sirve para lo que es SIEMPRE de uno —su
+       panecillo, el pan tostado de ella— y hay que escribirlo en la ficha. Esto
+       es lo otro: una cerveza es de ella HOY, y mañana a lo mejor te la tomas
+       tú. Se marca en el día y en la toma, no en la receta, y hace lo mismo que
+       el dueño: no suma calorías ni sal, pero se compra y sale de la despensa
+       para una persona, porque alguien se la bebe. */
+    marcarAjeno: function (fecha, toma, receta, si) {
+      var d = this.asegurarDia(fecha);
+      if (si) {
+        if (!d.ajenos) d.ajenos = {};
+        if (!d.ajenos[toma]) d.ajenos[toma] = [];
+        if (d.ajenos[toma].indexOf(receta) < 0) d.ajenos[toma].push(receta);
+        return;
+      }
+      if (!d.ajenos || !d.ajenos[toma]) return;
+      d.ajenos[toma] = d.ajenos[toma].filter(function (x) { return x !== receta; });
+      if (!d.ajenos[toma].length) delete d.ajenos[toma];
+      if (!Object.keys(d.ajenos).length) delete d.ajenos;
+    },
+    esAjeno: function (fecha, toma, receta) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.ajenos && d.ajenos[toma] && d.ajenos[toma].indexOf(receta) >= 0);
+    },
+    /* La pregunta completa: ¿cuenta ESTE plato, en ESTE día y ESTA toma? */
+    noMeCuenta: function (fecha, toma, receta) {
+      return this.esDeOtro(receta) || this.esAjeno(fecha, toma, receta);
+    },
     /* Un plato con dueño se compra y se descuenta para UNA persona, coman los que
        coman: es de quien es. Sin dueño, para los que se sienten a la mesa. */
-    comensalesDePlato: function (rec, personas) {
-      return this.duenoDe(rec) ? 1 : personas;
+    comensalesDePlato: function (rec, personas, fecha, toma) {
+      if (this.duenoDe(rec)) return 1;
+      /* marcado «no me cuenta» hoy: se compra, pero para uno */
+      var id = rec && rec.id ? rec.id : rec;
+      if (fecha && toma && this.esAjeno(fecha, toma, id)) return 1;
+      return personas;
     },
 
     factorPlato: function (fecha, toma, recetaId, veces) {
@@ -2918,7 +2973,7 @@
             if (self.estaComido(fecha, toma, rid)) return;   // ya comido: ya descontado
             var rec = self.receta(rid);
             if (!rec) return;
-            var raciones = self.comensalesDePlato(rec, personas) * g.veces[rid];
+            var raciones = self.comensalesDePlato(rec, personas, fecha, toma) * g.veces[rid];
             if (rec.tanda) { tandas[rid] = (tandas[rid] || 0) + raciones; return; }
             var factor = raciones / (rec.raciones || 1);
             (rec.ing || []).forEach(function (l) {
@@ -2974,7 +3029,7 @@
     racionesDeCasa: function (fecha, toma, recetaId, veces) {
       var personas = this.comensales(fecha, toma) || 1;
       /* Un plato con dueño sale de la despensa para uno solo (30-sep-2026). */
-      personas = this.comensalesDePlato(this.receta(recetaId), personas) || 1;
+      personas = this.comensalesDePlato(this.receta(recetaId), personas, fecha, toma) || 1;
       var f = this.factorPlato(fecha, toma, recetaId, veces || 1);
       return (personas - 1) * (veces || 1) + f;
     },
@@ -5707,7 +5762,7 @@
             /* Las TANDAS se apuntan aparte y se resuelven al final: no se puede comprar
                un cuarto de bandeja de barritas. Ver `tandas` más abajo. */
             /* Un plato con dueño se compra para uno solo: ver `duenoDe`. */
-            var pers = self.comensalesDePlato(rec, personas);
+            var pers = self.comensalesDePlato(rec, personas, fecha, toma);
             if (rec.tanda) {
               porciones[rid] = (porciones[rid] || 0) + pers;
               return;
