@@ -383,11 +383,18 @@
       ".ent-medidas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:14px}",
       "@media(min-width:620px){.ent-medidas{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}}",
       "@media(min-width:980px){.ent-medidas{grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}}",
+      /* OCHO EN UNA FILA  ·  1-oct-2026. Carlos: «reducir los cuadros de datos un
+         poco nos reducirá una línea de pantalla». Y es exacto: «Hoy toca medir»
+         son OCHO casillas —peso, las dos tensiones, pulso, ECG, brazo, muslo y
+         gemelo— y con siete columnas la octava se caía sola a una segunda fila,
+         gastando una línea entera para una casilla. En pantalla ancha caben las
+         ocho. */
+      "@media(min-width:1140px){.ent-medidas{grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}}",
       /* en columna: el rótulo crece hasta igualar al vecino más alto, así las
          cajas de la fila quedan alineadas aunque el texto ocupe dos líneas */
       ".ent-medida{display:flex;flex-direction:column;min-width:0;max-width:280px;width:100%}",
-      ".ent-medida input{width:100%;padding:8px 6px;border:1px solid var(--borde);border-radius:9px;" +
-        "font:inherit;font-size:.95rem;text-align:center}",
+      ".ent-medida input{width:100%;padding:6px 4px;border:1px solid var(--borde);border-radius:9px;" +
+        "font:inherit;font-size:.9rem;text-align:center}",
       ".ent-medida input:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}",
       ".ent-medida.puesta input{border-color:var(--azul);background:var(--azul-claro)}",
       ".ent-medida span{display:flex;flex:1 0 auto;align-items:flex-start;gap:3px;",
@@ -406,7 +413,7 @@
         ".ent-medida{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;margin-bottom:8px}" +
         ".ent-medida span{align-self:end}" +
         ".ent-medida small{align-self:start}}",
-      ".ent-medida small{display:block;margin-top:3px;font-size:.62rem;color:var(--gris);line-height:1.25}",
+      ".ent-medida small{display:block;margin-top:2px;font-size:.6rem;color:var(--gris);line-height:1.2}",
       /* botones de guía y su ventana */
       ".ent-mas{margin-top:10px;background:none;border:1px dashed var(--azul-borde);color:var(--azul);",
       "  border-radius:10px;padding:8px 12px;font:inherit;font-size:.83rem;font-weight:600;cursor:pointer;width:100%}",
@@ -10173,7 +10180,9 @@
     });
     cal.forEach(function (x) {
       x.curso = hoy >= x.desde && hoy <= x.hasta;
-      x.hecha = x.desde <= hoy ? cargaSemana(x.desde, x.hasta < hoy ? x.hasta : hoy) : null;
+      var cS = x.desde <= hoy ? cargasSemana(x.desde, x.hasta < hoy ? x.hasta : hoy) : null;
+      x.hecha = cS ? cS.hecho : null;
+      x.extra = cS ? cS.extra : null;
       x.aEsta = aEsta[x.desde] || 0;
     });
     /* cuántas semanas vas por detrás de la rampa original por los pases */
@@ -10244,17 +10253,23 @@
     h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>La rampa</h2></div>' +
       '<p class="nota-peque evo-pie">Las semanas en verde son descargas. No son opcionales: son lo que ' +
       'faltaba en 2025, y por eso llegó noviembre. Es lo que te pide El Plan: si el pase hace repetir, ' +
-      'la semana sale dos veces y todo lo de detrás se corre, descarga incluida.</p><div class="ramp-tabla"><table>' +
+      'la semana sale dos veces y todo lo de detrás se corre, descarga incluida.<br>' +
+      '<b>Hecha</b> es la suma del esfuerzo de tus actividades que cuentan contra el plan: lo que emparejó ' +
+      'con una sesión, más la bici y el correr enteros aunque no emparejen. <b>Extra</b> es lo que te moviste ' +
+      'fuera del plan —en la práctica, caminar— y NO suma en el porcentaje: un paseo no es entrenamiento ' +
+      'incumplido ni de más. La fuerza no puntúa en ninguna de las dos.</p><div class="ramp-tabla"><table>' +
       "<tr><th>Sem</th><th>Desde</th><th>Talla</th><th class=\"d\">Objetivo</th><th class=\"d\">Hecha</th>" +
-      "<th class=\"d\">Sesiones</th><th class=\"d\">Horas</th></tr>";
+      "<th class=\"d\">Extra</th><th class=\"d\">Sesiones</th><th class=\"d\">Horas</th></tr>";
     cal.forEach(function (x, k) {
       if (k > 16 && !x.descarga && k % 4 !== 0 && k !== cal.length - 1) return;
-      if (k === 17) h += '<tr class="sep"><td colspan="7">· · · sigue subiendo hasta el techo · · ·</td></tr>';
+      if (k === 17) h += '<tr class="sep"><td colspan="8">· · · sigue subiendo hasta el techo · · ·</td></tr>';
       h += '<tr class="' + (x.descarga ? "desc" : "") + (hoy >= x.desde && hoy <= x.hasta ? " ahora" : "") + '">' +
         '<td class="d">' + x.n + (x.repite ? ' <small class="ramp-rep">repite</small>' : "") +
         (x.fija ? ' <small class="ramp-rep">en su fecha</small>' : "") + "</td><td>" +
         fechaCorta(x.desde) + '</td><td class="t">' + x.talla + "</td>" +
         '<td class="d b">' + num(x.carga, 0) + "</td>" + '<td class="d">' + celdaHecha(x) + "</td>" +
+        '<td class="d g">' + (x.extra === null || x.extra === undefined ? "" :
+            (x.extra > 0 ? "+" + num(x.extra, 0) : "—")) + "</td>" +
         '<td class="d t">' + (Math.abs(x.factor - 1) < 0.06 ? "tal cual"
             : (x.factor < 1 ? "−" : "+") + Math.round(Math.abs(x.factor - 1) * 100) + "%") + "</td>" +
         '<td class="d g">' + num(x.minutos * x.factor / 60, 1) + " h</td></tr>";
@@ -11949,19 +11964,46 @@
   }
 
   /* carga de la semana derivada de la serie atl */
+  /* ===== LO HECHO SE SUMA, NO SE DEDUCE DE UNA CURVA  ·  1-oct-2026 =====
+     Carlos, mirando la tabla de la rampa: «no veo de dónde salen los 259 y el
+     132 % de exceso… ¿no podemos calcular nosotros el valor con nuestros datos?»
+
+     ANTES esto le daba la vuelta a la fórmula del ATL de intervals, día a día:
+     carga = atl(ayer) + 7 × (atl(hoy) − atl(ayer)). Funcionaba, pero tenía tres
+     problemas, y el tercero es el que importa:
+       · No se puede auditar. Veías un 259 y no había forma de saber de dónde
+         salía ni qué sesión había puesto cada punto.
+       · Multiplica por SIETE la diferencia de un día al siguiente, así que
+         cualquier hueco o redondeo de la curva se amplifica.
+       · Y sobre todo: la columna OBJETIVO sale de NUESTRO modelo (`costeSesion`)
+         y la columna HECHA salía del suavizado de intervals. Dos varas distintas
+         con un porcentaje encima, que es justo por qué el 132 % no cuadraba.
+
+     AHORA se suma `cargasDia`, que ya existía y ya tenía la regla pensada: lo
+     emparejado con el plan cuenta como HECHO, la bici y el correr cuentan
+     enteros aunque no emparejen, caminar fuera del plan va a EXTRA, y la fuerza
+     no puntúa. Las dos columnas se miden con la misma vara.
+
+     Medido con sus datos del 18 al 27-sep: sumando sale 267 y la curva daba 259.
+     La diferencia es el suavizado, y ahora cada punto se puede señalar con el
+     dedo. */
   function cargaSemana(lunes, hasta) {
-    var d = Salud.datos;
-    if (!d || !d.dias) return null;
-    var total = 0, hubo = false, f = lunes;
+    var r = cargasSemana(lunes, hasta);
+    return r ? r.hecho : null;
+  }
+
+  /* Lo hecho y lo extra de un tramo, sumando día a día. Devuelve null si no hay
+     ni un día con actividades: así la tabla sigue enseñando «—» en las semanas
+     que todavía no han pasado, en vez de un cero que parece un incumplimiento. */
+  function cargasSemana(lunes, hasta) {
+    var hecho = 0, extra = 0, hubo = false, f = lunes;
     while (f <= hasta) {
-      var ayer = d.dias[U.sumarDias(f, -1)], hoyD = d.dias[f];
-      if (hoyD && ayer && typeof hoyD.atl === "number" && typeof ayer.atl === "number") {
-        total += ayer.atl + 7 * (hoyD.atl - ayer.atl);
-        hubo = true;
-      }
+      var c = cargasDia(f);
+      if (c && (c.activa > 0 || c.hecho > 0 || c.extra > 0)) hubo = true;
+      if (c) { hecho += c.hecho; extra += c.extra; }
       f = U.sumarDias(f, 1);
     }
-    return hubo ? Math.max(0, Math.round(total)) : null;
+    return hubo ? { hecho: Math.round(hecho), extra: Math.round(extra) } : null;
   }
 
   /* Observaciones: una fila de fichas debajo de las medidas. Multi-selección,

@@ -3646,15 +3646,21 @@
             "</div>";
         });
 
-        if (!gr.k) {
-          /* Las que no tienen contenedor: aquí mismo se les pone, en lote. */
-          html += '<div class="lote-pedir formato"><span class="nota-peque">Ponerles contenedor:</span>' +
-            Object.keys(Almacen.FORMATOS).map(function (k) {
-              var ff = Almacen.FORMATOS[k];
-              return '<button type="button" class="btn mini" data-loteformato="' + esc(k) + "|" + esc(ids) +
-                '">' + esc(ff.n[1]) + "</button>";
-            }).join("") + "</div>";
-        }
+        /* CAMBIAR EL CONTENEDOR, NO SÓLO PONERLO  ·  1-oct-2026.
+           Antes esto salía SOLO en el grupo de los que no tenían ninguno, así que
+           un contenedor mal puesto no había manera de arreglarlo desde la app.
+           Carlos lo vio con la limonada: estaba como «unidades sueltas», y eso
+           hace que la despensa cuente de ración en ración —250 ml— en vez de por
+           botellas, así que una botella de 1,5 L salía como «6 unidades».
+           Ahora el cambio está en todos los grupos. Se excluye el contenedor que
+           el grupo ya tiene, que sería un botón que no hace nada. */
+        html += '<div class="lote-pedir formato"><span class="nota-peque">' +
+          (gr.k ? "Cambiarles el contenedor:" : "Ponerles contenedor:") + "</span>" +
+          Object.keys(Almacen.FORMATOS).filter(function (k) { return k !== gr.k; }).map(function (k) {
+            var ff = Almacen.FORMATOS[k];
+            return '<button type="button" class="btn mini" data-loteformato="' + esc(k) + "|" + esc(ids) +
+              '">' + esc(ff.n[1]) + "</button>";
+          }).join("") + "</div>";
       }
       html += "</div>";
     });

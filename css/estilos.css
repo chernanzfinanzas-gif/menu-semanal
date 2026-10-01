@@ -174,8 +174,14 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .toma.inactiva .titulo-toma .chip-toma{display:none}
 
 /* dos casillas por plato: carro (comprado) y visto (comido) */
-.plato .marcar.carro{font-size:.82rem; filter:grayscale(1) opacity(.35)}
-.plato .marcar.carro.si{filter:none}
+.plato .marcar.carro{font-size:.82rem; filter:grayscale(1) opacity(.4)}
+/* EL CARRO MARCADO, IGUAL DE CLARO QUE EL VISTO · 1-oct-2026.
+   Carlos: «no se ve bien, debería tener fondo oscuro como lo seleccionado ya».
+   Antes, al marcarlo sólo se le quitaba el gris, así que el carrito en color
+   sobre fondo blanco se confundía con el carrito apagado. Ahora lleva el mismo
+   fondo verde que el ✓ y el icono en blanco, que es lo que se lee de un vistazo. */
+.plato .marcar.carro.si{filter:grayscale(1) brightness(0) invert(1);
+  background:var(--verde); border-color:var(--verde)}
 .plato.comprado{background:#fbfcfb}
 .plato.comprado .nom{color:var(--tinta)}
 
