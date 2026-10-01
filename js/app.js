@@ -498,15 +498,24 @@
            kcal» en cada renglón es ruido, no información. */
         var kToma = Almacen.nutrToma(fecha, t.k, false).k;
         var kCom = Almacen.nutrToma(fecha, t.k, true).k;
+        /* NECESITO / PLANIFICADO EN CADA TOMA (Carlos, 1-oct-2026): «eso debe
+           aparecer en cada toma como necesito / planificado». Es el mismo par que
+           ya enseña la cabecera del día, bajado a cada renglón. El «necesito»
+           sale de `Almacen.cuotaTomas`, que reparte el objetivo del día contando
+           el entreno previsto. Una toma todavía vacía enseña solo lo que necesita,
+           que es justo lo que hay que saber para elegir plato. */
+        var kNec = 0;
+        try { kNec = Almacen.cuotaToma(fecha, t.k) || 0; } catch (e) { kNec = 0; }
         var etqK = "";
-        if (kToma >= 1) {
-          etqK = (Math.round(kCom) >= Math.round(kToma))
-            ? '<b class="kcal-toma hecha">' + Util.kcal(kToma) + '</b>'
-            /* «652 / 860 kcal» y no «652 kcal / 860 kcal»: con la palabra dos
-               veces el rótulo se partía en dos renglones en el móvil. */
-            : '<b class="kcal-toma">' +
-                (kCom >= 1 ? '<i>' + Util.kcal(kCom).replace(' kcal', '') + '</i> / ' : '') +
-                Util.kcal(kToma) + '</b>';
+        if (kToma < 1 && kNec >= 1) {
+          etqK = '<b class="kcal-toma"><i>' + Util.kcal(kNec) + '</i></b>';
+        } else if (kToma >= 1) {
+          var _cl = "kcal-toma" + (Math.round(kCom) >= Math.round(kToma) ? " hecha" : "");
+          /* «888 / 896 kcal» y no «888 kcal / 896 kcal»: con la palabra dos veces
+             el rótulo se partía en dos renglones en el móvil. */
+          etqK = '<b class="' + _cl + '">' +
+                   (kNec >= 1 ? '<i>' + Math.round(kNec) + '</i> / ' : '') +
+                   Util.kcal(kToma) + '</b>';
         }
         html += '<div class="titulo-toma"><span>' + t.n + etqK + '</span>' +
                 (cerr ? (comen !== personasBase ? '<span class="chip-toma comensales raro">👤 ' + comen + '</span>' : '')

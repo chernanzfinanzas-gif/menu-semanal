@@ -4200,6 +4200,99 @@
        Esta es la cadena entera: actividad → gasto → calorías del día → menú.
        Si el perfil no tiene edad, altura y peso no hay TMB y no hay cadena; en ese
        caso se cae al objetivo fijo de Ajustes para no dejar la app sin números. */
+    /* ================= CUÁNTO NECESITA CADA TOMA (1-oct-2026) =================
+       Carlos: «se debe repartir la necesidad calórica entre las cinco tomas… eso
+       debe aparecer en cada toma como necesito / planificado».
+
+       El reparto viejo era cinco porcentajes fijos (22/10/33/10/25) y fallaba por
+       dos sitios a la vez, los dos medidos el 1-oct-2026 con sus números reales
+       (2.208 de base, 550 de déficit, 1.658 a comer):
+
+         1. Al desayuno le reservaba el 22 % —365 kcal— y su desayuno es un café
+            con leche de 100. Sobraban 265 que no se le daban a nadie.
+         2. Almuerzo y merienda solo existen los días que entrena. Los demás días
+            su 20 % no se reasignaba, así que el reparto solo repartía el 80 %.
+
+       Juntos dejaban casi 600 kcal sin asignar en un día de descanso, y por eso
+       «Completar» se quedaba corto.
+
+       CÓMO SE REPARTE AHORA, en tres pasos:
+
+         1. El DESAYUNO se lleva una cantidad FIJA, no un porcentaje: lo que pesa
+            su café con leche. No se le da más por mucho que suba el día.
+         2. El EXTRA DEL EJERCICIO va al avituallamiento —almuerzo y merienda—,
+            que es como se come de verdad un día de bici: las comidas principales
+            no cambian de tamaño porque hayas salido.
+         3. Con TECHO. Carlos lo puso como condición: «siempre que las meriendas,
+            almuerzos no sean más grandes que la cena… 600 cada merienda no es
+            viable». Así que ninguna pasa de `techoAvituallamiento`, y lo que se
+            desborda baja a comida y cena, que es donde cabe.
+
+       Lo que queda —la base menos el desayuno, más lo que desbordó— se reparte
+       entre comida y cena en la proporción de siempre (57/43).
+
+       CON SUS NÚMEROS:
+         día de descanso   100 desayuno · 888 comida · 670 cena
+         entreno de +280   100 · 888 · 670 · 140 almuerzo · 140 merienda
+         ruta de +1.200    100 · 1.048 · 910 · 400 · 400   (los dos en el techo)
+    */
+    objetivoBase: function () {
+      if (!this.tmb()) return this.estado.config.objetivoKcal || 0;
+      var minimo = (this.estado.perfil || {}).sexo === "m" ? 1200 : 1500;
+      return Math.max(minimo, Math.round(this.gastoBase() - this.deficitDiario()));
+    },
+
+    /* Lo que ese día te da el ejercicio por encima de un día de sofá. */
+    extraDelDia: function (fecha) {
+      return Math.max(0, this.objetivoDelDia(fecha) - this.objetivoBase());
+    },
+
+    cuotaTomas: function (fecha) {
+      var c = this.estado.config, self = this;
+      var desFijo = typeof c.desayunoFijo === "number" ? c.desayunoFijo : 100;
+      var techo   = typeof c.techoAvituallamiento === "number" ? c.techoAvituallamiento : 400;
+      var pc      = (c.repartoBase && typeof c.repartoBase.comida === "number")
+                      ? c.repartoBase.comida : 0.57;
+      var objetivo = this.objetivoDelDia(fecha);
+      var extra    = this.extraDelDia(fecha);
+      var base     = Math.max(0, objetivo - extra);
+
+      var activa = {};
+      ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (t) {
+        activa[t] = self.tomaActiva(fecha, t) && !self.esFuera(fecha, t);
+      });
+      var q = { desayuno: 0, almuerzo: 0, comida: 0, merienda: 0, cena: 0 };
+
+      /* 1. el desayuno, su cantidad fija */
+      if (activa.desayuno) q.desayuno = Math.min(desFijo, base);
+      var restoBase = base - q.desayuno;
+
+      /* 2. el extra al avituallamiento, sin pasar del techo */
+      var sobra = extra;
+      var avit = [];
+      if (activa.almuerzo) avit.push("almuerzo");
+      if (activa.merienda) avit.push("merienda");
+      if (avit.length && extra > 0) {
+        var porCabeza = extra / avit.length;
+        avit.forEach(function (t) { q[t] = Math.min(techo, porCabeza); sobra -= q[t]; });
+      }
+
+      /* 3. la base y lo que desbordó, a comida y cena */
+      var grande = restoBase + Math.max(0, sobra);
+      if (activa.comida && activa.cena) { q.comida = grande * pc; q.cena = grande * (1 - pc); }
+      else if (activa.comida) q.comida = grande;
+      else if (activa.cena)   q.cena   = grande;
+      else if (avit.length)   avit.forEach(function (t) { q[t] += grande / avit.length; });
+      else if (activa.desayuno) q.desayuno += grande;
+
+      Object.keys(q).forEach(function (k) { q[k] = Math.round(q[k]); });
+      return q;
+    },
+
+    cuotaToma: function (fecha, toma) {
+      return this.cuotaTomas(fecha)[toma] || 0;
+    },
+
     objetivoDelDia: function (fecha) {
       var c = this.estado.config;
       var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
@@ -4690,8 +4783,9 @@
 
       /* Se recorren las tomas de mayor a menor peso: los platos grandes primero,
          porque son los que deciden si el día cuadra. */
+      var cuotas = this.cuotaTomas(fecha);
       var orden = Util.TOMAS.slice().sort(function (a, b) {
-        return (reparto[b.k] || 0) - (reparto[a.k] || 0);
+        return (cuotas[b.k] || 0) - (cuotas[a.k] || 0);
       });
 
       /* Los fijos NO cuentan como «la toma ya está puesta»: una comida con el yogur y
@@ -4712,7 +4806,10 @@
         puestosYa.forEach(function (id) { yaEnLaToma += self.nutrEn(fecha, id).k; });
 
         var restante = objetivo - self.nutrDia(fecha).k;
-        var cuota = Math.round(objetivo * (reparto[t.k] || 0.2)) - yaEnLaToma;
+        /* LA CUOTA SALE DE `cuotaTomas` (1-oct-2026), no de un porcentaje fijo.
+           Así «Completar» busca el plato del tamaño que de verdad le toca a esa
+           toma ese día: un almuerzo de bici son 140 kcal, no el 10 % de todo. */
+        var cuota = (cuotas[t.k] || 0) - yaEnLaToma;
         /* si ya se ha pasado del objetivo, esta toma se queda pequeña a propósito */
         var busco = Math.max(80, Math.min(cuota, restante));
 
