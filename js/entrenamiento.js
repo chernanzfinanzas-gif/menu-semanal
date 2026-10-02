@@ -6507,7 +6507,7 @@
     if (!series1.length) { series1 = series; series2 = []; }
     /* con dos escalas hay números a los dos lados: el margen izquierdo deja de
        ser un pellizco de 2 px y se abre para que quepan */
-    if (series2.length) L = 16;
+    if (series2.length) { L = 24; R = 26; }
 
     var todos = [];
     series1.forEach(function (s) { s.pts.forEach(function (p) { todos.push(p.v); }); });
@@ -6520,6 +6520,7 @@
     todos.sort(function (a, b) { return a - b; });
     function pct(q) { return todos[Math.min(todos.length - 1, Math.max(0, Math.round((todos.length - 1) * q)))]; }
     var min = pct(0.02), max = pct(0.98);
+    var e1lo = min, e1hi = max;            // los extremos del eje 1, para el doble eje
     if (o.min !== undefined && o.min < min) min = o.min;
     if (o.max !== undefined && o.max > max) max = o.max;
     /* EL «+» DEL TOPE, DESPUÉS DE APLICAR `min` Y `max` Y SÓLO MIRANDO ARRIBA.
@@ -6543,18 +6544,31 @@
     /* la segunda escala: mismo recorrido, centrada en SUS datos */
     var min2 = 0, max2 = 1, minD2 = 0, maxD2 = 0;
     if (series2.length) {
+      /* UNA BANDA ARRIBA Y OTRA ABAJO (2-oct-2026, segunda vuelta). El primer
+         intento daba a cada eje el mismo recorrido pero CENTRADO EN SUS DATOS, y
+         Carlos lo vio en cuanto lo publicó: «no queda claro». Normal — centradas,
+         las dos líneas caían en la misma franja del medio, montadas una sobre
+         otra, y daba igual que los números fueran correctos.
+         Los extremos del eje son lo que coloca cada línea, así que se eligen para
+         eso: el eje 1 se cuelga de su dato más alto (banda de arriba) y el eje 2
+         se apoya en su dato más bajo (banda de abajo). Entre las dos queda un
+         hueco de un cuarto de la altura.
+         El recorrido sigue siendo EL MISMO en los dos, que es lo que permite
+         comparar pendientes. Y sale de que ninguna banda pase del 38 % de la
+         altura: así el dibujo nunca exagera el ruido del día, y por eso aquí no
+         hace falta `spanMin` —esa regla es para las gráficas de un solo eje. */
       var t2 = [];
       series2.forEach(function (x) { x.pts.forEach(function (p) { t2.push(p.v); }); });
       t2.sort(function (a, b) { return a - b; });
-      minD2 = t2[0]; maxD2 = t2[t2.length - 1];               // sus extremos de verdad
-      /* el recorrido es el mismo en los dos ejes; si la segunda serie se mueve
-         más que la primera, se ensanchan LOS DOS, que para eso van a la par */
-      var rec = Math.max(max - min, (maxD2 - minD2) * 1.24);
-      if (rec > max - min) {
-        var f1 = (rec - (max - min)) / 2; min -= f1; max += f1;
-      }
-      var c2 = (minD2 + maxD2) / 2;
-      min2 = c2 - rec / 2; max2 = c2 + rec / 2;
+      var pct2 = function (q) { return t2[Math.min(t2.length - 1, Math.max(0, Math.round((t2.length - 1) * q)))]; };
+      var e2lo = pct2(0.02), e2hi = pct2(0.98);
+      var S = Math.max((e1hi - e1lo) / 0.38, (e2hi - e2lo) / 0.38, 5);
+      max = e1hi + S * 0.05; min = max - S;                   // el peso, arriba
+      min2 = e2lo - S * 0.05; max2 = min2 + S;                // la magra, abajo
+      /* con dos ejes se rotulan LOS EXTREMOS DEL EJE, no los del dato: son las
+         dos esquinas de la caja y es lo que de verdad mide cada lado */
+      minD = min; maxD = max; minD2 = min2; maxD2 = max2;
+      recortados = max < todos[todos.length - 1];
     }
 
     /* El eje empieza donde empiezan los datos: si no, se ven medias gráficas vacías */
@@ -6742,32 +6756,48 @@
     });
 
     /* los extremos, rotulados: una gráfica sin escala no dice nada */
-    if (o.escala !== false) {
-      /* CON DOS EJES, CADA ESCALA EN SU LADO Y DEL COLOR DE SU LÍNEA. Carlos:
-         «que quede claro qué eje mide qué cosa». Un número gris a la derecha no
-         lo aclara: el color sí, porque es el mismo de la línea que mide. */
-      var c1 = series2.length ? (o.colorEje1 || series1[series1.length - 1].color) : "#9aa8a2";
-      var lado1 = series2.length ? L + 1 : W - 1, anc1 = series2.length ? "start" : "end";
-      s += '<text x="' + lado1 + '" y="' + (Y(maxD) + 1).toFixed(1) +
-        '" text-anchor="' + anc1 + '" font-size="7.5" fill="' + c1 + '">' + U.esc(num(maxD)) +
+    if (o.escala !== false && !series2.length) {
+      s += '<text x="' + (W - 1) + '" y="' + (Y(maxD) + 1).toFixed(1) +
+        '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(maxD)) +
         (recortados ? "+" : "") + "</text>";
-      s += '<text x="' + lado1 + '" y="' + (Y(minD) - 1).toFixed(1) +
-        '" text-anchor="' + anc1 + '" font-size="7.5" fill="' + c1 + '">' + U.esc(num(minD)) + "</text>";
-      if (series2.length) {
-        var c2 = o.colorEje2 || series2[0].color;
-        s += '<text x="' + (W - 1) + '" y="' + (Y2(maxD2) + 1).toFixed(1) +
-          '" text-anchor="end" font-size="7.5" fill="' + c2 + '">' + U.esc(num(maxD2)) + "</text>";
-        s += '<text x="' + (W - 1) + '" y="' + (Y2(minD2) - 1).toFixed(1) +
-          '" text-anchor="end" font-size="7.5" fill="' + c2 + '">' + U.esc(num(minD2)) + "</text>";
-      }
+      s += '<text x="' + (W - 1) + '" y="' + (Y(minD) - 1).toFixed(1) +
+        '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
     }
-    s += '<text x="' + L + '" y="7" font-size="8" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
+    if (o.escala !== false && series2.length) {
+      /* CADA ESCALA EN SU LADO, DEL COLOR DE SU LÍNEA Y SÓLO LOS DOS EXTREMOS.
+         Carlos: «poner texto en cada eje; los de masa magra hacerlos más pequeños
+         y poner en cada lado sólo los valores de eje en los extremos». Los
+         números van FUERA de la caja y en sus esquinas, que es donde el eje vale
+         de verdad: pegados a la línea no se sabía si eran escala o dato. El color
+         y el rótulo de arriba dicen qué mide cada lado; la masa magra, un punto
+         más pequeña, porque es la medida acompañante. */
+      var c1 = o.colorEje1 || series1[series1.length - 1].color;
+      var c2 = o.colorEje2 || series2[0].color;
+      var arr = (T + 4).toFixed(1), aba = (H - B).toFixed(1);
+      s += '<text x="' + (L - 3) + '" y="' + arr + '" text-anchor="end" font-size="7.5" fill="' + c1 + '">' +
+        U.esc(num(maxD)) + (recortados ? "+" : "") + "</text>";
+      s += '<text x="' + (L - 3) + '" y="' + aba + '" text-anchor="end" font-size="7.5" fill="' + c1 + '">' +
+        U.esc(num(minD)) + "</text>";
+      s += '<text x="' + (W - R + 3) + '" y="' + arr + '" font-size="6.5" fill="' + c2 + '">' +
+        U.esc(num(maxD2)) + "</text>";
+      s += '<text x="' + (W - R + 3) + '" y="' + aba + '" font-size="6.5" fill="' + c2 + '">' +
+        U.esc(num(minD2)) + "</text>";
+    }
+    if (series2.length) {
+      s += '<text x="0" y="7" font-size="7.5" fill="' + (o.colorEje1 || series1[series1.length - 1].color) +
+        '">' + U.esc(o.ejeIzq || o.arriba || "") + "</text>";
+      s += '<text x="' + W + '" y="7" text-anchor="end" font-size="6.5" fill="' +
+        (o.colorEje2 || series2[0].color) + '">' + U.esc(o.ejeDer || "") + "</text>";
+    } else {
+      s += '<text x="' + L + '" y="7" font-size="8" fill="#667a70">' + U.esc(o.arriba || "") + "</text>";
+    }
     /* `fechas:false` para las filas apiladas del panel de la noche: repetir
        «23 marzo … hoy» cinco veces era ruido, y el eje es el mismo en todas. */
     if (o.fechas !== false) {
       s += '<text x="' + L + '" y="' + (H - 3) + '" font-size="8" fill="#667a70">' +
         rotuloFecha(o.desde) + "</text>";
-      s += '<text x="' + (W - 1) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8" fill="#667a70">' +
+      s += '<text x="' + (series2.length ? W - R : W - 1) + '" y="' + (H - 3) +
+        '" text-anchor="end" font-size="8" fill="#667a70">' +
         (o.hasta === U.hoyISO() ? "hoy" : rotuloFecha(o.hasta)) + "</text>";
     }
     return '<div class="graf-caja">' + s + '</svg>' +
@@ -7931,20 +7961,20 @@
     var gBas = serieMixta("grasa", v), gCin = serieGrasaCinta(v);   // báscula + lo tecleado a mano
     var cuerpo1, nota1 = "";
     if (pes.length) {
-      /* DOS EJES (Carlos, 2-oct-2026). El peso a la izquierda, la masa magra a la
-         derecha, cada escala del color de su línea y con EL MISMO RECORRIDO de
-         kilos, así que las pendientes se comparan de verdad: si el peso baja 3 kg
-         y la masa magra se queda igual, se ve en el acto que lo que se ha ido es
-         grasa. `spanMin: 8` es el recorrido mínimo del eje; sin él, tres kilos
-         llenan la caja entera y cada pesada con medio kilo de agua parece un
-         desplome. */
+      /* DOS EJES, EN DOS BANDAS (Carlos, 2-oct-2026). El peso ocupa la mitad de
+         arriba con su eje a la izquierda; la masa magra, la de abajo con el suyo
+         a la derecha. Las dos escalas miden los mismos kilos, así que la pendiente
+         de un kilo es la misma en las dos líneas y se ve en el acto si el peso
+         baja mientras la magra aguanta. La maqueta que lo decidió está en
+         `_pruebas/maqueta-doble-eje.html`. */
       cuerpo1 = grafica({
         desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 112,
-        arriba: "kg", alt: "Peso y masa magra", unidadTip: "kg", spanMin: 8,
-        colorEje1: AZUL,
-        explica: "Dos escalas de kilos, la misma altura en las dos: a la izquierda y en azul el peso, " +
-          "a la derecha y en verde la masa magra. Al llevar el mismo recorrido, una bajada de un kilo " +
-          "tiene la misma pendiente en las dos líneas: si el peso cae y la magra no, lo que se va es grasa.",
+        arriba: "kg", alt: "Peso y masa magra", unidadTip: "kg",
+        colorEje1: AZUL, ejeIzq: "peso · kg", ejeDer: "masa magra · kg",
+        explica: "Dos escalas de kilos: el peso arriba, con su eje a la izquierda y en azul; la masa magra " +
+          "abajo, con su eje a la derecha y en verde. Las dos escalas miden los mismos kilos, así que una " +
+          "bajada de un kilo tiene la misma pendiente en las dos líneas: si el peso cae y la magra no, lo " +
+          "que se va es grasa.",
         series: [{ pts: pes, color: GRIS, ancho: 0.8, marcarUltimo: false },
                  { pts: med7, color: AZUL, ancho: 1.6 },
                  { pts: magra, color: VERDE, ancho: 1.3, eje2: true }]
