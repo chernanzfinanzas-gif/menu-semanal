@@ -3376,8 +3376,14 @@
     var h = [];
     if (!Almacen.sitioDe(g)) h.push("estante");
     if (!g.producto) h.push("marca");
-    if (!g.tienda) h.push("tienda");
-    if (!((g.precios || []).length)) h.push("precio");
+    /* Lo que has decidido NO comprar nunca más no tiene que pedirte tienda ni
+       precio: la ficha sigue viva porque te queda en casa o porque hubo recetas
+       que la usaban, pero al carro no vuelve. (2-oct-2026, con el tomate
+       deshidratado: 125 g en la despensa, cero recetas y `pedir:"nunca"`.) */
+    if (g.pedir !== "nunca") {
+      if (!g.tienda) h.push("tienda");
+      if (!((g.precios || []).length)) h.push("precio");
+    }
     if (!(g.k > 0) && !(g.p > 0) && !(g.h > 0) && !(g.g > 0) && !(g.sal > 0)) h.push("valores");
     return h;
   }
@@ -6474,14 +6480,19 @@
     $("#ingrediente-ia").addEventListener("click", function () {
       abrirIngredienteIA(UI.filtrosIng.texto || "");
     });
+    /* EL BOTÓN DE «SIN COMPLETAR» VIVE EN LA CABECERA, NO EN LA REJILLA.
+       Nació escuchando en `#rejilla-ingredientes` y por eso no hacía nada: el
+       contador está FUERA de la rejilla, así que el clic no llegaba nunca a ese
+       oyente. (Carlos, 2-oct-2026: «salen los 9 sin completar pero el botón no
+       funciona».) Cada sitio con su oyente. */
+    $("#contador-ingredientes").addEventListener("click", function (e) {
+      if (!e.target.closest("[data-verincompletos]")) return;
+      UI.filtrosIng.clase = "pendientes";
+      var selC = $("#filtro-ing-clase");
+      if (selC) selC.value = "pendientes";
+      pintarIngredientes();
+    });
     $("#rejilla-ingredientes").addEventListener("click", function (e) {
-      if (e.target.closest("[data-verincompletos]")) {
-        UI.filtrosIng.clase = "pendientes";
-        var selC = $("#filtro-ing-clase");
-        if (selC) selC.value = "pendientes";
-        pintarIngredientes();
-        return;
-      }
       var c = e.target.closest("[data-ingrediente]");
       if (c) abrirIngrediente(c.getAttribute("data-ingrediente"));
     });
