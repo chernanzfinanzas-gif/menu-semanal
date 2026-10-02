@@ -2752,6 +2752,24 @@
         return { t: s.t, min: s.min };
       });
     }
+    /* LA MOVILIDAD VA PEGADA A LA FUERZA  ·  2-oct-2026.
+       Carlos: «ponla 3 veces a la semana antes de la sesión de fuerza y ligada
+       a ella, si muevo la fuerza se mueve la movilidad de cuello». No es un
+       bloque que se reparta: sale de cada bloque de fuerza, así que va donde
+       vaya la fuerza. Se añade AL FINAL de la lista para no correr las
+       posiciones ("s0", "s1"…) con las que se guardan las marcas, y lleva su
+       propia marca (`mid`), atada a su fuerza. En pantalla se pinta ANTES de
+       la fuerza. No puntúa ni da el día por cumplido (familia «movilidad»). */
+    if (!lista.some(function (x) { return familia(x.t) === "movilidad"; })) {
+      var movs = [];
+      lista.forEach(function (x, k) {
+        if (familia(x.t) !== "fuerza" || x.grande) return;
+        var ata = x.bid || ("k" + k);
+        movs.push({ t: "Movilidad de cuello y mandíbula", min: 15, fam: "movilidad",
+                    ligada: ata, mid: "mov-" + ata });
+      });
+      lista = lista.concat(movs);
+    }
     /* si el semáforo rebajó el día y se aceptó, manda lo aceptado */
     var aj = sinAjuste ? null : ajusteDe(iso);
     if (aj && lista[aj.i]) {
@@ -3299,7 +3317,7 @@
   }
 
   function sesionHecha(iso, sesion, i) {
-    var m = marcaDe(iso, "s" + i), v = valorMarca(m);
+    var m = marcaDe(iso, (sesion && sesion.mid) || ("s" + i)), v = valorMarca(m);
     if (v === true) return true;
     if (sinReloj(sesion)) return false;        // sin reloj que valga, manda la casilla
     if (v === "no") return !!desmienteAlNo(iso, sesion, m, i);
@@ -9016,6 +9034,7 @@
   function minutosDia(iso, sem, talla) {
     var ses = sesionesDe(iso, sem, talla), m = 0, grande = false;
     ses.forEach(function (x) {
+      if (x.ligada) return;                    // la movilidad pegada a la fuerza no cuenta minutos
       if (x.grande) { grande = true; m += (P.diaGrande && P.diaGrande.minutos) || 180; }
       else m += x.min || 0;
     });
@@ -11693,8 +11712,19 @@
     }
 
     var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
+    /* el orden de pintar: la movilidad ligada, justo antes de su fuerza. El
+       índice `i` sigue siendo el de la lista, que es con el que se guardan las
+       marcas de las demás sesiones. */
+    var orden = [];
     ses.forEach(function (s, i) {
-      var id = "s" + i, m = marcaDe(dia, id), v = valorMarca(m), reloj = relojPara(dia, s);
+      if (s.ligada) return;
+      ses.forEach(function (o, j) { if (o.ligada && o.ligada === (s.bid || ("k" + i))) orden.push(j); });
+      orden.push(i);
+    });
+    ses.forEach(function (s, i) { if (s.ligada && orden.indexOf(i) < 0) orden.push(i); });
+    orden.forEach(function (i) {
+      var s = ses[i];
+      var id = s.mid || ("s" + i), m = marcaDe(dia, id), v = valorMarca(m), reloj = relojPara(dia, s);
       var aMano = sinReloj(s);
       var tarde = (!aMano && v === "no") ? desmienteAlNo(dia, s, m) : null;
       var porElReloj = (!aMano && v !== true && (v !== "no" || tarde) && !!reloj);
