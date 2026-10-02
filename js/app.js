@@ -3382,9 +3382,16 @@
        deshidratado: 125 g en la despensa, cero recetas y `pedir:"nunca"`.) */
     if (g.pedir !== "nunca") {
       if (!g.tienda) h.push("tienda");
-      if (!((g.precios || []).length)) h.push("precio");
+      /* `precioVariable`: hay fichas a las que el precio NO se les puede pedir
+         porque detrás hay varias cosas distintas. La fruta de temporada es el
+         caso: albaricoque en junio, caqui en noviembre. (Carlos, 2-oct-2026:
+         «no va a tener precio al ser varias cosas, no lo relleno».) */
+      if (!g.precioVariable && !((g.precios || []).length)) h.push("precio");
     }
-    if (!(g.k > 0) && !(g.p > 0) && !(g.h > 0) && !(g.g > 0) && !(g.sal > 0)) h.push("valores");
+    /* `sinAporte`: fichas que de verdad no aportan nada y el cero es el dato
+       bueno — el café, el edulcorante, una infusión. Sin esto, la lista de
+       incompletos te perseguiría para siempre con un número que ya es correcto. */
+    if (!g.sinAporte && !(g.k > 0) && !(g.p > 0) && !(g.h > 0) && !(g.g > 0) && !(g.sal > 0)) h.push("valores");
     return h;
   }
 

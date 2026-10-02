@@ -490,6 +490,37 @@
         if (global.console) console.log("Renombrados (" + renombradas.length + "): " + renombradas.join(", "));
       }
 
+      /* CAMBIAR DE PRODUCTO GANA A `editado`, UNA SOLA VEZ (2-oct-2026).
+         El mismo truco que el renombrado de arriba y por el mismo motivo. Carlos
+         cambió el descafeinado de Hacendado a las cápsulas L'Or de DIA, se puso
+         la ficha nueva en el catálogo… y no le llegaba, porque su copia estaba
+         marcada `editado` y entonces el `rev` no la alcanza nunca. Y no es un
+         caso raro: cada vez que un producto se cambia de marca o de tienda pasa
+         lo mismo, y arreglarlo a mano en el móvil es justo lo que no queremos.
+         Se hace con sello, igual que el renombrado: el catálogo dice «esta ficha
+         se refrescó el 2-oct», se aplica a quien no lo tenga y queda el sello.
+         Aplicado una vez, no vuelve a tocarse nunca.
+         SE COPIA LO QUE ES DEL PRODUCTO —nombre, marca, tienda, precios, envase,
+         valores— y NO lo que es una decisión suya: el estante donde lo guarda, el
+         mínimo en casa, el lote, la ración o si lo ha marcado como básico. Esas
+         siguen siendo suyas aunque el producto cambie. */
+      var DEL_PRODUCTO = ["n", "producto", "suplente", "tienda", "cajon", "precios",
+                          "envase", "pesoUd", "u", "cat", "sal", "k", "p", "g", "h",
+                          "sinAporte", "precioVariable", "formato", "compra",
+                          "nota", "nota2", "nota3"];
+      var refrescadas = [];
+      e.ingredientes.forEach(function (ing) {
+        var s2 = ingSemilla[ing.id];
+        if (!s2 || !s2.refrescar || ing.refrescado === s2.refrescar) return;
+        DEL_PRODUCTO.forEach(function (c) { if (s2[c] !== undefined) ing[c] = s2[c]; });
+        ing.refrescado = s2.refrescar;
+        refrescadas.push(s2.n);
+      });
+      if (refrescadas.length) {
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        if (global.console) console.log("Fichas refrescadas (" + refrescadas.length + "): " + refrescadas.join(", "));
+      }
+
       /* HOGAR: lo mismo que arriba, y FALTABA (23-sep-2026). Sin este bloque, un
          cambio en un artículo YA GUARDADO no llegaba jamás al móvil: por `altas`
          solo entran los ids nuevos, así que corregir una marca, cambiar un cajón o
