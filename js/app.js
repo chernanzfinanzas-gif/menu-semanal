@@ -1375,6 +1375,7 @@
     /* Al filtrar se abren solas las categorías que tengan algo y se cierran las
        que no: si no, habría que ir abriéndolas una a una para ver si el filtro
        ha encontrado algo dentro, que es justo lo contrario de filtrar. */
+    ponerLaX(document.getElementById("modal") || document);
     $("#filtro-selector").addEventListener("input", function (e) {
       var q = e.target.value.toLowerCase().trim();
       $$("#lista-selector .grupo-selec").forEach(function (det) {
@@ -1714,6 +1715,7 @@
       html += '</div>';
       abrirModal(html);
 
+      ponerLaX(document.getElementById("modal") || document);
       $("#filtro-selector").addEventListener("input", function (e) {
         var q = e.target.value.toLowerCase();
         $$("#lista-caprichos button").forEach(function (b) {
@@ -3393,6 +3395,45 @@
        incompletos te perseguiría para siempre con un número que ya es correcto. */
     if (!g.sinAporte && !(g.k > 0) && !(g.p > 0) && !(g.h > 0) && !(g.g > 0) && !(g.sal > 0)) h.push("valores");
     return h;
+  }
+
+  /* UNA X PARA VACIAR LA BÚSQUEDA (Carlos, 2-oct-2026): «en las casillas donde se
+     escriba algo para buscar una receta o un ingrediente, poner una x para limpiar
+     el formulario». No se toca el HTML casilla por casilla: se envuelven aquí.
+     DOS CORRECCIONES DEL MISMO DÍA, las dos suyas:
+       · «en este no sale» — la escondía mientras la casilla estaba vacía, que es
+         lo que hace medio mundo, pero entonces no la ves hasta que escribes y
+         parece que no está. Ahora está SIEMPRE.
+       · «aquí tampoco» — la casilla de filtrar del selector de platos se crea al
+         vuelo cada vez que se abre, así que no estaba cuando se repartieron las
+         equis. Por eso esto es una función y no una lista fija: se la llama
+         también al pintar un modal.
+     El botón no llama a ninguna función de pintar: borra el texto y lanza el mismo
+     evento `input` que lanzarías tú escribiendo, así que lo recoge el oyente que ya
+     existe y la lista se refresca sola. */
+  function ponerLaX(cont) {
+    if (!cont || !cont.querySelectorAll) return;
+    var cajas = cont.querySelectorAll('input[type="text"][id^="buscar"], input[type="text"][id="filtro-selector"]');
+    Array.prototype.forEach.call(cajas, function (inp) {
+      if (inp.parentNode && inp.parentNode.classList.contains("con-x")) return;
+      var caja = document.createElement("span");
+      caja.className = "con-x";
+      inp.parentNode.insertBefore(caja, inp);
+      caja.appendChild(inp);
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "limpia-x";
+      b.textContent = "×";
+      b.title = "Vaciar la búsqueda";
+      b.setAttribute("aria-label", "Vaciar la búsqueda");
+      caja.appendChild(b);
+      b.addEventListener("click", function () {
+        if (!inp.value) { if (!esMovil()) inp.focus(); return; }
+        inp.value = "";
+        inp.dispatchEvent(new Event("input", { bubbles: true }));
+        if (!esMovil()) inp.focus();
+      });
+    });
   }
 
   function pintarIngredientes() {
@@ -6499,43 +6540,7 @@
       if (selC) selC.value = "pendientes";
       pintarIngredientes();
     });
-    /* UNA X PARA VACIAR LA BÚSQUEDA (Carlos, 2-oct-2026): «en las casillas donde
-       se escriba algo para buscar una receta o un ingrediente, poner una x para
-       limpiar el formulario». Son ocho casillas repartidas por cuatro pantallas,
-       así que no se toca el HTML ocho veces: se envuelven aquí, una vez, y cada
-       una se lleva su botón.
-       El botón no llama a ninguna función de pintar: borra el texto y lanza el
-       mismo evento `input` que lanzarías tú escribiendo, así que lo recoge el
-       oyente que ya existe y la lista se refresca sola. Si mañana se añade otra
-       casilla de búsqueda, basta con poner su id en la lista. */
-    (function ponerLaX() {
-      ["buscar-receta", "buscar-ingrediente", "buscar-despensa", "buscar-loc",
-       "buscar-tengo", "buscar-orden", "buscar-pedir", "buscar-hogar"].forEach(function (id) {
-        var inp = document.getElementById(id);
-        if (!inp || inp.parentNode.classList.contains("con-x")) return;
-        var caja = document.createElement("span");
-        caja.className = "con-x";
-        inp.parentNode.insertBefore(caja, inp);
-        caja.appendChild(inp);
-        var b = document.createElement("button");
-        b.type = "button";
-        b.className = "limpia-x";
-        b.textContent = "×";
-        b.title = "Vaciar la búsqueda";
-        b.setAttribute("aria-label", "Vaciar la búsqueda");
-        caja.appendChild(b);
-        var ver = function () { b.hidden = !inp.value; };
-        inp.addEventListener("input", ver);
-        b.addEventListener("click", function () {
-          inp.value = "";
-          /* el evento que ya escuchan: así no hay que saber qué pinta cada una */
-          inp.dispatchEvent(new Event("input", { bubbles: true }));
-          ver();
-          if (!esMovil()) inp.focus();
-        });
-        ver();
-      });
-    }());
+    ponerLaX(document);
 
     $("#rejilla-ingredientes").addEventListener("click", function (e) {
       var c = e.target.closest("[data-ingrediente]");

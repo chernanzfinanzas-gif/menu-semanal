@@ -1355,7 +1355,9 @@ button.enlace {
 /* La x que vacía una casilla de búsqueda (2-oct-2026). El envoltorio hereda el
    sitio que tenía la casilla en la fila de filtros —crecer y no bajar de 180 px—
    para que añadir el botón no mueva nada de lo que había alrededor. */
-.con-x{position:relative; display:inline-flex; align-items:center; flex:1; min-width:180px}
+.con-x{position:relative; display:flex; align-items:center; flex:1 1 180px; width:100%}
+/* En la fila de filtros manda el `flex`; dentro de una ventana, donde no hay
+   fila, manda el `width` y la casilla sigue ocupando todo el ancho. */
 .con-x > input{width:100%; padding-right:30px}
 .limpia-x{position:absolute; right:6px; border:0; background:transparent; cursor:pointer;
   font-size:1.15rem; line-height:1; color:var(--gris); padding:2px 4px; border-radius:50%}
