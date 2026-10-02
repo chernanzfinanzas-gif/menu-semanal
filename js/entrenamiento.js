@@ -965,6 +965,11 @@
       ".ecg-pie{font-size:.74rem;line-height:1.4;color:#555;margin:6px 0 0}",
       ".ecg-btn{display:block;width:100%;margin-top:10px}",
       "#ecg-imprimir{display:none}",
+      /* ---- las cuatro casillas de la variabilidad (v340) ---- */
+      ".vfc-casillas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;margin:8px 0 2px;font-size:.78rem}",
+      ".vfc-casillas span{display:block;line-height:1.3}",
+      ".vfc-casillas i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.08)}",
+      ".vfc-casillas small{display:block;color:var(--gris);font-size:.7rem;margin-left:18px}",
       /* ---- la tensión en papel (v295) ---- */
       ".ten-svg{display:block;width:100%;height:auto;background:#fff;border:1px solid #e3e7ee;border-radius:4px;margin:4px 0 8px}",
       ".ten-h{font-size:.85rem;margin:12px 0 4px}",
@@ -6261,6 +6266,106 @@
     return out;
   }
 
+  /* ==================== VARIABILIDAD: NOCHE Y MAÑANA (v340) ====================
+     2-oct-2026. Carlos: «podemos ofrecer una correlación entre reloj (noche) y
+     banda (puntual en la mañana). Si mejora la noche, ha mejorado la mañana…
+     o si hay algo raro». Y luego: «una gráfica que aunque dé el dato y no se
+     relacione veamos si las líneas siguen caminos similares y con color decir
+     cómo fue el día».
+     Las dos escalas no se parecen (reloj 45-60 ms; banda 20-110), así que
+     cada una se pinta contra SU PROPIA normalidad: % sobre la mediana de los
+     14 días anteriores (hacen falta 4 para tener base). La mañana es la
+     variabilidad SIN latidos cortos del ECG de reposo, antes de las 12:00.
+     Cada día cae en una de cuatro casillas (±5 % es «igual»). */
+  var VFC_CASILLAS = {
+    bien:  { n: "Noche y mañana mejor", color: "#d5ecd9", txt: "recuperado de verdad" },
+    mal:   { n: "Noche y mañana peor", color: "#f5d3cd", txt: "cansancio o algo que empieza: día suave" },
+    raro:  { n: "Noche mejor, mañana peor", color: "#fae3b8", txt: "lo raro: algo pasó al despertar (estrés, postura, medicación)" },
+    noche: { n: "Noche peor, mañana mejor", color: "#d6e2f1", txt: "mala noche puntual, el cuerpo bien" }
+  };
+  function vfcRelativa(serieTodo, desde, hasta) {
+    var out = [];
+    serieTodo.forEach(function (p, i) {
+      if (p.f < desde || p.f > hasta) return;
+      var ini = U.sumarDias(p.f, -14), prev = [];
+      for (var j = 0; j < i; j++) if (serieTodo[j].f >= ini && serieTodo[j].f < p.f) prev.push(serieTodo[j].v);
+      if (prev.length < 4) return;
+      prev.sort(function (a, b) { return a - b; });
+      var m = prev.length % 2 ? prev[(prev.length - 1) / 2] : (prev[prev.length / 2 - 1] + prev[prev.length / 2]) / 2;
+      if (!(m > 0)) return;
+      out.push({ f: p.f, v: Math.round((p.v / m - 1) * 1000) / 10, crudo: p.v, base: m });
+    });
+    return out;
+  }
+  function vfcMananaEcg() {
+    var porDia = {};
+    registrosEcg().forEach(function (x) {
+      if (x.revisar || !x.h || x.h >= "12:00") return;
+      var n = parseFloat(x.rmssd_limpio);
+      if (isNaN(n) || n <= 0) return;
+      if (!porDia[x.f] || x.h < porDia[x.f].h) porDia[x.f] = { h: x.h, v: n };   // el primero de la mañana
+    });
+    return Object.keys(porDia).sort().map(function (f) { return { f: f, v: porDia[f].v }; });
+  }
+  function casillaVfc(n, m) {
+    var dn = n > 5 ? 1 : (n < -5 ? -1 : 0), dm = m > 5 ? 1 : (m < -5 ? -1 : 0);
+    if (dn > 0 && dm > 0) return "bien";
+    if (dn < 0 && dm < 0) return "mal";
+    if (dn > 0 && dm < 0) return "raro";
+    if (dn < 0 && dm > 0) return "noche";
+    return null;
+  }
+  function tarjetaVfcNocheManana() {
+    var v = ventanaDe("vfcnm");
+    var noche = vfcRelativa(serieSalud("vfc", { desde: U.sumarDias(v.desde, -20), hasta: v.hasta }), v.desde, v.hasta);
+    var manana = vfcRelativa(vfcMananaEcg(), v.desde, v.hasta);
+    var porM = {}; manana.forEach(function (p) { porM[p.f] = p; });
+    var pares = [], bandas = [], cuenta = { bien: 0, mal: 0, raro: 0, noche: 0, igual: 0 };
+    noche.forEach(function (p) {
+      var q = porM[p.f];
+      if (!q) return;
+      pares.push([p.v, q.v]);
+      var c = casillaVfc(p.v, q.v);
+      if (c) bandas.push({ desde: p.f, hasta: U.sumarDias(p.f, 1), color: VFC_CASILLAS[c].color });
+      cuenta[c || "igual"]++;
+    });
+    var cuerpo;
+    if (!noche.length && !manana.length) {
+      cuerpo = sinDatos("Todavía no hay base", "Cada línea necesita 4 días anteriores para saber qué es lo normal en ti.");
+    } else {
+      cuerpo = grafica({
+        desde: v.desde, hasta: v.hasta, alto: 110, arriba: "% sobre tu normal", unidadTip: "%",
+        alt: "Variabilidad de la noche y de la mañana, contra su normalidad", par: ["noche", "mañana"],
+        lineasH: [{ v: 0, color: "#c9d3dc", etq: "tu normal" }],
+        bandas: bandas,
+        series: [{ pts: noche, color: "#2f5c8a", ancho: 1.6, soloPuntos: noche.length < 3 },
+                 { pts: manana, color: "#b3402f", ancho: 1.6, soloPuntos: manana.length < 3 }]
+      }) + leyenda([{ n: "noche (reloj)", color: "#2f5c8a" }, { n: "mañana (banda, sin cortos)", color: "#b3402f" }]);
+      cuerpo += '<div class="vfc-casillas">' + ["bien", "mal", "raro", "noche"].map(function (k) {
+        return '<span><i style="background:' + VFC_CASILLAS[k].color + '"></i><b>' + cuenta[k] + "</b> " +
+          U.esc(VFC_CASILLAS[k].n) + "<small>" + U.esc(VFC_CASILLAS[k].txt) + "</small></span>";
+      }).join("") + "</div>";
+    }
+    var nota = "";
+    if (pares.length >= 14) {
+      var mx = 0, my = 0; pares.forEach(function (p) { mx += p[0]; my += p[1]; }); mx /= pares.length; my /= pares.length;
+      var sxy = 0, sxx = 0, syy = 0;
+      pares.forEach(function (p) { sxy += (p[0] - mx) * (p[1] - my); sxx += Math.pow(p[0] - mx, 2); syy += Math.pow(p[1] - my, 2); });
+      var r = (sxx && syy) ? sxy / Math.sqrt(sxx * syy) : 0;
+      nota = "En " + pares.length + " días con las dos medidas, la relación entre noche y mañana es <b>" + num(r, 2) +
+        "</b> (" + (Math.abs(r) < 0.2 ? "ninguna: van cada una por su lado" : Math.abs(r) < 0.5 ? "floja" : "clara") +
+        (r < -0.2 ? ", y al revés" : "") + "). ";
+    } else {
+      nota = pares.length + (pares.length === 1 ? " día" : " días") + " con las dos medidas: hacen falta unos 14 para ver si se relacionan. " +
+        "Mientras, se mira si las líneas van por el mismo camino y el color de cada día. ";
+    }
+    nota += (cuenta.igual ? cuenta.igual + (cuenta.igual === 1 ? " día sin cambio claro (en blanco). " : " días sin cambio claro (en blanco). ") : "") +
+      "La mañana cuenta solo si el ECG es sentado: recostado sale muchísimo más alta y no es comparable.";
+    return tarjetaEvo("Variabilidad: noche y mañana", null, null,
+      "Cada línea contra su propia normalidad. El color del fondo dice cómo fue el día.",
+      mandoEvo("vfcnm") + tramoEvo("vfcnm") + cuerpo, nota);
+  }
+
   function mediaMovilDias(serie, n) {
     var out = [];
     for (var i = 0; i < serie.length; i++) {
@@ -6841,7 +6946,8 @@
   var INFO_POR_TITULO = {
     "Peso y composición": "peso", "Recuperación": "recu", "Batería y estrés": "bat",
     "Forma y fatiga": "forma", "Cintura y rendimiento": "cintura", "Tensión": "tension",
-    "Corazón en reposo": "ecg", "El último ECG": "ecgUltimo"
+    "Corazón en reposo": "ecg", "El último ECG": "ecgUltimo",
+    "Variabilidad: noche y mañana": "vfcnm"
   };
   var LINEA_CARDIO = "Esto no sustituye la revisión de cardiología: sirve para llevarle datos.";
 
@@ -6895,6 +7001,32 @@
           bF && f7 !== null ? "tu base: " + num(bF) + " lpm (" + signo(f7 - bF) + ")" : ""));
         out.push(filaInfo("Sueño medio, 7 noches", s7 === null ? "sin dato" : hhmm(s7), s7 !== null && s7 < 420,
           s7 !== null && s7 < 420 ? "por debajo de 7 h" : ""));
+        return out;
+      }
+    },
+    vfcnm: {
+      titulo: "Variabilidad: noche y mañana",
+      mide: ["La misma cosa —la <b>variabilidad</b> del pulso— medida en dos momentos: la <b>noche</b>, con el reloj, y la <b>mañana</b>, con la banda del ECG sentado y sin los latidos cortos.",
+             "Sus números no se parecen (el reloj ronda 50; la banda puede dar 25 o 110), así que cada línea se pinta en % sobre <b>su propia normal</b>: la mediana de los 14 días anteriores. Hacen falta 4 días para empezar.",
+             "No se comparan los valores: se mira si las dos líneas <b>suben y bajan a la vez</b>."],
+      vigilar: ["El <b>color de cada día</b>: verde, las dos mejor (recuperado de verdad); rojo, las dos peor (día suave); ámbar, noche mejor y mañana peor (lo raro); azul, noche peor y mañana mejor (mala noche puntual). En blanco, las dos casi igual que tu normal (±5 %).",
+                "<b>Ámbar varios días seguidos</b>: o falla la medida de la mañana (postura, latidos cortos) o algo te altera al levantarte.",
+                "Con unos 14 días con las dos medidas sale si van juntas. Si no van juntas no es malo: miden momentos distintos.",
+                "La mañana solo vale <b>sentado</b>: recostado sale muchísimo más alta (el 1 de octubre, 22 sentado frente a 163 recostado)."],
+      como: function () {
+        var hoy = U.hoyISO(), desde = U.sumarDias(hoy, -29);
+        var noche = vfcRelativa(serieSalud("vfc", { desde: U.sumarDias(hoy, -50), hasta: hoy }), desde, hoy);
+        var mananaTodo = vfcMananaEcg(), manana = vfcRelativa(mananaTodo, desde, hoy);
+        var porM = {}; manana.forEach(function (p) { porM[p.f] = p; });
+        var ult = null;
+        noche.forEach(function (p) { if (porM[p.f]) ult = { f: p.f, n: p.v, m: porM[p.f].v }; });
+        var out = [filaInfo("Mañanas con ECG sin cortos", String(mananaTodo.length), false,
+          mananaTodo.length < 5 ? "hacen falta 5 para la primera comparación" : "")];
+        if (ult) {
+          var c = casillaVfc(ult.n, ult.m);
+          out.push(filaInfo("Último día con las dos", U.etiquetaFecha(ult.f), c === "raro",
+            (c ? VFC_CASILLAS[c].n : "sin cambio claro") + " · noche " + signo(ult.n) + " % · mañana " + signo(ult.m) + " %"));
+        } else out.push(filaInfo("Último día con las dos", "todavía ninguno"));
         return out;
       }
     },
@@ -8319,6 +8451,11 @@
     h += tarjetaEvo("Recuperación", vfc7.length ? num(vfc7[vfc7.length - 1].v) : null, "ms",
       "La VFC dice lo que ya pasó; el sueño y la carga dicen lo que va a pasar.",
       mandoEvo("recu") + tramoEvo("recu") + cuerpo2, nota2);
+
+    /* ---------- 2a. variabilidad: noche (reloj) y mañana (banda), v340 ----------
+       Justo debajo de Recuperación, que enseña la noche sola: así quedan seguidas
+       la noche sola y la noche frente a la mañana. (Carlos, 2-oct-2026.) */
+    h += tarjetaVfcNocheManana();
 
     /* ---------- 2b. batería y estrés ----------
        Dos series que llevaban 2.476 días bajadas y sin pintar. Van juntas
