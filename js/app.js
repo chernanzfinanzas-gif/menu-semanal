@@ -1192,9 +1192,26 @@
       var c = catsDe(r);
       return c.length > 0 && c.every(function (x) { return re.test(x); });
     };
+    /* LA FRUTA FRESCA ES POSTRE (Carlos, 2-oct-2026): «en postres me debes
+       ofrecer también la fruta fresca, plátano, manzana, melocotón… además de la
+       fruta de temporada». Y no vale arreglarlo en las fichas: el plátano, la
+       manzana y el melocotón son piezas suyas marcadas como `editado`, y una
+       ficha editada NO recibe campos nuevos del catálogo, así que añadirles
+       «postre» al tipo no les llegaría nunca. Se reconoce por lo que son: una
+       sola cosa, de la categoría de las frutas, y sin cocinar.
+       En el almuerzo y la merienda esto no cambia nada —ahí la fruta sigue
+       saliendo en Bloques de 100 y Piezas enteras, que es donde toca, y la
+       sección de Postres ni se dibuja—. */
+    var esFrutaFresca = function (r) {
+      return (r.ing || []).length === 1 &&
+             (r.grupo === "suelto" || r.grupo === "fruta") &&
+             (r.tools || []).indexOf("sin-cocinar") >= 0 &&
+             todoDe(r, /^frutas y verduras$/i);
+    };
     var papelDe = function (r) {
       if (todoDe(r, /^bebidas?$/i)) return "bebida";
       if ((r.tipo || []).indexOf("postre") >= 0 || r.grupo === "postre") return "postre";
+      if (esFrutaFresca(r)) return "postre";
       if (todoDe(r, /^panader[ií]a$/i)) return "pan";
       if ((r.tipo || []).indexOf("guarnicion") >= 0) return "guarnicion";
       return "principal";
@@ -1263,7 +1280,7 @@
         var t = r.tipo || [];
         var vale = t.indexOf(toma) >= 0 ||
                    (quiero === "guarnicion" && t.indexOf("guarnicion") >= 0) ||
-                   (quiero === "postre" && t.indexOf("postre") >= 0);
+                   (quiero === "postre" && (t.indexOf("postre") >= 0 || esFrutaFresca(r)));
         return vale && papelDe(r) === quiero;
       });
     };
