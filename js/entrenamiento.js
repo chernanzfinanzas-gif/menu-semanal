@@ -11068,19 +11068,19 @@
        Sin día fijo: va donde la ponga el tablero de la semana. */
     { id: "C", n: "Fuerza C", dia: null, diaTxt: "sin día fijo", min: 25, mov: [
       { n: "Zancadas",            s: 2, r: "10 por pierna", kg: 15,
-        nota: "Estáticas: los pies no se mueven, se baja y se sube. Una mancuerna de 7,5 en cada mano",
+        nota: "Estáticas: los pies no se mueven, se baja y se sube. APOYADO con una mano: mancuerna de 10 en la mano libre y 5 kg en la mochila (las dos tobilleras). El peso total y el volumen son los mismos que sin apoyo",
         garmin: "Sentadilla dividida con mancuernas" },
-      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
-        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos",
+      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 7.5,
+        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos. Descanso de 90 s: es el único donde el pulso sube hasta el final de la serie y no se recupera en 75",
         garmin: "Levantamiento de barra sobre cadera, en banca" },
-      { n: "Elevación de gemelos",s: 2, r: "15",          kg: 15,
-        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano",
+      { n: "Elevación de gemelos",s: 2, r: "10",          kg: 15,
+        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano. Descanso de 60 s: aquí sobran los 75. Diez y no quince porque el tempo se caía un 31 % con el pulso plano — se agota el gemelo, no tú",
         garmin: "Elevación de gemelos de pie con mancuernas" },
-      { n: "Pallof",              s: 2, r: "10 por lado", goma: 9,
-        nota: "Tubo azul en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado",
+      { n: "Pallof",              s: 2, r: "12 por lado", goma: "23-57",
+        nota: "Goma de anilla 23-57 en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado. El 23-57 es lo que marca la goma, no el peso que mueves",
         /* Garmin no tiene Pallof: se apunta con el más cercano por músculo (oblicuos) */
         garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" },
-      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 15, nota: "Una de 7,5 en cada mano, sin balancear",
+      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 20, nota: "Una de 10 en cada mano, sin balancear. Es tu techo de peso libre por mano",
         garmin: "Curl de bíceps alterno con mancuerna" }
     ]}
   ];

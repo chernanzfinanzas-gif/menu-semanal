@@ -2583,8 +2583,13 @@
         var r = E.rutinaPrevista(x.nombre);
         if (!r || !r.mov || !r.mov.length) return "";
         var filas = r.mov.map(function (m) {
+          /* la goma puede venir con un rango («23-57»), que es lo que marca la
+             goma y no el peso que mueve: entonces se escribe tal cual */
           var carga = m.kg ? num(m.kg, 0) + " kg"
-                    : (m.goma ? "goma de " + num(m.goma, 1) + " kg" : "\u2014");
+                    : (m.goma
+                        ? "goma de " + (typeof m.goma === "number"
+                            ? num(m.goma, 1) : esc(String(m.goma))) + " kg"
+                        : "\u2014");
           return "<tr><th>" + esc(m.n) + "</th>" +
             "<td>" + (m.s || "\u2014") + "</td>" +
             "<td>" + esc(m.r || "\u2014") + "</td>" +
