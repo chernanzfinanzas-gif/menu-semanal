@@ -767,3 +767,62 @@
   .akhb-an-cifras { grid-template-columns: 1fr 1fr; }
   .akhb-an-v { font-size: 17px; }
 }
+
+/* ===== Análisis de la sesión de sala (2-oct-2026) =====
+   Mismo lenguaje visual que el análisis del rodillo: cuatro cifras, la lectura
+   en azul, la receta en ámbar y el detalle ejercicio a ejercicio. */
+.akhb-sala { grid-column: 1 / -1; margin-top: 18px; padding-top: 16px;
+             border-top: 1px solid var(--linea, #e3e8ec); }
+.akhb-sala > h5 { margin: 0 0 4px; font-size: .78rem; letter-spacing: .06em;
+                  text-transform: uppercase; color: var(--gris, #6b7a87); font-weight: 600; }
+.akhb-sala-pers { margin: 0 0 14px; color: var(--gris, #6b7a87); font-size: .9rem; }
+
+.akhb-sala-tarjetas { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+.akhb-sala-t { flex: 1 1 180px; border: 1px solid var(--linea, #e3e8ec);
+               border-radius: 10px; padding: 11px 13px; }
+.akhb-sala-et { font-size: .7rem; letter-spacing: .05em; text-transform: uppercase;
+                color: var(--gris, #6b7a87); }
+.akhb-sala-n { font-size: 1.5rem; font-weight: 700; margin: 3px 0 2px; }
+.akhb-sala-d { font-size: .78rem; color: var(--gris, #6b7a87); line-height: 1.35; }
+
+.akhb-sala-lectura { background: var(--azul-claro, #eef4f9);
+                     border: 1px solid var(--azul-borde, #c7dcec); border-radius: 10px;
+                     padding: 12px 14px; margin: 0 0 14px; font-size: .93rem; }
+
+.akhb-sala-receta { background: #fdf6e7; border: 1px solid #f0dcae; border-radius: 10px;
+                    padding: 12px 16px 6px; margin: 0 0 8px; }
+.akhb-sala-receta h5 { margin: 0 0 3px; font-size: .72rem; letter-spacing: .05em;
+                       text-transform: uppercase; color: #8a6d2f; font-weight: 600; }
+.akhb-sala-pie { margin: 0 0 10px; font-size: .82rem; color: #8a6d2f; }
+.akhb-sala-tr { margin: 0; }
+.akhb-sala-tr thead th { color: #8a6d2f; }
+.akhb-sala-tr th, .akhb-sala-tr td { border-bottom-color: #efe2c4; }
+.akhb-sala-tr tbody tr:last-child th, .akhb-sala-tr tbody tr:last-child td { border-bottom: 0; }
+.akhb-sala-cambio { text-align: left !important; font-weight: 700; white-space: nowrap; }
+.akhb-sala-sube { color: #2f6b47; }
+.akhb-sala-baja { color: #b3402f; }
+.akhb-sala-manten { color: #6b7a87; }
+.akhb-sala-porque { text-align: left !important; font-size: .88rem; color: #5a6670;
+                    max-width: 52ch; font-weight: 400; }
+.akhb-sala-reglas { margin: 0 0 16px; font-size: .82rem; color: var(--gris, #6b7a87); }
+
+.akhb-sala-det { margin-bottom: 6px; }
+.akhb-sala-goma { color: var(--gris, #6b7a87); font-size: .86rem; }
+.akhb-sala-mal { color: #b3402f; font-weight: 600; }
+.akhb-sala-aviso { margin: 0 0 12px; font-size: .84rem; color: var(--gris, #6b7a87); }
+.akhb-sala-avisos { margin: 0 0 12px; padding-left: 18px; font-size: .84rem;
+                    color: var(--gris, #6b7a87); }
+.akhb-sala-nota { border-left: 3px solid var(--azul-borde, #c7dcec); padding: 4px 0 4px 12px;
+                  margin: 0; font-size: .93rem; }
+.akhb-sala-nota span { display: block; font-size: .7rem; letter-spacing: .05em;
+                       text-transform: uppercase; color: var(--gris, #6b7a87); margin-bottom: 4px; }
+
+@media (max-width: 620px) {
+  .akhb-sala-t { flex: 1 1 100%; }
+  .akhb-sala-porque { max-width: none; }
+  .akhb-sala-tr th:nth-child(3), .akhb-sala-tr td:nth-child(3) { display: none; }
+  .akhb-sala-det th:nth-child(5), .akhb-sala-det td:nth-child(5) { display: none; }
+}
+/* dentro del modal, que mide menos que la pantalla */
+.modal .caja .akhb-sala-t { flex: 1 1 100%; }
+.modal .caja .akhb-sala-porque { max-width: none; }

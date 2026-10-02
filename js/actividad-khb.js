@@ -780,6 +780,11 @@
        intervals no guarda: sale del fichero original del reloj, y lo rellena el
        paso del FIT del workflow. Si no está, la ficha sale como antes. */
     var fuerza = (o.fuerza && o.fuerza.sesiones) ? o.fuerza.sesiones : (o.fuerza || null);
+    /* El análisis de cada sesión de sala viaja en el MISMO fichero, en su propia
+       clave: los números los saca `analisis_sala.py` del fichero original del
+       reloj; la lectura, la receta y la nota las escribe la conversación. Si no
+       está, la ficha sale como antes. (2-oct-2026) */
+    var salaAn = (o.fuerza && o.fuerza.analisis) ? o.fuerza.analisis : null;
     var curva = (o.curva && o.curva.curvas) ? o.curva.curvas : (o.curva || null);
     /* Las sesiones de Zwift y MyWhoosh que recoge el portátil (27-sep-2026). */
     var rodillo = (o.rodillo && o.rodillo.sesiones) ? o.rodillo.sesiones : null;
@@ -2278,6 +2283,82 @@
          PREVISTO y no lo hecho: son dos cosas distintas y no se mezclan nunca.
          Cuando llegue la exportación, los nombres de verdad aparecen arriba y
          esto se calla solo. */
+      /* ---------- el análisis de la sesión de sala ----------
+         Mismo reparto que en la bici: los NÚMEROS salen solos del fichero
+         original del reloj; la LECTURA, la RECETA («qué cambio en el entreno de
+         Garmin») y la NOTA las escribe la conversación de después del entreno.
+         Lo que falte no se pinta: una ficha con menos dice más que una que se
+         inventa lo que no sabe. */
+      function htmlAnalisisSala(b) {
+        if (!b) return "";
+        var tarj = (b.tarjetas || []).map(function (t) {
+          return '<div class="akhb-sala-t">' +
+            '<div class="akhb-sala-et">' + esc(t.et) + "</div>" +
+            '<div class="akhb-sala-n">' + esc(t.n) + "</div>" +
+            '<div class="akhb-sala-d">' + (t.d || "") + "</div></div>";
+        }).join("");
+
+        var receta = "";
+        if (b.receta && b.receta.length) {
+          var filas = b.receta.map(function (r) {
+            var clase = r.tipo === "sube" ? " akhb-sala-sube"
+                      : r.tipo === "baja" ? " akhb-sala-baja" : " akhb-sala-manten";
+            return "<tr><th>" + esc(r.ej) + "</th>" +
+              '<td class="akhb-sala-cambio' + clase + '">' + esc(r.cambio) + "</td>" +
+              '<td class="akhb-sala-porque">' + esc(r.porque || "") + "</td></tr>";
+          }).join("");
+          receta = '<div class="akhb-sala-receta">' +
+            "<h5>Para la próxima" + (b.rutina ? " " + esc(b.rutina.replace(/^Fuerza\s*/i, "")) : "") + "</h5>" +
+            '<p class="akhb-sala-pie">Esto es lo que yo cambiaría en el entreno de Garmin.</p>' +
+            '<table class="akhb-tf akhb-sala-tr"><thead><tr>' +
+              "<th>Ejercicio</th><th>Cambia a</th><th>Por qué</th>" +
+            "</tr></thead><tbody>" + filas + "</tbody></table></div>" +
+            (b.reglas ? '<p class="akhb-sala-reglas">' + esc(b.reglas) + "</p>" : "");
+        }
+
+        var det = (b.detalle || []).map(function (d) {
+          var peso = d.goma ? '<span class="akhb-sala-goma">' + esc(d.goma) + "</span>"
+                   : (d.peso ? esc(d.peso) : "—");
+          var reps = d.tiempo ? (d.tiempo + " seg") : (d.reps != null ? d.reps : "—");
+          var tempo = d.tempo ? (d.tempo_cae
+                ? '<span class="akhb-sala-mal">' + esc(d.tempo) + "</span>" : esc(d.tempo))
+              : "—";
+          var pulso = d.pulso ? (d.fc_sube
+                ? '<span class="akhb-sala-mal">' + esc(d.pulso) + "</span>" : esc(d.pulso))
+              : "—";
+          return "<tr><th>" + esc(d.ej) + "</th>" +
+            "<td>" + (d.series != null ? d.series : "—") + "</td>" +
+            "<td>" + reps + "</td>" +
+            "<td>" + peso + "</td>" +
+            "<td>" + (d.vol != null ? num(d.vol) + " kg" : "—") + "</td>" +
+            "<td>" + pulso + "</td>" +
+            "<td>" + tempo + "</td></tr>";
+        }).join("");
+
+        var avisos = (b.avisos && b.avisos.length)
+          ? '<ul class="akhb-sala-avisos"><li>' +
+              b.avisos.map(function (v) { return esc(v); }).join("</li><li>") + "</li></ul>"
+          : "";
+
+        return '<div class="akhb-sala">' +
+          "<h5>Análisis de la sesión" + (b.rutina ? " · " + esc(b.rutina) : "") +
+            (b.minutos ? " · " + num(b.minutos, 0) + "′" : "") + "</h5>" +
+          (b.proposito ? '<p class="akhb-sala-pers">' + esc(b.proposito) + "</p>" : "") +
+          (tarj ? '<div class="akhb-sala-tarjetas">' + tarj + "</div>" : "") +
+          (b.lectura ? '<div class="akhb-sala-lectura">' + esc(b.lectura) + "</div>" : "") +
+          receta +
+          (det ? '<table class="akhb-tf akhb-sala-det"><thead><tr>' +
+              "<th>Ejercicio</th><th>Series</th><th>Reps</th><th>Peso</th>" +
+              "<th>Volumen</th><th>Pulso</th><th>Seg/rep</th>" +
+            "</tr></thead><tbody>" + det + "</tbody></table>" : "") +
+          '<p class="akhb-sala-aviso">Los ejercicios con goma se miden en repeticiones: ' +
+            "el número de la goma es su etiqueta, no el peso que mueves.</p>" +
+          avisos +
+          (b.nota ? '<p class="akhb-sala-nota"><span>Tu nota</span>' + esc(b.nota) + "</p>" : "") +
+        "</div>";
+      }
+
+
       function rutinaPrevistaHTML(x, series) {
         if (!series || !series.length) return "";
         /* EL HUECO LLEGA CON TRES NOMBRES DISTINTOS y los tres significan lo
@@ -2345,6 +2426,7 @@
               "<th>Ejercicio</th><th>Series</th><th>Reps</th><th>Max</th><th>Volumen</th><th>Min</th>" +
             "</tr></thead><tbody>" + filas + "</tbody></table>" +
             rutinaPrevistaHTML(x, series) +
+            ((salaAn && x.id && salaAn[x.id]) ? htmlAnalisisSala(salaAn[x.id]) : "") +
           "</div>";
       }
       var editor = (alRenombrar && x.id)
