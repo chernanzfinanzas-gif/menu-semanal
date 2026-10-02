@@ -826,3 +826,18 @@
 /* dentro del modal, que mide menos que la pantalla */
 .modal .caja .akhb-sala-t { flex: 1 1 100%; }
 .modal .caja .akhb-sala-porque { max-width: none; }
+
+/* ===== Monte y llano (2-oct-2026) =====
+   Reusan el lenguaje del análisis de sala; solo añaden la barra de «contra tu
+   curva» y el color de si la caminata fue mejor o peor que su media. */
+.akhb-barra { display: inline-block; height: 7px; border-radius: 4px;
+              background: var(--linea, #e3e8ec); width: 62px; vertical-align: middle;
+              margin-right: 7px; position: relative; overflow: hidden; }
+.akhb-barra i { position: absolute; left: 0; top: 0; bottom: 0; background: #9db9cf; }
+.akhb-sala-t.akhb-mejor .akhb-sala-n { color: #2f6b47; }
+.akhb-sala-t.akhb-peor .akhb-sala-n { color: #b3402f; }
+.akhb-llano .akhb-sala-tarjetas { margin-bottom: 4px; }
+@media (max-width: 620px) {
+  .akhb-barra { width: 38px; }
+  .akhb-sala-det th:nth-child(6), .akhb-sala-det td:nth-child(6) { display: none; }
+}

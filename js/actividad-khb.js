@@ -785,6 +785,11 @@
        reloj; la lectura, la receta y la nota las escribe la conversación. Si no
        está, la ficha sale como antes. (2-oct-2026) */
     var salaAn = (o.fuerza && o.fuerza.analisis) ? o.fuerza.analisis : null;
+    /* El monte y el llano viajan juntos en datos/monte.json: `analisis` son las
+       rutas relevantes (salen de su fichero original) y `llano` son TODAS las
+       caminatas llanas (salen de lo que ya llega por intervals). (2-oct-2026) */
+    var monteAn = (o.monte && o.monte.analisis) ? o.monte.analisis : null;
+    var llanoAn = (o.monte && o.monte.llano) ? o.monte.llano : null;
     var curva = (o.curva && o.curva.curvas) ? o.curva.curvas : (o.curva || null);
     /* Las sesiones de Zwift y MyWhoosh que recoge el portátil (27-sep-2026). */
     var rodillo = (o.rodillo && o.rodillo.sesiones) ? o.rodillo.sesiones : null;
@@ -2359,6 +2364,90 @@
       }
 
 
+
+      /* ---------- el análisis de una ruta de monte ----------
+         Lo que mide su forma en monte es cuántos metros gana por hora A ESA
+         PENDIENTE, porque el pulso se le queda en 110-120 suba lo que suba. Por
+         eso cada subida lleva al lado su porcentaje contra la curva: es lo que
+         hace comparables rutas que no se parecen en nada. */
+      function htmlAnalisisMonte(b) {
+        if (!b) return "";
+        var tarj = (b.tarjetas || []).map(function (t) {
+          return '<div class="akhb-sala-t"><div class="akhb-sala-et">' + esc(t.et) +
+            '</div><div class="akhb-sala-n">' + esc(t.n) + '</div>' +
+            '<div class="akhb-sala-d">' + (t.d || "") + "</div></div>";
+        }).join("");
+        var filas = (b.subidas || []).map(function (su) {
+          var ancho = Math.max(0, Math.min(100, su.pct || 0));
+          var dur = su.min >= 60 ? (Math.floor(su.min / 60) + " h " +
+                      (su.min % 60 < 10 ? "0" : "") + (su.min % 60)) : (su.min + " min");
+          return "<tr><th>" + esc(su.hora) + ' <span class="akhb-sala-goma">\u00b7 ' +
+              dur + "</span></th>" +
+            "<td>" + num(su.gan) + " m</td>" +
+            "<td>" + num(su.pend, 1) + " %</td>" +
+            "<td>" + num(su.vam) + "</td>" +
+            "<td>" + num(su.fc) + "</td>" +
+            "<td>" + (su.temp != null ? num(su.temp) : "\u2014") + "</td>" +
+            '<td><span class="akhb-barra"><i style="width:' + ancho + '%"></i></span>' +
+              num(su.pct) + " %</td></tr>";
+        }).join("");
+        var receta = "";
+        if (b.receta && b.receta.length) {
+          var rf = b.receta.map(function (r) {
+            return "<tr><th>" + esc(r.ej || r.que || "") + "</th>" +
+              '<td class="akhb-sala-cambio">' + esc(r.cambio) + "</td>" +
+              '<td class="akhb-sala-porque">' + esc(r.porque || "") + "</td></tr>";
+          }).join("");
+          receta = '<div class="akhb-sala-receta"><h5>Para la próxima</h5>' +
+            '<p class="akhb-sala-pie">Lo que yo cambiaría en una ruta como ésta.</p>' +
+            '<table class="akhb-tf akhb-sala-tr"><thead><tr><th>Qué</th><th>Cambia a</th>' +
+            "<th>Por qué</th></tr></thead><tbody>" + rf + "</tbody></table></div>";
+        }
+        return '<div class="akhb-sala">' +
+          "<h5>Análisis de la ruta" + (b.ruta ? " \u00b7 " + esc(b.ruta) : "") +
+            (b.km ? " \u00b7 " + num(b.km, 1) + " km" : "") +
+            (b.desnivel ? " \u00b7 " + num(b.desnivel) + " m" : "") + "</h5>" +
+          (b.proposito ? '<p class="akhb-sala-pers">' + esc(b.proposito) + "</p>" : "") +
+          (tarj ? '<div class="akhb-sala-tarjetas">' + tarj + "</div>" : "") +
+          (b.lectura ? '<div class="akhb-sala-lectura">' + esc(b.lectura) + "</div>" : "") +
+          receta +
+          (b.reglas ? '<p class="akhb-sala-reglas">' + esc(b.reglas) + "</p>" : "") +
+          (filas ? '<table class="akhb-tf akhb-sala-det"><thead><tr>' +
+              "<th>Subida</th><th>Gana</th><th>Pendiente</th><th>m/h</th><th>Pulso</th>" +
+              "<th>\u00b0C</th><th>Contra tu curva</th>" +
+            "</tr></thead><tbody>" + filas + "</tbody></table>" : "") +
+          ((b.avisos && b.avisos.length)
+            ? '<ul class="akhb-sala-avisos"><li>' +
+              b.avisos.map(function (v) { return esc(v); }).join("</li><li>") + "</li></ul>" : "") +
+          (b.nota ? '<p class="akhb-sala-nota"><span>Tu nota</span>' + esc(b.nota) + "</p>" : "") +
+        "</div>";
+      }
+
+      /* ---------- el análisis de una caminata llana ----------
+         Aquí no hay subidas que medir: su velocidad andando es clavada año tras
+         año, así que toda la señal está en el PULSO. Se compara con sus últimos
+         tres meses a ritmo parecido y con su mejor racha. */
+      function htmlAnalisisLlano(b) {
+        if (!b || !b.tarjetas || !b.tarjetas.length) return "";
+        var tarj = b.tarjetas.map(function (t) {
+          var cl = "akhb-sala-t";
+          if (t.et === "Contra tus 3 meses") {
+            if (b.mejor) cl += " akhb-mejor";
+            else if (b.peor) cl += " akhb-peor";
+          }
+          return '<div class="' + cl + '"><div class="akhb-sala-et">' + esc(t.et) +
+            '</div><div class="akhb-sala-n">' + esc(t.n) + '</div>' +
+            '<div class="akhb-sala-d">' + (t.d || "") + "</div></div>";
+        }).join("");
+        return '<div class="akhb-sala akhb-llano">' +
+          "<h5>Cómo fue esta caminata</h5>" +
+          (b.proposito ? '<p class="akhb-sala-pers">' + esc(b.proposito) + "</p>" : "") +
+          '<div class="akhb-sala-tarjetas">' + tarj + "</div>" +
+          (b.lectura ? '<div class="akhb-sala-lectura">' + esc(b.lectura) + "</div>" : "") +
+          (b.nota ? '<p class="akhb-sala-nota"><span>Tu nota</span>' + esc(b.nota) + "</p>" : "") +
+        "</div>";
+      }
+
       function rutinaPrevistaHTML(x, series) {
         if (!series || !series.length) return "";
         /* EL HUECO LLEGA CON TRES NOMBRES DISTINTOS y los tres significan lo
@@ -2461,6 +2550,8 @@
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
         htmlAnalisis(x) +
+        ((monteAn && x.id && monteAn[x.id]) ? htmlAnalisisMonte(monteAn[x.id])
+         : (llanoAn && x.id && llanoAn[x.id]) ? htmlAnalisisLlano(llanoAn[x.id]) : "") +
       "</div>";
     }
 

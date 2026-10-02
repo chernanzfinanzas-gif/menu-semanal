@@ -4706,6 +4706,29 @@
     cargar: Curva.cargar
   };
 
+  /* EL MONTE Y EL LLANO  ·  2-oct-2026.
+     Dos cosas en el mismo fichero, porque se piden a la vez:
+     · `analisis`: las rutas de monte RELEVANTES, con sus subidas, el ritmo de
+       ascenso y cuánto dio contra su curva a esa pendiente. Necesitan el
+       fichero original de la ruta, así que solo se hacen en las que pasan la
+       regla (desnivel > 750 m, o 16,9 km con más de 500, o el día después de
+       una gorda). Son cuatro o cinco al año.
+     · `llano`: TODAS las caminatas llanas. Ésas no necesitan fichero: salen de
+       la velocidad y el pulso que ya llegan por intervals, y por eso se hacen
+       todas — son cien al año, y el volumen es lo que las hace útiles.
+     Lo escribe `analisis_monte.py` desde el portátil, como el del rodillo.
+     Fichero aparte y opcional: si no está, la ficha sale como antes. */
+  var Monte = {
+    CLAVE: "khb-monte-v1",
+    RUTA: "datos/monte.json",
+    FRESCO_H: 6,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
   /* EL ECG Y LA TENSIÓN DEL CORREO  ·  28-sep-2026.
      Los dos los sube desde el portátil `recoger-ecg.py`, que los saca del
      correo (ECG Analysis y la app del tensiómetro sólo saben mandar correos).
@@ -5828,6 +5851,7 @@
         Borrado.pedir(id, modo, ruta, datos, listo);
       },
       fuerza: Fuerza.datos,
+      monte: Monte.datos,
       curva: Curva.datos,
       rodillo: Rodillo.datos,
       /* la referencia «tu mejor mes antes del plan» era mayo de 2026 y Carlos
@@ -5982,6 +6006,7 @@
     Fuerza.cargar(repinta);
     Curva.cargar(repinta);
     Rodillo.cargar(repinta);
+    Monte.cargar(repinta);
     ActHistorico.cargar(repinta);
     if (!Historico.datos) Historico.cargar(repinta);
   }
