@@ -878,10 +878,43 @@
     propias = propias.filter(niCapNiSuelto);
     resto   = resto.filter(niCapNiSuelto);
 
+    /* ---------- ¿HAY QUE COMPRAR ALGO PARA ESTO? (2-oct-2026) ----------
+       Carlos: «cuando damos a + para seleccionar una receta, además del nombre y
+       las calorías estaría bien que informara si de acuerdo al stock hay que
+       comprar algo o no. Que el aviso sirva para que vayamos a la nevera a
+       comprobar al menos».
+
+       La app ya lo sabía —es lo que mira «Completar» para no proponerte un salmón
+       que no tienes— pero sólo se veía en el bloque «Ya lo tienes en casa». Ahora
+       va en TODAS las filas, lo primero de la línea de abajo.
+
+       Se compara contra lo LIBRE, no contra el stock: lo que ya está prometido a
+       otro plato de la semana no se puede prometer dos veces. Y se distingue que
+       falte lo importante de que falte un accesorio —el orégano, media cucharada
+       de aceite—, porque no es lo mismo ir a la compra que mirar el bote. Misma
+       regla que el completador: `faltaParaHacer`.
+
+       El aviso invita a mirar, no sentencia: el stock vale lo que valga la última
+       ronda, y por eso él lo pidió así. */
+    var libresAhora = Almacen.libresTodo();
+    function avisoStock(r) {
+      if (!r || !(r.ing || []).length) return "";
+      var f = Almacen.faltaParaHacer(r, libresAhora);
+      if (!f.faltan.length) return '<b class="st-hay">lo tienes todo</b>';
+      var lista = f.faltanMayores.length ? f.faltanMayores : f.faltan;
+      var txt = lista.slice(0, 2).map(function (n) { return String(n).split("(")[0].trim(); }).join(", ");
+      if (lista.length > 2) txt += " y " + (lista.length - 2) + " m\u00e1s";
+      return f.faltanMayores.length
+        ? '<b class="st-falta">falta ' + esc(txt) + '</b>'
+        : '<span class="st-casi">s\u00f3lo falta ' + esc(txt) + '</span>';
+    }
+
     function boton(r) {
       var t = toolsOrdenadas(r.tools)[0];
+      var av = avisoStock(r);
       return '<button data-elegir="' + esc(r.id) + '" data-nombre="' + esc(r.n.toLowerCase()) + '">' +
-             esc(r.n) + '<small>' + (NOMBRE_GRUPO[r.grupo] || r.grupo || "") + ' · ' +
+             esc(r.n) + '<small>' + (av ? av + ' · ' : '') +
+             (NOMBRE_GRUPO[r.grupo] || r.grupo || "") + ' · ' +
              Util.sal(Almacen.salReceta(r)) + ' de sal · ' + (r.min || "?") + ' min' +
              (t ? ' · ' + esc(NOMBRE_TOOL[t] || t) : '') + '</small></button>';
     }
@@ -1142,7 +1175,9 @@
     /* el pie de cada botón: lo que hace falta para decidir en un vistazo */
     var pieDe = function (r) {
       var dueno = Almacen.duenoDe(r.id);
-      return (dueno && dueno !== "yo" ? "no te cuenta" : Util.kcal(Almacen.nutrReceta(r).k)) +
+      var av = avisoStock(r);
+      return (av ? av + " \u00b7 " : "") +
+             (dueno && dueno !== "yo" ? "no te cuenta" : Util.kcal(Almacen.nutrReceta(r).k)) +
              " \u00b7 " + Util.sal(Almacen.salReceta(r)) + " de sal" +
              (r.min ? " \u00b7 " + r.min + " min" : "");
     };

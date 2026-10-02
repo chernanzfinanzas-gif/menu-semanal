@@ -348,6 +348,12 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
   cursor:pointer; text-align:right}
 .plato .pl-kcal.boton.ajena{color:var(--gris,#667a70); font-size:.82em; white-space:nowrap}
 
+/* El aviso de despensa en cada fila del selector: lo primero que se lee debajo
+   del nombre, porque decide si hay que ir a la nevera antes de elegir. */
+.lista-selec .st-hay{color:var(--verde); font-weight:600}
+.lista-selec .st-falta{color:#b3402f; font-weight:600}
+.lista-selec .st-casi{color:var(--gris,#667a70)}
+
 /* LA CUENTA DE LA TOMA, EN LA CABECERA DEL SELECTOR. */
 .cuenta-toma{margin:0 0 6px; padding:7px 10px; border-radius:9px;
   background:var(--gris-claro); color:var(--tinta); font-size:14px; text-align:center}

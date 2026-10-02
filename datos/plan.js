@@ -685,12 +685,15 @@
     tareas: [
       { id: "ftp155", nombre: "Poner la FTP en 155 W en Zwift, Strava e intervals", limite: "2026-09-21",
         ayuda: "Con 200 W declarados, toda la carga del plan sale un 35-40 % baja." },
-      { id: "cinta", nombre: "Tener a mano una cinta métrica de sastre", limite: "2026-09-21", ayuda: "" },
+      { id: "cinta", nombre: "Tener a mano una cinta métrica de sastre", limite: "2026-09-21", ayuda: "" }
       /* «desde» es cuándo EMPIEZA a avisar, no cuándo se hace. Una tarea que
          asoma tres semanas antes deja de leerse mucho antes de vencer. */
-      { id: "test1", nombre: "Test de 20 minutos en Zwift", desde: "2026-10-05", limite: "2026-10-12",
-        ayuda: "Sale la FTP real y con ella las zonas definitivas. Hasta que lo hagas, toda la carga " +
-               "del plan se calcula sobre la FTP declarada, que es una estimación." }
+      /* «test1» QUITADA el 2-oct-2026 (Carlos): «retira el aviso. En el pase del
+         domingo 11 ya hablaremos de ello con una semana anticipada, no necesito
+         tener un aviso más cada día». Además su límite (12-oct) estaba mal: el
+         test va el domingo 18-oct, en la nota de la semana 4 de la rampa, y
+         antes hay que hablar del visto bueno de cardiología para un esfuerzo
+         máximo. */
     ],
 
     /* ---------- grasa estimada con la cinta ----------
