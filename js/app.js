@@ -125,6 +125,59 @@
       return (ORDEN_TOOL[a] || 9) - (ORDEN_TOOL[b] || 9);
     });
   }
+  /* ---- EL APARATO DE CADA PASO (v359, 3-oct-2026) ----
+     Carlos: «los temporizadores podrían llevar dónde se está haciendo: airfryer,
+     micro, sartén… ayuda leer el tiempo y el sitio». No se guarda en la receta: se
+     DEDUCE del texto del paso al pintar la ficha, así las 92 recetas lo llevan sin
+     migrar nada, las nuevas también, y el editor (que reescribe los pasos como
+     texto) no puede perderlo. Probado contra todo el recetario: 199 de 293 pasos
+     con minuto llevan aparato; los demás son «fuera», «reposar», «emplata»… y se
+     quedan sin etiqueta a propósito. Si alguna sale mal, el paso admite «ap» a mano
+     (en el editor: «12 @sarten · lo que hay que hacer»). */
+  var NOMBRE_AP = { airfryer: "Airfryer", micro: "Micro", sarten: "Sartén", horno: "Horno", cazuela: "Cazuela" };
+  var AP_REGLAS = [
+    ["airfryer", /freidora|cesta|airfryer|air ?fryer/gi],
+    ["micro", /microondas|cuecepasta|l[eé]ku[eé]|arrocera|vaporera|\b\d{3,4} ?W\b/gi],
+    ["sarten", /sart[eé]n/gi],
+    ["horno", /\bhorno\b/gi],
+    ["cazuela", /cazuela|\bolla\b|\bcazo\b/gi]
+  ];
+  var AP_DE_TOOL = { "airfryer": "airfryer", "lekue-vapor": "micro", "lekue-arroz": "micro", "lekue-pasta": "micro",
+                     "lekue": "micro", "microondas": "micro", "sarten": "sarten", "horno": "horno", "cazuela": "cazuela" };
+  var AP_FUERA = /fuera|escurr|agua fr[ií]a|hielo|en un bol|aplasta|\bpela|repos[ao]|\btritura|enfri|esperar|emplata|al plato|sirve|\bsaca\b|s[aá]ca(lo|la|los|las)\b/i;
+  var AP_TIEMPO = /\d+\s*(minutos?|min\b|segundos?|seg\b)|minuto y medio|medio minuto/i;
+  /* El ÚLTIMO aparato que nombra el texto: «el sofrito de la freidora a la sartén»
+     se hace en la sartén, que es adonde va. */
+  function apUltimo(s) {
+    var mejor = null, pos = -1;
+    AP_REGLAS.forEach(function (x) {
+      var re = new RegExp(x[1].source, "gi"), m;
+      while ((m = re.exec(s || ""))) { if (m.index > pos) { pos = m.index; mejor = x[0]; } }
+    });
+    return mejor;
+  }
+  function apTodos(s) {
+    return AP_REGLAS.filter(function (x) { return new RegExp(x[1].source, "i").test(s || ""); })
+                    .map(function (x) { return x[0]; });
+  }
+  function aparatoPaso(p, r, previo) {
+    if (p.ap) return NOMBRE_AP[p.ap] ? p.ap : null;
+    var t = p.t || "", ap = [];
+    (r.tools || []).forEach(function (x) { var a = AP_DE_TOOL[x]; if (a && ap.indexOf(a) < 0) ap.push(a); });
+    var a = apUltimo(t);
+    if (a) return a;
+    if (/sacude/i.test(t) && ap.indexOf("airfryer") >= 0) return "airfryer";
+    if (/\d\s*°\s*C/i.test(t)) return ap.indexOf("airfryer") >= 0 ? "airfryer" : (ap.indexOf("horno") >= 0 ? "horno" : null);
+    if (/fuego/i.test(t)) { if (ap.indexOf("sarten") >= 0) return "sarten"; if (ap.indexOf("cazuela") >= 0) return "cazuela"; }
+    if (AP_FUERA.test(t)) return null;
+    var sigue = /vuelta|\bmete|\ba[ñn]ade|\becha\b|remueve/i.test(t);
+    if (!AP_TIEMPO.test(t) && !sigue) return null;
+    if (ap.length === 1) return ap[0];
+    var enD = apTodos(p.d).filter(function (x) { return ap.indexOf(x) >= 0; });
+    if (enD.length === 1) return enD[0];
+    return previo || null;
+  }
+
   function etiquetasTool(tools) {
     return toolsOrdenadas(tools).map(function (t) {
       return '<span class="etiqueta' + (TOOLS_PREFERIDAS[t] ? ' preferida' : '') + '">' +
@@ -2275,13 +2328,17 @@
     /* Los pasos pueden ser texto llano o llevar minuto del reloj: {min, t, d}.
        Los que llevan minuto se pintan como un guion, para poder seguirlo cocinando. */
     html += '<h3>Elaboración</h3>';
-    var enGuion = false;
+    var enGuion = false, apPrevio = null;
     (r.pasos || []).forEach(function (p) {
       var conReloj = p && typeof p === "object" && typeof p.min === "number";
       if (conReloj && !enGuion) { html += '<ol class="guion">'; enGuion = true; }
       if (!conReloj && enGuion) { html += '</ol>'; enGuion = false; }
       if (conReloj) {
-        html += '<li><span class="reloj">' + p.min + "'" + '</span><div>' +
+        var apa = aparatoPaso(p, r, apPrevio);
+        if (apa) apPrevio = apa;
+        html += '<li><div class="col-reloj"><span class="reloj">' + p.min + "'" + '</span>' +
+                (apa ? '<span class="ap-paso ap-' + apa + '">' + NOMBRE_AP[apa] + '</span>' : '') +
+                '</div><div>' +
                 '<b>' + esc(p.t || "") + '</b>' +
                 (p.d ? '<span class="nota-peque">' + esc(p.d) + '</span>' : '') +
                 '</div></li>';
@@ -2350,7 +2407,7 @@
     var textoPasos = (r.pasos || []).map(function (p) {
       if (typeof p === "string") return p;
       if (!p) return "";
-      return (typeof p.min === "number" ? p.min + " · " : "") + (p.t || "") + (p.d ? " :: " + p.d : "");
+      return (typeof p.min === "number" ? p.min + (p.ap ? " @" + p.ap : "") + " · " : "") + (p.t || "") + (p.d ? " :: " + p.d : "");
     }).join("\n");
     html += '<label class="campo"><span>Pasos (uno por línea). Para un paso con minuto del reloj: ' +
             '<em>12 · lo que hay que hacer :: por qué</em></span>' +
@@ -2395,10 +2452,11 @@
         pasos: $("#ed-pasos").value.split("\n").map(function (s) {
           s = s.trim();
           if (!s) return null;
-          var m = s.match(/^(\d{1,3})\s*[·.|-]\s*(.+)$/);      // «12 · haz esto :: porque»
+          var m = s.match(/^(\d{1,3})\s*(?:@([a-z]+)\s*)?[·.|-]\s*(.+)$/);      // «12 · haz esto :: porque» (y «12 @sarten · …»)
           if (!m) return s;
-          var resto = m[2].split("::");
+          var resto = m[3].split("::");
           var paso = { min: parseInt(m[1], 10), t: resto[0].trim() };
+          if (m[2] && NOMBRE_AP[m[2]]) paso.ap = m[2];
           if (resto.length > 1) paso.d = resto.slice(1).join("::").trim();
           return paso;
         }).filter(Boolean),
