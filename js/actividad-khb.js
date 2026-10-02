@@ -1030,6 +1030,10 @@
       mes: null,           // null = el año entero
       metrica: "n",        // con qué se mide la altura de las barras del año
       abierta: null,       // clave de la ficha desplegada
+      /* Con una referencia puesta, el módulo enseña ESA ficha y nada más: ni
+         años, ni meses, ni lista. Es lo que usa la ventana emergente del plan.
+         Nula en el panel de Actividades de siempre. */
+      soloUna: null,
       /* EL FILTRO. `null` es «todas encendidas», y arranca así SIEMPRE: si
          recordara la selección, un día abrirías la app y no entenderías por
          qué te faltan años. No se guarda en ningún sitio a propósito. */
@@ -2504,7 +2508,7 @@
             "<td>" + num(su.vam) + "</td>" +
             "<td>" + num(su.fc) + "</td>" +
             "<td>" + (su.temp != null ? num(su.temp) : "\u2014") + "</td>" +
-            '<td><span class="akhb-barra"><i style="width:' + ancho + '%"></i></span>' +
+            '<td><span class="akhb-sala-barra"><i style="width:' + ancho + '%"></i></span>' +
               num(su.pct) + " %</td></tr>";
         }).join("");
         var receta = "";
@@ -2730,6 +2734,20 @@
          de clave («2024-m3» lo dan FTP, velocidad y potencia), así que dejar las
          de antes serviría la actividad equivocada. */
       fichasPintadas = {};
+      /* MODO «SÓLO ESTA FICHA» (2-oct-2026). La ventana emergente del plan
+         montaba el panel entero —tira de años, meses, leyenda, lista— y dejaba
+         la ficha pedida enterrada ahí dentro: «debería salir esta ficha, no la
+         general de actividades». Con `soloUna` puesta se pinta su fila sola y
+         abierta, y nada más. */
+      if (estado.soloUna) {
+        var uno = null, iu;
+        for (iu = 0; iu < todas.length; iu++) {
+          if (refDe(todas[iu]) === estado.soloUna) { uno = todas[iu]; break; }
+        }
+        if (!uno) return '<p class="akhb-nada">No encuentro esa salida.</p>';
+        estado.abierta = "sola-0";
+        return '<ul class="akhb-lista akhb-sola">' + htmlFila(uno, "sola-0") + "</ul>";
+      }
       /* Con una medida de días, abajo van DÍAS. No es un capricho: si eliges
          Pasos y abajo siguen saliendo actividades, la pantalla entera está
          hablando de una cosa menos la mitad de abajo. */
@@ -3386,6 +3404,12 @@
 
     function pintar() {
       if (!estado.el) return;
+      if (estado.soloUna) {
+        estado.el.innerHTML = '<div class="akhb"><div class="akhb-cuerpo">' +
+          htmlLista() + "</div></div>";
+        pintarMapas();
+        return;
+      }
       estado.el.innerHTML =
         '<div class="akhb">' +
           /* el volver arriba del todo y, debajo, Comparar (28-sep-2026) */
@@ -4245,6 +4269,21 @@
       },
       /* abre la ficha de esa actividad (id de intervals), en su mes (1-oct-2026) */
       irASalida: function (id) { if (id) irAlRecord("id:" + id); },
+      /* Para la ventana emergente: esta ficha y nada más. Devuelve false si no
+         encuentra la salida, para que quien llame pueda hacer lo de siempre
+         —irse a Actividades— en vez de enseñar una ventana vacía. */
+      soloFicha: function (id) {
+        if (!id) return false;
+        var ref = "id:" + id, hay = false, i;
+        for (i = 0; i < todas.length; i++) {
+          if (refDe(todas[i]) === ref) { hay = true; break; }
+        }
+        if (!hay) return false;
+        estado.soloUna = ref;
+        estado.abierta = "sola-0";
+        pintar();
+        return true;
+      },
       irA: function (anio, mes) {
         if (porAnio[anio]) { estado.anio = anio; estado.mes = mes || null; estado.abierta = null; pintar(); }
       },

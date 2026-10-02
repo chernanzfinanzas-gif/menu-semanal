@@ -4214,7 +4214,16 @@
     try {
       fichaModal = ActividadKHB.crear(opcionesArchivo());
       fichaModal.montar(hueco);
-      if (fichaModal.irASalida) fichaModal.irASalida(id);
+      /* SÓLO ESA FICHA. Antes se montaba el panel entero y se le pedía «vete a
+         esta salida»; si no la encontraba se quedaba enseñando la tira de años
+         y la lista del mes, que no es lo que se ha pedido al pulsar «cómo fue»
+         (Carlos, 2-oct-2026). Ahora se pide la ficha sola, y si no está se
+         devuelve false para caer a lo de siempre: irse a Actividades. */
+      if (fichaModal.soloFicha) {
+        if (!fichaModal.soloFicha(id)) { cerrarFichaModal(); return false; }
+      } else if (fichaModal.irASalida) {
+        fichaModal.irASalida(id);
+      }
       return true;
     } catch (e) {
       if (global.console) global.console.warn("ficha en emergente:", e);
