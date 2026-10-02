@@ -996,6 +996,19 @@
          semanas son setenta llamadas—, así que la respuesta se guarda. Se tira entera
          en cada `guardar`. */
       if (!this._cacheEntreno) this._cacheEntreno = {};
+      /* LA CACHÉ SE TIRA CUANDO EL PUENTE CAMBIA DE ESTADO (2-oct-2026).
+         El menú se pinta antes de que lleguen los datos de salud: en ese momento
+         el puente contesta «no hay entreno» porque todavía no tiene nada, y ese
+         «no» se quedaba guardado hasta el siguiente guardado. Resultado: la ficha
+         del día sumaba +156 kcal de entreno —ese número se calcula sin caché— y a
+         la vez cerraba el almuerzo y la merienda diciendo «sólo los días que
+         entrenas». Dos respuestas distintas a la misma pregunta.
+         El sello del puente cambia en cuanto tiene datos, y aquí se tira lo
+         guardado. La caché sigue sirviendo para lo que se hizo: las setenta
+         llamadas de la lista de la compra. */
+      var pu0 = this.puenteEntreno();
+      var sello = pu0 && pu0.sello ? pu0.sello() : (pu0 ? "x" : "-");
+      if (this._selloEntreno !== sello) { this._cacheEntreno = {}; this._selloEntreno = sello; }
       if (this._cacheEntreno[fecha] != null) return this._cacheEntreno[fecha];
       var hay = false, lista = [];
       try { lista = this.entrenoDelDia(fecha) || []; } catch (e) { lista = []; }

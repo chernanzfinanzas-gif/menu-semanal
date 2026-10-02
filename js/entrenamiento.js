@@ -13362,6 +13362,18 @@
   }
 
   global.KHBEntreno = {
+    /* ¿PUEDO YA CONTESTAR? (2-oct-2026). El menú se pinta antes de que lleguen
+       los datos de salud, así que `real()` devuelve lista vacía durante los
+       primeros segundos y `previsto()` también mientras no esté el plan. Quien
+       pregunte en ese rato se lleva un «hoy no entrenas» que no es verdad.
+       Esto devuelve un sello que cambia en cuanto el puente tiene con qué
+       responder, para que el que guarde la respuesta sepa cuándo tirarla.
+       (Carlos, 2-oct-2026: «¿por qué hoy no puedo elegir merienda o almuerzo?»,
+       con la ficha del día diciendo +156 kcal de entreno.) */
+    sello: function () {
+      return (Salud.datos ? "s" : "-") + (P && P.rampa ? "p" : "-");
+    },
+
     /* LA RUTINA QUE TOCABA, para la ficha de una sesión de fuerza.
        Los nombres de los ejercicios sólo llegan con la exportación de Garmin
        —cada dos meses—, así que entre medias la ficha enseña tres filas que
