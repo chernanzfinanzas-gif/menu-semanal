@@ -442,6 +442,21 @@
 
 .akhb-nada { font-size: 13px; color: var(--akhb-gris); padding: 18px 2px; margin: 0; }
 
+/* LA FICHA DENTRO DE UNA VENTANA VA A UNA COLUMNA (2-oct-2026).
+   Carlos enseñó la ficha de una sesión de fuerza con los datos cortados por la
+   derecha y una barra de desplazamiento horizontal abajo. El motivo: el salto a
+   una sola columna estaba en `@media (max-width: 620px)`, que mide EL MONITOR, y
+   su monitor es ancho. Pero la ficha no vive en el monitor: vive dentro de una
+   ventana de 640 px con 18 de margen, o sea 604 útiles. Pedía 380 del mapa + 18
+   de hueco + los 300 que necesita la tabla con sus rótulos sin partir = 698, y
+   lo que sobraba se salía por el lado.
+   Dentro de una ventana, pues, una columna: el mapa arriba y los datos debajo,
+   a todo el ancho. En la pantalla de Actividad, que sí es ancha, sigue como
+   estaba. */
+.modal .caja .akhb-ficha { grid-template-columns: 1fr; gap: 14px; }
+.modal .caja .akhb-mapa { max-width: 100%; }
+.modal .caja .akhb-kv { width: 100%; }
+
 @media (max-width: 620px) {
   .akhb-ficha { grid-template-columns: 1fr; gap: 14px; }
   .akhb-mapa { max-width: 100%; }
