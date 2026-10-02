@@ -1347,3 +1347,7 @@ button.enlace {
 /* El aviso del estante que lleva más tiempo sin mirarse. Ámbar, porque no es
    un error: es un dato que ya no es de fiar. */
 .ronda-sub .viejo{color:var(--ambar)}
+
+/* Lo que le falta a una ficha de ingrediente. Ámbar, no rojo: no está mal, está
+   a medias — y se arregla abriendo la ficha y escribiéndolo. (2-oct-2026) */
+.etiqueta.falta{background:#fdf3e2;color:#8a5d10;border-color:#eccf9a}

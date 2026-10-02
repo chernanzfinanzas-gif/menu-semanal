@@ -3361,6 +3361,27 @@
      de abajo del todo y merece su propio buscador. Además es donde se ven de un
      vistazo las dos cifras que importan en esta casa: las calorías y la sal por
      cada 100 g. */
+  /* QUÉ LE FALTA A UNA FICHA (Carlos, 2-oct-2026): «al ver en la pestaña los
+     ingredientes deberían aparecer los pendientes de clasificar y una ventana en
+     la que rellenar los datos que falten». La ventana ya existe —es la ficha del
+     ingrediente, que pide estante, marca, envase, tienda y ración—; lo que no
+     había era manera de SABER a cuáles les falta algo sin abrirlas una a una.
+     Un ingrediente que entra por una receta de la IA llega con los valores
+     nutricionales y nada más: ni estante, ni marca, ni tienda, ni precio.
+     `envase` vacío NO cuenta como hueco: la propia ficha dice que vacío
+     significa que se compra al peso. Y lo de restaurante y bar no se guarda en
+     casa, así que no se le pide nada. */
+  function huecosDe(g) {
+    if (!g || g.oculta || g.cat === "Restaurante y bar") return [];
+    var h = [];
+    if (!Almacen.sitioDe(g)) h.push("estante");
+    if (!g.producto) h.push("marca");
+    if (!g.tienda) h.push("tienda");
+    if (!((g.precios || []).length)) h.push("precio");
+    if (!(g.k > 0) && !(g.p > 0) && !(g.h > 0) && !(g.g > 0) && !(g.sal > 0)) h.push("valores");
+    return h;
+  }
+
   function pintarIngredientes() {
     var rej = $("#rejilla-ingredientes");
     if (!rej) return;
@@ -3374,6 +3395,7 @@
       if (f.clase === "basicos" && !x.basico) return false;
       if (f.clase === "racion" && x.racion == null) return false;
       if (f.clase === "fuera" && x.cat !== "Restaurante y bar") return false;
+      if (f.clase === "pendientes" && !huecosDe(x).length) return false;
       if (f.texto) {
         var q = sinTildes(f.texto.toLowerCase());
         if (sinTildes((x.n || "").toLowerCase()).indexOf(q) < 0 &&
@@ -3394,8 +3416,18 @@
       sel.dataset.listo = "1";
     }
 
-    $("#contador-ingredientes").textContent =
-      lista.length + " ingredientes" + (f.cat || f.texto || f.clase ? " (de " + (Almacen.estado.ingredientes || []).length + ")" : "");
+    /* El aviso va en la cabecera y SE PUEDE TOCAR: enterarte de que hay seis
+       fichas cojas no sirve de nada si luego tienes que ir a buscarlas. */
+    var incompletos = (Almacen.estado.ingredientes || []).filter(function (x) {
+      return !x.oculta && huecosDe(x).length;
+    }).length;
+    $("#contador-ingredientes").innerHTML =
+      esc(lista.length + " ingredientes" +
+          (f.cat || f.texto || f.clase ? " (de " + (Almacen.estado.ingredientes || []).length + ")" : "")) +
+      (incompletos && f.clase !== "pendientes"
+        ? ' \u00b7 <button type="button" class="btn mini" data-verincompletos="1" ' +
+          'style="color:var(--ambar)"><b>' + incompletos + '</b> sin completar</button>'
+        : "");
 
     rej.innerHTML = lista.map(function (x) {
       var u = x.u === "ud" ? "unidad" : ("100 " + (x.u || "g"));
@@ -3412,6 +3444,9 @@
                (racion ? '<span class="etiqueta">Raci\u00f3n: ' + esc(racion) + '</span>' : '') +
                (x.basico ? '<span class="etiqueta">B\u00e1sico</span>' : '') +
                (x.de === "ia" ? '<span class="etiqueta">De una IA</span>' : '') +
+               (huecosDe(x).length
+                 ? '<span class="etiqueta falta">Falta: ' + esc(huecosDe(x).join(", ")) + '</span>'
+                 : '') +
              '</div></div>';
     }).join("") || '<div class="vacio">No hay ingredientes con esos filtros.</div>';
   }
@@ -6440,6 +6475,13 @@
       abrirIngredienteIA(UI.filtrosIng.texto || "");
     });
     $("#rejilla-ingredientes").addEventListener("click", function (e) {
+      if (e.target.closest("[data-verincompletos]")) {
+        UI.filtrosIng.clase = "pendientes";
+        var selC = $("#filtro-ing-clase");
+        if (selC) selC.value = "pendientes";
+        pintarIngredientes();
+        return;
+      }
       var c = e.target.closest("[data-ingrediente]");
       if (c) abrirIngrediente(c.getAttribute("data-ingrediente"));
     });
