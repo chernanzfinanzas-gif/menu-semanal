@@ -1351,3 +1351,12 @@ button.enlace {
 /* Lo que le falta a una ficha de ingrediente. Ámbar, no rojo: no está mal, está
    a medias — y se arregla abriendo la ficha y escribiéndolo. (2-oct-2026) */
 .etiqueta.falta{background:#fdf3e2;color:#8a5d10;border-color:#eccf9a}
+
+/* La x que vacía una casilla de búsqueda (2-oct-2026). El envoltorio hereda el
+   sitio que tenía la casilla en la fila de filtros —crecer y no bajar de 180 px—
+   para que añadir el botón no mueva nada de lo que había alrededor. */
+.con-x{position:relative; display:inline-flex; align-items:center; flex:1; min-width:180px}
+.con-x > input{width:100%; padding-right:30px}
+.limpia-x{position:absolute; right:6px; border:0; background:transparent; cursor:pointer;
+  font-size:1.15rem; line-height:1; color:var(--gris); padding:2px 4px; border-radius:50%}
+.limpia-x:hover{color:var(--texto); background:var(--gris-claro)}
