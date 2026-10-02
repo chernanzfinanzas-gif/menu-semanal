@@ -7245,6 +7245,7 @@
 
   function cumplimientoPorBloques(sem, hasta, b, rep) {
     var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = {}, hoy = U.hoyISO();
+    var fz = { previstos: 0, hechos: 0 };            // la fuerza, aparte: sólo se dice (2-oct-2026)
     var porDia = {};
     b.forEach(function (x) {
       var d = rep[x.id];
@@ -7268,11 +7269,15 @@
         if (f === hoy && !hecho && !q) return;
         previstos++;
         if (hecho && !q) hechos++;
+        if (familia([x.t, x.n, x.id, i >= 0 ? ses[i].t : ""].join(" ")) === "fuerza") {
+          fz.previstos++;
+          if (hecho && !q) fz.hechos++;
+        }
         else fallos[f] = { f: f, m: motivosDe(f), nota: (obsDe(f) || {}).nota };
       });
     });
     var lista = Object.keys(fallos).sort().map(function (f) { return fallos[f]; });
-    return { previstos: previstos, hechos: hechos, fallos: lista, porBloques: true };
+    return { previstos: previstos, hechos: hechos, fallos: lista, porBloques: true, fuerza: fz };
   }
 
   function cumplimientoPorDias(sem, hasta) {
@@ -7440,6 +7445,14 @@
     if (v !== "pronto" && carga !== null && sem.carga && carga / sem.carga > exc) {
       porque += " Te has pasado: " + Math.round(carga / sem.carga * 100) + " % de la carga pedida. " +
         "Pasarse no adelanta la rampa" + (v === "subir" ? ": la que viene va según lo previsto, no más." : ".");
+    }
+    /* LA FUERZA SE DICE, NO DECIDE (Carlos, 2-oct-2026: «la fuerza no es
+       importante para mí. El pase que lo diga sin cambiar el veredicto»).
+       Desde la semana 2 el veredicto va por carga y la fuerza no puntúa: sin
+       esta línea, una semana sin pesas salía igual que una completa. */
+    if (v !== "pronto" && cump.fuerza && cump.fuerza.previstos) {
+      porque += " Fuerza: " + cump.fuerza.hechos + " de " + cump.fuerza.previstos +
+        (cump.fuerza.previstos === 1 ? " bloque." : " bloques.");
     }
     /* Si la semana cae dentro de una pauta médica ya prevista, se dice: si no,
        el veredicto parecería que no ha visto los días marcados. */
