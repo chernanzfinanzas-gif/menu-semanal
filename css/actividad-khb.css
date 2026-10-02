@@ -798,12 +798,21 @@
 .akhb-sala-tr thead th { color: #8a6d2f; }
 .akhb-sala-tr th, .akhb-sala-tr td { border-bottom-color: #efe2c4; }
 .akhb-sala-tr tbody tr:last-child th, .akhb-sala-tr tbody tr:last-child td { border-bottom: 0; }
-.akhb-sala-cambio { text-align: left !important; font-weight: 700; white-space: nowrap; }
+.akhb-tf tbody td.akhb-sala-cambio { text-align: left; font-weight: 700; white-space: normal; }
 .akhb-sala-sube { color: #2f6b47; }
 .akhb-sala-baja { color: #b3402f; }
 .akhb-sala-manten { color: #6b7a87; }
-.akhb-sala-porque { text-align: left !important; font-size: .88rem; color: #5a6670;
-                    max-width: 52ch; font-weight: 400; }
+/* `white-space: normal` es imprescindible: la tabla de la que hereda lleva
+   nowrap para que no se parta un «1.500 kg», y eso dejaba el porqué en una
+   sola línea que se salía de la ficha y no se podía leer (2-oct-2026). */
+/* Va con el selector completo de la tabla a propósito: `.akhb-tf tbody td`
+   pesa más que una clase suelta, así que el porqué salía en negrita, en tinta
+   oscura y sin poder romper línea — se salía de la ficha y no se leía. */
+.akhb-tf tbody td.akhb-sala-porque {
+  text-align: left; font-size: .84rem; font-weight: 400; color: #5a6670;
+  white-space: normal; max-width: 52ch; line-height: 1.4;
+}
+.akhb-sala-tr thead th:last-child { text-align: left; }
 .akhb-sala-reglas { margin: 0 0 16px; font-size: .82rem; color: var(--gris, #6b7a87); }
 
 .akhb-sala-det { margin-bottom: 6px; }
