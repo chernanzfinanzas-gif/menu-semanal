@@ -1150,25 +1150,17 @@
        frutos secos. Al tocar una entran TODAS sus piezas de golpe, cada una como
        su plato: así cada una descuenta su stock y va a la compra por separado,
        que es lo que ya sabe hacer el resto de la app. */
+    /* SE FUERON LAS COMBINACIONES (Carlos, 2-oct-2026): «mejor quitamos las
+       combinaciones de meriendas y almuerzos; el selector ofrece sólo los bloques
+       de 100, lo veo más práctico». Y es más práctico: un bloque es una decisión
+       pequeña y reversible —voy sumando hasta la cuota y paro cuando quiero—,
+       mientras que una combinación es un paquete cerrado que hay que deshacer
+       pieza a pieza si no te convence entera. Además la cuota de almuerzo y
+       merienda sólo existe los días con salida o entreno, así que la mayoría de
+       los días la sección anunciaba un tamaño que no era de nadie.
+       `Almacen.componerMerienda` sigue viva: la usa Completar para rellenar el
+       día solo. Lo que se quita es ofrecerlas aquí. */
     var bloqueKits = "";
-    if (esPicoteo) {
-      var hueco = Almacen.huecoDeToma(fecha, toma);
-      var ideas = Almacen.componerMerienda(fecha, toma, hueco, { porPatron: true, cuantas: 6 });
-      if (ideas.length) {
-        bloqueKits = '<details class="grupo-selec kits" data-fijo="1" open>' +
-          '<summary><span class="tit">Combinaciones de ' + Util.kcal(hueco) + '</span>' +
-          '<span class="cuantas">' + ideas.length + '</span></summary>' +
-          '<p class="aviso-grupo">Lo que le toca a ' + esc(toma) + ' hoy. Al tocar una entran todas sus piezas.</p>' +
-          ideas.map(function (x) {
-            return '<button data-combina="' + esc(x.ids.join(",")) + '" ' +
-                   'data-nombre="' + esc(x.nombres.join(" ").toLowerCase()) + '">' +
-                   esc(x.nombres.join("  +  ")) +
-                   '<small>' + Util.kcal(x.k) + ' \u00b7 ' + Util.sal(x.sal) + ' de sal \u00b7 ' +
-                   esc(x.patronN) + '</small></button>';
-          }).join("") +
-          '</details>';
-      }
-    }
 
     /* ---------- EL SELECTOR POR PAPELES (1-oct-2026) ----------
        Carlos: «no me parece cómodo el selector de platos… no encuentro lo de
@@ -4666,6 +4658,24 @@
      PENDIENTE VA ARRIBA Y NO SE PUEDE PLEGAR. Es el único bloque que pide algo:
      mientras haya algo ahí, hay ingredientes que la app no sabe dónde buscar, y
      eso se nota en la pasada de la despensa y en la lista de la compra. */
+  /* EL STOCK EN LA PANTALLA DE LOCALIZACIÓN (Carlos, 2-oct-2026): «en cada
+     estante sale el producto, puede salir el stock que queda de cada referencia
+     como información». Es información, no un campo: aquí no se cuenta, se
+     coloca; contar es «¿Lo tengo?». Tres estados y nada más:
+       ficha sin contar   -> «sin contar»  (ni mientes ni avisas)
+       contada en cero    -> «no queda»    (eso sí es un dato)
+       con existencias    -> «quedan X» y, si hay platos que ya lo reservan,
+                             «libre Y», que es lo que de verdad puedes gastar. */
+  function textoStockLoc(g) {
+    if (!Almacen.fichaStock(g.id)) return ' · <span class="st-casi">sin contar</span>';
+    var hay = Almacen.stockDe(g.id);
+    if (hay <= 0) return ' · <b class="st-falta">no queda</b>';
+    var cant = function (c) { return esc(Util.cantidadReceta(c, g.u, g.pesoUd)); };
+    var libre = Almacen.libre(g.id);
+    return ' · <b class="st-hay">quedan ' + cant(hay) + '</b>' +
+      (libre < hay ? ' · libre ' + cant(libre) : "");
+  }
+
   function lineaLoc(g, estanteActual) {
     var av = (locAvisos || {})[g.id];
     /* Las flechas de ordenar: sólo dentro de un estante. En Pendiente no hay
@@ -4680,7 +4690,7 @@
     return '<div class="linea linea-loc" data-locfila="' + esc(g.id) + '">' +
       flechas +
       '<div class="datos"><div class="nombre">' + esc(g.n) + '</div>' +
-      '<div class="detalle">' + esc(g.cat) +
+      '<div class="detalle">' + esc(g.cat) + textoStockLoc(g) +
         (av ? ' · <b style="color:var(--ambar)">lo usa ' + esc(av.platos.slice(0, 2).join(", ")) +
               (av.platos.length > 2 ? " y " + (av.platos.length - 2) + " más" : "") + '</b>' : "") +
       '</div></div>' +

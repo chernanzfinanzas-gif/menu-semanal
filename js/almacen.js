@@ -5342,11 +5342,15 @@
        sacada aparte para que el selector pueda ofrecer combinaciones del tamaño
        que de verdad toca y no del tamaño de un plato cualquiera. El suelo de 80
        es el mismo de allí: por debajo no hay nada que proponer. */
-    huecoDeToma: function (fecha, toma) {
+    huecoDeToma: function (fecha, toma, crudo) {
       var cuota = (this.cuotaTomas(fecha) || {})[toma] || 0;
       var ya = this.nutrToma(fecha, toma).k;
       var restante = this.objetivoDelDia(fecha) - this.nutrDia(fecha).k;
-      return Math.max(80, Math.round(Math.min(cuota - ya, restante)));
+      var h = Math.round(Math.min(cuota - ya, restante));
+      /* `crudo` devuelve lo que de verdad cabe, aunque sea cero o negativo: el
+         selector lo necesita para no anunciar «combinaciones de 80 kcal» cuando
+         lo que pasa es que esa toma ya está llena (2-oct-2026). */
+      return crudo ? h : Math.max(80, h);
     },
 
     /* ---------- EL COMPOSITOR ----------
@@ -5434,6 +5438,19 @@
          recuperador, la fruta con fruto seco, los desecados y el yogur, y
          elegir. */
       if (opc.porPatron) {
+        /* UNA IDEA FUERA DE SITIO ES PEOR QUE NINGUNA (2-oct-2026). Carlos:
+           «mira, en combinaciones de 80 kcal salen desde 185 hasta 300». Y era
+           verdad: esta lista daba la mejor idea DE CADA PATRÓN pasara lo que
+           pasara, así que con una cuota pequeña devolvía el batido de 299 kcal
+           porque es el batido más pequeño que existe. Ofrecer no es rellenar:
+           si un patrón no tiene nada del tamaño que toca, ese patrón no sale.
+
+           La banda es ±25 %, con 40 kcal de holgura mínima para que las cuotas
+           pequeñas no se queden sin nada por un puñado de calorías. */
+        var holgura = Math.max(40, busco * 0.25);
+        ideas = ideas.filter(function (x) {
+          return x.k >= busco - holgura && x.k <= busco + holgura;
+        });
         var porK = {};
         ideas.forEach(function (x) { if (!porK[x.patron]) porK[x.patron] = x; });
         var fila = [];
