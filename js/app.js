@@ -931,8 +931,46 @@
        están pensadas para esa toma, que no son un grupo de alimentos sino un
        atajo. Debajo, TODOS los grupos, porque una cena vale para comer y al
        revés: el reparto por tomas es una sugerencia, no una regla. */
+    /* ---------- EL ORDEN DE LAS LISTAS: PRIMERO LO QUE PUEDES HACER YA
+       (2-oct-2026) ----------
+       Carlos: «lo que quiero es que aparezcan arriba aquellas recetas en las que
+       tengo ya en stock la mayor parte de los ingredientes, y que vayan
+       apareciendo según me falten más ingredientes. Haces bien en los
+       ingredientes únicos ponerlos al final».
+
+       Así que el orden es el de la decisión real: lo que puedo cenar HOY sin ir a
+       comprar, después lo que casi puedo, y al final lo que es media compra. Es
+       el mismo criterio del aviso de la fila —`faltaParaHacer`— pero mandando en
+       el orden, no sólo en el texto.
+
+       Manda lo que falte de IMPORTANTE, no el total: una receta a la que le falta
+       el orégano está más cerca de hacerse que otra a la que le falta el pescado,
+       aunque las dos cuenten «falta 1». El total desempata después.
+
+       Y los ingredientes únicos van al final de su lista, los pida él así: en una
+       cena se busca primero el plato y luego el acompañamiento. Dentro de cada
+       grupo, a igualdad de lo que falta, primero el plato con más componentes y
+       luego el nombre. */
     function ordenar(lista) {
-      return lista.slice().sort(function (a, b) { return a.n.localeCompare(b.n); });
+      var cache = {};
+      function falta(r) {
+        if (cache[r.id]) return cache[r.id];
+        var f = (r.ing || []).length ? Almacen.faltaParaHacer(r, libresAhora)
+                                     : { faltan: [], faltanMayores: [] };
+        return (cache[r.id] = f);
+      }
+      return lista.slice().sort(function (a, b) {
+        var ua = (a.ing || []).length === 1 ? 1 : 0;
+        var ub = (b.ing || []).length === 1 ? 1 : 0;
+        if (ua !== ub) return ua - ub;                       /* lo de una sola cosa, al final */
+        var fa = falta(a), fb = falta(b);
+        if (fa.faltanMayores.length !== fb.faltanMayores.length)
+          return fa.faltanMayores.length - fb.faltanMayores.length;
+        if (fa.faltan.length !== fb.faltan.length) return fa.faltan.length - fb.faltan.length;
+        var da = (a.ing || []).length, db = (b.ing || []).length;
+        if (da !== db) return db - da;
+        return a.n.localeCompare(b.n);
+      });
     }
 
     function seccion(titulo, lista, abierta, aviso) {
