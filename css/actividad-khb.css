@@ -841,3 +841,51 @@
   .akhb-barra { width: 38px; }
   .akhb-sala-det th:nth-child(6), .akhb-sala-det td:nth-child(6) { display: none; }
 }
+
+/* ===== El dibujo de la curva de ascenso (2-oct-2026) =====
+   Va en el hueco de debajo del mapa. La línea gris es lo que da normalmente a
+   cada pendiente; los puntos, las subidas de esa ruta. */
+.akhb-grafico { margin: 10px 0 0; padding: 0; }
+.akhb-grafico svg { display: block; width: 100%; height: auto; }
+.akhb-grafico figcaption { margin-top: 4px; font-size: .74rem; line-height: 1.35;
+                           color: var(--gris, #6b7a87); }
+.akhb-g-rej { stroke: #eceff2; stroke-width: 1; }
+.akhb-g-eje { stroke: #d7dde2; stroke-width: 1; }
+.akhb-g-tick { fill: #8d9aa6; font-size: 9px; }
+.akhb-g-ty { text-anchor: end; }
+.akhb-g-tx { text-anchor: middle; }
+.akhb-g-curva { fill: none; stroke: #9aa7b2; stroke-width: 2;
+                stroke-linejoin: round; stroke-linecap: round; }
+.akhb-g-pto { fill: #1565a8; stroke: #fff; stroke-width: 2; }
+.akhb-g-et { font-size: 10px; font-weight: 600; }
+.akhb-g-etc { fill: #8d9aa6; text-anchor: end; }
+.akhb-g-etp { fill: #1565a8; }
+/* el escalón donde cae una subida de esta ruta, y el hilo que los une */
+.akhb-g-curva.akhb-g-aqui { stroke: #5f7183; stroke-width: 3; }
+.akhb-g-salto { stroke: #c9d2da; stroke-width: 1; }
+.akhb-g-hilo { stroke: #1565a8; stroke-width: 1; opacity: .45; }
+/* ---------- los tramos de subida sobre el perfil de altura ----------
+   El perfil sigue siendo lo de siempre: relleno claro y línea azul del tema.
+   Lo que cambia es que las subidas que se analizan se pintan como un bloque
+   del monte, con el color de familia del monte, y el resto se queda al fondo.
+   Pedido de Carlos el 2-oct: «colores más suaves en el perfil y más visible
+   en los tramos». */
+.akhb-p-subearea { fill: #e0a86a; stroke: none; }
+.akhb-p-sube     { fill: none; stroke: #a5681f; stroke-width: 2.6;
+                   stroke-linecap: round; stroke-linejoin: round; }
+/* la leyenda de la pendiente, debajo del perfil */
+.akhb-p-leyenda {
+  margin: 5px 0 0; display: flex; flex-wrap: wrap; gap: 3px 11px;
+  font-size: 10.5px; color: var(--akhb-gris, #667a70); line-height: 1.3;
+}
+.akhb-p-leg { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.akhb-p-leg i {
+  width: 11px; height: 11px; border-radius: 2px; display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+/* y el perfil de debajo, un punto más suave para que el tramo destaque */
+.akhb-p-linea    { stroke-opacity: .55; }
+
+/* el rótulo de cada eje del gráfico de la curva */
+.akhb-g-eti { fill: var(--akhb-gris, #667a70); font-size: 9px; text-anchor: middle;
+              letter-spacing: .02em; }

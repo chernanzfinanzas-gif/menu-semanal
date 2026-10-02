@@ -2365,6 +2365,106 @@
 
 
 
+      /* ---------- el dibujo de la curva de ascenso ----------
+         Carlos, 2-oct: «hablas de mi curva pero no se sabe de qué se está
+         hablando». Pues se dibuja: la línea gris es lo que da NORMALMENTE a
+         cada pendiente —medido con sus 36 subidas— y los puntos azules son las
+         subidas de esta ruta. Por encima de la línea, buen día.
+         Sin librerías: SVG a pelo, que es lo que hay en esta app. */
+      function dibujoCurva(curva, subs) {
+        if (!curva || !curva.length || !subs || !subs.length) return "";
+        /* B y L dan sitio a los rótulos de los ejes: sin decir qué se mide,
+           un número suelto no dice nada (pedido de Carlos, 2-oct). */
+        var W = 300, H = 186, L = 46, R = 10, T = 14, B = 44;
+        var maxP = 20, maxV = 400;
+        subs.forEach(function (s) {
+          if (s.pend > maxP) maxP = Math.ceil(s.pend / 5) * 5;
+          if (s.vam > maxV) maxV = Math.ceil(s.vam / 100) * 100;
+        });
+        var X = function (p) { return L + (W - L - R) * Math.min(p, maxP) / maxP; };
+        var Y = function (v) { return T + (H - T - B) * (1 - Math.min(v, maxV) / maxV); };
+        var o = [];
+        /* rejilla: una línea por cada cien metros por hora, finita y por detrás */
+        for (var v = 100; v <= maxV; v += 100) {
+          o.push('<line x1="' + L + '" y1="' + Y(v).toFixed(1) + '" x2="' + (W - R) +
+            '" y2="' + Y(v).toFixed(1) + '" class="akhb-g-rej"/>');
+          o.push('<text x="' + (L - 5) + '" y="' + (Y(v) + 3.5).toFixed(1) +
+            '" class="akhb-g-tick akhb-g-ty">' + v + "</text>");
+        }
+        for (var p = 5; p <= maxP; p += 5) {
+          o.push('<text x="' + X(p).toFixed(1) + '" y="' + (H - 26) +
+            '" class="akhb-g-tick akhb-g-tx">' + p + " %</text>");
+        }
+        /* qué es cada eje, con sus palabras */
+        o.push('<text x="' + ((L + W - R) / 2).toFixed(1) + '" y="' + (H - 8) +
+          '" class="akhb-g-eti">pendiente de la subida</text>');
+        var cy = (T + H - B) / 2;
+        o.push('<text transform="rotate(-90 13 ' + cy.toFixed(1) + ')" x="13" y="' +
+          cy.toFixed(1) + '" class="akhb-g-eti">metros de ascenso por hora</text>');
+        /* La curva va por TRAMOS de pendiente, así que se dibuja en escalones y
+           no como una línea continua: cada escalón es lo que da normalmente en
+           ese tramo. El escalón donde cae cada subida de esta ruta se marca más
+           grueso, y del punto baja un hilo hasta él: así se ve de dónde sale el
+           porcentaje. (Pedido de Carlos el 2-oct.) */
+        var tramos = curva.slice().sort(function (a, b) { return a.desde - b.desde; });
+        var conSubida = {};
+        subs.forEach(function (su) {
+          tramos.forEach(function (c, k) {
+            if (su.pend >= c.desde && su.pend < c.hasta) conSubida[k] = true;
+          });
+        });
+        var antes = null;
+        tramos.forEach(function (c, k) {
+          var x1 = X(c.desde), x2 = X(Math.min(c.hasta, maxP)), y = Y(c.vam);
+          if (x2 - x1 < 1) return;
+          if (antes !== null) {
+            o.push('<line x1="' + x1.toFixed(1) + '" y1="' + antes.toFixed(1) +
+              '" x2="' + x1.toFixed(1) + '" y2="' + y.toFixed(1) + '" class="akhb-g-salto"/>');
+          }
+          o.push('<line x1="' + x1.toFixed(1) + '" y1="' + y.toFixed(1) +
+            '" x2="' + x2.toFixed(1) + '" y2="' + y.toFixed(1) + '" class="akhb-g-curva' +
+            (conSubida[k] ? " akhb-g-aqui" : "") + '"/>');
+          antes = y;
+        });
+        var fin = tramos[tramos.length - 1];
+        o.push('<text x="' + (X(Math.min(fin.hasta, maxP)) - 3).toFixed(1) + '" y="' +
+          (Y(fin.vam) - 7).toFixed(1) + '" class="akhb-g-et akhb-g-etc">tu curva</text>');
+        /* el hilo de cada subida hasta su escalón */
+        subs.forEach(function (su) {
+          var c = null;
+          tramos.forEach(function (t) { if (su.pend >= t.desde && su.pend < t.hasta) c = t; });
+          if (!c) return;
+          o.push('<line x1="' + X(su.pend).toFixed(1) + '" y1="' + Y(su.vam).toFixed(1) +
+            '" x2="' + X(su.pend).toFixed(1) + '" y2="' + Y(c.vam).toFixed(1) +
+            '" class="akhb-g-hilo"/>');
+        });
+        /* las subidas de esta ruta, con su anillo blanco para que no se pierdan */
+        var alto = null;
+        subs.forEach(function (s) {
+          var cx = X(s.pend), cy = Y(s.vam);
+          if (!alto || cy < alto[1]) alto = [cx, cy, s];
+          o.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) +
+            '" r="5" class="akhb-g-pto"><title>' + esc(s.hora) + " · " +
+            num(s.gan) + " m al " + num(s.pend, 1) + " % · " + num(s.vam) +
+            " m/h · " + num(s.pct) + ' % de tu curva</title></circle>');
+        });
+        if (alto) {
+          o.push('<text x="' + Math.min(alto[0] + 9, W - R - 50).toFixed(1) + '" y="' +
+            (alto[1] + 3.5).toFixed(1) + '" class="akhb-g-et akhb-g-etp">esta ruta</text>');
+        }
+        return '<figure class="akhb-grafico">' +
+          '<svg viewBox="0 0 ' + W + " " + H + '" role="img" ' +
+            'aria-label="Tu ritmo de ascenso a cada pendiente, con las subidas de esta ruta">' +
+            o.join("") +
+            '<line x1="' + L + '" y1="' + T + '" x2="' + L + '" y2="' + (H - B) + '" class="akhb-g-eje"/>' +
+            '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" class="akhb-g-eje"/>' +
+          "</svg>" +
+          /* los ejes ya dicen qué se mide, así que el pie explica la lectura */
+          "<figcaption>Cada escalón es lo que das normalmente a esas pendientes; " +
+            "los puntos, las subidas de esta ruta.</figcaption>" +
+        "</figure>";
+      }
+
       /* ---------- el análisis de una ruta de monte ----------
          Lo que mide su forma en monte es cuántos metros gana por hora A ESA
          PENDIENTE, porque el pulso se le queda en 110-120 suba lo que suba. Por
@@ -2550,6 +2650,8 @@
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
         htmlAnalisis(x) +
+        ((monteAn && x.id && monteAn[x.id] && o.monte)
+          ? dibujoCurva(o.monte.curva, monteAn[x.id].subidas) : "") +
         ((monteAn && x.id && monteAn[x.id]) ? htmlAnalisisMonte(monteAn[x.id])
          : (llanoAn && x.id && llanoAn[x.id]) ? htmlAnalisisLlano(llanoAn[x.id]) : "") +
       "</div>";
@@ -3469,7 +3571,39 @@
        punto k está en el kilómetro k/N del total. */
     var P_ANCHO = 380, P_ALTO = 92;
 
-    function dibujaPerfil(fig, alts, km) {
+    /* `subs` es opcional: cuando la ruta tiene análisis, cada subida trae el
+       kilómetro donde empieza y acaba, y ese trozo del perfil se repinta en
+       azul. Así la misma subida se ve en tres sitios —el perfil, el gráfico de
+       la curva y la tabla— y se sabe de qué cuesta se está hablando. */
+    /* LA ESCALA DE LA PENDIENTE.
+       Un solo tono de claro a oscuro, porque la pendiente es una MAGNITUD: a
+       más cuesta, más oscuro. Nada de un color por tramo tirando de arcoíris,
+       que es lo que hace que un mapa de calor no se pueda leer. Se calcula
+       sobre los tramos que haya en la curva, así que si algún día cambian los
+       cortes, los colores se reparten solos. Naranja y no azul para que no se
+       confunda con el perfil, que ya es azul. */
+    var P_CLARO = [253, 231, 193], P_OSCURO = [107, 43, 4];
+
+    function colorBanda(k, n, oscurece) {
+      /* El reparto no es lineal: se oscurece más deprisa al principio porque
+         casi todas sus subidas caen entre el 4 y el 8 %, y con reparto lineal
+         los dos primeros tramos salían del mismo color. */
+      var t = n > 1 ? Math.pow(k / (n - 1), 0.72) : 1, c = [], i;
+      for (i = 0; i < 3; i++) {
+        c.push(Math.round((P_CLARO[i] + (P_OSCURO[i] - P_CLARO[i]) * t) * (oscurece || 1)));
+      }
+      return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+    }
+
+    function bandaDe(curva, pend) {
+      if (!curva) return -1;
+      for (var k = 0; k < curva.length; k++) {
+        if (pend >= curva[k].desde && pend < curva[k].hasta) return k;
+      }
+      return -1;
+    }
+
+    function dibujaPerfil(fig, alts, km, subs, curva) {
       var caja = fig ? fig.querySelector("[data-perfil]") : null;
       if (!caja) return;
       if (!alts || alts.length < 3) { caja.parentNode.removeChild(caja); return; }
@@ -3515,18 +3649,51 @@
                   num(km, km < 100 ? 1 : 0) + " km</text>";
       }
 
+      /* los tramos de subida: una banda de fondo y el perfil repintado encima */
+      var trozos = "";
+      if (subs && subs.length && km > 0) {
+        subs.forEach(function (su) {
+          if (su.km0 == null || su.km1 == null || su.km1 <= su.km0) return;
+          var a = Math.round((alts.length - 1) * Math.max(su.km0, 0) / km);
+          var b = Math.round((alts.length - 1) * Math.min(su.km1, km) / km);
+          if (b <= a) return;
+          var d = "";
+          for (var j = a; j <= b; j++) {
+            d += (j === a ? "M" : "L") + X(j).toFixed(1) + " " + Y(alts[j]).toFixed(1) + " ";
+          }
+          /* el trozo se rellena hasta el suelo: así la subida es un bloque del
+             monte y no una raya fina encima de otra raya fina */
+          var pie = "M" + X(a).toFixed(1) + " " + suelo + " L" + d.substring(1) +
+                    "L" + X(b).toFixed(1) + " " + suelo + " Z";
+          var rotulo = '<title>' + esc(su.hora) + " \u00b7 " + num(su.gan) + " m al " +
+                       num(su.pend, 1) + " % \u00b7 " + num(su.vam) + " m/h</title>";
+          var nb = curva ? curva.length : 0;
+          var k = bandaDe(curva, su.pend);
+          var rel = k >= 0 ? colorBanda(k, nb) : "";
+          var raya = k >= 0 ? colorBanda(k, nb, 0.72) : "";
+          /* el color va en `style` y no como atributo: un atributo de
+             presentación pierde contra cualquier regla del CSS, y el relleno
+             de la hoja se comía el color de la pendiente. */
+          trozos += '<path class="akhb-p-subearea" d="' + pie + '"' +
+                      (rel ? ' style="fill:' + rel + '"' : "") + ">" + rotulo + "</path>" +
+                    '<path class="akhb-p-sube" d="' + d.trim() + '"' +
+                      (raya ? ' style="stroke:' + raya + '"' : "") + ">" + rotulo + "</path>";
+        });
+      }
+
       caja.innerHTML =
         '<svg class="akhb-p-svg" viewBox="0 0 ' + P_ANCHO + " " + P_ALTO + '" role="img" ' +
           'aria-label="Perfil de altura: de ' + Math.round(min) + " a " + Math.round(max) +
           ' metros">' +
           '<path class="akhb-p-area" d="' + area + '"/>' +
           '<path class="akhb-p-linea" d="' + linea.trim() + '"/>' +
+          trozos +
           marcas +
           '<text class="akhb-p-alt" x="2" y="' +
             Math.min(Math.max(Y(max) + 3.5, ARR + 7), ARR + h) + '">' + Math.round(max) + "</text>" +
           '<text class="akhb-p-alt" x="2" y="' +
             Math.min(Y(min) + 3.5, ARR + h) + '">' + Math.round(min) + "</text>" +
-          '<text class="akhb-p-alt akhb-p-ud" x="2" y="' + (P_ALTO - 4) + '">m</text>' +
+          '<text class="akhb-p-alt akhb-p-ud" x="2" y="' + (P_ALTO - 4) + '">altura m</text>' +
           /* lo que sigue al dedo: la guía vertical, la bolita y la etiqueta */
           '<g class="akhb-p-lupa" style="display:none">' +
             '<line class="akhb-p-guia" y1="' + ARR + '" y2="' + suelo + '"/>' +
@@ -3537,6 +3704,19 @@
           '<rect class="akhb-p-caza" x="' + IZQ + '" y="' + ARR + '" width="' + w +
             '" height="' + h + '" fill="transparent"/>' +
         "</svg>";
+
+      /* la leyenda: qué pendiente es cada color. Sólo cuando hay subidas que
+         colorear; si no, sobra y ocupa sitio. */
+      if (trozos && curva && curva.length) {
+        var ley = "";
+        curva.forEach(function (c, k) {
+          var txt = c.hasta >= 90 ? "+" + num(c.desde) + " %"
+                  : num(c.desde) + "-" + num(c.hasta) + " %";
+          ley += '<span class="akhb-p-leg"><i style="background:' +
+                 colorBanda(k, curva.length) + '"></i>' + txt + "</span>";
+        });
+        caja.innerHTML += '<p class="akhb-p-leyenda">' + ley + "</p>";
+      }
 
       enchufaLupa(caja, fig, { alts: alts, km: km, IZQ: IZQ, ARR: ARR, w: w, h: h,
                                X: X, Y: Y, suelo: suelo });
@@ -3646,7 +3826,12 @@
       if (!x) { pintaIcono(fig, { dep: "otr" }); return; }
       /* El perfil no depende del dibujo: lo hay aunque la ruta la ponga la
          colección, y no lo hay en el rodillo aunque Zwift invente cuestas. */
-      if (x.perfil && llevaMapa(x)) dibujaPerfil(fig, decodificarPerfil(x.perfil), x.km);
+      var mAn = (o.monte && o.monte.analisis) ? o.monte.analisis : null;
+      var mSubs = (mAn && x.id && mAn[x.id]) ? mAn[x.id].subidas : null;
+      if (x.perfil && llevaMapa(x)) {
+        dibujaPerfil(fig, decodificarPerfil(x.perfil), x.km, mSubs,
+                     o.monte ? o.monte.curva : null);
+      }
 
       if (!llevaMapa(x)) { pintaIcono(fig, x); return; }
 
