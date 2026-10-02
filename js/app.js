@@ -975,7 +975,11 @@
 
     function seccion(titulo, lista, abierta, aviso) {
       if (!lista.length) return "";
-      return '<details class="grupo-selec"' + (abierta ? " open" : "") + '>' +
+      /* NADIE SE ABRE SOLO (Carlos, 3-oct-2026: «ahora hay demasiado
+         abierto»). El parámetro `abierta` se queda en la firma porque lo pasa
+         medio fichero, pero ya no abre nada: la lista entra entera plegada y
+         sólo se abre la que se toque. */
+      return '<details class="grupo-selec">' +
                '<summary><span class="tit">' + esc(titulo) + '</span>' +
                '<span class="cuantas">' + lista.length + '</span></summary>' +
                (aviso ? '<p class="aviso-grupo">' + esc(aviso) + '</p>' : '') +
@@ -1009,7 +1013,7 @@
     var nEnCasa = tengo.productos.length + tengo.recetas.length +
                   (tengo.enteras || []).length + (tengo.casi || []).length;
     if (nEnCasa) {
-      bloqueCasa = '<details class="grupo-selec" data-fijo="1" open>' +
+      bloqueCasa = '<details class="grupo-selec" data-fijo="1">' +
         '<summary><span class="tit">Ya lo tienes en casa</span>' +
         '<span class="cuantas">' + nEnCasa + '</span></summary>';
 
@@ -1096,8 +1100,7 @@
        sueltos que ya había usado—, así que parecía que solo había dos cosas.
        Ahora el contador dice cuántos ingredientes hay de verdad, que es lo que
        se puede elegir, y en un picoteo se abre solo. */
-    var bloqueSueltos = '<details class="grupo-selec" data-fijo="1"' +
-              (esPicoteo ? " open" : "") + '>' +
+    var bloqueSueltos = '<details class="grupo-selec" data-fijo="1">' +
             '<summary><span class="tit">Un ingrediente solo</span>' +
             '<span class="cuantas">' + catalogo.length + '</span></summary>' +
             '<p class="aviso-grupo">Cualquiera del cat\u00e1logo: un pl\u00e1tano, 20 g de nueces, ' +
@@ -1230,7 +1233,7 @@
     };
     var seccionPapel = function (titulo, lista, abierta, aviso, conAjeno) {
       if (!lista.length) return "";
-      return '<details class="grupo-selec" data-fijo="1"' + (abierta ? " open" : "") + '>' +
+      return '<details class="grupo-selec" data-fijo="1">' +
         '<summary><span class="tit">' + esc(titulo) + '</span>' +
         '<span class="cuantas">' + lista.length + '</span></summary>' +
         (aviso ? '<p class="aviso-grupo">' + esc(aviso) + '</p>' : '') +
@@ -1274,6 +1277,14 @@
     /* EN UN DÍA DE RUTA MANDA LA MOCHILA, no la toma: sólo entra lo que se come
        frío y aguanta el día. Se filtra aquí y vale para todas las secciones. */
     var cabeHoy = function (r) { return !ruta || r.llevable; };
+    /* Las recetas de un grupo de alimento, para las secciones que se sacan
+       arriba (Desayuno y Restaurante). Mismo filtro que el resto: ni las ya
+       puestas ni, en día de ruta, las que no caben en la mochila. */
+    var deGrupo = function (g) {
+      return todas.filter(function (r) {
+        return !yaPuesto[r.id] && cabeHoy(r) && r.grupo === g;
+      });
+    };
     var deTipo = function (quiero) {
       return todas.filter(function (r) {
         if (yaPuesto[r.id] || !cabeHoy(r)) return false;
@@ -1305,7 +1316,7 @@
                densidad(r) >= 250 && Almacen.nutrReceta(r).k >= 80;
       }).sort(function (a, b) { return densidad(b) - densidad(a); }).slice(0, 14);
       if (densas.length) {
-        bloqueRuta = '<details class="grupo-selec" data-fijo="1" open>' +
+        bloqueRuta = '<details class="grupo-selec" data-fijo="1">' +
           '<summary><span class="tit">Para la ruta</span>' +
           '<span class="cuantas">' + densas.length + '</span></summary>' +
           '<p class="aviso-grupo">Lo que m\u00e1s alimenta por lo que menos pesa, de m\u00e1s a menos.</p>' +
@@ -1329,9 +1340,13 @@
           "Lo que no se parte: una pieza vale lo que vale.") +
         seccionPapel("Para beber", bebidas, false, null, true);
     } else {
+      /* EL ORDEN LO FIJÓ CARLOS el 3-oct-2026, y es el de la mesa: lo que ya
+         tienes, el plato, la guarnición, el pan, el postre, la bebida; después
+         el desayuno y el restaurante, que son de otro momento; y al final los
+         ingredientes sueltos. */
       bloquePapeles =
         seccionPapel(toma === "desayuno" ? "Desayunos" : "Platos principales",
-                     deTipo("principal"), true, null) +
+                     deTipo("principal"), false, null) +
         seccionPapel("Guarniciones", deTipo("guarnicion"), false,
           "Para subir las calorías del día sin cambiar el plato.") +
         /* Panes y postres llevan también el atajo de «no me cuenta» (Carlos,
@@ -1339,24 +1354,41 @@
            tostado de Susana no lo lleva porque su ficha ya dice que es de ella. */
         seccionPapel("Panes", deTipo("pan"), false, null, true) +
         seccionPapel("Postres", deTipo("postre"), false, null, true) +
-        seccionPapel("Para beber", bebidas, false, null, true);
+        seccionPapel("Para beber", bebidas, false, null, true) +
+        /* Desayuno y Restaurante son GRUPOS de receta, no papeles de la mesa, y
+           antes caían abajo entre el recetario por alimento. Carlos los quiere
+           arriba, con los demás, porque son dos cajones que se buscan a
+           propósito. Abajo ya no se repiten. */
+        seccion("Desayuno", deGrupo("desayuno"), false, null) +
+        seccion("Restaurante", deGrupo("restaurante"), false, null);
     }
 
     /* El orden: en un picoteo, primero las combinaciones hechas y luego los
        bloques para montarla uno mismo; en una comida o una cena, los papeles de
        la mesa. Debajo, en los dos casos, lo que hay en casa y el recetario. */
-    html += bloqueRuta + (esPicoteo ? (bloqueKits + bloquePapeles) : bloquePapeles) +
-            bloqueCasa + (esPicoteo ? (bloqueSueltos + bloquePreferente)
-                                    : (bloquePreferente + bloqueSueltos));
+    /* FUERA «PENSADAS PARA COMIDA» (Carlos, 3-oct-2026: «lo puedes quitar»).
+       Era una sección más que repetía platos que ya salen en Platos principales
+       y en el recetario, y con todo plegado no aporta un atajo, sólo una línea
+       más que abrir. `bloquePreferente` se sigue componiendo arriba para el día
+       de ruta, donde sí dice algo distinto: «Para la mochila». */
+    html += bloqueRuta + (ruta ? bloquePreferente : "") +
+            (esPicoteo ? (bloqueKits + bloquePapeles) : bloquePapeles) +
+            bloqueCasa + bloqueSueltos;
 
     /* y después el recetario entero, por grupos de alimento */
+    /* LO QUE NO SE REPITE ABAJO (Carlos, 3-oct-2026). Fruta y Postre ya salen
+       en «Postres» —la fruta fresca cuenta como postre desde el 2-oct—, y
+       Desayuno y Restaurante tienen ahora su sección arriba. Repetirlos aquí
+       era enseñar la misma receta en dos sitios de la misma lista. */
+    var ARRIBA = { capricho: 1, suelto: 1, fruta: 1, postre: 1,
+                   desayuno: 1, restaurante: 1 };
     var porGrupo = {};
     todas.forEach(function (r) {
-      if (r.grupo === "capricho" || r.grupo === "suelto") return;
+      if (ARRIBA[r.grupo]) return;
       (porGrupo[r.grupo || "otros"] = porGrupo[r.grupo || "otros"] || []).push(r);
     });
     Object.keys(NOMBRE_GRUPO).forEach(function (g) {
-      if (g === "capricho" || g === "suelto") return;
+      if (ARRIBA[g]) return;
       html += seccion(NOMBRE_GRUPO[g], porGrupo[g] || [], false, null);
       delete porGrupo[g];
     });
@@ -1376,8 +1408,31 @@
        que no: si no, habría que ir abriéndolas una a una para ver si el filtro
        ha encontrado algo dentro, que es justo lo contrario de filtrar. */
     ponerLaX(document.getElementById("modal") || document);
+
+    /* UNA SOLA ABIERTA (Carlos, 3-oct-2026: «solo puede haber una abierta, la
+       activa»). Al abrir una se cierran las demás. Va en el contenedor y no en
+       cada <details>, porque la lista se repinta entera cada vez que se añade
+       un plato y los oyentes de dentro se perderían. `toggle` no burbujea, así
+       que se escucha en fase de captura. */
+    var listaSel = document.getElementById("lista-selector");
+    var abriendoElFiltro = false;      /* ver el oyente del filtro, más abajo */
+    if (listaSel) {
+      listaSel.addEventListener("toggle", function (e) {
+        var det = e.target;
+        if (abriendoElFiltro) return;  /* filtrando se abren varias a la vez */
+        if (!det || det.tagName !== "DETAILS" || !det.open) return;
+        $$("#lista-selector .grupo-selec").forEach(function (otro) {
+          if (otro !== det) otro.open = false;
+        });
+      }, true);
+    }
+
     $("#filtro-selector").addEventListener("input", function (e) {
       var q = e.target.value.toLowerCase().trim();
+      /* Mientras se filtra se abren TODAS las que tengan algo, que es lo que
+         hace útil el filtro; la regla de una sola abierta se suspende aquí y
+         vuelve en cuanto se toca una a mano. */
+      abriendoElFiltro = true;
       $$("#lista-selector .grupo-selec").forEach(function (det) {
         if (det.getAttribute("data-fijo")) return;   // la de crear uno solo no se filtra
         var vistos = 0;
@@ -1391,15 +1446,16 @@
         det.querySelector(".cuantas").textContent = vistos;
       });
       if (!q) {
-        /* al vaciar el filtro se vuelve al estado de partida: sólo la primera */
-        $$("#lista-selector .grupo-selec").forEach(function (det, i) {
-          if (!det.getAttribute("data-fijo")) det.open = i === 0;
+        /* al vaciar el filtro se vuelve al estado de partida: todas cerradas */
+        $$("#lista-selector .grupo-selec").forEach(function (det) {
+          det.open = false;
         });
         $$("#lista-selector .grupo-selec").forEach(function (det) {
           det.querySelector(".cuantas").textContent =
             $$("button[data-nombre]", det).length;
         });
       }
+      abriendoElFiltro = false;
     });
     /* La casilla de cantidad cambia de sentido según el ingrediente: 1 ud de
        manzana, 30 g de pistachos. Que lo diga la casilla evita el error de
