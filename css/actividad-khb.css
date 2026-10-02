@@ -845,7 +845,7 @@
 /* ===== El dibujo de la curva de ascenso (2-oct-2026) =====
    Va en el hueco de debajo del mapa. La línea gris es lo que da normalmente a
    cada pendiente; los puntos, las subidas de esa ruta. */
-.akhb-grafico { margin: 10px 0 0; padding: 0; }
+.akhb-grafico { margin: 12px 0 0; padding: 0; }
 .akhb-grafico svg { display: block; width: 100%; height: auto; }
 .akhb-grafico figcaption { margin-top: 4px; font-size: .74rem; line-height: 1.35;
                            color: var(--gris, #6b7a87); }
@@ -887,5 +887,33 @@
 .akhb-p-linea    { stroke-opacity: .55; }
 
 /* el rótulo de cada eje del gráfico de la curva */
-.akhb-g-eti { fill: var(--akhb-gris, #667a70); font-size: 9px; text-anchor: middle;
-              letter-spacing: .02em; }
+.akhb-g-eti  { fill: var(--akhb-gris, #667a70); font-size: 9.5px; text-anchor: middle;
+               letter-spacing: .02em; }
+.akhb-g-etiy { text-anchor: start; }
+.akhb-g-tfin { text-anchor: end; }
+
+/* el pie del gráfico de la curva, ahora que vive dentro de la figura del mapa
+   y no puede llevar <figcaption> propio */
+.akhb-g-pie {
+  margin: 4px 0 0; font-size: .74rem; line-height: 1.35;
+  color: var(--akhb-gris, #667a70);
+}
+
+/* ---------- el número de cada subida ----------
+   La misma cuesta sale en tres sitios —el perfil, el gráfico de la curva y la
+   tabla— y hasta ahora había que atarlos de memoria. Van numeradas por orden
+   de paso. (Pedido de Carlos, 2-oct.) */
+.akhb-g-num {
+  fill: #fff; font-size: 8px; font-weight: 700; text-anchor: middle;
+  pointer-events: none;
+}
+.akhb-p-numf { fill: #6e4512; stroke: #fff; stroke-width: 1.5; }
+.akhb-p-num {
+  fill: #fff; font-size: 8px; font-weight: 700; text-anchor: middle;
+  pointer-events: none;
+}
+.akhb-num {
+  display: inline-block; min-width: 15px; padding: 0 2px; margin-right: 2px;
+  border-radius: 4px; background: var(--akhb-azul, #2f5c8a); color: #fff;
+  font-size: 10px; font-weight: 700; text-align: center; line-height: 15px;
+}

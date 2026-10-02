@@ -2373,9 +2373,12 @@
          Sin librerías: SVG a pelo, que es lo que hay en esta app. */
       function dibujoCurva(curva, subs) {
         if (!curva || !curva.length || !subs || !subs.length) return "";
-        /* B y L dan sitio a los rótulos de los ejes: sin decir qué se mide,
-           un número suelto no dice nada (pedido de Carlos, 2-oct). */
-        var W = 300, H = 186, L = 46, R = 10, T = 14, B = 44;
+        /* Mismo ancho y mismos márgenes laterales que el perfil (P_ANCHO 380,
+           IZQ 36, DER 6): los dos van uno encima del otro en la ficha, y si las
+           cajas no empiezan en el mismo sitio se nota enseguida. El rótulo del
+           eje de la izquierda va en horizontal arriba, no girado, que así cabe
+           en el mismo margen y se lee mejor. */
+        var W = 380, H = 206, L = 36, R = 6, T = 28, B = 44;
         var maxP = 20, maxV = 400;
         subs.forEach(function (s) {
           if (s.pend > maxP) maxP = Math.ceil(s.pend / 5) * 5;
@@ -2392,15 +2395,17 @@
             '" class="akhb-g-tick akhb-g-ty">' + v + "</text>");
         }
         for (var p = 5; p <= maxP; p += 5) {
-          o.push('<text x="' + X(p).toFixed(1) + '" y="' + (H - 26) +
-            '" class="akhb-g-tick akhb-g-tx">' + p + " %</text>");
+          /* la última se pega al borde y se corta: esa se alinea por la derecha */
+          var pegada = X(p) > W - R - 12;
+          o.push('<text x="' + (pegada ? (W - R) : X(p)).toFixed(1) + '" y="' + (H - 26) +
+            '" class="akhb-g-tick akhb-g-tx' + (pegada ? " akhb-g-tfin" : "") + '">' +
+            p + " %</text>");
         }
         /* qué es cada eje, con sus palabras */
         o.push('<text x="' + ((L + W - R) / 2).toFixed(1) + '" y="' + (H - 8) +
           '" class="akhb-g-eti">pendiente de la subida</text>');
-        var cy = (T + H - B) / 2;
-        o.push('<text transform="rotate(-90 13 ' + cy.toFixed(1) + ')" x="13" y="' +
-          cy.toFixed(1) + '" class="akhb-g-eti">metros de ascenso por hora</text>');
+        o.push('<text x="2" y="11" class="akhb-g-eti akhb-g-etiy">' +
+          "metros de ascenso por hora</text>");
         /* La curva va por TRAMOS de pendiente, así que se dibuja en escalones y
            no como una línea continua: cada escalón es lo que da normalmente en
            ese tramo. El escalón donde cae cada subida de esta ruta se marca más
@@ -2438,21 +2443,31 @@
             '" x2="' + X(su.pend).toFixed(1) + '" y2="' + Y(c.vam).toFixed(1) +
             '" class="akhb-g-hilo"/>');
         });
-        /* las subidas de esta ruta, con su anillo blanco para que no se pierdan */
+        /* Las subidas de esta ruta. Cada una lleva SU NÚMERO dentro, el mismo
+           que en el perfil de arriba y en la tabla de abajo: sin él había que
+           adivinar qué punto era qué cuesta. Van numeradas por orden de paso,
+           que es como se recuerda una ruta. (Pedido de Carlos, 2-oct.) */
         var alto = null;
-        subs.forEach(function (s) {
+        subs.forEach(function (s, i) {
           var cx = X(s.pend), cy = Y(s.vam);
           if (!alto || cy < alto[1]) alto = [cx, cy, s];
-          o.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) +
-            '" r="5" class="akhb-g-pto"><title>' + esc(s.hora) + " · " +
+          var rot = '<title>' + num(i + 1) + ". " + esc(s.hora) + " · " +
             num(s.gan) + " m al " + num(s.pend, 1) + " % · " + num(s.vam) +
-            " m/h · " + num(s.pct) + ' % de tu curva</title></circle>');
+            " m/h · " + num(s.pct) + ' % de tu curva</title>';
+          o.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) +
+            '" r="7.5" class="akhb-g-pto">' + rot + "</circle>");
+          o.push('<text x="' + cx.toFixed(1) + '" y="' + (cy + 3.2).toFixed(1) +
+            '" class="akhb-g-num">' + num(i + 1) + "</text>");
         });
         if (alto) {
-          o.push('<text x="' + Math.min(alto[0] + 9, W - R - 50).toFixed(1) + '" y="' +
-            (alto[1] + 3.5).toFixed(1) + '" class="akhb-g-et akhb-g-etp">esta ruta</text>');
+          o.push('<text x="' + Math.min(alto[0] + 8, W - R - 48).toFixed(1) + '" y="' +
+            Math.max(alto[1] - 9, T + 8).toFixed(1) +
+            '" class="akhb-g-et akhb-g-etp">esta ruta</text>');
         }
-        return '<figure class="akhb-grafico">' +
+        /* Va dentro de la figura del mapa, justo debajo del perfil, así que
+           no puede ser otra <figure> con su <figcaption>: sería una figura
+           dentro de otra. Un <div> con su pie y listo. */
+        return '<div class="akhb-grafico">' +
           '<svg viewBox="0 0 ' + W + " " + H + '" role="img" ' +
             'aria-label="Tu ritmo de ascenso a cada pendiente, con las subidas de esta ruta">' +
             o.join("") +
@@ -2460,9 +2475,10 @@
             '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" class="akhb-g-eje"/>' +
           "</svg>" +
           /* los ejes ya dicen qué se mide, así que el pie explica la lectura */
-          "<figcaption>Cada escalón es lo que das normalmente a esas pendientes; " +
-            "los puntos, las subidas de esta ruta.</figcaption>" +
-        "</figure>";
+          '<p class="akhb-g-pie">Cada escalón es lo que das normalmente a esas ' +
+            "pendientes. Cada punto es una subida del perfil de arriba, con su " +
+            "mismo número.</p>" +
+        "</div>";
       }
 
       /* ---------- el análisis de una ruta de monte ----------
@@ -2477,12 +2493,12 @@
             '</div><div class="akhb-sala-n">' + esc(t.n) + '</div>' +
             '<div class="akhb-sala-d">' + (t.d || "") + "</div></div>";
         }).join("");
-        var filas = (b.subidas || []).map(function (su) {
+        var filas = (b.subidas || []).map(function (su, i) {
           var ancho = Math.max(0, Math.min(100, su.pct || 0));
           var dur = su.min >= 60 ? (Math.floor(su.min / 60) + " h " +
                       (su.min % 60 < 10 ? "0" : "") + (su.min % 60)) : (su.min + " min");
-          return "<tr><th>" + esc(su.hora) + ' <span class="akhb-sala-goma">\u00b7 ' +
-              dur + "</span></th>" +
+          return "<tr><th>" + '<span class="akhb-num">' + num(i + 1) + "</span> " +
+              esc(su.hora) + ' <span class="akhb-sala-goma">\u00b7 ' + dur + "</span></th>" +
             "<td>" + num(su.gan) + " m</td>" +
             "<td>" + num(su.pend, 1) + " %</td>" +
             "<td>" + num(su.vam) + "</td>" +
@@ -2638,6 +2654,10 @@
           "</div>" +
           /* el perfil se rellena al pintar; si no hay alturas, ni aparece */
           (x.perfil ? '<div class="akhb-perfil" data-perfil="1"></div>' : "") +
+          /* el gráfico de la curva, pegado al perfil: son la misma lectura de
+             la misma ruta y antes quedaban separados por media ficha */
+          ((monteAn && x.id && monteAn[x.id] && o.monte)
+            ? dibujoCurva(o.monte.curva, monteAn[x.id].subidas) : "") +
           "<figcaption>" +
             (esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
              : x.ruta ? esc(x.nombre || "")
@@ -2650,8 +2670,6 @@
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
         htmlAnalisis(x) +
-        ((monteAn && x.id && monteAn[x.id] && o.monte)
-          ? dibujoCurva(o.monte.curva, monteAn[x.id].subidas) : "") +
         ((monteAn && x.id && monteAn[x.id]) ? htmlAnalisisMonte(monteAn[x.id])
          : (llanoAn && x.id && llanoAn[x.id]) ? htmlAnalisisLlano(llanoAn[x.id]) : "") +
       "</div>";
@@ -3569,7 +3587,7 @@
        Va contra los KILÓMETROS, que es como se lee un perfil, y eso sale
        gratis: los puntos vienen repartidos por distancia recorrida, así que el
        punto k está en el kilómetro k/N del total. */
-    var P_ANCHO = 380, P_ALTO = 92;
+    var P_ANCHO = 380, P_ALTO = 98;
 
     /* `subs` es opcional: cuando la ruta tiene análisis, cada subida trae el
        kilómetro donde empieza y acaba, y ese trozo del perfil se repinta en
@@ -3611,7 +3629,8 @@
       var min = Math.min.apply(null, alts), max = Math.max.apply(null, alts);
       if (!isFinite(min) || !isFinite(max)) { caja.parentNode.removeChild(caja); return; }
 
-      var IZQ = 36, DER = 6, ARR = 9, ABA = 15;      /* sitio para las cifras */
+      /* ARR deja sitio a los números de las subidas, que van pegados al techo */
+      var IZQ = 36, DER = 6, ARR = 15, ABA = 15;    /* sitio para las cifras */
       var w = P_ANCHO - IZQ - DER, h = P_ALTO - ARR - ABA;
       /* Suelo de 30 m en la escala vertical: sin él, un paseo llano por Madrid
          sale dibujado como los Pirineos. Lo que se ve tiene que ser el relieve
@@ -3650,9 +3669,9 @@
       }
 
       /* los tramos de subida: una banda de fondo y el perfil repintado encima */
-      var trozos = "";
+      var trozos = "", numeros = "", ultimoNum = null;
       if (subs && subs.length && km > 0) {
-        subs.forEach(function (su) {
+        subs.forEach(function (su, i) {
           if (su.km0 == null || su.km1 == null || su.km1 <= su.km0) return;
           var a = Math.round((alts.length - 1) * Math.max(su.km0, 0) / km);
           var b = Math.round((alts.length - 1) * Math.min(su.km1, km) / km);
@@ -3678,6 +3697,21 @@
                       (rel ? ' style="fill:' + rel + '"' : "") + ">" + rotulo + "</path>" +
                     '<path class="akhb-p-sube" d="' + d.trim() + '"' +
                       (raya ? ' style="stroke:' + raya + '"' : "") + ">" + rotulo + "</path>";
+          /* el número, arriba del todo y en el centro del tramo: el mismo que
+             lleva el punto del gráfico de la curva y la fila de la tabla */
+          var cxn = (X(a) + X(b)) / 2;
+          /* dos cuestas seguidas dejaban los números uno encima de otro: el
+             siguiente se corre a la derecha lo justo para no tocarse */
+          if (ultimoNum != null && cxn - ultimoNum < 13) cxn = ultimoNum + 13;
+          cxn = Math.min(cxn, IZQ + w - 7);
+          ultimoNum = cxn;
+          /* el color del número NO es el de la pendiente: en los tramos claros
+             el blanco de dentro no se leía. Uno oscuro para todos, que el color
+             ya lo lleva el bloque de debajo. */
+          numeros += '<circle cx="' + cxn.toFixed(1) + '" cy="' + (ARR + 6) +
+                       '" r="6" class="akhb-p-numf">' + rotulo + "</circle>" +
+                     '<text x="' + cxn.toFixed(1) + '" y="' + (ARR + 9.1) +
+                       '" class="akhb-p-num">' + num(i + 1) + "</text>";
         });
       }
 
@@ -3689,6 +3723,7 @@
           '<path class="akhb-p-linea" d="' + linea.trim() + '"/>' +
           trozos +
           marcas +
+          numeros +
           '<text class="akhb-p-alt" x="2" y="' +
             Math.min(Math.max(Y(max) + 3.5, ARR + 7), ARR + h) + '">' + Math.round(max) + "</text>" +
           '<text class="akhb-p-alt" x="2" y="' +
