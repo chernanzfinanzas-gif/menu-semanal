@@ -6424,8 +6424,25 @@
       if (b.medidas) resto.push(b.medidas + " actividad" + (b.medidas === 1 ? "" : "es") + " del reloj");
       Util.toast(resto.length ? "Semana vaciada; se respetan " + resto.join(" y ") : "Semana vaciada");
     });
+    /* RELLENAR UNA SEMANA SE CONFIRMA, CON SUS FECHAS (v371, 3-oct-2026).
+       Carlos encontró la semana del 5 al 11 de octubre llena sin haberla
+       pedido: los siete días con el mismo sello, de una sola operación y con
+       los platos de «Completar», pero sin rastro de cuándo ni desde dónde. Lo
+       más probable es un botón pulsado viendo otra semana. Su regla: «no quiero
+       que se llene ninguna semana sola si no soy yo quien pulse el botón».
+       Así que los tres botones que rellenan una semana entera dicen cuál van a
+       tocar y esperan el sí. */
+    function confirmarSemana(accion) {
+      var hoyLunes = Util.lunesDe(Util.hoyISO());
+      var dif = Math.round((Util.desdeISO(UI.lunes) - Util.desdeISO(hoyLunes)) / (7 * 864e5));
+      var cual = dif === 0 ? "ESTA semana" : dif === 1 ? "la semana QUE VIENE" : dif === -1 ? "la semana PASADA" :
+                 dif > 1 ? "dentro de " + dif + " semanas" : "hace " + (-dif) + " semanas";
+      return confirm(accion + " " + cual + ":\n" + Util.etiquetaRango(UI.lunes) + "\n\n\u00bfSeguro?");
+    }
+
     $$("[data-plantilla]").forEach(function (b) {
       b.addEventListener("click", function () {
+        if (!confirmarSemana("Vas a aplicar la Semana " + b.getAttribute("data-plantilla") + " a")) return;
         Almacen.aplicarPlantilla(b.getAttribute("data-plantilla"), UI.lunes);
         pintarMenu();
         Util.toast("Semana " + b.getAttribute("data-plantilla") + " aplicada");
@@ -6448,6 +6465,7 @@
     });
 
     $("#completar-semana").addEventListener("click", function () {
+      if (!confirmarSemana("Vas a completar")) return;
       var r = Almacen.completarSemana(UI.lunes);
       pintarMenu();
       if (!r.puestos) { Util.toast("No había huecos que completar"); return; }
@@ -6465,6 +6483,7 @@
     });
 
     $("#rellenar-semana").addEventListener("click", function () {
+      if (!confirmarSemana("Vas a rellenar con la Semana A")) return;
       var r = Almacen.rellenarSemana(UI.lunes, "A");
       pintarMenu();
       var partes = [];
