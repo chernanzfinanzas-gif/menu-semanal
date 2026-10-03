@@ -1388,3 +1388,8 @@ button.enlace {
 .estrella.on{color:var(--ambar)}
 .pregunta-estrellas{font-weight:600;margin:4px 0 0}
 .grupo-selec.favoritas > summary .tit{color:var(--ambar)}
+
+/* ---- «SUSANA NO LO TOMA» (v375) ---- */
+.plato .pl-solo{flex:none;border:1px solid var(--borde);background:var(--blanco);border-radius:999px;
+  padding:1px 7px;font-size:.7rem;line-height:1.5;color:var(--gris);white-space:nowrap;cursor:pointer;margin-left:4px}
+.plato .pl-solo.si{border-color:var(--morado);background:var(--morado-fondo);color:var(--morado);font-weight:600}

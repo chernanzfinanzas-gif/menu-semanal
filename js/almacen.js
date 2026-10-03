@@ -450,6 +450,17 @@
         e.arreglos["2026-10-03-ruta27"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err27) {}
       }
+      /* LA SALSA DE TRUFA, DETRÁS DE LA CEBOLLA CARAMELIZADA (3-oct-2026).
+         Carlos: «después de la cebolla caramelizada Vegecampo DIA en puerta de
+         nevera». El orden de cada estante vive en el estado, y lo nuevo cae al
+         final; así que se coloca aquí. Sólo si aún no está en la lista: si él
+         la mueve luego, ya está y no se vuelve a tocar. Sin sello de hora a
+         propósito, para no ganarle al orden del otro aparato al sincronizar. */
+      if (e.ordenCasa && Array.isArray(e.ordenCasa.puerta) && e.ordenCasa.puerta.indexOf("salsa_trufa") < 0) {
+        var iCeb = e.ordenCasa.puerta.indexOf("cebolla_caramelizada");
+        if (iCeb >= 0) e.ordenCasa.puerta.splice(iCeb + 1, 0, "salsa_trufa");
+        else e.ordenCasa.puerta.push("salsa_trufa");
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
@@ -2184,6 +2195,31 @@
       return !!(d && d.mios && d.mios[toma] && d.mios[toma].indexOf(receta) >= 0);
     },
 
+    /* ---------- «SUSANA NO LO TOMA» (v375, 3-oct-2026) ----------
+       Carlos: «hay otro caso, lo tomo yo y Susana no: me cuenta las calorías
+       pero solo debe descontar uno». Es el caso que faltaba entre los dos de
+       arriba: las calorías y la sal ya contaban UNA ración (las suyas), pero la
+       compra, la reserva de la despensa y el descuento al comer iban por los
+       comensales de la toma —dos—. Esta marca, del día y la toma como las
+       otras, deja ese plato para UNO en todo eso y no toca sus números. */
+    marcarSoloYo: function (fecha, toma, receta, si) {
+      var d = this.asegurarDia(fecha);
+      if (si) {
+        if (!d.soloYo) d.soloYo = {};
+        if (!d.soloYo[toma]) d.soloYo[toma] = [];
+        if (d.soloYo[toma].indexOf(receta) < 0) d.soloYo[toma].push(receta);
+        return;
+      }
+      if (!d.soloYo || !d.soloYo[toma]) return;
+      d.soloYo[toma] = d.soloYo[toma].filter(function (x) { return x !== receta; });
+      if (!d.soloYo[toma].length) delete d.soloYo[toma];
+      if (!Object.keys(d.soloYo).length) delete d.soloYo;
+    },
+    esSoloYo: function (fecha, toma, receta) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.soloYo && d.soloYo[toma] && d.soloYo[toma].indexOf(receta) >= 0);
+    },
+
     /* La pregunta completa: ¿cuenta ESTE plato, en ESTE día y ESTA toma? El orden
        manda: lo marcado hoy gana a lo que diga la ficha, en los dos sentidos. */
     noMeCuenta: function (fecha, toma, receta) {
@@ -2198,6 +2234,8 @@
       /* marcado «no me cuenta» hoy: se compra, pero para uno */
       var id = rec && rec.id ? rec.id : rec;
       if (fecha && toma && this.esAjeno(fecha, toma, id)) return 1;
+      /* «Susana no lo toma» hoy: cuenta, pero se compra y se descuenta para uno */
+      if (fecha && toma && this.esSoloYo(fecha, toma, id)) return 1;
       return personas;
     },
 

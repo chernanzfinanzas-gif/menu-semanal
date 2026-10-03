@@ -823,6 +823,19 @@
                             : 'No me cuenta: se compra igual, pero no suma a tus calor\u00edas ni a tu sal') +
                           '">' + (fuera ? "no cuenta" : cifra) + '</button>';
                       })() +
+                      /* «SUSANA NO LO TOMA» (v375): sólo donde coméis más de uno y en
+                         un plato de los dos. Las calorías no cambian; la compra y la
+                         despensa pasan a ser para uno. */
+                      (function () {
+                        if (!r || Almacen.comensales(fecha, t.k) < 2) return '';
+                        if (Almacen.duenoDe(rid) || Almacen.esAjeno(fecha, t.k, rid)) return '';
+                        var solo = Almacen.esSoloYo(fecha, t.k, rid);
+                        if (cerr) return solo ? '<span class="pl-solo si">\ud83d\udc64 solo yo</span>' : '';
+                        return '<button class="pl-solo' + (solo ? ' si' : '') + '" data-soloyo="' + fecha + '|' + t.k + '|' + esc(rid) + '" title="' +
+                          (solo ? 'Hoy solo lo tomas t\u00fa: se compra y se descuenta para uno. Tocar si Susana tambi\u00e9n lo toma'
+                                : 'Tocar si Susana no lo toma: se compra y se descuenta para uno, y a ti te sigue contando') +
+                          '">' + (solo ? '\ud83d\udc64 solo yo' : '\ud83d\udc65 los dos') + '</button>';
+                      })() +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
                       '</div>' +
@@ -2465,6 +2478,9 @@
     var n = Almacen.nutrReceta(r);
 
     var personas = (fecha && toma) ? Almacen.comensales(fecha, toma) : 0;
+    /* Las cantidades, para los que de verdad comen ESE plato: uno si tiene dueño,
+       si hoy no te cuenta o si Susana no lo toma (v375). */
+    if (personas) personas = Almacen.comensalesDePlato(r, personas, fecha, toma) || personas;
     var base = r.raciones || 1;
     /* Las recetas de TANDA se cocinan enteras y se reparten en porciones: escalarlas
        por comensales no tiene sentido. */
@@ -3979,13 +3995,30 @@
     var nUna = Almacen.nutrReceta(rec);
     var salUna = Almacen.salReceta(rec);
 
-    var etiqueta = u === "rac" ? "raciones" : u;
-    var html = '<header><h2>\u00bfCu\u00e1nto comiste?</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
+    /* EN QUÉ SE CUENTA, DICHO COMO ÉL LO DICE (v373, 3-oct-2026). Carlos mandó
+       la captura del agua con gas: «Previsto: 1 raciones», «Lo que comiste» y
+       un plátano en el pie. Una receta que se mide en raciones pero cuyo nombre
+       dice botella, lata o vaso se cuenta en ESO —`medida.nombre` si la receta lo
+       trae, si no lo dice el nombre—, en singular o plural según la cifra; y lo
+       que se bebe pregunta «bebiste». */
+    var unidadRac = (rec.medida && rec.medida.nombre) ||
+                    ((/\bbotellas?\b/i.exec(rec.n) || /\blatas?\b/i.exec(rec.n) || /\bvasos?\b/i.exec(rec.n) ||
+                      /\btazas?\b/i.exec(rec.n) || [""])[0].toLowerCase().replace(/s$/, "")) || "raci\u00f3n";
+    var esBebida = /^beb_/.test(rec.id) || /^(botella|lata|vaso|taza)$/.test(unidadRac);
+    var nombreU = function (n) {
+      if (u !== "rac") return u;
+      if (Math.abs(n - 1) < 1e-9) return unidadRac;
+      return unidadRac === "raci\u00f3n" ? "raciones" : unidadRac + "s";
+    };
+    var cifra = function (n) { return String(Math.round(n * 100) / 100).replace(".", ","); };
+    var verbo = esBebida ? "bebiste" : "comiste";
+    var etiqueta = u === "rac" ? (unidadRac === "raci\u00f3n" ? "raciones" : unidadRac + "s") : u;
+    var html = '<header><h2>\u00bfCu\u00e1nto ' + verbo + '?</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
     html += '<p class="nota-peque"><strong>' + esc(rec.n) + '</strong><br>' +
-            'Previsto: ' + esc(String(Math.round(previsto * 100) / 100)) + ' ' + esc(etiqueta) +
-            (veces > 1 ? ' (' + veces + ' raciones)' : '') + ' \u00b7 ' +
+            'Previsto: ' + esc(cifra(previsto)) + ' ' + esc(nombreU(previsto)) +
+            (veces > 1 && u !== "rac" ? ' (' + veces + ' raciones)' : '') + ' \u00b7 ' +
             Util.kcal(nUna.k * veces) + ' \u00b7 ' + Util.sal(salUna * veces) + ' de sal</p>';
-    html += '<label class="campo"><span>Lo que comiste de verdad (' + esc(etiqueta) + ')</span>' +
+    html += '<label class="campo"><span>Lo que ' + verbo + ' de verdad (' + esc(etiqueta) + ')</span>' +
             '<input type="number" id="cr-cant" min="0" step="' + (u === "rac" ? "0.25" : "1") + '" value="' +
             esc(String(real ? real.c : Math.round(previsto * 100) / 100)) + '"></label>';
     html += '<div id="cr-cuenta" class="nota-peque"></div>';
@@ -3993,8 +4026,7 @@
             (real ? '<button class="btn" id="cr-quitar">Volver a lo previsto</button>' : '') +
             '<button class="btn" data-cerrar>Cancelar</button></div>';
     html += '<p class="nota-peque">Esto solo cambia las calor\u00edas y la sal de este d\u00eda. ' +
-            'Ni la receta, ni los otros d\u00edas, ni la lista de la compra: el pl\u00e1tano lo ' +
-            'compraste entero.</p>';
+            'No toca la receta, ni los otros d\u00edas, ni la lista de la compra.</p>';
     abrirModal(html);
 
     function pintarCuenta() {
@@ -4004,10 +4036,17 @@
       var f = u === "rac" ? c : (prev > 0 ? c / prev : 1);
       var dk = nUna.k * f - nUna.k * veces;
       var ds = salUna * f - salUna * veces;
+      if (Math.abs(dk) < 1 && Math.abs(ds) < 0.01) {
+        caja.innerHTML = 'Igual que lo previsto: <strong>' + Util.kcal(nUna.k * f) + '</strong> y ' +
+          Util.sal(salUna * f) + ' de sal.';
+        return;
+      }
       caja.innerHTML = 'Quedar\u00eda en <strong>' + Util.kcal(nUna.k * f) + '</strong> y ' +
-        Util.sal(salUna * f) + ' de sal' +
-        (Math.abs(dk) >= 1 ? ' \u2014 ' + (dk > 0 ? '+' : '') + Math.round(dk) + ' kcal' : '') +
-        (Math.abs(ds) >= 0.01 ? ' y ' + (ds > 0 ? '+' : '') + Util.sal(ds) : '') +
+        Util.sal(salUna * f) + ' de sal: ' +
+        /* el signo va aparte: Util.sal no sabe pintar negativos */
+        (Math.abs(dk) >= 1 ? (dk > 0 ? '+' : '\u2212') + Math.abs(Math.round(dk)) + ' kcal' : '') +
+        (Math.abs(dk) >= 1 && Math.abs(ds) >= 0.01 ? ' y ' : '') +
+        (Math.abs(ds) >= 0.01 ? (ds > 0 ? '+' : '\u2212') + Util.sal(Math.abs(ds)) + ' de sal' : '') +
         ' respecto a lo previsto.';
     }
     $("#cr-cant").addEventListener("input", pintarCuenta);
@@ -4018,7 +4057,7 @@
       if (!(c >= 0)) { Util.toast("Pon una cantidad"); return; }
       Almacen.ponerCantidadReal(fecha, toma, rid, c);
       cerrarModal(); pintarMenu();
-      Util.toast("Apuntado: " + c + " " + etiqueta);
+      Util.toast("Apuntado: " + cifra(c) + " " + nombreU(c));
     });
     if ($("#cr-quitar")) $("#cr-quitar").addEventListener("click", function () {
       Almacen.ponerCantidadReal(fecha, toma, rid, null);
@@ -6801,6 +6840,17 @@
       if (rl) {
         var rr = rl.getAttribute("data-real").split("|");
         abrirCantidadReal(rr[0], rr[1], rr[2]);
+        return;
+      }
+      var sy = e.target.closest("[data-soloyo]");
+      if (sy) {
+        var ps = sy.getAttribute("data-soloyo").split("|");
+        var ahoraSolo = !Almacen.esSoloYo(ps[0], ps[1], ps[2]);
+        Almacen.marcarSoloYo(ps[0], ps[1], ps[2], ahoraSolo);
+        Almacen.tocarDia(ps[0]);
+        Almacen.guardar("plato");
+        pintarMenu();
+        Util.toast(ahoraSolo ? "Susana no lo toma: se compra y se descuenta para uno" : "Para los dos");
         return;
       }
       var nc = e.target.closest("[data-nocuenta]");
