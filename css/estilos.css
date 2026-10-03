@@ -826,6 +826,8 @@ ol.pasos{padding-left:20px; margin:8px 0}
 ol.pasos li{margin-bottom:8px; font-size:.92rem}
 ul.ingredientes{list-style:none; padding:0; margin:8px 0}
 ul.ingredientes li{display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px dashed var(--borde); font-size:.9rem}
+/* la equivalencia del tomate para rallar en tarrinas (v362) */
+ul.ingredientes li.equiv-rallado{display:block; font-size:.78rem; color:#6b5a1e; background:#faf3e0; border-radius:6px; padding:5px 8px; margin:2px 0 4px; border-bottom:0}
 
 /* ---------- avisos flotantes ---------- */
 .toast{

@@ -427,8 +427,27 @@
       var _catRec = (SEMILLA_BASE && SEMILLA_BASE.recObj) || {};
       Object.keys(_catRec).forEach(function (k) { if (_catRec[k].rev) recSemilla[k] = _catRec[k]; });
       var refrescadas = [];
+      /* REFRESCAR UNA RECETA GANA A `editado`, UNA SOLA VEZ (3-oct-2026).
+         El hermano del sello de los ingredientes (2-oct). Lo pidió el tomate para
+         rallar: los macarrones con chorizo entraron importados por IA, quedaron
+         marcados `editado` y desde el 22-sep no recibían nada del catálogo —ni el
+         chorizo arreglado del 25-sep ni los 1,5 tomates de hoy—. Si la receta del
+         catálogo trae `refrescar:"AAAA-MM-DD"`, la copia guardada se sustituye una
+         vez por la del catálogo. El sello se apunta en el estado (no en la receta,
+         que el editor rehace entera), así que si él la vuelve a editar, lo suyo
+         se queda. */
+      if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
+        if (nueva && nueva.refrescar && e.recRefrescadas[r.id] !== nueva.refrescar) {
+          e.recetas[i] = JSON.parse(JSON.stringify(nueva));
+          /* Con hora de ahora: si no, la copia vieja de `nuevos.js` (que lleva la
+             suya, del 22-sep) volvería a ganar más abajo por «último que la tocó». */
+          e.recetas[i].tocado = new Date().toISOString();
+          e.recRefrescadas[r.id] = nueva.refrescar;
+          refrescadas.push(nueva.n);
+          return;
+        }
         if (!nueva || r.editado) return;
         if ((r.rev || 1) >= nueva.rev) return;
         e.recetas[i] = JSON.parse(JSON.stringify(nueva));

@@ -178,6 +178,23 @@
     return previo || null;
   }
 
+  /* ---- TOMATE «PARA RALLAR» (v362, 3-oct-2026) ----
+     Carlos: las recetas piden tomates de ensalada y él los ralla (rallador de caja,
+     cara gruesa); la semana que vaya justo compra tomate rallado en tarrina, y la
+     receta tiene que decirle cuánto. La línea del ingrediente lleva uso:"rallar" y la
+     ficha calcula sola la equivalencia, así una receta nueva no necesita texto aparte
+     y el tomate en gajos de la misma receta va en otra línea sin la marca.
+     RINDE_RALLADO: lo que queda de un tomate al rallarlo (sin piel ni el último
+     trozo). 0,8 es una ESTIMACIÓN: cuando Carlos pese el primero, se cambia aquí. */
+  var RINDE_RALLADO = 0.8;
+  function tarrinasTexto(q) {
+    q = Math.round(q * 4) / 4;
+    if (q < 0.25) return "menos de ¼ de tarrina";
+    var ent = Math.floor(q), fr = { 0: "", 0.25: "¼", 0.5: "½", 0.75: "¾" }[q - ent];
+    if (!ent) return fr + " de tarrina";
+    return ent + (fr ? " y " + fr : "") + (ent === 1 && !fr ? " tarrina" : " tarrinas");
+  }
+
   function etiquetasTool(tools) {
     return toolsOrdenadas(tools).map(function (t) {
       return '<span class="etiqueta' + (TOOLS_PREFERIDAS[t] ? ' preferida' : '') + '">' +
@@ -2319,9 +2336,20 @@
       var linea = escalada ? { i: l.i, c: l.c * factor } : l;
       var gr = Almacen.gramosDeLinea(linea) / 100;
       var kc = ing ? Math.round(gr * (ing.k || 0)) : 0;
-      html += '<li><span>' + esc(ing ? ing.n : l.i) + '</span><span>' +
+      var rallar = l.uso === "rallar";
+      html += '<li><span>' + esc(ing ? ing.n : l.i) +
+              (rallar ? ' <em class="nota-peque">· para rallar</em>' : '') + '</span><span>' +
               Util.cantidadReceta(linea.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0) +
               (kc ? ' <em class="nota-peque">· ' + kc + ' kcal</em>' : '') + '</span></li>';
+      var tarr = rallar ? Almacen.ingrediente("tomate_rallado") : null;
+      if (tarr) {
+        var gFresco = Almacen.gramosDeLinea(linea), gRall = gFresco * RINDE_RALLADO;
+        var comen = escalada ? personas : base;
+        var dSal = (gRall * (tarr.sal || 0) - gFresco * ((ing && ing.sal) || 0)) / 100 / comen;
+        html += '<li class="equiv-rallado">Si vas justo de tiempo: ' + (Math.round(gRall / 10) * 10) +
+                ' g de ' + esc(tarr.n) + ' — ' + tarrinasTexto(gRall / (tarr.envase || 290)) +
+                ' · ' + (dSal >= 0 ? '+' : '') + Util.sal(dSal) + ' de sal por ración</li>';
+      }
     });
     html += '</ul>';
 
@@ -2371,7 +2399,7 @@
     };
     var lineas = (r.ing || []).map(function (l) {
       var ing = Almacen.ingrediente(l.i);
-      return (ing ? ing.id : l.i) + " | " + l.c;
+      return (ing ? ing.id : l.i) + " | " + l.c + (l.uso ? " | " + l.uso : "");
     }).join("\n");
 
     var opcionesIng = Almacen.estado.ingredientes.map(function (i) {
@@ -2401,7 +2429,7 @@
                      ((r.tools || []).indexOf(t) >= 0 ? " checked" : "") + '> ' + NOMBRE_TOOL[t] + '</label>';
             }).join(" ") + '</div></label>';
 
-    html += '<label class="campo"><span>Ingredientes — una línea por ingrediente: <em>identificador | cantidad</em></span>' +
+    html += '<label class="campo"><span>Ingredientes — una línea por ingrediente: <em>identificador | cantidad</em> (el tomate que se ralla: <em>tomate | 1.5 | rallar</em>)</span>' +
             '<textarea id="ed-ing" class="salida" style="min-height:150px">' + esc(lineas) + '</textarea></label>';
     html += '<label class="campo"><span>Añadir ingrediente del catálogo</span><select id="ed-ayuda"><option value="">— elige para insertar la línea —</option>' + opcionesIng + '</select></label>';
     var textoPasos = (r.pasos || []).map(function (p) {
@@ -2438,7 +2466,9 @@
         var idIng = (p[0] || "").trim();
         var cant = parseFloat((p[1] || "").replace(",", "."));
         if (!idIng || isNaN(cant)) return;
-        ing.push({ i: idIng, c: cant });
+        var lin = { i: idIng, c: cant };
+        if ((p[2] || "").trim() === "rallar") lin.uso = "rallar";   // «tomate | 1.5 | rallar»
+        ing.push(lin);
       });
       var nueva = {
         id: r.id || ("propia_" + Date.now().toString(36)),
