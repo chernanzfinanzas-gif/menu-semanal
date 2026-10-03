@@ -702,6 +702,30 @@
       ".bal-sem .falta{font-size:.82rem;color:#8a5a12;font-weight:600;margin:2px 0 4px}",
       ".bal-sem .v{color:#1f7a4d;font-weight:700}.bal-sem .a{color:#9a6400;font-weight:700}.bal-sem .r{color:#b0413e;font-weight:700}",
       "@media(max-width:420px){.bal-sem .fila{flex-direction:column;gap:0}.bal-sem .fila > span:first-child{flex:none}}",
+      /* v364: semáforo, reparto de nutrientes y pérdida teórica */
+      ".bal-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}",
+      ".bal-semaf{display:flex;align-items:center;gap:8px;flex:0 0 auto}",
+      ".bal-luces{display:flex;flex-direction:column;gap:3px;padding:4px;background:#2b3138;border-radius:8px}",
+      ".bal-luces i{display:block;width:12px;height:12px;border-radius:50%;background:#4a525b}",
+      ".bal-luces i.on.lr{background:#e0524e;box-shadow:0 0 6px #e0524e}.bal-luces i.on.la{background:#f0a92a;box-shadow:0 0 6px #f0a92a}.bal-luces i.on.lv{background:#2fae6a;box-shadow:0 0 6px #2fae6a}",
+      ".bal-semaf b{font-size:.92rem;line-height:1.15}.bal-semaf small{display:block;font-size:.72rem;color:#6b7c8d;font-weight:400}",
+      ".bal-sem .sec{border-top:1px solid #eef1f4;padding:7px 0 5px}",
+      ".bal-sem .sec:first-of-type{border-top:0}",
+      ".bal-sem .tit{font-size:.78rem;color:#6b7c8d;margin-bottom:3px}",
+      ".bal-sem .big{font-size:1.05rem;font-weight:700}",
+      ".bal-barra{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:5px 0 3px;background:#eef1f4}",
+      ".bal-barra i{display:block;height:100%}.bal-barra .bp{background:#4a7fc1}.bal-barra .bg{background:#e0a03a}.bal-barra .bh{background:#8fbf6a}",
+      ".bal-macros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:4px}",
+      ".bal-macros div{font-size:.8rem;line-height:1.35;border-left:3px solid #ccd3da;padding-left:6px}",
+      ".bal-macros div.p{border-color:#4a7fc1}.bal-macros div.g{border-color:#e0a03a}.bal-macros div.h{border-color:#8fbf6a}",
+      ".bal-macros b{display:block;font-size:.9rem}",
+      ".bal-veredicto{font-size:.84rem;margin-top:5px}",
+      ".bal-prog{height:8px;border-radius:4px;background:#eef1f4;overflow:hidden;margin:5px 0 2px;position:relative}",
+      ".bal-prog i{display:block;height:100%;border-radius:4px}.bal-prog i.v{background:#2fae6a}.bal-prog i.a{background:#f0a92a}.bal-prog i.r{background:#e0524e}",
+      ".bal-dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}",
+      ".bal-dos > div{background:#fff;border:1px solid #eef1f4;border-radius:8px;padding:6px 8px}",
+      ".bal-nada{font-size:.88rem;color:#6b7c8d;font-style:italic}",
+      "@media(max-width:420px){.bal-macros{grid-template-columns:1fr}.bal-dos{grid-template-columns:1fr}}",
       /* la emergente */
       ".sal-modos{display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0}",
       "@media (min-width:520px){.sal-modos{grid-template-columns:1fr 1fr}}",
@@ -2338,60 +2362,140 @@
     }
     return r;
   }
+  /* LAS COMIDAS EMPIEZAN EL 28-SEP-2026. Carlos borró todas las comidas de
+     antes («las semanas del 21 al 27 de septiembre y las anteriores: pon que no
+     hay comida»). Esas semanas dicen «No hay comidas apuntadas» aunque un
+     balance fijado de antes guarde alguna cifra. */
+  var INICIO_COMIDAS = "2026-09-28";
   function fichaBalanceSemana(lunes) {
     var hoy = U.hoyISO(), dom = U.sumarDias(lunes, 6);
     if (lunes > hoy || !A || !A.nutrDia || !A.kcalPorProcedencia) return "";
     var r = balanceSemana(lunes);
-    function fila(et, txt) { return '<div class="fila"><span>' + et + "</span><span>" + txt + "</span></div>"; }
+    var sinComidas = dom < INICIO_COMIDAS || (!r.com && r.pasados > 0);
     function sg(v, d) { return (v > 0 ? "+" : v < 0 ? "−" : "") + num(Math.abs(v), d); }
     function kc(v) { return (v < 0 ? "−" : "") + U.kcal(Math.abs(v)); }
+    var CL = { verde: "v", ambar: "a", rojo: "r" };
     var cuando = r.fijo ? "cerrada · fijada el " + fechaCorta(r.fijo)
       : (r.cerrada ? "cerrada · se fija el " + fechaCorta(U.sumarDias(dom, 4))
                    : "en curso · cambia hasta el domingo");
-    var h = '<div class="bal-sem"><span class="et">Balance de la semana <small>· ' + cuando + "</small></span>";
-    if (r.faltan) {
-      h += '<div class="falta">' + (r.faltan === 1 ? "Falta 1 día" : "Faltan " + r.faltan + " días") +
-        " de comida por apuntar" + (r.cerrada ? "" : " de los " + r.pasados + " ya pasados") + ".</div>";
-    }
-    /* lo comido */
-    if (r.com) {
-      var pg = r.com.k ? r.com.g * 9 / r.com.k * 100 : 0;
-      h += fila("Comida, media", U.kcal(r.com.k) + " · " + Math.round(r.com.p) + " g de proteína · " +
-        Math.round(pg) + " % de grasa · " + Math.round(r.com.h) + " g de hidratos" +
-        (r.faltan ? ' <span class="nota-peque">(de ' + r.apuntados + (r.apuntados === 1 ? " día apuntado" : " días apuntados") + ")</span>" : ""));
+
+    /* EL SEMÁFORO. Lo decide el déficit conseguido frente al objetivo, con los
+       mismos cortes que ya tenía el número: 90 % y 60 %. */
+    var pct = (r.deficit !== null && !sinComidas && r.deficitObj > 0) ? r.deficit / r.deficitObj : null;
+    var luz = pct === null ? "" : (pct >= 0.9 ? "v" : pct >= 0.6 ? "a" : "r");
+    var dice = luz === "v" ? "Cumplido" : luz === "a" ? "Faltó un poco" : luz === "r" ? "Fue mal" : "Sin datos";
+    var porque = pct === null ? (sinComidas ? "no hay comidas" : "falta el déficit")
+      : Math.round(pct * 100) + " % del déficit" + (r.cerrada ? "" : " · provisional");
+    var h = '<div class="bal-sem"><div class="bal-cab"><span class="et">Balance de la semana <small>· ' + cuando + "</small></span>" +
+      '<span class="bal-semaf" title="Verde: déficit al 90 % o más. Ámbar: entre el 60 y el 90 %. Rojo: menos del 60 %.">' +
+      '<span class="bal-luces"><i class="lr' + (luz === "r" ? " on" : "") + '"></i><i class="la' + (luz === "a" ? " on" : "") +
+      '"></i><i class="lv' + (luz === "v" ? " on" : "") + '"></i></span><b>' + dice + "<small>" + porque + "</small></b></span></div>";
+
+    /* LA COMIDA */
+    h += '<div class="sec"><div class="tit">Comida, media al día</div>';
+    if (sinComidas) {
+      h += '<div class="bal-nada">No hay comidas apuntadas esta semana.</div>';
     } else {
-      h += fila("Comida, media", r.pasados ? "ningún día apuntado" : "la semana acaba de empezar");
+      if (r.faltan) {
+        h += '<div class="falta">' + (r.faltan === 1 ? "Falta 1 día" : "Faltan " + r.faltan + " días") +
+          " de comida por apuntar" + (r.cerrada ? "" : " de los " + r.pasados + " ya pasados") + ".</div>";
+      }
+      if (r.com) {
+        /* los objetivos de ESOS mismos días: cambian con el ejercicio */
+        var o = { k: 0, p: 0, g: 0, h: 0 }, no = 0;
+        for (var i = 0; i < 7; i++) {
+          var f = U.sumarDias(lunes, i);
+          if (f >= hoy) break;
+          if (!diaComidaApuntada(f) || !A.objetivosMacros) continue;
+          var m = A.objetivosMacros(f); o.k += m.k; o.p += m.p; o.g += m.g; o.h += m.h; no++;
+        }
+        var c = r.com, kp = c.p * 4, kg = c.g * 9, kh = c.h * 4, kt = (kp + kg + kh) || 1;
+        var pp = kp / kt * 100, pgr = kg / kt * 100, ph = kh / kt * 100;
+        var ck = "", cp = "", cg = "", ch = "", pgo = 30;
+        if (no) {
+          o.k /= no; o.p /= no; o.g /= no; o.h /= no;
+          pgo = o.k ? o.g * 9 / o.k * 100 : 30;
+          ck = A.semaforoKcal ? A.semaforoKcal(c.k, o.k) : "";
+          cp = c.p >= o.p ? "verde" : (c.p >= o.p * 0.85 ? "ambar" : "rojo");
+          var dg = c.k ? c.g * 9 / c.k * 100 - pgo : 0;
+          cg = Math.abs(dg) <= 5 ? "verde" : (Math.abs(dg) <= 10 ? "ambar" : "rojo");
+          var rh = o.h ? c.h / o.h : 1;
+          ch = Math.abs(rh - 1) <= 0.15 ? "verde" : (Math.abs(rh - 1) <= 0.30 ? "ambar" : "rojo");
+        }
+        h += '<div><span class="big ' + (CL[ck] || "") + '">' + U.kcal(c.k) + "</span>" +
+          (no ? ' <span class="nota-peque">de ' + U.kcal(o.k) + " de objetivo · " +
+            (ck === "verde" ? "en su sitio" : ck === "rojo" ? "por encima" : "muy por debajo") + "</span>" : "") +
+          (r.faltan ? ' <span class="nota-peque">(de ' + r.apuntados + (r.apuntados === 1 ? " día apuntado" : " días apuntados") + ")</span>" : "") +
+          "</div>";
+        h += '<div class="bal-barra" title="Reparto de las calorías"><i class="bp" style="width:' + pp.toFixed(1) +
+          '%"></i><i class="bg" style="width:' + pgr.toFixed(1) + '%"></i><i class="bh" style="width:' + ph.toFixed(1) + '%"></i></div>';
+        var kgPeso = r.peso ? r.peso.v : 0;
+        function macro(cls, nom, g, pctK, col, extra, est) {
+          return '<div class="' + cls + '"><b>' + nom + " " + Math.round(g) + " g</b>" + Math.round(pctK) + " % de las kcal" +
+            (extra ? "<br>" + extra : "") + (col ? '<br><span class="' + CL[col] + '">' + est + "</span>" : "") + "</div>";
+        }
+        h += '<div class="bal-macros">' +
+          macro("p", "Proteína", c.p, pp, cp,
+            (no ? "objetivo " + Math.round(o.p) + " g" : "") + (kgPeso ? (no ? " · " : "") + num(c.p / kgPeso, 2) + " g por kilo" : ""),
+            cp === "verde" ? "cumple" : "corta") +
+          macro("g", "Grasa", c.g, pgr, cg, no ? "objetivo " + Math.round(pgo) + " %" : "",
+            cg === "verde" ? "en su sitio" : (pgr > pgo ? "por encima" : "por debajo")) +
+          macro("h", "Hidratos", c.h, ph, ch, no ? "objetivo " + Math.round(o.h) + " g" : "",
+            ch === "verde" ? "en su sitio" : (c.h > o.h ? "por encima" : "por debajo")) +
+          "</div>";
+        if (no) {
+          var malos = [];
+          if (cp !== "verde") malos.push("proteína corta");
+          if (cg !== "verde") malos.push("grasa " + (pgr > pgo ? "alta" : "baja"));
+          if (ch !== "verde") malos.push("hidratos " + (c.h > o.h ? "altos" : "bajos"));
+          var rojo = cp === "rojo" || cg === "rojo" || ch === "rojo";
+          h += '<div class="bal-veredicto">' + (malos.length
+            ? '<span class="' + (rojo ? "r" : "a") + '">' + (rojo ? "Desequilibrado" : "Casi equilibrado") + "</span>: " + malos.join(", ") + "."
+            : '<span class="v">Reparto equilibrado</span>: los tres en su sitio.') + "</div>";
+        }
+      } else {
+        h += '<div class="bal-nada">' + (r.pasados ? "Ningún día apuntado todavía." : "La semana acaba de empezar.") + "</div>";
+      }
     }
-    /* el ejercicio, siempre */
-    h += fila("Ejercicio hecho", U.kcal(r.ej) + " en la semana");
-    /* el déficit */
-    if (r.deficit !== null) {
-      var pct = r.deficitObj > 0 ? r.deficit / r.deficitObj : null;
-      var cl = pct === null ? "" : (pct >= 0.9 ? "v" : pct >= 0.6 ? "a" : "r");
-      h += fila("Déficit conseguido", '<span class="' + cl + '">' + kc(r.deficit) + "</span>" +
-        " · objetivo " + kc(r.deficitObj) + (pct === null ? "" : " · " + Math.round(pct * 100) + " %") +
-        ' <span class="nota-peque">(' + kc(r.deficit / r.pasados) + " al día)</span>");
+    h += "</div>";
+
+    /* EJERCICIO Y DÉFICIT */
+    h += '<div class="sec"><div class="bal-dos"><div><div class="tit">Ejercicio hecho</div><span class="big">' +
+      U.kcal(r.ej) + '</span> <span class="nota-peque">en la semana</span></div><div><div class="tit">Déficit conseguido</div>';
+    if (pct !== null) {
+      h += '<span class="big ' + luz + '">' + kc(r.deficit) + '</span> <span class="nota-peque">de ' + kc(r.deficitObj) +
+        " · " + Math.round(pct * 100) + " %</span>" +
+        '<div class="bal-prog"><i class="' + luz + '" style="width:' + Math.max(0, Math.min(100, pct * 100)).toFixed(0) + '%"></i></div>' +
+        '<span class="nota-peque">' + kc(r.deficit / r.pasados) + " al día</span>";
     } else {
-      h += fila("Déficit conseguido", r.faltan ? "no se puede calcular: faltan días de comida"
-        : (r.sinPerfil ? "no se puede calcular: faltan edad, altura y peso en el perfil"
-                       : "aún no hay ningún día terminado"));
+      h += '<span class="nota-peque">' + (sinComidas ? "sin comidas no se puede calcular"
+        : r.faltan ? "no se puede calcular: faltan días de comida"
+        : (r.sinPerfil ? "no se puede calcular: faltan edad, altura y peso en el perfil" : "aún no hay ningún día terminado")) + "</span>";
     }
-    /* el peso, siempre */
+    h += "</div></div></div>";
+
+    /* PESO: EL TEÓRICO Y EL REAL */
+    var teo = pct !== null ? -r.deficit / 7700 : null;
+    h += '<div class="sec"><div class="bal-dos"><div><div class="tit">Pérdida teórica por el déficit</div>';
+    h += teo !== null
+      ? '<span class="big">' + sg(teo, 2) + ' kg</span><br><span class="nota-peque">' + U.kcal(r.deficit) +
+        " ÷ 7.700 kcal por kilo de grasa</span>"
+      : '<span class="nota-peque">sin déficit calculado</span>';
+    h += '</div><div><div class="tit">Peso, media de la semana</div>';
     if (r.peso && r.pesoAnt) {
       var dp = r.peso.v - r.pesoAnt.v, obj = -r.ritmo;
       var clp = dp >= 0 ? "r" : (r.ritmo && dp <= obj * 0.75 ? "v" : "a");
-      var esperado = r.deficit !== null ? -r.deficit / 7700 : null;
-      h += fila("Peso, media", num(r.peso.v, 1) + " kg" +
-        (r.peso.n < 7 ? ' <span class="nota-peque">(' + r.peso.n + (r.peso.n === 1 ? " pesada" : " pesadas") + ")</span>" : "") +
-        ' · <span class="' + clp + '">' + sg(dp, 2) + " kg</span> frente a " + num(r.pesoAnt.v, 1) +
-        " la semana anterior" +
-        ' <span class="nota-peque">(' + (r.ritmo ? "objetivo " + sg(obj, 2) + " kg" : "sin ritmo de pérdida") +
-        (esperado !== null ? "; por el déficit, " + sg(esperado, 2) + " kg" : "") + ")</span>");
+      h += '<span class="big ' + clp + '">' + sg(dp, 2) + ' kg</span> <span class="nota-peque">' + num(r.pesoAnt.v, 1) + " → " +
+        num(r.peso.v, 1) + " kg" + (r.peso.n < 7 ? " (" + r.peso.n + (r.peso.n === 1 ? " pesada" : " pesadas") + ")" : "") + "</span>" +
+        '<br><span class="nota-peque">' + (r.ritmo ? "objetivo " + sg(obj, 2) + " kg" : "sin ritmo de pérdida") +
+        (teo !== null ? (dp < teo - 0.1 ? " · más que el teórico: parte suele ser agua"
+          : dp > teo + 0.1 ? " · menos que el teórico" : " · en línea con el teórico") : "") + "</span>";
     } else if (r.peso) {
-      h += fila("Peso, media", num(r.peso.v, 1) + " kg · sin pesadas la semana anterior para comparar");
+      h += '<span class="big">' + num(r.peso.v, 1) + ' kg</span><br><span class="nota-peque">sin pesadas la semana anterior para comparar</span>';
     } else {
-      h += fila("Peso, media", "sin pesadas esta semana");
+      h += '<span class="nota-peque">sin pesadas esta semana</span>';
     }
+    h += "</div></div></div>";
     return h + "</div>";
   }
 
