@@ -450,6 +450,15 @@
         e.arreglos["2026-10-03-ruta27"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err27) {}
       }
+      /* LAS 4 BOLSAS DE VERDURAS ASADAS LISTÍSIMOS (3-oct-2026). Carlos: «me han
+         dado cuatro de regalo hoy en una compra de Sirena que he metido al
+         stock». No llegaron a entrar: el producto no tenía ficha. Se apuntan
+         aquí una vez, y sólo si ese producto no tiene ya nada contado, para no
+         pisar lo que él cuente después. */
+      if (!e.stock) e.stock = {};
+      if (!e.stock.guarnicion_verduras_asadas || e.stock.guarnicion_verduras_asadas.pte) {
+        e.stock.guarnicion_verduras_asadas = { c: 800, piezas: 4, f: "2026-10-03", contado: true, nivel: "contado" };
+      }
       /* LA SALSA DE TRUFA, DETRÁS DE LA CEBOLLA CARAMELIZADA (3-oct-2026).
          Carlos: «después de la cebolla caramelizada Vegecampo DIA en puerta de
          nevera». El orden de cada estante vive en el estado, y lo nuevo cae al
