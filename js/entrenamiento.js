@@ -885,6 +885,11 @@
       ".ent-navsem h2{margin:0;flex:1;text-align:center}",
       ".ent-navsem .btn{flex:none}",
       ".ent-navsem .btn.icono{min-width:56px;height:52px;padding:0 12px;font-size:34px;font-weight:700;line-height:1;border-radius:12px}",
+      ".ent-navizq,.ent-navder{display:flex;gap:6px;flex:0 0 auto}",
+      ".ent-navder{min-width:118px;justify-content:flex-end}",
+      ".ent-navsem .btn.hoy{height:52px;padding:0 14px;font-size:.95rem;font-weight:700;border-radius:12px;border-color:var(--azul,#2c5d8f);color:var(--azul,#2c5d8f)}",
+      ".ent-navsem .btn.hoy.en-hoy{opacity:.45}",
+      "@media(max-width:520px){.ent-navder{min-width:0}.ent-navsem .btn.hoy{padding:0 10px}}",
       ".ent-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}",
       ".ent-dia{background:var(--gris-claro);border:1px solid var(--borde);border-radius:10px;padding:7px 4px;",
       "  text-align:center;min-height:86px;display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer}",
@@ -11943,7 +11948,13 @@
     h = volver;
     estiloCargas();
     h += '<div class="tarjeta"><div class="ent-navsem">' +
-      '<button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
+      /* «HOY» (3-oct-2026). Carlos: «un botón Hoy para volver rápido a la ficha
+         activa». Vuelve a la semana de hoy y abre el día de hoy, venga de otra
+         semana o de otro día de ésta. Siempre está, en el mismo sitio; cuando ya
+         estás en hoy se ve apagado. */
+      '<span class="ent-navizq"><button type="button" class="btn icono" data-semana="-1" title="Semana anterior">‹</button>' +
+      '<button type="button" class="btn hoy' + (!lunesVista && (!diaSel || diaSel === hoy) ? " en-hoy" : "") +
+        '" data-semhoy="1" title="Volver a la semana de hoy y abrir el día de hoy">Hoy</button></span>' +
       "<h2>" + (lunes === U.lunesDe(hoy) ? "La semana" : U.etiquetaRangoCorto(lunes)) +
         (function () {
           var sx = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
@@ -11958,7 +11969,7 @@
           return '<small class="' + cls + '">Carga ' + c +
             (sx.carga ? " de " + sx.carga : "") + ins + "</small>";
         })() + "</h2>" +
-      '<button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button>' +
+      '<span class="ent-navder"><button type="button" class="btn icono" data-semana="1" title="Semana siguiente">›</button></span>' +
       "</div>" +
       (function () {
         var sx = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
@@ -13047,6 +13058,12 @@
           pintar();
         });
         pintar();   // para que el botón diga «trayendo…» mientras tanto
+        return;
+      }
+      if (t.closest && t.closest("[data-semhoy]")) {
+        lunesVista = null;
+        diaSel = null;
+        pintar();
         return;
       }
       var ns = t.closest ? t.closest("[data-semana]") : null;
