@@ -188,6 +188,7 @@
         recados: {},           /* { id: { c, f, tipo } } — lo que falló y hay que buscar
                                   en otro sitio. Se queda aquí hasta que se resuelva. */
         favoritos: [],
+        valoraciones: {},      /* { recetaId: { e: 1-5, f: "AAAA-MM-DD" } } — sus estrellas (v370) */
         sync: { sha: null, ultima: null }
       };
     },
@@ -901,6 +902,7 @@
       if (!e.compraMarcada) e.compraMarcada = {};
       if (!e.recados) e.recados = {};
       if (!e.favoritos) e.favoritos = [];
+      if (!e.valoraciones) e.valoraciones = {};
       if (!e.sync) e.sync = { sha: null, ultima: null };
       /* EL CIERRE DEL DÍA: todo día ya pasado se congela aquí. Ver «la foto de
          lo comido» más abajo. Se hace al final, cuando el recetario ya está
@@ -1000,8 +1002,247 @@
 
     /* ---------- consultas ---------- */
     receta: function (id) {
-      for (var i = 0; i < this.estado.recetas.length; i++) if (this.estado.recetas[i].id === id) return this.estado.recetas[i];
+      for (var i = 0; i < this.estado.recetas.length; i++) if (this.estado.recetas[i].id === id) {
+        var r = this.estado.recetas[i];
+        if (r.conj) this.armarConjunto(r);
+        return r;
+      }
       return null;
+    },
+
+    /* ---------- PLATO + GUARNICIÓN (v369, 3-oct-2026) ----------
+       Carlos: «si elijo un principal me deja elegir guarniciones… y me presenta
+       ingredientes, información nutricional, proceso de cocinado como si fuese
+       un plato solo en el menú, que confirmo comido y cuenta las calorías
+       totales». Y antes, al estudiar las opciones: nada de una receta escrita
+       por cada combinación (37 principales × 13 guarniciones), y el conjunto
+       «se guarda por si aparece otra vez».
+
+       Cómo: el par se guarda como UNA receta más del recetario, escondida
+       (`oculta`, no sale en el selector ni en el recetario) y marcada con
+       `conj:{p,g}`. Para todo lo demás —ficha, kcal, sal, lista de la compra,
+       «comido», foto— es un plato normal, y por eso no hay que tocar nada de
+       eso. Lo que lleva dentro NO se guarda a mano: se REHACE de las dos
+       recetas cada vez que alguna cambia (firma `_firma`), así que arreglar
+       la guarnición arregla todos los conjuntos que la usan.
+
+       Los relojes: si van en aparatos distintos, empieza el que tarda más y
+       los dos acaban a la vez. Si los dos necesitan el mismo aparato al mismo
+       tiempo (casi siempre la freidora, que es UNA cesta), la app no puede
+       saber si caben juntos: los pone uno detrás de otro y lo marca
+       `sinCuadrar`. Esos se cuadran a mano por lotes y quedan en
+       DATOS_CUADRES (final de datos/recetas.js), que manda sobre lo automático. */
+    apDePaso: null,          /* lo pone app.js: es su `aparatoPaso` */
+
+    /* ---------- LAS ESTRELLAS (v370, 3-oct-2026) ----------
+       Carlos, tras probar el risotto de pera, gorgonzola y boletus: «calificar
+       con estrellas la receta y añadir un apartado de favoritas en el selector».
+       Decidió: sólo puntúa él; se pregunta AL MARCAR COMIDO (una vez, si aún no
+       tiene nota); favoritas son las de 4 y 5; y el completador las tiene en
+       cuenta «con cuidado»: las de 4-5 salen algo más, las de 1-2 dejan de
+       proponerse, y las que no tienen nota siguen igual para no perder variedad.
+       Un plato + guarnición se puntúa como lo que es, el conjunto; y su nota
+       cuenta también para el principal cuando éste no tiene la suya. */
+    estrellas: function (id) {
+      var v = (this.estado.valoraciones || {})[id];
+      return (v && v.e) || 0;
+    },
+    estrellasPlato: function (id) {
+      var propia = this.estrellas(id);
+      if (propia) return propia;
+      var self = this, mejor = 0;
+      Object.keys(this.estado.valoraciones || {}).forEach(function (k) {
+        if (k.indexOf("conj_" + id + "__") === 0) mejor = Math.max(mejor, self.estrellas(k));
+      });
+      return mejor;
+    },
+    valorar: function (id, n) {
+      if (!this.estado.valoraciones) this.estado.valoraciones = {};
+      n = Math.max(0, Math.min(5, Math.round(n)));
+      if (!n) delete this.estado.valoraciones[id];
+      else this.estado.valoraciones[id] = { e: n, f: Util.hoyISO() };
+      this.guardar("valoracion");
+    },
+    /* Se puntúa lo que se cocina: no un yogur suelto, una bebida o el pan. */
+    valorable: function (r) {
+      if (!r || r.borrada || r.grupo === "suelto" || r.grupo === "retirado" || r.grupo === "restaurante") return false;
+      if ((r.tools || []).indexOf("sin-cocinar") >= 0 && !r.conj) return false;
+      return true;
+    },
+    /* Las favoritas de una toma: 4 y 5 estrellas, las de 5 primero. Incluye los
+       platos + guarnición puntuados, que están escondidos en el recetario. */
+    favoritas: function (toma) {
+      var self = this, fuera = [];
+      Object.keys(this.estado.valoraciones || {}).forEach(function (id) {
+        if (self.estrellas(id) < 4) return;
+        var r = self.receta(id);
+        if (!r || r.borrada || (r.oculta && !r.conj)) return;
+        if (toma && (r.tipo || []).indexOf(toma) < 0) return;
+        fuera.push(r);
+      });
+      return fuera.sort(function (a, b) {
+        return (self.estrellas(b.id) - self.estrellas(a.id)) || a.n.localeCompare(b.n);
+      });
+    },
+    idConjunto: function (pId, gId) { return "conj_" + pId + "__" + gId; },
+    crearConjunto: function (pId, gId) {
+      if (!this.receta(pId) || !this.receta(gId)) return null;
+      var id = this.idConjunto(pId, gId);
+      var r = null;
+      for (var i = 0; i < this.estado.recetas.length; i++) if (this.estado.recetas[i].id === id) r = this.estado.recetas[i];
+      if (!r) {
+        r = { id: id, conj: { p: pId, g: gId }, oculta: true, editado: true,
+              n: "", tipo: [], grupo: "", raciones: 1, min: 0, tools: [], ing: [], pasos: [] };
+        this.estado.recetas.push(r);
+      }
+      this.armarConjunto(r, true);
+      this.guardar("conjunto");
+      return id;
+    },
+    cortoDe: function (r) { return r.corto || String(r.n || "").split(" ")[0]; },
+    armarConjunto: function (r, forzar) {
+      if (this._armando) return;
+      var P = null, G = null, i;
+      for (i = 0; i < this.estado.recetas.length; i++) {
+        var x = this.estado.recetas[i];
+        if (x.id === r.conj.p) P = x;
+        if (x.id === r.conj.g) G = x;
+      }
+      if (!P || !G) return;
+      var cu = (global.DATOS_CUADRES || {})[r.conj.p + "|" + r.conj.g] || null;
+      var firma = JSON.stringify([2, P.n, P.raciones, P.ing, P.pasos, P.trucos, P.tipo, P.grupo, P.tools,
+                                  G.n, G.raciones, G.ing, G.pasos, G.trucos, G.tools, cu]);
+      if (!forzar && r._firma === firma) return;
+      this._armando = true;
+      try { this._armar(r, P, G, cu); } finally { this._armando = false; }
+      r._firma = firma;
+    },
+    _armar: function (r, P, G, cu) {
+      var self = this;
+      var cP = this.cortoDe(P), cG = this.cortoDe(G);
+      /* INGREDIENTES: por ración de cada una, sumados. El conjunto es de 1 ración
+         y la ficha lo escala a los comensales como cualquier plato. */
+      var ing = [], pos = {};
+      [P, G].forEach(function (C) {
+        var rc = C.raciones || 1;
+        (C.ing || []).forEach(function (l) {
+          var k = l.i + "|" + (l.uso || "");
+          var c = Math.round(l.c / rc * 1000) / 1000;
+          if (pos[k] != null) { ing[pos[k]].c = Math.round((ing[pos[k]].c + c) * 1000) / 1000; return; }
+          var n = { i: l.i, c: c }; if (l.uso) n.uso = l.uso;
+          pos[k] = ing.length; ing.push(n);
+        });
+      });
+      var union = function (a, b) {
+        var o = (a || []).slice();
+        (b || []).forEach(function (x) { if (o.indexOf(x) < 0) o.push(x); });
+        return o;
+      };
+      /* PASOS: los de texto (preparación antes del reloj, y lo de después) con
+         el nombre corto delante; los de reloj, en una sola línea de tiempo. */
+      var partes = function (C, corto) {
+        var antes = [], reloj = [], despues = [], prev = null;
+        (C.pasos || []).forEach(function (p) {
+          if (p && typeof p === "object" && typeof p.min === "number") {
+            var a = p.ap || (self.apDePaso ? self.apDePaso(p, C, prev) : null);
+            if (a && a !== "no") prev = a;
+            var q = { min: p.min, t: p.t, d: p.d, ap: a || "no", de: corto };
+            reloj.push(q);
+          } else {
+            var txt = typeof p === "string" ? p : (p && p.t) || "";
+            (reloj.length ? despues : antes).push(corto + " · " + txt);
+          }
+        });
+        var fin = 0;
+        reloj.forEach(function (q) {
+          var m = /(\d+(?:[.,]\d+)?)\s*(?:minutos?|min\b)/i.exec(q.t || "");
+          fin = Math.max(fin, q.min + (m ? parseFloat(m[1].replace(",", ".")) : 0));
+        });
+        return { antes: antes, reloj: reloj, despues: despues, fin: Math.round(fin * 10) / 10 };
+      };
+      var a = partes(P, cP), b = partes(G, cG);
+      var ocupa = function (pt, off) {          /* {aparato: [[desde, hasta]]} */
+        var o = {};
+        pt.reloj.forEach(function (q, k) {
+          if (!q.ap || q.ap === "no") return;
+          var hasta = k + 1 < pt.reloj.length ? pt.reloj[k + 1].min : pt.fin;
+          if (hasta <= q.min) hasta = q.min + 1;
+          (o[q.ap] = o[q.ap] || []).push([q.min + off, hasta + off]);
+        });
+        return o;
+      };
+      var choca = function (o1, o2) {
+        var hay = null;
+        Object.keys(o1).forEach(function (ap) {
+          (o2[ap] || []).forEach(function (y) {
+            o1[ap].forEach(function (x) { if (x[0] < y[1] && y[0] < x[1]) hay = ap; });
+          });
+        });
+        return hay;
+      };
+      var NOMBRE = { airfryer: "la freidora", micro: "el microondas", sarten: "la sartén", horno: "el horno", cazuela: "la cazuela" };
+      var reloj, fin, nota, sinCuadrar = false;
+      var preparacion = a.antes.concat(b.antes);
+      if (cu) {
+        reloj = cu.pasos;
+        fin = cu.min || 0;
+        nota = "Plato y guarnición: «" + P.n + "» + «" + G.n + "». Cuadrado a mano y guardado." +
+               (cu.nota ? " " + cu.nota : "");
+      } else {
+        var E = Math.max(a.fin, b.fin);
+        var offA = E - a.fin, offB = E - b.fin;
+        var ap = choca(ocupa(a, offA), ocupa(b, offB));
+        if (ap) {
+          /* Uno detrás de otro: la guarnición primero, que aguanta mejor
+             tapada que una carne o un pescado recién hechos. */
+          sinCuadrar = true;
+          offB = 0; offA = b.fin; E = b.fin + a.fin;
+          nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "» usan " + (NOMBRE[ap] || ap) +
+                 " a la vez y la app no sabe si caben juntos. De momento van uno detrás de otro (" +
+                 Math.round(E) + " min). Cuando se cuadre, quedará guardado así.";
+        } else {
+          nota = "Plato y guarnición: «" + P.n + "» + «" + G.n + "». Los tiempos los ha cuadrado la app: " +
+                 "empieza el que tarda más y los dos acaban a la vez.";
+        }
+        var desplaza = function (pt, off) {
+          return pt.reloj.map(function (q) {
+            var n = {}; Object.keys(q).forEach(function (k) { n[k] = q[k]; });
+            n.min = Math.round((q.min + off) * 10) / 10; return n;
+          });
+        };
+        var relB = desplaza(b, offB);
+        if (sinCuadrar && relB.length) {
+          var ult = relB[relB.length - 1];
+          ult.d = (ult.d ? ult.d + " " : "") + "Resérvalo tapado mientras se hace «" + P.n + "».";
+        }
+        reloj = desplaza(a, offA).concat(relB);
+        reloj.sort(function (x, y) { return x.min - y.min; });   /* estable: a igual minuto, el principal primero */
+        fin = E;
+      }
+      r.n = P.n + " + " + G.n;
+      r.tipo = (P.tipo || []).slice();
+      r.grupo = P.grupo;
+      r.raciones = 1;
+      r.min = Math.round(fin) || Math.max(P.min || 0, G.min || 0);
+      r.tools = union(P.tools, G.tools);
+      r.cesta = union(P.cesta, G.cesta);
+      r.ing = ing;
+      r.pasos = preparacion.concat(reloj, a.despues, b.despues);
+      r.trucos = (P.trucos || []).map(function (t) { return cP + " · " + t; })
+                 .concat((G.trucos || []).map(function (t) { return cG + " · " + t; }));
+      r.nota = nota;
+      r.sinCuadrar = sinCuadrar;
+      r.oculta = true;
+      r.editado = true;
+    },
+    /* Los pares que esperan cuadre a mano: se miran todos de una vez. */
+    conjuntosSinCuadrar: function () {
+      var self = this;
+      return this.estado.recetas.filter(function (r) {
+        if (!r.conj) return false;
+        self.armarConjunto(r);
+        return r.sinCuadrar;
+      }).map(function (r) { return r.conj.p + "|" + r.conj.g; });
     },
     ingrediente: function (id) {
       for (var i = 0; i < this.estado.ingredientes.length; i++) if (this.estado.ingredientes[i].id === id) return this.estado.ingredientes[i];
@@ -1774,7 +2015,14 @@
       }
       return {
         ingredientes: (this.estado.ingredientes || []).filter(function (x) { return mio(x, base.ing); }),
+        /* Un plato + guarnición viaja en ESQUELETO: el otro aparato lo rehace
+           con sus dos recetas al abrirlo (`armarConjunto`). Entero pesaría lo
+           que sus dos fichas juntas, y el estado tiene tope. */
         recetas: (this.estado.recetas || []).filter(function (x) { return mio(x, base.rec) && !x.borrada; })
+          .map(function (x) {
+            return x.conj ? { id: x.id, conj: { p: x.conj.p, g: x.conj.g }, oculta: true, editado: true,
+                              n: x.n, tipo: [], grupo: "", raciones: 1, ing: [], pasos: [] } : x;
+          })
       };
     },
 
@@ -5644,6 +5892,10 @@
 
         var candidatas = (pool && ficha.mochila.indexOf(t.k) >= 0 ? pool : self.estado.recetas)
           .filter(function (r) { return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(t.k) >= 0; });
+        /* Lo que puntuó con 1 o 2 estrellas no se le vuelve a proponer (v370),
+           salvo que no quede otra cosa. */
+        var sinMalas = candidatas.filter(function (r) { var e = self.estrellasPlato(r.id); return !e || e >= 3; });
+        if (sinMalas.length) candidatas = sinMalas;
         if (!candidatas.length && pool && ficha.mochila.indexOf(t.k) >= 0) candidatas = pool;
         if (!candidatas.length) return;
 
@@ -5673,9 +5925,15 @@
         candidatas.forEach(function (r) {
           var k = self.nutrReceta(r).k;
           var sal = self.salReceta(r);
+          /* EL EMPUJÓN DE LAS ESTRELLAS, con cuidado: la nota se mide en kcal de
+             distancia a lo que toca, así que una de 5 «se acerca» 60 kcal y una de
+             4, 30. Gana si está cerca; no pasa por encima del tamaño, la sal ni
+             la repetición en la semana (300 por vez). */
+          var est = self.estrellasPlato(r.id);
           var nota = Math.abs(k - busco) + (yaEnLaSemana[r.id] || 0) * 300 +
                      self.penalizaSal(fecha, salYa, sal) +
-                     self.penalizaDespensa(r, libres);
+                     self.penalizaDespensa(r, libres) -
+                     (est === 5 ? 60 : est === 4 ? 30 : 0);
           if (nota < mejorNota) { mejorNota = nota; mejor = r; }
         });
         if (!mejor) return;
@@ -5701,8 +5959,9 @@
           falta = objetivo - self.nutrDia(fecha).k;
           if (falta < 100) return;
           var guar = self.estado.recetas.filter(function (r) {
+            var e = self.estrellas(r.id);
             return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf("guarnicion") >= 0 &&
-                   (d[toma] || []).indexOf(r.id) < 0;
+                   (d[toma] || []).indexOf(r.id) < 0 && (!e || e >= 3);
           });
           if (!guar.length) return;
           var salHoy2 = self.salDia(fecha);

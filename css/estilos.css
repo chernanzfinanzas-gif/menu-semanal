@@ -1373,3 +1373,18 @@ button.enlace {
 .limpia-x{position:absolute; right:6px; border:0; background:transparent; cursor:pointer;
   font-size:1.15rem; line-height:1; color:var(--gris); padding:2px 4px; border-radius:50%}
 .limpia-x:hover{color:var(--texto); background:var(--gris-claro)}
+
+/* ---- PLATO + GUARNICIÓN (v369) ---- */
+.de-paso{display:block;margin:3px auto 0;text-align:center;font-size:10px;font-weight:700;line-height:1.2;
+  border-radius:5px;padding:1px 5px;background:var(--morado-fondo);color:var(--morado);
+  max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aviso.pendiente-cuadre{background:var(--ambar-fondo);border-color:var(--ambar);color:#8a5d0e}
+.paso-guar h3{margin:10px 0 4px;font-size:16px}
+.paso-guar > button[data-guar]{width:100%}
+
+/* ---- ESTRELLAS Y FAVORITAS (v370) ---- */
+.estrellas{display:flex;gap:4px;margin:8px 0 10px}
+.estrella{border:0;background:none;font-size:30px;line-height:1;padding:2px 3px;color:var(--borde);cursor:pointer}
+.estrella.on{color:var(--ambar)}
+.pregunta-estrellas{font-weight:600;margin:4px 0 0}
+.grupo-selec.favoritas > summary .tit{color:var(--ambar)}

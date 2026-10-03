@@ -177,6 +177,8 @@
     if (enD.length === 1) return enD[0];
     return previo || null;
   }
+  /* El almacén lo necesita para cuadrar los relojes de plato + guarnición (v369). */
+  if (window.Almacen) Almacen.apDePaso = aparatoPaso;
 
   /* ---- TOMATE «PARA RALLAR» (v362, 3-oct-2026) ----
      Carlos: las recetas piden tomates de ensalada y él los ralla (rallador de caja,
@@ -300,6 +302,41 @@
     $("#modal").classList.add("abierta");
   }
   function cerrarModal() { $("#modal").classList.remove("abierta"); }
+
+  /* ---- LAS ESTRELLAS (v370) ---- */
+  function filaEstrellas(id, n, ctx) {
+    var h = '<div class="estrellas" role="group" aria-label="Nota de 1 a 5">';
+    for (var i = 1; i <= 5; i++) {
+      h += '<button class="estrella' + (i <= n ? ' on' : '') + '" data-estrella="' +
+           esc(id) + '|' + i + '|' + ctx + '" aria-label="' + i + ' estrellas">\u2605</button>';
+    }
+    return h + '</div>';
+  }
+  function textoEstrellas(n) { return n ? new Array(n + 1).join("\u2605") : ""; }
+  function preguntarEstrellas(r) {
+    abrirModal('<header><h2>\u00bfQu\u00e9 tal estaba?</h2><button class="cerrar" data-cerrar>\u00d7</button></header>' +
+      '<p class="pregunta-estrellas">' + esc(r.n) + '</p>' +
+      filaEstrellas(r.id, 0, "pregunta") +
+      '<p class="nota-peque">Las de 4 y 5 salen en \u00abFavoritas\u00bb al elegir plato, y el men\u00fa ' +
+      'autom\u00e1tico las propone algo m\u00e1s. Las de 1 y 2 deja de proponerlas.</p>' +
+      '<div class="fila"><button class="btn" data-cerrar>Ahora no</button></div>');
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-estrella]");
+    if (!b) return;
+    var p = b.getAttribute("data-estrella").split("|");
+    var id = p[0], n = +p[1], ctx = p[2];
+    /* Tocar la misma estrella que ya tenía la quita: así se deshace un toque. */
+    if (ctx === "ficha" && Almacen.estrellas(id) === n) n = 0;
+    Almacen.valorar(id, n);
+    if (ctx === "pregunta") {
+      cerrarModal();
+      Util.toast(n >= 4 ? textoEstrellas(n) + " \u00b7 a Favoritas" : textoEstrellas(n) + " \u00b7 apuntado");
+    } else {
+      var fila = b.parentNode;
+      if (fila) fila.outerHTML = filaEstrellas(id, n, "ficha");
+    }
+  });
 
   /* ==================== VISTA: MENÚ ==================== */
   function pintarMenu() {
@@ -1352,7 +1389,8 @@
     var pieDe = function (r) {
       var dueno = Almacen.duenoDe(r.id);
       var av = avisoStock(r);
-      return (av ? av + " \u00b7 " : "") +
+      var est = Almacen.estrellas(r.id);
+      return (est ? textoEstrellas(est) + " \u00b7 " : "") + (av ? av + " \u00b7 " : "") +
              (dueno && dueno !== "yo" ? "no te cuenta" : Util.kcal(Almacen.nutrReceta(r).k)) +
              " \u00b7 " + Util.sal(Almacen.salReceta(r)) + " de sal" +
              (r.min ? " \u00b7 " + r.min + " min" : "");
@@ -1497,7 +1535,15 @@
        y en el recetario, y con todo plegado no aporta un atajo, sólo una línea
        más que abrir. `bloquePreferente` se sigue componiendo arriba para el día
        de ruta, donde sí dice algo distinto: «Para la mochila». */
-    html += bloqueRuta + (ruta ? bloquePreferente : "") +
+    /* FAVORITAS (v370): lo que puntuó con 4 o 5 estrellas para esta toma, las
+       de 5 primero, ABIERTO y arriba del todo: es el atajo. Los platos +
+       guarnición puntuados entran de un toque como el conjunto que son. */
+    var favs = Almacen.favoritas(toma).filter(function (r) { return !yaPuesto[r.id] && cabeHoy(r); });
+    var bloqueFav = favs.length ?
+      '<details class="grupo-selec favoritas" data-fijo="1" open><summary><span class="tit">\u2605 Favoritas</span>' +
+      '<span class="cuantas">' + favs.length + '</span></summary>' +
+      favs.map(function (r) { return botonReceta(r, pieDe(r)); }).join("") + '</details>' : "";
+    html += bloqueRuta + (ruta ? bloquePreferente : "") + bloqueFav +
             (esPicoteo ? (bloqueKits + bloquePapeles) : bloquePapeles) +
             bloqueCasa + bloqueSueltos;
 
@@ -1682,6 +1728,62 @@
       meter(id);
     });
 
+    /* ---- PLATO + GUARNICIÓN (v369, 3-oct-2026) ----
+       Carlos: «si elijo un principal me deja elegir guarniciones». Al tocar un
+       principal de comida o cena, la lista se cambia por las guarniciones; la
+       elegida entra con él como UN plato (`Almacen.crearConjunto`). Primero las
+       que la receta dice que le van (`guar`), luego las demás; y arriba del todo
+       «Sin guarnición», que es un toque y ya. */
+    var guarDe = null;
+    var GRUPOS_CON_GUAR = { "carne-roja": 1, "carne-blanca": 1, "pescado-blanco": 1, "pescado-azul": 1, "huevos": 1 };
+    function admiteGuarnicion(r) {
+      if (toma !== "comida" && toma !== "cena") return false;
+      if (r.conj || papelDe(r) !== "principal") return false;
+      if (r.guar && r.guar.length) return true;
+      if (!GRUPOS_CON_GUAR[r.grupo]) return false;
+      /* Un plato que ya trae su hidrato (patata, arroz, pasta, cous cous, pan)
+         ya está completo: preguntarle guarnición sería ruido. */
+      return !(r.ing || []).some(function (l) {
+        return /patata|arroz|cous|macarr|espagu|pasta|fideo|pan_|tortilla/.test(l.i);
+      });
+    }
+    function pintarGuarniciones(P) {
+      guarDe = P;
+      var nP = Almacen.nutrReceta(P), sP = Almacen.salReceta(P);
+      var todasG = Almacen.visibles().filter(function (r) {
+        return (r.tipo || []).indexOf("guarnicion") >= 0 && r.grupo !== "suelto";
+      });
+      var sug = [];
+      (P.guar || []).forEach(function (id) {
+        var g = Almacen.receta(id); if (g && !g.oculta) sug.push(g);
+      });
+      var otras = todasG.filter(function (g) { return sug.indexOf(g) < 0; })
+                        .sort(function (a, b) { return a.n.localeCompare(b.n); });
+      var boton = function (g) {
+        var k = nP.k + (g ? Almacen.nutrReceta(g).k : 0);
+        var sal = sP + (g ? Almacen.salReceta(g) : 0);
+        return '<button data-guar="' + (g ? esc(g.id) : "") + '">' +
+               (g ? esc(g.n) : "<b>Sin guarnici\u00f3n</b>") +
+               "<small>" + (g ? "+" + Util.kcal(Almacen.nutrReceta(g).k) + " \u00b7 " : "") +
+               "el plato entero: " + Util.kcal(k) + " \u00b7 " + Util.sal(sal) + " de sal</small></button>";
+      };
+      var html = '<div class="paso-guar">' +
+        '<button class="btn mini" data-guarvolver="1">\u2190 Volver</button>' +
+        '<h3>Guarnici\u00f3n para \u00ab' + esc(P.n) + '\u00bb</h3>' +
+        '<p class="aviso-grupo">Entra como un solo plato: los ingredientes, las calor\u00edas y un reloj para los dos.</p>' +
+        boton(null) +
+        (sug.length ? '<p class="aviso-grupo"><b>Le van bien</b></p>' + sug.map(boton).join("") : "") +
+        (otras.length ? '<details class="grupo-selec"' + (sug.length ? "" : " open") + '><summary><span class="tit">' +
+          (sug.length ? "Otras guarniciones" : "Guarniciones") + '</span><span class="cuantas">' + otras.length +
+          '</span></summary>' + otras.map(boton).join("") + '</details>' : "") +
+        '</div>';
+      var lista = document.getElementById("lista-selector");
+      lista.innerHTML = html;
+      lista.scrollTop = 0;
+      var caja = lista.closest(".modal-cuerpo, .modal, .hoja");
+      if (caja) caja.scrollTop = 0;
+    }
+
     $("#lista-selector").addEventListener("click", function (e) {
       /* Un producto de la despensa entra como \u00abingrediente solo\u00bb con la cantidad
          que quede libre, hasta su raci\u00f3n. */
@@ -1709,8 +1811,18 @@
       if (ea) { meter(ea.getAttribute("data-elegirajeno"), true); return; }
       var kit = e.target.closest("[data-combina]");
       if (kit) { meterVarios(kit.getAttribute("data-combina").split(",")); return; }
+      /* EL PASO DE LA GUARNICIÓN (v369). */
+      if (e.target.closest("[data-guarvolver]")) { cerrarModal(); abrirSelector(fecha, toma); return; }
+      var bg = e.target.closest("[data-guar]");
+      if (bg && guarDe) {
+        var gid = bg.getAttribute("data-guar");
+        meter(gid ? Almacen.crearConjunto(guarDe.id, gid) : guarDe.id);
+        return;
+      }
       var b = e.target.closest("[data-elegir]");
       if (!b) return;
+      var rElegida = Almacen.receta(b.getAttribute("data-elegir"));
+      if (rElegida && admiteGuarnicion(rElegida)) { pintarGuarniciones(rElegida); return; }
       /* Si la toma estaba VACÍA, es que está montando esa comida desde cero, así que
          el yogur y el pan entran con el plato. Si ya había algo, no se tocan: puede
          que los haya quitado él a propósito y resucitarlos sería pelearse con él.
@@ -2369,6 +2481,8 @@
             (r.grupo ? '<span class="etiqueta">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
             etiquetasTool(r.tools) +
             '</div>';
+    /* Su nota, si ya la tiene: tocar otra estrella la cambia, la misma la quita. */
+    if (Almacen.estrellas(r.id)) html += filaEstrellas(r.id, Almacen.estrellas(r.id), "ficha");
 
     html += '<div class="nutri-ficha">' +
             '<div><b>' + Math.round(n.p) + ' g</b><span>proteína</span></div>' +
@@ -2422,6 +2536,8 @@
         if (apa) apPrevio = apa;
         html += '<li><div class="col-reloj"><span class="reloj">' + p.min + "'" + '</span>' +
                 (apa ? '<span class="ap-paso ap-' + apa + '">' + NOMBRE_AP[apa] + '</span>' : '') +
+                /* En un plato + guarnición, de cuál de las dos viene el paso (v369). */
+                (p.de ? '<span class="de-paso">' + esc(p.de) + '</span>' : '') +
                 '</div><div>' +
                 '<b>' + esc(p.t || "") + '</b>' +
                 (p.d ? '<span class="nota-peque">' + esc(p.d) + '</span>' : '') +
@@ -2438,7 +2554,17 @@
       html += '</ul>';
     }
 
-    if (r.nota) html += '<div class="aviso">' + esc(r.nota) + '</div>';
+    if (r.nota) html += '<div class="aviso' + (r.sinCuadrar ? ' pendiente-cuadre' : '') + '">' + esc(r.nota) + '</div>';
+
+    /* Un plato + guarnición no se edita: se rehace solo de sus dos recetas.
+       Lo que haya que cambiar, se cambia en ellas. */
+    if (r.conj) {
+      html += '<p class="nota-peque" style="margin-top:14px">Este plato son dos recetas juntas. ' +
+              'Para cambiar algo, edita «' + esc((Almacen.receta(r.conj.p) || {}).n || "") + '» o «' +
+              esc((Almacen.receta(r.conj.g) || {}).n || "") + '»: el conjunto se pone al día solo.</p>';
+      abrirModal(html);
+      return;
+    }
 
     html += '<div class="fila solo-edicion" style="margin-top:14px">' +
             '<button class="btn principal" data-editar="' + esc(r.id) + '">Editar</button>' +
@@ -6681,8 +6807,13 @@
       var com = e.target.closest("[data-comido]");
       if (com) {
         var c = com.getAttribute("data-comido").split("|");
-        Almacen.marcarComido(c[0], c[1], c[2], !Almacen.estaComido(c[0], c[1], c[2]));
+        var ahoraComido = !Almacen.estaComido(c[0], c[1], c[2]);
+        Almacen.marcarComido(c[0], c[1], c[2], ahoraComido);
         pintarMenu();
+        /* LAS ESTRELLAS SE PIDEN AQUÍ (v370), y sólo la primera vez: cuando ya
+           tiene nota no se vuelve a preguntar (se cambia en la ficha). */
+        var rCom = Almacen.receta(c[2]);
+        if (ahoraComido && Almacen.valorable(rCom) && !Almacen.estrellas(c[2])) preguntarEstrellas(rCom);
         return;
       }
       var quitar = e.target.closest("[data-quitar]");
