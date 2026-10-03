@@ -914,12 +914,21 @@
                     '<div class="act-arriba">' +
                       '<span class="nom">' + esc(e.n) + '</span>' +
                       (e.clase === "real" ? '<span class="etiqueta">reloj</span>' : '') +
-                      (e.clase === "previsto" && !e.tapada && !e.caducada && x.ref !== "estandar"
+                      (virtual && e.clase === "previsto" && !e.tapada && !e.caducada
                         ? '<span class="etiqueta">del plan</span>' : '') +
                       (e.tapada ? '<span class="etiqueta">sustituida por lo real</span>' : '') +
                       (e.caducada ? '<span class="etiqueta">no se hizo</span>' : '') +
-                      (x.ref === "estandar" ? '<span class="etiqueta">previsto</span>' : '') +
-                      (x.ref === "ruta" ? '<span class="etiqueta">salida planificada</span>' : '') +
+                      (x.ref === "estandar" && !x.confirmada ? '<span class="etiqueta">previsto</span>' : '') +
+                      (x.ref === "ruta" && !x.confirmada ? '<span class="etiqueta">salida planificada</span>' : '') +
+                      /* «La hice» (3-oct-2026): lo planificado sólo cuenta como hecho si
+                         lo mide el reloj o lo confirmas aquí. */
+                      (!virtual && (x.ref === "ruta" || x.ref === "estandar") && x.fuente !== "garmin" && !e.tapada &&
+                       fecha <= Util.hoyISO()
+                        ? (x.confirmada
+                            ? '<span class="etiqueta">hecha, confirmada por ti</span>' +
+                              '<button class="btn mini" data-confirmaact="' + fecha + '|' + e.idx + '|0" title="Ya no cuenta como hecha">Deshacer</button>'
+                            : '<button class="btn mini" data-confirmaact="' + fecha + '|' + e.idx + '|1" title="Cuenta como hecha, al 70 % como todo lo apuntado">La hice</button>')
+                        : '') +
                       (pisada ? '<span class="etiqueta">ya no cuenta</span>' : '') +
                     '</div>' +
                     '<div class="act-abajo">' +
@@ -6621,6 +6630,13 @@
       }
       var act = e.target.closest("[data-actividad]");
       if (act) { abrirSelectorActividad(act.getAttribute("data-actividad")); return; }
+      var cfa = e.target.closest("[data-confirmaact]");
+      if (cfa) {
+        var c3 = cfa.getAttribute("data-confirmaact").split("|");
+        Almacen.confirmarActividad(c3[0], +c3[1], c3[2] === "1");
+        pintarMenu();
+        return;
+      }
       var qact = e.target.closest("[data-quitaract]");
       if (qact) {
         var q2 = qact.getAttribute("data-quitaract").split("|");

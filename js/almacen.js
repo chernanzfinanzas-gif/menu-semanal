@@ -436,6 +436,19 @@
          vez por la del catálogo. El sello se apunta en el estado (no en la receta,
          que el editor rehace entera), así que si él la vuelve a editar, lo suyo
          se queda. */
+      /* ARREGLO DE UNA VEZ (3-oct-2026): Carlos pidió quitar la salida
+         planificada del 27-sep, que nunca se hizo. Sólo esa, y sólo si sigue
+         sin confirmar y no viene del reloj. */
+      if (!e.arreglos) e.arreglos = {};
+      if (!e.arreglos["2026-10-03-ruta27"]) {
+        var l27 = (e.actividad || {})["2026-09-27"];
+        if (l27) {
+          var q27 = l27.filter(function (x) { return !(x.ref === "ruta" && !x.confirmada && x.fuente !== "garmin"); });
+          if (q27.length) e.actividad["2026-09-27"] = q27; else delete e.actividad["2026-09-27"];
+        }
+        e.arreglos["2026-10-03-ruta27"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err27) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
@@ -4520,15 +4533,25 @@
         var f = (x.fuente === "garmin") ? self.famDeActividad(x.a) : self.famDeActividad(x.a);
         var esReloj = x.fuente === "garmin";
         var esEstandar = !esReloj && x.ref === "estandar";
+        /* LO PLANIFICADO SÓLO CUENTA SI SE HIZO  ·  3-oct-2026
+           Carlos: «solo cuentan si tienen medida de reloj o están confirmadas
+           por mí en la ficha del día». Lo vio en la semana del 21 al 27-sep: la
+           salida planificada del día 27 (`ref:"ruta"`, 5 h de senderismo,
+           2.492 kcal) se sumaba como hecha encima de lo que midió el reloj, que
+           fue una caminata de 1 h 10. Ahora la ruta planificada es previsión,
+           igual que el estándar: la tapa lo real de su familia, caduca si el día
+           pasa sin hacerse, y sólo cuenta como hecha si él pulsa «La hice»
+           (`confirmada`). Lo que él apunta a mano con el «+» sigue contando. */
+        var esPlanificada = !esReloj && (x.ref === "estandar" || x.ref === "ruta") && !x.confirmada;
         var tapada = false;
         if (!esReloj) {
           if (tapas[f] > 0) { tapas[f]--; tapada = true; }
         }
         out.push({ x: x, idx: idx, n: self.nombreDeEntrada(x), min: x.min || 0,
                    kcal: Math.round(self.kcalDeEntrada(x)), fam: f,
-                   clase: esReloj ? "real" : (esEstandar ? "previsto" : "apuntado"),
+                   clase: esReloj ? "real" : (esPlanificada ? "previsto" : "apuntado"),
                    tapada: tapada,
-                   caducada: esEstandar && !tapada && pasado });
+                   caducada: esPlanificada && !tapada && pasado });
       });
 
       /* 3 · LO PREVISTO POR EL PLAN. Lo tapa una salida real de su familia, y
@@ -4844,6 +4867,15 @@
       var l = this.estado.actividad[fecha] || [];
       for (var i = 0; i < l.length; i++) if (ref && l[i].ref === ref) return true;
       return false;
+    },
+
+    /* «La hice»: una salida planificada o el entreno estándar pasan a contar
+       como hechos (al 70 %, como todo lo apuntado). Y se puede deshacer. */
+    confirmarActividad: function (fecha, idx, si) {
+      var l = this.estado.actividad[fecha];
+      if (!l || !l[idx]) return;
+      if (si) l[idx].confirmada = true; else delete l[idx].confirmada;
+      this.guardar("actividad");
     },
 
     quitarActividad: function (fecha, idx) {
