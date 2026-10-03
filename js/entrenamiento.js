@@ -691,6 +691,17 @@
       ".salida-ficha .btn{flex:0 0 auto}",
       ".salida-ficha.pasada{border-color:var(--ambar);background:var(--ambar-fondo)}",
       ".salida-pasa{font-size:.78rem;color:#8a5a12;font-weight:600}",
+      /* el balance de la semana, justo antes de la salida (3-oct-2026) */
+      ".bal-sem{margin-top:10px;padding:10px 12px;border:1px solid var(--borde);border-radius:12px;background:#fafbfc}",
+      ".bal-sem .et{display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7c8d;margin-bottom:4px}",
+      ".bal-sem .et small{text-transform:none;letter-spacing:0;font-weight:400}",
+      ".bal-sem .fila{display:flex;gap:10px;padding:4px 0;border-top:1px solid #eef1f4;font-size:.88rem;line-height:1.4}",
+      ".bal-sem .fila:first-of-type{border-top:0}",
+      ".bal-sem .fila > span:first-child{flex:0 0 118px;color:#6b7c8d}",
+      ".bal-sem .fila > span:last-child{flex:1;min-width:0}",
+      ".bal-sem .falta{font-size:.82rem;color:#8a5a12;font-weight:600;margin:2px 0 4px}",
+      ".bal-sem .v{color:#1f7a4d;font-weight:700}.bal-sem .a{color:#9a6400;font-weight:700}.bal-sem .r{color:#b0413e;font-weight:700}",
+      "@media(max-width:420px){.bal-sem .fila{flex-direction:column;gap:0}.bal-sem .fila > span:first-child{flex:none}}",
       /* la emergente */
       ".sal-modos{display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0}",
       "@media (min-width:520px){.sal-modos{grid-template-columns:1fr 1fr}}",
@@ -2249,6 +2260,141 @@
      Antes aquí salía una orientación fija por número de semana —«monte de 15-18
      km, o bici de 60-70»— que no dependía de nada y no servía para calcular.
      Ahora se declara y de ahí salen los cinco rodillos. */
+  /* ==================== EL BALANCE DE LA SEMANA (3-oct-2026) ====================
+     Carlos: «en cada semana se podría poner información de la nutrición media
+     lograda esa semana y las kcal de ejercicio hecho, el déficit calórico
+     conseguido y con la media de peso de 7 días hacer una valoración respecto la
+     semana anterior. Mientras la semana no esté acabada el valor es variable;
+     cuando acabe la semana se fija». Es «una estadística rápida para ir hacia
+     atrás en el plan y ver cómo cumplimos los objetivos de déficit calórico y si
+     se correspondió con pérdida de peso». NADA MÁS: rechazó cintura, magra, sal…
+
+     Sus reglas: si no están apuntados los 7 días de comida se avisa de cuántos
+     faltan, sale igual el ejercicio hecho, el déficit dice «no se puede
+     calcular» y el peso sigue saliendo. Con la semana en curso sólo cuentan
+     como «faltan» los días ya pasados; hoy no se juzga.
+
+     Un día está APUNTADO si se cerró a mano o si tiene todo lo planificado
+     marcado como comido. El déficit es lo gastado (gasto de base + ejercicio
+     medido entero + lo apuntado a mano al 70 %, como en todo el plan; lo
+     PREVISTO no cuenta: no se hizo) menos lo comido.
+
+     Se FIJA como el pase: semana cerrada, tres días de margen para que lleguen
+     los datos, los del reloj hasta el domingo y la app ya sincronizada. */
+  function diaComidaApuntada(f) {
+    if (A.diaCerrado && A.diaCerrado(f)) return true;
+    return !!(A.hayComidoAlgo && A.hayComidoAlgo(f) && A.sinMarcar && A.sinMarcar(f) === 0);
+  }
+  function pesoMedio(desde, hasta) {
+    var d = (Salud.datos && Salud.datos.dias) || {}, s = 0, n = 0;
+    for (var f = desde; f <= hasta; f = U.sumarDias(f, 1)) {
+      var x = d[f];
+      if (x && typeof x.peso === "number") { s += x.peso; n++; }
+    }
+    return n ? { v: s / n, n: n } : null;
+  }
+  function calcBalanceSemana(lunes) {
+    var hoy = U.hoyISO(), dom = U.sumarDias(lunes, 6);
+    var c = (A.estado && A.estado.config) || {};
+    var dev = typeof c.devolucionEjercicio === "number" ? c.devolucionEjercicio : 0.70;
+    var r = { cerrada: dom < hoy, pasados: 0, faltan: 0, apuntados: 0, ej: 0,
+              com: null, deficit: null, deficitObj: null, peso: null, pesoAnt: null,
+              ritmo: ((A.estado && A.estado.perfil) || {}).ritmo || 0 };
+    var tk = 0, tp = 0, tg = 0, th = 0, gasto = 0, comido = 0;
+    for (var i = 0; i < 7; i++) {
+      var f = U.sumarDias(lunes, i);
+      if (f > hoy) break;
+      var k = A.kcalPorProcedencia(f);
+      r.ej += (k.real || 0) + (k.apuntado || 0);
+      if (f === hoy) continue;                       // hoy todavía no ha terminado
+      r.pasados++;
+      if (!diaComidaApuntada(f)) { r.faltan++; continue; }
+      r.apuntados++;
+      var n = A.nutrDia(f, true);
+      tk += n.k; tp += n.p; tg += n.g; th += n.h;
+      gasto += A.gastoBase() + (k.real || 0) + (k.apuntado || 0) * dev;
+      comido += n.k;
+    }
+    if (r.apuntados) r.com = { k: tk / r.apuntados, p: tp / r.apuntados, g: tg / r.apuntados, h: th / r.apuntados };
+    r.sinPerfil = !(A.tmb && A.tmb() > 0);           // sin edad, altura y peso no hay gasto que restar
+    if (r.pasados && !r.faltan && !r.sinPerfil) {
+      r.deficit = gasto - comido;
+      r.deficitObj = A.deficitDiario() * r.pasados;
+    }
+    r.peso = pesoMedio(lunes, dom < hoy ? dom : hoy);
+    r.pesoAnt = pesoMedio(U.sumarDias(lunes, -7), U.sumarDias(lunes, -1));
+    return r;
+  }
+  function balanceSemana(lunes) {
+    var e = ent();
+    if (!e.balance) e.balance = {};
+    var hoy = U.hoyISO(), dom = U.sumarDias(lunes, 6);
+    if (e.balance[lunes] && e.balance[lunes].fijo) return e.balance[lunes];
+    var r = calcBalanceSemana(lunes);
+    if (dom < hoy && hoy > U.sumarDias(dom, 3) && datosCubren(dom) && estadoAlDia() && !r.sinPerfil) {
+      r.fijo = hoy;
+      e.balance[lunes] = r;
+      A.guardar("entreno");
+    }
+    return r;
+  }
+  function fichaBalanceSemana(lunes) {
+    var hoy = U.hoyISO(), dom = U.sumarDias(lunes, 6);
+    if (lunes > hoy || !A || !A.nutrDia || !A.kcalPorProcedencia) return "";
+    var r = balanceSemana(lunes);
+    function fila(et, txt) { return '<div class="fila"><span>' + et + "</span><span>" + txt + "</span></div>"; }
+    function sg(v, d) { return (v > 0 ? "+" : v < 0 ? "−" : "") + num(Math.abs(v), d); }
+    function kc(v) { return (v < 0 ? "−" : "") + U.kcal(Math.abs(v)); }
+    var cuando = r.fijo ? "cerrada · fijada el " + fechaCorta(r.fijo)
+      : (r.cerrada ? "cerrada · se fija el " + fechaCorta(U.sumarDias(dom, 4))
+                   : "en curso · cambia hasta el domingo");
+    var h = '<div class="bal-sem"><span class="et">Balance de la semana <small>· ' + cuando + "</small></span>";
+    if (r.faltan) {
+      h += '<div class="falta">' + (r.faltan === 1 ? "Falta 1 día" : "Faltan " + r.faltan + " días") +
+        " de comida por apuntar" + (r.cerrada ? "" : " de los " + r.pasados + " ya pasados") + ".</div>";
+    }
+    /* lo comido */
+    if (r.com) {
+      var pg = r.com.k ? r.com.g * 9 / r.com.k * 100 : 0;
+      h += fila("Comida, media", U.kcal(r.com.k) + " · " + Math.round(r.com.p) + " g de proteína · " +
+        Math.round(pg) + " % de grasa · " + Math.round(r.com.h) + " g de hidratos" +
+        (r.faltan ? ' <span class="nota-peque">(de ' + r.apuntados + (r.apuntados === 1 ? " día apuntado" : " días apuntados") + ")</span>" : ""));
+    } else {
+      h += fila("Comida, media", r.pasados ? "ningún día apuntado" : "la semana acaba de empezar");
+    }
+    /* el ejercicio, siempre */
+    h += fila("Ejercicio hecho", U.kcal(r.ej) + " en la semana");
+    /* el déficit */
+    if (r.deficit !== null) {
+      var pct = r.deficitObj > 0 ? r.deficit / r.deficitObj : null;
+      var cl = pct === null ? "" : (pct >= 0.9 ? "v" : pct >= 0.6 ? "a" : "r");
+      h += fila("Déficit conseguido", '<span class="' + cl + '">' + kc(r.deficit) + "</span>" +
+        " · objetivo " + kc(r.deficitObj) + (pct === null ? "" : " · " + Math.round(pct * 100) + " %") +
+        ' <span class="nota-peque">(' + kc(r.deficit / r.pasados) + " al día)</span>");
+    } else {
+      h += fila("Déficit conseguido", r.faltan ? "no se puede calcular: faltan días de comida"
+        : (r.sinPerfil ? "no se puede calcular: faltan edad, altura y peso en el perfil"
+                       : "aún no hay ningún día terminado"));
+    }
+    /* el peso, siempre */
+    if (r.peso && r.pesoAnt) {
+      var dp = r.peso.v - r.pesoAnt.v, obj = -r.ritmo;
+      var clp = dp >= 0 ? "r" : (r.ritmo && dp <= obj * 0.75 ? "v" : "a");
+      var esperado = r.deficit !== null ? -r.deficit / 7700 : null;
+      h += fila("Peso, media", num(r.peso.v, 1) + " kg" +
+        (r.peso.n < 7 ? ' <span class="nota-peque">(' + r.peso.n + (r.peso.n === 1 ? " pesada" : " pesadas") + ")</span>" : "") +
+        ' · <span class="' + clp + '">' + sg(dp, 2) + " kg</span> frente a " + num(r.pesoAnt.v, 1) +
+        " la semana anterior" +
+        ' <span class="nota-peque">(' + (r.ritmo ? "objetivo " + sg(obj, 2) + " kg" : "sin ritmo de pérdida") +
+        (esperado !== null ? "; por el déficit, " + sg(esperado, 2) + " kg" : "") + ")</span>");
+    } else if (r.peso) {
+      h += fila("Peso, media", num(r.peso.v, 1) + " kg · sin pesadas la semana anterior para comparar");
+    } else {
+      h += fila("Peso, media", "sin pesadas esta semana");
+    }
+    return h + "</div>";
+  }
+
   function fichaSalida(lunes) {
     var sem = semanaDe(lunes) || semanaDe(U.sumarDias(lunes, 3));
     if (!sem) return "";
@@ -11906,6 +12052,7 @@
       '<span><u class="a"></u>fuera del plan</span>' +
       "<span>margen del 10 %</span></p>";
     h += '<p class="nota-peque" style="margin-top:6px">' + U.esc(P.suelo) + "</p>";
+    h += fichaBalanceSemana(lunes);
     h += fichaSalida(lunes);
     h += panelAmbar(lunes);
     h += panelAvisos(lunes);

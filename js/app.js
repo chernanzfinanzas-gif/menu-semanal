@@ -368,6 +368,53 @@
       }
     }
 
+    /* LA VALORACIÓN DE LA MEDIA (3-oct-2026). Carlos: «en Media de la semana
+       has puesto el promedio de los días hechos, pero no hay valoración de si
+       se cumple el objetivo de calorías y reparto de nutrientes». Se compara con
+       la media de los objetivos de ESOS MISMOS días, no con una cifra fija: el
+       objetivo de cada día cambia con el ejercicio. */
+    function valoracionSemana(lunes, res) {
+      var o = { k: 0, p: 0, g: 0, h: 0, sal: 0 }, n = 0;
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunes, i), dia = Almacen.estado.plan[f];
+        if (!dia) continue;
+        var algo = false;
+        ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (x) {
+          if ((dia[x] || []).length) algo = true;
+        });
+        if (!algo) continue;
+        var m = Almacen.objetivosMacros(f);
+        o.k += m.k; o.p += m.p; o.g += m.g; o.h += m.h; o.sal = m.sal; n++;
+      }
+      if (!n) return "";
+      o.k /= n; o.p /= n; o.g /= n; o.h /= n;
+      var C = { verde: "#1f7a4d", ambar: "#9a6400", rojo: "#b0413e" };
+      function pieza(nombre, txt, color, dice) {
+        return '<span style="white-space:nowrap;margin-right:14px"><b>' + nombre + "</b> " + txt +
+          ' · <b style="color:' + C[color] + '">' + dice + "</b></span> ";
+      }
+      var ck = Almacen.semaforoKcal(res.k, o.k);
+      var cp = res.p >= o.p ? "verde" : (res.p >= o.p * 0.85 ? "ambar" : "rojo");
+      var pg = res.k ? res.g * 9 / res.k * 100 : 0, pgo = o.k ? o.g * 9 / o.k * 100 : 30, dg = pg - pgo;
+      var cg = Math.abs(dg) <= 5 ? "verde" : (Math.abs(dg) <= 10 ? "ambar" : "rojo");
+      var rh = o.h ? res.h / o.h : 1;
+      var ch = Math.abs(rh - 1) <= 0.15 ? "verde" : (Math.abs(rh - 1) <= 0.30 ? "ambar" : "rojo");
+      var cs = Almacen.semaforo(res.sal);
+      if (cs === "libre") cs = "verde";
+      return '<div style="margin-top:6px;line-height:1.8">' +
+        pieza("Calorías", Util.kcal(res.k) + " de " + Util.kcal(o.k), ck,
+              ck === "verde" ? "en su sitio" : (ck === "rojo" ? "por encima" : "muy por debajo")) +
+        pieza("Proteína", Math.round(res.p) + " de " + Math.round(o.p) + " g", cp,
+              cp === "verde" ? "cumple" : "corta") +
+        pieza("Grasa", Math.round(pg) + " % de " + Math.round(pgo) + " %", cg,
+              cg === "verde" ? "en su sitio" : (dg > 0 ? "por encima" : "por debajo")) +
+        pieza("Hidratos", Math.round(res.h) + " de " + Math.round(o.h) + " g", ch,
+              ch === "verde" ? "en su sitio" : (rh > 1 ? "por encima" : "por debajo")) +
+        pieza("Sal", Util.sal(res.sal) + " (aviso en " + Util.sal(o.sal) + ")", cs,
+              cs === "rojo" ? "por encima del tope" : (cs === "ambar" ? "por encima del aviso" : "bien")) +
+        "</div>";
+    }
+
     /* media de la semana */
     var res = Almacen.resumenSemana(UI.lunes);
     var caja = $("#resumen-semana");
@@ -376,7 +423,7 @@
       caja.innerHTML = "<b>Media de la semana</b> (" + res.dias + " día" + (res.dias === 1 ? "" : "s") + "): " +
         Util.kcal(res.k) + " · " + Math.round(res.p) + " g de proteína · " +
         Math.round(res.g) + " g de grasa · " + Math.round(res.h) + " g de hidratos · " +
-        Util.sal(res.sal) + " de sal al día.";
+        Util.sal(res.sal) + " de sal al día." + valoracionSemana(UI.lunes, res);
     } else {
       caja.style.display = "none";
     }
