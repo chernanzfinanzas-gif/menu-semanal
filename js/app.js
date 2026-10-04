@@ -5881,8 +5881,8 @@
     var vacia = !(g.comida.length + g.casa.length + g.basicos.length);
     var h = '<header><h2>' + esc(nom) + '</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
     if (!vacia) h += '<p class="instrucciones-compra">' + (listaSoloLectura
-      ? 'Haz el pedido con esta lista. <b>Cuando llegue la compra, pulsa \u00abComprado\u00bb y desmarca lo que no haya llegado</b>: pasa a Pendiente.'
-      : 'Marca cada cosa seg\u00fan la coges. <b>Al salir de la tienda, pulsa \u00abComprado\u00bb</b>: lo que no hayas marcado pasa a Pendiente.') + '</p>';
+      ? 'Haz el pedido con esta lista. <b>Cuando llegue, pulsa \u00abHa llegado la compra\u00bb</b>: saldr\u00e1 todo marcado, desmarcas lo que no haya venido y pulsas \u00abPasar a la despensa\u00bb.'
+      : 'Marca cada cosa seg\u00fan la coges. <b>Al salir de la tienda, pulsa \u00abHe salido de la tienda\u00bb</b>: repasas lo marcado y pulsas \u00abPasar a la despensa\u00bb.') + '</p>';
     h += '<div class="lista-compacta" data-listatienda="' + esc(nom) + '">';
     if (vacia) h += '<div class="vacio">Nada que comprar aqu\u00ed para estas fechas.</div>';
     var porZona = {};
@@ -5922,7 +5922,8 @@
     h += '</div><div class="pie-compacto"><span class="nota-peque" id="lt-cuenta">' +
          (listaSoloLectura || vacia ? "" : pieListaTienda(nom)) + '</span>' +
          (vacia ? '<button class="btn" data-cerrar>Cerrar</button>'
-                : '<button class="btn principal" id="lt-comprado">Comprado</button>') + '</div>';
+                : '<button class="btn principal" id="lt-comprado">' +
+                  (listaSoloLectura ? "Ha llegado la compra" : "He salido de la tienda") + '</button>') + '</div>';
     abrirModal(h);
     $("#modal-caja").classList.add("modal-compacto");
     $(".lista-compacta").onchange = function (e) {
@@ -5951,10 +5952,16 @@
     if (!lineas.length && !casa.length) return;
     var algo = !esOnline(nom) && (lineas.some(function (l) { return l.marcado; }) ||
                casa.some(function (x) { return Almacen.estaPedido(x.id); }));
-    var html = '<header><h2>Comprado en ' + esc(nom) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
-    html += '<p class="nota-peque">' + (algo
-      ? 'Salen marcadas las que cogiste. <b>Lo que quede sin marcar pasa a Pendiente.</b>'
-      : 'Sale todo marcado como llegado. <b>Desmarca lo que no haya venido:</b> pasa a Pendiente.') + '</p>';
+    /* CONFIRMAR CON NOMBRE (v417). Carlos: «¿en Mercadona dónde marco lo que
+       no llega? No veo confirmar». El botón decía «Confirmar» y no se veía qué
+       hacía; ahora dice lo que hace y debajo cuenta, mientras desmarcas, cuánto
+       entra en la despensa y cuánto se va a Pendiente. Hasta pulsarlo, el
+       stock no se toca. */
+    var html = '<header><h2>' + esc(nom) + ': ' + (esOnline(nom) ? 'ha llegado' : 'lo comprado') + '</h2>' +
+               '<button class="cerrar" data-cerrar>\u00d7</button></header>';
+    html += '<p class="instrucciones-compra">' + (algo
+      ? 'Salen marcadas las que cogiste. <b>Desmarca lo que no te hayas llevado</b> y pulsa \u00abPasar a la despensa\u00bb.'
+      : '<b>Desmarca lo que no haya llegado</b> y pulsa \u00abPasar a la despensa\u00bb. Lo desmarcado pasa a Pendiente.') + '</p>';
     var fila = function (id, nombre, detalle, cuantos, marcada, esHogar) {
       /* SIN SUPLENTE AQUÍ (Carlos, 4-oct-2026): «si no lo he comprado en
          Mercadona, que en pendiente salga en Mercadona y cuando lo compre en
@@ -5978,7 +5985,7 @@
                '</label>' : '') +
         '</div>';
     };
-    html += '<div id="ct-cuerpo">';
+    html += '<div id="ct-cuerpo" class="lista-compacta">';
     lineas.forEach(function (l) {
       html += fila(l.id, l.producto || l.nombre, l.texto || "", l.envases || 1, algo ? !!l.marcado : true, false);
     });
@@ -5988,14 +5995,23 @@
         html += fila(x.id, x.n, x.c > 1 ? "×" + x.c : "", x.c, algo ? Almacen.estaPedido(x.id) : true, true);
       });
     }
-    html += '</div><div class="fila" style="margin-top:14px">' +
-            '<button class="btn principal" id="ct-ok">Confirmar</button>' +
-            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    html += '</div><div class="pie-compacto"><span class="nota-peque" id="ct-cuenta"></span>' +
+            '<span><button class="btn" data-cerrar>Cancelar</button> ' +
+            '<button class="btn principal" id="ct-ok">Pasar a la despensa</button></span></div>';
     abrirModal(html);
+    $("#modal-caja").classList.add("modal-compacto");
+    var cuentaCT = function () {
+      var cs = document.querySelectorAll("#ct-cuerpo [data-llego]"), si = 0;
+      for (var i = 0; i < cs.length; i++) if (cs[i].checked) si++;
+      var el = $("#ct-cuenta");
+      if (el) el.innerHTML = "<b>" + si + "</b> a la despensa \u00b7 <b>" + (cs.length - si) + "</b> a Pendiente";
+    };
+    cuentaCT();
 
     $("#ct-cuerpo").onchange = function (e) {
       var c = e.target.closest ? e.target.closest("[data-llego]") : null;
       if (!c) return;
+      cuentaCT();
       var id = c.getAttribute("data-llego");
       ["data-suplente-de", "data-llegaron-de"].forEach(function (a) {
         var el = document.querySelector('[' + a + '="' + id + '"]');
