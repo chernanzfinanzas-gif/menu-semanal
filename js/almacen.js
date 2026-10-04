@@ -653,6 +653,29 @@
         e.arreglos["2026-10-04-desayuno-postres"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDP) {}
       }
+      /* LA FRUTA, UNA A UNA (4-oct-2026, v397). Carlos: «fruta de temporada es
+         un poco abstracto, deberíamos añadir la fruta de forma individual».
+         1) El albaricoque estaba retirado en su copia y el catálogo nunca
+            des-oculta: se recupera una vez, con hora.
+         2) Cualquier receta guardada que aún pida el comodín —una retocada a
+            mano no la refresca el catálogo— pasa a kiwi, pieza por pieza. Corre
+            en cada arranque y sólo actúa si queda alguna línea. */
+      if (!e.arreglos["2026-10-04-albaricoque"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "albaricoque") return;
+          delete g.oculta; g.tocado = new Date().toISOString();
+        });
+        e.arreglos["2026-10-04-albaricoque"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAb) {}
+      }
+      (e.recetas || []).forEach(function (r) {
+        if (r.oculta) return;
+        var cambiaF = false;
+        (r.ing || []).forEach(function (l) {
+          if (l && l.i === "fruta_temporada") { l.i = "kiwi"; cambiaF = true; }
+        });
+        if (cambiaF) r.tocado = new Date().toISOString();
+      });
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
@@ -5828,7 +5851,7 @@
        escribe aquí y se sube; no hay que tocar ninguna ficha. */
     FAMILIAS_MERIENDA: {
       fruta: ["platano", "pera", "mango", "pina_fresca", "frambuesas", "arandanos",
-              "manzana_golden", "manzana_reineta", "melocoton", "fruta_temporada",
+              "manzana_golden", "manzana_reineta", "melocoton",
               "albaricoque", "naranja", "kiwi", "uvas", "sandia", "melon", "ciruela",
               "nectarina", "higos", "cerezas", "mandarina", "fresas", "pomelo"],
       seco: ["almendras", "avellanas", "nueces", "pistachos_sinsal", "pistachos_sal",
