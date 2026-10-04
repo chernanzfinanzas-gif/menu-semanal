@@ -491,6 +491,26 @@
         if (iCeb >= 0) e.ordenCasa.puerta.splice(iCeb + 1, 0, "salsa_trufa");
         else e.ordenCasa.puerta.push("salsa_trufa");
       }
+      /* CAMBIOS DE ESTANTE (4-oct-2026, Carlos). El estante que ya tiene la
+         ficha guardada es suyo y el catálogo no lo pisa al refrescar, así que
+         estos cambios pedidos se aplican aquí, una vez. Sólo si la ficha no se
+         ha movido después de hoy (para no deshacer lo que él toque luego). */
+      if (!e.arreglos["2026-10-04-estantes"]) {
+        var MOV = { limon_exprimido: "est_arriba", tomate_rallado: "est_arriba",
+                    ajo: "basicos", cebolla_dulce: "basicos", fumet_hacendado: "esencial" };
+        ["albahaca", "ensalada_gourmet", "champinones", "brotes_verdes", "espinacas", "perejil",
+         "picada_ajo_perejil", "pina_fresca", "setas", "tomate", "tomate_cherry"]
+          .forEach(function (k) { MOV[k] = "est_abajo"; });
+        var ahoraM = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          var dest = MOV[g.id];
+          if (!dest || g.sitio === dest || (g.tocado || "") >= "2026-10-05") return;
+          g.sitio = dest; g.tocado = ahoraM;
+          if (e.stockSitios) delete e.stockSitios[dest];
+        });
+        e.arreglos["2026-10-04-estantes"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
@@ -2805,7 +2825,9 @@
       filete:   { n: ["filete", "filetes"],    atajos: [0, 1, 2, 3, 4, 6] },
       barra:    { n: ["barra", "barras"],      atajos: [0, 0.5, 1, 2] },
       sobre:    { n: ["sobre", "sobres"],      atajos: [0, 1, 2, 3, 5, 10] },
-      capsula:  { n: ["cápsula", "cápsulas"],  atajos: [0, 5, 10, 20, 30, 50], suelta: true }
+      capsula:  { n: ["cápsula", "cápsulas"],  atajos: [0, 5, 10, 20, 30, 50], suelta: true },
+      /* Lo hecho en casa y congelado en la cubitera (v382): se cuenta en cubitos. */
+      cubito:   { n: ["cubito", "cubitos"],    atajos: [0, 2, 4, 6, 8, 12, 16], suelta: true }
     },
 
     formatoDe: function (g) {
@@ -4327,6 +4349,74 @@
        Por defecto, lo que no tiene mínimo NO está en casa: si quiere una bolsa
        de doritos la pide esa semana a propósito, y ese pequeño esfuerzo es la
        fricción que hoy no existía. */
+    /* ---------- LO HECHO EN CASA (v382, 4-oct-2026) ----------
+       Carlos: «Control de stock en congelador y, si no hay, cuando haga el stock
+       aparezca un botón de "Renovar ingredientes", y al pulsarlo añada a la lista
+       de la compra las dos peras y la manzana. Vale para productos que hago yo y,
+       si no hay, tengo que volver a preparar». Y decidió: que salga cuando quede
+       POCO (menos de lo que pide una receta), y un botón «Lo he preparado» que
+       sume al stock y descuente los ingredientes.
+
+       Una ficha casera lleva `casero: { receta, rinde }`: la receta del LOTE y
+       cuánto sale (en las unidades de la ficha: cubitos). Nunca se compra
+       (`pedir: "nunca"`), pero tiene stock como cualquier otra cosa y el menú
+       la descuenta al comer. */
+    esCasero: function (g) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      return !!(g && g.casero && g.casero.receta);
+    },
+    /* Poco = lo que queda libre (descontado lo que ya pide el menú) no llega
+       para una receta: la ración de la ficha es lo que lleva un plato. */
+    caseroPoco: function (id) {
+      var g = this.ingrediente(id);
+      if (!this.esCasero(g)) return false;
+      var libre = this.stockDe(id) - ((this.comprometidoTodo() || {})[id] || 0);
+      return libre < (g.racion > 0 ? g.racion : 1);
+    },
+    /* Pide para la próxima compra lo que lleva el lote. Sin los básicos (la
+       canela, el aceite…), que ya tienen su propio mínimo y se reponen solos. */
+    renovarCasero: function (id) {
+      var g = this.ingrediente(id), self = this, puestos = [];
+      if (!this.esCasero(g)) return puestos;
+      var r = this.receta(g.casero.receta);
+      if (!r) return puestos;
+      (r.ing || []).forEach(function (l) {
+        var ing = self.ingrediente(l.i);
+        if (!ing || ing.basico || self.modoPedir(ing) === "nunca") return;
+        var tam = self.tamanoPieza(ing) || 1;
+        var piezas = Math.max(1, Math.ceil(l.c / tam - 0.001));
+        var ya = ((self.estado.quiero || {})[l.i] || {}).p || 0;
+        self.quererEstaVez(l.i, true, ya + piezas);
+        puestos.push(piezas + " " + ing.n);
+      });
+      return puestos;
+    },
+    /* Lo has hecho: suben los cubitos y bajan los ingredientes del lote. */
+    prepararCasero: function (id) {
+      var g = this.ingrediente(id), self = this;
+      if (!this.esCasero(g)) return null;
+      var r = this.receta(g.casero.receta);
+      var rinde = g.casero.rinde || g.envase || 1;
+      if (!this.estado.stock) this.estado.stock = {};
+      var nuevo = Math.round((this.stockDe(id) + rinde) * 100) / 100;
+      var tamC = this.tamanoPieza(g) || 1;
+      this.estado.stock[id] = { c: nuevo, piezas: Math.round(nuevo / tamC * 100) / 100,
+                                f: Util.hoyISO(), contado: true, nivel: "contado" };
+      var gastados = [];
+      ((r && r.ing) || []).forEach(function (l) {
+        var s = self.estado.stock[l.i], ing = self.ingrediente(l.i);
+        if (!s || !ing) return;
+        var c = Math.max(0, Math.round(((s.c || 0) - l.c) * 100) / 100);
+        var tam = self.tamanoPieza(ing) || 1;
+        s.c = c; s.piezas = Math.round(c / tam * 100) / 100;
+        if (c <= 0) s.nivel = "nada";
+        gastados.push(ing.n);
+      });
+      this._sellarStock();
+      this.guardar("stock");
+      return { rinde: rinde, nuevo: nuevo, gastados: gastados };
+    },
+
     quiereEstaVez: function (id) {
       return !!(this.estado.quiero || {})[id];
     },
@@ -6378,6 +6468,14 @@
         var hay = self.stockDe(id) - apartado;
         if (hay < 0) hay = 0;
         var falta = pide - hay;
+        /* LO PEDIDO A MANO SE SUMA, AUNQUE EL MENÚ YA LO PIDA (v382, 4-oct-2026).
+           Hasta hoy, si un plato ya pedía ese producto, lo que habías pedido
+           «esta vez» se ignoraba («ya lo pide un plato»): renovar el puré casero
+           pedía dos peras, la ensalada de alubias también lleva pera, y las dos
+           peras del puré desaparecían de la lista. Ahora van encima de lo que
+           falte para el menú. */
+        var qx = (self.estado.quiero || {})[id];
+        if (qx && qx.p > 0) falta = Math.max(0, falta) + qx.p * (self.tamanoPieza(ing) || 1);
         /* `todo: true` lo usa la PASADA PREVIA: necesita también lo que ya está
            cubierto, porque lo que repasas antes de comprar es todo lo que el
            menú va a gastar, no sólo lo que falta. */

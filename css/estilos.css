@@ -1400,3 +1400,10 @@ button.enlace {
 .plato .pl-quien.q-carlos{border-color:var(--morado);background:var(--morado-fondo);color:var(--morado);font-weight:600}
 .plato .pl-quien.q-susana{border-color:var(--borde);background:var(--gris-claro);color:var(--gris);font-style:italic}
 .plato span.pl-quien.fijo{display:inline-block;cursor:default}
+
+/* ---- LO HECHO EN CASA (v382) ---- */
+.casero-caja{margin:10px 0;padding:10px 12px;border:1px solid var(--borde);border-radius:12px;background:var(--gris-claro);display:flex;flex-direction:column;gap:6px}
+.casero-caja.poco{border-color:var(--ambar);background:var(--ambar-fondo)}
+.casero-caja .casero-tit{font-size:.78rem;color:var(--gris);text-transform:uppercase;letter-spacing:.05em}
+.casero-caja.poco .casero-tit b{color:#8a5d0e}
+.casero-caja small{font-size:.75rem;color:var(--gris)}

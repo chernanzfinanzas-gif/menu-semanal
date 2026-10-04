@@ -84,7 +84,7 @@
     "carne-roja": "Carne roja", "carne-blanca": "Carne blanca", "pescado-blanco": "Pescado blanco",
     "pescado-azul": "Pescado azul", "huevos": "Huevos", "legumbre": "Legumbre",
     "pasta-arroz": "Pasta y arroz", "verdura": "Verdura", "ensalada": "Ensalada",
-    "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre",
+    "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre", "casero": "Hecho en casa",
     /* Los caprichos nacen en la pestaña Menú, al apuntar algo fuera de plan.
        Están aquí para que se puedan buscar y filtrar como cualquier otra
        receta: la mayoría se toman fuera de casa —un helado, una hamburguesa—
@@ -4838,6 +4838,30 @@
           (x.porEnvase >= 2 && x.porEnvase <= 60
             ? ", para " + Math.round(x.porEnvase) + " platos" : "") + "</div>"
         : "") +
+      /* LO HECHO EN CASA (v382). Carlos: «si no hay, cuando haga el stock aparezca
+         un botón de Renovar ingredientes». Sale cuando queda menos de lo que pide
+         una receta; «Lo he preparado» sale siempre, para el día que haces el lote. */
+      (function () {
+        if (!Almacen.esCasero(x.id)) return "";
+        var gC = Almacen.ingrediente(x.id), rL = Almacen.receta(gC.casero.receta);
+        var rinde = gC.casero.rinde || gC.envase || 1;
+        var poco = Almacen.caseroPoco(x.id);
+        var ffC = Almacen.FORMATOS[Almacen.formatoDe(gC)] || { n: ["", ""] };
+        var lleva = rL ? (rL.ing || []).filter(function (l) {
+          var i = Almacen.ingrediente(l.i); return i && !i.basico;
+        }).map(function (l) {
+          var i = Almacen.ingrediente(l.i);
+          return Util.cantidadReceta(l.c, i.u, i.pesoUd) + " de " + i.n.split(" (")[0].toLowerCase();
+        }).join(" y ") : "";
+        return '<div class="casero-caja' + (poco ? " poco" : "") + '">' +
+          '<div class="casero-tit">Hecho en casa' + (poco ? " \u00b7 <b>queda poco</b>" : "") + "</div>" +
+          (poco ? '<button type="button" class="btn principal" data-renovar="' + esc(x.id) + '">Renovar ingredientes</button>' +
+                  (lleva ? "<small>Pide " + esc(lleva) + " para la pr\u00f3xima compra.</small>" : "") : "") +
+          '<button type="button" class="btn" data-preparado="' + esc(x.id) + '">Lo he preparado (+' + rinde + " " +
+            esc(rinde === 1 ? ffC.n[0] : ffC.n[1]) + ")</button>" +
+          (rL ? '<small>Receta: <a href="#" data-ficha-casero="' + esc(rL.id) + '">' + esc(rL.n) + "</a></small>" : "") +
+          "</div>";
+      })() +
       '<button type="button" class="btn grande" data-pasesig="' + esc(x.id) + "|" + n +
         '">Apuntar y seguir</button>' +
       /* «LO QUIERO ESTA VEZ», DESDE LA FICHA, Y CON CANTIDAD (25-sep-2026).
@@ -4853,7 +4877,7 @@
 
          La fila es igual que la de contar, para que no haya que aprender nada:
          − cifra +. En cero desaparece de la lista. */
-      '<div class="quiero-fila' + (quiero ? " activo" : "") + '">' +
+      (Almacen.esCasero(x.id) ? "" : '<div class="quiero-fila' + (quiero ? " activo" : "") + '">' +
         "<span>Lo quiero esta vez</span>" +
         '<div class="paso">' +
           '<button type="button" class="btn mini" data-quieropaso="' + esc(x.id) +
@@ -4864,7 +4888,7 @@
         "</div>" +
         (quiero ? '<small>' + cifra(quiero) + " " +
           esc(quiero === 1 ? x.piezaUno : x.piezaVarias) + " a la pr\u00f3xima compra</small>" : "") +
-      "</div>";
+      "</div>");
 
     cont.innerHTML =
       '<div class="ficha-pase">' +
@@ -7443,6 +7467,23 @@
       }
       var phe = e.target.closest("[data-hogareditar]");
       if (phe) { abrirHogar(phe.getAttribute("data-hogareditar")); return; }
+
+      /* lo hecho en casa (v382) */
+      var bren = e.target.closest("[data-renovar]");
+      if (bren) {
+        var pues = Almacen.renovarCasero(bren.getAttribute("data-renovar"));
+        Util.toast(pues.length ? "A la próxima compra: " + pues.join(", ") : "No había nada que pedir");
+        pintarLoTengo(); return;
+      }
+      var bprep = e.target.closest("[data-preparado]");
+      if (bprep) {
+        var rp = Almacen.prepararCasero(bprep.getAttribute("data-preparado"));
+        if (rp) Util.toast("+" + rp.rinde + " · ahora hay " + String(rp.nuevo).replace(".", ",") +
+                           (rp.gastados.length ? " · descontado: " + rp.gastados.map(function (n) { return n.split(" (")[0]; }).join(", ") : ""));
+        pintarLoTengo(); return;
+      }
+      var bfc = e.target.closest("[data-ficha-casero]");
+      if (bfc) { e.preventDefault(); abrirFicha(bfc.getAttribute("data-ficha-casero")); return; }
 
       var bqp = e.target.closest("[data-quieropaso]");
       if (bqp) {
