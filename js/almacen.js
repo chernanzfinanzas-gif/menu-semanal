@@ -511,6 +511,38 @@
         e.arreglos["2026-10-04-estantes"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM) {}
       }
+      /* SEGUNDA PASADA (4-oct-2026, v386). La primera se aplicó, pero el
+         repositorio la deshizo al sincronizar (ver «CADA FICHA, LA DEL ÚLTIMO
+         QUE LA TOCÓ» en github.js) y la marca de hecho se quedó. Carlos seguía
+         viendo los ajos en Conserva y la cebolla dulce en el Frutero. Se repite
+         con todos los cambios de estante de hoy, Evowhey incluida. */
+      if (!e.arreglos["2026-10-04-estantes-2"]) {
+        var MOV2 = { limon_exprimido: "est_arriba", tomate_rallado: "est_arriba",
+                     ajo: "basicos", cebolla_dulce: "basicos", fumet_hacendado: "esencial",
+                     evowhey: "sports" };
+        ["albahaca", "ensalada_gourmet", "champinones", "brotes_verdes", "espinacas", "perejil",
+         "picada_ajo_perejil", "pina_fresca", "setas", "tomate", "tomate_cherry"]
+          .forEach(function (k) { MOV2[k] = "est_abajo"; });
+        var ahoraM2 = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          var dest = MOV2[g.id];
+          if (!dest || (g.tocado || "") >= "2026-10-05") return;
+          if (g.sitio !== dest && e.stockSitios) delete e.stockSitios[dest];
+          g.sitio = dest; g.tocado = ahoraM2;     /* con hora aunque ya esté bien: así gana al sincronizar */
+        });
+        e.arreglos["2026-10-04-estantes-2"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM2) {}
+      }
+      /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
+      if (!e.arreglos["2026-10-04-sports"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "evowhey" || g.sitio === "sports" || (g.tocado || "") >= "2026-10-05") return;
+          g.sitio = "sports"; g.tocado = new Date().toISOString();
+          if (e.stockSitios) delete e.stockSitios.sports;
+        });
+        e.arreglos["2026-10-04-sports"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errS) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];

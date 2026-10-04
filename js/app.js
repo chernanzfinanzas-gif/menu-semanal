@@ -5463,6 +5463,12 @@
       return true;
     });
     var html = "", faltan = 0;
+    /* Los apartados que tenías abiertos siguen abiertos al marcar: si no, al
+       quitar la última marca se te cerraba el grupo debajo del dedo. */
+    var abiertos = {};
+    Array.prototype.forEach.call(cont.querySelectorAll("details[data-hap][open]"), function (d) {
+      abiertos[d.getAttribute("data-hap")] = true;
+    });
     /* EL ÍNDICE, COMO EL DE ¿LO TENGO? (25-sep-2026). Sin buscar, cuatro filas
        —una por apartado— y entras a pasarlas de una en una. Buscando, la lista
        de siempre con sus casillas, que es lo que hace falta cuando ya sabes qué
@@ -5473,7 +5479,7 @@
       lista.sort(function (a, b) { return a.n.localeCompare(b.n); });
       var marcados = lista.filter(function (x) { return Almacen.faltaHogar(x.id); }).length;
       faltan += marcados;
-      html += '<details class="grupo-selec"' + (marcados || q ? " open" : "") + '>' +
+      html += '<details class="grupo-selec" data-hap="' + esc(ap.k) + '"' + (marcados || q || abiertos[ap.k] ? " open" : "") + '>' +
                 '<summary><span class="tit">' + esc(ap.n) + '</span>' +
                 '<span class="cuantas">' + (marcados ? marcados + " / " + lista.length : lista.length) + '</span></summary>';
       lista.forEach(function (x) {
@@ -5484,13 +5490,24 @@
         if (x.suplente) det += ' \u00b7 si no hay: ' + esc(x.suplente);
         if (x.pendiente) det = '<span style="color:var(--ambar)">Ponle tu marca y formato</span> \u00b7 ' + det;
         else if (x.generico) det = esc(x.generico) + ' \u00b7 ' + det;
-        html += '<div class="linea linea-hogar' + (falta ? " en-casa" : "") + '">' +
-                  '<input type="checkbox" data-falta="' + esc(x.id) + '"' + (falta ? " checked" : "") +
-                    ' title="Me falta: a la lista de la compra">' +
+        /* HAY / ME FALTA (4-oct-2026). Carlos: «debería ser una lista con dos
+           botones, Hay marcado y Me falta que selecciono para ir a la lista de
+           la compra. Cuando se confirma la compra se pasa de Me falta a Hay».
+           Lo segundo ya lo hacía `confirmarHogar` (quita la marca); lo que
+           cambia es la fila: dos botones grandes en vez de una casilla. */
+        html += '<div class="linea linea-hogar hl' + (falta ? " falta" : "") + '">' +
                   '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
                   '<div class="detalle">' + det + '</div></div>' +
-                  (falta ? '<input type="number" class="stock-cant" data-hcant="' + esc(x.id) + '" min="1" step="1" ' +
-                           'value="' + Almacen.cantidadHogar(x.id) + '" style="width:62px; text-align:right" title="Cu\u00e1ntos">' : '') +
+                  '<div class="hl-botones">' +
+                    '<button type="button" class="btn hl-b' + (falta ? "" : " principal") +
+                      '" data-hlhay="' + esc(x.id) + '">Hay</button>' +
+                    '<button type="button" class="btn hl-b' + (falta ? " on-falta" : "") +
+                      '" data-hlfalta="' + esc(x.id) + '">Me falta</button>' +
+                  '</div>' +
+                  (falta ? '<div class="hl-cant"><span>Cu\u00e1ntos</span>' +
+                    '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|-1">\u2212</button>' +
+                    '<span class="cuenta-lista">' + Almacen.cantidadHogar(x.id) + '</span>' +
+                    '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|1">+</button></div>' : '') +
                   '<button class="btn mini solo-edicion" data-edithogar="' + esc(x.id) + '">Editar</button>' +
                 '</div>';
       });
@@ -7703,6 +7720,14 @@
         var nh = (Almacen.cantidadHogar(ph[0]) || 1) + Number(ph[1]);
         if (nh < 1) nh = 1;
         Almacen.marcarFaltaHogar(ph[0], true, nh);
+        pintarHogar(); pintarCompra(); return;
+      }
+      var hlh = e.target.closest("[data-hlhay]");
+      if (hlh) { Almacen.marcarFaltaHogar(hlh.getAttribute("data-hlhay"), false); pintarHogar(); pintarCompra(); return; }
+      var hlf = e.target.closest("[data-hlfalta]");
+      if (hlf) {
+        var idF = hlf.getAttribute("data-hlfalta");
+        if (!Almacen.faltaHogar(idF)) Almacen.marcarFaltaHogar(idF, true, 1);
         pintarHogar(); pintarCompra(); return;
       }
       var hed = e.target.closest("[data-hogareditar]");

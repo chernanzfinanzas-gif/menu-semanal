@@ -1414,3 +1414,13 @@ button.enlace {
 .casero-mod-lista{margin:0; padding-left:1.3rem; line-height:1.4}
 .casero-mod-lista li{margin:.25rem 0}
 .casero-mod-lista small{display:block; color:var(--gris); font-size:.82rem}
+
+/* Hogar: Hay / Me falta por fila (v385) */
+.linea-hogar.hl{flex-wrap:wrap}
+.linea-hogar.hl .datos{flex:1 1 180px; min-width:0}
+.hl-botones{display:grid; grid-template-columns:1fr 1fr; gap:6px; flex:0 0 172px}
+.hl-botones .btn.hl-b{padding:9px 6px; font-weight:700; font-size:.92rem}
+.hl-botones .btn.hl-b.on-falta{background:var(--ambar); border-color:var(--ambar); color:#fff}
+.linea-hogar.hl.falta{background:var(--ambar-fondo); border-color:var(--ambar)}
+.hl-cant{flex:1 1 100%; display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:.88rem; color:var(--gris)}
+.hl-cant .cuenta-lista{min-width:1.6em; text-align:center; font-weight:700; color:inherit}

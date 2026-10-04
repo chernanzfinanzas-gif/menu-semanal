@@ -149,6 +149,31 @@
     junto.actualizado = (local.actualizado || "") > (remoto.actualizado || "")
       ? local.actualizado : remoto.actualizado;
 
+    /* ── CADA FICHA, LA DEL ÚLTIMO QUE LA TOCÓ (4-oct-2026) ──────────────
+       Carlos: «Ajos morados lo sigo viendo en Despensa - Conserva… cebolla
+       dulce Tara la sigo viendo en Nevera - Frutero». Se habían movido a
+       Básicos en este aparato, con su hora, y el repositorio —con un guardado
+       posterior de OTRA cosa— se los devolvió al estante viejo: los campos de
+       cada ficha los ponía el sello GLOBAL, no la hora de esa ficha. Es el
+       mismo agujero que ya se tapó con los días, la despensa y el orden.
+       Ahora, si los dos lados tienen la ficha y la tocaron a horas distintas,
+       manda entera la del último que la tocó. Una ficha con hora gana a una
+       sin hora: la hora sólo la ponen un cambio tuyo o un arreglo pedido. */
+    ["ingredientes", "recetas"].forEach(function (k) {
+      if (!Array.isArray(junto[k]) || !Array.isArray(local[k]) || !Array.isArray(remoto[k])) return;
+      var mL = {}, mR = {};
+      local[k].forEach(function (x) { if (x && x.id) mL[x.id] = x; });
+      remoto[k].forEach(function (x) { if (x && x.id) mR[x.id] = x; });
+      junto[k] = junto[k].map(function (x) {
+        if (!x || !x.id) return x;
+        var L = mL[x.id], R = mR[x.id];
+        if (!L || !R) return x;
+        var tl = String(L.tocado || ""), tr = String(R.tocado || "");
+        if (tl === tr) return x;
+        return JSON.parse(JSON.stringify(tl > tr ? L : R));
+      });
+    });
+
     /* ── LOS DÍAS CORREGIDOS A MANO NO SE PISAN (23-sep-2026) ──────────────
        Aquí se perdieron los días 21 y 22 de septiembre. Dos cosas se juntan:
        un SOLO sello de tiempo (`actualizado`) decide quién manda en TODO el
