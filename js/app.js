@@ -1318,7 +1318,7 @@
        sueltos que ya había usado—, así que parecía que solo había dos cosas.
        Ahora el contador dice cuántos ingredientes hay de verdad, que es lo que
        se puede elegir, y en un picoteo se abre solo. */
-    var bloqueSueltos = '<details class="grupo-selec" data-fijo="1">' +
+    var bloqueSueltos = '<details class="grupo-selec" data-fijo="1" data-nofiltra="1">' +
             '<summary><span class="tit">Un ingrediente solo</span>' +
             '<span class="cuantas">' + catalogo.length + '</span></summary>' +
             '<p class="aviso-grupo">Cualquiera del cat\u00e1logo: un pl\u00e1tano, 20 g de nueces, ' +
@@ -1628,6 +1628,23 @@
         ? "Esta toma es de fuera, así que no entra en la compra."
         : "Puesto en una toma SÍ entra en la lista de la compra.");
 
+    /* AL BUSCAR, TODO EL RECETARIO (4-oct-2026). Carlos: «si lo escribo en el
+       buscador me ofrece todo de recetas aunque no lo presente en la lista de
+       meriendas». Lo que ya sale en alguna sección se encuentra ahí; lo demás
+       —un desayuno en la merienda, un plato de comida en la cena— va en esta
+       sección escondida, que solo aparece mientras hay algo escrito. */
+    var enPantalla = {};
+    html.replace(/data-elegir="([^"]+)"/g, function (m, id) { enPantalla[id] = 1; return m; });
+    var otrasTomas = todas.filter(function (r) { return !enPantalla[r.id] && !yaPuesto[r.id]; });
+    if (otrasTomas.length) {
+      html += '<details class="grupo-selec" data-solobusca="1" style="display:none">' +
+                '<summary><span class="tit">En el resto del recetario</span>' +
+                '<span class="cuantas">' + otrasTomas.length + '</span></summary>' +
+                '<p class="aviso-grupo">No son de esta toma, pero puedes ponerlos igual.</p>' +
+                otrasTomas.map(boton).join("") +
+              '</details>';
+    }
+
     html += '</div>';
     abrirModal(html);
 
@@ -1660,26 +1677,39 @@
          hace útil el filtro; la regla de una sola abierta se suspende aquí y
          vuelve en cuanto se toca una a mano. */
       abriendoElFiltro = true;
+      /* FILTRA TODAS LAS SECCIONES (4-oct-2026). Antes se saltaba las de
+         arriba —Favoritas, Platos principales, Guarniciones, Postres, Para
+         beber, Ya lo tienes en casa— porque compartían la marca de «fija» con
+         la de un ingrediente solo, y al escribir seguían saliendo enteras.
+         Ahora solo se salta la de un ingrediente solo, que tiene su buscador.
+         Sin acentos, para que «cafe» encuentre «café». */
+      var sinAc = function (t) { return t.normalize ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : t; };
+      q = sinAc(q);
       $$("#lista-selector .grupo-selec").forEach(function (det) {
-        if (det.getAttribute("data-fijo")) return;   // la de crear uno solo no se filtra
-        var vistos = 0;
-        $$("button[data-nombre]", det).forEach(function (b) {
-          var cabe = !q || b.getAttribute("data-nombre").indexOf(q) >= 0;
-          b.style.display = cabe ? "" : "none";
+        if (det.getAttribute("data-nofiltra")) return;
+        var cu = det.querySelector(".cuantas");
+        if (cu && !cu.hasAttribute("data-total")) cu.setAttribute("data-total", cu.textContent);
+        var vistos = 0, botones = $$("button[data-nombre]", det);
+        botones.forEach(function (b) {
+          var cabe = !q || sinAc(b.getAttribute("data-nombre")).indexOf(q) >= 0;
+          var caja = b.closest(".fila-suelto") || b;
+          caja.style.display = cabe ? "" : "none";
           if (cabe) vistos++;
         });
-        det.style.display = vistos ? "" : "none";
-        if (q) det.open = true;
-        det.querySelector(".cuantas").textContent = vistos;
+        if (!q) {
+          det.style.display = det.getAttribute("data-solobusca") ? "none" : "";
+          if (cu) cu.textContent = cu.getAttribute("data-total");
+        } else {
+          det.style.display = vistos ? "" : "none";
+          det.open = !!vistos;
+          if (cu) cu.textContent = vistos;
+        }
       });
       if (!q) {
-        /* al vaciar el filtro se vuelve al estado de partida: todas cerradas */
+        /* al vaciar el filtro se vuelve al estado de partida: todas cerradas,
+           salvo las que nacen abiertas (Favoritas) */
         $$("#lista-selector .grupo-selec").forEach(function (det) {
-          det.open = false;
-        });
-        $$("#lista-selector .grupo-selec").forEach(function (det) {
-          det.querySelector(".cuantas").textContent =
-            $$("button[data-nombre]", det).length;
+          det.open = det.classList.contains("favoritas");
         });
       }
       abriendoElFiltro = false;
