@@ -561,6 +561,25 @@
         });
         if (cambia) r.tocado = new Date().toISOString();
       });
+      /* EL GUACAMOLE, A CAJONES (4-oct-2026, v391). Carlos: «va a cajones, con
+         mozzarella de búfala, escamas de grana padano y demás». Estante con
+         hora (para que gane al sincronizar) y, en el orden de casa, detrás de
+         las escamas de Grana Padano. Sólo si aún no está en esa lista. */
+      if (!e.arreglos["2026-10-04-guacamole"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "guacamole" || (g.tocado || "") >= "2026-10-05") return;
+          if (g.sitio !== "cajones" && e.stockSitios) delete e.stockSitios.cajones;
+          g.sitio = "cajones"; g.tocado = new Date().toISOString();
+        });
+        if (e.ordenCasa && Array.isArray(e.ordenCasa.cajones) && e.ordenCasa.cajones.indexOf("guacamole") < 0) {
+          var iGr = e.ordenCasa.cajones.indexOf("parmigiano_reggiano_en_cuna_ra");
+          if (iGr < 0) iGr = e.ordenCasa.cajones.indexOf("mozzarella_fresca");
+          if (iGr >= 0) e.ordenCasa.cajones.splice(iGr + 1, 0, "guacamole");
+          else e.ordenCasa.cajones.push("guacamole");
+        }
+        e.arreglos["2026-10-04-guacamole"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errG) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
