@@ -1433,3 +1433,9 @@ button.enlace {
 /* Confirmar cambios: guardado en GitHub (v395) */
 #loc-reordenar.ok-github{color:var(--verde); background:var(--blanco); border-color:var(--verde); opacity:1}
 #loc-reordenar.avisa.ok-github{background:var(--verde); color:#fff}
+
+/* Hogar: confirmar el orden de casa (v404) */
+#hogar-confirmar.avisa{background:var(--verde); color:#fff; border-color:var(--verde)}
+#hogar-confirmar.ok-github{color:var(--verde); background:var(--blanco); border-color:var(--verde); opacity:1}
+#hogar-confirmar.avisa.ok-github{background:var(--verde); color:#fff}
+.linea-hogar.hl .loc-mover{flex:0 0 auto}

@@ -684,6 +684,25 @@
          Mercadona pone lo nuevo. Cada lista se aplica una vez (su marca en
          `arreglos`), con hora por estante para que gane al sincronizar. */
       var LISTAS_MERCADONA = {
+        /* Lo de casa: una clave por apartado de Hogar (sus listas «Hogar» y
+           «Menaje cocina» de Mercadona). */
+        "Mercadona|hog_limpieza": { f: "2026-10-04", ids: [
+            "limpiamuebles", "detergente_a_mano", "detergente_de_lavadora", "antipolillas", "quitagrasas",
+            "antical", "antimosquitos_pastillas", "antimosquitos_liquido", "bolsas_de_basura_grandes", "bolsas_de_basura_pequenas",
+            "guantes_latex", "limpia_vitroceramica", "guantes_de_fregar", "estropajo_bano", "estropajo_delicado",
+            "estropajo_almohadilla", "estropajos", "quitamanchas", "gel_wc_desinfectante", "cesta_wc",
+            "lavavajillas_a_mano", "limpiacristales", "friegasuelos", "ambientador_lavavajillas", "abrillantador_de_lavavajillas",
+            "limpiamaquinas_lavavajillas", "bayeta_polvo", "bayeta_cristales", "bayetas", "pastillas_de_lavavajillas",
+            "suavizante", "lejia" ] },
+        "Mercadona|hog_aseo": { f: "2026-10-04", ids: [
+            "lagrimas_hidratantes", "gasas_esteriles", "tiritas_aqua", "tiritas_espuma", "esparadrapo",
+            "tiritas_classic", "alcohol_96", "agua_oxigenada", "cepillo_de_dientes", "limpieza_ortodoncia",
+            "champu", "champu_deliplus", "cera_pelo", "esponja_de_bano", "jabon_de_manos",
+            "desodorante_rollon", "desodorante_viaje", "desodorante", "crema_de_manos", "crema_cara_cuerpo_manos",
+            "toallitas_refrescantes", "panuelos_de_papel", "papel_higienico", "gel_de_ducha" ] },
+        "Mercadona|hog_menaje": { f: "2026-10-04", ids: [
+            "servilletas_de_papel", "papel_de_cocina", "bolsas_de_cierre_zip", "bolsas_de_congelacion", "papel_de_horno",
+            "film_transparente", "papel_de_aluminio" ] },
         "Mercadona|alacena": { f: "2026-10-04", ids: [
             "ajo", "cebolla_dulce", "cebolla_morada", "batata_pieza_pelada_330_g", "patata", "pimenton",
             "tomillo", "sal", "romero", "pimienta", "oregano", "nuez_moscada",
@@ -726,6 +745,17 @@
         e.arreglos[marca] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLM) {}
       });
+      /* CUATRO DE ASEO, A MERCADONA (4-oct-2026, v403). Estaban en el súper sin
+         tienda y salían en «Sin tienda asignada»; están en su lista Aseo de
+         Mercadona. Para la copia que no refresque el catálogo (editada). */
+      if (!e.arreglos["2026-10-04-aseo-tienda"]) {
+        (e.hogarLista || []).forEach(function (x) {
+          if (["desodorante", "jabon_de_manos", "panuelos_de_papel", "papel_higienico"].indexOf(x.id) < 0) return;
+          if (!x.tienda) { x.tienda = "Mercadona"; x.tocado = new Date().toISOString(); }
+        });
+        e.arreglos["2026-10-04-aseo-tienda"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAs) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
@@ -2642,9 +2672,10 @@
     hogarDeEstante: function (k) {
       var cat = this.catHogarDe(k);
       if (!cat) return null;
-      return (this.estado.hogarLista || [])
-        .filter(function (x) { return !x.oculta && x.cat === cat; })
-        .sort(function (a, b) { return a.n.localeCompare(b.n); });
+      /* En el orden de casa (4-oct-2026): el que Carlos pone en Hogar con las
+         flechas o arrastrando. Lo que no ha colocado va al final, por nombre. */
+      return this.ordenarComoEnCasa(k, (this.estado.hogarLista || [])
+        .filter(function (x) { return !x.oculta && x.cat === cat; }));
     },
 
     /* La lista plana de estantes, que es lo que usan el stock y la pasada.

@@ -5460,9 +5460,11 @@
 
   /* Las fichas de un apartado, en el orden en que se pasan. */
   function fichasApartado(k) {
-    return (Almacen.estado.hogarLista || []).filter(function (x) {
+    var estF = estanteDeApartado(k);
+    var l = (Almacen.estado.hogarLista || []).filter(function (x) {
       return !x.oculta && x.cat === k;
-    }).sort(function (a, b) { return a.n.localeCompare(b.n); });
+    });
+    return estF ? Almacen.ordenarComoEnCasa(estF, l) : l.sort(function (a, b) { return a.n.localeCompare(b.n); });
   }
 
   function avanzarHogar() {
@@ -5479,7 +5481,14 @@
   /* Una fila de Hogar con sus dos botones, Hay / Me falta. La usan la lista de
      Despensa → Hogar y la entrada de cada apartado en «¿Lo tengo?», para que
      las dos sean la misma cosa (Carlos, 4-oct-2026). */
-  function filaHogar(x) {
+  /* El estante de Hogar que corresponde a un apartado («Limpieza» → hog_limpieza). */
+  function estanteDeApartado(cat) {
+    var k = null;
+    Almacen.ZONAS.forEach(function (z) { z.estantes.forEach(function (e) { if (e.hogar === cat) k = e.k; }); });
+    return k;
+  }
+
+  function filaHogar(x, mover) {
     var falta = Almacen.faltaHogar(x.id);
     var cajon = x.cajon || "amazon";
     var det = esc(Almacen.nombreCajon(cajon));
@@ -5492,7 +5501,19 @@
        la compra. Cuando se confirma la compra se pasa de Me falta a Hay».
        Lo segundo ya lo hacía `confirmarHogar` (quita la marca); lo que
        cambia es la fila: dos botones grandes en vez de una casilla. */
-    return '<div class="linea linea-hogar hl' + (falta ? " falta" : "") + '">' +
+    /* ORDENAR COMO ESTÁ EN CASA (4-oct-2026). Carlos: «en Hogar quiero igual
+       que con los ingredientes: ordenar los productos de acuerdo a cómo los
+       encuentro en casa, con flechas y un botón para arrastrarlo». Mismo
+       agarre y mismas flechas que en Localización. */
+    var flechas = mover
+      ? '<div class="loc-mover">' +
+          (HAY_RATON ? '<span class="agarre" draggable="true" title="Arrastrar para colocar" aria-hidden="true">\u283F</span>' : '') +
+          '<button type="button" class="btn mini" data-hogsube="' + esc(x.id) + '" aria-label="Subir ' + esc(x.n) + '">\u2191</button>' +
+          '<button type="button" class="btn mini" data-hogbaja="' + esc(x.id) + '" aria-label="Bajar ' + esc(x.n) + '">\u2193</button>' +
+        '</div>'
+      : "";
+    return '<div class="linea linea-hogar hl' + (falta ? " falta" : "") + '" data-locfila="' + esc(x.id) + '">' +
+              flechas +
               '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
               '<div class="detalle">' + det + '</div></div>' +
               '<div class="hl-botones">' +
@@ -5535,13 +5556,21 @@
     Almacen.APARTADOS.forEach(function (ap) {
       var lista = todo.filter(function (x) { return x.cat === ap.k; });
       if (!lista.length) return;
-      lista.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      var estH = estanteDeApartado(ap.k);
+      lista = estH ? Almacen.ordenarComoEnCasa(estH, lista)
+                   : lista.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      /* Ordenar sólo con la lista entera a la vista: con el buscador o el
+         filtro de cajón puesto, mover o arrastrar dejaría fuera las escondidas. */
+      var puedeMover = !!estH && !q && !UI.cajonHogar;
       var marcados = lista.filter(function (x) { return Almacen.faltaHogar(x.id); }).length;
       faltan += marcados;
-      html += '<details class="grupo-selec" data-hap="' + esc(ap.k) + '"' + (marcados || q || abiertos[ap.k] ? " open" : "") + '>' +
+      html += '<details class="grupo-selec" data-hap="' + esc(ap.k) + '"' +
+                (estH ? ' data-hogest="' + esc(estH) + '"' : '') +
+                (puedeMover ? '' : ' data-filtrado="1"') +
+                (marcados || q || abiertos[ap.k] ? " open" : "") + '>' +
                 '<summary><span class="tit">' + esc(ap.n) + '</span>' +
                 '<span class="cuantas">' + (marcados ? marcados + " / " + lista.length : lista.length) + '</span></summary>';
-      lista.forEach(function (x) { html += filaHogar(x); });
+      lista.forEach(function (x) { html += filaHogar(x, puedeMover); });
       html += '</details>';
     });
     cont.innerHTML = html || '<div class="vacio">Nada con esos filtros.</div>';
@@ -5746,11 +5775,28 @@
             });
             html += '</div>';
           }
+          /* LO DE CASA, POR APARTADO Y EN SU ORDEN (4-oct-2026). Carlos tiene
+             en Mercadona una lista por apartado —«Hogar», «Aseo», «Menaje
+             cocina»— y el orden de cada una es el que manda, igual que en la
+             comida. Antes salía todo junto y por orden alfabético. Lo que no
+             está en su lista sale arriba, como hace Mercadona con lo nuevo. */
           if (g.casa.length) {
-            html += '<div class="seccion-compra"><h3>' + esc(nom) +
-                    (g.comida.length ? ' \u00b7 casa' : '') + '</h3>';
-            g.casa.forEach(function (x) { html += lineaHogarHTML(x); });
-            html += '</div>';
+            var porAp = {};
+            g.casa.forEach(function (x) { (porAp[x.cat] = porAp[x.cat] || []).push(x); });
+            var aps = Almacen.APARTADOS.map(function (a) { return a.k; });
+            Object.keys(porAp).forEach(function (c) { if (aps.indexOf(c) < 0) aps.push(c); });
+            aps.forEach(function (c) {
+              var lineasC = porAp[c];
+              if (!lineasC || !lineasC.length) return;
+              var estK = null, apN = c;
+              Almacen.ZONAS.forEach(function (z) { z.estantes.forEach(function (e) { if (e.hogar === c) estK = e.k; }); });
+              Almacen.APARTADOS.forEach(function (a) { if (a.k === c) apN = a.n; });
+              if (estK) lineasC = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, estK), lineasC);
+              html += '<div class="seccion-compra"><h3>' + esc(nom) + ' \u00b7 ' + esc(apN) +
+                      '<span>' + lineasC.length + '</span></h3>';
+              lineasC.forEach(function (x) { html += lineaHogarHTML(x); });
+              html += '</div>';
+            });
           }
         });
         return;
@@ -7745,7 +7791,50 @@
         setTimeout(function () { pintarHogar(); pintarCompra(); }, 0);
       }
     });
+    /* ---- ordenar Hogar como está en casa (4-oct-2026) ---- */
+    function pintarBotonHogar() {
+      var b = $("#hogar-confirmar");
+      if (!b) return;
+      var n = UI.hogCambios || 0;
+      b.disabled = !n;
+      b.classList.toggle("avisa", !!n);
+      b.classList.remove("ok-github");
+      b.textContent = n ? "Confirmar cambios (" + n + ")" : "Confirmar cambios";
+    }
+    montarArrastre($("#rejilla-hogar"), "[data-locfila]", "[data-hogest]", function (gr, ids) {
+      Almacen.fijarOrdenCasa(gr.getAttribute("data-hogest"), ids);
+      UI.hogCambios = (UI.hogCambios || 0) + 1;
+      pintarHogar(); pintarBotonHogar();
+    });
+    var bHc = $("#hogar-confirmar");
+    if (bHc) bHc.addEventListener("click", function () {
+      UI.hogCambios = 0;
+      pintarBotonHogar();
+      if (!global.Sync || !Sync.guardarYa) return;
+      bHc.textContent = "Guardando en GitHub\u2026";
+      Sync.guardarYa().then(function (r) {
+        if (r === "local") { bHc.textContent = "Guardado solo en este aparato"; return; }
+        bHc.textContent = r ? "Guardado en GitHub \u2713" : "No se ha podido guardar en GitHub";
+        bHc.classList.toggle("ok-github", !!r);
+        Util.toast(r ? "Orden de Hogar guardado en GitHub" : "No se ha podido guardar en GitHub: mira el aviso de arriba");
+      });
+    });
     $("#rejilla-hogar").addEventListener("click", function (e) {
+      var hm = e.target.closest("[data-hogsube]") || e.target.closest("[data-hogbaja]");
+      if (hm) {
+        var gH = hm.closest("[data-hogest]");
+        if (!gH) return;
+        var kH = gH.getAttribute("data-hogest");
+        var idH = hm.getAttribute("data-hogsube") || hm.getAttribute("data-hogbaja");
+        var idsH = Almacen.hogarDeEstante(kH).map(function (x) { return x.id; });
+        var iH = idsH.indexOf(idH), jH = iH + (hm.hasAttribute("data-hogsube") ? -1 : 1);
+        if (iH < 0 || jH < 0 || jH >= idsH.length) return;
+        idsH[iH] = idsH[jH]; idsH[jH] = idH;
+        Almacen.fijarOrdenCasa(kH, idsH);
+        UI.hogCambios = (UI.hogCambios || 0) + 1;
+        pintarHogar(); pintarBotonHogar();
+        return;
+      }
       /* ---- el pase de Hogar ---- */
       var hap = e.target.closest("[data-hogarap]");
       if (hap) {
