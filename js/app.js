@@ -4420,6 +4420,9 @@
     var deTienda = {};
     (Almacen.estado.ingredientes || []).forEach(function (g) {
       if (g.oculta || g.cat === "Restaurante y bar") return;
+      /* Lo hecho en casa no se compra: lo que se compra son sus ingredientes,
+         que ya salen con su tienda (Carlos, 4-oct-2026). */
+      if (Almacen.esCasero && Almacen.esCasero(g.id)) return;
       var cj = Almacen.cajonDe(g);
       if (cj !== "super" && cj !== "amazon") return;   /* suscripción y «aparte» no tienen lista */
       var t = cj === "amazon" ? "Amazon" : (Almacen.tiendaDe(g) || "Sin tienda asignada");

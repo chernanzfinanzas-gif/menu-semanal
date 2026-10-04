@@ -718,8 +718,8 @@
             "mango_deshidratado", "maiz_palomitas", "datiles", "almendras", "pasta_fusilli", "pasta",
             "lentejas", "cous_cous", "arroz_redondo", "calamares_tinta", "atun_lata_natural", "anchoas",
             "aceitunas_negras", "aceitunas_rell", "vinagre", "vinagre_balsamico", "aove" ] },
-        "Mercadona|nevera": { f: "2026-10-04b", ids: [
-            "lima", "mandarina", "naranja", "kiwi", "limon_exprimido", "salsa_trufa",
+        "Mercadona|nevera": { f: "2026-10-04c", ids: [
+            "alubia_blanca_cocida", "lima", "mandarina", "naranja", "kiwi", "limon_exprimido", "salsa_trufa",
             "tomate_rallado", "zanahoria", "tomate", "tomate_cherry", "setas", "puerro",
             "platano", "pina_fresca", "pera", "manzana_reineta", "mango", "limon",
             "ensalada_gourmet", "guacamole", "espinacas", "brotes_verdes", "champinones", "cebolla_verde",
@@ -755,6 +755,41 @@
         });
         e.arreglos["2026-10-04-aseo-tienda"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAs) {}
+      }
+      /* FANTAS Y ALBARICOQUE, A MERCADONA (4-oct-2026, v405). Carlos: «Fanta
+         naranja y Fanta limón son productos de Mercadona, albaricoque es
+         producto de Mercadona… No hay nada de Amazon». Salían en Amazon en el
+         Orden de compra: las Fantas tenían el súper sin tienda en el catálogo y
+         su copia guardada decía Amazon; el albaricoque no tenía ni tienda ni
+         cajón, y sin cajón la app supone Amazon. Con hora, para que gane. */
+      if (!e.arreglos["2026-10-04-mercadona-fantas"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (["fanta_lim_zero", "fanta_nar_zero", "albaricoque"].indexOf(g.id) < 0) return;
+          g.cajon = "super"; g.tienda = "Mercadona"; g.tocado = new Date().toISOString();
+        });
+        e.arreglos["2026-10-04-mercadona-fantas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errFz) {}
+      }
+      /* LA ALUBIA BLANCA ES DE SUSANA (4-oct-2026, v406). Carlos: «yo no la
+         como, solo la come ella; no tiene por qué ser baja en sal». Pasa a la
+         Hacendado de Mercadona y la ensalada de alubias con atún queda como
+         plato de ella. Su copia de la ficha está editada (la movió de estante),
+         así que el catálogo no la refresca: se copian los datos del producto
+         nuevo y se le respeta el estante. Igual con la receta, por si la tocó. */
+      if (!e.arreglos["2026-10-04-alubia-susana"]) {
+        var semAl = SEMILLA_BASE && SEMILLA_BASE.ingObj && SEMILLA_BASE.ingObj.alubia_blanca_cocida;
+        (e.ingredientes || []).forEach(function (g, i) {
+          if (g.id !== "alubia_blanca_cocida" || !semAl) return;
+          var sitioAl = g.sitio;
+          e.ingredientes[i] = JSON.parse(JSON.stringify(semAl));
+          if (sitioAl) e.ingredientes[i].sitio = sitioAl;
+          e.ingredientes[i].tocado = new Date().toISOString();
+        });
+        (e.recetas || []).forEach(function (r) {
+          if (r.id === "ensalada_alubias_atun" && !r.dueno) { r.dueno = "ella"; r.tocado = new Date().toISOString(); }
+        });
+        e.arreglos["2026-10-04-alubia-susana"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAs2) {}
       }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
