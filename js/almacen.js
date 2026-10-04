@@ -593,6 +593,29 @@
         e.arreglos["2026-10-04-gazpacho"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errGz) {}
       }
+      /* EL GAZPACHO, DE VUELTA (4-oct-2026, v393). Tras publicar la v392 no
+         salía en Estante abajo ni en el buscador: en su copia estaba retirado
+         (`oculta`, quitado desde la app en algún momento), y lo retirado no se
+         ve en ningún estante aunque se le cambie el sitio. Carlos lo quiere en
+         Nevera · Estante abajo: se recupera una vez, visible y con hora para
+         que gane al sincronizar. Si ni siquiera estuviera en la lista, entra
+         la ficha del catálogo. */
+      if (!e.arreglos["2026-10-04-gazpacho-2"]) {
+        var gzEnc = false, ahoraGz = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "gazpacho") return;
+          gzEnc = true;
+          delete g.oculta; g.sitio = "est_abajo"; g.tocado = ahoraGz;
+        });
+        if (!gzEnc && SEMILLA_BASE && SEMILLA_BASE.ingObj && SEMILLA_BASE.ingObj.gazpacho) {
+          var gzN = JSON.parse(JSON.stringify(SEMILLA_BASE.ingObj.gazpacho));
+          delete gzN.oculta; gzN.sitio = "est_abajo"; gzN.tocado = ahoraGz;
+          (e.ingredientes = e.ingredientes || []).push(gzN);
+        }
+        if (e.stockSitios) delete e.stockSitios.est_abajo;
+        e.arreglos["2026-10-04-gazpacho-2"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errGz2) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
