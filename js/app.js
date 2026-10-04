@@ -5713,11 +5713,9 @@
     if (!totalLineas && !totalHogar && !datos.basicos.length) {
       $("#compra-resumen").textContent = "Nada que comprar: o no hay men\u00fa planificado en esas fechas, " +
         "o lo que hace falta ya est\u00e1 en la despensa.";
-      var tp = tilePendiente();
-      $("#lista-compra").innerHTML = tp ? '<div class="tiendas-rejilla">' + tp + '</div>' : "";
       $("#platos-compra").innerHTML = "";
-      return;
     }
+    var nadaQueComprar = !totalLineas && !totalHogar && !datos.basicos.length;
     var sinMarca = 0;
     datos.secciones.forEach(function (sec) {
       sec.lineas.forEach(function (l) { if (l.cajon === "amazon" && !l.producto) sinMarca++; });
@@ -5733,6 +5731,8 @@
       totalLineas + " de comida" + (totalHogar ? " \u00b7 " + totalHogar + " de casa" : "") +
       (pedidos ? " \u00b7 " + pedidos + " ya cogidos" : "") +
       ". Al salir de cada tienda, o al llegar el pedido, pulsa su \u00abComprado\u00bb.";
+    if (nadaQueComprar) $("#compra-resumen").textContent = "Nada que comprar: o no hay men\u00fa planificado en esas fechas, " +
+      "o lo que hace falta ya est\u00e1 en la despensa.";
     /* EL BLOQUE DE \u00abLOS PLATOS DE ESTE RANGO\u00bb SE RETIRA (22-sep-2026).
        Carlos lo par\u00f3 el 17 porque no le convenc\u00eda c\u00f3mo informaba \u2014dec\u00eda \u00ab0 de 64
        comprados\u00bb y a la vez \u00ab33 platos con todos los ingredientes\u00bb\u2014 y la auditor\u00eda
@@ -5779,6 +5779,10 @@
     datos.basicos.forEach(function (l) { tnd(tiendaDeLinea(l)).basicos.push(l); });
     (hogar.amazon || []).forEach(function (x) { tnd("Amazon").casa.push(x); });
     (hogar.super || []).forEach(function (x) { tnd(x.tienda || "Sin tienda asignada").casa.push(x); });
+    /* TODAS LAS TIENDAS, AUNQUE TENGAN 0 (v416, Carlos: «pon todas las listas
+       aunque pongan 0 productos»). Las casillas quedan siempre en el mismo
+       sitio y se sabe de un vistazo que en DIA no hace falta nada. */
+    Almacen.tiendasConocidas().forEach(function (t) { tnd(t); });
     tiendasCompra = tiendas;
 
     var primeras = ["Mercadona", "Amazon"];
@@ -5804,15 +5808,14 @@
       var total = todas.length + g.casa.length;
       var cogidos = todas.filter(function (l) { return l.marcado; }).length +
                     g.casa.filter(function (x) { return Almacen.estaPedido(x.id); }).length;
-      html += '<button type="button" class="tile-tienda' + (cogidos ? " con-cogidos" : "") +
+      html += '<button type="button" class="tile-tienda' + (cogidos && !esOnline(nom) ? " con-cogidos" : "") + (total ? "" : " tile-vacia") +
               '" data-abrirtienda="' + esc(nom) + '">' +
               '<span class="tile-nom">' + esc(nom) + '</span>' +
               '<span class="tile-num">' + total + '</span>' +
               '<span class="tile-pie">' + (total === 1 ? "producto" : "productos") +
-                (cogidos ? " · " + cogidos + " cogidos" : "") + '</span></button>';
+                (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span></button>';
     });
     html += '</div>';
-    if (!nombres.length && !Almacen.recadosPendientes().length) html = '';
     if (!html) html = '<div class="vacio">Nada por comprar.</div>';
     $("#lista-compra").innerHTML = html;
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar lo cogido";
@@ -5831,7 +5834,21 @@
      de siempre —zona y orden de sus listas de Mercadona; lo de casa por
      apartado—. Marcar aquí es «lo he cogido»; «Comprado», al pie, cierra la
      tienda por el camino de la v414. */
+  /* TIENDA A DOMICILIO O TIENDA FÍSICA (v416). Carlos, 4-oct-2026: «en la
+     lista de Mercadona pon las instrucciones: cuando llegue la compra marca
+     comprado y desmarca los productos que no han llegado… en el resto de
+     supermercados la lista para rellenar en el supermercado». Mercadona y
+     Amazon llegan a casa: su lista es para LEER al hacer el pedido, sin
+     casillas, y «Comprado» lo trae todo marcado. En las demás se marca en la
+     tienda según se coge. */
+  var TIENDAS_ONLINE = ["Mercadona", "Amazon"];
+  function esOnline(nom) { return TIENDAS_ONLINE.indexOf(nom) >= 0; }
+  var listaSoloLectura = false;
   function filaCompacta(id, nombre, cant, cogido) {
+    if (listaSoloLectura) {
+      return '<div class="fila-compacta fila-lectura"><span class="fc-n">' + esc(nombre) + '</span>' +
+        '<span class="fc-q">' + esc(cant) + '</span></div>';
+    }
     return '<label class="fila-compacta' + (cogido ? " hecha" : "") + '" data-filacoger="' + esc(id) + '">' +
       '<input type="checkbox" data-coger="' + esc(id) + '"' + (cogido ? " checked" : "") + '>' +
       '<span class="fc-n">' + esc(nombre) + '</span>' +
@@ -5860,8 +5877,14 @@
   function abrirListaTienda(nom) {
     var g = tiendasCompra && tiendasCompra[nom];
     if (!g) return;
-    var h = '<header><h2>' + esc(nom) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
+    listaSoloLectura = esOnline(nom);
+    var vacia = !(g.comida.length + g.casa.length + g.basicos.length);
+    var h = '<header><h2>' + esc(nom) + '</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
+    if (!vacia) h += '<p class="instrucciones-compra">' + (listaSoloLectura
+      ? 'Haz el pedido con esta lista. <b>Cuando llegue la compra, pulsa \u00abComprado\u00bb y desmarca lo que no haya llegado</b>: pasa a Pendiente.'
+      : 'Marca cada cosa seg\u00fan la coges. <b>Al salir de la tienda, pulsa \u00abComprado\u00bb</b>: lo que no hayas marcado pasa a Pendiente.') + '</p>';
     h += '<div class="lista-compacta" data-listatienda="' + esc(nom) + '">';
+    if (vacia) h += '<div class="vacio">Nada que comprar aqu\u00ed para estas fechas.</div>';
     var porZona = {};
     g.comida.forEach(function (l) {
       var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
@@ -5896,8 +5919,10 @@
       h += '<h4 class="fc-zona">Revisa la despensa (básicos)</h4>';
       g.basicos.forEach(function (l) { h += filaCompacta(l.id, l.producto || l.nombre, cantCorta(l), Almacen.estaPedido(l.id)); });
     }
-    h += '</div><div class="pie-compacto"><span class="nota-peque" id="lt-cuenta">' + pieListaTienda(nom) + '</span>' +
-         '<button class="btn principal" id="lt-comprado">Comprado</button></div>';
+    h += '</div><div class="pie-compacto"><span class="nota-peque" id="lt-cuenta">' +
+         (listaSoloLectura || vacia ? "" : pieListaTienda(nom)) + '</span>' +
+         (vacia ? '<button class="btn" data-cerrar>Cerrar</button>'
+                : '<button class="btn principal" id="lt-comprado">Comprado</button>') + '</div>';
     abrirModal(h);
     $("#modal-caja").classList.add("modal-compacto");
     $(".lista-compacta").onchange = function (e) {
@@ -5911,6 +5936,7 @@
       var ct = $("#lt-cuenta");
       if (ct) ct.textContent = pieListaTienda(nom);
     };
+    if (vacia) return;
     $("#lt-comprado").addEventListener("click", function () {
       $("#modal-caja").classList.remove("modal-compacto");
       abrirCompradoTienda(nom);
@@ -5923,8 +5949,8 @@
     if (!g) return;
     var lineas = g.comida.concat(g.basicos), casa = g.casa;
     if (!lineas.length && !casa.length) return;
-    var algo = lineas.some(function (l) { return l.marcado; }) ||
-               casa.some(function (x) { return Almacen.estaPedido(x.id); });
+    var algo = !esOnline(nom) && (lineas.some(function (l) { return l.marcado; }) ||
+               casa.some(function (x) { return Almacen.estaPedido(x.id); }));
     var html = '<header><h2>Comprado en ' + esc(nom) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
     html += '<p class="nota-peque">' + (algo
       ? 'Salen marcadas las que cogiste. <b>Lo que quede sin marcar pasa a Pendiente.</b>'
@@ -6121,13 +6147,13 @@
     if (cont) cont.innerHTML = "";
   }
   function tilePendiente() {
+    /* SIEMPRE A LA VISTA (v416, Carlos: «pon una lista siempre de pendiente»). */
     var lista = Almacen.recadosPendientes();
-    if (!lista.length) return "";
     var urge = Util.sumarDias(Util.hoyISO(), 1);
     var u = lista.filter(function (x) { return x.cuando && x.cuando.f <= urge; }).length;
     return '<button type="button" class="tile-tienda tile-pendiente" data-abrirpendiente="1">' +
       '<span class="tile-nom">Pendiente</span><span class="tile-num">' + lista.length + '</span>' +
-      '<span class="tile-pie">' + (u ? u + " para hoy o mañana" : "sin prisa") + '</span></button>';
+      '<span class="tile-pie">' + (!lista.length ? "nada pendiente" : u ? u + " para hoy o ma\u00f1ana" : "sin prisa") + '</span></button>';
   }
   function filaPendiente(x) {
     var urge = Util.sumarDias(Util.hoyISO(), 1);
@@ -6146,7 +6172,7 @@
   function abrirPendiente() {
     var lista = Almacen.recadosPendientes();
     var h = '<header><h2>Pendiente</h2><button class="cerrar" data-cerrar>×</button></header>' +
-      '<p class="nota-peque">Lo que no compraste donde tocaba. Cómpralo donde sea y márcalo: entra en la despensa.</p>' +
+      '<p class="instrucciones-compra">Aqu\u00ed llega lo que no se compr\u00f3 en las otras listas. <b>C\u00f3mpralo donde sea y m\u00e1rcalo</b>: entra en la despensa.</p>' +
       '<div class="lista-compacta" id="lp-lista">' +
       (lista.length ? lista.map(filaPendiente).join("") : '<div class="vacio">Nada pendiente.</div>') +
       '</div><div class="pie-compacto"><span class="nota-peque" id="lp-cuenta">' + lista.length + ' pendientes</span>' +

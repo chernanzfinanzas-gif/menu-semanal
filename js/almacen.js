@@ -4465,6 +4465,24 @@
     /* EN QUÉ TIENDA, cuando el cajón es «super». Nunca se edita a mano en la app,
        así que manda siempre la semilla: si tú corregiste una ficha en el móvil el
        22-sep, tu versión no puede saber nada de un campo que nació el 23. */
+    /* Las tiendas donde se compra algo del catálogo (v416): son las casillas
+       de la compra, aunque esa vez no haya nada que comprar en ellas. */
+    tiendasConocidas: function () {
+      var self = this, vistas = {}, out = [];
+      var poner = function (t) { if (t && !vistas[t]) { vistas[t] = 1; out.push(t); } };
+      (this.estado.ingredientes || []).forEach(function (g) {
+        if (g.oculta || self.modoPedir(g) === "nunca") return;
+        var c = self.cajonDe(g);
+        if (c === "amazon") poner("Amazon");
+        else if (c === "super") poner(self.tiendaDe(g));
+      });
+      (this.estado.hogarLista || []).forEach(function (x) {
+        if (x.oculta || x.cajon === "aparte") return;
+        poner(x.cajon === "super" ? x.tienda : "Amazon");
+      });
+      return out;
+    },
+
     tiendaDe: function (id) {
       var g = typeof id === "string" ? this.ingrediente(id) : id;
       var s = this.semillaIng(g ? g.id : id);

@@ -1479,3 +1479,11 @@ button.enlace {
 .fc-d{display:block; font-size:.72rem; color:var(--gris); margin-top:1px}
 .fila-pend .fc-n{-webkit-line-clamp:4}
 .fila-pend .btn{flex:0 0 auto}
+/* v416: instrucciones arriba de cada lista; las tiendas a domicilio, sin casillas;
+   la casilla de una tienda sin nada, apagada pero en su sitio. */
+.instrucciones-compra{background:var(--verde-claro); border-radius:8px; padding:8px 10px; font-size:.82rem; line-height:1.35; margin:0 0 8px}
+.fila-lectura{cursor:default; padding-left:6px}
+.tile-tienda.tile-vacia{opacity:.55; box-shadow:none}
+/* Con la instrucción arriba, la lista cede sitio: el «Comprado» del pie tiene
+   que verse entero en el móvil sin hacer scroll en la ventana. */
+.modal-compacto .lista-compacta{max-height:calc(100vh - 380px); min-height:120px}
