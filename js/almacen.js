@@ -580,6 +580,19 @@
         e.arreglos["2026-10-04-guacamole"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errG) {}
       }
+      /* EL GAZPACHO, A NEVERA · ESTANTE ABAJO (4-oct-2026, v392). Carlos: «no
+         encuentro este ingrediente en nevera estante abajo» — estaba en la
+         Puerta desde el 29-sep y ahora lo guarda abajo. Con hora, para que gane
+         al sincronizar. */
+      if (!e.arreglos["2026-10-04-gazpacho"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "gazpacho" || (g.tocado || "") >= "2026-10-05") return;
+          if (g.sitio !== "est_abajo" && e.stockSitios) delete e.stockSitios.est_abajo;
+          g.sitio = "est_abajo"; g.tocado = new Date().toISOString();
+        });
+        e.arreglos["2026-10-04-gazpacho"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errGz) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
