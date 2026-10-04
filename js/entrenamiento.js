@@ -11320,15 +11320,18 @@
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
     ]},
+    /* 4-oct-2026, aceptado por Carlos tras la B del 4-oct (pulso 113/134 contra
+       120/143 con lo mismo, «cómoda, sin dificultad»): peso muerto y press de
+       hombros a 20, jalón con la goma 25, plancha a 3 series. */
     { id: "B", n: "Fuerza B", dia: 4, diaTxt: "jueves", min: 25, mov: [
-      { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 15,
+      { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 20,
         nota: "Bisagra de cadera: el culo atr\u00e1s, la espalda recta y la mancuerna rozando la pierna" },
-      { n: "Press de hombros",    s: 2, r: "12",          kg: 15, nota: "Sin bloquear el aire",
+      { n: "Press de hombros",    s: 2, r: "12",          kg: 20, nota: "Sin bloquear el aire",
         garmin: "Press de hombros con mancuernas" },
-      { n: "Jal\u00f3n",              s: 2, r: "12",          goma: "23-57",
+      { n: "Jal\u00f3n",              s: 2, r: "12",          goma: "25",
         nota: "Anclaje alto de la puerta",
         garmin: "Jal\u00f3n lateral con goma el\u00e1stica" },
-      { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
+      { n: "Plancha",             s: 3, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
       { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: "25",
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
