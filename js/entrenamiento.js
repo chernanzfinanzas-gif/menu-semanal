@@ -761,6 +761,11 @@
       ".av-linea span{color:#6b7c8d}",
       ".dia-bl.quitado{text-decoration:line-through;opacity:.55}",
       ".ent-dia{position:relative}",
+      /* la agenda: letra pequeña, alineada a la izquierda, debajo de los bloques */
+      ".ent-dia .agenda{width:100%;display:flex;flex-direction:column;gap:2px;margin-top:3px;text-align:left}",
+      ".ent-dia .agenda span{font-size:.62rem;line-height:1.2;color:#4f6274;overflow-wrap:anywhere}",
+      ".ent-dia .agenda b{font-weight:700;color:var(--azul-hondo)}",
+      ".ent-dia .agenda .cumple{font-weight:700;color:#7a5a12}",
       /* EL PIE SIEMPRE ABAJO DEL TODO, el punto pegado a la izquierda y la carga a
          la derecha. Antes iba justo debajo del último bloque, así que en una fila
          con días de distinto número de bloques los puntos quedaban a alturas
@@ -5190,6 +5195,31 @@
     datos: null, traidoEl: null, estado: "nada",
     deCache: Curva.deCache, cargar: Curva.cargar
   };
+  /* LA AGENDA  ·  5-oct-2026.
+     Carlos: «solo quiero información para hacer yo el reparto de las
+     sesiones. No hace falta propuesta y algo escueto 16:00 fisio 1h, 9:30
+     dentista papá 1h.. cosas así cerca del tablero de la semana». Y los
+     cumpleaños: «Cumple y Nombre.. no hace falta si es primo o tío... ni
+     apellidos». Lo escribe el workflow «Recoger agenda» desde su calendario
+     de Google (cada tres horas) ya en forma escueta; aquí solo se enseña.
+     No coloca bloques ni toca el reparto: es información, nada más. */
+  var Agenda = {
+    CLAVE: "khb-agenda-v1",
+    RUTA: "datos/agenda.json",
+    FRESCO_H: 1,
+    datos: null, traidoEl: null, estado: "nada",
+    deCache: Curva.deCache, cargar: Curva.cargar
+  };
+  function agendaDeDia(f) {
+    var D = Agenda.datos, l = (D && D.dias && D.dias[f]) || [];
+    if (!l.length) return "";
+    return '<span class="agenda">' + l.map(function (x) {
+      if (x.c) return '<span class="cumple">' + U.esc(x.t) + "</span>";
+      if (x.todo) return "<span><b>todo el día</b> " + U.esc(x.t) + "</span>";
+      return "<span><b>" + U.esc(x.h || "") + "</b> " + U.esc(x.t) +
+        (x.d ? " " + U.esc(x.d) : "") + "</span>";
+    }).join("") + "</span>";
+  }
   function diaDeSalud(f) { var D = DiarioSalud.datos; return (D && D.dias && D.dias[f]) || {}; }
   var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes, miércoles y viernes
 
@@ -12276,7 +12306,7 @@
                   U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
-        '</span><span class="pie"><span class="p"></span>' +
+        '</span>' + agendaDeDia(f) + '<span class="pie"><span class="p"></span>' +
         (anDia ? '<span class="animo a-' + anDia + '" title="' +
                    U.esc(ANIMO_TITULO[anDia] || "") + '"></span>' : "") +
         (function () {
@@ -13810,6 +13840,7 @@
     EcgUltimo.cargar(repintaSiDentro);
     RevGarmin.cargar(repintaSiDentro);
     DiarioSalud.cargar(repintaSiDentro);
+    Agenda.cargar(repintaSiDentro);
     TensionCorreo.cargar(repintaSiDentro);
     Historial.cargar(repintaSiDentro);
     Salud.cargar(false, function () {                         // y en segundo plano, lo de hoy
