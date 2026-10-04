@@ -7637,6 +7637,20 @@
       pintarLocalizacion();
       var c = $("#rejilla-loc");
       if (c) try { c.scrollIntoView({ block: "start" }); } catch (e3) {}
+      /* CONFIRMAR = GUARDAR EN GITHUB (4-oct-2026, v395). Carlos: «la clave es
+         que aparezca lo de guardado en GitHub después de confirmar el cambio».
+         Cada cambio ya se guardaba solo a los pocos segundos; ahora el botón lo
+         sube en el momento y dice cómo ha ido. */
+      if (!global.Sync || !Sync.guardarYa) return;
+      bre.textContent = "Guardando en GitHub\u2026";
+      Sync.guardarYa().then(function (r) {
+        var b2 = $("#loc-reordenar");
+        if (!b2) return;
+        if (r === "local") { b2.textContent = "Guardado solo en este aparato"; return; }
+        b2.textContent = r ? "Guardado en GitHub \u2713" : "No se ha podido guardar en GitHub";
+        b2.classList.toggle("ok-github", !!r);
+        Util.toast(r ? "Cambios guardados en GitHub" : "No se ha podido guardar en GitHub: mira el aviso de arriba");
+      });
     });
     /* ---------- el gestor de cómo se pide ---------- */
     $("#buscar-pedir").addEventListener("input", function (e) {

@@ -81,6 +81,22 @@
     return Promise.reject(new Error("el repositorio no devolvi\u00f3 el contenido del fichero"));
   }
 
+  /* EL NÚMERO DE VERSIÓN DEL CÓDIGO (4-oct-2026, v395). Sale del `?v=N` con
+     el que index.html carga este fichero, que es el que se sube en cada
+     publicación: así no hay un segundo número que olvidarse de cambiar. */
+  function codigoApp() {
+    try {
+      var sc = document.querySelector('script[src*="js/github.js"]');
+      var m = sc && /[?&]v=(\d+)/.exec(sc.getAttribute("src") || "");
+      return m ? Number(m[1]) : 0;
+    } catch (e) { return 0; }
+  }
+  /* Lo de GitHub lo guardó un código más nuevo que el de este aparato. */
+  function remotoMasNuevo(remoto) {
+    var c = codigoApp();
+    return !!(remoto && remoto.codigo && c && Number(remoto.codigo) > c);
+  }
+
   function motivoHttp(st, msg) {
     msg = String(msg || "");
     if (st === 401) return "la clave de GitHub no vale o ha caducado";
@@ -161,6 +177,9 @@
        sin hora: la hora sólo la ponen un cambio tuyo o un arreglo pedido. */
     ["ingredientes", "recetas"].forEach(function (k) {
       if (!Array.isArray(junto[k]) || !Array.isArray(local[k]) || !Array.isArray(remoto[k])) return;
+      var catIng = {};
+      ((k === "ingredientes" ? global.DATOS_INGREDIENTES : global.DATOS_RECETAS) || [])
+        .forEach(function (c) { if (c && c.id) catIng[c.id] = c; });
       var mL = {}, mR = {};
       local[k].forEach(function (x) { if (x && x.id) mL[x.id] = x; });
       remoto[k].forEach(function (x) { if (x && x.id) mR[x.id] = x; });
@@ -169,8 +188,29 @@
         var L = mL[x.id], R = mR[x.id];
         if (!L || !R) return x;
         var tl = String(L.tocado || ""), tr = String(R.tocado || "");
-        if (tl === tr) return x;
-        return JSON.parse(JSON.stringify(tl > tr ? L : R));
+        if (tl !== tr) return JSON.parse(JSON.stringify(tl > tr ? L : R));
+        /* MISMA HORA, DISTINTO CONTENIDO (4-oct-2026, v394). Carlos movió la
+           alubia blanca a Estante abajo y volvió a Conserva. Un aparato con el
+           código anterior a la v386 mezcla campo a campo: subió la ficha con la
+           HORA de su cambio pero con SU estante viejo. Las dos copias llevan la
+           misma hora y aquí ganaba la mezclada. Reproducido con los dos
+           códigos. Ahora, en cada campo en que las dos copias no coinciden,
+           gana el valor que se aparta del catálogo: ése es el que cambiaste tú;
+           el de fábrica es el que traía el aparato que no se había enterado. */
+        var cat = catIng[x.id];
+        if (!cat) return x;
+        var y = JSON.parse(JSON.stringify(x));
+        var claves = {};
+        Object.keys(L).forEach(function (q) { claves[q] = 1; });
+        Object.keys(R).forEach(function (q) { claves[q] = 1; });
+        Object.keys(claves).forEach(function (q) {
+          if (q === "tocado") return;
+          var vl = JSON.stringify(L[q]), vr = JSON.stringify(R[q]), vc = JSON.stringify(cat[q]);
+          if (vl === vr) return;
+          if (vl === vc && vr !== vc) { if (R[q] === undefined) delete y[q]; else y[q] = JSON.parse(vr); }
+          else if (vr === vc && vl !== vc) { if (L[q] === undefined) delete y[q]; else y[q] = JSON.parse(vl); }
+        });
+        return y;
       });
     });
 
@@ -332,6 +372,7 @@
        despensa—, y no se puede comprobar desde fuera porque es privada. Esto
        la deja mirar sin tocar nada: no la usa la app. */
     _fusionarPrueba: function (remoto, sha) { return fusionarConRemoto(remoto, sha); },
+    _codigoApp: function () { return codigoApp(); },
 
     cfg: function () { return Almacen.estado.config.github || {}; },
 
@@ -399,6 +440,7 @@
       var copia = JSON.parse(JSON.stringify(Almacen.estado));
       if (copia.config && copia.config.github) copia.config.github.token = "";
       delete copia.sync;
+      copia.codigo = codigoApp();      /* qué versión de la app lo guardó (v395) */
       try {
         var mio = Almacen.novedades ? Almacen.novedades() : null;
         if (mio && mio.ingredientes && mio.recetas) {
@@ -424,6 +466,7 @@
           return contenidoDe(j).then(function (remoto) { return { j: j, remoto: remoto }; });
         }).then(function (par) {
           var j = par.j, remoto = par.remoto;
+          if (remotoMasNuevo(remoto)) self.bloquearPorVersion(remoto.codigo);
           var antes = huella(Almacen.estado);
           var junto = fusionarConRemoto(remoto, j.sha);
           var despues = huella(junto);
@@ -444,7 +487,7 @@
           /* Y al revés: si aquí había algo que el repositorio no tenía, la
              fusión lo conserva y hay que SUBIRLO, o se quedaría solo en este
              aparato hasta que alguien tocara algo. */
-          if (huella(remoto) !== despues) self.programarGuardado();
+          if (huella(remoto) !== despues && !self.bloqueado) self.programarGuardado();
 
           self.marcarAlDia();
           return antes !== despues;
@@ -466,6 +509,52 @@
       try { global.dispatchEvent(new Event("khb-sync-al-dia")); } catch (e) {}
     },
 
+    /* ── UN APARATO CON LA APP VIEJA NO PUEDE PISAR GITHUB (4-oct-2026, v395) ──
+       Carlos: «cuando pone guardado no debería poder cambiarse por una versión
+       más antigua de un dispositivo, y sí cambiar esa versión vieja por la que
+       tiene GitHub». La alubia volvió a Conserva porque un aparato con código
+       anterior mezcló fichas al subir. Ahora cada subida dice qué versión la
+       hizo; si GitHub la guardó una más nueva que la de este aparato, aquí se
+       trae lo de GitHub y NO se sube nada hasta recargar la app. */
+    bloqueado: false,
+    bloquearPorVersion: function (codigoRemoto) {
+      this.bloqueado = true;
+      this.codigoRemoto = codigoRemoto;
+      clearTimeout(this.temporizador);
+      this.avisoVersion();
+      /* se le pide al navegador la versión nueva y se recarga UNA vez */
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+          navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); });
+        }
+        var k = "khb-recarga-version-" + codigoRemoto;
+        if (!sessionStorage.getItem(k)) {
+          sessionStorage.setItem(k, "1");
+          setTimeout(function () { location.reload(); }, 4000);
+        }
+      } catch (e) {}
+    },
+    avisoVersion: function () {
+      var t = "App antigua en este aparato: recarga para guardar (GitHub tiene la v" + this.codigoRemoto + ")";
+      this.indicar(t, "error");
+      if (Util && Util.toast) Util.toast("Este aparato tiene una versi\u00f3n antigua: se ha tra\u00eddo lo de GitHub y no se sube nada hasta recargar.");
+    },
+
+    /* Guardar YA, esperando a que acabe lo que esté en marcha. Lo usa el botón
+       «Confirmar cambios»: devuelve si quedó guardado en GitHub. */
+    guardarYa: function () {
+      var self = this;
+      if (!this.configurado()) return Promise.resolve("local");
+      if (this.bloqueado) { this.avisoVersion(); return Promise.resolve(false); }
+      clearTimeout(this.temporizador);
+      var esperas = 0;
+      function intentar() {
+        if (self.ocupado && esperas++ < 40) return new Promise(function (ok) { setTimeout(ok, 500); }).then(intentar);
+        return self.guardar();
+      }
+      return intentar();
+    },
+
     programarGuardado: function () {
       var self = this;
       if (!this.configurado()) return;
@@ -479,6 +568,7 @@
       var self = this;
       if (this.enPausa()) { this.indicar("Sincronización en pausa", ""); return Promise.resolve(false); }
       if (!this.configurado()) { this.indicar("Solo en este dispositivo", ""); return Promise.resolve(false); }
+      if (this.bloqueado) { this.avisoVersion(); return Promise.resolve(false); }
       if (this.ocupado) { clearTimeout(this.temporizador); this.temporizador = setTimeout(function(){ self.guardar(); }, 2000); return Promise.resolve(false); }
       this.ocupado = true;
       this.indicar("Guardando…", "trabajando");
@@ -502,6 +592,13 @@
           }).then(function (j) {
             return contenidoDe(j).then(function (remoto) { return { j: j, remoto: remoto }; });
           }).then(function (par) {
+            if (remotoMasNuevo(par.remoto)) {
+              /* lo de GitHub lo guardó una app más nueva: se trae, no se pisa */
+              Almacen.reemplazar(fusionarConRemoto(par.remoto, par.j.sha));
+              self.ocupado = false;
+              self.bloquearPorVersion(par.remoto.codigo);
+              return false;
+            }
             var junto = fusionarConRemoto(par.remoto, par.j.sha);
             Almacen.reemplazar(junto);
             self.ocupado = false;

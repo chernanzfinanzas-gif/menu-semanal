@@ -616,6 +616,18 @@
         e.arreglos["2026-10-04-gazpacho-2"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errGz2) {}
       }
+      /* LA ALUBIA BLANCA, DE VUELTA A ESTANTE ABAJO (4-oct-2026, v394). Carlos
+         la había puesto en Nevera · Estante abajo y volvió a Conserva por la
+         mezcla de fichas al sincronizar (ver «MISMA HORA, DISTINTO CONTENIDO»
+         en github.js). Se devuelve una vez, con hora para que gane. */
+      if (!e.arreglos["2026-10-04-alubia"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "alubia_blanca_cocida" || (g.tocado || "") >= "2026-10-05") return;
+          g.sitio = "est_abajo"; g.editado = true; g.tocado = new Date().toISOString();
+        });
+        e.arreglos["2026-10-04-alubia"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAl) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {

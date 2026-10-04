@@ -1429,3 +1429,6 @@ button.enlace {
 .pase-portada.hogar-lista{padding-bottom:8px}
 .hogar-filas{max-width:760px; margin:0 auto; padding:0 12px}
 .pase-portada.hogar-pie{padding-top:8px}
+
+/* Confirmar cambios: guardado en GitHub (v395) */
+#loc-reordenar.ok-github{color:var(--verde); border-color:var(--verde); opacity:1}
