@@ -8317,9 +8317,14 @@
     conectarEventos();
     arrancarAyuda();
 
-    // primera vez: deja la semana en curso preparada con la Semana A
-    var hayPlan = Object.keys(Almacen.estado.plan).length > 0;
-    if (!hayPlan) Almacen.aplicarPlantilla("A", UI.lunes);
+    /* YA NO SE RELLENA LA SEMANA A AL ARRANCAR (4-oct-2026).
+       Antes, un aparato estrenado (plan vacío) se ponía la Semana A en la semana
+       en curso. Al conectarlo a GitHub, ese día de hoy recién «tocado» ganaba al
+       bueno por ser más nuevo: así la tablet le cambió a Carlos el domingo 4 (la
+       pasta boloñesa que había comido) por el entrecot de la Semana A, dos veces
+       (17:05 y 17:48). Además va contra su regla del 3-oct: «no quiero que se
+       llene ninguna semana sola si no soy yo quien pulse el botón». Un aparato
+       nuevo arranca vacío y se llena con lo que traiga GitHub. */
 
     mostrar("menu");
     arrancarPortada();
