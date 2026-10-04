@@ -684,6 +684,11 @@
          Mercadona pone lo nuevo. Cada lista se aplica una vez (su marca en
          `arreglos`), con hora por estante para que gane al sincronizar. */
       var LISTAS_MERCADONA = {
+        "Mercadona|alacena": { f: "2026-10-04", ids: [
+            "ajo", "cebolla_dulce", "cebolla_morada", "batata_pieza_pelada_330_g", "patata", "pimenton",
+            "tomillo", "sal", "romero", "pimienta", "oregano", "nuez_moscada",
+            "laurel", "jengibre", "eneldo", "comino", "cayena", "canela",
+            "ajo_polvo" ] },
         "Mercadona|despensa": { f: "2026-10-04b", ids: [
             "fumet_hacendado", "caldo_pollo_bajo_sal", "avellanas", "bebida_isotonica", "cerveza", "crema_cacahuete",
             "chia", "miel", "chocolate_leche", "copos_avena", "edulcorante_comprimidos", "galletas_maria",
