@@ -684,6 +684,16 @@
          Mercadona pone lo nuevo. Cada lista se aplica una vez (su marca en
          `arreglos`), con hora por estante para que gane al sincronizar. */
       var LISTAS_MERCADONA = {
+        "Mercadona|despensa": { f: "2026-10-04b", ids: [
+            "fumet_hacendado", "caldo_pollo_bajo_sal", "avellanas", "bebida_isotonica", "cerveza", "crema_cacahuete",
+            "chia", "miel", "chocolate_leche", "copos_avena", "edulcorante_comprimidos", "galletas_maria",
+            "chocolate_negro", "cacao_puro", "limonada_light", "leche_desnatada", "fanta_nar_zero", "cocacola_zero",
+            "fanta_lim_zero", "cerveza_sin_tostada", "cerveza_sin_rubia", "pan_panecillo_sinsal", "pan_ortiz", "pan_molde",
+            "magdalena", "donut_panrico", "croissant", "pistachos_sinsal", "tortitas_maiz", "tortitas_arroz_yogur",
+            "patatas_bolsa", "pasas", "cacahuetes_sinsal", "orejones", "nueces", "doritos",
+            "mango_deshidratado", "maiz_palomitas", "datiles", "almendras", "pasta_fusilli", "pasta",
+            "lentejas", "cous_cous", "arroz_redondo", "calamares_tinta", "atun_lata_natural", "anchoas",
+            "aceitunas_negras", "aceitunas_rell", "vinagre", "vinagre_balsamico", "aove" ] },
         "Mercadona|nevera": { f: "2026-10-04b", ids: [
             "lima", "mandarina", "naranja", "kiwi", "limon_exprimido", "salsa_trufa",
             "tomate_rallado", "zanahoria", "tomate", "tomate_cherry", "setas", "puerro",
