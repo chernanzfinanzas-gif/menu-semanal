@@ -150,9 +150,23 @@
        SI VA SOBRADO EN MARZO se sube el techo entonces, con dos meses de semáforo
        verde y la forma sin bajar de −15. Decidirlo ahora para dentro de nueve
        meses es adivinar. */
+    /* QUÉ CAMINATA CUENTA COMO ENTRENO · 4-oct-2026, decidido con Carlos.
+       Desde `desde`, una caminata suma en lo hecho SOLO si cumple una de estas:
+         · pulso medio ≥ `pulsoMin` (la mitad de su reserva: 47 + 0,5 × 128 ≈ 111);
+         · desnivel ≥ `desnivelHora` metros por hora (montaña);
+         · es la salida larga declarada del fin de semana.
+       Lo demás —el paseo de relax— es extra: se ve, quema calorías, no puntúa y
+       no rompe el descanso. Medido sobre sus paseos: en la reactivación habrían
+       contado 3 de 10 (102 de 208 puntos); en la semana 2, ninguno.
+       El 110 es razonado, NO medido contra su recuperación: revisar el 2-nov,
+       ya sin cortisona por medio. */
+    caminataCuenta: { desde: "2026-10-05", pulsoMin: 110, desnivelHora: 200, revisar: "2026-11-02" },
+
     crucero: {
-      paso: 28,          // puntos que sube cada semana de construcción
-      techo: 700,        // CTL 90 el 30-jun; en régimen, con la descarga cada cuarta,
+      paso: 24,          // 4-oct-2026: era 28; ×0,85 al sacar los paseos de la carga
+               // puntos que sube cada semana de construcción
+      techo: 595,        // 4-oct-2026: era 700; ×0,85, misma razón
+             // CTL 90 el 30-jun; en régimen, con la descarga cada cuarta,
                          // la media es 651 y la CTL se asienta en ~93.
                          // HORAS: 17 de cardio y 19 con la fuerza, no las 15 que
                          // decía esta línea. El 15 salía de pasar TODA la carga a
@@ -171,20 +185,27 @@
            pierde, el test se pierde.
          · `notaFecha` va ATADA A SU FECHA: sólo se enseña si la semana cae
            en su hueco del calendario original (la revisión del 28, el corticoide…). */
+    /* 4-oct-2026 · LOS PASEOS DE RELAX SALEN DE LA CARGA (decisión de Carlos en la
+       revisión de la semana 2: «lo dejamos así a partir de la semana que viene»).
+       Desde la semana 3 la rampa mide SOLO entreno: se le quita el 15 % que estaba
+       reservado a caminar (180 → 153, ×0,85, redondeo a la unidad) y ese 15 % NO
+       pasa a la bici. `cargaAntes` guarda el número viejo. Las semanas 1 y 2 no se
+       tocan: en la reactivación caminar SÍ era el entreno.
+       Qué paseo cuenta: ver `caminataCuenta`, más abajo. */
     rampa: [
       { n: 1, desde: "2026-09-18", hasta: "2026-09-27", carga: 196, talla: "R", criterio: "asistencia", notaFecha: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
       { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", notaFecha: "Revisión el 28. El corticoide sigue hasta el domingo 4. Entra la bici. Volver a medir el ritmo de caminar" },
-      { n: 3, desde: "2026-10-05", hasta: "2026-10-11", carga: 180, talla: "A", nota: "Primera semana de verdad" },
-      { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 125, talla: "B", nota: "DESCARGA, no se negocia. El domingo, test de 20 minutos" },
-      { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 200, talla: "A" },
-      { n: 6, desde: "2026-10-26", hasta: "2026-11-01", carga: 225, talla: "A" },
-      { n: 7, desde: "2026-11-02", hasta: "2026-11-08", carga: 250, talla: "A" },
-      { n: 8, desde: "2026-11-09", hasta: "2026-11-15", carga: 175, talla: "B", nota: "DESCARGA, no se negocia. Noviembre es su mes de parón histórico" },
-      { n: 9, desde: "2026-11-16", hasta: "2026-11-22", carga: 280, talla: "A" },
-      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 315, talla: "A", nota: "Segundo test, el jueves", notaFecha: "El jueves es el 26" },
-      { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 355, talla: "A", nota: "Entra un día de intensidad" },
-      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 250, talla: "A", nota: "DESCARGA, no se negocia. Talla A escalada a la baja, no B: a este nivel la B se queda corta" },
-      { n: 13, desde: "2026-12-14", hasta: "2026-12-20", carga: 400, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" },
+      { n: 3, desde: "2026-10-05", hasta: "2026-10-11", carga: 162, cargaAntes: 180, talla: "A", nota: "Primera semana de verdad", notaFecha: "162 de bici: el tope del 12 % sobre los 145 de la semana 2 (decisión suya del 4-oct, «a ver qué dice la fatiga»)" },
+      { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 106, cargaAntes: 125, talla: "B", nota: "DESCARGA, no se negocia. El domingo, test de 20 minutos" },
+      { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 170, cargaAntes: 200, talla: "A" },
+      { n: 6, desde: "2026-10-26", hasta: "2026-11-01", carga: 191, cargaAntes: 225, talla: "A" },
+      { n: 7, desde: "2026-11-02", hasta: "2026-11-08", carga: 213, cargaAntes: 250, talla: "A" },
+      { n: 8, desde: "2026-11-09", hasta: "2026-11-15", carga: 149, cargaAntes: 175, talla: "B", nota: "DESCARGA, no se negocia. Noviembre es su mes de parón histórico" },
+      { n: 9, desde: "2026-11-16", hasta: "2026-11-22", carga: 238, cargaAntes: 280, talla: "A" },
+      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 268, cargaAntes: 315, talla: "A", nota: "Segundo test, el jueves", notaFecha: "El jueves es el 26" },
+      { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 302, cargaAntes: 355, talla: "A", nota: "Entra un día de intensidad" },
+      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 213, cargaAntes: 250, talla: "A", nota: "DESCARGA, no se negocia. Talla A escalada a la baja, no B: a este nivel la B se queda corta" },
+      { n: 13, desde: "2026-12-14", hasta: "2026-12-20", carga: 340, cargaAntes: 400, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" },
     ],
 
     /* ---------- EL BOLSILLO DE LA SEMANA  ·  24-sep-2026 ----------
@@ -208,6 +229,9 @@
       /* 85 % bici, 15 % caminar. Antes era 78/22. Decisión suya: caminar va a
          salir de sobra como paseo de ocio, no hace falta mandarlo. */
       cuota: { bici: 0.85, caminar: 0.15 },
+      /* 4-oct-2026: desde la semana 3 no se programa caminar; todo el presupuesto
+         es bici. Las semanas anteriores siguen con su 85/15 (no se reescriben). */
+      cuotaDesde: { "2026-10-05": { bici: 1, caminar: 0 } },
       /* ---------- EL BLOQUE LARGO  ·  medido el 24-sep-2026 ----------
          Carlos: «el bloque outdoor largo ha de ser de x carga y eso supone x
          minutos de ruta con desnivel, x minutos de ruta media y x minutos en

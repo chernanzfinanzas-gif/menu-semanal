@@ -1913,11 +1913,20 @@
   }
 
   /* lo declarado para una semana, o la propuesta si no hay nada declarado */
+  /* 4-oct-2026: el reparto bici/caminar va POR FECHA. Desde la semana 3 los
+     paseos de relax salen de la carga y todo el presupuesto es bici
+     (`bolsillo.cuotaDesde` en datos/plan.js). Las semanas viejas no cambian. */
+  function cuotaBiciDe(sem) {
+    var B0 = P.bolsillo || {}, c = B0.cuota || {}, cd = B0.cuotaDesde || {};
+    Object.keys(cd).sort().forEach(function (f) { if (sem && sem.desde >= f) c = cd[f]; });
+    return (c && typeof c.bici === "number") ? c.bici : 0.85;
+  }
+
   function largoDe(sem) {
     var g = (ent().largo || {})[sem.desde];
     var m = modoLargo(g && g.modo);
     if (!m) return null;
-    var ptsBici = (sem.carga || 0) * ((P.bolsillo.cuota && P.bolsillo.cuota.bici) || 0.85);
+    var ptsBici = (sem.carga || 0) * cuotaBiciDe(sem);
     var horas = (g && g.horas > 0) ? Math.min(g.horas, topeLargo(m)) : horasPropuestas(m, ptsBici);
     return { modo: m, horas: horas, pts: puntosLargo(m, horas), suyo: !!(g && g.modo) };
   }
@@ -2067,7 +2076,7 @@
     }
 
     var carga = sem.carga || 0;
-    var ptsBici = carga * ((B.cuota && B.cuota.bici) || 0.85);
+    var ptsBici = carga * cuotaBiciDe(sem);
     var ptsCam = carga - ptsBici;
 
     /* EL LARGO SE SIRVE PRIMERO Y CON SU PRECIO MEDIDO. Ya NO está fuera de la
@@ -2528,7 +2537,7 @@
     });
     var esRod = L.modo.fam === "rodillo";
     var esNada = !L.modo.fam;
-    var ptsBici = Math.round((sem.carga || 0) * ((B.cuota && B.cuota.bici) || 0.85));
+    var ptsBici = Math.round((sem.carga || 0) * cuotaBiciDe(sem));
     return '<div class="salida-ficha' + (L.pts > ptsBici ? " pasada" : "") + '">' +
       '<div class="salida-txt"><span class="et">' +
         (esRod || esNada ? "Esta semana, sin salida" : "La salida de esta semana") + "</span>" +
@@ -2648,7 +2657,7 @@
 
   function cuerpoSalida(sem) {
     var L = largoDe(sem), C = cfgLargo();
-    var ptsBici = (sem.carga || 0) * (((P.bolsillo.cuota) || {}).bici || 0.85);
+    var ptsBici = (sem.carga || 0) * cuotaBiciDe(sem);
     var h = '<p class="nota-peque">El objetivo de esta semana son <b>' + (sem.carga || 0) +
       " puntos</b>, " + Math.round(ptsBici) + " de ellos de bici. Lo que no pague la salida " +
       "se reparte entre los rodillos de diario.</p>";
@@ -3076,6 +3085,8 @@
           min: minMov,
           minTot: minTot,
           esf: Number(a.esfuerzo || 0),
+          pulso: Number(a.pulso_med || 0) || null,   // 4-oct: para decidir si un paseo cuenta
+          desn: Number(a.desnivel || 0),
           nombre: a.nombre || a.tipo || "Actividad",
           id: a.id || null,          // 1-oct-2026: para abrir su ficha desde «Hoy»
           ms: ms,
@@ -3159,6 +3170,9 @@
         } else {                               // dos trozos: se suman
           p.min += a.min;
           p.minTot += a.minTot;
+          if (a.pulso && p.pulso) p.pulso = (p.pulso * p.min + a.pulso * a.min) / Math.max(1, p.min + a.min);
+          else p.pulso = p.pulso || a.pulso || null;
+          p.desn = (p.desn || 0) + (a.desn || 0);
           p.esf += a.esf;
           p.trozos = (p.trozos || 1) + 1;
         }
@@ -3168,6 +3182,7 @@
         return;
       }
       out.push({ min: a.min, minTot: a.minTot, esf: a.esf, nombre: a.nombre, id: a.id || null,
+                 pulso: a.pulso || null, desn: a.desn || 0,
                  ms: a.ms, fin: a.fin, fam: a.fam, trozos: 1, dobles: 0 });
     });
     return out;
@@ -3231,6 +3246,19 @@
                pareja le diría que se ha pasado de entrenamiento sin entrenar.
        activa  todo lo que registró el reloj, fuerza incluida.
        fuerza  aparte, porque no puntúa. */
+  /* QUÉ PASEO CUENTA · 4-oct-2026 (datos/plan.js, `caminataCuenta`).
+     Antes de `desde`, como siempre: cuenta lo emparejado con el plan. Desde
+     `desde`, una caminata solo suma si va a pulso de entreno, si es de montaña o
+     si es la salida larga declarada; si no, es paseo de relax: extra. */
+  function caminataCuenta(iso, a, emparejada) {
+    var R = P.caminataCuenta;
+    if (!R || iso < R.desde) return true;          // la regla vieja decide
+    if (emparejada) return true;                    // desde la semana 3 solo empareja con la salida larga
+    if (a.pulso && a.pulso >= R.pulsoMin) return true;
+    if (a.min > 0 && (a.desn || 0) / (a.min / 60) >= R.desnivelHora) return true;
+    return false;
+  }
+
   function cargasDia(iso, ss) {
     var e = emparejaDia(iso, ss);
     var hecho = 0, extra = 0, activa = 0, fuerza = 0;
@@ -3238,6 +3266,7 @@
       var v = Number(a.esf || 0);
       activa += v;
       if (FAM_SIN_CARGA[a.fam]) { fuerza += v; return; }
+      if (a.fam === "caminar" && !caminataCuenta(iso, a, e.usado[j])) { extra += v; return; }
       if (e.usado[j] || FAM_ENTERAS[a.fam]) hecho += v; else extra += v;
     });
     return { hecho: Math.round(hecho), extra: Math.round(extra),
@@ -12444,8 +12473,14 @@
         h += '<p class="ent-fuera-tit">Además hiciste</p><ul class="ent-lista ent-fuera">';
         sueltas.forEach(function (a) {
           var esf = Math.round(Number(a.esf || 0));
+          var R = P.caminataCuenta, nueva = R && dia >= R.desde;
           var donde = FAM_SIN_CARGA[a.fam] ? "no puntúa en la carga"
-            : (FAM_ENTERAS[a.fam] ? "suma en lo hecho" : "carga extra, fuera del plan");
+            : (FAM_ENTERAS[a.fam] ? "suma en lo hecho"
+            : (a.fam === "caminar" && nueva
+                ? (caminataCuenta(dia, a, false)
+                    ? "suma en lo hecho (" + (a.pulso >= R.pulsoMin ? "pulso " + Math.round(a.pulso) : "montaña") + ")"
+                    : "paseo de relax: no puntúa" + (a.pulso ? " (pulso " + Math.round(a.pulso) + ", entreno desde " + R.pulsoMin + ")" : ""))
+                : "carga extra, fuera del plan"));
           h += '<li><span class="ent-item"><span class="txt"><b>' + U.esc(a.nombre || a.fam || "Actividad") +
             "</b><small>" + Math.round(a.min || 0) + " min" +
             (esf ? " · carga " + esf : "") + " · " + donde + "</small></span></span></li>";
