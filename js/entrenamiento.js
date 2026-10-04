@@ -2891,8 +2891,18 @@
     if (!b || !b.length) return null;
     var g = repartoGuardado()[sem.desde];
     if (!g) return repartoPropuesto(sem, b);
-    var mapa = {};
-    b.forEach(function (x) { mapa[x.id] = (g[x.id] === undefined) ? null : g[x.id]; });
+    var mapa = {}, nuevos = [];
+    b.forEach(function (x) {
+      if (g[x.id] === undefined) nuevos.push(x);       // nunca colocado: bloque que apareció después
+      mapa[x.id] = (g[x.id] === undefined) ? null : g[x.id];
+    });
+    /* LOS BLOQUES NUEVOS SE COLOCAN SOLOS  ·  5-oct-2026. Al bajar el mínimo del
+       rodillo apareció un cuarto rodillo en una semana ya repartida y se quedó
+       «sin colocar»: la semana marcaba 125 de 162. Carlos: «has vuelto a
+       descolocar la semana actual». Un bloque que NUNCA estuvo en el reparto
+       (clave ausente) se coloca solo; uno que él dejó en la bandeja (null) se
+       respeta. Lo colocado no se mueve. */
+    nuevos.forEach(function (x) { mapa[x.id] = diaParaNuevo(sem, mapa, x); });
     /* RED DE SEGURIDAD: si algo quedó guardado en un día que ahora es no hábil,
        se recoloca al vuelo. `ponerNoHabil` ya los mueve y lo guarda, pero esto
        cubre el caso de que el estado llegue descuadrado de otro aparato. */
@@ -2913,6 +2923,30 @@
     for (var k = 0; k < b.length; k++) { if (mapa[b[k].id]) { algunoPuesto = true; break; } }
     if (!algunoPuesto) return repartoPropuesto(sem, b);
     return mapa;
+  }
+
+  /* EL DÍA PARA UN BLOQUE NUEVO (5-oct-2026): hábil, desde hoy, nunca el último
+     día de la semana (se deja libre, como en la propuesta automática), mejor si
+     ese día no tiene ya otro bloque de la misma familia, y entre ésos el que
+     menos minutos lleva; a igualdad, el más temprano. Semana ya pasada o sin
+     hueco: se queda sin colocar, como antes. */
+  function diaParaNuevo(sem, mapa, bloque) {
+    var hoy = U.hoyISO(), dias = diasDe(sem), ultimo = dias[dias.length - 1];
+    var libres = diasHabilesDe(sem).filter(function (f) { return f >= hoy && f !== ultimo; });
+    if (!libres.length) return null;
+    var b = bolsilloDe(sem) || [], carga = {}, misma = {};
+    libres.forEach(function (f) { carga[f] = 0; misma[f] = false; });
+    b.forEach(function (x) {
+      if (x.id === bloque.id) return;
+      var d = mapa[x.id];
+      if (!d || carga[d] === undefined) return;
+      carga[d] += (x.min || 0);
+      if (x.fam === bloque.fam) misma[d] = true;
+    });
+    var sinMisma = libres.filter(function (f) { return !misma[f]; });
+    var pool = sinMisma.length ? sinMisma : libres, mejor = pool[0];
+    pool.forEach(function (f) { if (carga[f] < carga[mejor]) mejor = f; });
+    return mejor;
   }
 
   /* EL DÍA HÁBIL QUE MENOS CARGA LLEVA, para recolocar un bloque que se ha quedado
