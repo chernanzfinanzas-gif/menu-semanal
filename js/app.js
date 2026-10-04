@@ -5308,6 +5308,7 @@
     var n = UI.locCambios || 0;
     b.disabled = !n;
     b.classList.toggle("avisa", !!n);
+    b.classList.remove("ok-github");   /* el «Guardado en GitHub» es de la vez anterior */
     b.textContent = n ? "Confirmar cambios (" + n + ")" : "Confirmar cambios";
   }
 

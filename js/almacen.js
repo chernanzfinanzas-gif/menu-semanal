@@ -628,6 +628,31 @@
         e.arreglos["2026-10-04-alubia"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAl) {}
       }
+      /* DESAYUNO Y POSTRES, UN SOLO ESTANTE (4-oct-2026, v396). Carlos:
+         «podríamos unir la categoría desayuno y postres en una sola que se
+         llame desayuno y postres». Lo de Postres pasa a Desayuno con hora (para
+         que gane al sincronizar), su orden va detrás del de Desayuno, y lo
+         apuntado de Postres se suelta. */
+      if (!e.arreglos["2026-10-04-desayuno-postres"]) {
+        var ahoraDP = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.sitio !== "postres") return;
+          g.sitio = "desayuno"; g.tocado = ahoraDP;
+        });
+        if (e.ordenCasa && (e.ordenCasa.postres || e.ordenCasa.desayuno)) {
+          var oD = (e.ordenCasa.desayuno || []).slice();
+          (e.ordenCasa.postres || []).forEach(function (id) { if (oD.indexOf(id) < 0) oD.push(id); });
+          e.ordenCasa.desayuno = oD;
+          delete e.ordenCasa.postres;
+          if (!e.ordenSello) e.ordenSello = {};
+          if (!e.ordenSello.casa) e.ordenSello.casa = {};
+          e.ordenSello.casa.desayuno = ahoraDP;
+        }
+        if (e.stockSitios) { delete e.stockSitios.postres; delete e.stockSitios.desayuno; }
+        if (e.sitiosSaltados) delete e.sitiosSaltados.postres;
+        e.arreglos["2026-10-04-desayuno-postres"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDP) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
@@ -2496,9 +2521,10 @@
         { k: "panaderia", n: "Panadería" },
         { k: "aperitivo", n: "Aperitivo" },
         { k: "bases",     n: "Bases" },
-        { k: "desayuno",  n: "Desayuno" },
-        { k: "bebida",    n: "Bebida" },
-        { k: "postres",   n: "Postres" }
+        /* Desayuno y Postres, en uno (Carlos, 4-oct-2026). La clave sigue
+           siendo "desayuno"; lo que aún diga "postres" se lee como aquí. */
+        { k: "desayuno",  n: "Desayuno y postres" },
+        { k: "bebida",    n: "Bebida" }
       ] },
       { k: "alacena", n: "Alacena", estantes: [
         { k: "sports",   n: "Sports" },
@@ -2636,6 +2662,7 @@
       /* SÓLO LO ESCRITO. Sin `sitio` no hay estante: devuelve null y la ficha
          sale en Pendiente. Ver la nota larga de ZONAS. */
       if (!g.sitio) return null;            // sin colocar: va a Pendiente
+      if (g.sitio === "postres") return "desayuno";   /* estante unido (v396) */
       var vale = false;
       this.SITIOS.forEach(function (s) { if (s.k === g.sitio) vale = true; });
       return vale ? g.sitio : null;         // un estante que ya no existe, también pendiente
