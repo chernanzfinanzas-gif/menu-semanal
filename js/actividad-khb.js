@@ -2591,8 +2591,10 @@
              goma y no el peso que mueve: entonces se escribe tal cual */
           var carga = m.kg ? num(m.kg, 0) + " kg"
                     : (m.goma
-                        ? "goma de " + (typeof m.goma === "number"
-                            ? num(m.goma, 1) : esc(String(m.goma))) + " kg"
+                        /* 4-oct-2026: el plan ya trae la ETIQUETA de la goma
+                           («18», «25»), no kilos */
+                        ? (typeof m.goma === "number"
+                            ? "goma de " + num(m.goma, 1) + " kg" : "goma " + esc(String(m.goma)))
                         : "\u2014");
           return "<tr><th>" + esc(m.n) + "</th>" +
             "<td>" + (m.s || "\u2014") + "</td>" +

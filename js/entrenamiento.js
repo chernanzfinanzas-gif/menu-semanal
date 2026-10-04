@@ -11303,15 +11303,20 @@
      El reparto: cada día lleva pierna, empuje y tirón —cuerpo entero— y entre
      los dos días se cubren el horizontal y el vertical de cada patrón. */
   var SESIONES = [
+    /* 4-oct-2026: las gomas van por su ETIQUETA («18», «23-57», «25»), no en
+       kilos: es lo que apunta él y lo que lee la ficha de la sesión. Y los
+       kilos y las series, puestos al día con lo que ya hace (A del 30-sep, B
+       del 4-oct). Desde ahora la ficha enseña lo de la última sesión, y lo de
+       aquí sólo asoma como «la próxima» cuando se decide un cambio. */
     { id: "A", n: "Fuerza A", dia: 1, diaTxt: "lunes", min: 25, mov: [
       { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
-      { n: "Press de banca",      s: 2, r: "12",          kg: 15, nota: "Sentado en el suelo, espalda contra la silla",
+      { n: "Press de banca",      s: 2, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
         garmin: "Press de banca inclinada con mancuernas" },
-      { n: "Remo",                s: 2, r: "12",          goma: 9,
+      { n: "Remo",                s: 2, r: "12",          goma: "18",
         nota: "Tubo en el anclaje de la puerta",
         garmin: "Remo con goma el\u00e1stica" },
-      { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
-      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: 4.5,
+      { n: "Plancha",             s: 3, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
+      { n: "Aperturas invertidas",s: 3, r: "15 por lado", goma: "25",
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
     ]},
@@ -11320,11 +11325,11 @@
         nota: "Bisagra de cadera: el culo atr\u00e1s, la espalda recta y la mancuerna rozando la pierna" },
       { n: "Press de hombros",    s: 2, r: "12",          kg: 15, nota: "Sin bloquear el aire",
         garmin: "Press de hombros con mancuernas" },
-      { n: "Jal\u00f3n",              s: 2, r: "12",          goma: 9,
+      { n: "Jal\u00f3n",              s: 2, r: "12",          goma: "23-57",
         nota: "Anclaje alto de la puerta",
         garmin: "Jal\u00f3n lateral con goma el\u00e1stica" },
       { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
-      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: 4.5,
+      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: "25",
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
     ]},
@@ -11347,7 +11352,7 @@
         nota: "Goma de anilla 23-57 en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado. El 23-57 es lo que marca la goma, no el peso que mueves",
         /* Garmin no tiene Pallof: se apunta con el más cercano por músculo (oblicuos) */
         garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" },
-      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 20, nota: "Una de 10 en cada mano, sin balancear. Es tu techo de peso libre por mano",
+      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 10, porMano: true, nota: "Una de 10 en cada mano, sin balancear. Es tu techo de peso libre por mano",
         garmin: "Curl de bíceps alterno con mancuerna" }
     ]}
   ];
@@ -11641,10 +11646,62 @@
      venía». Tenía razón: entrar desde el plan te dejaba tirado en otra
      sección. Desde el plan ahora es una emergente que se cierra con la × y
      te deja donde estabas. */
+  /* LOS PESOS DE LA ÚLTIMA SESIÓN  ·  4-oct-2026
+     Carlos: «en estas fichas aparecen datos viejos». Los kilos y la goma del
+     plan se escribieron a mano y se quedaron atrás: la B decía goma de 9 y de
+     4,5, y él usa la 23 y la 25. Ni ficha genérica ni actualizarla a mano en
+     cada cambio: los kilos y la goma salen de la ÚLTIMA sesión de esa rutina
+     leída del reloj (datos/fuerza.json, «analisis»). Lo fijo —técnica, nombre
+     en el reloj, cuándo se queda corto— sigue siendo del plan. El ejercicio
+     que no aparezca en esa sesión, o la rutina que no tenga ninguna leída, se
+     queda con lo del plan. */
+  var fuerzaPedidaRutina = false;
+  function ultimaRutina(ses) {
+    if (!Fuerza.datos) Fuerza.deCache();
+    var an = Fuerza.datos && Fuerza.datos.analisis;
+    if (!an) return null;
+    var re = new RegExp("^fuerza\\s+" + String(ses.id).toLowerCase() + "\\b", "i");
+    var mejor = null;
+    Object.keys(an).forEach(function (k) {
+      var a = an[k];
+      if (!a || !a.fecha || !a.detalle || !re.test(String(a.rutina || ""))) return;
+      if (!mejor || a.fecha > mejor.fecha) mejor = a;
+    });
+    return mejor;
+  }
+  function filaReal(ult, m) {
+    if (!ult) return null;
+    var nombres = [m.garmin, m.n].filter(Boolean).map(function (x) {
+      return String(x).replace(/\s*\(.*\)\s*$/, "").toLowerCase();
+    });
+    for (var i = 0; i < ult.detalle.length; i++) {
+      var d = ult.detalle[i];
+      if (nombres.indexOf(String(d.ej || "").toLowerCase()) >= 0) return d;
+    }
+    return null;
+  }
+  function fechaCortaRut(f) {
+    var p = String(f).split("-"),
+        M = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return p.length === 3 ? (+p[2]) + " " + M[+p[1] - 1] : f;
+  }
+
   function cuerpoRutina(id, s, enModal) {
     var ses = null;
     SESIONES.forEach(function (x) { if (x.id === id) ses = x; });
     if (!ses) return null;
+
+    /* la primera vez que se abre, si no hay fichero de fuerza a mano, se pide
+       y se repinta lo que esté abierto cuando llegue */
+    if (!fuerzaPedidaRutina && typeof Fuerza !== "undefined") {
+      fuerzaPedidaRutina = true;
+      Fuerza.cargar(function () {
+        var modal = document.getElementById("modal");
+        if (modal && modal.classList.contains("abierta") && rutinaAbierta === id) abrirRutina(id);
+        else if (bloque === "material") pintar(true);
+      });
+    }
+    var ult = ultimaRutina(ses);
 
     var hoy = new Date().getDay();
     var caja = enModal ? "mod-bloque" : "tarjeta";
@@ -11654,15 +11711,44 @@
         (hoy === ses.dia ? ' <b class="mv-hoy">hoy</b>' : "") + "</h2>") +
       '<p class="nota-peque"' + (enModal ? ' style="margin:0"' : "") + ">" +
       U.esc(ses.diaTxt) + " · " + ses.mov.length +
-      " ejercicios · unos " + ses.min + " min · descanso de 1:15 entre series</p></div>";
+      " ejercicios · unos " + ses.min + " min · descanso de 1:15 entre series</p>" +
+      (ult ? '<p class="nota-peque" style="margin:4px 0 0">Kilos y gomas de tu última ' +
+             U.esc(ses.n) + ": <b>" + fechaCortaRut(ult.fecha) + "</b></p>" : "") +
+      "</div>";
 
     h += '<div class="' + caja + '">';
     ses.mov.forEach(function (m) {
       var mv = movPorNombre(m.n);
       var falta = mv ? faltaPara(mv, s) : [];
-      var dosis = m.s + " × " + m.r;
-      if (m.kg)   dosis += " · <b>" + m.kg + " kg</b>";
-      if (m.goma) dosis += " · <b>goma de " + String(m.goma).replace(".", ",") + " kg</b>";
+      var d = filaReal(ult, m);
+      /* lo del plan, en texto, para compararlo con lo de la sesión */
+      var pPeso = m.goma ? "goma " + String(m.goma).replace(".", ",")
+                : m.kg ? String(m.kg).replace(".", ",") + " kg" + (m.porMano ? " por mano" : "") : "";
+      /* las repeticiones de la sesión, pero sólo donde el plan da un número a
+         secas: en «por lado» o «por pierna» el reloj las cuenta de otra manera
+         (las dos piernas juntas) y el número no se puede comparar */
+      var rr = m.r;
+      if (d && d.series && d.reps && /^\d+$/.test(String(m.r)) && !/alterno/i.test(d.ej)) {
+        var porSerie = d.reps / d.series;
+        if (porSerie === Math.round(porSerie)) rr = String(porSerie);
+      }
+      var rPeso = "";
+      if (d && d.goma) rPeso = String(d.goma);
+      else if (d && d.peso) rPeso = String(d.peso).replace(",0 kg", " kg") +
+        (/alterno/i.test(d.ej) && !/por mano/.test(d.peso) ? " por mano" : "");
+      var rS = d && d.series ? d.series : m.s;
+      var hecho = rS + " × " + (d ? rr : m.r) + ((d ? rPeso : pPeso) ? " · <b>" + U.esc(d ? rPeso : pPeso) + "</b>" : "");
+      var dosis = hecho;
+      if (d) {
+        /* hay un cambio decidido: se enseña al lado de lo que hizo */
+        var pDosis = m.s + " × " + m.r + (pPeso ? " · " + pPeso : "");
+        var rDosis = rS + " × " + rr + (rPeso ? " · " + rPeso : "");
+        var norm = function (x) { return x.replace(/goma (\d+)-\d+/g, "goma $1").replace(/\s+/g, " "); };
+        if (norm(pDosis) !== norm(rDosis) && (rPeso || !pPeso))
+          dosis += ' <span class="nota-peque">→ la próxima: <b>' + U.esc(pDosis) + "</b></span>";
+      } else if (ult && pPeso) {
+        dosis += ' <span class="nota-peque">(del plan)</span>';
+      }
 
       h += '<div class="mov-linea' + (falta.length ? " mov-no" : "") + '">' +
         '<div class="mov-n"><b>' + U.esc(m.n) + "</b>" +

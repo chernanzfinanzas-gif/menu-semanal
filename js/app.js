@@ -7349,7 +7349,7 @@
     $("#compra-copiar").addEventListener("click", function () {
       var texto = textoCompra(true);
       if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function () { Util.toast("Lista copiada"); });
-      else Util.toast("Copia manualmente desde «Preparar compra»");
+      else Util.toast("No se ha podido copiar en este aparato");
     });
     $("#compra-para-claude").addEventListener("click", function () {
       var texto = "Claude, haz por m\u00ed la parte de AMAZON de esta compra. Lo del S\u00daPER " +
