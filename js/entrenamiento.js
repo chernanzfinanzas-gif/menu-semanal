@@ -12378,6 +12378,19 @@
 
     /* 29-sep-2026: verde = llega sola (correo o intervals); amarillo = a mano. */
     var LLEGAN = { peso: 1, grasa: 1, sistolica: 1, diastolica: 1, pulso: 1, ecg: 1 };
+    /* LA GRASA DE LA BÁSCULA  ·  4-oct-2026. Carlos: «¿la grasa corporal llega
+       sola? hoy me he dado cuenta de que no estaba». Llegaba —la báscula la
+       manda cada mañana a salud.json—, pero esta casilla sólo leía lo tecleado
+       a mano: se pintaba en verde («llega sola») y se quedaba vacía. El peso no
+       fallaba porque la app lo copia a su histórico al cargar; la grasa no se
+       copiaba a ningún sitio. Ahora la casilla mira también salud.json: lo
+       tecleado ese día manda; si no hay, lo de la báscula de ese día. */
+    var DE_SALUD = { grasa: 1 };
+    function deBascula(id, iso) {
+      if (!DE_SALUD[id]) return null;
+      var s = ultimoDeSalud(id, iso);
+      return s && s.f === iso ? s : null;
+    }
     function claseOrigen(m) { return LLEGAN[m.id] ? " llega" : " amano"; }
     function pintaMedida(m) {
       /* el ECG no se teclea: la casilla dice si ha llegado y con qué pulso */
@@ -12395,7 +12408,13 @@
       }
       var v = valorDe(dia, m.id);
       var puesta = (v !== null && v !== undefined && v !== "");
+      var bas = puesta ? null : deBascula(m.id, dia);
+      if (bas) { v = bas.v; puesta = true; }
       var ult = puesta ? null : ultimoValor(m.id, dia);
+      if (!puesta && DE_SALUD[m.id]) {
+        var us = ultimoDeSalud(m.id, dia);
+        if (us && (!ult || us.f >= ult.f)) ult = { v: us.v, f: us.f };
+      }
       var toca = tocaMedida(m, dia);
       /* la tensión del aparato: si no has tecleado nada, la media de la mañana */
       var auto = null;
@@ -12420,7 +12439,7 @@
           : '<input type="number" step="' + m.paso + '" min="' + m.min + '" max="' + m.max + '"' +
             (ult ? ' placeholder="' + ult.v + '"' : "") +
             ' data-medida="' + m.id + '" value="' + (puesta ? v : "") + '">') +
-        '<small>' + (auto ? "media del tensiómetro · " + auto.n + (auto.n === 1 ? " toma" : " tomas") +
+        '<small>' + (bas ? "de la báscula" : auto ? "media del tensiómetro · " + auto.n + (auto.n === 1 ? " toma" : " tomas") +
               " (" + (auto.h1 === auto.h2 ? auto.h1 : auto.h1 + "–" + auto.h2) + ")"
           : puesta ? "anotado hoy"
           : (ult ? "último " + num(ult.v, dec) + " · " + U.etiquetaFecha(ult.f) : "sin medir todavía")) + "</small>" +
@@ -12461,6 +12480,7 @@
         tocanHoy.forEach(function (m) {
           if (m.auto === "ecg") { if (!ecgDelDia(dia)) faltan++; return; }
           var v = valorDe(dia, m.id);
+          if ((v === null || v === undefined || v === "") && deBascula(m.id, dia)) return;
           if (TENS_CAMPO[m.id] && (v === null || v === undefined || v === "")) {
             var tmF = tensionManana(dia);
             if (tmF && tmF[TENS_CAMPO[m.id]] != null) return;
