@@ -532,8 +532,161 @@
       " todavía no hay tendencia: los gráficos se van llenando con cada rodillo. Una sesión suelta dice cómo fue ese día, no hacia dónde vas.</p>" : "";
 
     var gFant = htmlFantasma(o, inicio, hoy);
-    return '<div class="av">' + cab + aviso + gFant + gDeriva + gEf + gPot + gPulso + gCad + gObj + gCarga + gFtp + "</div>";
+    var gRev = htmlRevisiones(o.revisiones, o.revisionesEstado);
+    return '<div class="av">' + cab + aviso + gRev + gFant + gDeriva + gEf + gPot + gPulso + gCad + gObj + gCarga + gFtp + "</div>";
   }
 
-  global.AvancesKHB = { html: html, _referencia: referencia, _sesiones: sesionesDelPlan, FANTASMA: FANTASMA };
+  /* ==================== MIS REVISIONES  ·  4-oct-2026 ====================
+     Carlos: «una biblioteca en Mis Avances, un bloque Mis revisiones con un
+     histórico de estas revisiones». Opción B (texto, no PDF): cada semana su
+     veredicto, sus números y su decisión; la última abierta, las demás
+     plegadas; el texto entero desplegable y un botón para imprimir o guardar
+     en PDF. Los datos los sube `revisiones_semana.py` a datos/revisiones.json
+     del privado. */
+  function enLinea(t) {
+    return esc(t)
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+      .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+
+  /* Markdown justo para lo que escribo en las revisiones: títulos, párrafos,
+     listas (dos niveles), tablas y la raya. */
+  function md2html(md, sinTitulo) {
+    var ls = String(md || "").replace(/\r/g, "").split("\n"), out = [], i = 0, par = [];
+    function cierraPar() { if (par.length) { out.push("<p>" + enLinea(par.join(" ")) + "</p>"); par = []; } }
+    while (i < ls.length) {
+      var l = ls[i];
+      if (/^\s*$/.test(l)) { cierraPar(); i++; continue; }
+      var h = /^(#{1,4})\s+(.*)$/.exec(l);
+      if (h) {
+        cierraPar();
+        if (!(sinTitulo && h[1].length === 1)) out.push("<h" + (h[1].length + 2) + ">" + enLinea(h[2]) + "</h" + (h[1].length + 2) + ">");
+        i++; continue;
+      }
+      if (/^---+\s*$/.test(l)) { cierraPar(); out.push("<hr>"); i++; continue; }
+      if (/^\s*\|/.test(l)) {
+        cierraPar();
+        var filas = [];
+        while (i < ls.length && /^\s*\|/.test(ls[i])) { filas.push(ls[i]); i++; }
+        var celdas = filas.map(function (f) { return f.trim().replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); }); });
+        var cab = celdas[0], cuerpo = celdas.slice(1).filter(function (c) { return !/^:?-{2,}:?$/.test(c[0] || ""); });
+        out.push('<div class="rev-tabla"><table><thead><tr>' + cab.map(function (c) { return "<th>" + enLinea(c) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" + cuerpo.map(function (f) {
+            return "<tr>" + f.map(function (c) { return "<td>" + enLinea(c) + "</td>"; }).join("") + "</tr>";
+          }).join("") + "</tbody></table></div>");
+        continue;
+      }
+      if (/^\s*([-*]|\d+\.)\s+/.test(l)) {
+        cierraPar();
+        var html = "", nivel = -1, tipos = [];
+        while (i < ls.length && /^\s*([-*]|\d+\.)\s+/.test(ls[i])) {
+          var m = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(ls[i]);
+          var n = Math.min(2, Math.floor(m[1].length / 2)), tipo = /\d/.test(m[2]) ? "ol" : "ul";
+          if (n > nivel) {
+            while (nivel < n) { nivel++; tipos.push(tipo); html += "<" + tipo + ">"; }
+          } else {
+            html += "</li>";
+            while (nivel > n) { html += "</" + tipos.pop() + "></li>"; nivel--; }
+          }
+          html += "<li>" + enLinea(m[3]);
+          i++;
+        }
+        html += "</li>";
+        while (nivel > 0) { html += "</" + tipos.pop() + "></li>"; nivel--; }
+        html += "</" + tipos.pop() + ">";
+        out.push(html);
+        continue;
+      }
+      par.push(l.trim()); i++;
+    }
+    cierraPar();
+    return out.join("");
+  }
+
+  function rango(s) {
+    return diaCorto(s.desde) + (s.hasta ? " – " + diaCorto(s.hasta) : "");
+  }
+
+  function chipsRev(s) {
+    var x = s.numeros || {}, b = x.base || {}, ch = [];
+    function c(et, v, sub) { if (v != null && v !== "") ch.push('<span class="rev-chip"><i>' + et + "</i><b>" + v + "</b>" + (sub ? "<small>" + sub + "</small>" : "") + "</span>"); }
+    c("VFC", x.vfc != null ? num(x.vfc, 1) : null, b.vfc ? "base " + num(b.vfc, 1) : "");
+    c("Reposo", x.fcr != null ? num(x.fcr, 1) : null, b.fcr ? "base " + num(b.fcr, 1) : "");
+    c("Sueño", x.sueno_h != null ? num(x.sueno_h, 1) + " h" : null, "");
+    c("Peso", x.peso != null ? num(x.peso, 1) : null, x.peso_antes != null ? cambio(x.peso_antes, x.peso, 1, " kg", true) : "");
+    c("Tensión", x.tension ? x.tension[0] + "/" + x.tension[1] : null, "base 105/64");
+    if (x.carga && x.carga[0] != null) c("Carga", x.carga[0] + " de " + x.carga[1], Math.round(x.carga[0] / x.carga[1] * 100) + " %");
+    var bici = x.bici || [];
+    if (bici.length) c("Deriva", bici.map(function (z) { return z.deriva != null ? num(z.deriva, 1) : "—"; }).join(" · ") + " %",
+                       bici.length + (bici.length === 1 ? " rodillo" : " rodillos") + " de 40' o más");
+    return ch.length ? '<div class="rev-chips">' + ch.join("") + "</div>" : "";
+  }
+
+  function tarjetaRev(s, abierta) {
+    var estado = s.pendiente ? '<span class="rev-estado pte">Decisión pendiente</span>' : '<span class="rev-estado ok">Decidida</span>';
+    var cuerpo =
+      (s.veredicto ? '<p class="rev-ver"><b>Veredicto:</b> ' + enLinea(s.veredicto) + "</p>" : "") +
+      chipsRev(s) +
+      (s.decision && !s.pendiente ? '<div class="rev-dec"><h4>' + enLinea(s.decision_titulo || "Decisión") + "</h4>" + md2html(s.decision) + "</div>" : "") +
+      '<details class="rev-todo"><summary>Leer la revisión entera</summary><div class="rev-md">' + md2html(s.md, true) + "</div></details>" +
+      '<button type="button" class="rev-imp" data-rev-imprimir="' + s.n + '">Imprimir o guardar en PDF</button>';
+    var cab = '<span class="rev-tit">Semana ' + s.n + " · " + rango(s) + "</span>" + estado;
+    return abierta
+      ? '<article class="rev rev-abierta" data-rev="' + s.n + '"><div class="rev-cab">' + cab + "</div>" + cuerpo + "</article>"
+      : '<details class="rev" data-rev="' + s.n + '"><summary class="rev-cab">' + cab + "</summary>" + cuerpo + "</details>";
+  }
+
+  function htmlRevisiones(revs, estado) {
+    if (!revs || !revs.length) {
+      var porque = estado === "cargando" || estado === "nada" ? "Trayendo las revisiones…"
+        : "Todavía no hay revisiones en el repositorio privado. Suben solas desde el portátil unos minutos después de escribirse.";
+      return tarjeta("Mis revisiones", "", '<p class="av-sub">' + porque + "</p>", "");
+    }
+    var orden = revs.slice().sort(function (a, b) { return b.n - a.n; });
+    var filas = orden.map(function (s) {
+      var x = s.numeros || {}, bici = x.bici || [];
+      var der = bici.filter(function (z) { return z.deriva != null; }).map(function (z) { return z.deriva; });
+      return ["S" + s.n + " · " + diaCorto(s.desde),
+              x.vfc != null ? num(x.vfc, 1) : "—", x.fcr != null ? num(x.fcr, 1) : "—",
+              x.sueno_h != null ? num(x.sueno_h, 1) : "—", x.peso != null ? num(x.peso, 1) : "—",
+              x.tension ? x.tension[0] + "/" + x.tension[1] : "—",
+              der.length ? num(Math.max.apply(null, der), 1) + " %" : "—",
+              s.pendiente ? "pendiente" : "decidida"];
+    });
+    var tablaSem = '<div class="rev-tabla rev-hist"><table><thead><tr><th>Semana</th><th>VFC</th><th>Reposo</th><th>Sueño h</th>' +
+      "<th>Peso</th><th>Tensión</th><th>Peor deriva</th><th>Decisión</th></tr></thead><tbody>" +
+      filas.map(function (f) { return "<tr>" + f.map(function (c, i) { return (i ? "<td>" : "<th>") + c + (i ? "</td>" : "</th>"); }).join("") + "</tr>"; }).join("") +
+      "</tbody></table></div>";
+    return tarjeta("Mis revisiones",
+      "Lo que pasó cada semana y lo que decidimos para la siguiente. La última, abierta; las anteriores, plegadas.",
+      tablaSem + '<div class="rev-lista">' + orden.map(function (s, i) { return tarjetaRev(s, i === 0); }).join("") + "</div>",
+      "Base de comparación: marzo a junio de 2026 (VFC 62,9 · reposo 46,7 · tensión 105/64). Con fármaco, la VFC y el pulso no se concluyen.");
+  }
+
+  /* IMPRIMIR UNA SOLA REVISIÓN: se marca su tarjeta, se abre entera y se
+     imprime solo ella (la hoja de estilos de impresión oculta todo lo demás).
+     «Guardar como PDF» sale en el mismo diálogo de impresión. */
+  if (global.document && !global.__revImprimir) {
+    global.__revImprimir = true;
+    global.document.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest("[data-rev-imprimir]") : null;
+      if (!b) return;
+      var caja = b.closest(".rev");
+      if (!caja) return;
+      if (caja.tagName === "DETAILS") caja.open = true;
+      var todo = caja.querySelector(".rev-todo"); if (todo) todo.open = true;
+      caja.classList.add("rev-print");
+      global.document.body.classList.add("av-print");
+      var fin = function () {
+        caja.classList.remove("rev-print");
+        global.document.body.classList.remove("av-print");
+        global.removeEventListener("afterprint", fin);
+      };
+      global.addEventListener("afterprint", fin);
+      setTimeout(function () { global.print(); setTimeout(fin, 1500); }, 50);
+    });
+  }
+
+  global.AvancesKHB = { html: html, _md: md2html, _revisiones: htmlRevisiones, _referencia: referencia, _sesiones: sesionesDelPlan, FANTASMA: FANTASMA };
 })(this);

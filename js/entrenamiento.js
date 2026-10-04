@@ -5002,6 +5002,21 @@
     cargar: Curva.cargar
   };
 
+  /* MIS REVISIONES  ·  4-oct-2026. Las revisiones semanales del entreno, que
+     escribe Claude y sube `revisiones_semana.py` desde el portátil. Privado:
+     hablan de tensión, fármacos y pulso. Opcional: si no está, Mis Avances
+     sale como antes. */
+  var Revisiones = {
+    CLAVE: "khb-revisiones-v1",
+    RUTA: "datos/revisiones.json",
+    FRESCO_H: 6,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
+
   /* EL MONTE Y EL LLANO  ·  2-oct-2026.
      Dos cosas en el mismo fichero, porque se piden a la vez:
      · `analisis`: las rutas de monte RELEVANTES, con sus subidas, el ritmo de
@@ -6210,6 +6225,7 @@
   function prepararAvances() {
     var repinta = function () { if (bloque === "avances") pintar(true); };
     Rodillo.cargar(repinta);
+    Revisiones.cargar(repinta);
     /* el histórico y la curva, para el fantasma de la subida de 2022 */
     ActHistorico.cargar(repinta);
     Curva.cargar(repinta);
@@ -6227,6 +6243,8 @@
         actividades: (Salud.datos && Salud.datos.actividades) || [],
         todas: actividadesJuntas(),
         curvas: (Curva.datos && Curva.datos.curvas) || null,
+        revisiones: (Revisiones.datos && Revisiones.datos.semanas) || null,
+        revisionesEstado: Revisiones.estado,
         plan: P, hoy: U.hoyISO()
       });
     }
