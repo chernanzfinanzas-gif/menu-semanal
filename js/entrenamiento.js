@@ -390,6 +390,9 @@
          gastando una línea entera para una casilla. En pantalla ancha caben las
          ocho. */
       "@media(min-width:1140px){.ent-medidas{grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}}",
+      /* 4-oct-2026: con el IMC al lado del peso, las obligatorias pueden ser
+         nueve; en pantalla muy ancha caben las nueve en una fila. */
+      "@media(min-width:1280px){.ent-medidas{grid-template-columns:repeat(9,minmax(0,1fr));gap:8px}}",
       /* en columna: el rótulo crece hasta igualar al vecino más alto, así las
          cajas de la fila quedan alineadas aunque el texto ocupe dos líneas */
       ".ent-medida{display:flex;flex-direction:column;min-width:0;max-width:280px;width:100%}",
@@ -12424,6 +12427,28 @@
         "</label>";
     }
 
+    /* EL IMC, AL LADO DEL PESO  ·  4-oct-2026. Carlos: «al lado del peso del día
+       aparezca una casilla igual con el IMC (como calculado)». No se teclea: sale
+       del peso del día y de la altura del perfil (kg / m²). Si ese día no hay
+       pesada, el del último peso, diciendo de cuándo. La categoría es la de la
+       OMS, solo como referencia. */
+    function pintaImc() {
+      var alt = Number((A.estado.perfil || {}).altura) || 0;
+      if (!alt) return "";
+      var kg = pesoDe(dia), deCuando = null;
+      if (kg == null) { var up = ultimoValor("peso", dia); if (up) { kg = up.v; deCuando = up.f; } }
+      var imc = kg ? kg / Math.pow(alt / 100, 2) : null;
+      var cat = !imc ? "" : imc < 18.5 ? "bajo peso" : imc < 25 ? "normal" : imc < 30 ? "sobrepeso" :
+                imc < 35 ? "obesidad I" : imc < 40 ? "obesidad II" : "obesidad III";
+      return '<label class="ent-medida llega' + (imc && !deCuando ? " puesta" : "") + '">' +
+        "<span>IMC (kg/m²)</span>" +
+        '<input type="text" readonly tabindex="-1" value="' + (imc && !deCuando ? num(imc, 1) : "") + '"' +
+          ' placeholder="' + (imc ? num(imc, 1) : "—") + '">' +
+        "<small>" + (imc ? "calculado · " + cat + (deCuando ? " · peso del " + U.etiquetaFecha(deCuando) : "")
+                         : "sin peso todavía") + "</small>" +
+        "</label>";
+    }
+
     if (P.medidas.length) {
       /* la ayuda, antes de las casillas: se lee antes de medir, no después */
       h += '<button type="button" class="ent-ayuda" data-guia="*">' +
@@ -12447,13 +12472,13 @@
         h += '<p class="ent-origen"><span><u class="llega"></u>llega sola, por correo o de la báscula</span>' +
           '<span><u class="amano"></u>la apuntas tú</span></p>';
         h += '<div class="ent-medidas obligatorias">';
-        tocanHoy.forEach(function (m) { h += pintaMedida(m); });
+        tocanHoy.forEach(function (m) { h += pintaMedida(m); if (m.id === "peso") h += pintaImc(); });
         h += "</div>";
       }
       if (lasDemas.length) {
         h += '<h3 class="ent-subt suave">Las demás<span class="ent-cuenta">solo si te apetece</span></h3>';
         h += '<div class="ent-medidas">';
-        lasDemas.forEach(function (m) { h += pintaMedida(m); });
+        lasDemas.forEach(function (m) { h += pintaMedida(m); if (m.id === "peso") h += pintaImc(); });
         h += "</div>";
       }
       h += htmlObs(dia);
