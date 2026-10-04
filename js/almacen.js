@@ -546,6 +546,21 @@
         e.arreglos["2026-10-04-caldo"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errC) {}
       }
+      /* EL PURÉ HERO, FUERA DE CUALQUIER RECETA GUARDADA (4-oct-2026, v390).
+         Carlos: «¿las recetas que usaban puré de pera han cambiado al que
+         hacemos nosotros?». En el catálogo sólo lo usaba la ensalada de alubias,
+         ya cambiada; pero una receta retocada a mano no la refresca el catálogo.
+         Corre en cada arranque y sólo actúa si queda alguna línea: 25 g = 1
+         cubito, mínimo uno. */
+      (e.recetas || []).forEach(function (r) {
+        var cambia = false;
+        (r.ing || []).forEach(function (l) {
+          if (l && l.i === "pure_manzana_pera") {
+            l.i = "pure_pera_casero"; l.c = Math.max(1, Math.round((Number(l.c) || 50) / 25)); cambia = true;
+          }
+        });
+        if (cambia) r.tocado = new Date().toISOString();
+      });
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
