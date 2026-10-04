@@ -151,3 +151,14 @@ details.rev > summary.rev-cab { cursor: pointer; list-style: revert; }
 /* carga total (con fuerza y paseos de relax), de fondo: 4-oct-2026 */
 .av-total { fill: #dde3e8; }
 .av-l-total { background: #dde3e8; }
+
+/* Mis revisiones, plegable (4-oct-2026): cerrada solo enseña título y explicación */
+.rev-plegable > summary { cursor: pointer; list-style: none; position: relative; padding-right: 26px; }
+.rev-plegable > summary::-webkit-details-marker { display: none; }
+.rev-plegable > summary::after {
+  content: "▾"; position: absolute; right: 2px; top: 0; font-size: 16px; color: var(--azul, #2b6cb0);
+  transition: transform .15s;
+}
+.rev-plegable[open] > summary::after { transform: rotate(180deg); }
+.rev-plegable > summary .av-sub { margin-bottom: 0; }
+.rev-plegable[open] > summary .av-sub { margin-bottom: 8px; }

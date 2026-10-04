@@ -692,11 +692,23 @@
       : '<details class="rev" data-rev="' + s.n + '"><summary class="rev-cab">' + cab + "</summary>" + cuerpo + "</details>";
   }
 
+  /* PLEGABLE (4-oct-2026, Carlos: «debe ser colapsable, que solo se vea título y
+     explicación»). Cerrada por defecto; si la abre, se queda abierta aunque la
+     pantalla se repinte al llegar datos (se recuerda en esta sesión). */
+  var SUB_REV = "Lo que pasó cada semana y lo que decidimos para la siguiente.";
+  function plegable(cuerpo, pie) {
+    var abierta = false;
+    try { abierta = global.sessionStorage && global.sessionStorage.getItem("khb-rev-abierta") === "1"; } catch (e) {}
+    return '<section class="av-tarjeta rev-bloque"><details class="rev-plegable"' + (abierta ? " open" : "") + ">" +
+      '<summary><h3>Mis revisiones</h3><p class="av-sub">' + SUB_REV + "</p></summary>" +
+      cuerpo + (pie ? '<p class="av-pie">' + pie + "</p>" : "") + "</details></section>";
+  }
+
   function htmlRevisiones(revs, estado) {
     if (!revs || !revs.length) {
       var porque = estado === "cargando" || estado === "nada" ? "Trayendo las revisiones…"
         : "Todavía no hay revisiones en el repositorio privado. Suben solas desde el portátil unos minutos después de escribirse.";
-      return tarjeta("Mis revisiones", "", '<p class="av-sub">' + porque + "</p>", "");
+      return plegable('<p class="av-sub">' + porque + "</p>", "");
     }
     var orden = revs.slice().sort(function (a, b) { return b.n - a.n; });
     var filas = orden.map(function (s) {
@@ -713,8 +725,7 @@
       "<th>Peso</th><th>Tensión</th><th>Peor deriva</th><th>Decisión</th></tr></thead><tbody>" +
       filas.map(function (f) { return "<tr>" + f.map(function (c, i) { return (i ? "<td>" : "<th>") + c + (i ? "</td>" : "</th>"); }).join("") + "</tr>"; }).join("") +
       "</tbody></table></div>";
-    return tarjeta("Mis revisiones",
-      "Lo que pasó cada semana y lo que decidimos para la siguiente. La última, abierta; las anteriores, plegadas.",
+    return plegable(
       tablaSem + '<div class="rev-lista">' + orden.map(function (s, i) { return tarjetaRev(s, i === 0); }).join("") + "</div>",
       "Base de comparación: marzo a junio de 2026 (VFC 62,9 · reposo 46,7 · tensión 105/64). Con fármaco, la VFC y el pulso no se concluyen.");
   }
@@ -724,6 +735,11 @@
      «Guardar como PDF» sale en el mismo diálogo de impresión. */
   if (global.document && !global.__revImprimir) {
     global.__revImprimir = true;
+    global.document.addEventListener("toggle", function (ev) {
+      var d = ev.target;
+      if (!d || !d.classList || !d.classList.contains("rev-plegable")) return;
+      try { global.sessionStorage.setItem("khb-rev-abierta", d.open ? "1" : "0"); } catch (e) {}
+    }, true);
     global.document.addEventListener("click", function (ev) {
       var b = ev.target && ev.target.closest ? ev.target.closest("[data-rev-imprimir]") : null;
       if (!b) return;
