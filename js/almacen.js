@@ -676,6 +676,41 @@
         });
         if (cambiaF) r.tocado = new Date().toISOString();
       });
+      /* EL ORDEN DE SUS LISTAS DE MERCADONA (4-oct-2026, v398). Carlos manda
+         capturas de cada lista de Mercadona, de arriba abajo, y aquí se escribe
+         ese orden tal cual en «Orden de compra» de una vez, en lugar de subir y
+         bajar producto a producto. Arriba queda lo último que metió en
+         Mercadona; lo que no está en su lista sale arriba del todo, que es donde
+         Mercadona pone lo nuevo. Cada lista se aplica una vez (su marca en
+         `arreglos`), con hora por estante para que gane al sincronizar. */
+      var LISTAS_MERCADONA = {
+        "Mercadona|nevera": { f: "2026-10-04b", ids: [
+            "lima", "mandarina", "naranja", "kiwi", "limon_exprimido", "salsa_trufa",
+            "tomate_rallado", "zanahoria", "tomate", "tomate_cherry", "setas", "puerro",
+            "platano", "pina_fresca", "pera", "manzana_reineta", "mango", "limon",
+            "ensalada_gourmet", "guacamole", "espinacas", "brotes_verdes", "champinones", "cebolla_verde",
+            "melocoton", "calabacin", "berenjena", "frambuesas", "arandanos", "perejil",
+            "picada_ajo_perejil", "albahaca", "pina_conserva", "queso_curado", "zumo_granini", "sardina_ahumada",
+            "salmon_ahumado", "salchichas_oscar_mayer_tipo_fr", "requeson", "queso_untar_light", "queso_tierno", "queso_semicurado",
+            "gorgonzola", "queso_crema", "queso_cottage", "pavo_lonchas", "mozzarella_vaca", "parmigiano_reggiano_en_cuna_ra",
+            "mozzarella_fresca", "jamon_cocido_mano", "lacon_lonchas", "jamon_iberico", "jamon_cocido", "burrata",
+            "bacon_lonchas", "bacalao_ahumado", "ketchup_bajo_sal", "chorizo_sarta_en_tacos", "yogur_activia", "cerdo_lomo_trozo",
+            "cerdo_solomillo", "lomo_iberico_adobado", "hamburguesa_finca", "cerdo_secreto", "pesto_genovese", "pollo_pechuga",
+            "flan_proteinas", "ternera_entrecot", "ternera_picada", "cerdo_lomo", "salsa_miel_mostaza", "vino_blanco",
+            "queso_el_caserio_rallado_espec", "mostaza_dijon", "parmesano_rallado", "nata_cocinar_ligera", "mermelada_naranja", "mermelada_fresa",
+            "mayonesa", "mantequilla_sinsal", "huevo", "gazpacho" ] }
+      };
+      Object.keys(LISTAS_MERCADONA).forEach(function (clave) {
+        var L = LISTAS_MERCADONA[clave], marca = "orden-" + clave + "-" + L.f;
+        if (e.arreglos[marca]) return;
+        if (!e.ordenCompra) e.ordenCompra = {};
+        e.ordenCompra[clave] = L.ids.slice();
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        e.ordenSello.compra[clave] = new Date().toISOString();
+        e.arreglos[marca] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLM) {}
+      });
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {
