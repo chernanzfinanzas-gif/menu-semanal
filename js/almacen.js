@@ -450,6 +450,27 @@
         e.arreglos["2026-10-03-ruta27"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err27) {}
       }
+      /* LAS MARCAS VIEJAS PASAN AL SELECTOR (v378, decidido con Carlos): «no me
+         cuenta» → solo Susana; «solo yo» y «hoy me lo tomo yo» → solo Carlos.
+         Si el plato ya tiene marca nueva, manda la nueva. Corre en cada
+         arranque y es inofensivo: así también traduce lo que llegue de un
+         aparato que aún no se haya puesto al día. */
+      Object.keys(e.plan || {}).forEach(function (f) {
+        var d = e.plan[f];
+        if (!d || (!d.ajenos && !d.mios && !d.soloYo)) return;
+        [["ajenos", "susana"], ["mios", "carlos"], ["soloYo", "carlos"]].forEach(function (par) {
+          var viejo = d[par[0]];
+          if (!viejo) return;
+          Object.keys(viejo).forEach(function (toma) {
+            (viejo[toma] || []).forEach(function (id) {
+              if (!d.quien) d.quien = {};
+              if (!d.quien[toma]) d.quien[toma] = {};
+              if (!d.quien[toma][id]) d.quien[toma][id] = par[1];
+            });
+          });
+          delete d[par[0]];
+        });
+      });
       /* LAS 4 BOLSAS DE VERDURAS ASADAS LISTÍSIMOS (3-oct-2026). Carlos: «me han
          dado cuatro de regalo hoy en una compra de Sirena que he metido al
          stock». No llegaron a entrar: el producto no tenía ficha. Se apuntan
@@ -2159,93 +2180,71 @@
        tú. Se marca en el día y en la toma, no en la receta, y hace lo mismo que
        el dueño: no suma calorías ni sal, pero se compra y sale de la despensa
        para una persona, porque alguien se la bebe. */
-    marcarAjeno: function (fecha, toma, receta, si) {
+    /* ---------- QUIÉN SE LO COME: UN SOLO SELECTOR POR PLATO (v378, 3-oct-2026) ----------
+       Carlos, después de ver el botón «solo yo»: «en cada plato añadido poder
+       elegir: los dos, solo yo, solo Susana… que elija quién ha comido; todo
+       anula todas las reglas anteriores. Si solo hay un comensal se resta una,
+       si hay dos, dos; y solo suma para mí lo de los dos y solo Carlos. No
+       hacen falta botones de solo yo, reglas de cuenta para uno y cuenta para
+       otro, y todos los ingredientes se tratan igual».
+
+       Así que hay UNA marca por plato, toma y día: `plan[f].quien[toma][id]`,
+       con "dos", "carlos" o "susana". Lo que diga manda sobre todo:
+         dos     → se compra y se descuenta por los comensales de la toma; cuenta
+         carlos  → para uno; cuenta
+         susana  → para uno; NO cuenta (ni calorías ni sal)
+       Sin marca, el plato arranca en su habitual (decidido con él): «dos»,
+       salvo lo que la ficha dice que es de uno (`dueno`: su pan → carlos, el pan
+       de ella → susana). Es sólo el punto de partida; el selector lo cambia.
+
+       Las marcas viejas (`ajenos`, `mios`, `soloYo`) se traducen al abrir: ver
+       `reparar`. Las funciones viejas siguen existiendo como atajos hacia ésta,
+       para que nada que las llame se rompa. */
+    QUIEN: ["dos", "carlos", "susana"],
+    quienHabitual: function (recetaId) {
+      var d = this.duenoDe(recetaId);
+      return d === "yo" ? "carlos" : (d ? "susana" : "dos");
+    },
+    quienDe: function (fecha, toma, recetaId) {
+      var d = this.estado.plan[fecha];
+      var q = d && d.quien && d.quien[toma] && d.quien[toma][recetaId];
+      return q || this.quienHabitual(recetaId);
+    },
+    ponerQuien: function (fecha, toma, recetaId, q) {
       var d = this.asegurarDia(fecha);
-      if (si) {
-        if (!d.ajenos) d.ajenos = {};
-        if (!d.ajenos[toma]) d.ajenos[toma] = [];
-        if (d.ajenos[toma].indexOf(receta) < 0) d.ajenos[toma].push(receta);
+      if (q && this.QUIEN.indexOf(q) < 0) return;
+      if (!q || q === this.quienHabitual(recetaId)) {
+        /* volver a lo habitual es quitar la marca: el día queda limpio */
+        if (d.quien && d.quien[toma]) {
+          delete d.quien[toma][recetaId];
+          if (!Object.keys(d.quien[toma]).length) delete d.quien[toma];
+          if (!Object.keys(d.quien).length) delete d.quien;
+        }
         return;
       }
-      if (!d.ajenos || !d.ajenos[toma]) return;
-      d.ajenos[toma] = d.ajenos[toma].filter(function (x) { return x !== receta; });
-      if (!d.ajenos[toma].length) delete d.ajenos[toma];
-      if (!Object.keys(d.ajenos).length) delete d.ajenos;
+      if (!d.quien) d.quien = {};
+      if (!d.quien[toma]) d.quien[toma] = {};
+      d.quien[toma][recetaId] = q;
     },
-    esAjeno: function (fecha, toma, receta) {
-      var d = this.estado.plan[fecha];
-      return !!(d && d.ajenos && d.ajenos[toma] && d.ajenos[toma].indexOf(receta) >= 0);
-    },
+    /* Los atajos de antes, ya sobre el selector. */
+    marcarAjeno: function (fecha, toma, receta, si) { this.ponerQuien(fecha, toma, receta, si ? "susana" : null); },
+    esAjeno: function (fecha, toma, receta) { return this.quienDe(fecha, toma, receta) === "susana"; },
+    marcarMio: function (fecha, toma, receta, si) { this.ponerQuien(fecha, toma, receta, si ? "carlos" : null); },
+    esMio: function (fecha, toma, receta) { return this.quienDe(fecha, toma, receta) === "carlos"; },
+    marcarSoloYo: function (fecha, toma, receta, si) { this.ponerQuien(fecha, toma, receta, si ? "carlos" : null); },
+    esSoloYo: function (fecha, toma, receta) { return this.quienDe(fecha, toma, receta) === "carlos"; },
 
-    /* ---------- Y AL REVÉS: «HOY ME LO TOMO YO» (1-oct-2026) ----------
-       Carlos: «¿y si un día me quiero tomar una cerveza yo? ¿O pan Ortiz?».
-
-       El `dueno` de la ficha dice de quién es SIEMPRE, y eso deja sin salida el
-       día que la excepción pasa: el pan tostado de ella no contaba nunca, ni
-       aunque se lo comiera él. Esto es la marca contraria a `ajenos` y gana a la
-       ficha: hoy, en esta toma, este plato SÍ es mío. Las dos marcas son del día,
-       no de la receta, y así la ficha puede decir lo que pasa el 95 % de los
-       días sin impedir el otro 5 %. */
-    marcarMio: function (fecha, toma, receta, si) {
-      var d = this.asegurarDia(fecha);
-      if (si) {
-        if (!d.mios) d.mios = {};
-        if (!d.mios[toma]) d.mios[toma] = [];
-        if (d.mios[toma].indexOf(receta) < 0) d.mios[toma].push(receta);
-        return;
-      }
-      if (!d.mios || !d.mios[toma]) return;
-      d.mios[toma] = d.mios[toma].filter(function (x) { return x !== receta; });
-      if (!d.mios[toma].length) delete d.mios[toma];
-      if (!Object.keys(d.mios).length) delete d.mios;
-    },
-    esMio: function (fecha, toma, receta) {
-      var d = this.estado.plan[fecha];
-      return !!(d && d.mios && d.mios[toma] && d.mios[toma].indexOf(receta) >= 0);
-    },
-
-    /* ---------- «SUSANA NO LO TOMA» (v375, 3-oct-2026) ----------
-       Carlos: «hay otro caso, lo tomo yo y Susana no: me cuenta las calorías
-       pero solo debe descontar uno». Es el caso que faltaba entre los dos de
-       arriba: las calorías y la sal ya contaban UNA ración (las suyas), pero la
-       compra, la reserva de la despensa y el descuento al comer iban por los
-       comensales de la toma —dos—. Esta marca, del día y la toma como las
-       otras, deja ese plato para UNO en todo eso y no toca sus números. */
-    marcarSoloYo: function (fecha, toma, receta, si) {
-      var d = this.asegurarDia(fecha);
-      if (si) {
-        if (!d.soloYo) d.soloYo = {};
-        if (!d.soloYo[toma]) d.soloYo[toma] = [];
-        if (d.soloYo[toma].indexOf(receta) < 0) d.soloYo[toma].push(receta);
-        return;
-      }
-      if (!d.soloYo || !d.soloYo[toma]) return;
-      d.soloYo[toma] = d.soloYo[toma].filter(function (x) { return x !== receta; });
-      if (!d.soloYo[toma].length) delete d.soloYo[toma];
-      if (!Object.keys(d.soloYo).length) delete d.soloYo;
-    },
-    esSoloYo: function (fecha, toma, receta) {
-      var d = this.estado.plan[fecha];
-      return !!(d && d.soloYo && d.soloYo[toma] && d.soloYo[toma].indexOf(receta) >= 0);
-    },
-
-    /* La pregunta completa: ¿cuenta ESTE plato, en ESTE día y ESTA toma? El orden
-       manda: lo marcado hoy gana a lo que diga la ficha, en los dos sentidos. */
+    /* ¿Suma este plato a TUS números? Sólo «los dos» y «solo Carlos». */
     noMeCuenta: function (fecha, toma, receta) {
-      if (this.esAjeno(fecha, toma, receta)) return true;
-      if (this.esMio(fecha, toma, receta)) return false;
-      return this.esDeOtro(receta);
+      if (!fecha || !toma) return this.esDeOtro(receta);
+      return this.quienDe(fecha, toma, receta) === "susana";
     },
-    /* Un plato con dueño se compra y se descuenta para UNA persona, coman los que
-       coman: es de quien es. Sin dueño, para los que se sienten a la mesa. */
+    /* Para cuántos se compra y se descuenta: los comensales de la toma si es de
+       los dos; uno si es de uno solo, sea quien sea. */
     comensalesDePlato: function (rec, personas, fecha, toma) {
-      if (this.duenoDe(rec)) return 1;
-      /* marcado «no me cuenta» hoy: se compra, pero para uno */
       var id = rec && rec.id ? rec.id : rec;
-      if (fecha && toma && this.esAjeno(fecha, toma, id)) return 1;
-      /* «Susana no lo toma» hoy: cuenta, pero se compra y se descuenta para uno */
-      if (fecha && toma && this.esSoloYo(fecha, toma, id)) return 1;
-      return personas;
+      if (!fecha || !toma) return this.duenoDe(rec) ? 1 : personas;
+      return this.quienDe(fecha, toma, id) === "dos" ? personas : 1;
     },
 
     factorPlato: function (fecha, toma, recetaId, veces) {

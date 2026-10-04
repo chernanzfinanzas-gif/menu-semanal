@@ -809,32 +809,26 @@
                          Un plato con dueño empieza apagado y se puede encender;
                          uno normal empieza encendido y se puede apagar. En un
                          día cerrado no se toca: ahí ya está todo dicho. */
+                      /* QUIÉN SE LO COME (v378). Carlos: «en cada plato añadido poder
+                         elegir: los dos, solo yo, solo Susana… y eso anula todas las
+                         reglas anteriores». Un desplegable por plato; la cifra de
+                         calorías ya no es un interruptor, sólo informa: si es de
+                         Susana dice «no cuenta». En un día cerrado se enseña, no se
+                         cambia. */
                       (function () {
-                        var fuera = Almacen.noMeCuenta(fecha, t.k, rid);
+                        var q = Almacen.quienDe(fecha, t.k, rid);
+                        var fuera = q === "susana";
                         var cifra = Util.kcal(n.k * fac);
-                        if (cerr) {
-                          return '<span class="pl-kcal' + (fuera ? " ajena" : "") + '">' +
+                        var kc = '<span class="pl-kcal' + (fuera ? " ajena" : "") + '"' +
+                                 (fuera ? ' title="' + esc(cifra) + ' que no te cuentan"' : '') + '>' +
                                  (fuera ? "no cuenta" : cifra) + '</span>';
-                        }
-                        return '<button class="pl-kcal boton' + (fuera ? " ajena" : "") +
-                          '" data-nocuenta="' + fecha + '|' + t.k + '|' + esc(rid) + '" title="' +
-                          (fuera
-                            ? esc(cifra) + ' que hoy no te cuentan \u2014 tocar para que cuenten'
-                            : 'No me cuenta: se compra igual, pero no suma a tus calor\u00edas ni a tu sal') +
-                          '">' + (fuera ? "no cuenta" : cifra) + '</button>';
-                      })() +
-                      /* «SUSANA NO LO TOMA» (v375): sólo donde coméis más de uno y en
-                         un plato de los dos. Las calorías no cambian; la compra y la
-                         despensa pasan a ser para uno. */
-                      (function () {
-                        if (!r || Almacen.comensales(fecha, t.k) < 2) return '';
-                        if (Almacen.duenoDe(rid) || Almacen.esAjeno(fecha, t.k, rid)) return '';
-                        var solo = Almacen.esSoloYo(fecha, t.k, rid);
-                        if (cerr) return solo ? '<span class="pl-solo si">\ud83d\udc64 solo yo</span>' : '';
-                        return '<button class="pl-solo' + (solo ? ' si' : '') + '" data-soloyo="' + fecha + '|' + t.k + '|' + esc(rid) + '" title="' +
-                          (solo ? 'Hoy solo lo tomas t\u00fa: se compra y se descuenta para uno. Tocar si Susana tambi\u00e9n lo toma'
-                                : 'Tocar si Susana no lo toma: se compra y se descuenta para uno, y a ti te sigue contando') +
-                          '">' + (solo ? '\ud83d\udc64 solo yo' : '\ud83d\udc65 los dos') + '</button>';
+                        var NOM = { dos: "\ud83d\udc65 Los dos", carlos: "Solo Carlos", susana: "Solo Susana" };
+                        if (cerr) return kc + (q !== "dos" ? '<span class="pl-quien fijo q-' + q + '">' + NOM[q] + '</span>' : '');
+                        return kc + '<select class="pl-quien q-' + q + '" data-quien="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                          'title="Quién se lo come: los dos se compra y descuenta por comensales; solo uno, para uno. Solo te cuenta lo de los dos y lo tuyo.">' +
+                          Almacen.QUIEN.map(function (k) {
+                            return '<option value="' + k + '"' + (k === q ? ' selected' : '') + '>' + NOM[k] + '</option>';
+                          }).join("") + '</select>';
                       })() +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
@@ -1425,7 +1419,7 @@
           return '<div class="fila-suelto">' + botonReceta(r, pieDe(r)) +
             '<button class="btn-ajeno" data-elegirajeno="' + esc(r.id) +
             '" title="Ponerla para otro: una unidad, y no suma a tus calor\u00edas ni a tu sal">' +
-            'no me<br>cuenta</button></div>';
+            'para<br>Susana</button></div>';
         }).join("") +
         '</details>';
     };
@@ -6631,6 +6625,19 @@
       Util.toast("Fuera de la lista");
     });
 
+    /* el selector de quién se lo come (v378) */
+    $("#rejilla-dias").addEventListener("change", function (e) {
+      var sel = e.target.closest("select[data-quien]");
+      if (!sel) return;
+      var p = sel.getAttribute("data-quien").split("|");
+      Almacen.ponerQuien(p[0], p[1], p[2], sel.value);
+      Almacen.tocarDia(p[0]);
+      Almacen.guardar("plato");
+      pintarMenu();
+      Util.toast(sel.value === "susana" ? "Solo Susana: no te cuenta, y se compra para uno" :
+                 sel.value === "carlos" ? "Solo Carlos: te cuenta, y se compra para uno" :
+                 "Los dos: te cuenta, y se compra para los que coméis");
+    });
     $("#rejilla-dias").addEventListener("click", function (e) {
       /* EL BOTÓN VA AQUÍ Y NO EN EL `change` (25-sep-2026). Lo puse con los
          controles de la ruta, que viven en el manejador de `change`, y un clic
@@ -6840,37 +6847,6 @@
       if (rl) {
         var rr = rl.getAttribute("data-real").split("|");
         abrirCantidadReal(rr[0], rr[1], rr[2]);
-        return;
-      }
-      var sy = e.target.closest("[data-soloyo]");
-      if (sy) {
-        var ps = sy.getAttribute("data-soloyo").split("|");
-        var ahoraSolo = !Almacen.esSoloYo(ps[0], ps[1], ps[2]);
-        Almacen.marcarSoloYo(ps[0], ps[1], ps[2], ahoraSolo);
-        Almacen.tocarDia(ps[0]);
-        Almacen.guardar("plato");
-        pintarMenu();
-        Util.toast(ahoraSolo ? "Susana no lo toma: se compra y se descuenta para uno" : "Para los dos");
-        return;
-      }
-      var nc = e.target.closest("[data-nocuenta]");
-      if (nc) {
-        var pn = nc.getAttribute("data-nocuenta").split("|");
-        var estaFuera = Almacen.noMeCuenta(pn[0], pn[1], pn[2]);
-        var deOtro = Almacen.esDeOtro(pn[2]);
-        if (estaFuera) {
-          /* que vuelva a contar: se quita la marca de hoy y, si la ficha dice
-             que es de otro, se pone la marca contraria, que gana a la ficha */
-          Almacen.marcarAjeno(pn[0], pn[1], pn[2], false);
-          if (deOtro) Almacen.marcarMio(pn[0], pn[1], pn[2], true);
-        } else {
-          Almacen.marcarMio(pn[0], pn[1], pn[2], false);
-          if (!deOtro) Almacen.marcarAjeno(pn[0], pn[1], pn[2], true);
-        }
-        Almacen.tocarDia(pn[0]);
-        Almacen.guardar("plato");
-        pintarMenu();
-        Util.toast(estaFuera ? "Hoy te cuenta" : "Hoy no te cuenta");
         return;
       }
       var com = e.target.closest("[data-comido]");

@@ -1393,3 +1393,10 @@ button.enlace {
 .plato .pl-solo{flex:none;border:1px solid var(--borde);background:var(--blanco);border-radius:999px;
   padding:1px 7px;font-size:.7rem;line-height:1.5;color:var(--gris);white-space:nowrap;cursor:pointer;margin-left:4px}
 .plato .pl-solo.si{border-color:var(--morado);background:var(--morado-fondo);color:var(--morado);font-weight:600}
+
+/* ---- QUIÉN SE LO COME (v378) ---- */
+.plato .pl-quien{flex:none;margin-left:4px;font:inherit;font-size:.7rem;line-height:1.4;padding:1px 4px;
+  border:1px solid var(--borde);border-radius:999px;background:var(--blanco);color:var(--gris);cursor:pointer;max-width:96px}
+.plato .pl-quien.q-carlos{border-color:var(--morado);background:var(--morado-fondo);color:var(--morado);font-weight:600}
+.plato .pl-quien.q-susana{border-color:var(--borde);background:var(--gris-claro);color:var(--gris);font-style:italic}
+.plato span.pl-quien.fijo{display:inline-block;cursor:default}
