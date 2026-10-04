@@ -1407,3 +1407,10 @@ button.enlace {
 .casero-caja .casero-tit{font-size:.78rem;color:var(--gris);text-transform:uppercase;letter-spacing:.05em}
 .casero-caja.poco .casero-tit b{color:#8a5d0e}
 .casero-caja small{font-size:.75rem;color:var(--gris)}
+
+/* Lo hecho en casa: ventana de cómo se prepara y se guarda (v384) */
+.casero-mod-nom{margin:.2rem 0 .6rem; color:var(--gris); font-size:.92rem}
+#modal-caja h4{margin:.9rem 0 .3rem; font-size:.95rem}
+.casero-mod-lista{margin:0; padding-left:1.3rem; line-height:1.4}
+.casero-mod-lista li{margin:.25rem 0}
+.casero-mod-lista small{display:block; color:var(--gris); font-size:.82rem}

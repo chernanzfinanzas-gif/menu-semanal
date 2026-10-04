@@ -303,6 +303,54 @@
   }
   function cerrarModal() { $("#modal").classList.remove("abierta"); }
 
+  /* ---- LO HECHO EN CASA: CÓMO SE PREPARA Y SE GUARDA (v384) ----
+     Carlos, 4-oct-2026: «debería aparecer una ventana emergente que explique
+     cómo se prepara y se guarda ese ingrediente». Sale al pulsar «Lo he
+     preparado» (con el botón de confirmar abajo) y desde el enlace de la caja
+     (sólo para leer). Todo sale de la ficha: la receta del lote y
+     `casero.guardar`; sirve igual para lo próximo que hagas en casa. */
+  function abrirCasero(id, confirmar) {
+    var g = Almacen.ingrediente(id);
+    if (!g || !g.casero) return;
+    var r = Almacen.receta(g.casero.receta);
+    var rinde = g.casero.rinde || 1;
+    var ff = Almacen.FORMATOS[Almacen.formatoDe(g)] || { n: ["", ""] };
+    var uds = rinde + " " + (rinde === 1 ? ff.n[0] : ff.n[1]);
+    var h = '<header><h2>C\u00f3mo se prepara</h2><button class="cerrar" data-cerrar>\u00d7</button></header>' +
+      '<p class="casero-mod-nom">' + esc(g.n.split(" (")[0]) + " \u00b7 salen unos " + esc(uds) + "</p>";
+    if (r) {
+      h += "<h4>Lleva</h4><ul class=\"casero-mod-lista\">" + (r.ing || []).map(function (l) {
+        var i = Almacen.ingrediente(l.i);
+        if (!i) return "";
+        return "<li>" + esc(Util.cantidadReceta(l.c, i.u, i.pesoUd)) + " de " + esc(i.n.split(" (")[0].toLowerCase()) + "</li>";
+      }).join("") + "</ul>";
+      h += "<h4>Pasos</h4><ol class=\"casero-mod-lista\">" + (r.pasos || []).map(function (p) {
+        if (typeof p === "string") return "<li>" + esc(p) + "</li>";
+        return "<li>" + esc(p.t || "") + (p.d ? "<small>" + esc(p.d) + "</small>" : "") + "</li>";
+      }).join("") + "</ol>";
+    }
+    var guardar = g.casero.guardar || [];
+    if (guardar.length) {
+      h += "<h4>C\u00f3mo se guarda</h4><ul class=\"casero-mod-lista\">" +
+        guardar.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
+    }
+    h += '<div class="fila">' + (confirmar
+      ? '<button class="btn" data-cerrar>Ahora no</button>' +
+        '<button class="btn principal" data-caseroya="' + esc(id) + '">Hecho: +' + esc(uds) + "</button>"
+      : '<button class="btn" data-cerrar>Cerrar</button>') + "</div>";
+    abrirModal(h);
+    var caja = $("#modal-caja"); if (caja) caja.scrollTop = 0;
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-caseroya]");
+    if (!b) return;
+    var rp = Almacen.prepararCasero(b.getAttribute("data-caseroya"));
+    cerrarModal();
+    if (rp) Util.toast("+" + rp.rinde + " \u00b7 ahora hay " + String(rp.nuevo).replace(".", ",") +
+      (rp.gastados.length ? " \u00b7 descontado: " + rp.gastados.map(function (n) { return n.split(" (")[0]; }).join(", ") : ""));
+    if ($("#rejilla-tengo")) pintarLoTengo();
+  });
+
   /* ---- LAS ESTRELLAS (v370) ---- */
   function filaEstrellas(id, n, ctx) {
     var h = '<div class="estrellas" role="group" aria-label="Nota de 1 a 5">';
@@ -4859,7 +4907,7 @@
                   (lleva ? "<small>Pide " + esc(lleva) + " para la pr\u00f3xima compra.</small>" : "") : "") +
           '<button type="button" class="btn" data-preparado="' + esc(x.id) + '">Lo he preparado (+' + rinde + " " +
             esc(rinde === 1 ? ffC.n[0] : ffC.n[1]) + ")</button>" +
-          (rL ? '<small>Receta: <a href="#" data-ficha-casero="' + esc(rL.id) + '">' + esc(rL.n) + "</a></small>" : "") +
+          (rL ? '<small><a href="#" data-comocasero="' + esc(x.id) + '">C\u00f3mo se prepara y se guarda</a></small>' : "") +
           "</div>";
       })() +
       '<button type="button" class="btn grande" data-pasesig="' + esc(x.id) + "|" + n +
@@ -7475,15 +7523,12 @@
         Util.toast(pues.length ? "A la próxima compra: " + pues.join(", ") : "No había nada que pedir");
         pintarLoTengo(); return;
       }
+      /* «Lo he preparado» ya no suma a ciegas: abre la ventana de cómo se hace
+         y cómo se guarda, y se confirma desde allí (Carlos, 4-oct-2026). */
       var bprep = e.target.closest("[data-preparado]");
-      if (bprep) {
-        var rp = Almacen.prepararCasero(bprep.getAttribute("data-preparado"));
-        if (rp) Util.toast("+" + rp.rinde + " · ahora hay " + String(rp.nuevo).replace(".", ",") +
-                           (rp.gastados.length ? " · descontado: " + rp.gastados.map(function (n) { return n.split(" (")[0]; }).join(", ") : ""));
-        pintarLoTengo(); return;
-      }
-      var bfc = e.target.closest("[data-ficha-casero]");
-      if (bfc) { e.preventDefault(); abrirFicha(bfc.getAttribute("data-ficha-casero")); return; }
+      if (bprep) { abrirCasero(bprep.getAttribute("data-preparado"), true); return; }
+      var bcc = e.target.closest("[data-comocasero]");
+      if (bcc) { e.preventDefault(); abrirCasero(bcc.getAttribute("data-comocasero"), false); return; }
 
       var bqp = e.target.closest("[data-quieropaso]");
       if (bqp) {
