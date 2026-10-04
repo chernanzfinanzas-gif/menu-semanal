@@ -3119,6 +3119,10 @@
       barra:    { n: ["barra", "barras"],      atajos: [0, 0.5, 1, 2] },
       sobre:    { n: ["sobre", "sobres"],      atajos: [0, 1, 2, 3, 5, 10] },
       capsula:  { n: ["cápsula", "cápsulas"],  atajos: [0, 5, 10, 20, 30, 50], suelta: true },
+      /* v415: el vaso de los arándanos y la pastilla de mantequilla tenían
+         formato escrito pero no existía, y se contaban como «botes». */
+      vaso:     { n: ["vaso", "vasos"],        atajos: [0, 0.5, 1, 2, 3] },
+      pastilla: { n: ["pastilla", "pastillas"], atajos: [0, 0.25, 0.5, 0.75, 1, 2] },
       /* Lo hecho en casa y congelado en la cubitera (v382): se cuenta en cubitos. */
       cubito:   { n: ["cubito", "cubitos"],    atajos: [0, 2, 4, 6, 8, 12, 16], suelta: true }
     },
@@ -3127,6 +3131,15 @@
       if (typeof g === "string") g = this.ingrediente(g);
       if (!g) return "suelto";
       if (g.formato && this.FORMATOS[g.formato]) return g.formato;
+      /* UN FORMATO QUE NO EXISTE NO PUEDE ACABAR EN «BOTE» (v415). Carlos,
+         4-oct-2026, con el queso de Burgos: «¿la unidad es una tarrina de las 4
+         del paquete, o los paquetes de 4? Lo que hay me ha confundido». Doce
+         fichas llevaban «pack», «vaso», «skinpack» o «pastilla», que no son
+         formatos, y se contaban como botes en cuartos: medio «bote» de queso
+         eran 31 g. Si la ficha guardada trae uno que no existe, manda el del
+         catálogo, que ya está corregido. */
+      var sem = g.id ? this.semillaIng(g.id) : null;
+      if (sem && sem.formato && this.FORMATOS[sem.formato]) return sem.formato;
       return g.u === "ud" ? "suelto" : "bote";
     },
 
@@ -3148,6 +3161,21 @@
       ff = ff || this.fichaFormato(g);
       if (!ff || !ff.atajos) return [0, 1, 2, 3, 4];
       var base = Number(g && g.envase) || 0;
+      /* EN PACKS DE PIEZAS QUE NO SON «ud» (v415): cuatro tarrinas de queso,
+         seis latas de atún, cuatro lomos de salmón. Se añaden el pack entero y
+         dos packs, que es lo que hay en casa después de comprar. */
+      if (g && g.u !== "ud" && base > 0) {
+        var tamP = this.tamanoPieza(g), nP = tamP > 0 ? base / tamP : 0;
+        if (nP >= 3 && nP <= 12 && Math.abs(nP - Math.round(nP)) < 0.01) {
+          nP = Math.round(nP);
+          var vistos = {}, lista = [];
+          ff.atajos.concat([nP, nP * 2]).forEach(function (v) {
+            if (v > 24 || vistos[v]) return;
+            vistos[v] = 1; lista.push(v);
+          });
+          return lista.sort(function (a, b) { return a - b; });
+        }
+      }
       if (!g || g.u !== "ud") return ff.atajos;
       /* Los del formato NO SE QUITAN, se añade lo que falta: el pack y dos packs.
          Quitarlos sería peor el remedio —el pack de 2 se quedaría sin el 3 y sin
@@ -3188,6 +3216,9 @@
       if (typeof g === "string") g = this.ingrediente(g);
       if (!g) return null;
       if (g.piezaML > 0) return { c: g.piezaML, de: "ficha" };
+      var semP = g.id ? this.semillaIng(g.id) : null;     /* v415: la ficha guardada puede no traerla */
+      if (semP && semP.piezaML > 0 && this.formatoDe(g) === semP.formato)
+        return { c: semP.piezaML, de: "catálogo" };
       if (g.u === "ud") return { c: 1, de: "unidad" };
       var mp = this.RE_PACK.exec(g.producto || "");
       if (mp) {
@@ -3771,11 +3802,13 @@
        Se calcula de una vez para todos los ingredientes y se guarda en caché
        hasta el siguiente guardado: preguntarlo ingrediente a ingrediente
        recorrería el plan entero ciento ochenta veces. */
-    comprometidoTodo: function () {
-      if (this._compCache && this._compSello === this._sello) return this._compCache;
+    /* `hastaISO` (v415): sólo lo comprometido HASTA esa fecha. Ver `generarCompra`. */
+    comprometidoTodo: function (hastaISO) {
+      if (!hastaISO && this._compCache && this._compSello === this._sello) return this._compCache;
       var self = this, hoy = Util.hoyISO(), fuera = {}, tandas = {};
       Object.keys(this.estado.plan || {}).forEach(function (fecha) {
         if (fecha < hoy) return;                       // el pasado no compromete nada
+        if (hastaISO && fecha > hastaISO) return;
         var dia = self.estado.plan[fecha];
         if (!dia) return;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
@@ -3804,6 +3837,7 @@
         var n = Math.ceil(tandas[rid] / (rec.raciones || 1)) || 1;
         (rec.ing || []).forEach(function (l) { fuera[l.i] = (fuera[l.i] || 0) + l.c * n; });
       });
+      if (hastaISO) return fuera;
       this._compCache = fuera;
       this._compSello = this._sello;
       return fuera;
@@ -6790,7 +6824,17 @@
 
       /* Lo comprometido se pide UNA vez: recorre el plan entero y aquí se
          consulta una vez por ingrediente. */
-      var compTodo = this.comprometidoTodo();
+      /* EL STOCK SE GASTA POR ORDEN DE DÍAS (v415, 4-oct-2026). Carlos: «si
+         tengo pan, no debe estar descontando bien el stock». Tenía razón: se
+         apartaba stock para TODO el plan, también para las semanas que no
+         entran en esta compra. Con 1,5 panecillos y medio al día planificado
+         dos semanas, la compra de hoy pedía uno: los días de después se
+         quedaban el pan y hoy no tocaba nada. Lo que hay en casa lo gastan
+         primero los días más cercanos; lo que queda DESPUÉS de esta compra ya
+         saldrá en la suya. Así que sólo cuenta lo comprometido hasta el
+         último día de este rango. El caso de la pizza del 24-sep sigue bien:
+         la cena de esta semana va antes que la compra de la que viene. */
+      var compTodo = this.comprometidoTodo(Util.sumarDias(lunesISO, dias - 1));
 
       var secciones = {}, basicos = [];
       /* LO PENDIENTE TIENE SU PROPIA LISTA (v414, 4-oct-2026). Lo que no llegó

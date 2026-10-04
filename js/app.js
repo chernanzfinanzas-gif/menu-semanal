@@ -41,7 +41,10 @@
     verPlatosCompra: null,   // bloque de platos de Compra: null = aún no ha elegido él
     /* Rango de la lista de la compra. Independiente de la semana que se esté viendo
        en Menú, que es lo que confundía. */
-    cuandoCompra: "resto",
+    /* En sábado y domingo «lo que queda de esta semana» es uno o dos días, y
+       la compra grande es la de la semana que viene (Carlos, 4-oct-2026: «¿y
+       Mercadona no debería venir relleno?», un domingo). */
+    cuandoCompra: ([0, 6].indexOf(new Date().getDay()) >= 0 ? "hasta14" : "resto"),
     tRuta: null,            // espera antes de repintar al teclear las horas de una ruta
     /* Días pasados que ha desbloqueado a mano para corregir algo. Vive solo en
        memoria: al recargar vuelven a estar cerrados, que es lo que se quiere. */
@@ -301,7 +304,7 @@
     $("#modal-caja").innerHTML = html;
     $("#modal").classList.add("abierta");
   }
-  function cerrarModal() { $("#modal").classList.remove("abierta"); }
+  function cerrarModal() { $("#modal").classList.remove("abierta"); $("#modal-caja").classList.remove("modal-compacto"); }
 
   /* ---- LO HECHO EN CASA: CÓMO SE PREPARA Y SE GUARDA (v384) ----
      Carlos, 4-oct-2026: «debería aparecer una ventana emergente que explique
@@ -5710,7 +5713,8 @@
     if (!totalLineas && !totalHogar && !datos.basicos.length) {
       $("#compra-resumen").textContent = "Nada que comprar: o no hay men\u00fa planificado en esas fechas, " +
         "o lo que hace falta ya est\u00e1 en la despensa.";
-      $("#lista-compra").innerHTML = "";
+      var tp = tilePendiente();
+      $("#lista-compra").innerHTML = tp ? '<div class="tiendas-rejilla">' + tp + '</div>' : "";
       $("#platos-compra").innerHTML = "";
       return;
     }
@@ -5787,69 +5791,28 @@
       return ia !== ib ? ia - ib : a.localeCompare(b);
     });
 
-    var html = "";
+    /* UNA CASILLA POR TIENDA (v415, 4-oct-2026). Carlos, al ver la v414:
+       «prefiero una casilla por tienda (con los productos que tiene) y que al
+       seleccionarla se despliegue la lista en ventana emergente, simplificada y
+       compacta, para facilitar la compra. Así, si la lista de Mercadona es muy
+       grande, lo demás no saldrá muy abajo». La lista larga, con sus detalles,
+       ya no se pinta aquí: va a la ventana de cada tienda. */
+    var html = '<div class="tiendas-rejilla">' + tilePendiente();
     nombres.forEach(function (nom) {
       var g = tiendas[nom];
       var todas = g.comida.concat(g.basicos);
       var total = todas.length + g.casa.length;
       var cogidos = todas.filter(function (l) { return l.marcado; }).length +
                     g.casa.filter(function (x) { return Almacen.estaPedido(x.id); }).length;
-      html += '<div class="tarjeta tienda-compra">' +
-        '<div class="tienda-cab"><div><h2 class="cajon-compra">' + esc(nom) + '</h2>' +
-        '<span class="nota-peque">' + total + (total === 1 ? " producto" : " productos") +
-          (cogidos ? " · <b>" + cogidos + " cogidos</b>" : "") + '</span></div>' +
-        '<button class="btn principal" data-tiendacomprada="' + esc(nom) + '">Comprado</button></div>';
-
-      var porZona = {};
-      g.comida.filter(visible).forEach(function (l) {
-        var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
-        (porZona[zk] = porZona[zk] || []).push(l);
-      });
-      var hayZonas = Object.keys(porZona).length;
-      if (hayZonas) html += '<div class="seccion-compra">';
-      Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]).forEach(function (zk) {
-        var lineas = porZona[zk];
-        if (!lineas || !lineas.length) return;
-        var zn = "Sin zona";
-        Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
-        var clave = Almacen.claveCompra(nom, zk);
-        lineas = Almacen.ordenarComoEnCompra(clave, lineas);
-        html += '<div class="zona-compra" data-clavecompra="' + esc(clave) + '">' +
-                '<h4 class="estante">' + esc(zn) + '<span>' + lineas.length + '</span></h4>';
-        /* Aquí NO se ordena: se hace en Despensa → Orden de compra. */
-        lineas.forEach(function (l) { html += lineaCompraHTML(l, false); });
-        html += '</div>';
-      });
-      if (hayZonas) html += '</div>';
-
-      if (g.casa.length) {
-        var porAp = {};
-        g.casa.filter(function (x) { return UI.ocultarComprados ? !Almacen.estaPedido(x.id) : true; })
-          .forEach(function (x) { (porAp[x.cat] = porAp[x.cat] || []).push(x); });
-        var aps = Almacen.APARTADOS.map(function (a) { return a.k; });
-        Object.keys(porAp).forEach(function (c) { if (aps.indexOf(c) < 0) aps.push(c); });
-        aps.forEach(function (c) {
-          var lineasC = porAp[c];
-          if (!lineasC || !lineasC.length) return;
-          var estK = null, apN = c;
-          Almacen.ZONAS.forEach(function (z) { z.estantes.forEach(function (e) { if (e.hogar === c) estK = e.k; }); });
-          Almacen.APARTADOS.forEach(function (a) { if (a.k === c) apN = a.n; });
-          if (estK) lineasC = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, estK), lineasC);
-          html += '<div class="seccion-compra"><h3>' + esc(apN) + ' <span>' + lineasC.length + '</span></h3>';
-          lineasC.forEach(function (x) { html += lineaHogarHTML(x); });
-          html += '</div>';
-        });
-      }
-
-      var bas = g.basicos.filter(visible);
-      if (bas.length) {
-        html += '<div class="seccion-compra"><h3>Revisa la despensa (básicos)</h3>';
-        bas.forEach(function (l) { html += lineaCompraHTML(l, true); });
-        html += '</div>';
-      }
-      html += '</div>';
+      html += '<button type="button" class="tile-tienda' + (cogidos ? " con-cogidos" : "") +
+              '" data-abrirtienda="' + esc(nom) + '">' +
+              '<span class="tile-nom">' + esc(nom) + '</span>' +
+              '<span class="tile-num">' + total + '</span>' +
+              '<span class="tile-pie">' + (total === 1 ? "producto" : "productos") +
+                (cogidos ? " · " + cogidos + " cogidos" : "") + '</span></button>';
     });
-
+    html += '</div>';
+    if (!nombres.length && !Almacen.recadosPendientes().length) html = '';
     if (!html) html = '<div class="vacio">Nada por comprar.</div>';
     $("#lista-compra").innerHTML = html;
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar lo cogido";
@@ -5863,6 +5826,97 @@
          y desmarcas lo que no haya venido.
      Lo marcado entra en la despensa; lo desmarcado pasa a Pendiente, con el
      día que el menú lo necesita. El suplente, si lo tiene, se sigue ofreciendo. */
+  /* LA LISTA DE UNA TIENDA, COMPACTA (v415). Casilla, nombre y cantidad, y
+     nada más: es la que se lleva en la mano por los pasillos. El orden es el
+     de siempre —zona y orden de sus listas de Mercadona; lo de casa por
+     apartado—. Marcar aquí es «lo he cogido»; «Comprado», al pie, cierra la
+     tienda por el camino de la v414. */
+  function filaCompacta(id, nombre, cant, cogido) {
+    return '<label class="fila-compacta' + (cogido ? " hecha" : "") + '" data-filacoger="' + esc(id) + '">' +
+      '<input type="checkbox" data-coger="' + esc(id) + '"' + (cogido ? " checked" : "") + '>' +
+      '<span class="fc-n">' + esc(nombre) + '</span>' +
+      '<span class="fc-q">' + esc(cant) + '</span></label>';
+  }
+  /* La cantidad, corta: en el móvil la de la lista larga («4 × 1 ud (95 g) ·
+     4 ud (380 g) en total») aplastaba el nombre a una línea. Aquí basta con
+     lo que se coge del estante: «4 ud», «2 × 500 g», «280 ml». */
+  function cantCorta(l) {
+    if (l.envases > 0 && l.envase > 0) {
+      if (l.unidad === "ud") return Math.round(l.envases * l.envase * 100) / 100 + " ud";
+      var uno = Util.formatearCantidad(l.envase, l.unidad);
+      return l.envases > 1 ? l.envases + " \u00d7 " + uno : uno;
+    }
+    return l.texto || "";
+  }
+  function pieListaTienda(nom) {
+    var g = tiendasCompra && tiendasCompra[nom];
+    if (!g) return "";
+    var todas = g.comida.concat(g.basicos);
+    var n = todas.length + g.casa.length;
+    var k = todas.filter(function (l) { return Almacen.estaPedido(l.id); }).length +
+            g.casa.filter(function (x) { return Almacen.estaPedido(x.id); }).length;
+    return k + " de " + n + " cogidos";
+  }
+  function abrirListaTienda(nom) {
+    var g = tiendasCompra && tiendasCompra[nom];
+    if (!g) return;
+    var h = '<header><h2>' + esc(nom) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
+    h += '<div class="lista-compacta" data-listatienda="' + esc(nom) + '">';
+    var porZona = {};
+    g.comida.forEach(function (l) {
+      var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
+      (porZona[zk] = porZona[zk] || []).push(l);
+    });
+    Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]).forEach(function (zk) {
+      var lineas = porZona[zk];
+      if (!lineas || !lineas.length) return;
+      var zn = "Sin zona";
+      Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
+      lineas = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, zk), lineas);
+      h += '<h4 class="fc-zona">' + esc(zn) + '</h4>';
+      lineas.forEach(function (l) { h += filaCompacta(l.id, l.producto || l.nombre, cantCorta(l), Almacen.estaPedido(l.id)); });
+    });
+    if (g.casa.length) {
+      var porAp = {};
+      g.casa.forEach(function (x) { (porAp[x.cat] = porAp[x.cat] || []).push(x); });
+      var aps = Almacen.APARTADOS.map(function (a) { return a.k; });
+      Object.keys(porAp).forEach(function (c) { if (aps.indexOf(c) < 0) aps.push(c); });
+      aps.forEach(function (c) {
+        var lc = porAp[c];
+        if (!lc || !lc.length) return;
+        var estK = null, apN = c;
+        Almacen.ZONAS.forEach(function (z) { z.estantes.forEach(function (e) { if (e.hogar === c) estK = e.k; }); });
+        Almacen.APARTADOS.forEach(function (a) { if (a.k === c) apN = a.n; });
+        if (estK) lc = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, estK), lc);
+        h += '<h4 class="fc-zona">' + esc(apN) + '</h4>';
+        lc.forEach(function (x) { h += filaCompacta(x.id, x.n, x.c > 1 ? "×" + x.c : "", Almacen.estaPedido(x.id)); });
+      });
+    }
+    if (g.basicos.length) {
+      h += '<h4 class="fc-zona">Revisa la despensa (básicos)</h4>';
+      g.basicos.forEach(function (l) { h += filaCompacta(l.id, l.producto || l.nombre, cantCorta(l), Almacen.estaPedido(l.id)); });
+    }
+    h += '</div><div class="pie-compacto"><span class="nota-peque" id="lt-cuenta">' + pieListaTienda(nom) + '</span>' +
+         '<button class="btn principal" id="lt-comprado">Comprado</button></div>';
+    abrirModal(h);
+    $("#modal-caja").classList.add("modal-compacto");
+    $(".lista-compacta").onchange = function (e) {
+      var c = e.target.closest ? e.target.closest("[data-coger]") : null;
+      if (!c) return;
+      var id = c.getAttribute("data-coger");
+      Almacen.ponerPedido(id, c.checked);
+      var fila = c.closest(".fila-compacta");
+      if (fila) fila.classList.toggle("hecha", c.checked);
+      pintarCompra();                                  /* la casilla de fondo cuenta lo cogido */
+      var ct = $("#lt-cuenta");
+      if (ct) ct.textContent = pieListaTienda(nom);
+    };
+    $("#lt-comprado").addEventListener("click", function () {
+      $("#modal-caja").classList.remove("modal-compacto");
+      abrirCompradoTienda(nom);
+    });
+  }
+
   var tiendasCompra = null;
   function abrirCompradoTienda(nom) {
     var g = tiendasCompra && tiendasCompra[nom];
@@ -6059,31 +6113,64 @@
     var nom = Util.DIAS[(d.getDay() + 6) % 7].toLowerCase();
     return Util.diasEntre(hoy, f) <= 6 ? "para el " + nom : "para el " + nom + " " + Util.etiquetaFecha(f);
   }
+  /* PENDIENTE ES OTRA CASILLA (v415): con muchas cosas pendientes, la tarjeta
+     larga empujaba las tiendas hacia abajo, que es justo lo que Carlos no quería.
+     Ahora sale en la rejilla de tiendas, en ámbar, y se abre en su ventana. */
   function pintarRecados() {
     var cont = $("#lista-recados");
-    if (!cont) return;
+    if (cont) cont.innerHTML = "";
+  }
+  function tilePendiente() {
     var lista = Almacen.recadosPendientes();
-    if (!lista.length) { cont.innerHTML = ""; return; }
+    if (!lista.length) return "";
     var urge = Util.sumarDias(Util.hoyISO(), 1);
-    var h = '<div class="tarjeta tienda-compra pendiente-compra">' +
-            '<div class="tienda-cab"><div><h2 class="cajon-compra">Pendiente</h2>' +
-            '<span class="nota-peque">Lo que no compraste donde tocaba. Cómpralo donde sea y táchalo con «Comprado»: entra en la despensa.</span></div></div>';
-    lista.forEach(function (x) {
-      var cuando = x.cuando
-        ? '<b' + (x.cuando.f <= urge ? ' style="color:var(--ambar)"' : '') + '>se necesita ' +
-            esc(paraCuando(x.cuando.f)) + '</b> · ' + esc(x.cuando.plato)
-        : (x.tipo === "hogar" ? "de casa" : "ningún plato lo pide ya: para reponer");
-      var sup = x.tipo === "comida" ? Almacen.elSuplenteDe(x.id) : null;
-      h += '<div class="linea"><div class="datos"><div class="nombre">' + esc(x.n) +
-             (x.c > 1 ? ' <span class="etiqueta">×' + x.c + '</span>' : '') + '</div>' +
-           '<div class="detalle">' + (x.t ? '<span class="etiqueta">no lo hubo en ' + esc(x.t) + '</span> ' : '') +
-             cuando +
-             (sup ? '<br>otra opción: ' + esc(sup.tipo === "mismo" ? "en " + sup.donde : sup.n + " en " + sup.donde) : '') +
-           '</div></div>' +
-           '<button class="btn mini principal" data-pendcomprado="' + esc(x.id) + '">Comprado</button>' +
-           '<button class="btn mini" data-recado="' + esc(x.id) + '" title="Ya no hace falta: se quita sin entrar en la despensa">Quitar</button></div>';
-    });
-    cont.innerHTML = h + '</div>';
+    var u = lista.filter(function (x) { return x.cuando && x.cuando.f <= urge; }).length;
+    return '<button type="button" class="tile-tienda tile-pendiente" data-abrirpendiente="1">' +
+      '<span class="tile-nom">Pendiente</span><span class="tile-num">' + lista.length + '</span>' +
+      '<span class="tile-pie">' + (u ? u + " para hoy o mañana" : "sin prisa") + '</span></button>';
+  }
+  function filaPendiente(x) {
+    var urge = Util.sumarDias(Util.hoyISO(), 1);
+    var cuando = x.cuando
+      ? '<b' + (x.cuando.f <= urge ? ' style="color:var(--ambar)"' : '') + '>' + esc(paraCuando(x.cuando.f)) + '</b>'
+      : (x.tipo === "hogar" ? "de casa" : "para reponer");
+    var sup = x.tipo === "comida" ? Almacen.elSuplenteDe(x.id) : null;
+    return '<div class="fila-compacta fila-pend" data-filapend="' + esc(x.id) + '">' +
+      '<input type="checkbox" data-pendcomprado="' + esc(x.id) + '" title="Comprado: entra en la despensa">' +
+      '<span class="fc-n">' + esc(x.n) + (x.c > 1 ? ' <b>×' + x.c + '</b>' : '') +
+        '<span class="fc-d">' + cuando + (x.t ? ' · no lo hubo en ' + esc(x.t) : '') +
+        (sup ? ' · otra opción: ' + esc(sup.tipo === "mismo" ? "en " + sup.donde : sup.n + " en " + sup.donde) : '') +
+        '</span></span>' +
+      '<button type="button" class="btn mini" data-recado="' + esc(x.id) + '" title="Ya no hace falta: se quita sin entrar en la despensa">Quitar</button></div>';
+  }
+  function abrirPendiente() {
+    var lista = Almacen.recadosPendientes();
+    var h = '<header><h2>Pendiente</h2><button class="cerrar" data-cerrar>×</button></header>' +
+      '<p class="nota-peque">Lo que no compraste donde tocaba. Cómpralo donde sea y márcalo: entra en la despensa.</p>' +
+      '<div class="lista-compacta" id="lp-lista">' +
+      (lista.length ? lista.map(filaPendiente).join("") : '<div class="vacio">Nada pendiente.</div>') +
+      '</div><div class="pie-compacto"><span class="nota-peque" id="lp-cuenta">' + lista.length + ' pendientes</span>' +
+      '<button class="btn" data-cerrar>Cerrar</button></div>';
+    abrirModal(h);
+    $("#modal-caja").classList.add("modal-compacto");
+    $("#lp-lista").onclick = function (e) {
+      var pc = e.target.closest("[data-pendcomprado]");
+      var qt = e.target.closest("[data-recado]");
+      var id = pc ? pc.getAttribute("data-pendcomprado") : qt ? qt.getAttribute("data-recado") : null;
+      if (!id) return;
+      if (qt) {
+        if (!confirm("¿Quitarlo de Pendiente sin comprarlo? No entra en la despensa, y si el menú lo pide volverá a la lista de su tienda.")) return;
+        Almacen.quitarRecado(id);
+      } else {
+        Almacen.comprarPendiente(id);
+        Util.toast("Comprado: entra en la despensa");
+      }
+      var f = document.querySelector('[data-filapend="' + id + '"]');
+      if (f) f.remove();
+      var ct = $("#lp-cuenta");
+      if (ct) ct.textContent = Almacen.recadosPendientes().length + " pendientes";
+      pintarCompra(); pintarDespensa();
+    };
   }
 
   /* ---------- los PLATOS de la compra ----------
@@ -7409,6 +7496,9 @@
     $("#lista-compra").addEventListener("click", function (e) {
       var tc = e.target.closest("[data-tiendacomprada]");
       if (tc) { abrirCompradoTienda(tc.getAttribute("data-tiendacomprada")); return; }
+      if (e.target.closest("[data-abrirpendiente]")) { abrirPendiente(); return; }
+      var at = e.target.closest("[data-abrirtienda]");
+      if (at) { abrirListaTienda(at.getAttribute("data-abrirtienda")); return; }
       var enc = e.target.closest("[data-encasa]");
       if (enc) {
         /* «Lo tengo» no es una casilla aparte: es decirle a la despensa que ya hay
