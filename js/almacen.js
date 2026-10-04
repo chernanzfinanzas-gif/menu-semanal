@@ -533,6 +533,19 @@
         e.arreglos["2026-10-04-estantes-2"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM2) {}
       }
+      /* EL CALDO DE POLLO, A DESPENSA · ESENCIAL (4-oct-2026, v388). Carlos lo
+         pidió junto al fumet («Caldo Fumet caldo de pescado, pasan a Despensa -
+         Esencial») y yo lo leí como un solo producto. Con hora, para que gane
+         al sincronizar (ver github.js). */
+      if (!e.arreglos["2026-10-04-caldo"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g.id !== "caldo_pollo_bajo_sal" || (g.tocado || "") >= "2026-10-05") return;
+          if (g.sitio !== "esencial" && e.stockSitios) delete e.stockSitios.esencial;
+          g.sitio = "esencial"; g.tocado = new Date().toISOString();
+        });
+        e.arreglos["2026-10-04-caldo"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errC) {}
+      }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
         (e.ingredientes || []).forEach(function (g) {

@@ -4769,6 +4769,31 @@
         var ff = Almacen.FORMATOS[k];
         return ff ? (regs[k] + " " + (regs[k] === 1 ? ff.n[0] : ff.n[1])) : "";
       }).filter(function (t) { return t; });
+    /* HOGAR, COMO LISTA (4-oct-2026). Carlos: «la ficha de limpieza, aseo…
+       debería ser una lista con dos botones, Hay marcado y Me falta». Aquí no
+       hay nada que contar, así que pasar las fichas de una en una sobraba: el
+       apartado entero en una pantalla y se marca lo que falte. */
+    if (p.esHogar) {
+      var hl = "";
+      p.fichas.forEach(function (f) { var xh = Almacen.hogarDe(f.id); if (xh) hl += filaHogar(xh); });
+      cont.innerHTML =
+        '<div class="pase-portada hogar-lista">' +
+          '<div class="zona">' + esc(p.zona) + "</div>" +
+          "<h2>" + esc(p.estante) + "</h2>" +
+          '<div class="cuenta">' + (p.marcados
+            ? "<b>" + p.marcados + "</b> " + (p.marcados === 1 ? "cosa a la compra" : "cosas a la compra")
+            : "Todo marcado como «Hay»") + "</div>" +
+          '<div class="cuando">' + (p.dias === null ? "Sin repasar nunca"
+            : (p.dias === 0 ? "Repasado hoy" : "Repasado hace " + p.dias + " d")) + "</div>" +
+        "</div>" +
+        '<div class="hogar-filas">' + hl + "</div>" +
+        '<div class="pase-portada hogar-pie">' +
+          '<button type="button" class="btn grande" data-hogarlistahecho="' + esc(p.estanteK) + '">Hecho: ' +
+            esc(p.estante) + " repasado</button>" +
+          '<div class="otras"><button type="button" class="btn mini" data-pasesalir="1">Volver</button></div>' +
+        "</div>";
+      return;
+    }
     if (p.esHogar) {
       comoSeMide = [p.marcados
         ? p.marcados + (p.marcados === 1 ? " cosa a la compra" : " cosas a la compra")
@@ -5010,7 +5035,7 @@
            la lista, no cuánto queda en el armario */
         (p.esHogar
           ? '<div class="cuenta"><b>' + p.marcados + "</b> " +
-            (p.marcados === 1 ? "cosa la compras" : "cosas las compras") + " la pr\u00f3xima vez</div>"
+            (p.marcados === 1 ? "cosa" : "cosas") + " a la pr\u00f3xima compra</div>"
           : '<div class="cuenta"><b>' + p.conAlgo + "</b> con algo · <b>" +
             (p.marcadas - p.conAlgo) + "</b> sin nada · <b>" +
             (p.total - p.marcadas) + "</b> sin mirar</div>") +
@@ -5450,6 +5475,39 @@
     } catch (e) {}
   }
 
+  /* Una fila de Hogar con sus dos botones, Hay / Me falta. La usan la lista de
+     Despensa → Hogar y la entrada de cada apartado en «¿Lo tengo?», para que
+     las dos sean la misma cosa (Carlos, 4-oct-2026). */
+  function filaHogar(x) {
+    var falta = Almacen.faltaHogar(x.id);
+    var cajon = x.cajon || "amazon";
+    var det = esc(Almacen.nombreCajon(cajon));
+    if (cajon === "suscripcion") det += ' \u00b7 llega sola';
+    if (x.suplente) det += ' \u00b7 si no hay: ' + esc(x.suplente);
+    if (x.pendiente) det = '<span style="color:var(--ambar)">Ponle tu marca y formato</span> \u00b7 ' + det;
+    else if (x.generico) det = esc(x.generico) + ' \u00b7 ' + det;
+    /* HAY / ME FALTA (4-oct-2026). Carlos: «debería ser una lista con dos
+       botones, Hay marcado y Me falta que selecciono para ir a la lista de
+       la compra. Cuando se confirma la compra se pasa de Me falta a Hay».
+       Lo segundo ya lo hacía `confirmarHogar` (quita la marca); lo que
+       cambia es la fila: dos botones grandes en vez de una casilla. */
+    return '<div class="linea linea-hogar hl' + (falta ? " falta" : "") + '">' +
+              '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
+              '<div class="detalle">' + det + '</div></div>' +
+              '<div class="hl-botones">' +
+                '<button type="button" class="btn hl-b' + (falta ? "" : " principal") +
+                  '" data-hlhay="' + esc(x.id) + '">Hay</button>' +
+                '<button type="button" class="btn hl-b' + (falta ? " on-falta" : "") +
+                  '" data-hlfalta="' + esc(x.id) + '">Me falta</button>' +
+              '</div>' +
+              (falta ? '<div class="hl-cant"><span>Cu\u00e1ntos</span>' +
+                '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|-1">\u2212</button>' +
+                '<span class="cuenta-lista">' + Almacen.cantidadHogar(x.id) + '</span>' +
+                '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|1">+</button></div>' : '') +
+              '<button class="btn mini solo-edicion" data-hogareditar="' + esc(x.id) + '">Editar</button>' +
+            '</div>';
+  }
+
   function pintarHogar() {
     var cont = $("#rejilla-hogar");
     if (!cont) return;
@@ -5482,35 +5540,7 @@
       html += '<details class="grupo-selec" data-hap="' + esc(ap.k) + '"' + (marcados || q || abiertos[ap.k] ? " open" : "") + '>' +
                 '<summary><span class="tit">' + esc(ap.n) + '</span>' +
                 '<span class="cuantas">' + (marcados ? marcados + " / " + lista.length : lista.length) + '</span></summary>';
-      lista.forEach(function (x) {
-        var falta = Almacen.faltaHogar(x.id);
-        var cajon = x.cajon || "amazon";
-        var det = esc(Almacen.nombreCajon(cajon));
-        if (cajon === "suscripcion") det += ' \u00b7 llega sola';
-        if (x.suplente) det += ' \u00b7 si no hay: ' + esc(x.suplente);
-        if (x.pendiente) det = '<span style="color:var(--ambar)">Ponle tu marca y formato</span> \u00b7 ' + det;
-        else if (x.generico) det = esc(x.generico) + ' \u00b7 ' + det;
-        /* HAY / ME FALTA (4-oct-2026). Carlos: «debería ser una lista con dos
-           botones, Hay marcado y Me falta que selecciono para ir a la lista de
-           la compra. Cuando se confirma la compra se pasa de Me falta a Hay».
-           Lo segundo ya lo hacía `confirmarHogar` (quita la marca); lo que
-           cambia es la fila: dos botones grandes en vez de una casilla. */
-        html += '<div class="linea linea-hogar hl' + (falta ? " falta" : "") + '">' +
-                  '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
-                  '<div class="detalle">' + det + '</div></div>' +
-                  '<div class="hl-botones">' +
-                    '<button type="button" class="btn hl-b' + (falta ? "" : " principal") +
-                      '" data-hlhay="' + esc(x.id) + '">Hay</button>' +
-                    '<button type="button" class="btn hl-b' + (falta ? " on-falta" : "") +
-                      '" data-hlfalta="' + esc(x.id) + '">Me falta</button>' +
-                  '</div>' +
-                  (falta ? '<div class="hl-cant"><span>Cu\u00e1ntos</span>' +
-                    '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|-1">\u2212</button>' +
-                    '<span class="cuenta-lista">' + Almacen.cantidadHogar(x.id) + '</span>' +
-                    '<button type="button" class="btn mini" data-hogarcant="' + esc(x.id) + '|1">+</button></div>' : '') +
-                  '<button class="btn mini solo-edicion" data-edithogar="' + esc(x.id) + '">Editar</button>' +
-                '</div>';
-      });
+      lista.forEach(function (x) { html += filaHogar(x); });
       html += '</details>';
     });
     cont.innerHTML = html || '<div class="vacio">Nada con esos filtros.</div>';
@@ -7509,6 +7539,20 @@
         if (UI.pase.vista === "ficha") pintarLoTengo();
         else refrescarLineaTengo(pp[0]);
         return;
+      }
+      /* ---- Hogar en lista: Hay / Me falta (4-oct-2026) ---- */
+      var thh = e.target.closest("[data-hlhay]");
+      if (thh) { Almacen.marcarFaltaHogar(thh.getAttribute("data-hlhay"), false); pintarLoTengo(); pintarCompra(); return; }
+      var thf = e.target.closest("[data-hlfalta]");
+      if (thf) {
+        var idTF = thf.getAttribute("data-hlfalta");
+        if (!Almacen.faltaHogar(idTF)) Almacen.marcarFaltaHogar(idTF, true, 1);
+        pintarLoTengo(); pintarCompra(); return;
+      }
+      var thd = e.target.closest("[data-hogarlistahecho]");
+      if (thd) {
+        Almacen.marcarMirado(thd.getAttribute("data-hogarlistahecho"));
+        UI.pase.vista = "fin"; pintarLoTengo(); arribaTengo(); return;
       }
       /* ---- las respuestas de un estante de Hogar, dentro del pase ---- */
       var phs = e.target.closest("[data-hogarsi]");
