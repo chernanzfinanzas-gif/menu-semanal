@@ -2104,7 +2104,11 @@
 
     /* el largo, si lo hay, ya ocupa un día: a los rodillos les quedan nHab-1 */
     var topeRod = Math.max(1, nHab - (ptsLargo > 0 ? 1 : 0));
-    var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, B.rodillo, topeRod);
+    /* el mínimo del rodillo va por fecha (4-oct-2026): las semanas pasadas no se rehacen */
+    var cfgRod = {}, kR, mdR = B.rodillo.minDesde || {};
+    for (kR in B.rodillo) if (B.rodillo.hasOwnProperty(kR)) cfgRod[kR] = B.rodillo[kR];
+    Object.keys(mdR).sort().forEach(function (f) { if (sem.desde >= f) cfgRod.min = mdR[f]; });
+    var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, cfgRod, topeRod);
     mete("bici", B.textos.rodillo, rod.n, rod.min);
     var cam = trocear(ptsCam, vCam, B.caminata, nHab);
     mete("caminar", B.textos.caminata, cam.n, cam.min);
@@ -6244,6 +6248,7 @@
         todas: actividadesJuntas(),
         curvas: (Curva.datos && Curva.datos.curvas) || null,
         revisiones: (Revisiones.datos && Revisiones.datos.semanas) || null,
+        cargasDe: cargasPlanYTotal,
         revisionesEstado: Revisiones.estado,
         plan: P, hoy: U.hoyISO()
       });
@@ -12749,6 +12754,20 @@
      Medido con sus datos del 18 al 27-sep: sumando sale 267 y la curva daba 259.
      La diferencia es el suavizado, y ahora cada punto se puede señalar con el
      dedo. */
+  /* LAS DOS CARGAS DE UN TRAMO · 4-oct-2026. Carlos: «una carga de
+     entrenamiento, que es la que mide, y otra métrica de dato para mí, que es
+     la carga total (sumando fuerza y paseos de relax)». `entreno` es lo hecho
+     contra el plan; `total`, todo lo que marcó el reloj. Para Mis Avances. */
+  function cargasPlanYTotal(desde, hasta) {
+    var entreno = 0, total = 0, hubo = false, f = desde;
+    while (f <= hasta) {
+      var c = cargasDia(f);
+      if (c) { entreno += c.hecho; total += c.activa; if (c.activa > 0) hubo = true; }
+      f = U.sumarDias(f, 1);
+    }
+    return hubo ? { entreno: Math.round(entreno), total: Math.round(total) } : null;
+  }
+
   function cargaSemana(lunes, hasta) {
     var r = cargasSemana(lunes, hasta);
     return r ? r.hecho : null;

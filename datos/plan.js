@@ -298,7 +298,11 @@
          del 28: con dos horas de puerto sobraban 35 minutos y desaparecían.
          `max` sube a 180 porque sin salida los cinco rodillos se van a las tres
          horas en las semanas altas, y él lo aceptó expresamente. */
-      rodillo: { n: 5, min: 40, max: 180, suelo: 30 },   // 4-oct-2026: min 45 -> 40. Carlos quiere 5 sesiones de bici (4 rodillos + salida); con 162 y la salida de 1 h, a 45' solo cabían 3. Más frecuencia con la misma carga.
+      rodillo: { n: 5, min: 45, max: 180, suelo: 30,
+        /* 4-oct-2026: desde la semana 3 el mínimo es 40'. Carlos quiere 5 sesiones de
+           bici (4 rodillos + salida); con 162 y la salida de 1 h, a 45' solo cabían 3.
+           POR FECHA: bajarlo para todas rehízo la semana 2 ya hecha (2×65' → 3×45'). */
+        minDesde: { "2026-10-05": 40 } },
       caminata: { n: 3, min: 30, max: 75 },
       /* La fuerza no lleva precio: el cumplimiento se cuenta por BLOQUES
          hechos, no por puntos, así que saltársela cuenta igual que saltarse una

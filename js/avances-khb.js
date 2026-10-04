@@ -160,6 +160,19 @@
           (w.test && w.descarga ? "descarga · test" : w.test ? "test" : "descarga") + "</text>");
       }
     });
+    /* la revisión de cada semana: raya discontinua en el lunes siguiente, que
+       es cuando empieza a mandar lo decidido. Tocarla enseña la decisión. */
+    (o.semanas || []).forEach(function (w) {
+      if (!w.rev || !w.hasta) return;
+      var xr = msDe(w.hasta) + DIA;
+      if (xr < x0 || xr > x1) return;
+      var xx = X(xr).toFixed(1);
+      s.push('<g class="av-rev' + (w.rev.pendiente ? " pte" : "") + '"><title>' +
+        esc("Revisión de la semana " + w.n + ": " + w.rev.resumen) + "</title>" +
+        '<line x1="' + xx + '" x2="' + xx + '" y1="' + M.t + '" y2="' + (H - M.b) + '"/>' +
+        '<rect x="' + (X(xr) - 1).toFixed(1) + '" y="' + (M.t - 2) + '" width="44" height="14" rx="3"/>' +
+        '<text x="' + (X(xr) + 3).toFixed(1) + '" y="' + (M.t + 8) + '">Rev. S' + w.n + "</text></g>");
+    });
     /* rejilla: tres valores en el eje y */
     for (var k = 0; k <= 2; k++) {
       var yv = y0 + pad + (y1 - y0 - 2 * pad) * k / 2;
@@ -431,7 +444,17 @@
         return { x: s.t, y: s.a[campo], f: s.f, et: s.nombre, mal: fmtMal ? fmtMal(s) : false };
       });
     };
-    var semFondo = semVis;
+    /* 4-oct-2026: cada semana lleva su revisión, si la hay, para marcar en los
+       gráficos el lunes en que empieza a mandar lo que se decidió. */
+    var revPorN = {};
+    (o.revisiones || []).forEach(function (r) { revPorN[r.n] = r; });
+    var semFondo = semVis.map(function (w) {
+      var r = revPorN[w.n];
+      if (!r) return w;
+      var c = {}; for (var k in w) if (w.hasOwnProperty(k)) c[k] = w[k];
+      c.rev = { pendiente: r.pendiente, resumen: resumenRev(r) };
+      return c;
+    });
 
     var gDeriva = tarjeta("Deriva cardiaca",
       "Cuánto sube el pulso de la primera a la segunda mitad del bloque principal con los mismos vatios. Bajar es mejorar.",
@@ -487,32 +510,56 @@
             return (x.ok ? "✔ " : "✘ ") + esc(x.que); }).join(" · ")];
         })) : ""), "");
 
-    /* carga semanal: prevista (hueca) contra hecha (llena) */
+    /* CARGA SEMANAL · dos métricas (4-oct-2026). Carlos: «una carga de
+       entrenamiento, que es la que mide, y otra métrica de dato para mí, que es
+       la carga total (sumando fuerza y paseos de relax)».
+       · entrenamiento (barra llena): lo que cuenta El Plan contra la rampa; el %
+         es éste, igual que en El Plan.
+       · total (barra gris de fondo): todo lo que marcó el reloj.
+       · prevista (contorno discontinuo): lo que pedía la rampa.
+       Si la app no pasa `cargasDe`, se cae a la suma de todo (lo de antes). */
+    sem.forEach(function (w) {
+      var c = (!w.futura && o.cargasDe) ? o.cargasDe(w.desde, w.hasta) : null;
+      w.entreno = c ? c.entreno : (w.futura ? 0 : w.hecha);
+      w.total = c ? c.total : w.hecha;
+    });
     var semHasta = sem.filter(function (w) { return !w.futura; });
     var cargaSvg = (function () {
       var lista = sem.slice(0, Math.max(semHasta.length + 2, 4));
-      var max = Math.max.apply(null, lista.map(function (w) { return Math.max(w.prevista || 0, w.hecha || 0); })) || 1;
-      var bw = 30, gap = 16, w = lista.length * (bw + gap) + 30, h = 150, base = 118, alto = 92;
+      var max = Math.max.apply(null, lista.map(function (w) { return Math.max(w.prevista || 0, w.entreno || 0, w.total || 0); })) || 1;
+      var bw = 34, gap = 18, w = lista.length * (bw + gap) + 30, h = 164, base = 118, alto = 92;
       return '<svg class="av-svg-bar" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Carga semanal">' +
-        lista.map(function (s, i) {
-          var x = 15 + i * (bw + gap), hp = s.prevista / max * alto, hh = s.hecha / max * alto;
-          var pct = s.prevista ? Math.round(s.hecha / s.prevista * 100) : null;
-          return "<g>" + '<rect class="av-prev" x="' + x + '" y="' + (base - hp) + '" width="' + bw + '" height="' + hp + '" rx="3"/>' +
-            (s.futura ? "" : '<rect class="av-hecha' + (s.curso ? " av-curso" : "") + '" x="' + (x + 5) + '" y="' + (base - hh) + '" width="' + (bw - 10) + '" height="' + hh + '" rx="3"/>') +
-            (s.futura ? "" : '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - Math.max(hp, hh) - 5) + '" text-anchor="middle">' + pct + " %</text>") +
+        lista.map(function (s) {
+          var i = lista.indexOf(s), x = 15 + i * (bw + gap);
+          var hp = s.prevista / max * alto, he = s.entreno / max * alto, ht = s.total / max * alto;
+          var pct = s.prevista ? Math.round(s.entreno / s.prevista * 100) : null;
+          var top = Math.max(hp, he, s.futura ? 0 : ht);
+          return "<g>" +
+            (s.futura ? "" : '<rect class="av-total" x="' + x + '" y="' + (base - ht) + '" width="' + bw + '" height="' + ht + '" rx="3"/>') +
+            '<rect class="av-prev" x="' + x + '" y="' + (base - hp) + '" width="' + bw + '" height="' + hp + '" rx="3"/>' +
+            (s.futura ? "" : '<rect class="av-hecha' + (s.curso ? " av-curso" : "") + '" x="' + (x + 7) + '" y="' + (base - he) + '" width="' + (bw - 14) + '" height="' + he + '" rx="3"/>') +
+            (s.futura ? "" : '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - top - 5) + '" text-anchor="middle">' + pct + " %</text>") +
             '<text class="av-eje" x="' + (x + bw / 2) + '" y="' + (base + 14) + '" text-anchor="middle">S' + s.n + "</text>" +
             '<text class="av-eje av-eje2" x="' + (x + bw / 2) + '" y="' + (base + 25) + '" text-anchor="middle">' +
               (s.descarga ? "desc." : s.test ? "test" : s.curso ? "en curso" : "") + "</text>" +
+            (revPorN[s.n] ? '<g class="av-rev-bar' + (revPorN[s.n].pendiente ? " pte" : "") + '"><title>' +
+              esc("Revisión de la semana " + s.n + ": " + resumenRev(revPorN[s.n])) + "</title>" +
+              '<rect x="' + (x + 3) + '" y="' + (base + 29) + '" width="' + (bw - 6) + '" height="13" rx="3"/>' +
+              '<text x="' + (x + bw / 2) + '" y="' + (base + 39) + '" text-anchor="middle">rev.</text></g>' : "") +
             "<title>" + esc("Semana " + s.n + " (" + diaCorto(s.desde) + "): " + (s.futura ? "prevista " + s.prevista :
-              "hecha " + num(s.hecha) + " de " + s.prevista + (s.curso ? " (en curso)" : ""))) + "</title></g>";
+              "entrenamiento " + num(s.entreno) + " de " + s.prevista + " · total " + num(s.total) + (s.curso ? " (en curso)" : ""))) + "</title></g>";
         }).join("") + "</svg>";
     })();
     var gCarga = tarjeta("Carga de cada semana",
-      "Lo hecho (barra llena, todas las actividades) contra lo que pedía la rampa (barra hueca).",
-      '<div class="av-leyenda"><span><i class="av-l-hecha"></i>Hecha</span><span><i class="av-l-prev"></i>Prevista</span></div>' +
-      cargaSvg + tabla(["Semana", "Prevista", "Hecha", "Actividades"],
-        semHasta.map(function (s) { return ["S" + s.n + " · " + diaCorto(s.desde) + (s.curso ? " (en curso)" : ""), s.prevista, num(s.hecha), s.act]; })),
-      "La semana en curso se va llenando. Las de descarga piden menos a propósito.");
+      "Dos medidas. La de <b>entrenamiento</b> es la que cuenta contra la rampa, igual que El Plan: bici, correr y las caminatas de entreno. " +
+      "La <b>total</b> es todo lo que marcó el reloj, con la fuerza y los paseos de relax.",
+      '<div class="av-leyenda"><span><i class="av-l-hecha"></i>Entrenamiento</span><span><i class="av-l-total"></i>Total</span><span><i class="av-l-prev"></i>Prevista</span></div>' +
+      cargaSvg + tabla(["Semana", "Prevista", "Entrenamiento", "%", "Total", "Fuera del plan"],
+        semHasta.map(function (s) {
+          return ["S" + s.n + " · " + diaCorto(s.desde) + (s.curso ? " (en curso)" : ""), s.prevista, num(s.entreno),
+                  s.prevista ? Math.round(s.entreno / s.prevista * 100) + " %" : "—", num(s.total), num(Math.max(0, s.total - s.entreno))];
+        })),
+      "El % es el de entrenamiento, el mismo que da El Plan. La semana en curso se va llenando; las de descarga piden menos a propósito.");
 
     /* FTP: escalones (declarada, luego cada test) y el objetivo */
     var esc0 = ftpD ? [{ x: x0, y: ftpD.w }] : [];
@@ -547,7 +594,7 @@
     return esc(t)
       .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
       .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
-      .replace(/`([^`]+)`/g, "<code>$1</code>");
+      .replace(/\x60([^\x60]+)\x60/g, "<code>$1</code>");   // \x60 = comilla invertida: literal, el comprobador de publicar.py se confunde
   }
 
   /* Markdown justo para lo que escribo en las revisiones: títulos, párrafos,
@@ -602,6 +649,14 @@
     }
     cierraPar();
     return out.join("");
+  }
+
+  /* la decisión en una línea: su primera viñeta, sin marcas */
+  function resumenRev(r) {
+    if (r.pendiente || !r.decision) return "decisión pendiente.";
+    var l = String(r.decision).split("\n").filter(function (x) { return /\S/.test(x); })[0] || "";
+    l = l.replace(/^\s*([-*]|\d+\.)\s+/, "").replace(/\*\*|\x60/g, "");
+    return l.length > 160 ? l.slice(0, 157) + "…" : l;
   }
 
   function rango(s) {
