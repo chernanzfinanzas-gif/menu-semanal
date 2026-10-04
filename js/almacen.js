@@ -708,18 +708,18 @@
             "tomillo", "sal", "romero", "pimienta", "oregano", "nuez_moscada",
             "laurel", "jengibre", "eneldo", "comino", "cayena", "canela",
             "ajo_polvo" ] },
-        "Mercadona|despensa": { f: "2026-10-04b", ids: [
+        "Mercadona|despensa": { f: "2026-10-04c", ids: [
             "fumet_hacendado", "caldo_pollo_bajo_sal", "avellanas", "bebida_isotonica", "cerveza", "crema_cacahuete",
             "chia", "miel", "chocolate_leche", "copos_avena", "edulcorante_comprimidos", "galletas_maria",
             "chocolate_negro", "cacao_puro", "limonada_light", "leche_desnatada", "fanta_nar_zero", "cocacola_zero",
-            "fanta_lim_zero", "cerveza_sin_tostada", "cerveza_sin_rubia", "pan_panecillo_sinsal", "pan_ortiz", "pan_molde",
+            "fanta_lim_zero", "cerveza_sin_tostada", "cerveza_sin_rubia", "pan_ortiz", "pan_molde",
             "magdalena", "donut_panrico", "croissant", "pistachos_sinsal", "tortitas_maiz", "tortitas_arroz_yogur",
             "patatas_bolsa", "pasas", "cacahuetes_sinsal", "orejones", "nueces", "doritos",
             "mango_deshidratado", "maiz_palomitas", "datiles", "almendras", "pasta_fusilli", "pasta",
             "lentejas", "cous_cous", "arroz_redondo", "calamares_tinta", "atun_lata_natural", "anchoas",
             "aceitunas_negras", "aceitunas_rell", "vinagre", "vinagre_balsamico", "aove" ] },
-        "Mercadona|nevera": { f: "2026-10-04c", ids: [
-            "alubia_blanca_cocida", "lima", "mandarina", "naranja", "kiwi", "limon_exprimido", "salsa_trufa",
+        "Mercadona|nevera": { f: "2026-10-04d", ids: [
+            "pan_panecillo_sinsal", "alubia_blanca_cocida", "lima", "mandarina", "naranja", "kiwi", "limon_exprimido", "salsa_trufa",
             "tomate_rallado", "zanahoria", "tomate", "tomate_cherry", "setas", "puerro",
             "platano", "pina_fresca", "pera", "manzana_reineta", "mango", "limon",
             "ensalada_gourmet", "guacamole", "espinacas", "brotes_verdes", "champinones", "cebolla_verde",
