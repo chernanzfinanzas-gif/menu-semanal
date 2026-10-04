@@ -4808,7 +4808,14 @@
                                sup.tipo === "mismo" ? sup.donde : null);
             suplentes++;
           } else {
-            self.estado.recados[l.id] = { c: pedidos - llegaron, f: Util.hoyISO(), tipo: "comida" };
+            /* `q` es lo que entra en la despensa cuando por fin se compre, y
+               `t` la tienda donde no estaba, para que se vea en Pendiente. */
+            var gq = self.ingrediente(l.id);
+            var q = gq && gq.envase ? gq.envase * (pedidos - llegaron)
+                                    : (l.cantidad || 0) * (pedidos - llegaron) / pedidos;
+            self.estado.recados[l.id] = { c: pedidos - llegaron, q: Math.round(q * 100) / 100,
+                                          t: l.cajon === "amazon" ? "Amazon" : (l.tienda || ""),
+                                          f: Util.hoyISO(), tipo: "comida" };
             aRecados++;
           }
         }
@@ -4828,7 +4835,8 @@
         if (faltas[id]) {
           var x = self.hogarDe(id);
           self.estado.recados[id] = { c: self.cantidadHogar(id), f: Util.hoyISO(),
-                                      tipo: "hogar", n: x ? x.n : id };
+                                      tipo: "hogar", n: x ? x.n : id,
+                                      t: (faltas[id] && faltas[id].t) || "" };
         }
         delete (self.estado.hogar || {})[id];
       });
@@ -4841,14 +4849,70 @@
         var r = self.estado.recados[id];
         var n = r.n;
         if (!n) { var g = self.ingrediente(id); n = g ? g.n : id; }
-        fuera.push({ id: id, n: n, c: r.c, f: r.f, tipo: r.tipo || "comida" });
+        var cuando = (r.tipo || "comida") === "comida" ? self.primerDiaQueLoPide(id) : null;
+        fuera.push({ id: id, n: n, c: r.c, q: r.q || 0, t: r.t || "", f: r.f,
+                     tipo: r.tipo || "comida", cuando: cuando });
       });
-      fuera.sort(function (a, b) { return a.n.localeCompare(b.n); });
+      /* Lo que antes pide el menú, arriba. Lo que no pide ningún plato
+         (un mínimo, un capricho, lo de casa) va detrás, por nombre. */
+      fuera.sort(function (a, b) {
+        var fa = a.cuando ? a.cuando.f : "9999", fb = b.cuando ? b.cuando.f : "9999";
+        return fa !== fb ? (fa < fb ? -1 : 1) : a.n.localeCompare(b.n);
+      });
       return fuera;
     },
     quitarRecado: function (id) {
       delete (this.estado.recados || {})[id];
       this.guardar("compra");
+    },
+
+    /* EL PRIMER DÍA QUE EL MENÚ LO PIDE, de hoy en adelante (v414). Es lo que
+       dice Pendiente: «pera · se necesita para el jueves». Se salta lo ya
+       comido y lo que se come fuera. Mira cinco semanas, que es más de lo que
+       se planifica nunca. Devuelve { f, plato } o null. */
+    primerDiaQueLoPide: function (id) {
+      var hoy = Util.hoyISO(), self = this;
+      for (var i = 0; i < 35; i++) {
+        var f = Util.sumarDias(hoy, i);
+        var dia = this.estado.plan[f];
+        if (!dia) continue;
+        var hallado = null;
+        Util.TOMAS.forEach(function (t) {
+          if (hallado) return;
+          if (self.esFuera(f, t.k) || !self.tomaActiva(f, t.k)) return;
+          (dia[t.k] || []).forEach(function (rid) {
+            if (hallado || self.estaComido(f, t.k, rid)) return;
+            var rec = self.receta(rid);
+            if (!rec) return;
+            if ((rec.ing || []).some(function (l) { return l.i === id; })) hallado = { f: f, plato: rec.n };
+          });
+        });
+        if (hallado) return hallado;
+      }
+      return null;
+    },
+
+    /* COMPRADO DESDE PENDIENTE (v414). Lo de comida entra en la despensa con
+       lo que faltaba; lo de casa no lleva stock y solo se quita. Hasta la v413
+       «Ya lo tengo» lo borraba sin meterlo en la despensa, y la lista lo
+       volvía a pedir. */
+    comprarPendiente: function (id) {
+      var r = (this.estado.recados || {})[id];
+      if (!r) return false;
+      if ((r.tipo || "comida") === "comida") {
+        var g = this.ingrediente(id);
+        var q = r.q > 0 ? r.q : (g && g.envase ? g.envase * (r.c || 1) : 0);
+        if (q > 0) {
+          var fch = this.fichaStock(id);
+          var ahora = (fch && fch.c > 0 ? fch.c : 0) + q;
+          this.estado.stock[id] = { c: Math.round(ahora * 100) / 100, f: Util.hoyISO() };
+          this.guardar("stock");
+        }
+      }
+      delete this.estado.recados[id];
+      delete this.estado.compraMarcada[id];
+      this.guardar("compra");
+      return true;
     },
 
     /* ---------- registro de lo que se come de verdad ---------- */
@@ -6729,9 +6793,14 @@
       var compTodo = this.comprometidoTodo();
 
       var secciones = {}, basicos = [];
+      /* LO PENDIENTE TIENE SU PROPIA LISTA (v414, 4-oct-2026). Lo que no llegó
+         ya está en «Pendiente» con el día que lo pide el menú; si saliera
+         también aquí, se compraría dos veces. Hasta la v413 salía doble. */
+      var enPendiente = this.estado.recados || {};
       Object.keys(acumulado).forEach(function (id) {
         var ing = self.ingrediente(id);
         if (!ing) return;
+        if (enPendiente[id]) return;
         /* LO QUE HACE FALTA MENOS LO QUE HAY DISPONIBLE PARA ESTA SEMANA. Y
            luego, redondeado al envase: en la tienda no venden 340 g de arroz,
            venden bolsas de kilo.
@@ -6843,6 +6912,7 @@
         if (!ing || (ing.oculta && !ing.reserva)) return;
         if (self.modoPedir(ing) === "nunca") return;
         if (acumulado[id]) return;                  // ya lo pide un plato
+        if (enPendiente[id]) return;                // ya está en Pendiente
         var tamq = self.tamanoPieza(ing);
         var pediste = self.estado.quiero[id].p || 1;
         var dondeQ = self.estado.quiero[id].donde || null;   /* tienda forzada por el suplente */
@@ -6897,6 +6967,7 @@
         if (self.modoPedir(ing) !== "minimo") return;     // el modo manda sobre el número
         if ((self.estado.quiero || {})[ing.id]) return;   // ya entra por capricho
         if (acumulado[ing.id]) return;              // el menú ya lo pide: esa línea manda
+        if (enPendiente[ing.id]) return;            // ya está en Pendiente
         var tam = self.tamanoPieza(ing);
         if (!(tam > 0)) return;
         var hayP = Math.round(self.stockDe(ing.id) / tam * 100) / 100;

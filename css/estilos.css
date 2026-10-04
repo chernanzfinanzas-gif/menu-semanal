@@ -1439,3 +1439,19 @@ button.enlace {
 #hogar-confirmar.ok-github{color:var(--verde); background:var(--blanco); border-color:var(--verde); opacity:1}
 #hogar-confirmar.avisa.ok-github{background:var(--verde); color:#fff}
 .linea-hogar.hl .loc-mover{flex:0 0 auto}
+
+/* UNA LISTA POR TIENDA (v414): cada tienda es su tarjeta, con su «Comprado»
+   arriba a la derecha, a mano del pulgar al salir de la tienda. */
+.tienda-compra{padding:12px 12px 6px}
+.tienda-cab{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+.tienda-cab .cajon-compra{margin:0 0 2px; border-bottom:0; padding-bottom:0}
+.tienda-cab .btn{flex:0 0 auto}
+.pendiente-compra{border-color:var(--ambar)}
+.pendiente-compra .cajon-compra{color:var(--ambar)}
+.pendiente-compra .linea .btn{margin-left:4px}
+.llegaron-of{margin:-2px 0 8px 40px; font-size:.85rem; display:flex; align-items:center; gap:6px}
+#ct-cuerpo .linea{cursor:pointer}
+/* El móvil esconde `.linea .detalle`; aquí el detalle ES la razón de la
+   línea —«se necesita para el jueves»—, así que se fuerza a la vista. */
+#lista-recados .linea .detalle{display:block}
+#modal #ct-cuerpo .linea .detalle{display:block; font-size:.78rem}

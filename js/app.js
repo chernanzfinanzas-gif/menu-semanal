@@ -5706,7 +5706,8 @@
     });
     var totalHogar = hogar.amazon.length + hogar.super.length;
 
-    if (!totalLineas && !totalHogar) {
+    /* Los básicos también cuentan: una tienda con sólo básicos se quedaba sin lista. */
+    if (!totalLineas && !totalHogar && !datos.basicos.length) {
       $("#compra-resumen").textContent = "Nada que comprar: o no hay men\u00fa planificado en esas fechas, " +
         "o lo que hace falta ya est\u00e1 en la despensa.";
       $("#lista-compra").innerHTML = "";
@@ -5725,9 +5726,9 @@
       bm.textContent = "Poner marcas (" + sinMarca + ")";
     }
     $("#compra-resumen").textContent =
-      (totalLineas - pedidos) + " por pedir de " + totalLineas +
-      (pedidos ? " \u00b7 " + pedidos + " ya pedidos" : "") +
-      (totalHogar ? " \u00b7 " + totalHogar + " de casa" : "");
+      totalLineas + " de comida" + (totalHogar ? " \u00b7 " + totalHogar + " de casa" : "") +
+      (pedidos ? " \u00b7 " + pedidos + " ya cogidos" : "") +
+      ". Al salir de cada tienda, o al llegar el pedido, pulsa su \u00abComprado\u00bb.";
     /* EL BLOQUE DE \u00abLOS PLATOS DE ESTE RANGO\u00bb SE RETIRA (22-sep-2026).
        Carlos lo par\u00f3 el 17 porque no le convenc\u00eda c\u00f3mo informaba \u2014dec\u00eda \u00ab0 de 64
        comprados\u00bb y a la vez \u00ab33 platos con todos los ingredientes\u00bb\u2014 y la auditor\u00eda
@@ -5757,117 +5758,194 @@
       return h + '</div>';
     }
 
+    /* UNA LISTA POR TIENDA (v414, 4-oct-2026). Carlos: «hay tantas listas de
+       compra como tienda donde comprar. Se marca comprado en la lista de la
+       tienda y todo se pone como comprado. Yo deselecciono lo que no haya
+       llegado, que pasa a una lista pendiente». Hasta la v413 era una sola
+       página —Amazon arriba, el súper partido por tiendas— con un «Ha llegado»
+       general. Ahora cada tienda es su lista, con su botón «Comprado».
+       Dentro de cada una manda el orden de sus listas de Mercadona, igual que
+       antes: zona y orden de compra; lo de casa, por apartado. */
+    var tiendas = {};
+    function tnd(nom) { return (tiendas[nom] = tiendas[nom] || { comida: [], casa: [], basicos: [] }); }
+    function tiendaDeLinea(l) { return l.cajon === "amazon" ? "Amazon" : (l.tienda || "Sin tienda asignada"); }
+    datos.secciones.forEach(function (sec) {
+      sec.lineas.forEach(function (l) { tnd(tiendaDeLinea(l)).comida.push(l); });
+    });
+    datos.basicos.forEach(function (l) { tnd(tiendaDeLinea(l)).basicos.push(l); });
+    (hogar.amazon || []).forEach(function (x) { tnd("Amazon").casa.push(x); });
+    (hogar.super || []).forEach(function (x) { tnd(x.tienda || "Sin tienda asignada").casa.push(x); });
+    tiendasCompra = tiendas;
+
+    var primeras = ["Mercadona", "Amazon"];
+    var nombres = Object.keys(tiendas).sort(function (a, b) {
+      if (a === "Sin tienda asignada") return 1;
+      if (b === "Sin tienda asignada") return -1;
+      var ia = primeras.indexOf(a), ib = primeras.indexOf(b);
+      if (ia < 0) ia = 99;
+      if (ib < 0) ib = 99;
+      return ia !== ib ? ia - ib : a.localeCompare(b);
+    });
+
     var html = "";
-    [["amazon", "Amazon"], ["super", "S\u00faper"]].forEach(function (par) {
-      var k = par[0];
-      var secs = caj[k], hg = hogar[k] || [];
-      if (!secs.length && !hg.length) return;
-      html += '<h2 class="cajon-compra">' + esc(par[1]) + '</h2>';
-      /* EL SÚPER SE AGRUPA POR TIENDA, NO POR SECCIÓN (23-sep-2026). Porque no es
-         un súper: son cuatro sitios distintos —Mercadona, Primaprix, Ahorramás y
-         DIA— y lo que hace falta al salir de casa es saber qué coger en cada uno.
-         Ordenarlo por sección de supermercado, con seis artículos repartidos entre
-         cuatro tiendas, no servía para nada. */
-      if (k === "super") {
-        var porTienda = {};
-        function cajon(t) { return (porTienda[t] = porTienda[t] || { comida: [], casa: [] }); }
-        secs.forEach(function (sec) {
-          sec.lineas.forEach(function (l) { cajon(l.tienda || "Sin tienda asignada").comida.push(l); });
-        });
-        hg.forEach(function (x) { cajon(x.tienda || "Sin tienda asignada").casa.push(x); });
-        Object.keys(porTienda).sort().forEach(function (nom) {
-          var g = porTienda[nom];
-          if (g.comida.length) {
-            /* DENTRO DE CADA TIENDA, POR ZONA Y EN TU ORDEN (Carlos, 29-sep-2026).
-               Sus listas de Mercadona son las zonas —Nevera, Despensa, Alacena— y
-               dentro de cada una el orden es el que él ha ido poniendo. Lo que
-               todavía no ha ordenado sale arriba, que es donde Mercadona pone lo
-               nuevo. */
-            html += '<div class="seccion-compra"><h3>' + esc(nom) + '</h3>';
-            var porZona = {};
-            g.comida.forEach(function (l) {
-              var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
-              (porZona[zk] = porZona[zk] || []).push(l);
-            });
-            var ordenZonas = Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]);
-            ordenZonas.forEach(function (zk) {
-              var lineas = porZona[zk];
-              if (!lineas || !lineas.length) return;
-              var zn = "Sin zona";
-              Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
-              var clave = Almacen.claveCompra(nom, zk);
-              lineas = Almacen.ordenarComoEnCompra(clave, lineas);
-              html += '<div class="zona-compra" data-clavecompra="' + esc(clave) + '">' +
-                      '<h4 class="estante">' + esc(zn) +
-                      '<span>' + lineas.length + '</span></h4>';
-              /* Aquí NO se ordena: esta lista sólo LEE el orden. Ordenar desde
-                 aquí ordenaría sólo lo de esta semana. Se hace en Despensa →
-                 Orden de compra, con todos los productos delante. */
-              lineas.forEach(function (l) { html += lineaCompraHTML(l, false); });
-              html += '</div>';
-            });
-            html += '</div>';
-          }
-          /* LO DE CASA, POR APARTADO Y EN SU ORDEN (4-oct-2026). Carlos tiene
-             en Mercadona una lista por apartado —«Hogar», «Aseo», «Menaje
-             cocina»— y el orden de cada una es el que manda, igual que en la
-             comida. Antes salía todo junto y por orden alfabético. Lo que no
-             está en su lista sale arriba, como hace Mercadona con lo nuevo. */
-          if (g.casa.length) {
-            var porAp = {};
-            g.casa.forEach(function (x) { (porAp[x.cat] = porAp[x.cat] || []).push(x); });
-            var aps = Almacen.APARTADOS.map(function (a) { return a.k; });
-            Object.keys(porAp).forEach(function (c) { if (aps.indexOf(c) < 0) aps.push(c); });
-            aps.forEach(function (c) {
-              var lineasC = porAp[c];
-              if (!lineasC || !lineasC.length) return;
-              var estK = null, apN = c;
-              Almacen.ZONAS.forEach(function (z) { z.estantes.forEach(function (e) { if (e.hogar === c) estK = e.k; }); });
-              Almacen.APARTADOS.forEach(function (a) { if (a.k === c) apN = a.n; });
-              if (estK) lineasC = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, estK), lineasC);
-              html += '<div class="seccion-compra"><h3>' + esc(nom) + ' \u00b7 ' + esc(apN) +
-                      '<span>' + lineasC.length + '</span></h3>';
-              lineasC.forEach(function (x) { html += lineaHogarHTML(x); });
-              html += '</div>';
-            });
-          }
-        });
-        return;
-      }
-      /* AMAZON TAMBIÉN POR ZONA (Carlos, 29-sep-2026: «no veo Amazon entre los
-         sitios de compra»). Mismo criterio que el súper: zona y el orden que
-         haya puesto en Despensa → Orden de compra. Los básicos se quedan en su
-         propio bloque, que no es una zona de la casa sino un aviso. */
-      var zonasAmazon = {}, basicosAmazon = [];
-      secs.forEach(function (sec) {
-        sec.lineas.forEach(function (l) {
-          if (sec.basico) { basicosAmazon.push(l); return; }
-          var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
-          (zonasAmazon[zk] = zonasAmazon[zk] || []).push(l);
-        });
+    nombres.forEach(function (nom) {
+      var g = tiendas[nom];
+      var todas = g.comida.concat(g.basicos);
+      var total = todas.length + g.casa.length;
+      var cogidos = todas.filter(function (l) { return l.marcado; }).length +
+                    g.casa.filter(function (x) { return Almacen.estaPedido(x.id); }).length;
+      html += '<div class="tarjeta tienda-compra">' +
+        '<div class="tienda-cab"><div><h2 class="cajon-compra">' + esc(nom) + '</h2>' +
+        '<span class="nota-peque">' + total + (total === 1 ? " producto" : " productos") +
+          (cogidos ? " · <b>" + cogidos + " cogidos</b>" : "") + '</span></div>' +
+        '<button class="btn principal" data-tiendacomprada="' + esc(nom) + '">Comprado</button></div>';
+
+      var porZona = {};
+      g.comida.filter(visible).forEach(function (l) {
+        var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
+        (porZona[zk] = porZona[zk] || []).push(l);
       });
+      var hayZonas = Object.keys(porZona).length;
+      if (hayZonas) html += '<div class="seccion-compra">';
       Almacen.ZONAS.map(function (z) { return z.k; }).concat(["sinzona"]).forEach(function (zk) {
-        var lineas = zonasAmazon[zk];
+        var lineas = porZona[zk];
         if (!lineas || !lineas.length) return;
         var zn = "Sin zona";
         Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
-        lineas = Almacen.ordenarComoEnCompra(Almacen.claveCompra("Amazon", zk), lineas);
-        html += '<div class="seccion-compra"><h3>' + esc(zn) + '</h3>';
+        var clave = Almacen.claveCompra(nom, zk);
+        lineas = Almacen.ordenarComoEnCompra(clave, lineas);
+        html += '<div class="zona-compra" data-clavecompra="' + esc(clave) + '">' +
+                '<h4 class="estante">' + esc(zn) + '<span>' + lineas.length + '</span></h4>';
+        /* Aquí NO se ordena: se hace en Despensa → Orden de compra. */
         lineas.forEach(function (l) { html += lineaCompraHTML(l, false); });
         html += '</div>';
       });
-      if (basicosAmazon.length) {
-        html += '<div class="seccion-compra"><h3>Revisa la despensa (b\u00e1sicos)</h3>';
-        basicosAmazon.forEach(function (l) { html += lineaCompraHTML(l, true); });
+      if (hayZonas) html += '</div>';
+
+      if (g.casa.length) {
+        var porAp = {};
+        g.casa.filter(function (x) { return UI.ocultarComprados ? !Almacen.estaPedido(x.id) : true; })
+          .forEach(function (x) { (porAp[x.cat] = porAp[x.cat] || []).push(x); });
+        var aps = Almacen.APARTADOS.map(function (a) { return a.k; });
+        Object.keys(porAp).forEach(function (c) { if (aps.indexOf(c) < 0) aps.push(c); });
+        aps.forEach(function (c) {
+          var lineasC = porAp[c];
+          if (!lineasC || !lineasC.length) return;
+          var estK = null, apN = c;
+          Almacen.ZONAS.forEach(function (z) { z.estantes.forEach(function (e) { if (e.hogar === c) estK = e.k; }); });
+          Almacen.APARTADOS.forEach(function (a) { if (a.k === c) apN = a.n; });
+          if (estK) lineasC = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, estK), lineasC);
+          html += '<div class="seccion-compra"><h3>' + esc(apN) + ' <span>' + lineasC.length + '</span></h3>';
+          lineasC.forEach(function (x) { html += lineaHogarHTML(x); });
+          html += '</div>';
+        });
+      }
+
+      var bas = g.basicos.filter(visible);
+      if (bas.length) {
+        html += '<div class="seccion-compra"><h3>Revisa la despensa (básicos)</h3>';
+        bas.forEach(function (l) { html += lineaCompraHTML(l, true); });
         html += '</div>';
       }
-      html += bloqueHogar(hg);
+      html += '</div>';
     });
 
-    if (!html) html = '<div class="vacio">Todo pedido. Cuando llegue, dale a \u00abHa llegado\u00bb.</div>';
+    if (!html) html = '<div class="vacio">Nada por comprar.</div>';
     $("#lista-compra").innerHTML = html;
-    $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar pedidos";
+    $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar lo cogido";
     refrescarBotonRecibida();
+  }
+
+  /* «COMPRADO» EN UNA TIENDA (v414). Un solo botón para los dos casos:
+       · en la tienda física has ido marcando lo que coges → salen tus marcas,
+         y lo que dejaste sin marcar es lo que no había;
+       · en la compra online no marcas nada → sale TODO marcado como llegado
+         y desmarcas lo que no haya venido.
+     Lo marcado entra en la despensa; lo desmarcado pasa a Pendiente, con el
+     día que el menú lo necesita. El suplente, si lo tiene, se sigue ofreciendo. */
+  var tiendasCompra = null;
+  function abrirCompradoTienda(nom) {
+    var g = tiendasCompra && tiendasCompra[nom];
+    if (!g) return;
+    var lineas = g.comida.concat(g.basicos), casa = g.casa;
+    if (!lineas.length && !casa.length) return;
+    var algo = lineas.some(function (l) { return l.marcado; }) ||
+               casa.some(function (x) { return Almacen.estaPedido(x.id); });
+    var html = '<header><h2>Comprado en ' + esc(nom) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
+    html += '<p class="nota-peque">' + (algo
+      ? 'Salen marcadas las que cogiste. <b>Lo que quede sin marcar pasa a Pendiente.</b>'
+      : 'Sale todo marcado como llegado. <b>Desmarca lo que no haya venido:</b> pasa a Pendiente.') + '</p>';
+    var fila = function (id, nombre, detalle, cuantos, marcada, esHogar) {
+      /* SIN SUPLENTE AQUÍ (Carlos, 4-oct-2026): «si no lo he comprado en
+         Mercadona, que en pendiente salga en Mercadona y cuando lo compre en
+         otro sitio lo tacho». Lo que no llega va SIEMPRE a Pendiente; el
+         suplente se enseña allí como pista, no se pide solo. */
+      var sup = null;
+      return '<div class="linea-falta" data-falta-de="' + esc(id) + '">' +
+        '<label class="linea">' +
+        '<input type="checkbox" data-llego="' + esc(id) + '"' + (marcada ? " checked" : "") + '>' +
+        '<div class="datos"><div class="nombre">' + esc(nombre) + '</div>' +
+        '<div class="detalle">' + esc(detalle) + '</div></div></label>' +
+        (esHogar || cuantos <= 1 ? '' :
+          '<div class="llegaron-of" data-llegaron-de="' + esc(id) + '"' + (marcada ? ' style="display:none"' : '') + '>' +
+          'llegaron <input type="number" class="stock-cant" data-llegaron="' + esc(id) + '" min="0" max="' + cuantos +
+          '" step="1" value="0" style="width:62px; text-align:right"> de ' + cuantos + '</div>') +
+        (sup ? '<label class="suplente-of" data-suplente-de="' + esc(id) + '"' + (marcada ? ' style="display:none"' : '') + '>' +
+                 '<input type="checkbox" data-pedir-suplente="' + esc(id) + '" checked> ' +
+                 (sup.tipo === "mismo"
+                   ? 'En vez de a Pendiente, pídelo en <b>' + esc(sup.donde) + '</b>'
+                   : 'En vez de a Pendiente, <b>' + esc(sup.n) + '</b> en ' + esc(sup.donde)) +
+               '</label>' : '') +
+        '</div>';
+    };
+    html += '<div id="ct-cuerpo">';
+    lineas.forEach(function (l) {
+      html += fila(l.id, l.producto || l.nombre, l.texto || "", l.envases || 1, algo ? !!l.marcado : true, false);
+    });
+    if (casa.length) {
+      html += '<p class="aviso-grupo">Casa</p>';
+      casa.forEach(function (x) {
+        html += fila(x.id, x.n, x.c > 1 ? "×" + x.c : "", x.c, algo ? Almacen.estaPedido(x.id) : true, true);
+      });
+    }
+    html += '</div><div class="fila" style="margin-top:14px">' +
+            '<button class="btn principal" id="ct-ok">Confirmar</button>' +
+            '<button class="btn" data-cerrar>Cancelar</button></div>';
+    abrirModal(html);
+
+    $("#ct-cuerpo").onchange = function (e) {
+      var c = e.target.closest ? e.target.closest("[data-llego]") : null;
+      if (!c) return;
+      var id = c.getAttribute("data-llego");
+      ["data-suplente-de", "data-llegaron-de"].forEach(function (a) {
+        var el = document.querySelector('[' + a + '="' + id + '"]');
+        if (el) el.style.display = c.checked ? "none" : "";
+      });
+    };
+
+    $("#ct-ok").addEventListener("click", function () {
+      var faltas = {}, faltasHogar = {}, alSuplente = {};
+      var llego = function (id) {
+        var c = document.querySelector('#ct-cuerpo [data-llego="' + id + '"]');
+        return c ? c.checked : true;
+      };
+      lineas.forEach(function (l) {
+        /* Todo lo de esta tienda pasa por `confirmarCompra`, que sólo atiende
+           a lo marcado como pedido: aquí, todo. */
+        Almacen.estado.compraMarcada[l.id] = true;
+        if (llego(l.id)) return;
+        var n = document.querySelector('[data-llegaron="' + l.id + '"]');
+        faltas[l.id] = n ? Math.min(l.envases || 1, parseInt(n.value, 10) || 0) : 0;
+      });
+      casa.forEach(function (x) { if (!llego(x.id)) faltasHogar[x.id] = { t: nom }; });
+      var res = Almacen.confirmarCompra(lineas, faltas, alSuplente);
+      Almacen.confirmarHogar(casa.map(function (x) { return x.id; }), faltasHogar);
+      var aPend = res.recados + Object.keys(faltasHogar).length;
+      cerrarModal(); pintarCompra(); pintarDespensa();
+      Util.toast(nom + ": entraron " + res.entraron + " en la despensa" +
+                 (aPend ? " · " + aPend + " a Pendiente" : "") +
+                 (res.suplentes ? " · " + res.suplentes + " al suplente" : ""));
+    });
   }
 
   /* CARGAR UNA COMPRA YA RECIBIDA  ·  1-oct-2026
@@ -5938,7 +6016,7 @@
         '<div class="fila entre">' +
           "<div><strong>Lo que quiero esta vez</strong>" +
             '<div class="nota-peque">Lo que no compras de normal y hoy s\u00ed. Entra en esta lista ' +
-            "y al dar a \u00abHa llegado\u00bb se olvida: la semana que viene no vuelve solo.</div></div>" +
+            "y al dar a \u00abComprado\u00bb se olvida: la semana que viene no vuelve solo.</div></div>" +
         "</div>" +
         '<div class="fila" style="margin-top:6px">' +
           '<input type="text" id="buscar-quiero" placeholder="Buscar para a\u00f1adir\u2026" ' +
@@ -5967,19 +6045,43 @@
       "</div>";
   }
 
-  /* LA LISTA DE RECADOS: lo que se pidió y no llegó, o no había. Se queda aquí
-     hasta que se resuelva; no vuelve sola a la lista grande. */
+  /* PENDIENTE (v414, antes «Pendiente de buscar en otro sitio»). Lo que no
+     llegó o no había. Carlos, 4-oct-2026: «se necesita pera para la receta del
+     jueves, no la hemos podido comprar en Mercadona y queda pendiente. En la
+     lista de pendientes pondrá pera, se necesita para el jueves». Por eso cada
+     línea dice el día y el plato, y lo más urgente va arriba. «Comprado» la
+     mete en la despensa; hasta la v413 «Ya lo tengo» sólo la borraba. */
+  function paraCuando(f) {
+    var hoy = Util.hoyISO();
+    if (f === hoy) return "para hoy";
+    if (f === Util.sumarDias(hoy, 1)) return "para mañana";
+    var d = Util.desdeISO(f);
+    var nom = Util.DIAS[(d.getDay() + 6) % 7].toLowerCase();
+    return Util.diasEntre(hoy, f) <= 6 ? "para el " + nom : "para el " + nom + " " + Util.etiquetaFecha(f);
+  }
   function pintarRecados() {
     var cont = $("#lista-recados");
     if (!cont) return;
     var lista = Almacen.recadosPendientes();
     if (!lista.length) { cont.innerHTML = ""; return; }
-    var h = '<div class="seccion-compra" style="border-color:var(--ambar)">' +
-            '<h3 style="color:var(--ambar)">Pendiente de buscar en otro sitio (' + lista.length + ')</h3>';
+    var urge = Util.sumarDias(Util.hoyISO(), 1);
+    var h = '<div class="tarjeta tienda-compra pendiente-compra">' +
+            '<div class="tienda-cab"><div><h2 class="cajon-compra">Pendiente</h2>' +
+            '<span class="nota-peque">Lo que no compraste donde tocaba. Cómpralo donde sea y táchalo con «Comprado»: entra en la despensa.</span></div></div>';
     lista.forEach(function (x) {
-      h += '<div class="linea"><div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
-           '<div class="detalle">' + (x.c > 1 ? x.c + " \u00b7 " : "") + 'desde el ' + esc(Util.etiquetaFecha(x.f)) + '</div></div>' +
-           '<button class="btn mini" data-recado="' + esc(x.id) + '">Ya lo tengo</button></div>';
+      var cuando = x.cuando
+        ? '<b' + (x.cuando.f <= urge ? ' style="color:var(--ambar)"' : '') + '>se necesita ' +
+            esc(paraCuando(x.cuando.f)) + '</b> · ' + esc(x.cuando.plato)
+        : (x.tipo === "hogar" ? "de casa" : "ningún plato lo pide ya: para reponer");
+      var sup = x.tipo === "comida" ? Almacen.elSuplenteDe(x.id) : null;
+      h += '<div class="linea"><div class="datos"><div class="nombre">' + esc(x.n) +
+             (x.c > 1 ? ' <span class="etiqueta">×' + x.c + '</span>' : '') + '</div>' +
+           '<div class="detalle">' + (x.t ? '<span class="etiqueta">no lo hubo en ' + esc(x.t) + '</span> ' : '') +
+             cuando +
+             (sup ? '<br>otra opción: ' + esc(sup.tipo === "mismo" ? "en " + sup.donde : sup.n + " en " + sup.donde) : '') +
+           '</div></div>' +
+           '<button class="btn mini principal" data-pendcomprado="' + esc(x.id) + '">Comprado</button>' +
+           '<button class="btn mini" data-recado="' + esc(x.id) + '" title="Ya no hace falta: se quita sin entrar en la despensa">Quitar</button></div>';
     });
     cont.innerHTML = h + '</div>';
   }
@@ -7277,7 +7379,7 @@
       Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
       Almacen.guardar("config");
       pintarCompra();
-      Util.toast(puestas + " productos en la lista, ya pedidos. Ahora pulsa \u00abHa llegado\u00bb" +
+      Util.toast(puestas + " productos en la lista, ya marcados. Ahora pulsa \u00abComprado\u00bb en su tienda" +
                  (sinFicha.length ? " \u00b7 " + sinFicha.length + " sin ficha, fuera" : ""));
     });
     var bp = $("#compra-pasada");
@@ -7305,6 +7407,8 @@
       pintarCompra();
     });
     $("#lista-compra").addEventListener("click", function (e) {
+      var tc = e.target.closest("[data-tiendacomprada]");
+      if (tc) { abrirCompradoTienda(tc.getAttribute("data-tiendacomprada")); return; }
       var enc = e.target.closest("[data-encasa]");
       if (enc) {
         /* «Lo tengo» no es una casilla aparte: es decirle a la despensa que ya hay
@@ -7370,8 +7474,18 @@
       if (c) { c.focus(); c.setSelectionRange(c.value.length, c.value.length); }
     });
     $("#lista-recados").addEventListener("click", function (e) {
+      var pc = e.target.closest("[data-pendcomprado]");
+      if (pc) {
+        Almacen.comprarPendiente(pc.getAttribute("data-pendcomprado"));
+        pintarCompra(); pintarDespensa();
+        Util.toast("Comprado: entra en la despensa");
+        return;
+      }
       var rec = e.target.closest("[data-recado]");
-      if (rec) { Almacen.quitarRecado(rec.getAttribute("data-recado")); pintarCompra(); }
+      if (rec) {
+        if (!confirm("\u00bfQuitarlo de Pendiente sin comprarlo? No entra en la despensa, y si el men\u00fa lo pide volver\u00e1 a la lista de su tienda.")) return;
+        Almacen.quitarRecado(rec.getAttribute("data-recado")); pintarCompra();
+      }
     });
     $("#compra-marcas").addEventListener("click", function () {
       abrirMarcas(faltanMarcas(), function () { pintarCompra(); pintarHogar(); });
