@@ -915,6 +915,50 @@
         e.arreglos["2026-10-05-requeson-hacendado"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRQ) {}
       }
+
+      /* SEGUNDO INTENTO CON LAS MALLAS (5-oct-2026). El arreglo de arriba entró
+         en el ajo y en la cebolla dulce, pero la cebolla roja y la patata
+         seguían en unidades. La diferencia con el del requesón, que sí entró, es
+         que aquél SELLABA LA HORA y éste no: sin `tocado`, una copia de otro
+         aparato con el formato viejo puede volver a ganar al sincronizar («cada
+         ficha, la del último que la tocó»). Se repite con sello y con clave
+         nueva para que vuelva a correr. */
+      if (!e.arreglos["2026-10-05-mallas-2"]) {
+        var MALLAS2 = { patata: "malla", ajo: "malla", cebolla_dulce: "malla",
+                        cebolla_morada: "malla", zanahoria: "paquete" };
+        var ahoraML = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || !MALLAS2[g.id]) return;
+          if (g.formato === MALLAS2[g.id] && !g.pz) return;   /* ya está bien */
+          g.formato = MALLAS2[g.id];
+          if (g.pz) delete g.pz;
+          g.tocado = ahoraML;
+        });
+        e.arreglos["2026-10-05-mallas-2"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM2) {}
+      }
+
+      /* EL PASTORET DEJA DE SER SUPLENTE (5-oct-2026). Carlos: «quita el papel
+         de suplente». Era la reserva del requesón y es de Amazon, a 9,40 euros/kg
+         contra los 5,00 del de Mercadona, así que ofrecerlo cuando el titular no
+         llegue no servía de nada. Se le quita el `suplenteId` al requesón y la
+         marca `reserva` al Pastoret, que se queda retirado y sin papel. Con sello
+         de hora, para que gane al sincronizar. */
+      if (!e.arreglos["2026-10-05-pastoret-sin-papel"]) {
+        var ahoraPS = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g) return;
+          if (g.id === "requeson" && g.suplenteId) { delete g.suplenteId; g.tocado = ahoraPS; }
+          if (g.id === "requeson_pastoret") {
+            if (g.reserva) delete g.reserva;
+            g.oculta = true;
+            g.tocado = ahoraPS;
+          }
+        });
+        if (e.quiero) delete e.quiero["requeson_pastoret"];
+        e.arreglos["2026-10-05-pastoret-sin-papel"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPS) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
