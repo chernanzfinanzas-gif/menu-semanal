@@ -730,7 +730,7 @@
             "mozzarella_fresca", "jamon_cocido_mano", "lacon_lonchas", "jamon_iberico", "jamon_cocido", "burrata",
             "bacon_lonchas", "bacalao_ahumado", "ketchup_bajo_sal", "chorizo_sarta_en_tacos", "yogur_activia", "cerdo_lomo_trozo",
             "cerdo_solomillo", "lomo_iberico_adobado", "hamburguesa_finca", "cerdo_secreto", "pesto_genovese", "pollo_pechuga",
-            "flan_proteinas", "ternera_entrecot", "ternera_picada", "cerdo_lomo", "salsa_miel_mostaza", "vino_blanco",
+            "flan_proteinas", "ternera_entrecot", "ternera_picada", "salsa_miel_mostaza", "vino_blanco",
             "queso_el_caserio_rallado_espec", "mostaza_dijon", "parmesano_rallado", "nata_cocinar_ligera", "mermelada_naranja", "mermelada_fresa",
             "mayonesa", "mantequilla_sinsal", "huevo", "gazpacho" ] }
       };
@@ -800,6 +800,23 @@
         });
         e.arreglos["2026-10-04-sports"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errS) {}
+      }
+
+      /* La bandeja de filetes de cabeza de lomo es nueva en su lista de
+         Mercadona, así que tiene que salir ARRIBA, como hace Mercadona con lo
+         nuevo. NO se reaplica la lista de la nevera: eso le borraría los cambios
+         que haya hecho a mano. Basta sacar la ficha de su orden guardado, porque
+         lo que no está ordenado sube solo (posEnCompra devuelve -1). */
+      if (!e.arreglos["2026-10-05-lomo-arriba"]) {
+        var ordNev = (e.ordenCompra || {})["Mercadona|nevera"];
+        if (ordNev && ordNev.indexOf("cerdo_lomo") >= 0) {
+          e.ordenCompra["Mercadona|nevera"] = ordNev.filter(function (x) { return x !== "cerdo_lomo"; });
+          if (!e.ordenSello) e.ordenSello = {};
+          if (!e.ordenSello.compra) e.ordenSello.compra = {};
+          e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
+        }
+        e.arreglos["2026-10-05-lomo-arriba"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLA) {}
       }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
