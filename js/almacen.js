@@ -848,6 +848,25 @@
         e.arreglos["2026-10-05-nombre-pieza"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPZ) {}
       }
+
+      /* EL YOGUR GRIEGO, EL PRIMERO DE LA LISTA (5-oct-2026). Carlos: «en la
+         lista el primero antes de la carne de cerdo de hoy». Las dos fichas
+         están fuera de su orden guardado y por eso suben solas arriba, pero
+         entre ellas el comparador desempata por NOMBRE, así que «Filetes de
+         cabeza de lomo» se pondría delante de «Yogur griego». Se fijan los dos
+         primeros puestos a mano y el resto de su lista no se toca. */
+      if (!e.arreglos["2026-10-05-yogur-primero"]) {
+        if (!e.ordenCompra) e.ordenCompra = {};
+        var ordYG = (e.ordenCompra["Mercadona|nevera"] || []).filter(function (x) {
+          return x !== "yogur_griego_hacendado" && x !== "cerdo_lomo";
+        });
+        e.ordenCompra["Mercadona|nevera"] = ["yogur_griego_hacendado", "cerdo_lomo"].concat(ordYG);
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
+        e.arreglos["2026-10-05-yogur-primero"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errYG) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
