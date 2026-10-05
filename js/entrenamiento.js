@@ -943,6 +943,15 @@
       ".dia-bl:hover{border-color:var(--azul)}",
       ".dia-bl.largo{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}",
       ".dia-bl.fuerza{background:#f3eefb;border-color:#ddcdf3;color:#5a2b8f}",
+      /* HECHO  ·  5-oct-2026. Carlos: «los bloques de ejercicio podrían
+         marcarse como hechos como la movilidad, cuando se encuentre la
+         actividad del reloj o se marque manual si no apareció». El dato ya
+         existía (`sesionHecha` ya mira las dos cosas) y solo faltaba verlo en
+         la tira. Va DESPUES de `.largo` y `.fuerza`: misma especificidad, así
+         que manda el orden y el verde tapa al color de tipo. El nombre del
+         bloque sigue diciendo qué era. */
+      ".dia-bl.hecho{background:var(--verde);border-color:var(--verde);color:#fff}",
+      ".dia-bl.hecho:hover{border-color:var(--verde)}",
       ".dia-bl.elegido{outline:2px solid var(--azul);outline-offset:1px}",
       ".dia-bl.llevando{opacity:.4}",
       ".dia-bl{-webkit-user-drag:element}",
@@ -3664,8 +3673,11 @@
       }
     }
     if (i === undefined || i === null) return null;
-    var j = emparejaDia(iso, ss).porSesion[i];
-    return (j === undefined) ? null : emparejaDia(iso, ss).act[j];
+    /* una sola vez: emparejar un día no es gratis y antes se hacía dos veces
+       por cada consulta (5-oct-2026). */
+    var emp = emparejaDia(iso, ss);
+    var j = emp.porSesion[i];
+    return (j === undefined) ? null : emp.act[j];
   }
 
   /* ¿Hay una actividad que desmienta un «no»? Solo cuenta la que EMPEZÓ
@@ -12372,16 +12384,24 @@
         (noHab ? U.esc(nombreNoHabil(noHab.m))
         : (!semF ? "—" : (!ss.length ? "descanso"
           : (ss[0].bid
-            ? ss.map(function (s) {
+            ? ss.map(function (s, i) {
                 /* un bloque QUITADO con motivo se ve tachado: sigue ahí, cuenta como
                    no hecho, y se nota de un vistazo que no fue un olvido */
                 var quit = semF && s.bid ? quitadoDe(semF, s.bid) : null;
+                /* HECHO: lo dice `sesionHecha`, que ya mira las dos vías —la
+                   actividad del reloj que empareja y pasa del umbral, o la
+                   casilla marcada a mano— y respeta el «no» cuando lo pusiste.
+                   El índice es el de la lista SIN la movilidad diaria, que va
+                   la última, así que coincide con el que guarda las marcas.
+                   Un bloque quitado no se pinta hecho aunque hubiera actividad:
+                   el tachado manda. */
+                var hecho = !quit && sesionHecha(f, s, i);
                 return '<button type="button" class="dia-bl' + (s.largo ? " largo" : "") +
-                  (quit ? " quitado" : "") +
+                  (quit ? " quitado" : "") + (hecho ? " hecho" : "") +
                   (s.fam === "fuerza" ? " fuerza" : "") +
                   (bloqueSel && bloqueSel.bid === s.bid && bloqueSel.desde === semF.desde ? " elegido" : "") +
                   '" draggable="true" data-blq="' + semF.desde + ":" + s.bid + '">' +
-                  U.esc(cortoBloque(s)) + "</button>";
+                  (hecho ? "✓ " : "") + U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
         '</span>' + movDeDia(f, ssTodas, noHab) + agendaDeDia(f) +
