@@ -2142,7 +2142,8 @@
          (refRodillo ? '<span class="akhb-an-cmp">en ' + esc(refRodillo.et) + ", tu mejor mes antes del plan: " +
            num(refRodillo.wppm, 2) + "</span>" : "")],
         ["Cadencia habitual", a.rpm != null ? a.rpm + " rpm" : null,
-         a.rpm != null && a.rpm < 85 ? "por debajo de las 85-95 cómodas en zona 2" : "", ""],
+         (p && p.cad) ? (a.rpm >= p.cad - 0.5 ? "objetivo de la semana: " + p.cad + " ✔" : "objetivo de la semana: " + p.cad)
+           : a.rpm != null && a.rpm < 85 ? "por debajo de las 85-95 cómodas en zona 2" : "", ""],
         ["Carga", a.carga != null ? num(a.carga) : null, "calculada con FTP " + a.ftp, ""]
       ].filter(function (c) { return c[1] != null; }).map(function (c) {
         return '<div class="akhb-an-cifra"><span class="akhb-an-et">' + c[0] + "</span>" +
@@ -2183,7 +2184,14 @@
          la sesión, nada inventado: si una regla no se cumple, no sale. Lo que
          cambia el plan no se decide aquí: va a la revisión de la semana. */
       var rec = [];
-      if (a.rpm != null && a.rpm < 80) {
+      /* 5-oct-2026: con objetivo de cadencia de la semana (sube 2 rpm por
+         semana hasta 86), el consejo se mide contra él y no contra un 85 fijo. */
+      if (p && p.cad && a.rpm != null) {
+        if (a.rpm < p.cad - 0.5) {
+          rec.push("<b>Cadencia por debajo del objetivo</b>: " + a.rpm + " rpm de " + p.cad + ". Mírala en pantalla todo el " +
+            "bloque, no solo en los minutos a 100: el 5-oct medimos que 10 rpm más te cuestan unas 2 pulsaciones.");
+        }
+      } else if (a.rpm != null && a.rpm < 80) {
         rec.push("<b>Cadencia baja para " + num(a.w, 0) + " W.</b> A " + a.rpm + " rpm cada pedalada lleva más " +
           "fuerza y el trabajo se carga en las piernas. Prueba a subir a 80-85 rpm en un bloque, con los mismos " +
           "vatios, y mira el pulso: si sube 3-4 ppm o más, vuelve a tu cadencia; si no cambia, quédate en 80-85.");

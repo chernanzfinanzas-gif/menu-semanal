@@ -141,6 +141,7 @@
     if (o.ref) ys.push(o.ref.y);
     if (o.banda) ys.push(o.banda[0], o.banda[1]);
     if (o.extra) ys = ys.concat(o.extra);
+    if (o.meta) o.meta.forEach(function (e) { ys.push(e.y); });
     var y0 = o.minY != null ? o.minY : Math.min.apply(null, ys);
     var y1 = o.maxY != null ? o.maxY : Math.max.apply(null, ys);
     if (y1 - y0 < (o.rangoMin || 1)) { var c = (y0 + y1) / 2; y0 = c - (o.rangoMin || 1) / 2; y1 = c + (o.rangoMin || 1) / 2; }
@@ -191,6 +192,16 @@
       s.push('<rect class="av-banda" x="' + M.l + '" width="' + (W - M.l - M.r) + '" y="' + Y(o.banda[1]).toFixed(1) +
         '" height="' + (Y(o.banda[0]) - Y(o.banda[1])).toFixed(1) + '"/>' +
         '<text class="av-et-der" x="' + (W - M.r + 4) + '" y="' + (Y((o.banda[0] + o.banda[1]) / 2) + 3).toFixed(1) + '">' + o.banda[2] + "</text>");
+    }
+    if (o.meta && o.meta.length) {   /* un objetivo que cambia por semanas: escalones discontinuos */
+      var dm = "";
+      o.meta.forEach(function (e, i) {
+        var xa = X(Math.max(e.x, x0)), xb = X(i + 1 < o.meta.length ? o.meta[i + 1].x : x1);
+        dm += (i ? "L" : "M") + xa.toFixed(1) + " " + Y(e.y).toFixed(1) + "L" + xb.toFixed(1) + " " + Y(e.y).toFixed(1);
+      });
+      var ultm = o.meta[o.meta.length - 1];
+      s.push('<path class="av-umbral" fill="none" d="' + dm + '"/>' +
+        '<text class="av-et-der av-umbral-t" x="' + (W - M.r + 4) + '" y="' + (Y(ultm.y) + 3).toFixed(1) + '">' + (o.metaEt || "objetivo") + "</text>");
     }
     if (o.umbral) {
       s.push('<line class="av-umbral" x1="' + M.l + '" x2="' + (W - M.r) + '" y1="' + Y(o.umbral.y).toFixed(1) + '" y2="' + Y(o.umbral.y).toFixed(1) + '"/>' +
@@ -483,10 +494,19 @@
       grafico({ titulo: "Pulso", puntos: P("ppm"), dom: dom, semanas: semFondo,
                 fmt: function (v) { return num(v, 0); }, suf: " ppm", rangoMin: 15 }), "");
 
+    /* 5-oct-2026: Carlos quiere recuperar la cadencia y hacerla costumbre (86
+       en feb-mar 2022 y en nov-2023; 66 en 2026). Objetivo de cada semana,
+       el MISMO que pone zwift/generar_zwift.py (CADENCIA_SEMANA): 80 en la S3
+       y +2 por semana hasta 86. Si se cambia allí, se cambia aquí. */
+    var cadObj = function (n) { return n < 3 ? null : ({ 3: 80, 4: 82, 5: 84 })[n] || 86; };
+    var metaCad = semVis.filter(function (w) { return cadObj(w.n); })
+      .map(function (w) { return { x: msDe(w.desde), y: cadObj(w.n) }; });
     var gCad = tarjeta("Cadencia habitual",
-      "Las vueltas por minuto en el bloque principal, sin contar los minutos de técnica. La banda es lo cómodo en zona 2.",
-      grafico({ titulo: "Cadencia", puntos: P("rpm", function (s) { return s.a.rpm < 80; }), dom: dom, semanas: semFondo,
-                banda: [85, 95, "85-95"], fmt: function (v) { return num(v, 0); }, suf: " rpm", rangoMin: 20 }), "");
+      "Las vueltas por minuto en el bloque principal, sin contar los minutos de técnica. La línea discontinua es el objetivo de cada semana: subir 2 rpm por semana hasta 86, tu cadencia de 2022.",
+      grafico({ titulo: "Cadencia", puntos: P("rpm", function (s) {
+                  var obj = s.a.previsto && s.a.previsto.cad;
+                  return obj ? s.a.rpm < obj - 0.5 : s.a.rpm < 80; }), dom: dom, semanas: semFondo,
+                meta: metaCad, metaEt: "objetivo", fmt: function (v) { return num(v, 0); }, suf: " rpm", rangoMin: 20 }), "");
 
     /* objetivos cumplidos: una barra por sesión con ficha prevista */
     var conObj = ses.filter(function (s) { return s.tot; });
@@ -503,7 +523,7 @@
       return '<svg class="av-svg-bar" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Objetivos cumplidos">' + svg + "</svg>";
     })() : '<p class="av-sub">Todavía no hay sesiones con ficha prevista.</p>';
     var gObj = tarjeta("Objetivos cumplidos por sesión",
-      "Potencia, techo de pulso, deriva, minutos de cadencia y carga: cuántos se cumplieron de los que ponía la sesión.",
+      "Potencia, techo de pulso, deriva, cadencia de la semana, minutos a 100 rpm y carga: cuántos se cumplieron de los que ponía la sesión.",
       barras + (conObj.length ? tabla(["Sesión"].concat(["Objetivos"]),
         conObj.map(function (s) {
           return [diaCorto(s.f) + " · " + esc(s.nombre), (s.a.objetivos || []).map(function (x) {

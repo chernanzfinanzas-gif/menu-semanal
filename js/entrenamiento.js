@@ -11513,11 +11513,14 @@
        kilos y las series, puestos al día con lo que ya hace (A del 30-sep, B
        del 4-oct). Desde ahora la ficha enseña lo de la última sesión, y lo de
        aquí sólo asoma como «la próxima» cuando se decide un cambio. */
+    /* 5-oct-2026, aceptado por Carlos tras la A del 5-oct (pulso 109/133 contra
+       119/140 con lo mismo, y dos horas después del rodillo): sentadilla y
+       press a 3 series, remo con la goma 23. */
     { id: "A", n: "Fuerza A", dia: 1, diaTxt: "lunes", min: 25, mov: [
-      { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
-      { n: "Press de banca",      s: 2, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
+      { n: "Sentadilla goblet",   s: 3, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
+      { n: "Press de banca",      s: 3, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
         garmin: "Press de banca inclinada con mancuernas" },
-      { n: "Remo",                s: 2, r: "12",          goma: "18",
+      { n: "Remo",                s: 2, r: "12",          goma: "23-57",
         nota: "Tubo en el anclaje de la puerta",
         garmin: "Remo con goma el\u00e1stica" },
       { n: "Plancha",             s: 3, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
