@@ -867,6 +867,29 @@
         e.arreglos["2026-10-05-yogur-primero"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errYG) {}
       }
+
+      /* LAS MALLAS SE CUENTAN EN MALLAS (5-oct-2026). Carlos, sobre la patata:
+         «no se sabe cuántas patatas vienen, vienen 3 kg». Lo mismo con el ajo y
+         las cebollas: vienen en malla cerrada por peso y contar las piezas no se
+         puede. La salida NO es pasar las recetas a gramos —«media cebolla» es
+         como se cocina—, sino cambiar el FORMATO: contadas en mallas, con
+         atajos de media y entera, igual que las galletas por paquetes. Las
+         recetas no se tocan: por dentro se siguen guardando piezas y el peso
+         sale igual.
+         Hay que hacerlo con arreglo porque `formato` es de los campos SUYOS que
+         el refresco del catálogo respeta, así que subir el rev no bastaría. Y se
+         les quita `pz`, que si no el rótulo diría «1 patata» en vez de «1 malla». */
+      if (!e.arreglos["2026-10-05-mallas"]) {
+        var MALLAS = { patata: "malla", ajo: "malla", cebolla_dulce: "malla",
+                       cebolla_morada: "malla", zanahoria: "paquete" };
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || !MALLAS[g.id]) return;
+          g.formato = MALLAS[g.id];
+          if (g.pz) delete g.pz;
+        });
+        e.arreglos["2026-10-05-mallas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errML) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
