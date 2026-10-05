@@ -3067,32 +3067,30 @@
         return { t: s.t, min: s.min };
       });
     }
-    /* LA MOVILIDAD VA PEGADA A LA FUERZA  ·  2-oct-2026.
-       Carlos: «ponla 3 veces a la semana antes de la sesión de fuerza y ligada
-       a ella, si muevo la fuerza se mueve la movilidad de cuello». No es un
-       bloque que se reparta: sale de cada bloque de fuerza, así que va donde
-       vaya la fuerza. Se añade AL FINAL de la lista para no correr las
-       posiciones ("s0", "s1"…) con las que se guardan las marcas, y lleva su
-       propia marca (`mid`), atada a su fuerza. En pantalla se pinta ANTES de
-       la fuerza. No puntúa ni da el día por cumplido (familia «movilidad»). */
+    /* LA MOVILIDAD, UNA FILA AL DÍA.
+       Historia: el 2-oct-2026 Carlos la quiso pegada a la fuerza («si muevo
+       la fuerza se mueve la movilidad de cuello»); el 5-oct, con los crujidos
+       de vuelta, pasó a hacerla a diario y a querer UNA sola fila con UNA
+       sola marca. El detalle está en el comentario de dentro.
+       No puntúa en la carga ni da el día por cumplido (familia «movilidad»:
+       no tiene ritmo en `P.ritmos`, así que `costeSesion` le da 0). */
     if (!lista.some(function (x) { return familia(x.t) === "movilidad"; })) {
-      var movs = [];
-      lista.forEach(function (x, k) {
-        if (familia(x.t) !== "fuerza" || x.grande) return;
-        var ata = x.bid || ("k" + k);
-        movs.push({ t: "Movilidad de cuello y mandíbula", min: 15, fam: "movilidad",
-                    ligada: ata, mid: "mov-" + ata });
-      });
-      /* TODOS LOS DÍAS  ·  5-oct-2026. Carlos: «pon la de 15 minutos todos los
-         días» (vuelven los crujidos de mandíbula y sien). Los días sin fuerza
-         sale sola, con su propia marca. Es `diaria`: se ve y se marca en el
-         día, pero no cuenta minutos ni convierte un descanso en día que haya
-         que cumplir (ver `sinDiaria`). Va la última para no mover índices. */
-      if (!movs.length) {
-        movs.push({ t: "Movilidad de cuello y mandíbula", min: 15, fam: "movilidad",
-                    diaria: true, mid: "mov-dia" });
-      }
-      lista = lista.concat(movs);
+      /* UNA SOLA FILA DIARIA  ·  5-oct-2026. Carlos: «una sola fila diaria
+         siempre, la confirmo manualmente, no irá al reloj ni vendrá por
+         intervals». Hasta ahora salía pegada a cada bloque de fuerza
+         (`ligada`, con la marca atada a ESE bloque: "mov-k0", "mov-b3"…) y
+         sola los días sin fuerza ("mov-dia"): dos marcas distintas para la
+         misma cosa, así que la racha de hacerla a diario no se podía leer, y
+         si la fuerza se movía de día la marca se iba con ella.
+         Ahora es SIEMPRE la misma fila con la misma marca, `mov-dia`.
+         Es `diaria`: se ve y se marca en el día, pero no cuenta minutos ni
+         convierte un descanso en día que haya que cumplir (ver `sinDiaria`).
+         Va la última para no mover los índices ("s0", "s1"…) de las demás.
+         A mano y solo a mano: la familia «movilidad» está en
+         `familiasSinReloj`, con lo que `emparejaDia` la salta y ninguna
+         actividad del reloj puede marcarla ni desmarcarla. */
+      lista = lista.concat([{ t: "Movilidad de cuello y mandíbula", min: 15,
+                              fam: "movilidad", diaria: true, mid: "mov-dia" }]);
     }
     /* si el semáforo rebajó el día y se aceptó, manda lo aceptado */
     var aj = sinAjuste ? null : ajusteDe(iso);
@@ -3667,8 +3665,30 @@
     return (r && r.ms && r.ms > t && r.min >= umbralSesion(sesion)) ? r : null;
   }
 
+  /* LAS MARCAS VIEJAS DE LA MOVILIDAD SIGUEN VALIENDO  ·  5-oct-2026.
+     Del 2 al 5 de octubre la movilidad iba pegada a la fuerza y su marca
+     llevaba el id del bloque ("mov-k0", "mov-b3"…). Al pasar a una sola fila
+     diaria ("mov-dia") esos días se verían sin marcar, que es falso: se
+     hicieron. Si no hay marca nueva, vale cualquiera de las viejas. No se
+     reescribe nada en el estado; en cuanto toque la casilla se guarda ya con
+     el id nuevo.
+     Solo mira ATRÁS, hasta el día del cambio: de hoy en adelante la única
+     marca que existe es "mov-dia". Si no se acotara, al desmarcar un día
+     viejo la marca vieja lo daría por hecho otra vez y no habría forma de
+     desmarcarlo. */
+  var MOV_DIARIA_DESDE = "2026-10-05";
+  function marcaDiariaMov(iso) {
+    var m = marcaDe(iso, "mov-dia");
+    if (m !== undefined || iso >= MOV_DIARIA_DESDE) return m;
+    var d = ent().checks[iso], k;
+    if (d) for (k in d) if (k.indexOf("mov-") === 0) return d[k];
+    return undefined;
+  }
+
   function sesionHecha(iso, sesion, i) {
-    var m = marcaDe(iso, (sesion && sesion.mid) || ("s" + i)), v = valorMarca(m);
+    var m = (sesion && sesion.diaria) ? marcaDiariaMov(iso)
+                                      : marcaDe(iso, (sesion && sesion.mid) || ("s" + i));
+    var v = valorMarca(m);
     if (v === true) return true;
     if (sinReloj(sesion)) return false;        // sin reloj que valga, manda la casilla
     if (v === "no") return !!desmienteAlNo(iso, sesion, m, i);
@@ -9708,7 +9728,7 @@
   function minutosDia(iso, sem, talla) {
     var ses = sesionesDe(iso, sem, talla), m = 0, grande = false;
     ses.forEach(function (x) {
-      if (x.ligada || x.diaria) return;        // la movilidad (pegada a la fuerza o diaria) no cuenta minutos
+      if (x.ligada || x.diaria) return;        // la movilidad no cuenta minutos
       if (x.grande) { grande = true; m += (P.diaGrande && P.diaGrande.minutos) || 180; }
       else m += x.min || 0;
     });
@@ -12482,9 +12502,11 @@
     }
 
     var ses = sesionesDe(dia, semDia, tallaDia), filas = [];
-    /* el orden de pintar: la movilidad ligada, justo antes de su fuerza. El
-       índice `i` sigue siendo el de la lista, que es con el que se guardan las
-       marcas de las demás sesiones. */
+    /* El orden de pintar. Desde el 5-oct-2026 ninguna sesión llega con
+       `ligada` —la movilidad es una fila diaria suelta— y este bucle deja la
+       lista en su orden natural; se conserva porque sigue siendo el sitio
+       donde colocar una sesión que deba pintarse junto a otra. El índice `i`
+       es siempre el de la lista, que es con el que se guardan las marcas. */
     var orden = [];
     ses.forEach(function (s, i) {
       if (s.ligada) return;
@@ -12494,7 +12516,9 @@
     ses.forEach(function (s, i) { if (s.ligada && orden.indexOf(i) < 0) orden.push(i); });
     orden.forEach(function (i) {
       var s = ses[i];
-      var id = s.mid || ("s" + i), m = marcaDe(dia, id), v = valorMarca(m), reloj = relojPara(dia, s);
+      var id = s.mid || ("s" + i);
+      var m = s.diaria ? marcaDiariaMov(dia) : marcaDe(dia, id);
+      var v = valorMarca(m), reloj = relojPara(dia, s);
       var aMano = sinReloj(s);
       var tarde = (!aMano && v === "no") ? desmienteAlNo(dia, s, m) : null;
       var porElReloj = (!aMano && v !== true && (v !== "no" || tarde) && !!reloj);
