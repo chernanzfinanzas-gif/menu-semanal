@@ -5024,16 +5024,30 @@
             : "Apuntado hace " + x.dias + " d") + "</div>" : "") +
         "</div>" +
         '<div class="ficha-pie">' +
+          /* CUÁNTO LLEVA CADA RECETA, POR RACIÓN (5-oct-2026). Carlos: «una cosa
+             que debería salir en los ingredientes es las recetas donde aparecen y
+             lo que se usa por ración de esa receta. No el aceite, ni la sal, ni
+             otras cosas que estén en casi todas». Así se ve de un vistazo si una
+             receta se sale de la ración de la ficha, que es lo que descuadraba el
+             «cada ración son 200 g, para 7 platos». En los básicos —aceite,
+             pimienta, ajo, especias: salen en casi todas— se deja sólo la cuenta,
+             porque cien líneas de «2 g por ración» no dicen nada. */
           (x.platos.length
             ? '<details class="usos"><summary>Sale en ' + x.platos.length +
               (x.platos.length === 1 ? " plato" : " platos") + "</summary>" +
-              x.platos.map(function (pl) {
-                var cola = pl.planificado ? ' <b>· planificado</b>'
-                  : (pl.comido ? ' <span class="comido">· comido el ' +
-                     esc(Util.etiquetaFecha(pl.comido)) + "</span>" : "");
-                return '<div class="uso' + (pl.planificado ? " planificado" : "") +
-                  (pl.comido ? " yacomido" : "") + '">' + esc(pl.n) + cola + "</div>";
-              }).join("") + "</details>"
+              (x.basico
+                ? '<div class="uso flojo">Es un b\u00e1sico: entra en casi todas las recetas y en cantidades peque\u00f1as.</div>'
+                : x.platos.map(function (pl) {
+                    var cola = pl.planificado ? ' <b>\u00b7 planificado</b>'
+                      : (pl.comido ? ' <span class="comido">\u00b7 comido el ' +
+                         esc(Util.etiquetaFecha(pl.comido)) + "</span>" : "");
+                    var cant = pl.porRacion > 0
+                      ? '<span class="uso-cant">' +
+                        esc(Util.cantidadReceta(pl.porRacion, x.u, x.pesoUd)) +
+                        " por raci\u00f3n</span>" : "";
+                    return '<div class="uso' + (pl.planificado ? " planificado" : "") +
+                      (pl.comido ? " yacomido" : "") + '">' + esc(pl.n) + cola + cant + "</div>";
+                  }).join("")) + "</details>"
             : "") +
           (x.borrable
             ? '<button type="button" class="btn mini borrar" data-paseborrar="' + esc(x.id) +

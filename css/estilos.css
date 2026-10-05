@@ -730,6 +730,11 @@ label.campo span{display:block; font-size:.78rem; color:var(--gris); font-weight
 .ficha-pie .uso.planificado{color:var(--tinta)}
 .ficha-pie .uso.yacomido{opacity:.75}
 .ficha-pie .uso .comido{color:var(--verde)}
+/* La cantidad por ración, a la derecha de la receta: así se leen en columna
+   y un valor que se sale de la ración canta solo. (Carlos, 5-oct-2026.) */
+.ficha-pie .uso{display:flex; align-items:baseline; gap:8px}
+.ficha-pie .uso-cant{margin-left:auto; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--tinta); opacity:.85}
+.ficha-pie .uso.flojo{opacity:.7; font-style:italic}
 .ficha-pie .borrar{margin-top:8px; color:var(--rojo); border-color:var(--rojo)}
 .ficha-pie .bloqueado{margin-top:8px}
 @media(max-width:519px){

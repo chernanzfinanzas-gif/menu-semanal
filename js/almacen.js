@@ -3471,7 +3471,13 @@
         (r.ing || []).forEach(function (l) {
           if (l.i !== id) return;
           if (out.some(function (x) { return x.id === r.id; })) return;
+          /* CUÁNTO LLEVA POR RACIÓN, no el total de la receta. Carlos,
+             5-oct-2026: «debería salir en los ingredientes las recetas donde
+             aparecen y lo que se usa por ración de esa receta». Es lo que
+             permite ver de un vistazo si una receta se sale de la ración. */
           out.push({ id: r.id, n: r.n, c: l.c,
+                     rac: r.raciones || 1,
+                     porRacion: l.c / (r.raciones || 1),
                      planificado: !!planif[r.id],
                      comido: comido[r.id] || null });
         });
@@ -3572,6 +3578,7 @@
           atajos: self.atajosDe(g, ff),
           piezaUd: g.u === "ud",
           racionUso: self.racionUso(g),
+          basico: !!g.basico,
           envase: g.envase || 0,
           porEnvase: self.platosQueDa(g, g.envase > 0 ? g.envase : self.racionUso(g)),
           piezas: self.piezasDe(g.id),
