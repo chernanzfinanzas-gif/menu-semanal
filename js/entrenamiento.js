@@ -766,6 +766,20 @@
       ".ent-dia .agenda span{font-size:.62rem;line-height:1.2;color:#4f6274;overflow-wrap:anywhere}",
       ".ent-dia .agenda b{font-weight:700;color:var(--azul-hondo)}",
       ".ent-dia .agenda .cumple{font-weight:700;color:#7a5a12}",
+      /* LA MOVILIDAD, CON LA MISMA PINTA QUE UN BLOQUE  ·  5-oct-2026.
+         Carlos: «no podría parecerse más a los bloques de ejercicio, con
+         recuadro que cambia a color verde al hacerse». Misma caja, mismo
+         tamaño y mismo redondeo que `.dia-bl`, pero en gris: así se ve que es
+         de la misma familia y a la vez que no es uno de los bloques del plan
+         (no se arrastra ni se mueve de día). Al marcarla se llena de verde,
+         que es lo que hace legible la racha en los siete días.
+         Verde PLENO y no el claro: el claro ya es el color del bloque `largo`,
+         y una movilidad hecha parecería una salida larga. */
+      ".ent-dia .dia-mov{display:block;width:100%;margin-top:3px;padding:3px 4px;" +
+        "font-size:.66rem;font-weight:650;line-height:1.2;text-align:center;" +
+        "border:1px solid var(--borde);background:var(--gris-claro);color:var(--gris);" +
+        "border-radius:7px;overflow-wrap:anywhere}",
+      ".ent-dia .dia-mov.hecha{background:var(--verde);border-color:var(--verde);color:#fff}",
       /* EL PIE SIEMPRE ABAJO DEL TODO, el punto pegado a la izquierda y la carga a
          la derecha. Antes iba justo debajo del último bloque, así que en una fila
          con días de distinto número de bloques los puntos quedaban a alturas
@@ -5256,6 +5270,32 @@
         (x.d ? " " + U.esc(x.d) : "") + "</span>";
     }).join("") + "</span>";
   }
+  /* LA MOVILIDAD, EN LA CASILLA DE LA SEMANA  ·  5-oct-2026.
+     Carlos, mirando la tira: «no sale en las tablas del día?». Es lo que hace
+     a diario y lo que quiere ver de un vistazo es la racha, así que tiene que
+     verse en los siete días y no solo al abrir uno.
+     Va pegada a los bloques y por ENCIMA de la agenda, con su misma caja,
+     pero fuera de la lista de bloques: no es un bloque, no se arrastra, y no
+     cambia lo que es el día. La casilla sigue diciendo
+     «descanso» cuando toca descanso, y la carga, el ánimo y el cumplido se
+     siguen calculando sin ella (ver `sinDiaria`).
+     Y no es un botón: la casilla ya tiene un toque para abrir el día y otro
+     para soltar un bloque, y un tercero sería un campo de minas —la misma
+     razón por la que el «no disp» vive donde vive—. Se marca dentro del día.
+     En un día no hábil no se pinta: esa casilla habla de otra cosa. */
+  function movDeDia(f, ssTodas, noHab) {
+    if (noHab) return "";
+    for (var i = 0; i < ssTodas.length; i++) {
+      if (!ssTodas[i].diaria) continue;
+      var hecha = sesionHecha(f, ssTodas[i], i);
+      return '<span class="dia-mov' + (hecha ? " hecha" : "") + '" title="' +
+        U.esc(hecha ? "Movilidad de cuello y mandíbula: hecha"
+                    : "Movilidad de cuello y mandíbula, 15 min. Se marca dentro del día.") +
+        '">' + (hecha ? "✓ " : "") + "Movilidad 15'</span>";
+    }
+    return "";
+  }
+
   function diaDeSalud(f) { var D = DiarioSalud.datos; return (D && D.dias && D.dias[f]) || {}; }
   var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes, miércoles y viernes
 
@@ -12279,7 +12319,8 @@
     h += '<div class="ent-semana">';
     for (var i = 0; i < 7; i++) {
       var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
-      var ss = semF ? sinDiaria(sesionesDe(f, semF, tallaDe(semF))) : [];
+      var ssTodas = semF ? (sesionesDe(f, semF, tallaDe(semF)) || []) : [];
+      var ss = sinDiaria(ssTodas);
       /* Cuatro estados, y el color dice de qué habla cada uno:
          ámbar claro = fuera del plan, no hay nada que juzgar (los días
          anteriores al 18 de septiembre); verde = día terminado y cumplido;
@@ -12343,7 +12384,8 @@
                   U.esc(cortoBloque(s)) + "</button>";
               }).join("")
             : U.esc(ss.map(function (s) { return s.t.split(":")[0].split(",")[0]; }).join(" · ")))))) +
-        '</span>' + agendaDeDia(f) + '<span class="pie"><span class="p"></span>' +
+        '</span>' + movDeDia(f, ssTodas, noHab) + agendaDeDia(f) +
+        '<span class="pie"><span class="p"></span>' +
         (anDia ? '<span class="animo a-' + anDia + '" title="' +
                    U.esc(ANIMO_TITULO[anDia] || "") + '"></span>' : "") +
         (function () {
