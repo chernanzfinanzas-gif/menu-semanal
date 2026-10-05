@@ -7179,7 +7179,15 @@
       if (!priF || a < priF) priF = a;
       if (!ultF || b > ultF) ultF = b;
     });
-    if (priF && priF > o.desde) o.desde = priF;
+    /* `ajustarIni:false` apaga esto. Hace falta cuando varias gráficas se
+       apilan para leerse POR COLUMNAS: si cada fila empieza donde empiezan SUS
+       datos, cada fila tiene un eje distinto y la misma fecha cae en una x
+       distinta en cada una — o sea, la columna no existe. Lo vio Carlos el
+       5-oct-2026 en el panel de la noche: la saturación sólo tiene 15 noches
+       (la pulsioximetría se activó el 17-sep) y esas 15 noches se estiraban a
+       lo ancho de los seis meses, de modo que el 2 de octubre caía al 82 % del
+       ancho mientras en las demás filas caía al 98 %. */
+    if (o.ajustarIni !== false && priF && priF > o.desde) o.desde = priF;
     if (o.ajustarFin !== false && ultF && ultF < o.hasta && diasEntre(ultF, o.hasta) > 30) o.hasta = ultF;
 
     var t0 = U.desdeISO(o.desde).getTime(), t1 = U.desdeISO(o.hasta).getTime();
@@ -8925,7 +8933,7 @@
         hayAlguna = true;
         filasNoche += grafica({
           desde: v.desde, hasta: v.hasta, alto: 40, arriba: "", unidadTip: m.u,
-          alt: m.n, ajustarFin: false, fechas: false,
+          alt: m.n, ajustarFin: false, ajustarIni: false, fechas: false,
           series: [{ pts: pts, color: m.col, ancho: 1.1, barras: !!m.barras,
                      opacidad: 0.85, marcarUltimo: !m.barras }]
         }) + "</div>";
