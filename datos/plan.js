@@ -664,6 +664,9 @@
             "Termina con la boca entreabierta y la lengua suelta, 20 segundos. Ésa es la posición de " +
             "descanso: los dientes no se tocan." ] }
         ],
+        calor: "Opcional, al terminar: calor húmedo (toalla templada o bolsa de semillas) 10 minutos en " +
+               "mandíbula y sien. Templado, nunca quemando, y sin tapar el oído. Pendiente de confirmar " +
+               "con la fisio el 7-oct. Frío solo si hay dolor agudo o inflamación.",
         fallos: "Ir deprisa y forzar el final del rango. Esto no es estirar a tope una vez por semana: " +
                 "es poco y a menudo. Si un día solo te da para el bloque 2 y el 6, hazlos y marca la sesión."
       }

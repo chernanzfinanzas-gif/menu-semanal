@@ -3083,6 +3083,15 @@
         movs.push({ t: "Movilidad de cuello y mandíbula", min: 15, fam: "movilidad",
                     ligada: ata, mid: "mov-" + ata });
       });
+      /* TODOS LOS DÍAS  ·  5-oct-2026. Carlos: «pon la de 15 minutos todos los
+         días» (vuelven los crujidos de mandíbula y sien). Los días sin fuerza
+         sale sola, con su propia marca. Es `diaria`: se ve y se marca en el
+         día, pero no cuenta minutos ni convierte un descanso en día que haya
+         que cumplir (ver `sinDiaria`). Va la última para no mover índices. */
+      if (!movs.length) {
+        movs.push({ t: "Movilidad de cuello y mandíbula", min: 15, fam: "movilidad",
+                    diaria: true, mid: "mov-dia" });
+      }
       lista = lista.concat(movs);
     }
     /* si el semáforo rebajó el día y se aceptó, manda lo aceptado */
@@ -3091,6 +3100,13 @@
       lista[aj.i] = { t: aj.t, min: aj.min, ajustada: true, descanso: !!aj.descanso };
     }
     return lista;
+  }
+
+  /* La movilidad diaria no cambia lo que es el día: un descanso sigue siendo
+     descanso. Va siempre al final de la lista, así que quitarla no mueve los
+     índices ("s0", "s1"…) con los que se guardan las marcas. */
+  function sinDiaria(lista) {
+    return (lista || []).filter(function (x) { return !x.diaria; });
   }
 
   /* A qué se parece un texto: así la sesión de caminar solo la marca una caminata. */
@@ -3804,7 +3820,7 @@
   function diaCumplido(iso, sem, talla) {
     if (noHabilDe(iso)) return true;               // día no hábil: ES descanso (Carlos, 24-sep)
     if (descansoAceptado(iso)) return true;        // el semáforo mandó parar y se paró
-    var ses = sesionesDe(iso, sem, talla);
+    var ses = sinDiaria(sesionesDe(iso, sem, talla));
     if (!ses.length) return true;                 // descanso: el día cuenta
     /* Se mira el índice ORIGINAL, no el de la lista filtrada: las marcas se
        guardan como "s0", "s1"… por posición en el día, y renumerarlas leería
@@ -7691,7 +7707,7 @@
   function cumplimientoPorDias(sem, hasta) {
     var talla = tallaDe(sem), previstos = 0, hechos = 0, fallos = [], hoy = U.hoyISO();
     for (var f = sem.desde; f <= sem.hasta && f <= hasta; f = U.sumarDias(f, 1)) {
-      var ses = sesionesDe(f, sem, talla);
+      var ses = sinDiaria(sesionesDe(f, sem, talla));
       if (!ses.length) continue;                       // día de descanso
       var hecho = diaCumplido(f, sem, talla);
       /* el día de hoy no se juzga hasta que termina: a media tarde todavía se
@@ -9573,6 +9589,7 @@
       h += "</ol></div>";
     });
 
+    if (g.calor) h += '<div class="ses-reglas"><b>Calor</b> ' + U.esc(g.calor) + "</div>";
     if (g.fallos) h += '<div class="ent-fallos"><b>Lo que más falla:</b> ' + U.esc(g.fallos) + "</div>";
     h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Entendido</button>';
     caja.innerHTML = h;
@@ -9691,7 +9708,7 @@
   function minutosDia(iso, sem, talla) {
     var ses = sesionesDe(iso, sem, talla), m = 0, grande = false;
     ses.forEach(function (x) {
-      if (x.ligada) return;                    // la movilidad pegada a la fuerza no cuenta minutos
+      if (x.ligada || x.diaria) return;        // la movilidad (pegada a la fuerza o diaria) no cuenta minutos
       if (x.grande) { grande = true; m += (P.diaGrande && P.diaGrande.minutos) || 180; }
       else m += x.min || 0;
     });
@@ -12242,7 +12259,7 @@
     h += '<div class="ent-semana">';
     for (var i = 0; i < 7; i++) {
       var f = U.sumarDias(lunes, i), fd = U.desdeISO(f), semF = semanaDe(f);
-      var ss = semF ? sesionesDe(f, semF, tallaDe(semF)) : [];
+      var ss = semF ? sinDiaria(sesionesDe(f, semF, tallaDe(semF))) : [];
       /* Cuatro estados, y el color dice de qué habla cada uno:
          ámbar claro = fuera del plan, no hay nada que juzgar (los días
          anteriores al 18 de septiembre); verde = día terminado y cumplido;
