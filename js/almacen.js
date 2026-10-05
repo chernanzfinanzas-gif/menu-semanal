@@ -818,6 +818,36 @@
         e.arreglos["2026-10-05-lomo-arriba"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLA) {}
       }
+
+      /* EL STOCK DEL LOMO, EN GRAMOS. Carlos, 5-oct-2026: «el stock es 1
+         ración». La ficha pasó de ración de 200 g a 163, y lo que se guarda
+         son gramos: los 200 g de antes saldrían como 1,23 raciones. Se dejan
+         en 163 para que ponga 1 ración justa. */
+      if (!e.arreglos["2026-10-05-lomo-stock"]) {
+        if (!e.stock) e.stock = {};
+        e.stock["cerdo_lomo"] = { c: 163, f: Util.hoyISO() };
+        if (!e.stockSitios) e.stockSitios = {};
+        e.stockSitios["est_arriba"] = Util.hoyISO();
+        e.arreglos["2026-10-05-lomo-stock"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLS) {}
+      }
+
+      /* EL RÓTULO LLEGA TAMBIÉN A LAS FICHAS QUE ÉL TOCÓ (5-oct-2026). Una
+         ficha con `editado` no la refresca el catálogo NUNCA, así que subir el
+         rev no bastaba: el nombre de la pieza se habría quedado sin poner en
+         buena parte de las 49. Y el rótulo es mío, no suyo, así que se puede
+         copiar sin preguntar: se copia SOLO `pz` y no se toca nada más de lo
+         que él haya corregido (ni estante, ni formato, ni forma de pedir). */
+      if (!e.arreglos["2026-10-05-nombre-pieza"]) {
+        var semPZ = (SEMILLA_BASE && SEMILLA_BASE.ingObj) || {};
+        (e.ingredientes || []).forEach(function (g) {
+          var sPZ = g && g.id ? semPZ[g.id] : null;
+          if (!sPZ || !sPZ.pz) return;
+          g.pz = sPZ.pz.slice();
+        });
+        e.arreglos["2026-10-05-nombre-pieza"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPZ) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
@@ -3023,7 +3053,7 @@
                 /* lo mismo que enseña el pase, para que la lista no hable otro
                    idioma: cuántos envases hay y cómo se llama el envase */
                 pieza: self.tamanoPieza(g), piezas: self.piezasDe(g.id),
-                piezaUno: ffm.n[0], piezaVarias: ffm.n[1],
+                piezaUno: self.nombrePieza(g, 1), piezaVarias: self.nombrePieza(g, 2),
                 piezaUd: g.u === "ud",
                 racion: g.racion || 0, nivel: (f && f.nivel) || null,
                 c: c, anotado: !!f, f: (f && f.f) || null,
@@ -3217,8 +3247,18 @@
     fichaFormato: function (g) { return this.FORMATOS[this.formatoDe(g)]; },
 
     nombrePieza: function (g, n) {
+      if (typeof g === "string") g = this.ingrediente(g);
+      var una = (n === 1 || n === -1);
+      /* EL NOMBRE DEL PRODUCTO MANDA SOBRE EL DEL FORMATO. Carlos, 5-oct-2026:
+         «en zumos pones 0 brik, en tomate 0 tarrina, sería más claro 2 (o 0)
+         hamburguesas». Los formatos con nombre de envase (brik, tarrina, lata,
+         bote) ya se leen solos; el comodín `suelto` decía «unidades», que no
+         dice nada. Con `pz:["hamburguesa","hamburguesas"]` en la ficha, la
+         cuenta se rotula con el producto. Sin `pz`, todo sigue igual. Es sólo
+         el rótulo: no cambia ni lo que se cuenta ni los atajos. */
+      if (g && g.pz && g.pz[0]) return una ? g.pz[0] : (g.pz[1] || g.pz[0]);
       var f = this.fichaFormato(g);
-      return (n === 1 || n === -1) ? f.n[0] : f.n[1];
+      return una ? f.n[0] : f.n[1];
     },
 
     /* Todo se cuenta en envases; lo que falta es saber cuánto pesa uno. Si la
@@ -3527,8 +3567,8 @@
           producto: g.producto || "", suplente: g.suplente || "",
           formato: fmt,
           pieza: tam,
-          piezaUno: ff.n[0],
-          piezaVarias: ff.n[1],
+          piezaUno: self.nombrePieza(g, 1),
+          piezaVarias: self.nombrePieza(g, 2),
           atajos: self.atajosDe(g, ff),
           piezaUd: g.u === "ud",
           racionUso: self.racionUso(g),
@@ -4837,7 +4877,7 @@
         var p = self.estado.quiero[id].p || 1;
         out.push({ id: id, n: g.n, piezas: p, u: g.u, pesoUd: g.pesoUd || 0,
                    pieza: self.tamanoPieza(g),
-                   comoSeLlama: p === 1 ? ff.n[0] : ff.n[1],
+                   comoSeLlama: self.nombrePieza(g, p),
                    desde: self.estado.quiero[id].f || null });
       });
       out.sort(function (a, b) { return a.n.localeCompare(b.n); });
@@ -7014,7 +7054,7 @@
           envases: envq, apartado: 0,
           cajon: dondeQ ? (dondeQ === "Amazon" ? "amazon" : "super") : self.cajonDe(ing),
           tienda: dondeQ || self.tiendaDe(ing), unidad: ing.u,
-          texto: pz + " " + (pz === 1 ? ffq.n[0] : ffq.n[1]),
+          texto: pz + " " + self.nombrePieza(ing, pz),
           pesoUd: ing.pesoUd || 0, pidePlan: "", recetas: [], enCasa: self.stockDe(id) > 0,
           marcado: !!self.estado.compraMarcada[id],
           porCapricho: true, piezas: pz, pediste: pediste,
@@ -7064,13 +7104,13 @@
           envases: ing.envase > 0 ? Math.max(1, Math.ceil(piezas * tam / ing.envase)) : 0,
           apartado: 0,
           cajon: self.cajonDe(ing), tienda: self.tiendaDe(ing), unidad: ing.u,
-          texto: piezas + " " + (piezas === 1 ? ff.n[0] : ff.n[1]),
+          texto: piezas + " " + self.nombrePieza(ing, piezas),
           pesoUd: ing.pesoUd || 0, pidePlan: "",
           recetas: [], enCasa: hayP > 0,
           marcado: !!self.estado.compraMarcada[ing.id],
           /* para que la pantalla pueda decir POR QUÉ está aquí */
           porMinimo: true, minimo: ing.minimo, lote: lote, piezas: piezas,
-          tienesPiezas: hayP, piezaNombre: hayP === 1 ? ff.n[0] : ff.n[1],
+          tienesPiezas: hayP, piezaNombre: self.nombrePieza(ing, hayP),
           nota: ing.nota || ""
         };
         if (ing.basico) { basicos.push(linea2); return; }
