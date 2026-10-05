@@ -3580,7 +3580,17 @@
           racionUso: self.racionUso(g),
           basico: !!g.basico,
           envase: g.envase || 0,
-          porEnvase: self.platosQueDa(g, g.envase > 0 ? g.envase : self.racionUso(g)),
+          /* LAS DOS CIFRAS DE LA FICHA TIENEN QUE DIVIDIR POR LO MISMO
+             (5-oct-2026). Carlos, mirando el solomillo: «500 gramos, cada ración
+             son 220 gramos.. no pueden salir 4 platos que serían 880 gramos». Y
+             tenía razón: «cada ración son X g» salía del campo `racion` y «para N
+             platos» de la MEDIANA de lo que gastaban las recetas, que era otra
+             cosa. Ahora que él ha fijado la ración de cada producto a mano, la
+             ración manda: el paquete da envase ÷ ración y la frase cuadra sola.
+             Sin `racion` se sigue cayendo a la mediana, como antes. */
+          porEnvase: (g.racion > 0 && g.envase > 0)
+            ? Math.round(g.envase / g.racion * 10) / 10
+            : self.platosQueDa(g, g.envase > 0 ? g.envase : self.racionUso(g)),
           piezas: self.piezasDe(g.id),
           nivel: (f && f.nivel) || null,
           c: (f && f.c > 0) ? f.c : 0,
