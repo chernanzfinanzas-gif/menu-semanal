@@ -890,6 +890,31 @@
         e.arreglos["2026-10-05-mallas"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errML) {}
       }
+
+      /* EL REQUESÓN GUARDADO SE QUEDÓ SIENDO EL PASTORET (5-oct-2026). Carlos
+         enseñó la ficha del pase: salía «Requesón El Pastoret fresco (o ricotta)»
+         y «Sale en 13 platos», cuando en el catálogo el id `requeson` es desde el
+         30-sep el Requesón mezcla Hacendado de Mercadona. El cambio de aquel día
+         nunca llegó a su copia, porque una ficha con `editado` no la refresca el
+         catálogo NUNCA — la misma trampa del nombre de la pieza y del formato.
+         Efecto real: dieciséis recetas llevaban una semana contando el requesón a
+         98 kcal en vez de a 139. Se copia la ficha buena y se le respeta el
+         estante, igual que se hizo con la alubia de Susana el 4-oct. */
+      if (!e.arreglos["2026-10-05-requeson-hacendado"]) {
+        var semRQ = SEMILLA_BASE && SEMILLA_BASE.ingObj && SEMILLA_BASE.ingObj.requeson;
+        (e.ingredientes || []).forEach(function (g, i) {
+          if (!g || g.id !== "requeson" || !semRQ) return;
+          var suyoRQ = { sitio: g.sitio, pedir: g.pedir, minimo: g.minimo, lote: g.lote };
+          e.ingredientes[i] = JSON.parse(JSON.stringify(semRQ));
+          Object.keys(suyoRQ).forEach(function (k) {
+            if (suyoRQ[k] !== undefined && suyoRQ[k] !== null) e.ingredientes[i][k] = suyoRQ[k];
+          });
+          e.ingredientes[i].tocado = new Date().toISOString();
+          delete e.ingredientes[i].editado;
+        });
+        e.arreglos["2026-10-05-requeson-hacendado"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRQ) {}
+      }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
         var nueva = recSemilla[r.id];
