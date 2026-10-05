@@ -1458,7 +1458,7 @@
         if (!f || f < desde || f > hasta) return;
         var t = { f: f, h: String(x.fecha || "").slice(11, 16), sis: Math.round(x.sis),
                   dia: Math.round(x.dia), pul: x.pulso ? Math.round(x.pulso) : null,
-                  arr: !!x.arritmia, origen: x.origen || "omron" };
+                  arr: !!x.arritmia, fib: !!x.afib, origen: x.origen || "omron" };
         if (!(t.sis > 0) || !(t.dia > 0)) return;
         var k = claveToma(t);
         if (vistas[k]) return;
@@ -1475,7 +1475,7 @@
         if (!f || f < desde || f > hasta) return;
         var t = { f: f, h: String(x.fecha || "").slice(11, 16), sis: Math.round(x.sis),
                   dia: Math.round(x.dia), pul: x.pulso ? Math.round(x.pulso) : null,
-                  arr: !!x.arritmia, origen: "correo" };
+                  arr: !!x.arritmia, fib: !!x.afib, origen: "correo" };
         if (!(t.sis > 0) || !(t.dia > 0)) return;
         var k = claveToma(t);
         if (vistas[k]) return;
@@ -1575,6 +1575,20 @@
       .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u").replace(/\s+/g, " ");
   }
 
+  /* ¿ESTA CASILLA DEL CSV DICE QUE SÍ?  ·  5-oct-2026.
+     OMRON connect escribe «Detectado» en «Se detectó latido arrítmico» y en
+     «Posible AFib»; cuando no salta, deja la casilla vacía o con un guion.
+     El criterio de antes buscaba 1 / si / yes / true / x, y en «Detectado» no
+     hay nada de eso: por eso NINGÚN aviso del aparato llegó nunca a la app.
+     Además buscaba la «x» en cualquier parte, así que un «Máximo» —o cualquier
+     texto con equis— daba un aviso falso. Ahora cada forma va anclada. */
+  function avisoMarcado(v) {
+    var s = normaliza(v == null ? "" : v).trim();
+    if (!s || s === "-" || s === "--" || s === "0" || s === "no" || s === "false" || s === "n") return false;
+    if (/no detectad|not detected|sin detect/.test(s)) return false;
+    return /detectad|detected|^1$|^si$|^s$|^yes$|^y$|^true$|^x$/.test(s);
+  }
+
   /* Meses escritos, que es como los manda el tensiómetro: "18 sep. 2026".
      Se admiten tres o cuatro letras y el nombre entero, en español e inglés. */
   var MESES_TXT = {
@@ -1646,6 +1660,7 @@
         if (c.fec === undefined && /fecha|date|dia y hora|measurement/.test(n)) c.fec = j;
         if (c.hor === undefined && /hora|time/.test(n) && !/fecha|date/.test(n)) c.hor = j;
         if (c.arr === undefined && /irregul|arritm|ihb/.test(n)) c.arr = j;
+        if (c.fib === undefined && /afib|fibril/.test(n)) c.fib = j;
       });
       if (c.sis !== undefined && c.dia !== undefined) { cab = i; col = c; }
     }
@@ -1653,7 +1668,7 @@
     var tomas = [], malas = 0;
     for (var k = (cab >= 0 ? cab + 1 : 0); k < lineas.length; k++) {
       var f = partirLinea(lineas[k], sep);
-      var fecha = null, hora = "", sis = null, dia = null, pul = null, arr = false;
+      var fecha = null, hora = "", sis = null, dia = null, pul = null, arr = false, fib = false;
 
       if (cab >= 0) {
         fecha = fechaDeTexto(f[col.fec !== undefined ? col.fec : 0]);
@@ -1661,7 +1676,8 @@
         sis = parseFloat(String(f[col.sis]).replace(",", "."));
         dia = parseFloat(String(f[col.dia]).replace(",", "."));
         if (col.pul !== undefined) pul = parseFloat(String(f[col.pul]).replace(",", "."));
-        if (col.arr !== undefined) arr = /1|si|sí|yes|true|x/i.test(f[col.arr] || "");
+        if (col.arr !== undefined) arr = avisoMarcado(f[col.arr]);
+        if (col.fib !== undefined) fib = avisoMarcado(f[col.fib]);
       } else {
         /* sin cabecera: fecha en algún campo y los dos primeros números con
            pinta de tensión (60-260 y 30-160) */
@@ -5528,6 +5544,12 @@
       g += '<line x1="' + cx + '" x2="' + cx + '" y1="' + Y(x.sis) + '" y2="' + Y(x.dia) + '" stroke="' + (t ? "#e8c9a0" : "#cdd6e2") + '" stroke-width=".5"/>' +
         '<circle cx="' + cx + '" cy="' + Y(x.sis).toFixed(1) + '" r="1.5" fill="' + (t ? "#d98b2b" : "#b3402f") + '"/>' +
         '<circle cx="' + cx + '" cy="' + Y(x.dia).toFixed(1) + '" r="1.5" fill="' + (t ? "#7b5ea7" : "#2f5c8a") + '"/>';
+      /* AVISO DEL APARATO  ·  5-oct-2026. Un anillo alrededor de la alta: rojo
+         si el Omron dijo posible fibrilación, ámbar si dijo latido irregular.
+         No cambia el dato, lo señala — son las tomas que hay que contarle a
+         cardiología con su fecha y su hora. */
+      if (x.fib || x.arr) g += '<circle cx="' + cx + '" cy="' + Y(x.sis).toFixed(1) +
+        '" r="3.2" fill="none" stroke="' + (x.fib ? "#b3402f" : "#d9a441") + '" stroke-width=".9"/>';
     });
     return '<svg class="ten-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Tomas de tensión por día">' + g + "</svg>";
   }
@@ -5573,6 +5595,14 @@
     var maxS = tomas.reduce(function (a, x) { return !a || x.sis > a.sis ? x : a; }, null);
     var minS = tomas.reduce(function (a, x) { return !a || x.sis < a.sis ? x : a; }, null);
     var arr = tomas.filter(function (x) { return x.arr; }).length;
+    var fib = tomas.filter(function (x) { return x.fib; }).length;
+    /* El médico no necesita un número: necesita CUÁNDO. Son como mucho unas
+       pocas tomas, así que caben con su día y su hora. (5-oct-2026.) */
+    var horasAviso = function (l, cual) {
+      var v = l.filter(function (x) { return x[cual]; }).slice(0, 12);
+      return v.map(function (x) { return tenFecha(x.f) + (x.h ? " " + x.h : ""); }).join(", ") +
+             (l.filter(function (x) { return x[cual]; }).length > 12 ? "…" : "");
+    };
     var porDia = {};
     tomas.forEach(function (x) { (porDia[x.f] = porDia[x.f] || []).push(x); });
     var diasCon = Object.keys(porDia).sort();
@@ -5587,21 +5617,28 @@
       "<tr><td>Máxima / mínima (alta)</td><td>" + maxS.sis + "/" + maxS.dia + " el " + tenFecha(maxS.f) + (maxS.h ? " a las " + maxS.h : "") +
         " · " + minS.sis + "/" + minS.dia + " el " + tenFecha(minS.f) + (minS.h ? " a las " + minS.h : "") + "</td></tr>" +
       (tomasHora.length ? "<tr><td>Horas de toma</td><td>de " + tomasHora[0] + " a " + tomasHora[tomasHora.length - 1] + "</td></tr>" : "") +
-      "<tr><td>Aviso de fibrilación auricular / arritmia del aparato</td><td><b>" + arr + "</b> " + (arr === 1 ? "toma" : "tomas") + "</td></tr>" +
+      "<tr><td>Aviso de POSIBLE FIBRILACIÓN AURICULAR del aparato</td><td><b>" + fib + "</b> " +
+        (fib === 1 ? "toma" : "tomas") + (fib ? " · " + horasAviso(tomas, "fib") : "") + "</td></tr>" +
+      "<tr><td>Aviso de latido irregular del aparato</td><td><b>" + arr + "</b> " +
+        (arr === 1 ? "toma" : "tomas") + (arr ? " · " + horasAviso(tomas, "arr") : "") + "</td></tr>" +
       "</tbody></table>";
 
     h += '<h3 class="ten-h">Cada toma, por días</h3>' + tenSvgDias(tomas, desde, hasta) +
       '<h3 class="ten-h">Las mismas tomas, por hora del día</h3>' + tenSvgHoras(tomas) +
       '<p class="ten-ley"><i style="background:#b3402f"></i>alta mañana <i style="background:#2f5c8a"></i>baja mañana ' +
       '<i style="background:#d98b2b"></i>alta tarde <i style="background:#7b5ea7"></i>baja tarde ' +
-      '<i class="gu"></i>135/85, umbral en domicilio</p>';
+      '<i class="gu"></i>135/85, umbral en domicilio' +
+      ' · <b style="color:#b3402f">○</b> aviso de posible FA del aparato' +
+      ' · <b style="color:#d9a441">○</b> aviso de latido irregular</p>';
 
     /* la tabla: una fila por día, de lo más reciente a lo más antiguo */
     var fila = function (l) {
       if (!l.length) return "<td>—</td>";
       var m = tenMedia(l);
       return "<td>" + l.map(function (x) {
-        return (x.h || "s/h") + " " + x.sis + "/" + x.dia + (x.pul ? " (" + x.pul + ")" : "") + (x.arr ? " ⚠" : "");
+        return (x.h || "s/h") + " " + x.sis + "/" + x.dia + (x.pul ? " (" + x.pul + ")" : "") +
+          (x.fib ? ' <b title="posible fibrilación auricular" style="color:#b3402f">FA</b>' : "") +
+          (x.arr ? ' <b title="latido irregular" style="color:#b58224">⚠</b>' : "");
       }).join("<br>") + (l.length > 1 ? '<br><b>media ' + m.sis + "/" + m.dia + "</b>" : "") + "</td>";
     };
     h += '<h3 class="ten-h">Registro diario</h3><table class="ten-tab"><thead><tr>' +
@@ -7308,7 +7345,8 @@
           var y = Ys(p.v), y0 = Ys(Math.max(se.eje2 ? min2 : min, 0));
           s += '<rect x="' + (X(p.f) - an / 2).toFixed(1) + '" y="' + Math.min(y, y0).toFixed(1) +
             '" width="' + an.toFixed(1) + '" height="' + Math.max(1, Math.abs(y0 - y)).toFixed(1) +
-            '" fill="' + se.color + '" opacity="' + (se.opacidad || 1) + '"/>';
+            '" fill="' + (se.colorDe ? se.colorDe(p.v) : se.color) +
+            '" opacity="' + (se.opacidad || 1) + '"/>';
           /* Si detrás vienen más barras —lo hecho encima del objetivo— el techo
              de ésta se marca con una raya, o una semana que pase del objetivo
              lo taparía entero y se perdería justo la comparación. */
@@ -8918,7 +8956,22 @@
         { c: "body_battery", n: "Body Battery",  u: "al despertar", col: "#3f8f6b" },
         { c: "respiracion",  n: "Respiración",   u: "resp./min",    col: "#7b5ea7" },
         { c: "sueno_veces",  n: "Despertares",   u: "veces",        col: AMBAR, barras: true },
+        /* LA SATURACIÓN, EN BARRAS DE COLOR  ·  5-oct-2026. Carlos: «ponla
+           como barras, de distinto color según sea un valor bueno, normal o
+           bajo, siguiendo el código de color de Garmin».
+           Las franjas son las de Garmin (90-100 / 80-89 / 70-79 / <70) pero
+           con SUS colores, para que no desentone con el resto de la app.
+           Aquí la barra NO se lee por altura —la saturación se mueve en seis
+           puntos y no tiene cero— sino por COLOR: la franja es el dato, y por
+           eso va dicha en el pie del panel. */
         { c: "spo2_noche",   n: "Saturación",    u: "% de O₂", col: ROJO,
+          barras: true,
+          colorDe: function (v) {
+            return v >= 90 ? "#2f6b47"          // 90-100: bien
+                 : v >= 80 ? "#e0a93c"          // 80-89
+                 : v >= 70 ? "#d9772b"          // 70-79
+                 : "#b3402f";                   // por debajo de 70
+          },
           vacio: "sin datos todavía — la pulsioximetría nocturna se activó el 17 de septiembre; " +
                  "aparecerá con la próxima exportación de Garmin" }
       ];
@@ -8935,6 +8988,7 @@
           desde: v.desde, hasta: v.hasta, alto: 40, arriba: "", unidadTip: m.u,
           alt: m.n, ajustarFin: false, ajustarIni: false, fechas: false,
           series: [{ pts: pts, color: m.col, ancho: 1.1, barras: !!m.barras,
+                     colorDe: m.colorDe || null,
                      opacidad: 0.85, marcarUltimo: !m.barras }]
         }) + "</div>";
       });
@@ -8943,7 +8997,10 @@
           '<p class="graf-pie" style="margin:0 0 6px">Todas las medidas de la noche con el mismo ' +
           'eje de fechas. No se mezclan en una sola línea a propósito: son unidades distintas y ' +
           'juntarlas sería inventar. Lo que se lee aquí es la columna — qué hizo cada medida la ' +
-          'misma noche.</p><div class="panel-noche">' + filasNoche +
+          'misma noche. En la saturación manda el COLOR, no la altura: ' +
+          '<b style="color:#2f6b47">verde 90-100 %</b>, <b style="color:#e0a93c">ámbar 80-89 %</b>, ' +
+          '<b style="color:#d9772b">naranja 70-79 %</b>, <b style="color:#b3402f">rojo por debajo de 70</b> ' +
+          '(las franjas de Garmin).</p><div class="panel-noche">' + filasNoche +
           '<div class="fila-noche"><b></b><p class="fechas-noche"><span>' +
           U.esc(U.etiquetaFecha(v.desde)) + "</span><span>" +
           (v.hasta === U.hoyISO() ? "hoy" : U.esc(U.etiquetaFecha(v.hasta))) +
