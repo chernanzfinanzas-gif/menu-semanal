@@ -12517,9 +12517,18 @@
           }
           /* la carga extra va APARTE y nunca se suma al previsto: es lo que se
              movió fuera del plan, y mezclarla falsearía el seguimiento. */
-          if (g && g.extra > 0) {
-            piezas.push('<span class="dc extra" title="Carga fuera del plan: ' +
-              'actividad que no era ninguna sesión."><b>+' + g.extra + "</b><i>extra</i></span>");
+          /* EL EXTRA ES PASEOS + FUERZA  ·  5-oct-2026. Carlos sumaba la casilla
+             y no le cuadraba con el total de Mis Avances: la fuerza puntuaba en
+             el total pero aquí no salía en ningún sitio. «En el tablero pon el
+             extra como la suma de los dos: paseos y fuerza». Solo cambia lo que
+             se enseña: el aviso del día y la carga extra siguen con los paseos. */
+          var exT = g ? (g.extra || 0) + (g.fuerza || 0) : 0;
+          if (exT > 0) {
+            var exPartes = [];
+            if (g.extra > 0) exPartes.push("paseos " + g.extra);
+            if (g.fuerza > 0) exPartes.push("fuerza " + g.fuerza);
+            piezas.push('<span class="dc extra" title="Fuera del plan: ' + exPartes.join(" + ") +
+              '. No cuenta para la rampa; s\u00ed en la carga total."><b>+' + exT + "</b><i>extra</i></span>");
           }
           /* LA BARRA DEL CANTO. Lo que se ve antes de leer ningún número. */
           if (g && c > 0 && (f < hoy || g.hecho > 0)) {
@@ -12994,13 +13003,20 @@
      la carga total (sumando fuerza y paseos de relax)». `entreno` es lo hecho
      contra el plan; `total`, todo lo que marcó el reloj. Para Mis Avances. */
   function cargasPlanYTotal(desde, hasta) {
-    var entreno = 0, total = 0, hubo = false, f = desde;
+    /* 5-oct-2026, Carlos: «parte fuera del plan en paseos y fuerza». Lo que no
+       es entrenamiento va en dos montones: paseos (lo extra que no puntúa) y
+       fuerza (no puntúa nunca). Entrenamiento + paseos + fuerza = total. */
+    var entreno = 0, total = 0, paseos = 0, fuerza = 0, hubo = false, f = desde;
     while (f <= hasta) {
       var c = cargasDia(f);
-      if (c) { entreno += c.hecho; total += c.activa; if (c.activa > 0) hubo = true; }
+      if (c) {
+        entreno += c.hecho; total += c.activa; paseos += c.extra; fuerza += c.fuerza;
+        if (c.activa > 0) hubo = true;
+      }
       f = U.sumarDias(f, 1);
     }
-    return hubo ? { entreno: Math.round(entreno), total: Math.round(total) } : null;
+    return hubo ? { entreno: Math.round(entreno), total: Math.round(total),
+                    paseos: Math.round(paseos), fuerza: Math.round(fuerza) } : null;
   }
 
   function cargaSemana(lunes, hasta) {

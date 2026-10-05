@@ -542,6 +542,8 @@
       var c = (!w.futura && o.cargasDe) ? o.cargasDe(w.desde, w.hasta) : null;
       w.entreno = c ? c.entreno : (w.futura ? 0 : w.hecha);
       w.total = c ? c.total : w.hecha;
+      w.paseos = c && c.paseos != null ? c.paseos : null;
+      w.fuerza = c && c.fuerza != null ? c.fuerza : null;
     });
     var semHasta = sem.filter(function (w) { return !w.futura; });
     var cargaSvg = (function () {
@@ -574,12 +576,13 @@
       "Dos medidas. La de <b>entrenamiento</b> es la que cuenta contra la rampa, igual que El Plan: bici, correr y las caminatas de entreno. " +
       "La <b>total</b> es todo lo que marcó el reloj, con la fuerza y los paseos de relax.",
       '<div class="av-leyenda"><span><i class="av-l-hecha"></i>Entrenamiento</span><span><i class="av-l-total"></i>Total</span><span><i class="av-l-prev"></i>Prevista</span></div>' +
-      cargaSvg + tabla(["Semana", "Prevista", "Entrenamiento", "%", "Total", "Fuera del plan"],
+      cargaSvg + tabla(["Semana", "Prevista", "Entrenamiento", "%", "Total", "Paseos", "Fuerza"],
         semHasta.map(function (s) {
           return ["S" + s.n + " · " + diaCorto(s.desde) + (s.curso ? " (en curso)" : ""), s.prevista, num(s.entreno),
-                  s.prevista ? Math.round(s.entreno / s.prevista * 100) + " %" : "—", num(s.total), num(Math.max(0, s.total - s.entreno))];
+                  s.prevista ? Math.round(s.entreno / s.prevista * 100) + " %" : "—", num(s.total),
+                  s.paseos != null ? num(s.paseos) : "—", s.fuerza != null ? num(s.fuerza) : "—"];
         })),
-      "El % es el de entrenamiento, el mismo que da El Plan. La semana en curso se va llenando; las de descarga piden menos a propósito.");
+      "El % es el de entrenamiento, el mismo que da El Plan. Entrenamiento + paseos + fuerza = total. La semana en curso se va llenando; las de descarga piden menos a propósito.");
 
     /* FTP: escalones (declarada, luego cada test) y el objetivo */
     var esc0 = ftpD ? [{ x: x0, y: ftpD.w }] : [];
