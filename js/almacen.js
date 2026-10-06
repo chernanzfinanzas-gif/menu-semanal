@@ -1046,6 +1046,102 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTO) {}
       }
 
+      /* EL ATÚN Y LA BERENJENA, REVISADOS (6-oct-2026). Carlos: «el atún fresco
+         sellado porque no está revisada?». Pues porque las marcas no se ponen
+         solas: salen de un arreglo de estos, y la tanda del v470 no llevaba
+         ninguno. Van las cuatro que él cerró esa tarde:
+           · el atún a 150 g, que es la ración de la ficha y media bandeja
+           · el atún con mango, con 75 de mango y 25 de canónigos y rúcula
+           · las dos guarniciones de berenjena, a media pieza por comensal
+         NO entra `berenjena_rellena_carne`, que es nueva y la escribí yo: esa
+         se queda sin ver hasta que la lea. Tampoco `snack_yogur_griego_mango`,
+         por lo mismo. */
+      if (!e.arreglos["2026-10-06-atun-y-berenjena-revisados"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["atun_sellado_solo", "atun_mango_rucula",
+         "guar_berenjena_tomillo", "guar_zanahoria_miel"]
+          .forEach(function (idAB) { e.recetaVista[idAB] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-atun-y-berenjena-revisados"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAB) {}
+      }
+
+      /* LOS MACARRONES DE GORGONZOLA, REVISADOS (6-oct-2026). Carlos: «están
+         bien salvo que la cantidad de pollo o solomillo no son 200 gramos, son
+         150 gramos, 75 por ración». Las dos fichas, la de pollo y la de
+         solomillo, con esa única corrección hecha. */
+      if (!e.arreglos["2026-10-06-macarrones-gorgonzola-revisados"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["macarrones_gorgonzola_pera_pollo", "macarrones_gorgonzola_pera_solomillo"]
+          .forEach(function (idMG) { e.recetaVista[idMG] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-macarrones-gorgonzola-revisados"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMG) {}
+      }
+
+      /* LOS OTROS DOS MACARRONES Y EL MENÚ DEL McDONALD'S (6-oct-2026).
+         Carlos: «lo mismo le pasa a otras dos recetas de macarrones con
+         solomillo y macarrones con pollo. La de macarrones con solomillo tiene
+         52,5 gramos cebolla caramelizada por ración y con 30 gramos estaría
+         bien». Hecho lo uno y lo otro, se dan por revisadas. Y aparte:
+         «McDonalds, wrap, patatas medianas y coca cola zero está bien puedes
+         darlo por revisado». */
+      if (!e.arreglos["2026-10-06-macarrones-y-mcdonalds-revisados"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["macarrones_pollo_setas_nata", "macarrones_solomillo_cebolla_caram_nueces",
+         "cap_mcd_menu"]
+          .forEach(function (idMM) { e.recetaVista[idMM] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-macarrones-y-mcdonalds-revisados"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMM) {}
+      }
+
+      /* EL SALMÓN Y LOS DESAYUNOS (6-oct-2026). Carlos: «Salmón, todas las
+         recetas llevan como unidad de salmón los 125 gr que pesa un lomo de
+         salmón, el que lleve setas gasta la bolsa de 450 gramos por dos
+         raciones». Hecho en las cuatro que no lo cumplían; la del cous cous ya
+         estaba bien y entra también. Y el porridge de cacao, con sus 250 ml de
+         leche y el plátano entero.
+
+         «Leche con café» entra también. Estuvo un rato marcada en PENDIENTE
+         porque esa receta tenía escrito «descafeinado siempre» por la pauta del
+         oído y el Lavazza Qualità Oro lleva cafeína; él lo resolvió el mismo
+         día: «voy a tomar cafeína, un café al día por la mañana, si el oído va
+         mal tomaré la decisión más adelante». Decidido, así que va como las
+         demás. El aviso no se borra: vive en los trucos de la receta. */
+      if (!e.arreglos["2026-10-06-salmon-y-desayunos"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["salmon_freidora", "salmon_verduras_horno", "salmon_airfryer_cherry",
+         "salmon_lekue_setas", "cous_salmon_calabacin_limon", "des_porridge_cacao",
+         "des_leche_cafe"]
+          .forEach(function (idSD) { e.recetaVista[idSD] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-salmon-y-desayunos"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errSD) {}
+      }
+
+      /* LA MEDIDA DE LOS PORRIDGE (6-oct-2026). Carlos: «todos los porridge
+         tienen 30gr de copos de avena y 250ml de leche desnatada». Hecho en los
+         tres que no la cumplían; el de cacao ya la tenía de la tanda anterior.
+         El «Porridge grande de día de ruta» NO entra: lleva 90 g de avena a
+         propósito, porque es el desayuno de un día de monte, y sus 250 ml de
+         leche ya estaban bien. Queda preguntado en el chat. */
+      if (!e.arreglos["2026-10-06-medida-porridge"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["des_porridge_rojos", "des_porridge_manzana", "des_overnight"]
+          .forEach(function (idPO) { e.recetaVista[idPO] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-medida-porridge"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPO) {}
+      }
+
+      /* LAS DOS DE MERLUZA (6-oct-2026). Carlos: «una receta de lomos de
+         merluza al vapor con calabacín y berenjena tiene para dos raciones 220
+         gramos y debe tener 290 gramos como la otra. con este cambio están las
+         dos bien». La del Lékué con batata ya estaba en 290. */
+      if (!e.arreglos["2026-10-06-merluzas-revisadas"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["merluza_vapor", "merluza_lekue_batata"]
+          .forEach(function (idME) { e.recetaVista[idME] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-merluzas-revisadas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errME) {}
+      }
+
       /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
          «sin ver» sería empezar con una montaña y eso es exactamente lo que
          mata sus proyectos. Las que ya ha tocado o cocinado entran marcadas:
