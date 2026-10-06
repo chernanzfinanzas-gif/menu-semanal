@@ -1508,3 +1508,13 @@ button.enlace {
   display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .repaso-receta .nota-peque{margin:0}
 .repaso-botones{display:flex; gap:8px; margin-left:auto}
+
+/* PENDIENTE DE REVISIÓN (6-oct-2026). Carlos: «si veo algo al hacer una receta
+   que me chirríe lo corregimos... y pte revisión para saber cuándo tengo que
+   echar un ojo a la receta». Ámbar, que es aviso y no error. */
+.etiqueta.pte{background:#fdf3e2; border-color:#eccf9a; color:#8a5d10}
+.btn.mini.aviso{background:#fdf3e2; border-color:#eccf9a; color:#8a5d10}
+.repaso-nota{margin:8px 0 2px}
+.repaso-nota label{display:block; font-size:.75rem; color:var(--gris); margin-bottom:4px}
+.repaso-nota input{width:100%; padding:8px 10px; border:1px solid var(--borde);
+  border-radius:8px; font-size:.9rem; background:#fffdf7}

@@ -3585,11 +3585,38 @@
     },
     marcarReceta: function (id, v) {
       if (!this.estado.recetaVista) this.estado.recetaVista = {};
+      var antes = this.estado.recetaVista[id];
       /* volver a pulsar lo que ya está puesto lo quita: se puede desdecir */
       if (this.vistaReceta(id) === v) delete this.estado.recetaVista[id];
-      else this.estado.recetaVista[id] = { v: v, f: Util.hoyISO() };
+      else {
+        this.estado.recetaVista[id] = { v: v, f: Util.hoyISO() };
+        /* la nota del pendiente sobrevive mientras siga pendiente */
+        if (v === "pte" && antes && antes.nota) this.estado.recetaVista[id].nota = antes.nota;
+      }
       this.guardar("receta");
       return this.vistaReceta(id);
+    },
+    /* POR QUÉ ESTÁ PENDIENTE (6-oct-2026). Carlos: «si veo algo al hacer una
+       receta que me chirríe lo corregimos». Lo que chirría se apunta en el
+       momento, cocinando, que es cuando se sabe; si no, para mañana se ha
+       olvidado y la receta vuelve a la cola sin que nadie sepa qué le pasaba. */
+    notaReceta: function (id) {
+      var m = (this.estado.recetaVista || {})[id];
+      return (m && m.nota) || "";
+    },
+    apuntarReceta: function (id, nota) {
+      if (!this.estado.recetaVista) this.estado.recetaVista = {};
+      var m = this.estado.recetaVista[id];
+      if (!m) { m = this.estado.recetaVista[id] = { v: "pte", f: Util.hoyISO() }; }
+      nota = String(nota || "").trim();
+      if (nota) m.nota = nota; else delete m.nota;
+      this.guardar("receta");
+    },
+    recetasPendientes: function () {
+      var self = this;
+      return (this.estado.recetas || []).filter(function (r) {
+        return r && !r.oculta && r.grupo !== "suelto" && self.vistaReceta(r.id) === "pte";
+      });
     },
     /* Cuántas quedan por mirar, contando solo las que se ofrecen de verdad:
        ni retiradas, ni «ingredientes solos», ni platos de restaurante. */

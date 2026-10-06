@@ -2583,9 +2583,18 @@
         '<div class="repaso-botones">' +
           '<button type="button" class="btn mini' + (v === "ok" ? " activo" : "") +
             '" data-vista="' + esc(r.id) + '|ok">Me vale</button>' +
+          '<button type="button" class="btn mini' + (v === "pte" ? " activo" : "") +
+            '" data-vista="' + esc(r.id) + '|pte">Pendiente</button>' +
           '<button type="button" class="btn mini' + (v === "no" ? " activo" : "") +
             '" data-vista="' + esc(r.id) + '|no">No me vale</button>' +
         "</div></div>";
+      /* QUÉ LE CHIRRÍA, APUNTADO EN EL MOMENTO. Sólo aparece si está pendiente:
+         en los otros dos estados no hay nada que recordar. */
+      if (v === "pte") {
+        html += '<div class="repaso-nota"><label>Qué hay que mirar</label>' +
+          '<input type="text" data-notapte="' + esc(r.id) + '" value="' +
+          esc(Almacen.notaReceta(r.id)) + '" placeholder="el chorizo son 50 g, no 10" maxlength="160"></div>';
+      }
     })();
     /* Su nota, si ya la tiene: tocar otra estrella la cambia, la misma la quita. */
     if (Almacen.estrellas(r.id)) html += filaEstrellas(r.id, Almacen.estrellas(r.id), "ficha");
@@ -3757,6 +3766,8 @@
       /* SIN VER: las que no has mirado todavía (6-oct-2026). Ver `vistaReceta`
          en almacen.js: el recetario mezclaba tus platos con mis propuestas. */
       if (f.vista === "sinver" && Almacen.vistaReceta(r.id)) return false;
+      if (f.vista === "pte" && Almacen.vistaReceta(r.id) !== "pte") return false;
+      if (f.vista === "ok" && Almacen.vistaReceta(r.id) !== "ok") return false;
       if (f.toma && (r.tipo || []).indexOf(f.toma) < 0) return false;
       if (f.grupo && r.grupo !== f.grupo) return false;
       if (f.tool === "__preferidas") {
@@ -3780,12 +3791,27 @@
     /* EL CONTADOR LLEVA EL REPASO AL LADO. No hay pantalla nueva: se repasa
        desde el recetario de siempre, filtrando, que es donde ya mira. */
     var sinVer = Almacen.recetasSinVer().length;
+    var ptes = Almacen.recetasPendientes().length;
+    var revisadas = (Almacen.estado.recetas || []).filter(function (x) {
+      return x && !x.oculta && x.grupo !== "suelto" && Almacen.vistaReceta(x.id) === "ok";
+    }).length;
     $("#contador-recetas").innerHTML = lista.length + " recetas" +
       (sinVer
         ? ' <button type="button" class="btn mini' + (f.vista === "sinver" ? " activo" : "") +
           '" data-repaso="sinver">' + sinVer + " sin ver</button>"
         : "") +
-      (f.vista === "sinver"
+      (ptes
+        ? ' <button type="button" class="btn mini aviso' + (f.vista === "pte" ? " activo" : "") +
+          '" data-repaso="pte">' + ptes + (ptes === 1 ? " pendiente" : " pendientes") + "</button>"
+        : "") +
+      /* LAS YA REVISADAS TAMBIEN SE MIRAN (Carlos, 6-oct-2026): «quiero ver las
+         recetas revisadas y sin revisar». No sirve solo la cola de lo que falta;
+         hace falta poder volver sobre lo que ya diste por bueno. */
+      (revisadas
+        ? ' <button type="button" class="btn mini' + (f.vista === "ok" ? " activo" : "") +
+          '" data-repaso="ok">' + revisadas + " revisadas</button>"
+        : "") +
+      (f.vista
         ? ' <button type="button" class="btn mini" data-repaso="">ver todas</button>'
         : "");
     $("#rejilla-recetas").innerHTML = lista.map(function (r) {
@@ -3796,9 +3822,12 @@
              '<div class="nota-peque">' + Util.kcal(n.k) + ' · ' + Math.round(n.p) + ' g prot. · ' +
              Util.sal(sal) + ' sal · ' + (r.min || "?") + ' min</div>' +
              '<div class="etiquetas">' +
-               (Almacen.vistaReceta(r.id) === "no"
-                 ? '<span class="etiqueta raro">no te vale</span>'
-                 : (Almacen.vistaReceta(r.id) ? '' : '<span class="etiqueta sinver">sin ver</span>')) +
+               (function () {
+                 var vv = Almacen.vistaReceta(r.id);
+                 if (vv === "no") return '<span class="etiqueta raro">no te vale</span>';
+                 if (vv === "pte") return '<span class="etiqueta pte">pte. revisión</span>';
+                 return vv ? '' : '<span class="etiqueta sinver">sin ver</span>';
+               })() +
                (r.grupo ? '<span class="etiqueta verde">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
                etiquetasTool(r.tools) +
              '</div></div>';
@@ -7377,8 +7406,17 @@
       if (!b) return;
       var p = b.getAttribute("data-vista").split("|");
       var v = Almacen.marcarReceta(p[0], p[1]);
-      Util.toast(v === "ok" ? "Marcada como tuya" : (v === "no" ? "Marcada como que no te vale" : "Vuelve a estar sin ver"));
+      Util.toast(v === "ok" ? "Marcada como tuya"
+        : (v === "pte" ? "Pendiente de revisar"
+        : (v === "no" ? "Marcada como que no te vale" : "Vuelve a estar sin ver")));
       abrirFicha(p[0]);
+      pintarRecetas();
+    });
+    /* lo que hay que mirar, escrito a mano en la ficha */
+    document.addEventListener("change", function (e) {
+      var i = e.target.closest("[data-notapte]");
+      if (!i) return;
+      Almacen.apuntarReceta(i.getAttribute("data-notapte"), i.value);
       pintarRecetas();
     });
 
