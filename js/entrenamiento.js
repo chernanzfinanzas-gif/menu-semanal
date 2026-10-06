@@ -10293,7 +10293,7 @@
         var txt = JSON.stringify(doc, null, 1);
         var by = new TextEncoder().encode(txt), bin = "", i;
         for (i = 0; i < by.length; i++) bin += String.fromCharCode(by[i]);
-        var cuerpo = { message: "Medicación: " + mensaje, content: btoa(bin), branch: c.rama || "main" };
+        var cuerpo = { message: (/^Cita/.test(mensaje) ? "" : "Medicación: ") + mensaje, content: btoa(bin), branch: c.rama || "main" };
         if (sha) cuerpo.sha = sha;
         return fetch(url, { method: "PUT", headers: cab, body: JSON.stringify(cuerpo) }).then(function (r) {
           if (r.ok) {
@@ -10378,38 +10378,47 @@
       '<p class="nota-peque">Lo que dejas de tomar no se borra: se queda en el historial con su fecha de fin.</p>';
   }
 
+  function medEstilos() {
+  if (!document.getElementById("estilos-med-editor")) {
+    var st = document.createElement("style"); st.id = "estilos-med-editor";
+    st.textContent = [
+      ".med-ed-item{border-bottom:1px solid var(--borde,#dfe5e2);padding:9px 0}",
+      ".med-ed-item>div:first-child small{display:block;color:var(--gris,#667a70);font-size:12.5px;margin-top:2px}",
+      ".med-ed-acc{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}",
+      ".med-ed-acc .btn{padding:5px 10px;font-size:13px}",
+      ".med-ed-dejar{background:var(--azul-claro,#eaf0f6);border-radius:9px;padding:9px 10px;margin-top:8px}",
+      ".med-ed-nuevo{width:100%;margin-top:12px}",
+      ".med-ed-form{display:grid;gap:10px}",
+      ".med-ed-campo{display:grid;gap:4px;font-size:13px}",
+      ".med-ed-campo>span{font-weight:600;color:var(--tinta,#1f2a24)}",
+      ".med-ed-campo input[type=text],.med-ed-campo input[type=date],.med-ed-campo select,.med-ed-campo textarea{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--borde,#dfe5e2);border-radius:8px;background:#fff;width:100%;box-sizing:border-box}",
+      ".med-ed-campo small{color:var(--gris,#667a70);font-size:11.5px}",
+      ".med-ed-horas{display:flex;flex-wrap:wrap;gap:6px}",
+      ".med-ed-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--borde,#dfe5e2);border-radius:20px;padding:5px 10px;font-size:14px;background:#fff}",
+      ".med-ed-chip input[type=time]{font:inherit;border:0;padding:0}",
+      ".med-ed-check{display:flex;gap:8px;align-items:center;font-size:14px}",
+      ".med-ed-fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
+      ".med-ed-botones{display:flex;gap:8px;margin-top:4px}",
+      ".med-ed-borrar{background:#fdecea;border:1px solid #f3c2bc;border-radius:9px;padding:9px 10px;font-size:13px}",
+      ".btn.peligro{background:#b23a30;color:#fff;border-color:#b23a30}",
+      ".med-ed-estado{font-size:13px;margin:8px 0 0}",
+      ".med-ed-estado.mal{color:#b23a30}",
+      ".med-ed-estado.bien{color:#13875e}",
+      "[data-med-borrar]{color:#b23a30;cursor:pointer;text-decoration:underline}",
+      /* citas (v449) */
+      ".med-ed-campo[hidden]{display:none}",
+      "[data-cit-borrar]{color:#b23a30;cursor:pointer;text-decoration:underline}",
+      ".cit-pasada{opacity:.65}",
+      ".cit-ver-pasadas{display:block;margin-top:10px;font-size:13px;color:var(--azul,#2f5c8a);cursor:pointer;text-decoration:underline}"
+    ].join("\n");
+    document.head.appendChild(st);
+  }
+  }
+
   function abrirEditorMed() {
     var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
     if (!caja || !modal) return;
-    if (!document.getElementById("estilos-med-editor")) {
-      var st = document.createElement("style"); st.id = "estilos-med-editor";
-      st.textContent = [
-        ".med-ed-item{border-bottom:1px solid var(--borde,#dfe5e2);padding:9px 0}",
-        ".med-ed-item>div:first-child small{display:block;color:var(--gris,#667a70);font-size:12.5px;margin-top:2px}",
-        ".med-ed-acc{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}",
-        ".med-ed-acc .btn{padding:5px 10px;font-size:13px}",
-        ".med-ed-dejar{background:var(--azul-claro,#eaf0f6);border-radius:9px;padding:9px 10px;margin-top:8px}",
-        ".med-ed-nuevo{width:100%;margin-top:12px}",
-        ".med-ed-form{display:grid;gap:10px}",
-        ".med-ed-campo{display:grid;gap:4px;font-size:13px}",
-        ".med-ed-campo>span{font-weight:600;color:var(--tinta,#1f2a24)}",
-        ".med-ed-campo input[type=text],.med-ed-campo input[type=date],.med-ed-campo select,.med-ed-campo textarea{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--borde,#dfe5e2);border-radius:8px;background:#fff;width:100%;box-sizing:border-box}",
-        ".med-ed-campo small{color:var(--gris,#667a70);font-size:11.5px}",
-        ".med-ed-horas{display:flex;flex-wrap:wrap;gap:6px}",
-        ".med-ed-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--borde,#dfe5e2);border-radius:20px;padding:5px 10px;font-size:14px;background:#fff}",
-        ".med-ed-chip input[type=time]{font:inherit;border:0;padding:0}",
-        ".med-ed-check{display:flex;gap:8px;align-items:center;font-size:14px}",
-        ".med-ed-fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
-        ".med-ed-botones{display:flex;gap:8px;margin-top:4px}",
-        ".med-ed-borrar{background:#fdecea;border:1px solid #f3c2bc;border-radius:9px;padding:9px 10px;font-size:13px}",
-        ".btn.peligro{background:#b23a30;color:#fff;border-color:#b23a30}",
-        ".med-ed-estado{font-size:13px;margin:8px 0 0}",
-        ".med-ed-estado.mal{color:#b23a30}",
-        ".med-ed-estado.bien{color:#13875e}",
-        "[data-med-borrar]{color:#b23a30;cursor:pointer;text-decoration:underline}"
-      ].join("\n");
-      document.head.appendChild(st);
-    }
+    medEstilos();
     var d = hmDatos();
     var t = (medEd.vista === "form" && medEd.id && d) ? (d.tratamientos || []).filter(function (x) { return x.id === medEd.id; })[0] : null;
     var titulo = medEd.vista === "form" ? (t ? "Editar " + t.nombre : "Añadir un medicamento") : "Tu medicación";
@@ -10508,6 +10517,184 @@
     return false;
   }
 
+  /* ==================== CITAS MÉDICAS: editor (v449) ====================
+     Carlos: «debería haber forma de introducirlas desde la app y modificarlas».
+     Mismo camino que la medicación: hmGuardarCambio relee el historial del
+     repositorio privado, aplica el cambio sobre lo último y lo guarda.
+     Forma de cada cita: {id, f (AAAA-MM-DD o AAAA-MM), h, que, donde, para,
+     porConfirmar, pendiente[]}. Las antiguas no tienen id: se reconocen por
+     fecha + texto. Las pasadas no se borran: se quedan como historia. */
+  var citEd = { vista: "lista", clave: null, borrando: null, estado: "", pasadas: false };
+
+  function citaClave(c) { return c.id || ((c.f || "") + "|" + (c.que || "")); }
+  function citaOrden(c) { return String(c.f || "9999") + " " + (c.h || ""); }
+  function citasOrdenadas(d) {
+    return ((d && d.citas) || []).slice().sort(function (a, b) {
+      var x = citaOrden(a), y = citaOrden(b); return x < y ? -1 : x > y ? 1 : 0;
+    });
+  }
+  function citaPasada(c, hoy) {
+    var f = String(c.f || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f < hoy;
+    if (/^\d{4}-\d{2}$/.test(f)) return f < hoy.slice(0, 7);
+    return false;
+  }
+  function citaCuando(c) {
+    return hmMes(c.f) + (c.h ? " · " + c.h : "") + (c.porConfirmar ? " · fecha por confirmar" : "");
+  }
+  function citaHtml(c, pasada) {
+    return '<div class="hm-pat' + (pasada ? " cit-pasada" : "") + '"><h3>' + U.esc(c.que || "Cita") + "</h3>" +
+      '<p class="nota-peque">' + U.esc(citaCuando(c) + (c.donde ? " · " + c.donde : "")) + "</p>" +
+      ((c.pendiente || []).length ? '<ul class="hm-lista">' + c.pendiente.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "") +
+      "</div>";
+  }
+
+  function citaFormulario(c) {
+    var d = hmDatos() || {};
+    c = c || {};
+    var f = String(c.f || ""), soloMes = /^\d{4}-\d{2}$/.test(f), conDia = /^\d{4}-\d{2}-\d{2}$/.test(f);
+    var h = '<div class="med-ed-form">' +
+      '<label class="med-ed-campo"><span>Qué cita es</span><input type="text" data-cit-campo="que" value="' + U.esc(c.que || "") + '" placeholder="Ej.: Otorrino · revisión del hidrops"></label>' +
+      '<label class="med-ed-campo"><span>Dónde</span><input type="text" data-cit-campo="donde" value="' + U.esc(c.donde || "") + '" placeholder="Ej.: Hospital La Paz, consulta 12"></label>' +
+      '<label class="med-ed-check"><input type="checkbox" data-cit-campo="soloMes"' + (soloMes ? " checked" : "") + "> Solo sé el mes</label>" +
+      '<div class="med-ed-fila">' +
+        '<label class="med-ed-campo" data-cit-dia="1"' + (soloMes ? " hidden" : "") + '><span>Día</span><input type="date" data-cit-campo="dia" value="' + (conDia ? f : "") + '"></label>' +
+        '<label class="med-ed-campo" data-cit-mes="1"' + (soloMes ? "" : " hidden") + '><span>Mes</span><input type="month" data-cit-campo="mes" value="' + (soloMes ? f : "") + '" placeholder="AAAA-MM"></label>' +
+        '<label class="med-ed-campo"><span>Hora (si la sabes)</span><input type="time" data-cit-campo="h" value="' + U.esc(c.h || "") + '"></label>' +
+      "</div>" +
+      (f && !soloMes && !conDia ? "<small>Ahora pone «" + U.esc(f) + "». Déjalo vacío para conservarlo.</small>" : "") +
+      '<label class="med-ed-check"><input type="checkbox" data-cit-campo="porConfirmar"' + (c.porConfirmar ? " checked" : "") + "> Fecha sin confirmar</label>" +
+      '<label class="med-ed-campo"><span>Para qué</span><select data-cit-campo="para"><option value="">—</option>' +
+        (d.patologias || []).map(function (p) {
+          return '<option value="' + U.esc(p.id) + '"' + (c.para === p.id ? " selected" : "") + ">" + U.esc(p.nombre) + "</option>";
+        }).join("") + "</select></label>" +
+      '<label class="med-ed-campo"><span>Pendiente, qué llevar o preguntar</span><textarea data-cit-campo="pendiente" rows="3" placeholder="Una cosa por línea">' +
+        U.esc((c.pendiente || []).join("\n")) + "</textarea></label>" +
+      '<div class="med-ed-botones"><button type="button" class="btn principal" data-cit-guardar="1">Guardar</button>' +
+      '<button type="button" class="btn" data-cit-cancelar="1">Cancelar</button></div>';
+    if (citEd.clave) {
+      h += citEd.borrando
+        ? '<div class="med-ed-borrar"><b>¿Borrar esta cita?</b> Úsalo si se anula o la apuntaste por error. ' +
+          'Las que ya pasaron no hace falta borrarlas: se quedan como historia.<div class="med-ed-botones">' +
+          '<button type="button" class="btn peligro" data-cit-borrar-ok="1">Sí, borrarla</button>' +
+          '<button type="button" class="btn" data-cit-borrar-no="1">No</button></div></div>'
+        : '<p class="nota-peque"><a role="button" tabindex="0" data-cit-borrar="1">Se ha anulado o la apunté mal: borrarla</a></p>';
+    }
+    return h + "</div>";
+  }
+
+  function citaLista() {
+    var d = hmDatos() || {}, hoy = U.hoyISO();
+    var todas = citasOrdenadas(d);
+    var prox = todas.filter(function (c) { return !citaPasada(c, hoy); });
+    var pas = todas.filter(function (c) { return citaPasada(c, hoy); }).reverse();
+    function item(c, pasada) {
+      return '<div class="med-ed-item' + (pasada ? " cit-pasada" : "") + '"><div><b>' + U.esc(c.que || "Cita") + "</b><small>" +
+        U.esc(citaCuando(c) + (c.donde ? " · " + c.donde : "")) + "</small></div>" +
+        '<div class="med-ed-acc"><button type="button" class="btn" data-cit-editar="' + U.esc(citaClave(c)) + '">Editar</button></div></div>';
+    }
+    var h = prox.length ? prox.map(function (c) { return item(c, false); }).join("") : '<p class="nota-peque">No tienes ninguna cita por delante.</p>';
+    h += '<button type="button" class="btn principal med-ed-nuevo" data-cit-nueva="1">+ Añadir una cita</button>';
+    if (pas.length) {
+      h += '<a role="button" tabindex="0" class="cit-ver-pasadas" data-cit-pasadas="1">' +
+        (citEd.pasadas ? "Ocultar las pasadas" : "Ver las pasadas (" + pas.length + ")") + "</a>";
+      if (citEd.pasadas) h += pas.map(function (c) { return item(c, true); }).join("");
+    }
+    return h;
+  }
+
+  function abrirEditorCitas() {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    medEstilos();
+    var d = hmDatos();
+    var c = (citEd.vista === "form" && citEd.clave && d) ? (d.citas || []).filter(function (x) { return citaClave(x) === citEd.clave; })[0] : null;
+    var titulo = citEd.vista === "form" ? (c ? "Cambiar la cita" : "Añadir una cita") : "Tus citas";
+    caja.innerHTML = "<header><h2>" + U.esc(titulo) + "</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      (!d ? '<p class="nota-peque">El historial médico todavía no se ha cargado. Ciérralo y vuelve a abrirlo en unos segundos.</p>'
+          : citEd.vista === "form" ? citaFormulario(c) : citaLista()) +
+      (citEd.estado ? '<p class="med-ed-estado ' + (citEd.estado.charAt(0) === "!" ? "mal" : "bien") + '">' +
+        U.esc(citEd.estado.replace(/^!/, "")) + "</p>" : "");
+    modal.classList.add("abierta");
+  }
+
+  function citaLeer() {
+    var caja = document.getElementById("modal-caja"), v = {};
+    caja.querySelectorAll("[data-cit-campo]").forEach(function (el) {
+      v[el.getAttribute("data-cit-campo")] = el.type === "checkbox" ? el.checked : String(el.value || "").trim();
+    });
+    v.pendiente = String(v.pendiente || "").split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    return v;
+  }
+
+  function citaTrasGuardar(texto) {
+    return function (ok, error) {
+      citEd.estado = ok ? texto : "!No se ha guardado: " + error + ". Tus citas siguen como estaban.";
+      if (ok) { citEd.vista = "lista"; citEd.clave = null; citEd.borrando = null; }
+      abrirEditorCitas();
+      if (ok) pintarConservando();
+    };
+  }
+
+  /* lo que se pulsa dentro de la ventana de citas; devuelve true si era suyo */
+  function citClick(e) {
+    var sm = e.target.closest && e.target.closest('[data-cit-campo="soloMes"]');
+    if (sm) {
+      var dia = document.querySelector("[data-cit-dia]"), mes = document.querySelector("[data-cit-mes]");
+      if (dia) dia.hidden = sm.checked;
+      if (mes) mes.hidden = !sm.checked;
+      return true;
+    }
+    var el = e.target.closest ? e.target.closest("[data-cit-nueva],[data-cit-editar],[data-cit-cancelar],[data-cit-guardar],[data-cit-borrar],[data-cit-borrar-ok],[data-cit-borrar-no],[data-cit-pasadas]") : null;
+    if (!el) return false;
+    e.preventDefault();
+    citEd.estado = "";
+    if (el.hasAttribute("data-cit-nueva")) { citEd.vista = "form"; citEd.clave = null; citEd.borrando = null; abrirEditorCitas(); return true; }
+    if (el.hasAttribute("data-cit-editar")) { citEd.vista = "form"; citEd.clave = el.getAttribute("data-cit-editar"); citEd.borrando = null; abrirEditorCitas(); return true; }
+    if (el.hasAttribute("data-cit-pasadas")) { citEd.pasadas = !citEd.pasadas; abrirEditorCitas(); return true; }
+    if (el.hasAttribute("data-cit-cancelar")) { citEd.vista = "lista"; citEd.clave = null; citEd.borrando = null; abrirEditorCitas(); return true; }
+    if (el.hasAttribute("data-cit-borrar")) { citEd.borrando = true; abrirEditorCitas(); return true; }
+    if (el.hasAttribute("data-cit-borrar-no")) { citEd.borrando = null; abrirEditorCitas(); return true; }
+    var clave = citEd.clave;
+    if (el.hasAttribute("data-cit-borrar-ok")) {
+      el.disabled = true; el.textContent = "Borrando…";
+      hmGuardarCambio(function (doc) {
+        var n = (doc.citas || []).length;
+        doc.citas = (doc.citas || []).filter(function (x) { return citaClave(x) !== clave; });
+        if (doc.citas.length === n) return "esa cita ya no está en el historial";
+      }, "Cita: borra " + clave, citaTrasGuardar("Cita borrada."));
+      return true;
+    }
+    if (el.hasAttribute("data-cit-guardar")) {
+      var v = citaLeer();
+      var f = v.soloMes ? v.mes : v.dia;
+      if (!v.que) { citEd.estado = "!Falta qué cita es."; abrirEditorCitas(); return true; }
+      var orig = (clave && hmDatos()) ? (hmDatos().citas || []).filter(function (x) { return citaClave(x) === clave; })[0] : null;
+      if (!f && orig && orig.f && !/^\d{4}-\d{2}(-\d{2})?$/.test(String(orig.f))) f = String(orig.f);   // fecha rara antigua: se conserva
+      if (!f) { citEd.estado = "!Falta la fecha (o marca «Solo sé el mes» y pon el mes)."; abrirEditorCitas(); return true; }
+      if (v.soloMes && !/^\d{4}-\d{2}$/.test(f) && !orig) { citEd.estado = "!El mes va como AAAA-MM, por ejemplo 2026-11."; abrirEditorCitas(); return true; }
+      el.disabled = true; el.textContent = "Guardando…";
+      hmGuardarCambio(function (doc) {
+        if (!doc.citas) doc.citas = [];
+        var c = clave ? doc.citas.filter(function (x) { return citaClave(x) === clave; })[0] : null;
+        if (clave && !c) return "esa cita ya no está en el historial";
+        if (!c) { c = { alta: { fecha: U.hoyISO(), desde: "app" } }; doc.citas.push(c); }
+        if (!c.id) c.id = medIdNuevo("cita " + v.que);
+        c.f = f; c.que = v.que;
+        if (v.soloMes) delete c.h; else if (v.h) c.h = v.h; else delete c.h;
+        if (v.donde) c.donde = v.donde; else delete c.donde;
+        if (v.para) c.para = v.para; else delete c.para;
+        if (v.porConfirmar) c.porConfirmar = true; else delete c.porConfirmar;
+        c.pendiente = v.pendiente;
+        if (clave) c.editado = U.hoyISO();
+        doc.citas.sort(function (a, b) { var x = citaOrden(a), y = citaOrden(b); return x < y ? -1 : x > y ? 1 : 0; });
+      }, "Cita: " + (clave ? "cambia " : "añade ") + v.que, citaTrasGuardar(clave ? "Cita guardada." : "Cita añadida."));
+      return true;
+    }
+    return false;
+  }
+
   function htmlHistorial() {
     var volver = '<button type="button" class="ent-atras" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
     var d = hmDatos(), hoy = U.hoyISO();
@@ -10596,14 +10783,14 @@
       h += "</table></div>";
     }
 
-    if ((d.citas || []).length) {
-      h += '<div class="tarjeta"><h2>Próximas citas</h2>';
-      d.citas.forEach(function (ci) {
-        h += '<div class="hm-pat"><h3>' + U.esc(ci.que) + "</h3><p class=\"nota-peque\">" + U.esc(hmMes(ci.f)) + "</p>" +
-          ((ci.pendiente || []).length ? '<ul class="hm-lista">' + ci.pendiente.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "") + "</div>";
-      });
-      h += "</div>";
-    }
+    /* citas: las de delante, y el editor (v449) */
+    var citTodas = citasOrdenadas(d), citProx = citTodas.filter(function (ci) { return !citaPasada(ci, hoy); });
+    var citPas = citTodas.length - citProx.length;
+    h += '<div class="tarjeta"><h2>Próximas citas</h2>' +
+      '<button type="button" class="btn" data-cit-abrir="1" style="margin-bottom:8px">Añadir o cambiar una cita</button>' +
+      (citProx.length ? citProx.map(function (ci) { return citaHtml(ci, false); }).join("") : '<p class="nota-peque">No tienes ninguna cita por delante.</p>') +
+      (citPas ? '<p class="nota-peque">' + citPas + (citPas === 1 ? " cita pasada guardada" : " citas pasadas guardadas") + " (se ven en «Añadir o cambiar una cita»).</p>" : "") +
+      "</div>";
 
     if ((d.antecedentes || []).length) {
       h += '<div class="tarjeta"><h2>Antecedentes</h2><ul class="hm-lista">' +
@@ -10618,7 +10805,7 @@
     }
 
     h += '<p class="nota-peque" style="text-align:center">Actualizado el ' + U.esc(U.etiquetaFecha(d.actualizado || hoy)) +
-      ". Para añadir o cambiar algo, cuéntaselo a Claude: actualiza el fichero privado y aparece aquí solo.</p>";
+      ". La medicación y las citas las puedes cambiar aquí; para lo demás, cuéntaselo a Claude y aparece aquí solo.</p>";
     return h + '<button type="button" class="ent-atras abajo" data-volver="1">' + FLECHA + "Volver a Entrenamiento</button>";
   }
 
@@ -13530,6 +13717,11 @@
         }
         return;
       }
+      if (t.closest && t.closest("[data-cit-abrir]")) {
+        e.preventDefault(); citEd = { vista: "lista", clave: null, borrando: null, estado: "", pasadas: false };
+        if (!hmDatos()) Historial.cargar(function () { abrirEditorCitas(); });
+        abrirEditorCitas(); return;
+      }
       if (t.closest && t.closest("[data-med-abrir]")) {
         e.preventDefault(); medEd = { vista: "lista", id: null, dejando: null, borrando: null, estado: "" };
         if (!hmDatos()) Historial.cargar(function () { abrirEditorMed(); });
@@ -13856,6 +14048,7 @@
       var tdi = e.target.closest ? e.target.closest("[data-ten-dias]") : null;
       if (tdi) { e.preventDefault(); tenPapelDias = parseInt(tdi.getAttribute("data-ten-dias"), 10) || 30; abrirTensionPapel(); return; }
       if (medClick(e)) return;
+      if (citClick(e)) return;
       var volR = e.target.closest ? e.target.closest("[data-volver-rutina]") : null;
       if (volR) { e.preventDefault(); abrirRutina(volR.getAttribute("data-volver-rutina")); return; }
       if (e.target === modal || (e.target.closest && e.target.closest("[data-cerrar-guia]"))) cerrarGuia();
