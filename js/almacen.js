@@ -868,6 +868,45 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errYG) {}
       }
 
+      /* EL MEMBRILLO, EL PRIMERO DE LA LISTA (6-oct-2026). Carlos: «hay que
+         añadir este producto a nevera, estante arriba y al principio de la lista
+         de compra de Nevera». El estante lo trae la ficha del catálogo y entra
+         solo por ALTAS NUEVAS, que es ficha nueva y no hay copia suya que
+         rescatar. Lo que no entra solo es el puesto en la lista: su orden
+         guardado es una lista explícita de ids y lo que no está en ella flota
+         arriba desempatando por nombre, que no es lo mismo que estar el primero.
+         Se mete a mano en el puesto 1 y el resto de su orden no se toca.
+         NO se toca la `f` de LISTAS_MERCADONA: eso le borraría la lista entera. */
+      if (!e.arreglos["2026-10-06-membrillo-primero"]) {
+        if (!e.ordenCompra) e.ordenCompra = {};
+        var ordMB = (e.ordenCompra["Mercadona|nevera"] || []).filter(function (x) {
+          return x !== "dulce_membrillo";
+        });
+        e.ordenCompra["Mercadona|nevera"] = ["dulce_membrillo"].concat(ordMB);
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
+        e.arreglos["2026-10-06-membrillo-primero"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMB) {}
+      }
+
+      /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
+         ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
+         tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
+         la refresca NUNCA y se le quedaría la vieja. Se le pone a mano, que es
+         un número y no pisa nada suyo: `racion` no está entre los campos que él
+         decide (pedir, minimo, lote, sitio, formato). */
+      if (!e.arreglos["2026-10-06-langostino-60"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (g && g.id === "langostino_cocido" && g.racion !== 60) {
+            g.racion = 60;
+            g.tocado = new Date().toISOString();
+          }
+        });
+        e.arreglos["2026-10-06-langostino-60"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLG) {}
+      }
+
       /* LAS MALLAS SE CUENTAN EN MALLAS (5-oct-2026). Carlos, sobre la patata:
          «no se sabe cuántas patatas vienen, vienen 3 kg». Lo mismo con el ajo y
          las cebollas: vienen en malla cerrada por peso y contar las piezas no se
