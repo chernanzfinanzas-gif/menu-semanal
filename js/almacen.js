@@ -923,6 +923,35 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCB) {}
       }
 
+      /* DESHACER SU EDICIÓN DEL BATIDO Y DEVOLVERLO AL CATÁLOGO (6-oct-2026).
+         Carlos: «no había visto el otro... puedes deshacer mi cambio y dejarla
+         como tuya». Subió la leche del batido de EvoWhey de 250 ml sin saber
+         que el de 400 ya existía como receta aparte. Y al editarla, la receta
+         quedó marcada `editado`: una receta así NO la refresca el catálogo
+         nunca, así que lo que mejoremos después no le llegaría. Se le devuelve
+         la del catálogo entera, sin la marca, con la hora de ahora para que
+         este arreglo mande también en los otros aparatos.
+
+         Y las dos quedan marcadas como vistas, que es lo que pidió: ya las ha
+         mirado y le valen las dos. */
+      if (!e.arreglos["2026-10-06-batidos-evowhey"]) {
+        var catBT = (SEMILLA_BASE && SEMILLA_BASE.recObj) || {};
+        var cBT = catBT["cap_batido_evowhey"];
+        if (cBT) {
+          (e.recetas || []).forEach(function (r, i) {
+            if (!r || r.id !== "cap_batido_evowhey") return;
+            e.recetas[i] = JSON.parse(JSON.stringify(cBT));
+            e.recetas[i].tocado = new Date().toISOString();
+          });
+        }
+        if (!e.recetaVista) e.recetaVista = {};
+        ["cap_batido_evowhey", "bat_evowhey_desnatada"].forEach(function (idBT) {
+          e.recetaVista[idBT] = { v: "ok", f: Util.hoyISO() };
+        });
+        e.arreglos["2026-10-06-batidos-evowhey"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errBT) {}
+      }
+
       /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
          «sin ver» sería empezar con una montaña y eso es exactamente lo que
          mata sus proyectos. Las que ya ha tocado o cocinado entran marcadas:
