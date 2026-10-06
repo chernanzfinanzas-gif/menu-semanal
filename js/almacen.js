@@ -952,6 +952,20 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errBT) {}
       }
 
+      /* LAS TRES DE CARNE PICADA, REVISADAS (6-oct-2026). Carlos las repasó una
+         a una conmigo y pidió marcarlas: «marca las tres como revisadas».
+
+         Son el primer repaso hecho como él quería —cocinando y de una en una—
+         y las tres quedan cuadradas con la ración de carne de 125 g, que es
+         media bandeja de las de 250. */
+      if (!e.arreglos["2026-10-06-carne-picada-revisadas"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["albondigas_tomate", "pasta_bolonesa", "macarrones_gratinados_bolonesa"]
+          .forEach(function (idCP) { e.recetaVista[idCP] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-carne-picada-revisadas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCP) {}
+      }
+
       /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
          «sin ver» sería empezar con una montaña y eso es exactamente lo que
          mata sus proyectos. Las que ya ha tocado o cocinado entran marcadas:
