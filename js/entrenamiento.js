@@ -197,6 +197,11 @@
       ".caso-abrir{background:var(--azul);color:#fff;border:0;border-radius:7px;padding:7px 14px;" +
         "font-size:.9rem;cursor:pointer}",
       ".caso-abrir[disabled]{opacity:.6;cursor:default}",
+      /* enviar por correo (v448): mismo tamaño que «abrir», en blanco */
+      ".caso-enviar{background:#fff;color:var(--azul);border:1px solid var(--azul);border-radius:7px;" +
+        "padding:6px 12px;font-size:.9rem;cursor:pointer}",
+      ".caso-enviar[disabled]{opacity:.6;cursor:default}",
+      ".hm-doc{display:inline-flex;gap:4px;align-items:center}",
       ".caso-pags,.caso-espera{font-size:.82rem;color:var(--tenue,#7d8a99)}",
       ".casos-como{margin:18px 0 0;border:1px solid var(--azul-borde);border-radius:10px;" +
         "padding:10px 14px;background:#fff}",
@@ -5800,6 +5805,13 @@
      Los PDF no se guardan en la caché del navegador a propósito: son 4 MB y
      se abren de uno en uno. Lo que sí se guarda es el que ya se abrió en esta
      sesión, para que volver a él sea instantáneo. */
+  /* Botón «Enviar» de un PDF del repo privado (v448): lo comparte con el PDF
+     adjunto (en el móvil y en Windows sale la lista: Gmail, Outlook…). */
+  function botonEnviar(fichero, titulo) {
+    return '<button type="button" class="caso-enviar" data-caso-enviar="' + U.esc(fichero) +
+      '" data-titulo="' + U.esc(titulo || "") + '" title="Enviarlo por correo">\u2709 Enviar</button>';
+  }
+
   var Casos = {
     CLAVE: "khb-casos-v1",
     RUTA: "datos/casos.json",
@@ -5809,6 +5821,7 @@
     traidoEl: null,
     estado: "nada",
     abiertos: {},          // fichero -> URL de blob, sólo mientras dure la pestaña
+    blobs: {},             // fichero -> el PDF ya traído, para enviarlo sin volver a pedirlo
 
     deCache: function () {
       try {
@@ -5900,6 +5913,7 @@
           return r.blob();
         })
         .then(function (b) {
+          self.blobs[fichero] = b;
           var u = URL.createObjectURL(new Blob([b], { type: "application/pdf" }));
           self.abiertos[fichero] = u;
           enseña(u);
@@ -5908,6 +5922,63 @@
           if (ventana) { try { ventana.close(); } catch (x) {} }
           listo(false, (e && e.message) || "no he podido traerlo");
         });
+    },
+
+    /* TRAER el PDF sin abrirlo (para enviarlo). */
+    traer: function (fichero, cb) {
+      var self = this, c = Salud.cfg();
+      if (this.blobs[fichero]) { cb(this.blobs[fichero]); return; }
+      fetch(this.url(this.CARPETA + encodeURIComponent(fichero)) +
+              "?ref=" + encodeURIComponent(c.rama || "main"),
+            { headers: { "Authorization": "Bearer " + c.token,
+                         "Accept": "application/vnd.github.raw" } })
+        .then(function (r) {
+          if (r.status === 404) throw new Error("todavía no está subido al repositorio");
+          if (!r.ok) throw new Error("GitHub dice que no (" + r.status + ")");
+          return r.blob();
+        })
+        .then(function (b) { self.blobs[fichero] = b; cb(b); })
+        .catch(function (e) { cb(null, (e && e.message) || "no he podido traerlo"); });
+    },
+
+    /* ENVIAR POR CORREO (v448).
+
+       Con «compartir» del sistema el PDF va ADJUNTO y se elige Gmail u
+       Outlook; el destinatario (el médico) se pone allí. El navegador sólo
+       deja compartir justo después de un clic: si traer el PDF tarda, avisa
+       con "otra-vez" y el segundo toque lo envía al momento, ya traído.
+       Donde no hay «compartir» (algún navegador de escritorio): se descarga
+       el PDF y se abre el correo con el asunto puesto, para adjuntarlo. */
+    enviar: function (fichero, titulo, listo) {
+      listo = listo || function () {};
+      if (!Salud.configurado()) { listo(false, "falta la configuración"); return; }
+      var nombre = titulo || fichero;
+      var asunto = "Informe: " + nombre + " \u2014 Carlos Hernanz";
+      var texto = "Le adjunto el informe: " + nombre + ".";
+      function compartir(b) {
+        var f = null;
+        try { f = new File([b], fichero, { type: "application/pdf" }); } catch (e) {}
+        if (f && navigator.canShare && navigator.canShare({ files: [f] })) {
+          navigator.share({ files: [f], title: asunto, text: texto })
+            .then(function () { listo(true, "enviado"); })
+            .catch(function (e) {
+              if (e && e.name === "AbortError") listo(true, "cancelado");
+              else if (e && e.name === "NotAllowedError") listo(false, "otra-vez");
+              else listo(false, (e && e.message) || "no se pudo compartir");
+            });
+          return;
+        }
+        var u = URL.createObjectURL(new Blob([b], { type: "application/pdf" }));
+        var a = document.createElement("a");
+        a.href = u; a.download = fichero;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () {
+          window.location.href = "mailto:?subject=" + encodeURIComponent(asunto) +
+            "&body=" + encodeURIComponent(texto + "\n\n(Adjuntar el PDF descargado: " + fichero + ")");
+        }, 400);
+        listo(true, "correo");
+      }
+      this.traer(fichero, function (b, err) { if (!b) listo(false, err); else compartir(b); });
     }
   };
 
@@ -10480,8 +10551,8 @@
          botón que los folios de Casos, que se abre en cualquier pantalla (v274) */
       if ((p.documentos || []).length) {
         h += '<div class="hm-docs">' + p.documentos.map(function (x) {
-          return '<button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.fichero) + '">' +
-            U.esc(x.t || "Abrir documento") + "</button>";
+          return '<span class="hm-doc"><button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.fichero) + '">' +
+            U.esc(x.t || "Abrir documento") + "</button>" + botonEnviar(x.fichero, x.t) + "</span>";
         }).join("") + "</div>";
       }
       var suyos = trs.filter(function (t) { return t.para === p.id && hmVigente(t, hoy); });
@@ -10516,7 +10587,11 @@
         h += "<tr><td>" + U.esc(U.etiquetaFecha(p.f)) + (p.h ? "<br><small>" + U.esc(p.h) + "</small>" : "") + "</td>" +
           "<td>" + U.esc(p.tipo) + (p.oido ? " · " + U.esc(p.oido) : "") + "</td>" +
           "<td>" + (p.ptp_db != null ? '<span class="hm-num">' + p.ptp_db + " dB</span> " : "") +
-          (p.nota ? "<small>" + U.esc(p.nota) + "</small>" : "") + "</td></tr>";
+          (p.nota ? "<small>" + U.esc(p.nota) + "</small>" : "") +
+          /* el informe original, si la prueba lo trae (v448): mismo botón que los
+             documentos de cada patología, baja documentos/<fichero> del repo privado */
+          (p.documento ? '<div class="hm-docs"><button type="button" class="caso-abrir" data-caso-pdf="' +
+            U.esc(p.documento) + '">Ver informe</button>' + botonEnviar(p.documento, p.tipo) + "</div>" : "") + "</td></tr>";
       });
       h += "</table></div>";
     }
@@ -11311,7 +11386,7 @@
       h += '<span class="caso-espera">' + U.esc(x.pendiente || "Todavía no existe") + "</span>";
     } else {
       h += '<button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.fichero) +
-        '">Abrir el folio</button>' +
+        '">Abrir el folio</button>' + botonEnviar(x.fichero, x.titulo || x.t) +
         (x.paginas ? '<span class="caso-pags">' + x.paginas +
                      (x.paginas === 1 ? " pág." : " págs.") + "</span>" : "");
     }
@@ -13607,6 +13682,20 @@
            cualquiera al volver a tocarla */
         casoCausa = (vc && vc === casoCausa) ? null : vc;
         pintar(true);
+        return;
+      }
+      var ce = t.closest ? t.closest("[data-caso-enviar]") : null;
+      if (ce) {
+        var txtE = ce.getAttribute("data-txt") || ce.textContent;
+        ce.setAttribute("data-txt", txtE);
+        ce.disabled = true; ce.textContent = "Preparando\u2026";
+        Casos.enviar(ce.getAttribute("data-caso-enviar"), ce.getAttribute("data-titulo"), function (ok, aviso) {
+          ce.disabled = false;
+          if (aviso === "otra-vez") { ce.textContent = "Listo \u00b7 toca para enviar"; return; }
+          ce.textContent = txtE;
+          if (!ok) U.toast("No he podido enviarlo: " + (aviso || ""));
+          else if (aviso === "correo") U.toast("PDF descargado: adjúntalo al correo que se ha abierto");
+        });
         return;
       }
       var cp = t.closest ? t.closest("[data-caso-pdf]") : null;
