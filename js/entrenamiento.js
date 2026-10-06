@@ -2248,6 +2248,7 @@
       });
       e.noHabil[iso].mov = mov;
       repartoGuardado()[sem.desde] = mapa;
+      sellarReparto(sem.desde);
       if (movidos && U.toast) U.toast(movidos === 1 ? "1 bloque movido" : movidos + " bloques movidos");
     }
     A.guardar("entreno");
@@ -2270,7 +2271,7 @@
     b.forEach(function (x) {
       if (quiere[x.id] && mapa[x.id] !== iso) { mapa[x.id] = iso; n++; }
     });
-    if (n) repartoGuardado()[sem.desde] = mapa;
+    if (n) { repartoGuardado()[sem.desde] = mapa; sellarReparto(sem.desde); }
     return n;
   }
 
@@ -2889,6 +2890,25 @@
 
   function repartoGuardado() { var e = ent(); if (!e.reparto) e.reparto = {}; return e.reparto; }
 
+  /* LA HORA EN QUE TOCASTE EL REPARTO DE ESA SEMANA  ·  6-oct-2026.
+     Carlos: «he movido todo lo pendiente a sin colocar… y me lo acaba de
+     colocar solo otra vez. No hace falta ni salir de la página».
+
+     La causa estaba en el sincronizador, no aquí: al fusionar con el
+     repositorio, un `null` cuenta como VACÍO, y el día de un bloque en la
+     bandeja se guarda justamente como `null`. O sea que el día viejo del otro
+     lado siempre le ganaba a la bandeja y los bloques volvían solos.
+
+     La salida es la misma que ya se usó con las fichas, los días y el orden de
+     la compra: sellar con la hora para que al fusionar mande el último que lo
+     tocó, y que el reparto de una semana viaje ENTERO y no campo a campo. Así
+     «lo he dejado sin colocar» es una decisión, no un hueco. */
+  function sellarReparto(desde) {
+    var e = ent();
+    if (!e.repartoSello) e.repartoSello = {};
+    e.repartoSello[desde] = new Date().toISOString();
+  }
+
   /* ========== TRADUCIR LO QUE YA ESTABA GUARDADO  ·  1-oct-2026 ==========
      El reparto por días y los bloques quitados con motivo están escritos con los
      ids viejos (`b0, b1…`). Se traducen UNA sola vez, emparejando cada uno con
@@ -3084,6 +3104,7 @@
        Ahora se normaliza siempre: lo que `repartoDe` devuelve es lo bueno —lo
        guardado si sirve, la propuesta si no— y sobre eso se mueve. */
     r[sem.desde] = repartoDe(sem) || {};
+    sellarReparto(sem.desde);
     /* la marca viaja con el bloque: las casillas se guardan por día y posición,
        así que mover sin llevarse la marca la dejaría en el día viejo */
     var antes = r[sem.desde][bid] || null;
@@ -13816,6 +13837,7 @@
             mapa[x.bid] = pr2[1]; n++;
           });
           repartoGuardado()[semR.desde] = mapa;
+          sellarReparto(semR.desde);
           A.guardar("entreno");
           if (n && U.toast) U.toast(n === 1 ? "1 bloque movido" : n + " bloques movidos");
         }
@@ -13982,6 +14004,7 @@
         if (semR) {
           var bR = bolsilloDe(semR) || [];
           repartoGuardado()[semR.desde] = repartoPropuesto(semR, bR);
+          sellarReparto(semR.desde);
           bloqueSel = null;
           A.guardar("entreno");
           if (U.toast) U.toast("Semana repartida. Mueve lo que no te cuadre.");

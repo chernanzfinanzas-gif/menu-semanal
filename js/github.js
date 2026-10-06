@@ -316,6 +316,46 @@
     fusionarOrden("casa", "ordenCasa");
     fusionarOrden("compra", "ordenCompra");
 
+    /* ── EL REPARTO DE LA SEMANA, EL DEL ÚLTIMO QUE LO TOCÓ (6-oct-2026) ──
+       Carlos: «he movido todo lo pendiente a sin colocar… y me lo acaba de
+       colocar solo otra vez. No hace falta ni salir de la página».
+
+       `fusionar` trata el `null` como VACÍO —`vacio()` lo dice— y el día de un
+       bloque que está en la bandeja se guarda justamente como `null`. Mezclando
+       campo a campo, el día que tenía el otro lado SIEMPRE le ganaba a la
+       bandeja: en cuanto entraba una sincronización, los bloques volvían a su
+       día solos, sin recargar siquiera. Dejar algo sin colocar era imposible.
+
+       El reparto de una semana no es una bolsa de campos sueltos: es una
+       colocación entera, y mezclar media de aquí y media de allá no significa
+       nada. Así que viaja COMPLETO, y manda el lado que lo tocó más tarde,
+       igual que ya se hace con las fichas, los días y el orden de la compra.
+       Sin sello en ninguno de los dos lados —estados de antes de este arreglo—
+       se sigue usando el sello global, que es lo que había. */
+    (function () {
+      var eL = local.entreno || {}, eR = remoto.entreno || {};
+      var rL = eL.reparto || {}, rR = eR.reparto || {};
+      var sL = eL.repartoSello || {}, sR = eR.repartoSello || {};
+      var claves = {}, k;
+      for (k in rL) if (Object.prototype.hasOwnProperty.call(rL, k)) claves[k] = 1;
+      for (k in rR) if (Object.prototype.hasOwnProperty.call(rR, k)) claves[k] = 1;
+      if (!Object.keys(claves).length) return;
+      var res = {}, sello = {};
+      for (k in claves) {
+        if (!Object.prototype.hasOwnProperty.call(claves, k)) continue;
+        var hL = String(sL[k] || ""), hR = String(sR[k] || "");
+        var ganaR = (hL || hR) ? (hR > hL) : remotoManda;
+        var elegido = ganaR ? rR[k] : rL[k];
+        if (!elegido) elegido = ganaR ? rL[k] : rR[k];
+        if (elegido) res[k] = JSON.parse(JSON.stringify(elegido));
+        var hMax = hL > hR ? hL : hR;
+        if (hMax) sello[k] = hMax;
+      }
+      if (!junto.entreno) junto.entreno = {};
+      junto.entreno.reparto = res;
+      if (Object.keys(sello).length) junto.entreno.repartoSello = sello;
+    })();
+
     var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
     junto.selloDia = {};
     for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];
