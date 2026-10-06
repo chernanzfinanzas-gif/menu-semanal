@@ -97,6 +97,14 @@
       ".hm-lista{margin:4px 0 0;padding-left:18px}",
       ".hm-lista li{margin:3px 0}",
       ".hm-docs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}",
+      /* informes y analíticas (v451) */
+      ".inf-grupo{border:1px solid var(--azul-borde);border-radius:10px;padding:4px 12px;margin:8px 0}",
+      ".inf-grupo>summary{cursor:pointer;font-weight:700;color:var(--azul-hondo);padding:6px 0;font-size:15px}",
+      ".inf-n{display:inline-block;font-size:11px;background:var(--azul-claro);border:1px solid var(--azul-borde);border-radius:9px;padding:0 7px;margin-left:6px;font-weight:600}",
+      ".inf-item{border-top:1px solid var(--azul-borde);padding:9px 0}",
+      ".inf-cab{font-size:14px}",
+      ".inf-quien{color:#6b7c8d;font-size:12px;white-space:nowrap}",
+      ".caso-abrir.inf-anal{background:#5d7b97}",
       ".hm-avisos{background:#fdeaea;border:1px solid #efb8b8;border-radius:10px;padding:10px 12px}",
       ".hm-avisos b{color:#9a2b2b}",
       ".hm-tabla{width:100%;border-collapse:collapse;font-size:13px}",
@@ -10856,6 +10864,43 @@
             U.esc(p.documento) + '">Ver informe</button>' + botonEnviar(p.documento, p.tipo) + "</div>" : "") + "</td></tr>";
       });
       h += "</table></div>";
+    }
+
+    /* INFORMES Y ANALÍTICAS (v451). Carlos: «clasificar por dolencia» y asociar
+       cada analítica con su informe. datos: informes[] {f, tipo, esp, para,
+       t, quien, resumen, documento, analitica}. Una analítica que ya va con
+       su consulta no sale suelta. */
+    if ((d.informes || []).length) {
+      var infUsadas = {}, infFecha = {}, infPor = {}, infOrden = [], infNom = {};
+      d.informes.forEach(function (x) { infFecha[x.documento] = x.f; if (x.analitica) infUsadas[x.analitica] = 1; });
+      (d.patologias || []).forEach(function (p) { infNom[p.id] = p.nombre; });
+      d.informes.forEach(function (x) {
+        if (x.tipo === "analitica" && infUsadas[x.documento]) return;
+        var k = x.para || "otros";
+        if (!infPor[k]) { infPor[k] = []; infOrden.push(k); }
+        infPor[k].push(x);
+      });
+      var infDia = function (f) { f = String(f || ""); return /^\d{4}-\d{2}-\d{2}$/.test(f) ? U.etiquetaFecha(f) + " " + f.slice(0, 4) : hmMes(f); };
+      h += '<div class="tarjeta"><h2>Informes y analíticas</h2>';
+      infOrden.forEach(function (k, i) {
+        var l = infPor[k].slice().sort(function (a, b) { return a.f < b.f ? 1 : a.f > b.f ? -1 : 0; });
+        h += '<details class="inf-grupo"' + (i === 0 ? " open" : "") + "><summary>" + U.esc(infNom[k] || "Otros") +
+          '<span class="inf-n">' + l.length + "</span></summary>";
+        l.forEach(function (x) {
+          var fa = x.analitica ? (infFecha[x.analitica] || (String(x.analitica).match(/(\d{4}-\d{2}-\d{2})/) || [])[1]) : null;
+          h += '<div class="inf-item"><div class="inf-cab"><b>' + U.esc(infDia(x.f)) + "</b> · " + U.esc(x.t) +
+            (x.quien ? ' <span class="inf-quien">' + U.esc(x.quien) + "</span>" : "") + "</div>" +
+            (x.resumen ? '<p class="nota-peque">' + U.esc(x.resumen) + "</p>" : "") +
+            '<div class="hm-docs"><span class="hm-doc"><button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.documento) + '">Ver informe</button>' +
+            botonEnviar(x.documento, x.t + " (" + infDia(x.f) + ")") + "</span>" +
+            (x.analitica ? '<span class="hm-doc"><button type="button" class="caso-abrir inf-anal" data-caso-pdf="' + U.esc(x.analitica) + '">' +
+              (/^serolog/.test(x.analitica) ? "Serologías" : "Analítica") + (fa ? " del " + U.esc(U.etiquetaFecha(fa)) : "") + "</button>" +
+              botonEnviar(x.analitica, "Analítica" + (fa ? " (" + infDia(fa) + ")" : "")) + "</span>" : "") +
+            "</div></div>";
+        });
+        h += "</details>";
+      });
+      h += "</div>";
     }
 
     /* citas: las de delante, y el editor (v449) */
