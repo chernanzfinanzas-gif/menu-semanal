@@ -88,6 +88,7 @@
       ".med-quedan{display:inline-block;font-size:11px;background:var(--azul-claro);border:1px solid var(--azul-borde);" +
         "border-radius:9px;padding:0 7px;margin-left:6px;font-weight:600;color:var(--azul-hondo)}",
       ".med-quedan.fin{background:#fdf1e3;border-color:#efcf9f;color:#8a5a12}",
+      ".med-cita{background:#fdf1e3;border:1px solid #efcf9f;border-radius:8px;padding:7px 10px;margin:6px 0;font-size:14px;color:#6b4a10}",
       ".hm-pat{border:1px solid var(--azul-borde);border-radius:10px;padding:10px 12px;margin:8px 0}",
       ".hm-pat h3{margin:0 0 4px;font-size:15px}",
       ".hm-est{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:8px;" +
@@ -10219,9 +10220,25 @@
   function htmlMedicacionDia(dia) {
     var d = hmDatos();
     if (!d) return "";                        // sin fichero, El Plan como siempre
-    var tomas = hmTomasDe(dia);
-    if (!tomas.length) return "";
+    var tomas = hmTomasDe(dia), previos = previosDe(dia), citasHoy = citasDelDia(dia);
+    if (!tomas.length && !previos.length && !citasHoy.length) return "";
     var hechas = (ent().tomas && ent().tomas[dia]) || {}, n = 0, h = "", horaAnt = null;
+    /* lo de las citas primero (v450): la cita de ese día y lo que hay que preparar */
+    citasHoy.forEach(function (c) {
+      h += '<div class="med-cita"><b>Cita' + (c.h ? " a las " + U.esc(c.h) : "") + ":</b> " + U.esc(c.que || "") +
+        (c.donde ? " · " + U.esc(c.donde) : "") + "</div>";
+    });
+    if (previos.length) {
+      h += '<div class="med-hora">Para tus citas</div>';
+      previos.forEach(function (x) {
+        var ok = !!hechas[x.id]; if (ok) n++;
+        var cuando = x.c.f === dia ? "hoy" : (x.c.f ? "el " + U.etiquetaFecha(x.c.f) : "");
+        h += '<label class="med-toma' + (ok ? " hecha" : "") + '">' +
+          '<input type="checkbox" data-toma="' + U.esc(x.id) + '" data-toma-dia="' + dia + '"' + (ok ? " checked" : "") + ">" +
+          '<span><span class="med-n">' + U.esc(x.p.t) + "</span>" +
+          '<span class="med-nota">Para: ' + U.esc((x.c.que || "la cita") + (cuando ? " · " + cuando : "") + (x.c.h ? " a las " + x.c.h : "")) + "</span></span></label>";
+      });
+    }
     tomas.forEach(function (x) {
       var hora = x.hora || "A tu hora de siempre";
       if (hora !== horaAnt) { h += '<div class="med-hora">' + U.esc(hora) + "</div>"; horaAnt = hora; }
@@ -10237,8 +10254,9 @@
           U.esc(notas.join(" · ")) + "</span>" : "") + "</span></label>";
     });
     var esHoy = dia === U.hoyISO();
-    return '<div class="tarjeta"><h2>Medicación ' + (esHoy ? "de hoy" : "del " + U.esc(U.etiquetaFecha(dia))) +
-      '<span class="ent-cuenta">' + n + " de " + tomas.length + "</span></h2>" + h +
+    var nombre = tomas.length ? "Medicación " : "Citas médicas ";
+    return '<div class="tarjeta"><h2>' + nombre + (esHoy ? "de hoy" : "del " + U.esc(U.etiquetaFecha(dia))) +
+      '<span class="ent-cuenta">' + n + " de " + (tomas.length + previos.length) + "</span></h2>" + h +
       '<p class="nota-peque" style="margin-top:8px">Las pautas son las de tu historial médico ' +
       '(<a role="button" tabindex="0" data-bloque="historial" style="cursor:pointer;text-decoration:underline">ver</a>).</p>' +
       '<button type="button" class="btn" data-med-abrir="1" style="margin-top:6px">Añadir, cambiar o dejar un medicamento</button></div>';
@@ -10409,6 +10427,9 @@
       ".med-ed-campo[hidden]{display:none}",
       "[data-cit-borrar]{color:#b23a30;cursor:pointer;text-decoration:underline}",
       ".cit-pasada{opacity:.65}",
+        ".cit-previo{display:grid;grid-template-columns:1fr 150px;gap:6px}",
+        ".cit-previo input{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--borde,#dfe5e2);border-radius:8px;background:#fff;width:100%;box-sizing:border-box}",
+        "@media (max-width:420px){.cit-previo{grid-template-columns:1fr 132px}}",
       ".cit-ver-pasadas{display:block;margin-top:10px;font-size:13px;color:var(--azul,#2f5c8a);cursor:pointer;text-decoration:underline}"
     ].join("\n");
     document.head.appendChild(st);
@@ -10542,9 +10563,41 @@
   function citaCuando(c) {
     return hmMes(c.f) + (c.h ? " · " + c.h : "") + (c.porConfirmar ? " · fecha por confirmar" : "");
   }
+  /* PREPARACIÓN PREVIA (v450). Carlos: «un recordatorio de hacer cosas antes
+     de la prueba y que aparezca junto a la medicación del día que corresponda
+     … recoger heces hoy y orina mañana en ayunas». Cada cita lleva previos[]
+     {t, f}; sin f, es el día antes de la cita. Salen con casilla en la
+     tarjeta de medicación de ese día; la casilla vive en ent().tomas con
+     clave «pre|cita|n», que no cuenta en el cumplimiento de la medicación. */
+  function isoMenos(f, n) {
+    var p = String(f).split("-");
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] - n)).toISOString().slice(0, 10);
+  }
+  function previoFecha(c, p) {
+    if (p.f && /^\d{4}-\d{2}-\d{2}$/.test(p.f)) return p.f;
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(c.f || "")) ? isoMenos(c.f, 1) : null;
+  }
+  function previosDe(iso) {
+    var d = hmDatos(), out = [];
+    ((d && d.citas) || []).forEach(function (c) {
+      (c.previos || []).forEach(function (p, i) {
+        if (p && p.t && previoFecha(c, p) === iso) out.push({ c: c, p: p, id: "pre|" + citaClave(c) + "|" + i });
+      });
+    });
+    return out;
+  }
+  function citasDelDia(iso) {
+    var d = hmDatos();
+    return ((d && d.citas) || []).filter(function (c) { return c.f === iso; })
+      .sort(function (a, b) { return (a.h || "99") < (b.h || "99") ? -1 : 1; });
+  }
+
   function citaHtml(c, pasada) {
     return '<div class="hm-pat' + (pasada ? " cit-pasada" : "") + '"><h3>' + U.esc(c.que || "Cita") + "</h3>" +
       '<p class="nota-peque">' + U.esc(citaCuando(c) + (c.donde ? " · " + c.donde : "")) + "</p>" +
+      ((c.previos || []).length ? '<p class="nota-peque"><b>Antes:</b> ' + U.esc(c.previos.map(function (p) {
+        var fp = previoFecha(c, p); return p.t + (fp ? " (" + U.etiquetaFecha(fp) + ")" : "");
+      }).join(" · ")) + "</p>" : "") +
       ((c.pendiente || []).length ? '<ul class="hm-lista">' + c.pendiente.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "") +
       "</div>";
   }
@@ -10568,6 +10621,17 @@
         (d.patologias || []).map(function (p) {
           return '<option value="' + U.esc(p.id) + '"' + (c.para === p.id ? " selected" : "") + ">" + U.esc(p.nombre) + "</option>";
         }).join("") + "</select></label>" +
+      (function () {
+        var pv = (c.previos || []).slice(), n = Math.max(3, pv.length + 1), i, out = "";
+        for (i = 0; i < n; i++) {
+          var p = pv[i] || {};
+          out += '<div class="cit-previo"><input type="text" data-cit-previo-t="' + i + '" value="' + U.esc(p.t || "") +
+            '" placeholder="' + (i === 0 ? "Ej.: recoger muestra de heces" : i === 1 ? "Ej.: orina de primera hora, en ayunas" : "Otra tarea") + '">' +
+            '<input type="date" data-cit-previo-f="' + i + '" value="' + U.esc(p.f || "") + '" aria-label="Qué día"></div>';
+        }
+        return '<div class="med-ed-campo"><span>Preparación previa</span>' + out +
+          "<small>Cada tarea sale ese día junto a la medicación, con su casilla. Sin fecha: el día antes de la cita.</small></div>";
+      })() +
       '<label class="med-ed-campo"><span>Pendiente, qué llevar o preguntar</span><textarea data-cit-campo="pendiente" rows="3" placeholder="Una cosa por línea">' +
         U.esc((c.pendiente || []).join("\n")) + "</textarea></label>" +
       '<div class="med-ed-botones"><button type="button" class="btn principal" data-cit-guardar="1">Guardar</button>' +
@@ -10625,6 +10689,12 @@
       v[el.getAttribute("data-cit-campo")] = el.type === "checkbox" ? el.checked : String(el.value || "").trim();
     });
     v.pendiente = String(v.pendiente || "").split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    v.previos = [];
+    caja.querySelectorAll("[data-cit-previo-t]").forEach(function (el) {
+      var i = el.getAttribute("data-cit-previo-t"), fe = caja.querySelector('[data-cit-previo-f="' + i + '"]');
+      var t = String(el.value || "").trim(), f = fe ? String(fe.value || "").trim() : "";
+      if (t) v.previos.push(f ? { t: t, f: f } : { t: t });
+    });
     return v;
   }
 
@@ -10674,6 +10744,10 @@
       if (!f && orig && orig.f && !/^\d{4}-\d{2}(-\d{2})?$/.test(String(orig.f))) f = String(orig.f);   // fecha rara antigua: se conserva
       if (!f) { citEd.estado = "!Falta la fecha (o marca «Solo sé el mes» y pon el mes)."; abrirEditorCitas(); return true; }
       if (v.soloMes && !/^\d{4}-\d{2}$/.test(f) && !orig) { citEd.estado = "!El mes va como AAAA-MM, por ejemplo 2026-11."; abrirEditorCitas(); return true; }
+      var sinDia = v.previos.filter(function (p) { return !p.f; }).length && !/^\d{4}-\d{2}-\d{2}$/.test(f);
+      if (sinDia) { citEd.estado = "!La cita solo tiene mes: pon el día de cada tarea previa."; abrirEditorCitas(); return true; }
+      var tarde = v.previos.filter(function (p) { return p.f && /^\d{4}-\d{2}-\d{2}$/.test(f) && p.f > f; })[0];
+      if (tarde) { citEd.estado = "!«" + tarde.t + "» cae después de la cita."; abrirEditorCitas(); return true; }
       el.disabled = true; el.textContent = "Guardando…";
       hmGuardarCambio(function (doc) {
         if (!doc.citas) doc.citas = [];
@@ -10687,6 +10761,7 @@
         if (v.para) c.para = v.para; else delete c.para;
         if (v.porConfirmar) c.porConfirmar = true; else delete c.porConfirmar;
         c.pendiente = v.pendiente;
+        if (v.previos.length) c.previos = v.previos; else delete c.previos;
         if (clave) c.editado = U.hoyISO();
         doc.citas.sort(function (a, b) { var x = citaOrden(a), y = citaOrden(b); return x < y ? -1 : x > y ? 1 : 0; });
       }, "Cita: " + (clave ? "cambia " : "añade ") + v.que, citaTrasGuardar(clave ? "Cita guardada." : "Cita añadida."));
