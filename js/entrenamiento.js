@@ -974,6 +974,11 @@
       ".bl-bandeja.encima{border-color:var(--azul);border-style:solid;background:var(--azul-claro)}",
       ".bl-bandeja{border:1px dashed var(--azul-borde);background:#fafcfe;border-radius:11px;",
       "  padding:9px 11px;margin:10px 0}",
+      ".bl-bandeja.vacia{opacity:.75}",
+      ".bl-pista{font-size:.74rem;color:var(--gris);font-style:italic}",
+      ".arrastrando-bloque .bl-bandeja{opacity:1;border-style:solid;border-color:var(--azul);",
+      "  background:var(--azul-claro);box-shadow:0 0 0 3px rgba(47,92,138,.12)}",
+      ".arrastrando-bloque .bl-pista{color:var(--azul);font-style:normal;font-weight:600}",
       ".bl-bandeja .et{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;",
       "  color:var(--gris);font-weight:700;margin-bottom:6px}",
       /* La ficha de una salida dentro de la emergente: que haga su scroll
@@ -12785,8 +12790,20 @@
           '<button type="button" class="bl-cancela" data-blq-a="nada">cancelar</button></div>';
       }
     }
-    if (sueltos.length) {
-      h += '<div class="bl-bandeja"><span class="et">Sin colocar</span><div class="bl-chips">';
+    /* LA BANDEJA SIEMPRE ESTÁ  ·  6-oct-2026. Carlos: «tienes que dejar una
+       ventana sobre los bloques donde dejar los bloques a retirar... a veces
+       sale con todos los bloques vacíos y los ejercicios arriba».
+
+       Antes la bandeja sólo se dibujaba cuando YA había algo suelto, y ahí
+       estaba el absurdo: con la semana llena no hay sitio donde soltar, así que
+       arrastrar no servía para sacar un bloque de su día. Había que tocarlo y
+       usar «dejarlo sin colocar», que es otro camino y no se ve. Ahora la zona
+       está siempre, vacía o no, y vale para las dos cosas: sacar arrastrando y
+       devolver arrastrando. */
+    var semBand = semanaDe(lunes) || (sueltos.length ? sueltos[0].sem : null);
+    if (semBand && (bolsilloDe(semBand) || []).length) {
+      h += '<div class="bl-bandeja' + (sueltos.length ? "" : " vacia") +
+           '"><span class="et">Sin colocar</span><div class="bl-chips">';
       sueltos.forEach(function (x) {
         h += '<button type="button" class="dia-bl' + (x.b.largo ? " largo" : "") +
           (x.b.fam === "fuerza" ? " fuerza" : "") +
@@ -12794,13 +12811,18 @@
           '" draggable="true" data-blq="' + x.sem.desde + ":" + x.b.id + '">' +
           U.esc(x.b.t) + (x.b.min ? " · " + x.b.min + " min" : "") + "</button>";
       });
+      if (!sueltos.length) {
+        h += '<span class="bl-pista">Arrastra aqu\u00ed lo que quieras sacar de un d\u00eda</span>';
+      }
       /* UN TOQUE EN VEZ DE SEIS  ·  1-oct-2026. Cuando una semana se queda con
          los bloques sueltos —pasó esa tarde arreglando los ids— colocarlos uno a
          uno son seis o siete toques. Este botón aplica el reparto automático a la
          semana entera y luego él retoca lo que no le cuadre, que es como eligió
          que funcionara el tablero desde el principio. */
-      h += '<button type="button" class="bl-quitar" data-repartir="' +
-           U.esc(sueltos[0].sem.desde) + '">Repartirlos por m\u00ed</button>';
+      if (sueltos.length) {
+        h += '<button type="button" class="bl-quitar" data-repartir="' +
+             U.esc(sueltos[0].sem.desde) + '">Repartirlos por m\u00ed</button>';
+      }
       h += "</div></div>";
     }
     h += '<div class="ent-semana">';
@@ -14271,9 +14293,16 @@
         try { e.dataTransfer.setData("text/plain", b.getAttribute("data-blq")); } catch (x) {}
       }
       b.classList.add("llevando");
+      /* LA ZONA DE SOLTAR SE ENCIENDE AL ARRASTRAR  ·  6-oct-2026. Carlos:
+         «esa ventana debería aparecer si arrastras y si lo dejas ahí se queda
+         esperando». La bandeja está siempre, pero en reposo es una línea
+         discreta; en cuanto coges un bloque se ilumina para que se vea dónde
+         soltarlo. */
+      document.body.classList.add("arrastrando-bloque");
     });
     document.addEventListener("dragend", function () {
       llevando = null;
+      document.body.classList.remove("arrastrando-bloque");
       var v = document.querySelectorAll(".dia-bl.llevando, .ent-dia.encima, .bl-bandeja.encima");
       for (var i = 0; i < v.length; i++) v[i].classList.remove("llevando", "encima");
     });
@@ -14295,6 +14324,7 @@
       if (!d) return;
       e.preventDefault();
       d.classList.remove("encima");
+      document.body.classList.remove("arrastrando-bloque");
       var sMov = semanaDe(llevando.desde);
       if (!sMov) { llevando = null; return; }
       if (d.classList.contains("bl-bandeja")) {
