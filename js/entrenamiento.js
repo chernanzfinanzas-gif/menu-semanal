@@ -10189,6 +10189,14 @@
     return f;
   }
 
+  /* «2003-01-22» -> «22 ene 2003». En Salud hay pruebas de 1998 a hoy y
+     sin el año no se sabe de cuándo es cada una (Carlos, 6-oct-2026, v453). */
+  function hmDia(f) {
+    f = String(f || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return (+f.slice(8)) + " " + MES_C[+f.slice(5, 7) - 1] + " " + f.slice(0, 4);
+    return hmMes(f);
+  }
+
   function hmDatos() { return Historial.datos || null; }
 
   /* ¿está vigente ese tratamiento el día iso? «desde» puede ser un año suelto */
@@ -10854,7 +10862,7 @@
     if ((d.pruebas || []).length) {
       h += '<div class="tarjeta"><h2>Pruebas</h2><table class="hm-tabla"><tr><th>Fecha</th><th>Prueba</th><th>Resultado</th></tr>';
       d.pruebas.slice().sort(function (a, b) { return a.f < b.f ? 1 : -1; }).forEach(function (p) {
-        h += "<tr><td>" + U.esc(U.etiquetaFecha(p.f)) + (p.h ? "<br><small>" + U.esc(p.h) + "</small>" : "") + "</td>" +
+        h += "<tr><td>" + U.esc(hmDia(p.f)) + (p.h ? "<br><small>" + U.esc(p.h) + "</small>" : "") + "</td>" +
           "<td>" + U.esc(p.tipo) + (p.oido ? " · " + U.esc(p.oido) : "") + "</td>" +
           "<td>" + (p.ptp_db != null ? '<span class="hm-num">' + p.ptp_db + " dB</span> " : "") +
           (p.nota ? "<small>" + U.esc(p.nota) + "</small>" : "") +
@@ -10894,7 +10902,7 @@
             '<div class="hm-docs"><span class="hm-doc"><button type="button" class="caso-abrir" data-caso-pdf="' + U.esc(x.documento) + '">Ver informe</button>' +
             botonEnviar(x.documento, x.t + " (" + infDia(x.f) + ")") + "</span>" +
             (x.analitica ? '<span class="hm-doc"><button type="button" class="caso-abrir inf-anal" data-caso-pdf="' + U.esc(x.analitica) + '">' +
-              (/^serolog/.test(x.analitica) ? "Serologías" : "Analítica") + (fa ? " del " + U.esc(U.etiquetaFecha(fa)) : "") + "</button>" +
+              (/^serolog/.test(x.analitica) ? "Serologías" : "Analítica") + (fa ? " del " + U.esc(hmDia(fa)) : "") + "</button>" +
               botonEnviar(x.analitica, "Analítica" + (fa ? " (" + infDia(fa) + ")" : "")) + "</span>" : "") +
             "</div></div>";
         });

@@ -907,6 +907,22 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLG) {}
       }
 
+      /* LA CEBOLLA, UN CUARTO POR COMENSAL (6-oct-2026). Carlos: «en cebolla uso
+         media cebolla para dos raciones, 1/4 por ración si cocino para dos». La
+         ficha decía 1 cebolla entera, que es cuatro veces lo que se pone de
+         verdad. Se le corrige a mano por si su copia está `editado`. */
+      if (!e.arreglos["2026-10-06-cebolla-cuarto"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g) return;
+          if ((g.id === "cebolla_dulce" || g.id === "cebolla_morada") && g.racion !== 0.25) {
+            g.racion = 0.25;
+            g.tocado = new Date().toISOString();
+          }
+        });
+        e.arreglos["2026-10-06-cebolla-cuarto"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCB) {}
+      }
+
       /* LAS MALLAS SE CUENTAN EN MALLAS (5-oct-2026). Carlos, sobre la patata:
          «no se sabe cuántas patatas vienen, vienen 3 kg». Lo mismo con el ajo y
          las cebollas: vienen en malla cerrada por peso y contar las piezas no se
