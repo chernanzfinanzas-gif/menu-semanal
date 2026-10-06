@@ -923,6 +923,44 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCB) {}
       }
 
+      /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
+         «sin ver» sería empezar con una montaña y eso es exactamente lo que
+         mata sus proyectos. Las que ya ha tocado o cocinado entran marcadas:
+           · las que él editó a mano (`editado`), que son suyas por definición
+           · las que han estado alguna vez en el plan o en lo comido
+         El resto se queda sin ver, que es la verdad. */
+      if (!e.arreglos["2026-10-06-recetas-vistas"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        var idsRec = {};
+        (e.recetas || []).forEach(function (r) { if (r && r.id) idsRec[r.id] = true; });
+        var tocadas = {};
+        /* recorrido ciego: el plan ha cambiado de forma tres veces y lo que
+           interesa es cualquier id de receta que aparezca, esté donde esté */
+        function rastrear(x, hondo) {
+          if (!x || hondo > 6) return;
+          if (typeof x === "string") { if (idsRec[x]) tocadas[x] = true; return; }
+          if (Object.prototype.toString.call(x) === "[object Array]") {
+            x.forEach(function (y) { rastrear(y, hondo + 1); });
+            return;
+          }
+          if (typeof x === "object") {
+            Object.keys(x).forEach(function (k) { rastrear(x[k], hondo + 1); });
+          }
+        }
+        rastrear(e.plan, 0);
+        rastrear(e.comido, 0);
+        (e.recetas || []).forEach(function (r) { if (r && r.editado) tocadas[r.id] = true; });
+        var hoyV = Util.hoyISO(), puestas = 0;
+        Object.keys(tocadas).forEach(function (id) {
+          if (e.recetaVista[id]) return;
+          e.recetaVista[id] = { v: "ok", f: hoyV };
+          puestas++;
+        });
+        e.arreglos["2026-10-06-recetas-vistas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRV) {}
+        if (global.console) console.log("Recetas marcadas como vistas: " + puestas);
+      }
+
       /* LAS MALLAS SE CUENTAN EN MALLAS (5-oct-2026). Carlos, sobre la patata:
          «no se sabe cuántas patatas vienen, vienen 3 kg». Lo mismo con el ajo y
          las cebollas: vienen en malla cerrada por peso y contar las piezas no se
@@ -3520,6 +3558,48 @@
       } else v = g.racion > 0 ? g.racion : (g.envase > 0 ? g.envase : 1);
       this._racUso[g.id] = v;
       return v;
+    },
+
+    /* ---------- RECETAS VISTAS Y SIN VER (6-oct-2026) ----------
+       Carlos, hoy: «hemos generado muchas recetas nuevas que no he mirado. En
+       algunas estaré de acuerdo con tu sugerencia y en otras no». Y antes:
+       «por eso te dije que habría que ir repasando receta a receta».
+
+       MEDIDO el 6-oct sobre su copia del 1-oct: de 223 recetas, 64 habían
+       pasado alguna vez por el plan y 159 NUNCA. O sea que el recetario mezcla
+       sin distinguir los platos que cocina con los que le he propuesto y no ha
+       visto. Mientras no se distingan, un repaso en bloque de raciones afina
+       comida imaginaria, que es justo lo que pasó esta mañana.
+
+       Esto NO va en el catálogo: es un juicio suyo, como `editado`, y vive en
+       su estado. El catálogo no sabe ni tiene por qué saber lo que le gusta.
+
+         e.recetaVista[idReceta] = { v: "ok" | "no", f: "AAAA-MM-DD" }
+
+       REGLA DE TRABAJO que va con esto, y es la mitad del arreglo: los repasos
+       en bloque solo tocan recetas marcadas. Lo que está sin ver es propuesta
+       mía y se cambia cuando él la mire, no antes. */
+    vistaReceta: function (id) {
+      var m = (this.estado.recetaVista || {})[id];
+      return (m && m.v) || null;
+    },
+    marcarReceta: function (id, v) {
+      if (!this.estado.recetaVista) this.estado.recetaVista = {};
+      /* volver a pulsar lo que ya está puesto lo quita: se puede desdecir */
+      if (this.vistaReceta(id) === v) delete this.estado.recetaVista[id];
+      else this.estado.recetaVista[id] = { v: v, f: Util.hoyISO() };
+      this.guardar("receta");
+      return this.vistaReceta(id);
+    },
+    /* Cuántas quedan por mirar, contando solo las que se ofrecen de verdad:
+       ni retiradas, ni «ingredientes solos», ni platos de restaurante. */
+    recetasSinVer: function () {
+      var self = this;
+      return (this.estado.recetas || []).filter(function (r) {
+        if (!r || r.oculta || r.grupo === "suelto") return false;
+        if (r.cat === "Restaurante y bar" || r.grupo === "restaurante") return false;
+        return !self.vistaReceta(r.id);
+      });
     },
 
     platosQueDa: function (g, cantidad) {

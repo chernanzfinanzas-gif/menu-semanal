@@ -16,7 +16,7 @@
   var UI = {
     vista: "menu",
     lunes: Util.lunesDe(Util.hoyISO()),
-    filtros: { texto: "", toma: "", grupo: "", tool: "" },
+    filtros: { texto: "", toma: "", grupo: "", tool: "", vista: "" },
     filtrosIng: { texto: "", cat: "", clase: "" },
     fila: "recetas",        /* qué se lista en el Recetario: recetas o ingredientes */
     filaDesp: "localizacion", /* qué pestaña de la Despensa se abre */
@@ -2572,6 +2572,21 @@
             (r.grupo ? '<span class="etiqueta">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
             etiquetasTool(r.tools) +
             '</div>';
+    /* ¿ESTA RECETA ES TUYA O TE LA HE PROPUESTO YO? (6-oct-2026). Carlos: «en
+       algunas estaré de acuerdo con tu sugerencia y en otras no». Se responde
+       aquí, con el plato delante, y no en una sesión de repasar 159 de golpe.
+       Volver a pulsar lo que ya está puesto lo quita. */
+    (function () {
+      var v = Almacen.vistaReceta(r.id);
+      html += '<div class="repaso-receta">' +
+        (v ? '' : '<span class="nota-peque">Esta no la has mirado todavía.</span>') +
+        '<div class="repaso-botones">' +
+          '<button type="button" class="btn mini' + (v === "ok" ? " activo" : "") +
+            '" data-vista="' + esc(r.id) + '|ok">Me vale</button>' +
+          '<button type="button" class="btn mini' + (v === "no" ? " activo" : "") +
+            '" data-vista="' + esc(r.id) + '|no">No me vale</button>' +
+        "</div></div>";
+    })();
     /* Su nota, si ya la tiene: tocar otra estrella la cambia, la misma la quita. */
     if (Almacen.estrellas(r.id)) html += filaEstrellas(r.id, Almacen.estrellas(r.id), "ficha");
 
@@ -3739,6 +3754,9 @@
          siguen saliendo en el selector del menú, que es donde sirven; aquí lo
          que se mira es el ingrediente, en la fila de abajo. */
       if (r.grupo === "suelto") return false;
+      /* SIN VER: las que no has mirado todavía (6-oct-2026). Ver `vistaReceta`
+         en almacen.js: el recetario mezclaba tus platos con mis propuestas. */
+      if (f.vista === "sinver" && Almacen.vistaReceta(r.id)) return false;
       if (f.toma && (r.tipo || []).indexOf(f.toma) < 0) return false;
       if (f.grupo && r.grupo !== f.grupo) return false;
       if (f.tool === "__preferidas") {
@@ -3759,7 +3777,17 @@
     });
     lista.sort(function (a, b) { return a.n.localeCompare(b.n); });
 
-    $("#contador-recetas").textContent = lista.length + " recetas";
+    /* EL CONTADOR LLEVA EL REPASO AL LADO. No hay pantalla nueva: se repasa
+       desde el recetario de siempre, filtrando, que es donde ya mira. */
+    var sinVer = Almacen.recetasSinVer().length;
+    $("#contador-recetas").innerHTML = lista.length + " recetas" +
+      (sinVer
+        ? ' <button type="button" class="btn mini' + (f.vista === "sinver" ? " activo" : "") +
+          '" data-repaso="sinver">' + sinVer + " sin ver</button>"
+        : "") +
+      (f.vista === "sinver"
+        ? ' <button type="button" class="btn mini" data-repaso="">ver todas</button>'
+        : "");
     $("#rejilla-recetas").innerHTML = lista.map(function (r) {
       var sal = Almacen.salReceta(r);
       var n = Almacen.nutrReceta(r);
@@ -3768,6 +3796,9 @@
              '<div class="nota-peque">' + Util.kcal(n.k) + ' · ' + Math.round(n.p) + ' g prot. · ' +
              Util.sal(sal) + ' sal · ' + (r.min || "?") + ' min</div>' +
              '<div class="etiquetas">' +
+               (Almacen.vistaReceta(r.id) === "no"
+                 ? '<span class="etiqueta raro">no te vale</span>'
+                 : (Almacen.vistaReceta(r.id) ? '' : '<span class="etiqueta sinver">sin ver</span>')) +
                (r.grupo ? '<span class="etiqueta verde">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
                etiquetasTool(r.tools) +
              '</div></div>';
@@ -7333,6 +7364,22 @@
     $("#rejilla-recetas").addEventListener("click", function (e) {
       var c = e.target.closest("[data-ficha]");
       if (c) abrirFicha(c.getAttribute("data-ficha"));
+    });
+    $("#contador-recetas").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-repaso]");
+      if (!b) return;
+      UI.filtros.vista = b.getAttribute("data-repaso");
+      pintarRecetas();
+    });
+    /* los dos botones viven dentro del modal de la ficha */
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-vista]");
+      if (!b) return;
+      var p = b.getAttribute("data-vista").split("|");
+      var v = Almacen.marcarReceta(p[0], p[1]);
+      Util.toast(v === "ok" ? "Marcada como tuya" : (v === "no" ? "Marcada como que no te vale" : "Vuelve a estar sin ver"));
+      abrirFicha(p[0]);
+      pintarRecetas();
     });
 
     /* --- la fila de ingredientes, debajo de la de recetas --- */

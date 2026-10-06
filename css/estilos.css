@@ -1497,3 +1497,14 @@ button.enlace {
 .pie-compacto > span:last-child{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
 /* En pantalla ancha la instrucción ocupa una línea: la lista puede crecer. */
 @media (min-width:700px){ .modal-compacto .lista-compacta{max-height:calc(100vh - 300px)} }
+
+
+/* ---------- REPASO DE RECETAS (6-oct-2026) ----------
+   Carlos: «hemos generado muchas recetas nuevas que no he mirado. En algunas
+   estaré de acuerdo con tu sugerencia y en otras no». La etiqueta avisa sin
+   gritar: es un aviso de que eso no lo has validado, no un error. */
+.etiqueta.sinver{background:#eef2fb; border-color:#c3d0ea; color:#3a5078}
+.repaso-receta{margin:14px 0 4px; padding-top:12px; border-top:1px solid var(--borde);
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.repaso-receta .nota-peque{margin:0}
+.repaso-botones{display:flex; gap:8px; margin-left:auto}
