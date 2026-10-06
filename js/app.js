@@ -2789,6 +2789,18 @@
         }).filter(Boolean),
         trucos: $("#ed-trucos").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean),
         editado: true,          /* a partir de ahora es tuya: no la piso al actualizar */
+        /* LA HORA, QUE ES LO QUE DECIDE AL SINCRONIZAR  ·  6-oct-2026.
+           Carlos: «he editado la cantidad de leche en batido de proteínas
+           Evowhey… la ha cambiado, pero al volver a entrar vuelven a aparecer
+           las cifras antiguas».
+
+           La fusión con el repositorio tiene una regla buena —«cada ficha, la
+           del último que la tocó»— pero sólo se aplica si la ficha trae hora, y
+           NADA de lo que editabas a mano la traía: la ponían los arreglos y
+           nadie más. Sin hora, tu cambio caía en el desempate campo a campo, que
+           es frágil y no siempre te daba la razón. Con hora, tu edición manda
+           por ser la última, que es lo que tiene que pasar. */
+        tocado: new Date().toISOString(),
         nota: $("#ed-nota").value.trim()
       };
       if (!nueva.tipo.length) nueva.tipo = ["comida"];
@@ -3739,6 +3751,7 @@
       var lt = parseFloat(String(($("#ig-lote") || {}).value || "").replace(",", "."));
       if (lt > 0) res.lote = lt;
       res.editado = true;          /* a partir de ahora manda el tuyo: no lo piso */
+      res.tocado = new Date().toISOString();   /* y la hora, que es la que manda al sincronizar (6-oct-2026) */
 
       var idx = -1;
       Almacen.estado.ingredientes.forEach(function (x, i) { if (x.id === res.id) idx = i; });
@@ -4257,7 +4270,7 @@
         if (par[0] === "hogar") Almacen.guardarHogar(par[1], { n: v });
         else {
           var g = Almacen.ingrediente(par[1]);
-          if (g) { g.producto = v; g.editado = true; }
+          if (g) { g.producto = v; g.editado = true; g.tocado = new Date().toISOString(); }
         }
         n++;
       });
