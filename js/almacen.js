@@ -966,6 +966,86 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCP) {}
       }
 
+      /* LAS NUEVE DE ARROZ, REVISADAS (6-oct-2026). Carlos: «pon todas como
+         revisadas», después de repasarlas una a una: el arroz a 70 g en las
+         nueve, el solomillo a 75 por comensal, el pollo del salteado a 75 con
+         dos huevos, y el arroz con leche confirmado en sus 20 g, que para un
+         postre no es poco. */
+      if (!e.arreglos["2026-10-06-arroces-revisados"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["arroz_langostinos_tinta", "arroz_calamar", "arroz_oriental",
+         "risotto_limon_langostinos", "risotto_pera_gorgonzola_boletus",
+         "arroz_meloso_solomillo_setas", "arroz_con_leche",
+         "ensalada_arroz_mango_pollo", "arroz_bacalao_alcachofas"]
+          .forEach(function (idAR) { e.recetaVista[idAR] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-arroces-revisados"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAR) {}
+      }
+
+      /* FUERA LA RECETA DEL YOGUR GRIEGO SUELTO (6-oct-2026). Carlos: «yogur
+         griego 1 unidad.. no puede ser receta, se usa como ingrediente solo..
+         elimina la receta». Quitarla del catálogo no basta: una receta que ya
+         está en su móvil vive en `e.recetas`, y de ahí no sale nunca sola. El
+         catálogo da de alta por id y sustituye por `rev`, pero NO BORRA: es el
+         único camino que no existe. Así que se borra aquí, y con ella cualquier
+         hueco del plan, de lo comido o de las marcas de revisión que la
+         señalara, porque una receta fantasma en un hueco del plan no se puede
+         ni abrir ni quitar. */
+      if (!e.arreglos["2026-10-06-fuera-solo-yogur-griego"]) {
+        var MUERTA = "solo_yogur_griego";
+        var fueraYG = 0, refsYG = 0;
+        if (e.recetas && e.recetas.length) {
+          var antesYG = e.recetas.length;
+          e.recetas = e.recetas.filter(function (r) { return !r || r.id !== MUERTA; });
+          fueraYG = antesYG - e.recetas.length;
+        }
+        var raizYG = {};
+        Object.keys(e).forEach(function (k) {
+          if (k === "recetas" || k === "ingredientes") return;
+          raizYG[k] = e[k];
+        });
+        (function limpiar(x, hondo) {
+          if (hondo > 8 || !x || typeof x !== "object") return;
+          if (Object.prototype.toString.call(x) === "[object Array]") {
+            for (var i = x.length - 1; i >= 0; i--) {
+              if (x[i] === MUERTA) { x.splice(i, 1); refsYG++; }
+              else limpiar(x[i], hondo + 1);
+            }
+            return;
+          }
+          Object.keys(x).forEach(function (k) {
+            if (k === MUERTA || x[k] === MUERTA) { delete x[k]; refsYG++; return; }
+            limpiar(x[k], hondo + 1);
+          });
+        })(raizYG, 0);
+        e.arreglos["2026-10-06-fuera-solo-yogur-griego"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errYG) {}
+        if (global.console && (fueraYG || refsYG))
+          console.log("Yogur griego suelto: recetas borradas " + fueraYG + ", referencias limpiadas " + refsYG);
+      }
+
+      /* LAS TOSTAS, REVISADAS (6-oct-2026). Carlos: «el resto de tostas las
+         podemos dar por revisadas, me parece que están bien todas», después de
+         subir el salmón ahumado de 40 a 50 g en las tres que lo llevan, para
+         que el paquete de 100 g se vaya en dos cenas y no quede medio abierto
+         en la nevera. Entra también el yogur con mango y chía, que en la misma
+         tanda pasa al mango congelado de La Sirena.
+         La gemela nueva —yogur GRIEGO con mango y chía— se queda SIN VER a
+         propósito: la cantidad es suya, pero los textos son míos y no los ha
+         leído. */
+      if (!e.arreglos["2026-10-06-tostas-revisadas"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["tosta_salmon_ahumado", "tosta_salmon_yogur_eneldo", "tosta_salmon_aguacate_lima",
+         "tosta_sardinillas", "tosta_sardina_ahumada", "tosta_burgos_nueces_miel",
+         "tosta_champinones_huevo", "tosta_requeson_pera_gorgonzola", "tosta_burrata_tomate",
+         "tosta_atun_cebolla_cherry", "tosta_aguacate_cherry_lima",
+         "tosta_pesto_mozzarella_cherry", "tosta_langostinos_salsa_rosa",
+         "des_tostada_tomate", "snack_yogur_mango"]
+          .forEach(function (idTO) { e.recetaVista[idTO] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-06-tostas-revisadas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTO) {}
+      }
+
       /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
          «sin ver» sería empezar con una montaña y eso es exactamente lo que
          mata sus proyectos. Las que ya ha tocado o cocinado entran marcadas:
