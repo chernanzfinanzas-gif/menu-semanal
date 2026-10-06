@@ -2977,9 +2977,26 @@
        Carlos lo vio en pantalla el 1-oct y preguntó «¿tiene que salir en
        blanco?». No: si nada casa, se vuelve a la propuesta automática, que al
        menos pone cada cosa en un día y se puede retocar de un toque. */
-    var algunoPuesto = false;
-    for (var k = 0; k < b.length; k++) { if (mapa[b[k].id]) { algunoPuesto = true; break; } }
-    if (!algunoPuesto) return repartoPropuesto(sem, b);
+    /* ===== «TODO EN LA BANDEJA» NO ES «NO HAY NADA GUARDADO»  ·  6-oct-2026 =====
+       Carlos: «cambié todo, dejé solo movilidad sábado y domingo. Recargué y
+       volvió el plan original».
+
+       La red de arriba miraba si había ALGÚN bloque colocado en un día. Y eso
+       confunde dos cosas que no tienen nada que ver:
+
+         · lo guardado no casa con los bloques de hoy (ids de otro formato, una
+           migración a medias) — ahí sí hay que proponer de cero;
+         · él ha vaciado la semana a propósito, con todos los bloques en la
+           bandeja para recolocarlos — ahí no hay nada que proponer, lo que hay
+           que hacer es respetar lo que ha dejado.
+
+       En el segundo caso la app le devolvía el plan automático entero y se
+       comía su trabajo sin decir nada. Lo que de verdad distingue los dos casos
+       es si las CLAVES guardadas corresponden a bloques de esta semana, no si
+       alguna tiene día. Un `null` guardado es una decisión suya, no un hueco. */
+    var casaAlguno = false;
+    for (var k = 0; k < b.length; k++) { if (g[b[k].id] !== undefined) { casaAlguno = true; break; } }
+    if (!casaAlguno) return repartoPropuesto(sem, b);
     return mapa;
   }
 
