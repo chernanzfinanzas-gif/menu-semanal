@@ -356,6 +356,45 @@
       if (Object.keys(sello).length) junto.entreno.repartoSello = sello;
     })();
 
+    /* ── LOS DÍAS NO DISPONIBLES, IGUAL (6-oct-2026) ──────────────────────
+       Carlos: «quitado el día no disponible… y una vez guardado vuelve el día
+       no disponible».
+
+       Mismo agujero, otro campo. Quitar la marca BORRA la clave del día, y
+       esta fusión suma las claves de los dos lados: lo borrado aquí volvía del
+       repositorio. Una fusión que sólo sabe sumar no puede representar un
+       QUITAR, y quitar es la mitad de lo que hace una persona.
+
+       Ahora cada día lleva su hora —puesta igual al marcar que al desmarcar— y
+       manda el último que lo tocó, con la ausencia como valor válido. Un lado
+       SIN hora no puede afirmar un borrado: es un estado anterior a este
+       arreglo y no registró nada, así que se respeta lo que tenga el otro. */
+    (function () {
+      var eL = local.entreno || {}, eR = remoto.entreno || {};
+      var nL = eL.noHabil || {}, nR = eR.noHabil || {};
+      var sL = eL.noHabilSello || {}, sR = eR.noHabilSello || {};
+      var claves = {}, k;
+      [nL, nR, sL, sR].forEach(function (o) {
+        for (var q in o) if (Object.prototype.hasOwnProperty.call(o, q)) claves[q] = 1;
+      });
+      if (!Object.keys(claves).length) return;
+      var res = {}, sello = {};
+      for (k in claves) {
+        if (!Object.prototype.hasOwnProperty.call(claves, k)) continue;
+        var hL = String(sL[k] || ""), hR = String(sR[k] || "");
+        var ganaR = (hL || hR) ? (hR > hL) : remotoManda;
+        var v = ganaR ? nR[k] : nL[k];
+        /* sin hora no se puede afirmar un borrado */
+        if (v === undefined && !(ganaR ? hR : hL)) v = ganaR ? nL[k] : nR[k];
+        if (v !== undefined) res[k] = JSON.parse(JSON.stringify(v));
+        var hMax = hL > hR ? hL : hR;
+        if (hMax) sello[k] = hMax;
+      }
+      if (!junto.entreno) junto.entreno = {};
+      junto.entreno.noHabil = res;
+      if (Object.keys(sello).length) junto.entreno.noHabilSello = sello;
+    })();
+
     var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
     junto.selloDia = {};
     for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];

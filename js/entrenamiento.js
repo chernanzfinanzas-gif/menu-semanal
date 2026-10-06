@@ -2220,6 +2220,17 @@
     var antes = e.noHabil[iso] || null;
     if (motivo) e.noHabil[iso] = { m: motivo, t: Date.now() };
     else delete e.noHabil[iso];
+    /* SELLAR TAMBIÉN EL QUITAR  ·  6-oct-2026. Carlos: «quitado el día no
+       disponible... sale guardando mucho tiempo, y una vez guardado vuelve el
+       día no disponible».
+
+       Es el mismo agujero que el de la bandeja, en otro campo: quitar la marca
+       BORRA la clave, y la fusión con el repositorio suma las claves de los dos
+       lados, así que lo borrado aquí volvía de allí. Un borrado no se puede
+       contar si no queda constancia de él; por eso la hora se apunta en las dos
+       operaciones, poner y quitar, y la fusión mira esa hora. */
+    if (!e.noHabilSello) e.noHabilSello = {};
+    e.noHabilSello[iso] = new Date().toISOString();
     cacheBolsillo = {};
     /* AL DESMARCAR, LO QUE SE FUE VUELVE  ·  28-sep-2026.
        Carlos marcó sin querer el domingo 27 como no disponible: la caminata de
