@@ -13012,11 +13012,17 @@
       '<span><u class="a"></u>fuera del plan</span>' +
       "<span>margen del 10 %</span></p>";
     h += '<p class="nota-peque" style="margin-top:6px">' + U.esc(P.suelo) + "</p>";
+    /* EL PLANIFICADOR DEL DÍA (7-oct-2026): el balance, la salida y los avisos
+       pasan a 2/3 del ancho y el planificador ocupa el 1/3 derecho. En el móvil
+       el planificador no se pinta: sale el botón, que lo abre para mirar. */
+    h += botonPlanificador(dia);
+    h += '<div class="plf-fila"><div class="plf-izq">';
     h += fichaBalanceSemana(lunes);
     h += fichaSalida(lunes);
     h += panelAmbar(lunes);
     h += panelAvisos(lunes);
     h += panelCargaExtra(lunes);
+    h += "</div>" + cajaPlanificador(dia) + "</div>";
     h += "</div>";
     /* 29-sep-2026, orden pedido por Carlos: la semana, el semáforo y Hoy
        (sesiones, medidas, lo que ha afectado), la medicación, Esta mañana con
@@ -14295,6 +14301,386 @@
 
   var tipPuesto = false;
 
+  /* ==================== EL PLANIFICADOR DEL DÍA  ·  7-oct-2026 ====================
+     Boceto aprobado por Carlos el 7-oct («perfecto»): claude/boceto-planificador-v5.html.
+
+     Es una AYUDA ORIENTATIVA para decidir a qué hora entrena: coloca a mano los
+     bloques de ese día en una rejilla de 8:00 a 20:00 y ve sus citas de la
+     agenda. NO cambia el plan, ni el reparto, ni el cumplimiento: el bloque
+     sigue en la tabla del día igual que estaba.
+
+     En el ordenador va a la derecha del balance (1/3 del ancho). En el móvil
+     no cabe: sale un botón «Planificador» que abre el día en una ventana, solo
+     para mirar —como el stock, se coloca en el ordenador y en el móvil se lee—.
+
+     SE GUARDA SINCRONIZADO (lo eligió Carlos el 7-oct: «es una ayuda… pero si
+     se borra…»). En `entreno.planificador[fecha] = { bloques: {id: {ini, fin}},
+     citas: {clave: {ida, vuelta}} }`, horas en decimal y minutos de ida y
+     vuelta, con su sello por fecha en `entreno.planificadorSello` y que mande el
+     último, igual que los días no disponibles (ver github.js). Un día vaciado
+     BORRA su clave, y el sello hace que ese borrado también viaje.
+
+     Si un bloque cambia de día en el reparto, la hora que tenía en el día viejo
+     simplemente no se enseña: allí ya no está ese bloque. */
+  var PLF = { H0: 8, H1: 20, PX: 36, PASO: 0.25 };
+  var plfPuesto = false, plfLlevando = null;
+
+  function plf2(n) { return (n < 10 ? "0" : "") + n; }
+  function plfHora(h) { var m = Math.round(h * 60); return Math.floor(m / 60) + ":" + plf2(m % 60); }
+  function plfDur(min) {
+    min = Math.round(min);
+    if (min >= 60) return Math.floor(min / 60) + "h" + (min % 60 ? plf2(min % 60) : "");
+    return min + "'";
+  }
+  function plfRedondea(h) { return Math.round(h / PLF.PASO) * PLF.PASO; }
+  function plfTipo(fam) {
+    return fam === "bici" ? "bici" : fam === "fuerza" ? "fuerza" : fam === "caminar" ? "caminar"
+      : fam === "movilidad" ? "mov" : "otro";
+  }
+  function plfNombre(s) {
+    if (s.diaria) return "Movilidad";
+    if (s.bid) return cortoBloque(s).replace(/\s+\d[^\s]*(\s+h)?$/, "");
+    return String(s.t || "").split(",")[0];
+  }
+
+  /* Los bloques que el plan pone ESE día, con lo mismo que enseña la tabla del
+     día (`sesionesDe`): los del reparto, los escritos a mano y la movilidad
+     diaria. Fuera los quitados con motivo. En un día no disponible no hay
+     ejercicio que colocar. */
+  function plfBloques(f) {
+    var sem = semanaDe(f);
+    if (!sem || noHabilDe(f)) return [];
+    var ss = sesionesDe(f, sem, tallaDe(sem)) || [], out = [], vistos = {};
+    ss.forEach(function (s, i) {
+      if (!s || s.grande || !(s.min > 0)) return;
+      if (s.bid && quitadoDe(sem, s.bid)) return;
+      var id = s.bid || (s.diaria ? "mov-dia" : "s" + i);
+      if (vistos[id]) return;
+      vistos[id] = 1;
+      out.push({ id: id, n: plfNombre(s), min: s.min, tipo: plfTipo(s.fam || familia(s.t)) });
+    });
+    return out;
+  }
+
+  /* Las citas con hora de la agenda. Nada de «todo el día» ni cumpleaños: ese
+     día no planifica ejercicio. La duración viene escrita como «45'», «1h» o
+     «1h30»; si no trae, se cuenta media hora. */
+  function plfMin(d) {
+    d = String(d || "").replace(/\s/g, "");
+    var m = d.match(/^(\d+)h(\d+)?$/);
+    if (m) return (+m[1]) * 60 + (+(m[2] || 0));
+    m = d.match(/^(\d+)'$/);
+    return m ? +m[1] : 0;
+  }
+  function plfCitas(f) {
+    var D = Agenda.datos, l = (D && D.dias && D.dias[f]) || [], out = [];
+    l.forEach(function (x) {
+      if (!x || x.c || x.todo || !x.h) return;
+      var p = String(x.h).split(":"), c0 = (+p[0]) + (+(p[1] || 0)) / 60;
+      if (isNaN(c0)) return;
+      out.push({ k: f + "|" + x.h + "|" + x.t, n: x.t, c0: c0, c1: c0 + (plfMin(x.d) || 30) / 60 });
+    });
+    return out;
+  }
+
+  function plfGuardado(f) {
+    var p = (ent().planificador || {})[f];
+    return JSON.parse(JSON.stringify({ bloques: (p && p.bloques) || {}, citas: (p && p.citas) || {} }));
+  }
+  function plfGuardar(f, p) {
+    var e = ent();
+    if (!e.planificador) e.planificador = {};
+    if (!e.planificadorSello) e.planificadorSello = {};
+    var limpio = { bloques: {}, citas: {} }, n = 0, k;
+    for (k in p.bloques) {
+      var b = p.bloques[k];
+      if (b && b.fin > b.ini) { limpio.bloques[k] = { ini: b.ini, fin: b.fin }; n++; }
+    }
+    for (k in p.citas) {
+      var c = p.citas[k];
+      if (c && (c.ida > 0 || c.vuelta > 0)) { limpio.citas[k] = { ida: c.ida || 0, vuelta: c.vuelta || 0 }; n++; }
+    }
+    if (n) e.planificador[f] = limpio; else delete e.planificador[f];
+    e.planificadorSello[f] = new Date().toISOString();
+    A.guardar("entreno");
+  }
+
+  /* Lo que se pinta: bloques (con o sin hora) y citas, con su hueco en la rejilla. */
+  function plfItems(f) {
+    var g = plfGuardado(f), out = [];
+    plfBloques(f).forEach(function (b) {
+      var p = g.bloques[b.id];
+      b.ini = null; b.fin = null;
+      if (p && p.fin > p.ini) {
+        b.ini = Math.max(PLF.H0, p.ini); b.fin = Math.min(PLF.H1, p.fin);
+        if (b.fin <= b.ini) b.ini = b.fin = null;
+      }
+      out.push(b);
+    });
+    plfCitas(f).forEach(function (c, i) {
+      var v = g.citas[c.k] || {};
+      c.cita = true; c.i = i;
+      c.ini = c.c0 - (v.ida || 0) / 60; c.fin = c.c1 + (v.vuelta || 0) / 60;
+      out.push(c);
+    });
+    return out;
+  }
+
+  function plfEtiqueta(it) {
+    if (it.cita) {
+      var ida = Math.round((it.c0 - it.ini) * 60), vu = Math.round((it.fin - it.c1) * 60);
+      return plfHora(it.c0) + "–" + plfHora(it.c1) + (ida > 0 ? " · ida " + plfDur(ida) : "") +
+        (vu > 0 ? " · vuelta " + plfDur(vu) : "");
+    }
+    var hueco = (it.fin - it.ini) * 60;
+    return plfHora(it.ini) + "–" + plfHora(it.fin) + (hueco > it.min + 0.5 ? " · +" + plfDur(hueco - it.min) + " prep." : "");
+  }
+
+  function plfInterior(f, mirar) {
+    var PX = PLF.PX, H0 = PLF.H0, H1 = PLF.H1, items = plfItems(f), h = "";
+    var libres = items.filter(function (x) { return !x.cita && x.ini === null; });
+    h += '<div class="plf-bols"><div class="plf-tit">Sin asignar <small>· bloques de este día sin hora</small></div><div class="plf-chips">';
+    if (!libres.length) {
+      h += '<span class="plf-vacio">' + (items.some(function (x) { return !x.cita; })
+        ? "Todos los bloques del día tienen hora" : "Este día no tiene bloques") + "</span>";
+    }
+    libres.forEach(function (b) {
+      h += '<span class="plf-chip plf-t-' + b.tipo + '"' + (mirar ? "" : ' draggable="true" data-plf-id="' + U.esc(b.id) + '"') +
+        ">" + U.esc(b.n) + " " + plfDur(b.min) + "</span>";
+    });
+    h += "</div></div>";
+
+    h += '<div class="plf-rej" data-plf-dia="' + f + '" style="height:' + ((H1 - H0) * PX) + 'px">';
+    for (var hr = H0; hr < H1; hr++) {
+      h += '<div class="plf-franja' + (hr % 2 ? "" : " par") + '" style="top:' + ((hr - H0) * PX) + 'px"></div>' +
+        '<div class="plf-hora" style="top:' + ((hr - H0) * PX) + 'px">' + hr + ":00</div>";
+    }
+    h += '<div class="plf-hora" style="top:' + ((H1 - H0) * PX) + 'px">' + H1 + ':00</div>' +
+      '<div class="plf-ult" style="top:' + ((H1 - H0) * PX) + 'px"></div>';
+
+    var puestos = items.filter(function (x) { return x.ini !== null && x.fin > H0 && x.ini < H1; });
+    /* las citas debajo y los bloques encima: si se pisan, se ve lo que él ha
+       movido y la cita asoma con su borde rojo */
+    puestos.sort(function (a, b) { return (a.cita ? 0 : 1) - (b.cita ? 0 : 1); });
+    puestos.forEach(function (it) {
+      var a = Math.max(H0, it.ini), z = Math.min(H1, it.fin);
+      var choca = puestos.some(function (o) { return o !== it && o.ini < it.fin && o.fin > it.ini; });
+      var cls = "plf-ev" + (it.cita ? " cita" : " plf-t-" + it.tipo) + (z - a <= PLF.PASO + 0.001 ? " corto" : "") +
+        (choca ? " choca" : "");
+      var at = it.cita ? ' data-plf-cita="' + it.i + '"' : ' data-plf-id="' + U.esc(it.id) + '"' + (mirar ? "" : ' draggable="true"');
+      h += '<div class="' + cls + '"' + at + ' style="top:' + ((a - H0) * PX + 1) + 'px;height:' + ((z - a) * PX - 1) +
+        'px" title="' + U.esc(it.n + " · " + plfEtiqueta(it)) + '">';
+      if (it.cita) {
+        if (it.c0 > a) h += '<div class="plf-viaje" style="top:0;height:' + ((it.c0 - a) * PX) + 'px"></div>';
+        if (z > it.c1) h += '<div class="plf-viaje" style="bottom:0;height:' + ((z - it.c1) * PX) + 'px"></div>';
+      } else if ((it.fin - it.ini) * 60 > it.min + 0.5) {
+        h += '<div class="plf-prep" style="top:' + (it.min / 60 * PX) + 'px"></div>';
+      }
+      h += '<div class="plf-txt"><b>' + U.esc(it.n) + "</b> <small>" + U.esc(plfEtiqueta(it)) + "</small></div>";
+      if (!mirar) {
+        if (!it.cita) h += '<span class="plf-x" title="Quitar la hora">×</span>';
+        h += '<div class="plf-asa arr" title="' + (it.cita ? "Tiempo de ida" : "Preparación antes") + '"></div>' +
+          '<div class="plf-asa abj" title="' + (it.cita ? "Tiempo de vuelta" : "Preparación después") + '"></div>';
+      }
+      h += "</div>";
+    });
+    h += "</div>";
+    if (mirar) h += '<p class="plf-pie">Las horas se colocan en el ordenador. El plan del día no cambia.</p>';
+    return h;
+  }
+
+  /* la caja del ordenador (1/3) */
+  function cajaPlanificador(f) {
+    return '<div class="plf" data-plf-dia="' + f + '"><div class="plf-cab"><b>Planificador</b></div>' +
+      '<div class="plf-cuerpo">' + plfInterior(f, false) + "</div></div>";
+  }
+  /* el botón del móvil, entre la tabla de la semana y el balance */
+  function botonPlanificador(f) {
+    return '<button type="button" class="btn plf-abrir" data-plf-abrir="' + f + '">Planificador</button>';
+  }
+  function plfRepintar(f) {
+    var c = document.querySelector('.plf[data-plf-dia="' + f + '"] .plf-cuerpo');
+    if (c) c.innerHTML = plfInterior(f, false);
+  }
+  function abrirPlanificador(f) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    var d = U.desdeISO(f), nom = DIA_LARGO[d.getDay()];
+    caja.innerHTML = "<header><h2>Planificador · " + U.esc(nom.charAt(0).toUpperCase() + nom.slice(1) + " " +
+      U.etiquetaFecha(f)) + "</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      '<div class="plf plf-mirar" data-plf-dia="' + f + '">' + plfInterior(f, true) + "</div>";
+    modal.classList.add("abierta");
+  }
+
+  function plfItemDe(el, f) {
+    var items = plfItems(f), id = el.getAttribute("data-plf-id"), ci = el.getAttribute("data-plf-cita");
+    for (var i = 0; i < items.length; i++) {
+      if (id !== null && !items[i].cita && items[i].id === id) return items[i];
+      if (ci !== null && items[i].cita && String(items[i].i) === ci) return items[i];
+    }
+    return null;
+  }
+
+  /* Estirar por arriba o por abajo, de 15 en 15 min. En un bloque, lo que pase
+     de su duración es preparación; en una cita, ida y vuelta, y la hora real de
+     la cita no se puede recortar. */
+  function plfEstirar(e, asa) {
+    var ev = asa.closest(".plf-ev"), rej = asa.closest(".plf-rej");
+    if (!ev || !rej) return;
+    var f = rej.getAttribute("data-plf-dia"), it = plfItemDe(ev, f);
+    if (!it) return;
+    e.preventDefault(); e.stopPropagation();
+    ev.setAttribute("draggable", "false");
+    var arr = asa.classList.contains("arr"), PX = PLF.PX, H0 = PLF.H0, H1 = PLF.H1, P = PLF.PASO;
+    var txt = ev.querySelector("small");
+    function mover(m) {
+      var h = plfRedondea(H0 + (m.clientY - rej.getBoundingClientRect().top) / PX);
+      if (arr) it.ini = Math.max(H0, Math.min(h, it.cita ? it.c0 : it.fin - P));
+      else it.fin = Math.min(H1, Math.max(h, it.cita ? it.c1 : it.ini + P));
+      ev.style.top = ((it.ini - H0) * PX + 1) + "px";
+      ev.style.height = ((it.fin - it.ini) * PX - 1) + "px";
+      if (txt) txt.textContent = plfEtiqueta(it);
+    }
+    function soltar() {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      var g = plfGuardado(f);
+      if (it.cita) g.citas[it.k] = { ida: Math.round((it.c0 - it.ini) * 60), vuelta: Math.round((it.fin - it.c1) * 60) };
+      else g.bloques[it.id] = { ini: it.ini, fin: it.fin };
+      plfGuardar(f, g);
+      plfRepintar(f);
+    }
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+  }
+
+  function ponerPlanificador() {
+    if (plfPuesto) return;
+    plfPuesto = true;
+    var s = document.createElement("style");
+    s.textContent = [
+      ".plf-fila{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;align-items:start}",
+      ".plf-izq{min-width:0}",
+      ".plf{border:1px solid #e3e7ec;border-radius:12px;background:#fff;margin-top:10px}",
+      ".plf-cab{padding:10px 12px;border-bottom:1px solid #e3e7ec}.plf-cab b{font-size:15px}",
+      ".plf-bols{padding:10px 12px;border-bottom:1px solid #e3e7ec;min-height:60px}",
+      ".plf-bols.encima{background:#f2f7fd}",
+      ".plf-tit{font-size:11px;letter-spacing:.04em;color:#6b7480;text-transform:uppercase}",
+      ".plf-tit small{text-transform:none;letter-spacing:0;font-size:11px}",
+      ".plf-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}",
+      ".plf-chip{border-radius:8px;padding:4px 8px;font-size:12px;color:#fff;cursor:grab;user-select:none}",
+      ".plf-vacio{font-size:12px;color:#6b7480}",
+      ".plf-rej{position:relative;margin:10px 8px 12px 46px}",
+      ".plf-rej.encima .plf-franja{background:#f2f7fd}",
+      ".plf-hora{position:absolute;left:-40px;width:34px;text-align:right;font-size:11px;color:#6b7480;transform:translateY(-7px)}",
+      ".plf-franja{position:absolute;left:0;right:0;height:36px;border-top:1px solid #e3e7ec}",
+      ".plf-franja.par{background:#fcfdfe}",
+      ".plf-ult{position:absolute;left:0;right:0;border-top:1px solid #e3e7ec}",
+      ".plf-ev{position:absolute;left:2px;right:2px;border-radius:6px;padding:1px 6px;font-size:11px;line-height:1.2;" +
+        "color:#fff;cursor:grab;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.12);user-select:none}",
+      ".plf-ev .plf-txt{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:10px}",
+      ".plf-ev small{opacity:.85;font-size:inherit}",
+      ".plf-ev.corto{padding:0 6px;font-size:8.5px;line-height:9px}",
+      ".plf-ev.corto .plf-asa{height:2px}.plf-ev.corto .plf-x{font-size:9px;line-height:9px}",
+      ".plf-ev.cita{background:#eef0f3;color:#1d2329;border-left:3px solid #9aa3ad;cursor:default}",
+      ".plf-x{position:absolute;right:4px;top:0;cursor:pointer;opacity:.85;z-index:3}",
+      ".plf-asa{position:absolute;left:0;right:0;height:6px;cursor:ns-resize;z-index:2}",
+      ".plf-asa.arr{top:0}.plf-asa.abj{bottom:0}",
+      ".plf-ev:hover .plf-asa{background:rgba(255,255,255,.35)}",
+      ".plf-ev.cita:hover .plf-asa{background:rgba(0,0,0,.08)}",
+      ".plf-ev.choca{outline:2px solid #c0392b;outline-offset:1px}",
+      ".plf-ev.choca:not(.cita){opacity:.92}",
+      ".plf-prep{position:absolute;left:0;right:0;bottom:0;pointer-events:none;" +
+        "background:repeating-linear-gradient(45deg,rgba(255,255,255,.28) 0 4px,transparent 4px 8px)}",
+      ".plf-viaje{position:absolute;left:0;right:0;pointer-events:none;" +
+        "background:repeating-linear-gradient(45deg,rgba(0,0,0,.08) 0 4px,transparent 4px 8px)}",
+      ".plf-t-bici{background:#4a78b8}.plf-t-fuerza{background:#8e5bb5}.plf-t-caminar{background:#5a9e5a}",
+      ".plf-t-mov{background:#3aa0a0}.plf-t-otro{background:#7a8794}",
+      ".plf-mirar{border:0;margin:0}.plf-mirar .plf-ev,.plf-mirar .plf-chip{cursor:default}",
+      ".plf-pie{font-size:12px;color:#6b7480;margin:0 12px 6px}",
+      ".plf-abrir{display:none}",
+      "@media (max-width:900px){.plf-fila{display:block}.plf-fila>.plf{display:none}" +
+        ".plf-abrir{display:block;width:100%;margin:10px 0 0}}"
+    ].join("\n");
+    document.head.appendChild(s);
+
+    function zona(e) {
+      var t = e.target;
+      return (t && t.closest) ? (t.closest(".plf:not(.plf-mirar) .plf-rej") || t.closest(".plf:not(.plf-mirar) .plf-bols")) : null;
+    }
+    document.addEventListener("dragstart", function (e) {
+      var t = e.target, el = (t && t.closest) ? t.closest(".plf:not(.plf-mirar) [data-plf-id]") : null;
+      if (!el) return;
+      var caja = el.closest(".plf");
+      plfLlevando = { id: el.getAttribute("data-plf-id"), dia: caja.getAttribute("data-plf-dia"),
+                      agarre: el.classList.contains("plf-ev") ? (e.clientY - el.getBoundingClientRect().top) : 0 };
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", "plf:" + plfLlevando.id); } catch (x) {}
+      }
+    });
+    document.addEventListener("dragend", function () {
+      plfLlevando = null;
+      var v = document.querySelectorAll(".plf-rej.encima, .plf-bols.encima");
+      for (var i = 0; i < v.length; i++) v[i].classList.remove("encima");
+    });
+    document.addEventListener("dragover", function (e) {
+      if (!plfLlevando) return;
+      var z = zona(e);
+      if (!z) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      z.classList.add("encima");
+    });
+    document.addEventListener("dragleave", function (e) {
+      var z = zona(e);
+      if (z && !z.contains(e.relatedTarget)) z.classList.remove("encima");
+    });
+    document.addEventListener("drop", function (e) {
+      if (!plfLlevando) return;
+      var z = zona(e), L = plfLlevando;
+      plfLlevando = null;
+      if (!z) return;
+      e.preventDefault();
+      z.classList.remove("encima");
+      var f = L.dia, g = plfGuardado(f), b = null, bl = plfBloques(f);
+      for (var i = 0; i < bl.length; i++) if (bl[i].id === L.id) b = bl[i];
+      if (!b) return;
+      if (z.classList.contains("plf-bols")) {
+        delete g.bloques[b.id];
+      } else {
+        var prev = g.bloques[b.id];
+        var largo = (prev && prev.fin > prev.ini) ? prev.fin - prev.ini : Math.ceil(b.min / 15) * PLF.PASO;
+        largo = Math.min(largo, PLF.H1 - PLF.H0);
+        var ini = plfRedondea(PLF.H0 + (e.clientY - z.getBoundingClientRect().top - L.agarre) / PLF.PX);
+        ini = Math.max(PLF.H0, Math.min(ini, PLF.H1 - largo));
+        g.bloques[b.id] = { ini: ini, fin: ini + largo };
+      }
+      plfGuardar(f, g);
+      plfRepintar(f);
+    });
+    document.addEventListener("pointerdown", function (e) {
+      var t = e.target, asa = (t && t.closest) ? t.closest(".plf:not(.plf-mirar) .plf-asa") : null;
+      if (asa) plfEstirar(e, asa);
+    });
+    document.addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var x = t.closest(".plf:not(.plf-mirar) .plf-x");
+      if (x) {
+        e.preventDefault(); e.stopPropagation();
+        var ev = x.closest(".plf-ev"), f = x.closest(".plf").getAttribute("data-plf-dia"), g = plfGuardado(f);
+        delete g.bloques[ev.getAttribute("data-plf-id")];
+        plfGuardar(f, g);
+        plfRepintar(f);
+        return;
+      }
+      var ab = t.closest("[data-plf-abrir]");
+      if (ab) { e.preventDefault(); abrirPlanificador(ab.getAttribute("data-plf-abrir")); }
+    }, true);
+  }
+
   /* ==================== ARRASTRAR BLOQUES ====================
      Los dos toques —bloque y luego día— son lo que funciona en el móvil. Pero
      en el ordenador lo natural es arrastrar, y así estaba en el boceto que
@@ -14505,6 +14891,7 @@
     conectar();
     ponerTip();
     ponerArrastre();
+    ponerPlanificador();
     if (Salud.deCache()) Salud.sembrarPesos();                // lo de la última vez, para pintar ya
     try { migrarIdsBloques(); } catch (e) { if (global.console) global.console.warn("migrar ids:", e); }
     pintar();

@@ -395,6 +395,37 @@
       if (Object.keys(sello).length) junto.entreno.noHabilSello = sello;
     })();
 
+    /* ── EL PLANIFICADOR DEL DÍA, IGUAL  ·  7-oct-2026 ────────────────────
+       Las horas que Carlos pone a los bloques del día, y la ida y vuelta de
+       sus citas. Cada fecha viaja ENTERA —una colocación del día no es una
+       bolsa de campos sueltos— y manda el lado que la tocó más tarde. Vaciar
+       un día BORRA su clave y deja la hora en el sello, así que el borrado
+       también viaja. Mismo patrón que los días no disponibles, de arriba. */
+    (function () {
+      var eL = local.entreno || {}, eR = remoto.entreno || {};
+      var nL = eL.planificador || {}, nR = eR.planificador || {};
+      var sL = eL.planificadorSello || {}, sR = eR.planificadorSello || {};
+      var claves = {}, k;
+      [nL, nR, sL, sR].forEach(function (o) {
+        for (var q in o) if (Object.prototype.hasOwnProperty.call(o, q)) claves[q] = 1;
+      });
+      if (!Object.keys(claves).length) return;
+      var res = {}, sello = {};
+      for (k in claves) {
+        if (!Object.prototype.hasOwnProperty.call(claves, k)) continue;
+        var hL = String(sL[k] || ""), hR = String(sR[k] || "");
+        var ganaR = (hL || hR) ? (hR > hL) : remotoManda;
+        var v = ganaR ? nR[k] : nL[k];
+        if (v === undefined && !(ganaR ? hR : hL)) v = ganaR ? nL[k] : nR[k];
+        if (v !== undefined && v !== null) res[k] = JSON.parse(JSON.stringify(v));
+        var hMax = hL > hR ? hL : hR;
+        if (hMax) sello[k] = hMax;
+      }
+      if (!junto.entreno) junto.entreno = {};
+      junto.entreno.planificador = res;
+      if (Object.keys(sello).length) junto.entreno.planificadorSello = sello;
+    })();
+
     var selL = local.selloDia || {}, selR = remoto.selloDia || {}, kk;
     junto.selloDia = {};
     for (kk in selL) if (Object.prototype.hasOwnProperty.call(selL, kk)) junto.selloDia[kk] = selL[kk];
