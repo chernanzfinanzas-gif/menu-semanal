@@ -996,6 +996,36 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errFL) {}
       }
 
+      /* LA TORTILLA FRANCESA, REVISADA (7-oct-2026). Carlos, al final del dia:
+         «la tortilla francesa vale con los pesos de ingredientes que tiene».
+         Es la de calabacin pochado, la unica tortilla francesa visible del
+         recetario; la de espinacas esta oculta. 380 kcal, 23,9 g de proteina y 0,57 g
+         de sal por racion. CORREGIDO un minuto despues: «no me gusta esa
+         receta». Las cantidades le parecian bien, el plato no. Queda marcada
+         «no me vale», que es reversible de un toque en la app., con 2 huevos, medio calabacin y 80 g de requeson. */
+      if (!e.arreglos["2026-10-07-tortilla-revisada"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        e.recetaVista["tortilla_calabacin"] = { v: "no", f: Util.hoyISO() };
+        e.arreglos["2026-10-07-tortilla-revisada"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTF) {}
+      }
+
+      /* DOS MAS DADAS POR BUENAS (7-oct-2026). «La de cous cous dulce con
+         leche sirve como esta» y «la de entrecot de angus a la plancha me
+         sirve» y «la hamburguesa con cebolla caramelizada y queso fundido
+         tambien vale» y «las de lubina estan bien las dos». La del cous cous de solomillo NO entra aqui: le baja la carne
+         a media racion en esta misma version y hay que volver a mirarla. */
+      if (!e.arreglos["2026-10-07-cous-y-entrecot"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["cous_dulce_leche_datiles", "entrecot_plancha",
+         "hamburguesa_cebolla_queso",
+         "lubina_espalda", "lubina_horno_verduras"].forEach(function (idCE) {
+          e.recetaVista[idCE] = { v: "ok", f: Util.hoyISO() };
+        });
+        e.arreglos["2026-10-07-cous-y-entrecot"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCE) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
