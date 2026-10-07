@@ -12756,7 +12756,7 @@
     var cabeza = h.slice(volver.length);
     h = volver;
     estiloCargas();
-    h += '<div class="tarjeta"><div class="ent-navsem">' +
+    h += '<div class="tarjeta plf-tarj1"><div class="ent-navsem">' +
       /* «HOY» (3-oct-2026). Carlos: «un botón Hoy para volver rápido a la ficha
          activa». Vuelve a la semana de hoy y abre el día de hoy, venga de otra
          semana o de otro día de ésta. Siempre está, en el mismo sitio; cuando ya
@@ -13016,18 +13016,26 @@
        pasan a 2/3 del ancho y el planificador ocupa el 1/3 derecho. En el móvil
        el planificador no se pinta: sale el botón, que lo abre para mirar. */
     h += botonPlanificador(dia);
-    h += '<div class="plf-fila"><div class="plf-izq">';
-    h += fichaBalanceSemana(lunes);
-    h += fichaSalida(lunes);
-    h += panelAmbar(lunes);
-    h += panelAvisos(lunes);
-    h += panelCargaExtra(lunes);
-    h += "</div>" + cajaPlanificador(dia) + "</div>";
     h += "</div>";
     /* 29-sep-2026, orden pedido por Carlos: la semana, el semáforo y Hoy
        (sesiones, medidas, lo que ha afectado), la medicación, Esta mañana con
-       la revisión, lo que estoy midiendo y lo que ha pasado esta semana. */
+       la revisión, lo que estoy midiendo y lo que ha pasado esta semana.
+
+       FILAS DE 60 px  ·  7-oct-2026. Carlos: «y si el bloque semáforo pasa a
+       2/3 y se usa ese hueco para el planificador haciendo las filas más
+       altas?», y eligió 60 px por hora. Para eso la tarjeta de la semana se
+       parte en dos: la tira y la leyenda siguen a todo el ancho; debajo, la
+       columna de 2/3 lleva el balance, la salida y los avisos (en su tarjeta)
+       y detrás el semáforo, los avisos de salud y el pase del lunes, que antes
+       iban a todo el ancho. El planificador ocupa el 1/3 de al lado, ahora
+       bastante más alto. El orden de lectura no cambia, y en el móvil las dos
+       tarjetas se juntan y se ve como antes. */
+    var bajoTira = fichaBalanceSemana(lunes) + fichaSalida(lunes) + panelAmbar(lunes) +
+      panelAvisos(lunes) + panelCargaExtra(lunes);
+    h += '<div class="plf-fila"><div class="plf-izq">';
+    if (bajoTira) h += '<div class="tarjeta plf-tarj2">' + bajoTira + "</div>";
     h += cabeza;
+    h += "</div>" + cajaPlanificador(dia) + "</div>";
 
     /* el día abierto: hoy, o el que se haya pulsado en la tira de la semana.
        Se calculó arriba, antes de la tira, para que la casilla salga marcada. */
@@ -14322,7 +14330,7 @@
 
      Si un bloque cambia de día en el reparto, la hora que tenía en el día viejo
      simplemente no se enseña: allí ya no está ese bloque. */
-  var PLF = { H0: 8, H1: 20, PX: 36, PASO: 0.25 };
+  var PLF = { H0: 8, H1: 20, PX: 60, PASO: 0.25 };   // 60 px por hora desde el 7-oct (antes 36)
   var plfPuesto = false, plfLlevando = null;
 
   function plf2(n) { return (n < 10 ? "0" : "") + n; }
@@ -14452,7 +14460,7 @@
 
     h += '<div class="plf-rej" data-plf-dia="' + f + '" style="height:' + ((H1 - H0) * PX) + 'px">';
     for (var hr = H0; hr < H1; hr++) {
-      h += '<div class="plf-franja' + (hr % 2 ? "" : " par") + '" style="top:' + ((hr - H0) * PX) + 'px"></div>' +
+      h += '<div class="plf-franja' + (hr % 2 ? "" : " par") + '" style="top:' + ((hr - H0) * PX) + "px;height:" + PX + 'px"></div>' +
         '<div class="plf-hora" style="top:' + ((hr - H0) * PX) + 'px">' + hr + ":00</div>";
     }
     h += '<div class="plf-hora" style="top:' + ((H1 - H0) * PX) + 'px">' + H1 + ':00</div>' +
@@ -14560,9 +14568,9 @@
     plfPuesto = true;
     var s = document.createElement("style");
     s.textContent = [
-      ".plf-fila{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;align-items:start}",
+      ".plf-fila{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:start}",
       ".plf-izq{min-width:0}",
-      ".plf{border:1px solid #e3e7ec;border-radius:12px;background:#fff;margin-top:10px}",
+      ".plf{border:1px solid var(--borde,#e3e7ec);border-radius:var(--radio,12px);background:#fff;margin-bottom:12px;box-shadow:var(--sombra,none)}",
       ".plf-cab{padding:10px 12px;border-bottom:1px solid #e3e7ec}.plf-cab b{font-size:15px}",
       ".plf-bols{padding:10px 12px;border-bottom:1px solid #e3e7ec;min-height:60px}",
       ".plf-bols.encima{background:#f2f7fd}",
@@ -14574,15 +14582,16 @@
       ".plf-rej{position:relative;margin:10px 8px 12px 46px}",
       ".plf-rej.encima .plf-franja{background:#f2f7fd}",
       ".plf-hora{position:absolute;left:-40px;width:34px;text-align:right;font-size:11px;color:#6b7480;transform:translateY(-7px)}",
-      ".plf-franja{position:absolute;left:0;right:0;height:36px;border-top:1px solid #e3e7ec}",
+      ".plf-franja{position:absolute;left:0;right:0;border-top:1px solid #e3e7ec}",
+      ".plf-franja::after{content:\"\";position:absolute;left:0;right:0;top:50%;border-top:1px dashed #f0f2f5}",
       ".plf-franja.par{background:#fcfdfe}",
       ".plf-ult{position:absolute;left:0;right:0;border-top:1px solid #e3e7ec}",
       ".plf-ev{position:absolute;left:2px;right:2px;border-radius:6px;padding:1px 6px;font-size:11px;line-height:1.2;" +
         "color:#fff;cursor:grab;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.12);user-select:none}",
       ".plf-ev .plf-txt{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:10px}",
       ".plf-ev small{opacity:.85;font-size:inherit}",
-      ".plf-ev.corto{padding:0 6px;font-size:8.5px;line-height:9px}",
-      ".plf-ev.corto .plf-asa{height:2px}.plf-ev.corto .plf-x{font-size:9px;line-height:9px}",
+      ".plf-ev.corto{padding:0 6px;font-size:10px;line-height:14px}",
+      ".plf-ev.corto .plf-asa{height:4px}.plf-ev.corto .plf-x{font-size:11px;line-height:14px}",
       ".plf-ev.cita{background:#eef0f3;color:#1d2329;border-left:3px solid #9aa3ad;cursor:default}",
       ".plf-x{position:absolute;right:4px;top:0;cursor:pointer;opacity:.85;z-index:3}",
       ".plf-asa{position:absolute;left:0;right:0;height:6px;cursor:ns-resize;z-index:2}",
@@ -14597,11 +14606,16 @@
         "background:repeating-linear-gradient(45deg,rgba(0,0,0,.08) 0 4px,transparent 4px 8px)}",
       ".plf-t-bici{background:#4a78b8}.plf-t-fuerza{background:#8e5bb5}.plf-t-caminar{background:#5a9e5a}",
       ".plf-t-mov{background:#3aa0a0}.plf-t-otro{background:#7a8794}",
+      "#vista-entreno .plf-fila>.plf{border-top:3px solid var(--azul)}",
       ".plf-mirar{border:0;margin:0}.plf-mirar .plf-ev,.plf-mirar .plf-chip{cursor:default}",
       ".plf-pie{font-size:12px;color:#6b7480;margin:0 12px 6px}",
       ".plf-abrir{display:none}",
       "@media (max-width:900px){.plf-fila{display:block}.plf-fila>.plf{display:none}" +
-        ".plf-abrir{display:block;width:100%;margin:10px 0 0}}"
+        ".plf-abrir{display:block;width:100%;margin:10px 0 0}" +
+        /* en el móvil las dos tarjetas de la semana se ven como una sola */
+        ".plf-tarj1:has(+ .plf-fila .plf-tarj2){margin-bottom:0;border-bottom:0;" +
+          "border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:4px}" +
+        "#vista-entreno .plf-tarj2{border-top:0;border-top-left-radius:0;border-top-right-radius:0;padding-top:4px}}"
     ].join("\n");
     document.head.appendChild(s);
 
