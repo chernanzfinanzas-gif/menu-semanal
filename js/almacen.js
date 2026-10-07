@@ -938,6 +938,64 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPV) {}
       }
 
+      /* EL LOMO CONGELADO EN LA REV 6 (7-oct-2026). Carlos, desde el ordenador:
+         le salía «Cabeza de lomo de cerdo Duroc en pieza, sin cortar (1,14 kg)»
+         con ración de 200 g, y en el catálogo ese id es desde hace días la
+         BANDEJA DE FILETES de 650 g con ración de 162. Encontrado en las copias
+         publicadas: es `cerdo_lomo` en su rev 6 del 29-sep, cuando ese id era
+         la pieza entera. Luego el producto cambió bajo el mismo id y la pieza
+         se llevó a una ficha propia, `cerdo_lomo_trozo`.
+         No se enteró por la TRAMPA DEL `editado`: una ficha que él haya tocado
+         no la mira nunca el refresco por `rev`, y por eso tres subidas de
+         versión le pasaron por encima sin tocarla.
+         Se pone al día a mano RESCATANDO LO SUYO —cómo la pide, su mínimo, su
+         lote, su estante y su formato—, que es exactamente lo que rescata el
+         refresco normal, y se le quita el `editado` para que a partir de ahora
+         siga al catálogo como las demás. Conserva su id, así que no se mueve
+         del sitio que ocupa en el estante ni pierde su stock. */
+      if (!e.arreglos["2026-10-07-cerdo-lomo-al-dia"]) {
+        var buenoCL = ((SEMILLA_BASE && SEMILLA_BASE.ingObj) || {})["cerdo_lomo"];
+        if (buenoCL) {
+          (e.ingredientes || []).forEach(function (g, i) {
+            if (!g || g.id !== "cerdo_lomo") return;
+            if ((g.rev || 1) >= (buenoCL.rev || 1) && !g.editado) return;
+            var suyoCL = { pedir: g.pedir, minimo: g.minimo, lote: g.lote,
+                           sitio: g.sitio, formato: g.formato };
+            e.ingredientes[i] = JSON.parse(JSON.stringify(buenoCL));
+            Object.keys(suyoCL).forEach(function (k) {
+              if (suyoCL[k] !== undefined && suyoCL[k] !== null) e.ingredientes[i][k] = suyoCL[k];
+            });
+          });
+        }
+        e.arreglos["2026-10-07-cerdo-lomo-al-dia"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL) {}
+      }
+
+      /* Y LOS FILETES, DETRÁS DEL YOGUR GRIEGO EN LA LISTA (7-oct-2026).
+         Carlos: «los filetes de lomo de cerdo cabeza han de ocupar el sitio en
+         el estante del stock de la pieza sin cortar y en la lista de la compra
+         aparecer entre yogur griego y panecillo sin sal». El estante lo
+         conserva solo, porque es el mismo id. El puesto en la lista no: su
+         orden guardado es una lista explícita de ids. El panecillo vive en
+         PANADERÍA y el yogur en la NEVERA, que son dos listas distintas, así
+         que «entre los dos» dentro de la de nevera quiere decir detrás del
+         yogur griego, que es lo último antes de cambiar de zona. */
+      if (!e.arreglos["2026-10-07-filetes-tras-yogur"]) {
+        if (!e.ordenCompra) e.ordenCompra = {};
+        var ordFL = (e.ordenCompra["Mercadona|nevera"] || []).filter(function (x) {
+          return x !== "cerdo_lomo";
+        });
+        var posYG = ordFL.indexOf("yogur_griego_hacendado");
+        if (posYG >= 0) ordFL.splice(posYG + 1, 0, "cerdo_lomo");
+        else ordFL.push("cerdo_lomo");
+        e.ordenCompra["Mercadona|nevera"] = ordFL;
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
+        e.arreglos["2026-10-07-filetes-tras-yogur"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errFL) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
@@ -3038,6 +3096,10 @@
         if (!r[fecha][toma]) r[fecha][toma] = {};
         r[fecha][toma][recetaId] = { c: Number(c), u: this.unidadReal(this.receta(recetaId)) };
       }
+      /* SELLAR EL DÍA (7-oct-2026): sin esto, una corrección de «lo que comí
+         de verdad» no pasaba por el guardián de días al sincronizar, y
+         quitarla no viajaba. Misma familia que `gastado`. */
+      this.sellarDia(fecha);
       this.guardar("real");
     },
 

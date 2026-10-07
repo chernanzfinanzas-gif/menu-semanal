@@ -433,6 +433,49 @@
       if (!junto.selloDia[kk] || String(selR[kk]) > String(junto.selloDia[kk])) junto.selloDia[kk] = selR[kk];
     }
 
+    /* De un día, la clave entera del lado que lo tocó más tarde. Una LISTA del
+       día viaja entera —no se casan elemento a elemento—; un OBJETO conserva
+       del otro lado las sub-claves que el ganador no tenga, igual que las tomas
+       en `comido`. Si el ganador no tiene ese día, no se toca nada: su sello
+       puede venir de haber cambiado otra cosa. */
+    function diaDelQueMandaManda(junto, manda, otro, dia, clave, mandaSello) {
+      var m = (manda[clave] || {})[dia], q = (otro[clave] || {})[dia];
+      /* Vaciar un día deja el objeto a cero en vez de quitar la clave, según
+         por dónde se haya vaciado. Las dos cosas quieren decir lo mismo: ahí
+         no queda nada. */
+      if (m && typeof m === "object" && !Array.isArray(m) && !Object.keys(m).length) m = undefined;
+      if (m === undefined && q === undefined) return;
+      /* QUE NO LO TENGA ES UN BORRADO, y es la mitad que faltaba. Fusionar
+         sobre lo del otro arregla que vuelvan datos viejos, pero si el que
+         manda BORRÓ ese día entero, él no tiene clave y el otro sí: fusionar
+         le devolvía lo borrado otra vez. Es el fallo que nos ocupó la tarde,
+         visto desde el otro lado. Sólo vale si ese día lleva SU sello: sin
+         sello no tocó nada y no se le puede leer una intención. */
+      if (m === undefined) {
+        if (!mandaSello) return;
+        if (junto[clave]) delete junto[clave][dia];
+        return;
+      }
+      var unido;
+      if (Array.isArray(m) || (m === undefined && Array.isArray(q))) {
+        unido = JSON.parse(JSON.stringify(m !== undefined ? m : q));
+        if (!unido.length) { if (junto[clave]) delete junto[clave][dia]; return; }
+      } else {
+        unido = JSON.parse(JSON.stringify(q || {}));
+        Object.keys(m || {}).forEach(function (k) {
+          unido[k] = JSON.parse(JSON.stringify(m[k]));
+        });
+        Object.keys(unido).forEach(function (k) {
+          var v = unido[k];
+          if (v === null || v === undefined) { delete unido[k]; return; }
+          if (typeof v === "object" && !Object.keys(v).length) delete unido[k];
+        });
+        if (!Object.keys(unido).length) { if (junto[clave]) delete junto[clave][dia]; return; }
+      }
+      if (!junto[clave]) junto[clave] = {};
+      junto[clave][dia] = unido;
+    }
+
     function selloDe(est, dia) {
       var a = ((est.selloDia || {})[dia]) || "";
       var b = ((est.corregido || {})[dia]) || "";
@@ -482,19 +525,38 @@
          con lo comido: una lista que sólo sabe sumar. La cura es la misma —de
          un día manda entero el lado que lo tocó el último— y se escribe aquí
          al lado para que no se vuelva a olvidar una tercera vez. */
-      var gm = (manda.gastado || {})[dia], go = (otro.gastado || {})[dia];
-      if (gm || go) {
-        var unidoG = JSON.parse(JSON.stringify(go || {}));
-        Object.keys(gm || {}).forEach(function (toma) {
-          unidoG[toma] = JSON.parse(JSON.stringify(gm[toma] || {}));
-        });
-        Object.keys(unidoG).forEach(function (toma) {
-          if (!unidoG[toma] || !Object.keys(unidoG[toma]).length) delete unidoG[toma];
-        });
-        if (!junto.gastado) junto.gastado = {};
-        if (Object.keys(unidoG).length) junto.gastado[dia] = unidoG;
-        else delete junto.gastado[dia];
-      }
+      /* ── Y LA FAMILIA ENTERA, NO DE UNA EN UNA (7-oct-2026) ─────────────
+         Tres veces se ha perdido lo mismo y tres veces se arregló UNA clave:
+         el plan y los ✓ en septiembre, `gastado` hoy. Así que esta vez se hizo
+         el repaso completo de las 26 claves del estado contra lo que esta
+         función nombra, y quedaban tres que viven POR DÍA, cuentan calorías y
+         sólo pasaban por la fusión genérica —la que sólo sabe sumar—:
+
+           · `fotos`  la foto de cada plato comido. Y desde que la foto puede
+                      llevar el peso real de la carne, fusionarla campo a campo
+                      podía dejar un plato con las calorías viejas Y el peso
+                      nuevo: un número que no ha existido nunca.
+           · `real`   lo que comiste de verdad cuando no fue lo previsto. Es
+                      hermana de `gastado`: borrar una corrección no viajaba, y
+                      la corrección fantasma vuelve a multiplicar el plato.
+           · `comprado` lo ya comprado de cada día: desmarcar no viajaba.
+           · `actividad` el ejercicio del día, que decide el objetivo de
+                      calorías. Su lista no lleva id, así que la genérica
+                      entregaba la lista ENTERA del lado que ganara por el
+                      reloj global — exactamente el error que costó los días 21
+                      y 22 de septiembre.
+
+         Todas se resuelven igual que `comido`, y por eso van por una sola
+         función: del día manda entero el lado que lo tocó más tarde, y lo que
+         el ganador no tenga se conserva del otro lado. Si mañana aparece otra
+         clave por día, se añade a la lista de abajo y ya está. */
+      var selloDelQueManda = !!selloDe(manda, dia);
+      diaDelQueMandaManda(junto, manda, otro, dia, "fotos", selloDelQueManda);
+      diaDelQueMandaManda(junto, manda, otro, dia, "real", selloDelQueManda);
+      diaDelQueMandaManda(junto, manda, otro, dia, "comprado", selloDelQueManda);
+      diaDelQueMandaManda(junto, manda, otro, dia, "actividad", selloDelQueManda);
+      diaDelQueMandaManda(junto, manda, otro, dia, "gastado", selloDelQueManda);
+
     });
     if (!junto.config) junto.config = {};
     if (!junto.config.github) junto.config.github = {};
