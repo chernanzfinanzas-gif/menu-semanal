@@ -459,6 +459,23 @@ window.DATOS_RECETAS = [
    verdad, y esto manda sobre lo automático. Los cuatro primeros salen de los
    combinados que había antes de separar plato y guarnición. */
 window.DATOS_CUADRES = {
+  /* COMO LO HACE ÉL, CORREGIDO A LA PRIMERA (7-oct-2026). Carlos lo coció
+     todo junto desde el minuto cero —patata, cebolla y solomillo— y al contarlo
+     cayó él mismo: «solo 6 en la freidora? han salido un poco secas las
+     cebollas». Eran 18 minutos de cebolla, y su guarnición le da 8 por algo.
+     Así que la cebolla vuelve a entrar a los 12, y la cesta para a los 20 en
+     vez de a los 18: con el solomillo fuera desde el 16 y reposando, esos dos
+     minutos de más no le estorban a nadie y la cebolla tiene sus 8. */
+  "solomillo_pure_pera_manzana|guar_patatas_panaderas_freidora": { rev:2, min:21, nota:"Una sola cesta a 180 °C. El solomillo sale a los 16 y reposa mientras la patata y la cebolla acaban.", pasos:[
+    {min:0, t:"Patata y solomillo a la freidora — 180 °C: la patata en rodajas de 3-4 mm y el solomillo ENTERO", d:"El solomillo sin cortar, untado con 5 ml del aceite, la pimienta y el romero. La patata removida en un bol con su aceite hasta que no quede ninguna rodaja seca. Sin sal.", ap:"airfryer", de:"Las dos"},
+    {min:8, t:"Dale la vuelta al solomillo", ap:"airfryer", de:"Solomillo"},
+    {min:8, t:"LA SALSA, en paralelo: el ajo laminado con los 5 ml de aceite que quedan, a fuego medio y sin que coja color. Luego el vino, que reduzca a la mitad", d:"En un cazo pequeño. Da tiempo de sobra mientras se hace la otra cara.", ap:"sarten", de:"Solomillo"},
+    {min:12, t:"Sacude la cesta y mete la cebolla en juliana ancha", d:"A los 12 y no antes: desde el principio se seca. Ocho minutos es lo que necesita.", ap:"airfryer", de:"Patatas"},
+    {min:16, t:"Saca el solomillo y tápalo con papel de aluminio — 5 minutos de reposo", d:"El reposo no es opcional: si lo cortas al salir, el jugo se queda en la tabla. La patata y la cebolla siguen en la cesta.", ap:"no", de:"Solomillo"},
+    {min:16, t:"FUERA DEL FUEGO, el medio tarrito de puré al cazo con el vino reducido", d:"Tiene que quedar una crema templada, no una salsa líquida. Si lo hierves se queda en mermelada.", ap:"no", de:"Solomillo"},
+    {min:20, t:"Para la freidora y saca la patata y la cebolla", d:"Tiernas por dentro y apenas doradas: las panaderas no son patatas fritas. Si están pálidas, 3 minutos más a 190.", ap:"airfryer", de:"Patatas"},
+    {min:21, t:"Corta el solomillo en medallones de 2 cm. El puré al lado, no por encima, y la patata al otro", d:"Así la carne no se humedece y cada bocado lo mojas tú.", ap:"no", de:"Las dos"}
+  ]},
   "hamburguesa_cebolla_queso|patatas_airfryer": { rev:1, min:20, nota:"Patata y cebolla comparten cesta a 190 °C, el término medio entre lo que pide cada una.", pasos:[
     {min:0, t:"Patata al microondas — 800 W, 3 minutos", d:"En bastones de 1 cm, al estuche de silicona con una cucharada de agua.", ap:"micro", de:"Patatas"},
     {min:3, t:"Escurre y seca la patata, y alíñala con su aceite, el pimentón, el ajo en polvo y la pimienta", d:"En el bol y con las manos, nunca regando la cesta.", ap:"no", de:"Patatas"},

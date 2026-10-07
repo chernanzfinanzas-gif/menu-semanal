@@ -2597,8 +2597,8 @@
           '<input type="number" id="peso-real" data-ing="' + esc(l.i) + '" ' +
             'inputmode="numeric" min="1" max="3000" step="5" ' +
             'value="' + (yaEs !== null ? yaEs : deCat) + '"><span>g por ración</span>' +
-          '<button class="btn" data-pesar="' + esc(fecha) + '|' + esc(toma) + '|' + esc(r.id) + '|' + esc(l.i) + '">' + (yaEs !== null ? 'Cambiar' : 'Pesarlo') + '</button>' +
-          (yaEs !== null ? '<button class="btn" data-pesarquita="' + esc(fecha) + '|' + esc(toma) + '|' + esc(r.id) + '|' + esc(l.i) + '">Quitar</button>' : '') +
+          '<button class="btn" data-pesar="' + esc(fecha) + '|' + esc(toma) + '|' + esc(r.id) + '|' + esc(l.i) + '">' + (yaEs !== null ? 'Otro peso' : 'Pesarlo') + '</button>' +
+          (yaEs !== null ? '<button class="btn" data-pesarquita="' + esc(fecha) + '|' + esc(toma) + '|' + esc(r.id) + '|' + esc(l.i) + '">Reiniciar</button>' : '') +
         '</div></div>';
     });
     /* ¿ESTA RECETA ES TUYA O TE LA HE PROPUESTO YO? (6-oct-2026). Carlos: «en
@@ -7546,6 +7546,10 @@
         if (!(gr > 0)) { Util.toast("Pon los gramos que ha pesado"); return; }
         Almacen.ponerPesoReal(pp[0], pp[2], pp[3], gr);
         Util.toast("Pesado: " + gr + " g por raci\u00f3n");
+        /* Y REPINTAR EL MENÚ DE DETRÁS (7-oct-2026). Carlos: «si cierro la
+           receta en el menú siguen saliendo las calorías antiguas». Se
+           guardaba bien, pero cerrar el modal no vuelve a pintar el día. */
+        if (typeof pintarMenu === "function") pintarMenu();
         abrirFicha(pp[2], pp[0], pp[1]);
         return;
       }
@@ -7554,6 +7558,7 @@
         var qq = pq.getAttribute("data-pesarquita").split("|");
         Almacen.ponerPesoReal(qq[0], qq[2], qq[3], 0);
         Util.toast("Vuelve a contar por el cat\u00e1logo");
+        if (typeof pintarMenu === "function") pintarMenu();
         abrirFicha(qq[2], qq[0], qq[1]);
         return;
       }
