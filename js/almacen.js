@@ -920,6 +920,24 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPT) {}
       }
 
+      /* LAS FICHAS DE PESO VARIABLE, MARCADAS A MANO (7-oct-2026). Subirles el
+         `rev` basta para las que no haya tocado, pero una ficha con `editado`
+         no la mira el refresco, y entonces su plato no ofrecería pesar la
+         carne. Son once: ocho de carnicería y tres de pescado fresco. Lo de
+         La Sirena y los ahumados se queda fuera a propósito: vienen con peso
+         declarado. Palabras de Carlos: «creo que son los de la carne y poco
+         más». */
+      if (!e.arreglos["2026-10-07-peso-variable"]) {
+        var VAR11 = ["ternera_entrecot","hamburguesa_finca","cerdo_secreto","cerdo_lomo",
+                     "cerdo_lomo_trozo","cerdo_solomillo","pollo_pechuga",
+                     "lomo_iberico_adobado","lubina","salmon_lomo","atun_fresco"];
+        (e.ingredientes || []).forEach(function (g) {
+          if (g && VAR11.indexOf(g.id) >= 0) g.pesoVar = true;
+        });
+        e.arreglos["2026-10-07-peso-variable"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPV) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
@@ -2126,11 +2144,18 @@
     },
 
     /* gramos de sal POR RACIÓN de una receta */
-    salReceta: function (rec) {
+    salReceta: function (rec, pesos) {
       if (!rec) return 0;
       if (typeof rec.salManual === "number") return rec.salManual;
       var total = 0, self = this;
-      (rec.ing || []).forEach(function (l) { total += self.salDeLinea(l); });
+      (rec.ing || []).forEach(function (l) {
+        if (pesos && typeof pesos[l.i] === "number") {
+          var ing = self.ingrediente(l.i);
+          total += self.gramosLineaCon(l, pesos, rec) * ((ing && ing.sal) || 0) / 100;
+        } else {
+          total += self.salDeLinea(l);
+        }
+      });
       return total / (rec.raciones || 1);
     },
 
@@ -2378,19 +2403,45 @@
       return !!(d && Object.keys(d).length);
     },
 
-    congelarPlato: function (fecha, id, rehacer) {
+    congelarPlato: function (fecha, id, rehacer, pesos) {
       var r = this.receta(id);
       if (!r) return false;                      // borrada: no hay nada que fotografiar
       if (!this.estado.fotos) this.estado.fotos = {};
       if (!this.estado.fotos[fecha]) this.estado.fotos[fecha] = {};
-      if (this.estado.fotos[fecha][id] && !rehacer) return false;
-      var n = this.nutrReceta(r), s = this.salReceta(r);
+      var vieja = this.estado.fotos[fecha][id];
+      if (vieja && !rehacer) return false;
+      /* EL PESO PESADO SOBREVIVE A LA FOTO (7-oct-2026). Si ya pesaste la carne
+         antes de cocinar, el ✓ no puede volver a hacer la foto con los gramos
+         del catálogo y borrarte la corrección. Pasar `pesos` explícitamente la
+         cambia; no pasar nada conserva la que hubiera; pasar null la quita. */
+      if (pesos === undefined) pesos = (vieja && vieja.pesos) || null;
+      var n = this.nutrReceta(r, pesos), s = this.salReceta(r, pesos);
       var d1 = function (x) { return Math.round((x || 0) * 10) / 10; };
-      this.estado.fotos[fecha][id] = {
+      var foto = {
         n: r.n, r: r.raciones || 1,
         k: d1(n.k), p: d1(n.p), g: d1(n.g), h: d1(n.h),
         s: Math.round((s || 0) * 1000) / 1000
       };
+      if (pesos && Object.keys(pesos).length) foto.pesos = pesos;
+      this.estado.fotos[fecha][id] = foto;
+      return true;
+    },
+
+    /* PESAR LA CARNE DE UN PLATO DE UN DÍA. Gramos POR RACIÓN, que es lo que se
+       tiene en la mano. 0 o nada borra el peso y el plato vuelve al catálogo.
+       NO toca la despensa: eso lo sigue haciendo el ✓, y en raciones. */
+    ponerPesoReal: function (fecha, id, ingId, gramos) {
+      var r = this.receta(id);
+      if (!r) return false;
+      var pesos = {}, vieja = this.fotoPlato(fecha, id);
+      if (vieja && vieja.pesos) {
+        Object.keys(vieja.pesos).forEach(function (k) { pesos[k] = vieja.pesos[k]; });
+      }
+      var g = Math.round(gramos || 0);
+      if (g > 0) pesos[ingId] = g; else delete pesos[ingId];
+      this.congelarPlato(fecha, id, true, Object.keys(pesos).length ? pesos : null);
+      this.sellarDia(fecha);
+      this.guardar("peso");
       return true;
     },
 
@@ -2512,8 +2563,38 @@
       return ing.u === "ud" ? (linea.c * (ing.pesoUd || 100)) : linea.c;
     },
 
+    /* EL PESO REAL DE LA CARNE (7-oct-2026). Carlos: «es dejar todo como está,
+       solo adaptar las calorías de mi ingesta a la carne real que he comido».
+       Un entrecot o un solomillo no pesan lo que dice su ficha, y hasta hoy el
+       plato contaba por el catálogo: medido, un entrecot de 230 g contado como
+       los 180 de la receta son 101 kcal de menos EN UN SOLO PLATO.
+       `pesos` es {idIngrediente: gramos POR RACIÓN} y sólo existe para un día y
+       un plato concretos; vive dentro de la foto del plato, que ya se fusiona
+       por día y ya está a salvo de los líos de sincronización. La RACIÓN no se
+       toca: la despensa sigue gastando una, pese lo que pese. */
+    gramosLineaCon: function (l, pesos, rec) {
+      if (pesos && typeof pesos[l.i] === "number") {
+        return pesos[l.i] * ((rec && rec.raciones) || 1);
+      }
+      return this.gramosDeLinea(l);
+    },
+    /* Las líneas de una receta cuyo ingrediente es de peso variable. Son las
+       únicas que preguntan: once fichas de carnicería y pescadería. */
+    lineasVariables: function (rec) {
+      var self = this;
+      return ((rec && rec.ing) || []).filter(function (l) {
+        var g = self.ingrediente(l.i);
+        return !!(g && g.pesoVar);
+      });
+    },
+    /* Lo que pesó de verdad ese plato ese día, si se pesó. */
+    pesosDe: function (fecha, id) {
+      var f = this.fotoPlato(fecha, id);
+      return (f && f.pesos) || null;
+    },
+
     /* {k,p,g,h} POR RACIÓN de una receta */
-    nutrReceta: function (rec) {
+    nutrReceta: function (rec, pesos) {
       var vacio = { k: 0, p: 0, g: 0, h: 0 };
       if (!rec) return vacio;
       /* UN CAPRICHO NO TIENE INGREDIENTES. Un helado de una heladería no se
@@ -2528,7 +2609,7 @@
       (rec.ing || []).forEach(function (l) {
         var ing = self.ingrediente(l.i);
         if (!ing) return;
-        var gr = self.gramosDeLinea(l) / 100;
+        var gr = self.gramosLineaCon(l, pesos, rec) / 100;
         t.k += gr * (ing.k || 0);
         t.p += gr * (ing.p || 0);
         t.g += gr * (ing.g || 0);
@@ -4559,6 +4640,16 @@
       this.estado.gastado[fecha][toma][recetaId] = hecho;
     },
 
+    /* Borra la nota de gasto de un plato SIN devolver nada a la despensa. */
+    _olvidarGasto: function (fecha, toma, recetaId) {
+      var g = this.estado.gastado;
+      if (!g || !g[fecha] || !g[fecha][toma] || !g[fecha][toma][recetaId]) return false;
+      delete g[fecha][toma][recetaId];
+      if (!Object.keys(g[fecha][toma]).length) delete g[fecha][toma];
+      if (!Object.keys(g[fecha]).length) delete g[fecha];
+      return true;
+    },
+
     /* Quitar el ✓ devuelve EXACTAMENTE lo que se quitó, ni más. */
     devolverDespensa: function (fecha, toma, recetaId) {
       var hecho = this.gastoApuntado(fecha, toma, recetaId);
@@ -5714,6 +5805,7 @@
       var d = this.estado.comido[fecha];
       if (!d[toma]) d[toma] = [];
       var i = d[toma].indexOf(recetaId);
+      var estaba = i >= 0;
       if (comido && i < 0) d[toma].push(recetaId);
       if (!comido && i >= 0) d[toma].splice(i, 1);
       if (!d[toma].length) delete d[toma];
@@ -5725,6 +5817,15 @@
       /* Y SALE DE LA DESPENSA. El ✓ es el único momento en que se sabe que la
          comida se ha consumido de verdad; hasta el 24-sep-2026 no lo tocaba y
          el stock sólo sabía subir. Ver `gastarDespensa`. */
+      /* NOTA DE GASTO FANTASMA (7-oct-2026). `gastarDespensa` no descuenta dos
+         veces, y para saberlo mira si ya hay nota de gasto de ese plato. Si el
+         plato NO estaba marcado y aun así hay nota, esa nota no puede ser de
+         este ✓: es una que volvió de GitHub después de desmarcar. Dejarla
+         estar es lo que hacía que marcar no descontara y desmarcar sí
+         devolviera, regalando una ración por vuelta. Se tira y se descuenta de
+         verdad. Esto cura solo lo que ya esté torcido, sin tocarle la
+         despensa: tirar la nota no suma ni resta nada. */
+      if (comido && !estaba) this._olvidarGasto(fecha, toma, recetaId);
       if (comido) this.gastarDespensa(fecha, toma, recetaId);
       else this.devolverDespensa(fecha, toma, recetaId);
       /* SELLO DE DÍA (23-sep-2026). Marcar un ✓ era lo único deliberado que NO

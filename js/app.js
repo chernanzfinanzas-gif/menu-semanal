@@ -2549,8 +2549,14 @@
   function abrirFicha(id, fecha, toma) {
     var r = Almacen.receta(id);
     if (!r) return;
-    var salRacion = Almacen.salReceta(r);
-    var n = Almacen.nutrReceta(r);
+    /* EL PESO REAL DE LA CARNE (7-oct-2026). Si este plato de ESTE día lleva un
+       ingrediente de peso variable y ya lo pesaste, manda tu peso y no el del
+       catálogo: las calorías de arriba, las de cada línea y la foto del día.
+       Abierta desde el recetario, sin día ni toma, no hay nada que corregir. */
+    var pesos    = (fecha && toma) ? Almacen.pesosDe(fecha, id) : null;
+    var lineasVar = (fecha && toma) ? Almacen.lineasVariables(r) : [];
+    var salRacion = Almacen.salReceta(r, pesos);
+    var n = Almacen.nutrReceta(r, pesos);
 
     var personas = (fecha && toma) ? Almacen.comensales(fecha, toma) : 0;
     /* Las cantidades, para los que de verdad comen ESE plato: uno si tiene dueño,
@@ -2572,6 +2578,29 @@
             (r.grupo ? '<span class="etiqueta">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
             etiquetasTool(r.tools) +
             '</div>';
+    /* LA BANDA DE PESAR. Sale sólo en los platos de un día con carne o pescado
+       fresco: once fichas. Arriba del todo porque pesar es lo primero que se
+       hace al ponerse. Es una oportunidad, no un paso: si no la tocas, el plato
+       cuenta por el catálogo como siempre. */
+    lineasVar.forEach(function (l) {
+      var gi = Almacen.ingrediente(l.i);
+      if (!gi) return;
+      var deCat = Math.round(Almacen.gramosDeLinea(l) / (r.raciones || 1));
+      var yaEs  = (pesos && typeof pesos[l.i] === 'number') ? pesos[l.i] : null;
+      html += '<div class="peso-var' + (yaEs !== null ? ' pesada' : '') + '">' +
+        '<p>' + (yaEs !== null
+            ? 'Pesaste <b>' + yaEs + ' g</b> de ' + esc(gi.n.split(' (')[0].toLowerCase()) +
+              '. El catálogo cuenta ' + deCat + ' g.'
+            : 'Lleva <b>' + esc(gi.n.split(' (')[0].toLowerCase()) + '</b>, que es de peso ' +
+              'variable. El catálogo cuenta ' + deCat + ' g por ración.') + '</p>' +
+        '<div class="peso-var-fila">' +
+          '<input type="number" id="peso-real" data-ing="' + esc(l.i) + '" ' +
+            'inputmode="numeric" min="1" max="3000" step="5" ' +
+            'value="' + (yaEs !== null ? yaEs : deCat) + '"><span>g por ración</span>' +
+          '<button class="btn" id="peso-guardar">' + (yaEs !== null ? 'Cambiar' : 'Pesarlo') + '</button>' +
+          (yaEs !== null ? '<button class="btn" id="peso-quitar">Quitar</button>' : '') +
+        '</div></div>';
+    });
     /* ¿ESTA RECETA ES TUYA O TE LA HE PROPUESTO YO? (6-oct-2026). Carlos: «en
        algunas estaré de acuerdo con tu sugerencia y en otras no». Se responde
        aquí, con el plato delante, y no en una sesión de repasar 159 de golpe.
@@ -2619,12 +2648,20 @@
     (r.ing || []).forEach(function (l) {
       var ing = Almacen.ingrediente(l.i);
       var linea = escalada ? { i: l.i, c: l.c * factor } : l;
-      var gr = Almacen.gramosDeLinea(linea) / 100;
+      /* Si pesaste esta línea, sus gramos y sus kcal son los tuyos. Lo que se
+         guarda es POR RACIÓN, así que aquí se multiplica por los que comen. */
+      var pReal = (pesos && typeof pesos[l.i] === "number") ? pesos[l.i] : null;
+      var gTot = (pReal !== null) ? pReal * (escalada ? personas : base)
+                                  : Almacen.gramosDeLinea(linea);
+      var gr = gTot / 100;
       var kc = ing ? Math.round(gr * (ing.k || 0)) : 0;
       var rallar = l.uso === "rallar";
-      html += '<li><span>' + esc(ing ? ing.n : l.i) +
+      html += '<li' + (pReal !== null ? ' class="linea-pesada"' : '') + '><span>' +
+              esc(ing ? ing.n : l.i) +
+              (pReal !== null ? ' <em class="nota-peque">· pesado</em>' : '') +
               (rallar ? ' <em class="nota-peque">· para rallar</em>' : '') + '</span><span>' +
-              Util.cantidadReceta(linea.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0) +
+              (pReal !== null ? '<b>' + Math.round(gTot) + ' g</b>'
+                              : Util.cantidadReceta(linea.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0)) +
               (kc ? ' <em class="nota-peque">· ' + kc + ' kcal</em>' : '') + '</span></li>';
       var tarr = rallar ? Almacen.ingrediente("tomate_rallado") : null;
       if (tarr) {
@@ -2687,6 +2724,26 @@
             '<button class="btn" data-borrar="' + esc(r.id) + '">Borrar</button>' +
             '</div>';
     abrirModal(html);
+
+    /* Pesar y volver a pintar la misma ficha: así ves el cambio donde estabas. */
+    var caja = $("#peso-real");
+    if (caja && fecha && toma) {
+      var guardarPeso = function (g) {
+        Almacen.ponerPesoReal(fecha, id, caja.getAttribute("data-ing"), g);
+        abrirFicha(id, fecha, toma);
+      };
+      $("#peso-guardar").addEventListener("click", function () {
+        var g = parseInt(caja.value, 10);
+        if (!(g > 0)) { Util.toast("Pon los gramos que ha pesado"); return; }
+        guardarPeso(g);
+        Util.toast("Pesado: " + g + " g por ración");
+      });
+      var quitar = $("#peso-quitar");
+      if (quitar) quitar.addEventListener("click", function () {
+        guardarPeso(0);
+        Util.toast("Vuelve a contar por el catálogo");
+      });
+    }
   }
 
   /* ==================== EDITOR DE RECETA ==================== */

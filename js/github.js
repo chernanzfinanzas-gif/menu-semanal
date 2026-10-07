@@ -439,7 +439,8 @@
       return a > b ? a : b;
     }
     var dias = {}, f, fuentes = [local.corregido || {}, remoto.corregido || {},
-                                local.selloDia || {}, remoto.selloDia || {}];
+                                local.selloDia || {}, remoto.selloDia || {},
+                                local.gastado || {}, remoto.gastado || {}];
     fuentes.forEach(function (o) {
       for (f in o) if (Object.prototype.hasOwnProperty.call(o, f)) dias[f] = 1;
     });
@@ -464,6 +465,35 @@
         if (!junto.comido) junto.comido = {};
         if (Object.keys(unido).length) junto.comido[dia] = unido;
         else delete junto.comido[dia];
+      }
+
+      /* ── Y LO GASTADO DE LA DESPENSA VA CON ELLOS (7-oct-2026) ──────────
+         `gastado` es la nota de lo que cada plato sacó de la despensa, y hasta
+         hoy esta función NO LA NOMBRABA: la fusionaba la genérica, que es
+         aditiva, así que BORRARLA NUNCA SE PROPAGABA. Con los guardados
+         fallando —GitHub respondió 500—, el bucle que salía es éste:
+         marcas el ✓ y descuenta; desmarcas y devuelve y borra la nota;
+         recargas y GitHub te devuelve la nota, que allí seguía; vuelves a
+         marcar y la app cree que ya estaba descontado y NO DESCUENTA; vuelves
+         a desmarcar y devuelve otra vez. Cada vuelta, una ración de regalo.
+         Medido por Carlos el 7-oct-2026: el solomillo pasó de 2 a 4 a 6
+         raciones y los yogures de 9 a 11 a 13, sin comprar nada.
+         Es el mismo error que ya costó los días 21 y 22 con el plan y los ✓
+         con lo comido: una lista que sólo sabe sumar. La cura es la misma —de
+         un día manda entero el lado que lo tocó el último— y se escribe aquí
+         al lado para que no se vuelva a olvidar una tercera vez. */
+      var gm = (manda.gastado || {})[dia], go = (otro.gastado || {})[dia];
+      if (gm || go) {
+        var unidoG = JSON.parse(JSON.stringify(go || {}));
+        Object.keys(gm || {}).forEach(function (toma) {
+          unidoG[toma] = JSON.parse(JSON.stringify(gm[toma] || {}));
+        });
+        Object.keys(unidoG).forEach(function (toma) {
+          if (!unidoG[toma] || !Object.keys(unidoG[toma]).length) delete unidoG[toma];
+        });
+        if (!junto.gastado) junto.gastado = {};
+        if (Object.keys(unidoG).length) junto.gastado[dia] = unidoG;
+        else delete junto.gastado[dia];
       }
     });
     if (!junto.config) junto.config = {};

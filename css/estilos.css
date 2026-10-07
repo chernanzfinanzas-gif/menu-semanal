@@ -1518,3 +1518,29 @@ button.enlace {
 .repaso-nota label{display:block; font-size:.75rem; color:var(--gris); margin-bottom:4px}
 .repaso-nota input{width:100%; padding:8px 10px; border:1px solid var(--borde);
   border-radius:8px; font-size:.9rem; background:#fffdf7}
+
+/* ---------- PESAR LA CARNE (7-oct-2026) ----------
+   Un entrecot o un solomillo no pesan lo que dice su ficha. La banda sale
+   arriba de la receta, en ámbar, porque es un aviso: el plato está contando
+   por el catálogo. Una vez pesado se pone verde y deja de llamar la atención,
+   que ya está resuelto. Sólo aparece en los platos de un día con una de las
+   once fichas de peso variable. */
+.peso-var{
+  margin:10px 0 4px; padding:10px 12px; border-radius:var(--radio);
+  background:var(--ambar-fondo); border:1px solid var(--ambar);
+}
+.peso-var p{margin:0 0 8px; font-size:.86rem; line-height:1.35}
+.peso-var.pesada{background:var(--verde-claro); border-color:var(--verde-borde)}
+.peso-var-fila{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.peso-var-fila input{
+  width:88px; padding:7px 9px; border:1px solid var(--borde);
+  border-radius:9px; background:var(--blanco); font-size:1rem; text-align:right;
+}
+.peso-var-fila span{font-size:.82rem; color:var(--gris); margin-right:auto}
+.peso-var-fila .btn{padding:7px 13px}
+/* La línea del ingrediente que llevas pesado, para que se vea de un vistazo
+   cuál de las cantidades es tuya y cuál del catálogo. */
+.ingredientes li.linea-pesada{
+  background:var(--verde-claro); border-radius:9px;
+  margin:0 -6px; padding-left:6px; padding-right:6px;
+}
