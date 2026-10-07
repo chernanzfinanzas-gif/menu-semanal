@@ -1544,3 +1544,23 @@ button.enlace {
   background:var(--verde-claro); border-radius:9px;
   margin:0 -6px; padding-left:6px; padding-right:6px;
 }
+
+/* ---------- EL LÁPIZ DE CADA LÍNEA (7-oct-2026) ----------
+   Ajustar a mano la cantidad de cualquier ingrediente del plato de un día.
+   Va callado —gris y pequeño— porque no es un aviso como la banda de la
+   carne: ahí el catálogo miente y aquí decide él. */
+.ingredientes .lapiz{
+  margin-left:7px; padding:2px 7px; border-radius:8px; line-height:1.1;
+  border:1px solid var(--borde); background:var(--blanco); color:var(--gris);
+  font-size:.86rem;
+}
+.ingredientes .lapiz.ok{border-color:var(--verde); color:var(--verde)}
+.ingredientes li.linea-ajuste{
+  background:var(--gris-claro); border-radius:9px;
+  margin:0 -6px; padding-left:6px; padding-right:6px;
+}
+.ingredientes li.linea-ajuste input{
+  width:74px; padding:4px 7px; border:1px solid var(--borde);
+  border-radius:8px; background:var(--blanco); text-align:right; font-size:.92rem;
+}
+.ingredientes li.linea-ajuste em{margin-left:5px}

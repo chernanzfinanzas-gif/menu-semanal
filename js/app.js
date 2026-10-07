@@ -2546,6 +2546,15 @@
      receta base —normalmente una ración— y cocinando con esas cifras sales corto.
      El factor es el mismo que usa la lista de la compra: comensales / raciones.
      Las kcal y la sal siguen siendo POR RACIÓN, que es lo que te comes tú. */
+  /* QUE LÍNEA SE ESTÁ AJUSTANDO A MANO EN LA FICHA ABIERTA (7-oct-2026).
+     Carlos: «poder modificar la cantidad del ingrediente principal de
+     guarnición para ajustar calorías. Si sube la del plato principal se pueden
+     bajar las de guarnición». Decidió lápiz en TODAS las filas y no sólo en
+     una: así no hay que acertar qué es «el principal» de cada guarnición, que
+     no es obvio —en su plato de hoy la patata ponía 151 kcal y el aceite 148—.
+     Se guarda donde el peso de la carne, que ya es un mapa de ingredientes. */
+  var ajusteIng = null;
+
   function abrirFicha(id, fecha, toma) {
     var r = Almacen.receta(id);
     if (!r) return;
@@ -2656,13 +2665,28 @@
       var gr = gTot / 100;
       var kc = ing ? Math.round(gr * (ing.k || 0)) : 0;
       var rallar = l.uso === "rallar";
-      html += '<li' + (pReal !== null ? ' class="linea-pesada"' : '') + '><span>' +
+      var ctxAj = esc(fecha || '') + '|' + esc(toma || '') + '|' + esc(r.id) + '|' + esc(l.i);
+      var editando = !!(ajusteIng && ajusteIng.r === r.id && ajusteIng.i === l.i && fecha && toma);
+      var porRacion = (pReal !== null) ? pReal : Math.round(Almacen.gramosDeLinea(l) / (r.raciones || 1));
+      var celda;
+      if (editando) {
+        celda = '<input type="number" id="ajuste-caja" inputmode="numeric" min="1" max="5000" ' +
+                  'step="5" value="' + porRacion + '"><em class="nota-peque">g/raci\u00f3n</em>' +
+                '<button class="lapiz ok" data-ajustarok="' + ctxAj + '" title="Guardar">\u2713</button>' +
+                (pReal !== null ? '<button class="lapiz" data-ajustarquita="' + ctxAj + '" title="Volver a la receta">\u21ba</button>' : '') +
+                '<button class="lapiz" data-ajustarno="' + ctxAj + '" title="Dejarlo">\u2715</button>';
+      } else {
+        celda = (pReal !== null ? '<b>' + Math.round(gTot) + ' g</b>'
+                                : Util.cantidadReceta(linea.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0)) +
+                (kc ? ' <em class="nota-peque">\u00b7 ' + kc + ' kcal</em>' : '') +
+                ((fecha && toma) ? '<button class="lapiz" data-ajustar="' + ctxAj + '" title="Ajustar la cantidad">\u270e</button>' : '');
+      }
+      var clasesLi = (pReal !== null ? "linea-pesada " : "") + (editando ? "linea-ajuste" : "");
+      html += '<li' + (clasesLi.trim() ? ' class="' + clasesLi.trim() + '"' : '') + '><span>' +
               esc(ing ? ing.n : l.i) +
-              (pReal !== null ? ' <em class="nota-peque">· pesado</em>' : '') +
-              (rallar ? ' <em class="nota-peque">· para rallar</em>' : '') + '</span><span>' +
-              (pReal !== null ? '<b>' + Math.round(gTot) + ' g</b>'
-                              : Util.cantidadReceta(linea.c, ing ? ing.u : "g", ing ? ing.pesoUd : 0)) +
-              (kc ? ' <em class="nota-peque">· ' + kc + ' kcal</em>' : '') + '</span></li>';
+              (pReal !== null ? ' <em class="nota-peque">\u00b7 ajustado</em>' : '') +
+              (rallar ? ' <em class="nota-peque">\u00b7 para rallar</em>' : '') + '</span><span>' +
+              celda + '</span></li>';
       var tarr = rallar ? Almacen.ingrediente("tomate_rallado") : null;
       if (tarr) {
         var gFresco = Almacen.gramosDeLinea(linea), gRall = gFresco * RINDE_RALLADO;
@@ -7551,6 +7575,43 @@
            guardaba bien, pero cerrar el modal no vuelve a pintar el día. */
         if (typeof pintarMenu === "function") pintarMenu();
         abrirFicha(pp[2], pp[0], pp[1]);
+        return;
+      }
+      /* EL LÁPIZ DE CUALQUIER LÍNEA. Primer toque abre la casilla, el ✓ la
+         guarda, el ↺ la devuelve a la receta y el ✕ la deja como estaba. */
+      var aj = e.target.closest("[data-ajustar]");
+      if (aj) {
+        var pa = aj.getAttribute("data-ajustar").split("|");
+        ajusteIng = { r: pa[2], i: pa[3] };
+        abrirFicha(pa[2], pa[0], pa[1]);
+        return;
+      }
+      var ao = e.target.closest("[data-ajustarok]");
+      if (ao) {
+        var pb = ao.getAttribute("data-ajustarok").split("|");
+        var cb = $("#ajuste-caja");
+        var gb = parseInt(cb ? cb.value : "", 10);
+        if (!(gb > 0)) { Util.toast("Pon los gramos por raci\u00f3n"); return; }
+        Almacen.ponerPesoReal(pb[0], pb[2], pb[3], gb);
+        ajusteIng = null;
+        if (typeof pintarMenu === "function") pintarMenu();
+        abrirFicha(pb[2], pb[0], pb[1]);
+        return;
+      }
+      var aq = e.target.closest("[data-ajustarquita]");
+      if (aq) {
+        var pc = aq.getAttribute("data-ajustarquita").split("|");
+        Almacen.ponerPesoReal(pc[0], pc[2], pc[3], 0);
+        ajusteIng = null;
+        if (typeof pintarMenu === "function") pintarMenu();
+        abrirFicha(pc[2], pc[0], pc[1]);
+        return;
+      }
+      var an = e.target.closest("[data-ajustarno]");
+      if (an) {
+        var pd = an.getAttribute("data-ajustarno").split("|");
+        ajusteIng = null;
+        abrirFicha(pd[2], pd[0], pd[1]);
         return;
       }
       var pq = e.target.closest("[data-pesarquita]");
