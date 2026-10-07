@@ -2597,8 +2597,8 @@
           '<input type="number" id="peso-real" data-ing="' + esc(l.i) + '" ' +
             'inputmode="numeric" min="1" max="3000" step="5" ' +
             'value="' + (yaEs !== null ? yaEs : deCat) + '"><span>g por ración</span>' +
-          '<button class="btn" id="peso-guardar">' + (yaEs !== null ? 'Cambiar' : 'Pesarlo') + '</button>' +
-          (yaEs !== null ? '<button class="btn" id="peso-quitar">Quitar</button>' : '') +
+          '<button class="btn" data-pesar="' + esc(fecha) + '|' + esc(toma) + '|' + esc(r.id) + '|' + esc(l.i) + '">' + (yaEs !== null ? 'Cambiar' : 'Pesarlo') + '</button>' +
+          (yaEs !== null ? '<button class="btn" data-pesarquita="' + esc(fecha) + '|' + esc(toma) + '|' + esc(r.id) + '|' + esc(l.i) + '">Quitar</button>' : '') +
         '</div></div>';
     });
     /* ¿ESTA RECETA ES TUYA O TE LA HE PROPUESTO YO? (6-oct-2026). Carlos: «en
@@ -2724,26 +2724,6 @@
             '<button class="btn" data-borrar="' + esc(r.id) + '">Borrar</button>' +
             '</div>';
     abrirModal(html);
-
-    /* Pesar y volver a pintar la misma ficha: así ves el cambio donde estabas. */
-    var caja = $("#peso-real");
-    if (caja && fecha && toma) {
-      var guardarPeso = function (g) {
-        Almacen.ponerPesoReal(fecha, id, caja.getAttribute("data-ing"), g);
-        abrirFicha(id, fecha, toma);
-      };
-      $("#peso-guardar").addEventListener("click", function () {
-        var g = parseInt(caja.value, 10);
-        if (!(g > 0)) { Util.toast("Pon los gramos que ha pesado"); return; }
-        guardarPeso(g);
-        Util.toast("Pesado: " + g + " g por ración");
-      });
-      var quitar = $("#peso-quitar");
-      if (quitar) quitar.addEventListener("click", function () {
-        guardarPeso(0);
-        Util.toast("Vuelve a contar por el catálogo");
-      });
-    }
   }
 
   /* ==================== EDITOR DE RECETA ==================== */
@@ -7552,6 +7532,31 @@
       }
       var pd = e.target.closest("[data-pasitio]");
       if (pd) pasadaAbierta = pd.getAttribute("data-pasitio");
+      /* PESAR LA CARNE (7-oct-2026, corregido esa misma tarde). Esto estaba
+         con un addEventListener directo sobre el botón después de pintar el
+         modal, y al probarlo no hacía nada: «doy a pesarlo y no cambia nada».
+         Todo lo demás de este modal va por delegación, y por algo será. Aquí
+         también. El contexto —día, toma, plato e ingrediente— viaja en el
+         propio botón, así que no depende de que sobreviva ninguna variable. */
+      var pz = e.target.closest("[data-pesar]");
+      if (pz) {
+        var pp = pz.getAttribute("data-pesar").split("|");
+        var cj = $("#peso-real");
+        var gr = parseInt(cj ? cj.value : "", 10);
+        if (!(gr > 0)) { Util.toast("Pon los gramos que ha pesado"); return; }
+        Almacen.ponerPesoReal(pp[0], pp[2], pp[3], gr);
+        Util.toast("Pesado: " + gr + " g por raci\u00f3n");
+        abrirFicha(pp[2], pp[0], pp[1]);
+        return;
+      }
+      var pq = e.target.closest("[data-pesarquita]");
+      if (pq) {
+        var qq = pq.getAttribute("data-pesarquita").split("|");
+        Almacen.ponerPesoReal(qq[0], qq[2], qq[3], 0);
+        Util.toast("Vuelve a contar por el cat\u00e1logo");
+        abrirFicha(qq[2], qq[0], qq[1]);
+        return;
+      }
       if (e.target.id === "modal" || e.target.closest("[data-cerrar]")) { cerrarModal(); return; }
       var ed = e.target.closest("[data-editar]");
       if (ed) { abrirEditor(ed.getAttribute("data-editar")); return; }
