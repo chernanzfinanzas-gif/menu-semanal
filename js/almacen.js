@@ -4008,7 +4008,7 @@
       } else {
         var fac = this.NIVELES_BOTE[nivel];
         this.estado.stock[id] = { c: this.cantidadNivel(g, nivel), piezas: fac,
-                                  nivel: nivel, f: Util.hoyISO() };
+                                  nivel: nivel, f: Util.hoyISO(), t: new Date().toISOString() };
       }
       this.sellarSitio(id);
       this.guardar("stock");
@@ -4040,7 +4040,7 @@
       else {
         this.estado.stock[id] = {
           c: Math.round(n * tam * 100) / 100, piezas: n,
-          f: Util.hoyISO(), contado: true,
+          f: Util.hoyISO(), t: new Date().toISOString(), contado: true,
           nivel: n <= 0 ? "nada" : "contado"
         };
       }
@@ -4483,7 +4483,7 @@
       if (!this.estado.stock) this.estado.stock = {};
       c = Number(c);
       if (!(c >= 0)) { delete this.estado.stock[id]; }
-      else this.estado.stock[id] = { c: Math.round(c * 100) / 100, f: Util.hoyISO() };
+      else this.estado.stock[id] = { c: Math.round(c * 100) / 100, f: Util.hoyISO(), t: new Date().toISOString() };
       var sitio = this.sitioDe(id);
       if (sitio) {
         if (!this.estado.stockSitios) this.estado.stockSitios = {};
@@ -4651,12 +4651,25 @@
     },
 
     /* Quitar el ✓ devuelve EXACTAMENTE lo que se quitó, ni más. */
+    /* LO CONTADO A MANO MANDA SOBRE LO DEVUELTO (7-oct-2026). Si descuentas al
+       marcar el ✓ y DESPUÉS cuentas ese producto en la despensa, tu cuenta ya
+       sabe lo que te comiste: es lo que hay en la nevera. Devolverle encima lo
+       del ✓ lo cuenta dos veces. Hasta hoy pasaba, porque la línea de stock
+       sólo guardaba el DÍA en que se contó y no se podía saber si la cuenta fue
+       antes o después. Ahora las tres vías de contar a mano sellan la hora en
+       `t`, y `gastar` y `devolver` escriben la línea sin ella: si la línea
+       TRAE `t`, lo último que la tocó fuiste tú contando, y no se devuelve. */
     devolverDespensa: function (fecha, toma, recetaId) {
       var hecho = this.gastoApuntado(fecha, toma, recetaId);
-      if (!hecho) return;
-      var self = this;
+      if (!hecho) return null;
+      var self = this, respetados = [];
       Object.keys(hecho).forEach(function (id) {
         var f = self.fichaStock(id);
+        if (f && f.t) {
+          var gi = self.ingrediente(id);
+          respetados.push(gi ? gi.n.split(" (")[0] : id);
+          return;
+        }
         var habia = (f && f.c > 0) ? f.c : 0;
         self.estado.stock[id] = { c: Math.round((habia + hecho[id]) * 100) / 100,
                                   f: (f && f.f) || null, pte: !!(f && f.pte) };
@@ -4667,6 +4680,7 @@
         if (!Object.keys(g[fecha][toma]).length) delete g[fecha][toma];
         if (!Object.keys(g[fecha]).length) delete g[fecha];
       }
+      return respetados.length ? respetados : null;
     },
 
     /* Lo que hay en un sitio de la casa, con su cuenta hecha. */
@@ -5827,7 +5841,7 @@
          despensa: tirar la nota no suma ni resta nada. */
       if (comido && !estaba) this._olvidarGasto(fecha, toma, recetaId);
       if (comido) this.gastarDespensa(fecha, toma, recetaId);
-      else this.devolverDespensa(fecha, toma, recetaId);
+      var respetados = comido ? null : this.devolverDespensa(fecha, toma, recetaId);
       /* SELLO DE DÍA (23-sep-2026). Marcar un ✓ era lo único deliberado que NO
          dejaba rastro por día, así que al unir dos aparatos lo decidía el reloj
          global de todo el estado y un aparato que no sabía nada borraba los ✓.
@@ -5836,6 +5850,7 @@
          ESE día más tarde. */
       this.sellarDia(fecha);
       this.guardar("comido");
+      return respetados;
     },
 
     /* ¿queda algo del día sin marcar? */

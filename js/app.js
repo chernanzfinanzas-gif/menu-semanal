@@ -7427,7 +7427,13 @@
       if (com) {
         var c = com.getAttribute("data-comido").split("|");
         var ahoraComido = !Almacen.estaComido(c[0], c[1], c[2]);
-        Almacen.marcarComido(c[0], c[1], c[2], ahoraComido);
+        var respetados = Almacen.marcarComido(c[0], c[1], c[2], ahoraComido);
+        /* Si al desmarcar no se devuelve algo porque lo contaste a mano después,
+           hay que decirlo: un número que no se mueve sin explicación es lo que
+           le hizo perder la tarde del 7-oct-2026 persiguiendo yogures. */
+        if (respetados && respetados.length) {
+          Util.toast("No devuelvo " + respetados.join(", ") + " a la despensa: lo contaste t\u00fa despu\u00e9s");
+        }
         pintarMenu();
         /* LAS ESTRELLAS SE PIDEN AQUÍ (v370), y sólo la primera vez: cuando ya
            tiene nota no se vuelve a preguntar (se cambia en la ficha). */
