@@ -890,6 +890,36 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMB) {}
       }
 
+      /* EL PURÉ DE TARRITO, EL PRIMERO DE LA LISTA (7-oct-2026). Carlos:
+         «Sustituye a mi puré casero congelado, pero en nevera estante arriba y
+         el primero de orden de compra». El estante lo trae la ficha nueva y entra
+         solo por ALTAS NUEVAS; el puesto en la lista no, porque su orden guardado
+         es una lista explicita de ids y lo que no está en ella flota arriba
+         desempatando por nombre, que no es estar el primero. Mismo patrón que el
+         yogur griego del 5-oct y el membrillo del 6-oct: se mete a mano en el
+         puesto 1 y el resto de su orden no se toca.
+         NO se toca la `f` de LISTAS_MERCADONA: eso le borraría la lista entera. */
+      if (!e.arreglos["2026-10-07-pure-tarrina-primero"]) {
+        if (!e.ordenCompra) e.ordenCompra = {};
+        var ordPT = (e.ordenCompra["Mercadona|nevera"] || []).filter(function (x) {
+          return x !== "pure_pera_manzana_tarrina";
+        });
+        e.ordenCompra["Mercadona|nevera"] = ["pure_pera_manzana_tarrina"].concat(ordPT);
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
+        /* Y EL CASERO SE APARTA A MANO. Subirle el `rev` no basta: si alguna vez
+           tocó esa ficha en Despensa lleva `editado` y el refresco no la mira. */
+        (e.ingredientes || []).forEach(function (g) {
+          if (g && g.id === "pure_pera_casero") { g.oculta = true; g.reserva = true; }
+        });
+        (e.recetas || []).forEach(function (r) {
+          if (r && r.id === "lote_pure_pera_manzana") { r.oculta = true; r.grupo = "retirado"; }
+        });
+        e.arreglos["2026-10-07-pure-tarrina-primero"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPT) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
@@ -1140,6 +1170,23 @@
           .forEach(function (idME) { e.recetaVista[idME] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-merluzas-revisadas"] = true;
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errME) {}
+      }
+
+      /* LAS DOS QUE ESCRIBI YO, REVISADAS (7-oct-2026). Carlos: «la de
+         berenjenas y yogur con mango están bien, dalas por revisadas». Son las
+         dos que nacieron sin ver a proposito el 6-oct porque la cantidad era
+         suya pero el texto mio: la berenjena rellena de carne picada y el yogur
+         griego con mango y chia. Ya las ha leido. Y con ellas la primera de las
+         gemelas de lata del 7-oct: «la de albondigas con salsa de tomate de lata
+         tambien esta bien, dala por revisada». Y las dos de bacalao con tomate,
+         la de rallado y la de lata: «estan bien de cantidades». */
+      if (!e.arreglos["2026-10-07-berenjena-y-yogur-griego-revisadas"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["berenjena_rellena_carne", "snack_yogur_griego_mango",
+         "albondigas_tomate_lata", "bacalao_tomate", "bacalao_tomate_lata"]
+          .forEach(function (idBY) { e.recetaVista[idBY] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-07-berenjena-y-yogur-griego-revisadas"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errBY) {}
       }
 
       /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
