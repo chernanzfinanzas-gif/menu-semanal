@@ -2738,8 +2738,69 @@
     /* Los pasos pueden ser texto llano o llevar minuto del reloj: {min, t, d}.
        Los que llevan minuto se pintan como un guion, para poder seguirlo cocinando. */
     html += '<h3>Elaboración</h3>';
+    /* EL AVISO DEL TIEMPO AL PESAR LA CARNE (8-oct-2026). Lo dejó dibujado el
+       boceto del 7-oct: un AVISO, no un minutaje nuevo —calcular tiempos de asado
+       por peso no se hace a la ligera—. Sale en el primer paso con reloj que
+       nombra ese ingrediente y dice «N minutos», y sólo si la pieza pesada se
+       aparta un 10 % o más de lo que cuenta la receta. */
+    var avisoTiempo = {};
+    (lineasVar || []).forEach(function (l) {
+      if (!pesos || typeof pesos[l.i] !== "number") return;
+      var deCatT = Almacen.gramosDeLinea(l) / (r.raciones || 1), realT = pesos[l.i];
+      if (!(deCatT > 0) || Math.abs(realT / deCatT - 1) < 0.10) return;
+      var gi = Almacen.ingrediente(l.i);
+      var sinTilde = function (s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); };
+      var claves = sinTilde((gi && gi.n) || "").replace(/\(.*$/, "").split(/[^a-z]+/)
+        .concat(l.i.split("_")).filter(function (w) { return w.length > 3 && ["cerdo","ternera","pieza","fresco","fresca","premium","hacendado","pack","bandeja","paquete","certificado","noruego","vacuno"].indexOf(w) < 0; });
+      /* «9 minutos», «UN MINUTO por cada cara», «dos minutos» */
+      var NUM = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10 };
+      var minutosDe = function (t) {
+        var cara = /minutos?\s+por\s+(cada\s+)?cara/.test(t) ? " por cara" : "";
+        var m = t.match(/(\d+(?:,\d+)?)\s*minutos?/);
+        if (m) return m[1] + "|" + cara;
+        m = t.match(/\b(un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+minutos?/);
+        return m ? String(NUM[m[1]]) + "|" + cara : null;
+      };
+      var P = r.pasos || [], hallado = null;
+      for (var k = 0; k < P.length; k++) {
+        var pk = P[k];
+        if (!pk || typeof pk !== "object" || typeof pk.min !== "number") continue;
+        var tk = sinTilde(pk.t);
+        if (!claves.some(function (w) { return tk.indexOf(w) >= 0; })) continue;
+        /* el ingrediente se nombra aquí; los minutos pueden ir en este paso o en
+           el siguiente del MISMO minuto («mete el salmón» · «180 °C, 9 minutos más») */
+        var donde = -1, mins = minutosDe(tk) || minutosDe(sinTilde(pk.d));
+        if (mins) donde = k;
+        else for (var q = k + 1; q < P.length; q++) {
+          var pq = P[q];
+          if (!pq || typeof pq !== "object" || pq.min !== pk.min) break;
+          mins = minutosDe(sinTilde(pq.t));
+          if (mins) { donde = q; break; }
+        }
+        if (donde < 0) continue;
+        hallado = { donde: donde, mins: mins };
+        break;
+      }
+      /* sin nombrarlo: «A la freidora — 200 °C, 8 minutos» (brochetas), «Lomos a la freidora…» (lubina):
+         el primer paso de cocción con minutos es el de la pieza */
+      if (!hallado) for (var f2 = 0; f2 < P.length; f2++) {
+        var pf = P[f2];
+        if (!pf || typeof pf !== "object" || typeof pf.min !== "number") continue;
+        var tf = sinTilde(pf.t), mf = minutosDe(tf);
+        if (mf && /freidora|sarten|horno|plancha|parrilla/.test(tf)) hallado = { donde: f2, mins: mf };
+        break;
+      }
+      if (hallado) {
+        var donde = hallado.donde, partes = hallado.mins.split("|"), mins = partes[0];
+        var uMin = (mins === "1" ? " minuto" : " minutos") + partes[1];
+        var porRac = (r.raciones || 1) > 1 ? " por ración" : "";
+        avisoTiempo[donde] = "\u26a0 Pesado: " + Math.round(realT) + " g" + porRac + ", y la receta cuenta " + Math.round(deCatT) +
+          (realT < deCatT ? ". Vigílalo antes de " + (mins === "1" ? "ese minuto" : "los " + mins + uMin.replace(/^ minutos/, " minutos")) + "."
+                          : ". Puede necesitar más de " + mins + uMin + ": compruébalo antes de sacarlo.");
+      }
+    });
     var enGuion = false, apPrevio = null;
-    (r.pasos || []).forEach(function (p) {
+    (r.pasos || []).forEach(function (p, iPaso) {
       var conReloj = p && typeof p === "object" && typeof p.min === "number";
       if (conReloj && !enGuion) { html += '<ol class="guion">'; enGuion = true; }
       if (!conReloj && enGuion) { html += '</ol>'; enGuion = false; }
@@ -2753,6 +2814,7 @@
                 '</div><div>' +
                 '<b>' + esc(p.t || "") + '</b>' +
                 (p.d ? '<span class="nota-peque">' + esc(p.d) + '</span>' : '') +
+                (avisoTiempo[iPaso] ? '<span class="nota-peque aviso-tiempo">' + esc(avisoTiempo[iPaso]) + '</span>' : '') +
                 '</div></li>';
       } else {
         html += '<p class="paso-suelto">' + esc(typeof p === "string" ? p : (p && p.t) || "") + '</p>';
