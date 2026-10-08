@@ -1051,6 +1051,28 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRL) {}
       }
 
+      /* TODO LO PENDIENTE DE VER, DADO POR BUENO (8-oct-2026, v485). Carlos: «haz los
+         cambios que consideres en todas, los aceptaría de todos modos, cuando hagamos
+         la receta se verá si son adecuados». Las trece de tomate rallado (revisadas y
+         arregladas en esta versión), la berenjena rellena, el yogur griego con mango y
+         las cinco cambiadas esta mañana en la v483. */
+      if (!e.arreglos["2026-10-08-pendientes-ok"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["des_tostada_tomate", "lentejas_estofadas", "arroz_calamar",
+         "arroz_meloso_solomillo_setas", "ia_macarrones_con_chorizo_cebolla_car",
+         "pasta_bolonesa", "macarrones_gratinados_bolonesa", "mochila_bocadillo_lomo",
+         "albondigas_tomate", "bacalao_tomate", "tosta_sardinillas",
+         "tosta_sardina_ahumada", "salsa_tomate_casera",
+         "berenjena_rellena_carne", "snack_yogur_griego_mango",
+         "cous_solomillo_orejones_datiles", "cous_pollo_verduras_pasas",
+         "cous_berenjena_miel_pollo", "des_ruta_porridge", "postre_yogur_avena"
+        ].forEach(function (idPO8) {
+          e.recetaVista[idPO8] = { v: "ok", f: Util.hoyISO() };
+        });
+        e.arreglos["2026-10-08-pendientes-ok"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPO8) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
