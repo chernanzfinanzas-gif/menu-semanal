@@ -1718,6 +1718,25 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errVR) {}
       }
 
+      /* LAS MARCAS CON NOMBRE DE PESTAÑA, FUERA (8-oct-2026). Desde el 6-oct cada
+         cambio de pestaña guardaba en `recetaVista` una marca vacía con el nombre
+         de la pestaña («recetas», «menu», «entreno»…). Se quitan las que no son
+         de ninguna receta y no tienen estado. No se mira cuándo: nunca hubo
+         ninguna buena con esa forma. Se repite en cada arranque porque otro
+         aparato todavía sin actualizar puede volver a traerlas al sincronizar. */
+      if (e.recetaVista) {
+        var idsRec = {};
+        (e.recetas || []).forEach(function (r) { if (r && r.id) idsRec[r.id] = true; });
+        var basura = Object.keys(e.recetaVista).filter(function (id) {
+          var m = e.recetaVista[id];
+          return !idsRec[id] && (!m || !m.v);
+        });
+        if (basura.length) {
+          basura.forEach(function (id) { delete e.recetaVista[id]; });
+          try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errVB) {}
+        }
+      }
+
       /* ---------- RECETAS QUE APUNTAN A FANTASMAS ----------
          Una línea de receta que señala una ficha OCULTA o que ya no existe deja
          esa receta rota para siempre y en silencio: nunca se puede completar,
@@ -4102,6 +4121,9 @@
       return (m && m.v) || null;
     },
     marcarReceta: function (id, v) {
+      /* sólo recetas que existan y sólo los tres estados: ver el arreglo del
+         8-oct de las marcas con nombre de pestaña */
+      if (!this.receta(id) || ["ok", "pte", "no"].indexOf(v) < 0) return this.vistaReceta(id);
       if (!this.estado.recetaVista) this.estado.recetaVista = {};
       var antes = this.estado.recetaVista[id];
       /* volver a pulsar lo que ya está puesto lo quita: se puede desdecir */

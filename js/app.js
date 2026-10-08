@@ -7494,7 +7494,11 @@
     });
     /* los dos botones viven dentro del modal de la ficha */
     document.addEventListener("click", function (e) {
-      var b = e.target.closest("[data-vista]");
+      /* SOLO LOS DE LA FICHA (8-oct-2026). Las pestañas de arriba también llevan
+         `data-vista` («recetas», «menu»…) y cada cambio de pestaña acababa aquí:
+         salía «Vuelve a estar sin ver» y se guardaba una marca con el nombre de
+         la pestaña. Pasaba desde el 6-oct. */
+      var b = e.target.closest(".repaso-botones [data-vista]");
       if (!b) return;
       var p = b.getAttribute("data-vista").split("|");
       var v = Almacen.marcarReceta(p[0], p[1]);
