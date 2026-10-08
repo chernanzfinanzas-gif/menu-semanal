@@ -36,6 +36,22 @@
       try { guardado = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { guardado = null; }
       this.estado = guardado && guardado.v ? guardado : this.estadoInicial();
       this.reparar();
+      /* EL YOGUR GRIEGO DE LA CENA DEL 8-OCT (8-oct-2026). Carlos lo pasó a «solo
+         Carlos» después de marcarlo comido, y el descuento se quedó en dos. Con
+         reajustarGasto eso ya no pasa; esto devuelve el de esa noche, una vez. */
+      try {
+        var eG = this.estado;
+        if (!eG.arreglos) eG.arreglos = {};
+        if (!eG.arreglos["2026-10-08-griego-cena"]) {
+          var apG = this.gastoApuntado("2026-10-08", "cena", "solo_yogur_griego_hacendado_1");
+          if (apG && apG.yogur_griego_hacendado === 2 &&
+              this.quienDe("2026-10-08", "cena", "solo_yogur_griego_hacendado_1") === "carlos") {
+            this.reajustarGasto("2026-10-08", "cena", "solo_yogur_griego_hacendado_1");
+          }
+          eG.arreglos["2026-10-08-griego-cena"] = true;
+          try { localStorage.setItem(CLAVE, JSON.stringify(eG)); } catch (errG) {}
+        }
+      } catch (errG2) {}
       /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
@@ -2620,6 +2636,7 @@
       if (n === porDefecto) delete d.comensales[toma];
       else d.comensales[toma] = n;
       if (!Object.keys(d.comensales).length) delete d.comensales;
+      this.ultimoReajuste = this.reajustarToma(fecha, toma);
       this.guardar("comensales");
     },
 
@@ -3494,6 +3511,7 @@
       /* SELLAR EL DÍA (7-oct-2026): sin esto, una corrección de «lo que comí
          de verdad» no pasaba por el guardián de días al sincronizar, y
          quitarla no viajaba. Misma familia que `gastado`. */
+      this.ultimoReajuste = this.reajustarGasto(fecha, toma, recetaId);
       this.sellarDia(fecha);
       this.guardar("real");
     },
@@ -3576,6 +3594,10 @@
       return q || this.quienHabitual(recetaId);
     },
     ponerQuien: function (fecha, toma, recetaId, q) {
+      this._quien(fecha, toma, recetaId, q);
+      this.ultimoReajuste = this.reajustarGasto(fecha, toma, recetaId);
+    },
+    _quien: function (fecha, toma, recetaId, q) {
       var d = this.asegurarDia(fecha);
       if (q && this.QUIEN.indexOf(q) < 0) return;
       if (!q || q === this.quienHabitual(recetaId)) {
@@ -3677,6 +3699,7 @@
         if (!d.medias[toma].length) delete d.medias[toma];
         if (!Object.keys(d.medias).length) delete d.medias;
       }
+      this.ultimoReajuste = this.reajustarGasto(fecha, toma, recetaId);
     },
     /* Raciones puestas de un plato en una toma: las veces, menos media si toca. */
     racionesPuestas: function (fecha, toma, recetaId, veces) {
@@ -5132,6 +5155,60 @@
        `pte`: en su sitio de la despensa se ve como «por confirmar» y el aviso
        de repasar ese sitio salta solo. No bloquea nada — decisión de Carlos,
        24-sep-2026: «a cero y marcado para repasar». */
+    /* ---------- CAMBIAR UN PLATO YA COMIDO RECOLOCA LA DESPENSA (8-oct-2026) ----------
+       Carlos: «había puesto dos yogures griegos por error… ahora he editado,
+       puesto que solo lo tomé yo, y no ha devuelto uno». El ✓ descontaba lo
+       que el plato pedía EN ESE MOMENTO, y cambiar después quién se lo come,
+       la media ración, los comensales o la cantidad real ya no tocaba la
+       despensa: la nota de lo gastado se quedaba con la cuenta vieja.
+       Ahora, si el plato ya había descontado, se recalcula lo que pide y se
+       devuelve (o se quita) SOLO LA DIFERENCIA, y la nota queda al día. Se
+       aplica aunque la línea esté contada a mano: el cambio es tuyo y es
+       posterior, y dice que comiste otra cosa de la que se apuntó. */
+    reajustarGasto: function (fecha, toma, recetaId) {
+      var antes = this.gastoApuntado(fecha, toma, recetaId);
+      if (!antes) return null;
+      var nuevo = this.esFuera(fecha, toma) ? {} : (this.gastoDePlato(fecha, toma, recetaId) || {});
+      var self = this, nota = {}, cambios = [];
+      var ids = {};
+      Object.keys(antes).forEach(function (id) { ids[id] = 1; });
+      Object.keys(nuevo).forEach(function (id) { ids[id] = 1; });
+      Object.keys(ids).forEach(function (id) {
+        var g = self.ingrediente(id);
+        if (!g || !self.sitioDe(g)) return;
+        var era = antes[id] || 0;
+        var es = Math.round((nuevo[id] || 0) * 100) / 100;
+        var delta = Math.round((es - era) * 100) / 100;     /* + quita más, − devuelve */
+        if (es > 0) nota[id] = es;
+        if (!delta) return;
+        var f = self.fichaStock(id);
+        var habia = (f && f.c > 0) ? f.c : 0;
+        var corto = delta > habia;
+        var queda = corto ? 0 : habia - delta;
+        if (corto) nota[id] = Math.round((era + habia) * 100) / 100;
+        self.estado.stock[id] = { c: Math.round(queda * 100) / 100,
+                                  f: (f && f.f) || null,
+                                  pte: corto ? "corto" : ((f && f.pte) || false) };
+        cambios.push({ id: id, n: g.n.split(" (")[0], delta: delta });
+      });
+      if (!cambios.length && JSON.stringify(nota) === JSON.stringify(antes)) return null;
+      if (cambios.length) this._sellarStock();
+      if (Object.keys(nota).length) this.estado.gastado[fecha][toma][recetaId] = nota;
+      else this._olvidarGasto(fecha, toma, recetaId);
+      return cambios.length ? cambios : null;
+    },
+    /* Lo mismo para todos los platos ya descontados de una toma (comensales). */
+    reajustarToma: function (fecha, toma) {
+      var t = this.estado.gastado && this.estado.gastado[fecha] && this.estado.gastado[fecha][toma];
+      if (!t) return null;
+      var self = this, todos = [];
+      Object.keys(t).forEach(function (rid) {
+        var c = self.reajustarGasto(fecha, toma, rid);
+        if (c) todos = todos.concat(c);
+      });
+      return todos.length ? todos : null;
+    },
+
     gastarDespensa: function (fecha, toma, recetaId) {
       if (this.esFuera(fecha, toma)) return;
       if (this.gastoApuntado(fecha, toma, recetaId)) return;   // ya estaba descontado

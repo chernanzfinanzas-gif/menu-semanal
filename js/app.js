@@ -390,6 +390,21 @@
   });
 
   /* ==================== VISTA: MENÚ ==================== */
+  /* Si cambiar un plato ya comido movió la despensa, decirlo (8-oct-2026). */
+  function avisoReajuste() {
+    var c = Almacen.ultimoReajuste;
+    Almacen.ultimoReajuste = null;
+    if (!c || !c.length) return false;
+    var fmt = function (x) { var v = Math.abs(x.delta); return (Math.round(v * 100) / 100).toString().replace(".", ",") + " " + x.n; };
+    var dev = c.filter(function (x) { return x.delta < 0; }).map(fmt);
+    var qui = c.filter(function (x) { return x.delta > 0; }).map(fmt);
+    var txt = [];
+    if (dev.length) txt.push("Vuelve a la despensa: " + dev.join(", "));
+    if (qui.length) txt.push("Sale de la despensa: " + qui.join(", "));
+    Util.toast(txt.join(" · "));
+    return true;
+  }
+
   function pintarMenu() {
     var movil = esMovil();
     $("#rango-semana").textContent = movil ? Util.etiquetaRangoCorto(UI.lunes) : Util.etiquetaRango(UI.lunes);
@@ -4387,7 +4402,7 @@
       if (!(c >= 0)) { Util.toast("Pon una cantidad"); return; }
       Almacen.ponerCantidadReal(fecha, toma, rid, c);
       cerrarModal(); pintarMenu();
-      Util.toast("Apuntado: " + cifra(c) + " " + nombreU(c));
+      if (!avisoReajuste()) Util.toast("Apuntado: " + cifra(c) + " " + nombreU(c));
     });
     if ($("#cr-quitar")) $("#cr-quitar").addEventListener("click", function () {
       Almacen.ponerCantidadReal(fecha, toma, rid, null);
@@ -7333,6 +7348,7 @@
       Almacen.tocarDia(p[0]);
       Almacen.guardar("plato");
       pintarMenu();
+      if (avisoReajuste()) return;
       Util.toast(sel.value === "susana" ? "Solo Susana: no te cuenta, y se compra para uno" :
                  sel.value === "carlos" ? "Solo Carlos: te cuenta, y se compra para uno" :
                  "Los dos: te cuenta, y se compra para los que coméis");
@@ -7417,7 +7433,7 @@
         var pmd = med.getAttribute("data-media").split("|");
         if (Almacen.estado.plan[pmd[0]]) {
           Almacen.ponerMedia(pmd[0], pmd[1], pmd[2], pmd[3] === "1");
-          Almacen.tocarDia(pmd[0]); Almacen.guardar("plato"); pintarMenu();
+          Almacen.tocarDia(pmd[0]); Almacen.guardar("plato"); pintarMenu(); avisoReajuste();
         }
         return;
       }
@@ -7504,7 +7520,7 @@
         var pc = cm.getAttribute("data-comensales").split("|");
         var ahora = Almacen.comensales(pc[0], pc[1]);
         var nuevo = Math.max(1, Math.min(8, ahora + parseInt(pc[2], 10)));
-        if (nuevo !== ahora) { Almacen.ponerComensales(pc[0], pc[1], nuevo); pintarMenu(); }
+        if (nuevo !== ahora) { Almacen.ponerComensales(pc[0], pc[1], nuevo); pintarMenu(); avisoReajuste(); }
         return;
       }
       var fu = e.target.closest("[data-fuera]");
