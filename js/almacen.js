@@ -1701,6 +1701,23 @@
         if (global.console) console.log("Tus correcciones traídas: " + corregidos.join(", "));
       }
 
+      /* LAS MARCAS QUE YA HABÍA, SELLADAS CON SU VERSIÓN (8-oct-2026). Va aquí y
+         no con los demás arreglos porque tiene que ir DESPUÉS del refresco de
+         recetas: si se sellara antes, las que acaban de cambiar en esta misma
+         versión saldrían como «ha cambiado» sin que hubiera nada que mirar. El
+         8-oct se revisó todo, así que la versión de hoy es la que vio. */
+      if (!e.arreglos) e.arreglos = {};
+      if (!e.arreglos["2026-10-08-vista-con-rev"]) {
+        var revPorId = {};
+        (e.recetas || []).forEach(function (r) { if (r && r.id) revPorId[r.id] = r.rev || 1; });
+        Object.keys(e.recetaVista || {}).forEach(function (id) {
+          var m = e.recetaVista[id];
+          if (m && m.r == null && revPorId[id] != null) m.r = revPorId[id];
+        });
+        e.arreglos["2026-10-08-vista-con-rev"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errVR) {}
+      }
+
       /* ---------- RECETAS QUE APUNTAN A FANTASMAS ----------
          Una línea de receta que señala una ficha OCULTA o que ya no existe deja
          esa receta rota para siempre y en silencio: nunca se puede completar,
@@ -4090,7 +4107,10 @@
       /* volver a pulsar lo que ya está puesto lo quita: se puede desdecir */
       if (this.vistaReceta(id) === v) delete this.estado.recetaVista[id];
       else {
-        this.estado.recetaVista[id] = { v: v, f: Util.hoyISO() };
+        /* LA VERSIÓN QUE VISTE (8-oct-2026): `r` es el `rev` de la receta al
+           marcarla. Si luego la cambio, la ficha avisa. Ver `cambioDesdeVista`. */
+        var rvM = this.receta(id);
+        this.estado.recetaVista[id] = { v: v, f: Util.hoyISO(), r: (rvM && rvM.rev) || 1 };
         /* la nota del pendiente sobrevive mientras siga pendiente */
         if (v === "pte" && antes && antes.nota) this.estado.recetaVista[id].nota = antes.nota;
       }
@@ -4128,6 +4148,33 @@
         if (r.cat === "Restaurante y bar" || r.grupo === "restaurante") return false;
         return !self.vistaReceta(r.id);
       });
+    },
+    /* ¿HA CAMBIADO DESDE QUE LA DISTE POR BUENA? (8-oct-2026). Ese día pasó
+       varias veces: las trece de tomate rallado cambiaron el 7-oct y seguían
+       con el «me vale» de antes. La marca no se quita sola —sigue siendo tu
+       juicio—, pero la ficha avisa. Sin `r` (marcas antiguas) no se sabe, y
+       no se avisa. */
+    cambioDesdeVista: function (id) {
+      var m = (this.estado.recetaVista || {})[id];
+      if (!m || m.v !== "ok" || m.r == null) return null;
+      var r = this.receta(id);
+      if (!r || !((r.rev || 1) > m.r)) return null;
+      return { f: m.f, antes: m.r, ahora: r.rev || 1 };
+    },
+    recetasCambiadas: function () {
+      var self = this;
+      return (this.estado.recetas || []).filter(function (r) {
+        return r && !r.oculta && r.grupo !== "suelto" && !!self.cambioDesdeVista(r.id);
+      });
+    },
+    /* «Sigue valiendo»: la vuelve a sellar con la versión de ahora, sin el
+       vaivén de `marcarReceta`, que quita la marca si se pulsa la misma. */
+    reconfirmarReceta: function (id) {
+      var m = (this.estado.recetaVista || {})[id];
+      var r = this.receta(id);
+      if (!m || !r) return;
+      m.r = r.rev || 1; m.f = Util.hoyISO();
+      this.guardar("receta");
     },
 
     platosQueDa: function (g, cantidad) {

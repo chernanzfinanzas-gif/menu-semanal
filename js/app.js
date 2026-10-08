@@ -2616,8 +2616,13 @@
        Volver a pulsar lo que ya está puesto lo quita. */
     (function () {
       var v = Almacen.vistaReceta(r.id);
+      var camb = Almacen.cambioDesdeVista(r.id);
       html += '<div class="repaso-receta">' +
         (v ? '' : '<span class="nota-peque">Esta no la has mirado todavía.</span>') +
+        /* HA CAMBIADO DESDE TU «ME VALE» (8-oct-2026): no se quita la marca, se avisa */
+        (camb ? '<span class="nota-peque aviso-cambio">La diste por buena el ' + esc(Util.etiquetaFecha(camb.f)) +
+          ', pero ha cambiado desde entonces. <button type="button" class="btn mini" data-reconfirmar="' +
+          esc(r.id) + '">Sigue valiendo</button></span>' : '') +
         '<div class="repaso-botones">' +
           '<button type="button" class="btn mini' + (v === "ok" ? " activo" : "") +
             '" data-vista="' + esc(r.id) + '|ok">Me vale</button>' +
@@ -3842,6 +3847,7 @@
       if (f.vista === "sinver" && Almacen.vistaReceta(r.id)) return false;
       if (f.vista === "pte" && Almacen.vistaReceta(r.id) !== "pte") return false;
       if (f.vista === "ok" && Almacen.vistaReceta(r.id) !== "ok") return false;
+      if (f.vista === "cambiada" && !Almacen.cambioDesdeVista(r.id)) return false;
       if (f.toma && (r.tipo || []).indexOf(f.toma) < 0) return false;
       if (f.grupo && r.grupo !== f.grupo) return false;
       if (f.tool === "__preferidas") {
@@ -3866,6 +3872,7 @@
        desde el recetario de siempre, filtrando, que es donde ya mira. */
     var sinVer = Almacen.recetasSinVer().length;
     var ptes = Almacen.recetasPendientes().length;
+    var cambiadas = Almacen.recetasCambiadas().length;
     var revisadas = (Almacen.estado.recetas || []).filter(function (x) {
       return x && !x.oculta && x.grupo !== "suelto" && Almacen.vistaReceta(x.id) === "ok";
     }).length;
@@ -3873,6 +3880,10 @@
       (sinVer
         ? ' <button type="button" class="btn mini' + (f.vista === "sinver" ? " activo" : "") +
           '" data-repaso="sinver">' + sinVer + " sin ver</button>"
+        : "") +
+      (cambiadas
+        ? ' <button type="button" class="btn mini aviso' + (f.vista === "cambiada" ? " activo" : "") +
+          '" data-repaso="cambiada">' + cambiadas + (cambiadas === 1 ? " cambiada" : " cambiadas") + "</button>"
         : "") +
       (ptes
         ? ' <button type="button" class="btn mini aviso' + (f.vista === "pte" ? " activo" : "") +
@@ -3900,6 +3911,7 @@
                  var vv = Almacen.vistaReceta(r.id);
                  if (vv === "no") return '<span class="etiqueta raro">no te vale</span>';
                  if (vv === "pte") return '<span class="etiqueta pte">pte. revisión</span>';
+                 if (vv === "ok" && Almacen.cambioDesdeVista(r.id)) return '<span class="etiqueta pte">ha cambiado</span>';
                  return vv ? '' : '<span class="etiqueta sinver">sin ver</span>';
                })() +
                (r.grupo ? '<span class="etiqueta verde">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
@@ -7490,6 +7502,16 @@
         : (v === "pte" ? "Pendiente de revisar"
         : (v === "no" ? "Marcada como que no te vale" : "Vuelve a estar sin ver")));
       abrirFicha(p[0]);
+      pintarRecetas();
+    });
+    /* «Sigue valiendo»: la receta cambió y la vuelves a dar por buena (8-oct-2026) */
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-reconfirmar]");
+      if (!b) return;
+      var idRC = b.getAttribute("data-reconfirmar");
+      Almacen.reconfirmarReceta(idRC);
+      Util.toast("Sigue valiendo");
+      abrirFicha(idRC);
       pintarRecetas();
     });
     /* lo que hay que mirar, escrito a mano en la ficha */
