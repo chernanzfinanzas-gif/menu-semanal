@@ -1030,6 +1030,63 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPZ) {}
       }
 
+      /* LA CABEZA DE LOMO, OTRA VEZ, Y AHORA EN TODOS LOS APARATOS (8-oct-2026).
+         Carlos, en el móvil: «me sigue saliendo cabeza de lomo de cerdo Duroc en
+         pieza sin cortar 1,14 kg». El arreglo del lomo corrió en un aparato, su
+         marca viajó a los demás y éstos ya no lo hicieron; la ficha buena no
+         viajaba porque era igual que el catálogo (ver `paquete` en github.js,
+         que ya la sube). Se repite con marca nueva para los que se lo saltaron. */
+      if (!e.arreglos["2026-10-08-cerdo-lomo-3"]) {
+        var buenoCL3 = ((SEMILLA_BASE && SEMILLA_BASE.ingObj) || {})["cerdo_lomo"];
+        if (buenoCL3) {
+          (e.ingredientes || []).forEach(function (g, i) {
+            if (!g || g.id !== "cerdo_lomo") return;
+            if ((g.rev || 1) >= (buenoCL3.rev || 1) && !g.editado && g.k === buenoCL3.k) {
+              g.tocado = new Date().toISOString();      /* la buena, con hora: que viaje */
+              return;
+            }
+            var suyoCL3 = { pedir: g.pedir, minimo: g.minimo, lote: g.lote, sitio: g.sitio };
+            e.ingredientes[i] = JSON.parse(JSON.stringify(buenoCL3));
+            Object.keys(suyoCL3).forEach(function (k) {
+              if (suyoCL3[k] !== undefined && suyoCL3[k] !== null) e.ingredientes[i][k] = suyoCL3[k];
+            });
+            e.ingredientes[i].tocado = new Date().toISOString();
+          });
+        }
+        e.arreglos["2026-10-08-cerdo-lomo-3"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL3) {}
+      }
+
+      /* EL CHOCOLATE NEGRO Y EL DESCAFEINADO, FIJADOS (8-oct-2026). Desde el 5-oct
+         un aparato guardaba la copia vieja de estas dos fichas (Lindt con flor de
+         sal; L'Or con «solo capricho» y nota de Mercadona) y los otros la del
+         catálogo, y al sincronizar ganaba la última guardada: más de treinta
+         cambios de una a otra. Carlos: «El Lindt no lo compro, usaré el Hacendado
+         pero casi nunca. El café compro en DIA la de L'Or». Manda el catálogo, con
+         hora para que gane en todos los aparatos; del chocolate se queda «solo
+         capricho» porque lo compra casi nunca. Se respeta dónde lo guarda. */
+      if (!e.arreglos["2026-10-08-choco-desca"]) {
+        var semCD = ((SEMILLA_BASE && SEMILLA_BASE.ingObj) || {});
+        var ahoraCD = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g, i) {
+          if (!g || (g.id !== "chocolate_negro" && g.id !== "cafe_desca") || !semCD[g.id]) return;
+          var suyoCD = { sitio: g.sitio, minimo: g.minimo, lote: g.lote };
+          var nuevoCD = JSON.parse(JSON.stringify(semCD[g.id]));
+          Object.keys(suyoCD).forEach(function (k) {
+            if (suyoCD[k] !== undefined && suyoCD[k] !== null) nuevoCD[k] = suyoCD[k];
+          });
+          if (nuevoCD.renombrar) nuevoCD.renombrado = nuevoCD.renombrar;
+          if (nuevoCD.refrescar) nuevoCD.refrescado = nuevoCD.refrescar;
+          if (g.id === "chocolate_negro") nuevoCD.pedir = "capricho";
+          else delete nuevoCD.pedir;
+          delete nuevoCD.editado;
+          nuevoCD.tocado = ahoraCD;
+          e.ingredientes[i] = nuevoCD;
+        });
+        e.arreglos["2026-10-08-choco-desca"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCD) {}
+      }
+
       /* Y LOS FILETES, DETRÁS DEL YOGUR GRIEGO EN LA LISTA (7-oct-2026).
          Carlos: «los filetes de lomo de cerdo cabeza han de ocupar el sitio en
          el estante del stock de la pieza sin cortar y en la lista de la compra

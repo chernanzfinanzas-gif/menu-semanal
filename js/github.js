@@ -682,6 +682,24 @@
       try {
         var mio = Almacen.novedades ? Almacen.novedades() : null;
         if (mio && mio.ingredientes && mio.recetas) {
+          /* LO QUE VOLVIÓ A SER IGUAL QUE EL CATÁLOGO TAMBIÉN VIAJA, SI LLEVA HORA
+             (8-oct-2026). Carlos seguía viendo en el móvil la cabeza de lomo de
+             1,14 kg cuando el ordenador ya la había corregido. El arreglo dejaba
+             la ficha IGUAL que el catálogo, y lo igual al catálogo no se subía:
+             el repositorio se quedaba con la copia vieja, la marca de «arreglo
+             hecho» sí viajaba, y el móvil, al recibir la marca, ya no lo hacía
+             él. La ficha buena nunca le llegaba. Ahora sube toda ficha con
+             `tocado`, sea o no igual al catálogo: la hora es la que decide al
+             juntar, y sin subirla no puede decidir nada. */
+          var ya = {};
+          mio.ingredientes.forEach(function (x) { ya["i" + x.id] = 1; });
+          mio.recetas.forEach(function (x) { ya["r" + x.id] = 1; });
+          (copia.ingredientes || []).forEach(function (x) {
+            if (x && x.id && x.tocado && !ya["i" + x.id]) mio.ingredientes.push(x);
+          });
+          (copia.recetas || []).forEach(function (x) {
+            if (x && x.id && x.tocado && !x.conj && !x.borrada && !ya["r" + x.id]) mio.recetas.push(x);
+          });
           copia.ingredientes = mio.ingredientes;
           copia.recetas = mio.recetas;
           copia.catalogoFuera = 1;        /* marca: este paquete viene podado */
