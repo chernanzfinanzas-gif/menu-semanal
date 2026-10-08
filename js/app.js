@@ -838,21 +838,37 @@
                «0 g», y la que importa —la del dia— sigue arriba en la cabecera.
                Clase propia `dos-lineas` y no `.plato` a secas, porque esa clase la
                comparten el capricho y el entreno y cambiarla los rompe. */
-            var hayCant = !cerr || cuenta !== 1;
             var hayReal = !cerr && com;
-            html += '<div class="plato dos-lineas' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
+            /* «−» con más de una, quita una; con una entera, la deja en media. Con media
+               no baja más: para quitarla, la «×». «+» con media la completa; si no, otra más. */
+            var cantidadHtml = '<span class="grupo-cantidad pl-cant columna' + (cuenta !== 1 ? " varias" : "") + '">' +
+              (cerr ? (cuenta !== 1 ? '<span class="cuantos">\u00d7' + cuentaTxt + '</span>' : '') :
+                (veces > 1
+                  ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">\u2212</button>'
+                  : (!media ? '<button class="paso" data-media="' + fecha + '|' + t.k + '|' + esc(rid) + '|1" title="Media raci\u00f3n">\u2212</button>' : '')) +
+                (cuenta !== 1 ? '<span class="cuantos" title="' + (cuenta === 0.5 ? "media raci\u00f3n" : String(cuenta).replace(".", ",") + " raciones") + '">\u00d7' + cuentaTxt + '</span>' : '') +
+                (media
+                  ? '<button class="paso" data-media="' + fecha + '|' + t.k + '|' + esc(rid) + '|0" title="Raci\u00f3n entera">+</button>'
+                  : '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                    'title="Otro m\u00e1s"' + (veces >= 12 ? ' disabled' : '') + '>+</button>')) +
+              '</span>';
+            /* COCINAR (9-oct-2026). Abre la receta de ESE día —con sus raciones, la media
+               si la hay y la banda de pesar la carne— y la deja en la elaboración. Sólo en
+               lo que se cocina: un yogur o una bebida no lo necesitan. */
+            var seCocina = !!(r && (r.pasos || []).length > 1 &&
+                              !(r.tools || []).every(function (x) { return x === "sin-cocinar"; }));
+            var hayCocinar = seCocina && !com && !fueraT;
+            html += '<div class="plato dos-lineas' + (com ? " comido" : "") + "" + '">' +
                       '<div class="pl-arriba">' +
                       '<span class="pl-checks">' +
-                      /* Dos casillas, porque son dos cosas distintas: el carro dice que
-                         los ingredientes ya estan en casa; el visto, que te lo comiste. */
-                      /* En una toma de fuera no hay carro: eso no se compra, se paga
-                         alli. Dejarlo invitaba a marcarlo y no significaba nada. */
-                      (fueraT ? '' :
-                      '<button class="marcar carro' + (cpr ? " si" : "") + '" ' +
-                        'title="' + (cpr ? "Comprado: no se vuelve a pedir" : "Marcar como comprado") + '" ' +
-                        'data-comprado="' + fecha + '|' + t.k + '|' + esc(rid) + '">\ud83d\uded2</button>') +
+                      /* EL CARRO SE FUE (9-oct-2026). Carlos: «el botón comprado ya no
+                         tiene función, lo podemos quitar». La compra ya se confirma desde
+                         la lista y entra en la despensa: marcar plato a plato sobraba. */
                       '<button class="marcar' + (com ? " si" : "") + '" title="Marcar como comido" ' +
                         'data-comido="' + fecha + '|' + t.k + '|' + esc(rid) + '">\u2713</button>' +
+                      /* EL «−» Y EL «+» DEBAJO DEL ✓, en columna (9-oct-2026). Carlos: «apenas
+                         se ven, podemos poner el − y debajo el +, ambos debajo de comido». */
+                      cantidadHtml +
                       '</span>' +
                       /* El dia y la toma viajan con el plato para que la ficha pueda
                          ensenar las cantidades de los que comen ESE dia, y no las de
@@ -895,33 +911,22 @@
                                  (fuera ? "no cuenta" : cifra) + '</span>';
                         var NOM = { dos: "\ud83d\udc65 Los dos", carlos: "Solo Carlos", susana: "Solo Susana" };
                         if (cerr) return kc + (q !== "dos" ? '<span class="pl-quien fijo q-' + q + '">' + NOM[q] + '</span>' : '');
-                        return kc + '<select class="pl-quien q-' + q + '" data-quien="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                        /* «Cocinar» justo debajo del desplegable (Carlos, 9-oct-2026) */
+                        var btnCoc = hayCocinar ? '<button class="pl-cocinar" data-cocinar="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                          'title="Abrir la receta de este día para cocinarla">\ud83c\udf73 Cocinar</button>' : '';
+                        return kc + '<span class="pl-qcol"><select class="pl-quien q-' + q + '" data-quien="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                           'title="Quién se lo come: los dos se compra y descuenta por comensales; solo uno, para uno. Solo te cuenta lo de los dos y lo tuyo.">' +
                           Almacen.QUIEN.map(function (k) {
                             return '<option value="' + k + '"' + (k === q ? ' selected' : '') + '>' + NOM[k] + '</option>';
-                          }).join("") + '</select>';
+                          }).join("") + '</select>' + btnCoc + '</span>';
                       })() +
                       (cerr ? '' : '<button class="quitar" data-quitartodo="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
                         'title="' + (veces > 1 ? "Quitar los " + veces : "Quitar") + '">\u00d7</button>') +
                       '</div>' +
                       /* Segunda linea. Solo se pinta si tiene algo que decir: un plato
                          sin marcar y con una sola racion no la necesita. */
-                      ((hayCant || hayReal) ?
+                      (hayReal ?
                       '<div class="pl-abajo">' +
-                        '<span class="grupo-cantidad pl-cant' + (cuenta !== 1 ? " varias" : "") + '">' +
-                          (cerr ? (cuenta !== 1 ? '<span class="cuantos">\u00d7' + cuentaTxt + '</span>' : '') :
-                            /* «−»: con más de una, quita una; con una entera, la deja en media.
-                               Con media no baja más: para quitarla, la «×». */
-                            (veces > 1
-                              ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">\u2212</button>'
-                              : (!media ? '<button class="paso" data-media="' + fecha + '|' + t.k + '|' + esc(rid) + '|1" title="Media raci\u00f3n">\u2212</button>' : '')) +
-                            (cuenta !== 1 ? '<span class="cuantos" title="' + (cuenta === 0.5 ? "media raci\u00f3n" : String(cuenta).replace(".", ",") + " raciones") + '">\u00d7' + cuentaTxt + '</span>' : '') +
-                            /* «+»: con media, la completa; si no, otra más. */
-                            (media
-                              ? '<button class="paso" data-media="' + fecha + '|' + t.k + '|' + esc(rid) + '|0" title="Raci\u00f3n entera">+</button>'
-                              : '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
-                                'title="Otro m\u00e1s"' + (veces >= 12 ? ' disabled' : '') + '>+</button>')) +
-                        '</span>' +
                         /* La cantidad real sale cuando el plato esta comido: antes de
                            comertelo no hay nada que corregir. Si ya hay correccion se ve
                            el dato; si no, se pide con palabras y no con un icono suelto. */
@@ -7601,6 +7606,23 @@
           dia[q[1]].splice(+q[2], 1);
           tocarYGuardarToma(q[0], q[1], fueraQ);
         }
+        return;
+      }
+      var coc = e.target.closest("[data-cocinar]");
+      if (coc) {
+        var cc = coc.getAttribute("data-cocinar").split("|");
+        abrirFicha(cc[2], cc[0], cc[1]);
+        /* a la elaboración: es lo que se busca con las manos en la masa. Salvo si
+           lleva carne o pescado de peso variable sin pesar: entonces se queda arriba,
+           en la banda de pesarlo, que es lo primero que haces al ponerte. */
+        var rCoc = Almacen.receta(cc[2]);
+        var sinPesar = rCoc && Almacen.lineasVariables(rCoc).length && !Almacen.pesosDe(cc[0], cc[2]);
+        if (!sinPesar) setTimeout(function () {
+          var hs = document.querySelectorAll("#modal-caja h3");
+          for (var k = 0; k < hs.length; k++) {
+            if (/Elaboraci/.test(hs[k].textContent)) { hs[k].scrollIntoView({ block: "start" }); break; }
+          }
+        }, 60);
         return;
       }
       var ficha = e.target.closest("[data-ficha]");
