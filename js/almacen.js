@@ -1858,6 +1858,58 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errOC) {}
       }
 
+      /* LOS DOS CAFÉS Y EL PAN INTEGRAL, TAMBIÉN EN LOS DÍAS QUE LLEGAN DE FUERA
+         (8-oct-2026). Los dos arreglos de arriba corren una sola vez y sobre lo
+         que el aparato tiene EN ESE MOMENTO. Si el aparato arrancaba con el plan
+         viejo sin esos días, el arreglo no cambiaba nada, se daba por hecho, y
+         luego la sincronización traía los días 9, 10 y 11 con el café de siempre
+         y el medio panecillo. Pasó así en el estado de Carlos a las 21:09.
+         Por eso esto NO lleva marca: se repite en cada arranque y después de
+         cada sincronización (reemplazar llama a reparar). Sólo toca días que
+         nadie ha tocado desde que salió el cambio —sello anterior al CORTE—, y
+         al cambiarlos los sella, así que un día que él cambie a mano después
+         se respeta y no se vuelve a tocar nunca. */
+      (function () {
+        var CORTE = "2026-10-08T19:00:00Z";
+        var hoyDV = Util.hoyISO(), ahoraDV = new Date().toISOString(), tocado = false;
+        Object.keys(e.plan || {}).forEach(function (f) {
+          if (f < hoyDV) return;
+          var d = e.plan[f];
+          if (!d) return;
+          var s1 = (e.selloDia || {})[f] || "", s2 = (e.corregido || {})[f] || "";
+          if ((s1 > s2 ? s1 : s2) >= CORTE) return;
+          var com = (e.comido || {})[f] || {}, cambia = false;
+          if (Array.isArray(d.desayuno) && (com.desayuno || []).indexOf("des_leche_cafe") < 0) {
+            var i = d.desayuno.indexOf("des_leche_cafe");
+            if (i >= 0) {
+              d.desayuno.splice(i, 1, "des_cafe_leche_susana");
+              if (d.desayuno.indexOf("des_leche_cafe_proteinas") < 0) d.desayuno.splice(i + 1, 0, "des_leche_cafe_proteinas");
+              cambia = true;
+            }
+          }
+          if (f > hoyDV) {
+            ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (t) {
+              if (!Array.isArray(d[t]) || (com[t] || []).indexOf("pan_tostado_mesa") >= 0) return;
+              d[t] = d[t].map(function (id) {
+                if (id !== "pan_tostado_mesa") return id;
+                cambia = true; return "pan_integral_mesa";
+              });
+            });
+            [d.quitados, d.guardadoFuera].forEach(function (o) {
+              if (o) Object.keys(o).forEach(function (t) {
+                if (!Array.isArray(o[t])) return;
+                o[t] = o[t].map(function (id) {
+                  if (id !== "pan_tostado_mesa") return id;
+                  cambia = true; return "pan_integral_mesa";
+                });
+              });
+            });
+          }
+          if (cambia) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraDV; tocado = true; }
+        });
+        if (tocado) { try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDV) {} }
+      })();
+
       /* LAS MARCAS CON NOMBRE DE PESTAÑA, FUERA (8-oct-2026). Desde el 6-oct cada
          cambio de pestaña guardaba en `recetaVista` una marca vacía con el nombre
          de la pestaña («recetas», «menu», «entreno»…). Se quitan las que no son
