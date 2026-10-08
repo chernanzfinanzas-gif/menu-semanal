@@ -1718,6 +1718,103 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errVR) {}
       }
 
+      /* LOS DOS CAFÉS DEL DESAYUNO (8-oct-2026). Carlos: «en desayuno debe salir
+         café con leche (la normal para Susana) y café con leche proteína (la de
+         proteínas para mí)». Pasan a ser FIJOS del desayuno, y en los días que
+         vienen la «Leche con café» de siempre se cambia por los dos. Lo pasado y
+         lo ya marcado como comido no se tocan: es lo que se tomó. Cada día que
+         cambia lleva su sello, para que viaje igual a los otros aparatos. */
+      if (!e.arreglos["2026-10-08-dos-cafes"]) {
+        if (!e.config) e.config = {};
+        if (!e.config.fijos) e.config.fijos = [];
+        ["des_cafe_leche_susana", "des_leche_cafe_proteinas"].forEach(function (idC) {
+          var ya = e.config.fijos.some(function (f) { return f.r === idC; });
+          if (!ya) e.config.fijos.push({ r: idC, tomas: ["desayuno"] });
+        });
+        var hoyDC = Util.hoyISO(), ahoraDC = new Date().toISOString();
+        Object.keys(e.plan || {}).forEach(function (f) {
+          if (f < hoyDC) return;
+          var d = e.plan[f];
+          if (!d || !Array.isArray(d.desayuno)) return;
+          var com = ((e.comido || {})[f] || {}).desayuno || [];
+          var i = d.desayuno.indexOf("des_leche_cafe");
+          if (i < 0 || com.indexOf("des_leche_cafe") >= 0) return;
+          d.desayuno.splice(i, 1, "des_cafe_leche_susana");
+          if (d.desayuno.indexOf("des_leche_cafe_proteinas") < 0) d.desayuno.splice(i + 1, 0, "des_leche_cafe_proteinas");
+          if (!e.selloDia) e.selloDia = {};
+          e.selloDia[f] = ahoraDC;
+        });
+        e.arreglos["2026-10-08-dos-cafes"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDC) {}
+      }
+
+      /* EL PAN INTEGRAL PASA A SER EL DE DIARIO (8-oct-2026). Carlos: «el pan lo
+         voy a cambiar por el que te he puesto, haz los cambios también para que
+         sea lo que aparezca automáticamente en tostas y servicios de comida.
+         Deja el panecillo para algún día que apetezca un pan más blando».
+         · El fijo de comida y cena pasa de «medio panecillo» a «2 rebanadas de
+           pan integral». El panecillo sigue en el recetario para ponerlo a mano.
+         · En los días de hoy en adelante, sin marcar como comidos, se cambia.
+         · Las recetas que cambiaron de pan hoy y él ya había dado por buenas
+           siguen buenas: el cambio lo pidió él, no hay nada que volver a mirar.
+           Entran también los cuatro batidos, que pasaron a la leche +Proteínas
+           por petición suya («esos batidos son míos»). */
+      if (!e.arreglos["2026-10-08-pan-integral"]) {
+        if (!e.config) e.config = {};
+        (e.config.fijos || []).forEach(function (f) { if (f.r === "pan_tostado_mesa") f.r = "pan_integral_mesa"; });
+        var hoyPI = Util.hoyISO(), ahoraPI = new Date().toISOString();
+        Object.keys(e.plan || {}).forEach(function (f) {
+          if (f <= hoyPI) return;      /* desde mañana: hoy aún no tiene el pan en casa */
+          var d = e.plan[f], cambia = false;
+          if (!d) return;
+          ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (t) {
+            if (!Array.isArray(d[t])) return;
+            var com = ((e.comido || {})[f] || {})[t] || [];
+            if (com.indexOf("pan_tostado_mesa") >= 0) return;
+            d[t] = d[t].map(function (id) {
+              if (id !== "pan_tostado_mesa") return id;
+              cambia = true; return "pan_integral_mesa";
+            });
+          });
+          if (d.quitados) Object.keys(d.quitados).forEach(function (t) {
+            d.quitados[t] = d.quitados[t].map(function (id) { return id === "pan_tostado_mesa" ? "pan_integral_mesa" : id; });
+          });
+          if (cambia) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraPI; }
+        });
+        var revPI = {};
+        (e.recetas || []).forEach(function (r) { if (r && r.id) revPI[r.id] = r.rev || 1; });
+        ["tosta_sardinillas", "tosta_sardina_ahumada", "tosta_salmon_ahumado", "tosta_burgos_nueces_miel",
+         "des_tostada_tomate", "snack_pan_requeson", "revuelto_calabacin", "mochila_huevos_cocidos",
+         "des_ruta_revuelto", "cap_batido_evowhey", "bat_evowhey_desnatada",
+         "snack_batido_cacao", "des_batido"].forEach(function (id) {
+          var m = (e.recetaVista || {})[id];
+          if (m && m.v === "ok" && revPI[id] != null) m.r = revPI[id];
+        });
+        e.arreglos["2026-10-08-pan-integral"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPI) {}
+      }
+
+      /* EL ORDEN DE LA COMPRA PARA LO NUEVO (8-oct-2026). Carlos: «Leche proteína
+         es el último, el primero que debe aparecer en la lista en despensa,
+         detrás de él va el pan integral bajo en sal. El queso fresco batido va en
+         nevera en primer lugar por ahora. El panecillo sin sal se queda». Lo
+         demás de cada sección no se mueve. Sellado, para que gane al sincronizar. */
+      if (!e.arreglos["2026-10-08-orden-pan-leche-queso"]) {
+        if (!e.ordenCompra) e.ordenCompra = {};
+        var delanteOC = { "Mercadona|despensa": ["leche_proteinas", "pan_ortiz_bajosal"],
+                          "Mercadona|nevera": ["queso_batido_0"] };
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        Object.keys(delanteOC).forEach(function (clave) {
+          var primeros = delanteOC[clave];
+          var resto = (e.ordenCompra[clave] || []).filter(function (x) { return primeros.indexOf(x) < 0; });
+          e.ordenCompra[clave] = primeros.concat(resto);
+          e.ordenSello.compra[clave] = new Date().toISOString();
+        });
+        e.arreglos["2026-10-08-orden-pan-leche-queso"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errOC) {}
+      }
+
       /* LAS MARCAS CON NOMBRE DE PESTAÑA, FUERA (8-oct-2026). Desde el 6-oct cada
          cambio de pestaña guardaba en `recetaVista` una marca vacía con el nombre
          de la pestaña («recetas», «menu», «entreno»…). Se quitan las que no son
