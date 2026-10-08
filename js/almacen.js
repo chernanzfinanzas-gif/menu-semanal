@@ -1036,6 +1036,21 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTC) {}
       }
 
+      /* LAS SEIS RAPIDAS DE LATA, REVISADAS UNA A UNA (8-oct-2026, v484). Carlos las
+         fue validando: albóndigas (freidora al minuto 10), pasta con carne picada,
+         macarrones con chorizo (vuelve a 50 g por ración: «10 g de chorizo no es nada»),
+         macarrones gratinados, lentejas (media lata) y bacalao. */
+      if (!e.arreglos["2026-10-08-rapidas-ok"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        ["albondigas_tomate_lata", "pasta_bolonesa_lata", "ia_macarrones_chorizo_lata",
+         "macarrones_gratinados_bolonesa_lata", "lentejas_estofadas_lata",
+         "bacalao_tomate_lata"].forEach(function (idRL) {
+          e.recetaVista[idRL] = { v: "ok", f: Util.hoyISO() };
+        });
+        e.arreglos["2026-10-08-rapidas-ok"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRL) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
