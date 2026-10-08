@@ -12058,15 +12058,18 @@
        solo tienen plancha, que es antiextensión). Norma de Carlos: 30 minutos
        como máximo. Ninguno invita a bloquear el aire (regla del oído).
        Sin día fijo: va donde la ponga el tablero de la semana. */
+    /* 8-oct-2026, aceptado por Carlos tras la C del 8-oct (pulso 115/140 contra
+       122/149, «cada vez más fuerte»): empuje de cadera a 10 kg con los 90 s, y
+       gemelos de vuelta a 12. Ya cambiado por él en Garmin Connect. */
     { id: "C", n: "Fuerza C", dia: null, diaTxt: "sin día fijo", min: 25, mov: [
       { n: "Zancadas",            s: 2, r: "10 por pierna", kg: 15,
         nota: "Estáticas: los pies no se mueven, se baja y se sube. APOYADO con una mano: mancuerna de 10 en la mano libre y 5 kg en la mochila (las dos tobilleras). El peso total y el volumen son los mismos que sin apoyo",
         garmin: "Sentadilla dividida con mancuernas" },
-      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 7.5,
+      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
         nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos. Descanso de 90 s: es el único donde el pulso sube hasta el final de la serie y no se recupera en 75",
         garmin: "Levantamiento de barra sobre cadera, en banca" },
-      { n: "Elevación de gemelos",s: 2, r: "10",          kg: 15,
-        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano. Descanso de 60 s: aquí sobran los 75. Diez y no quince porque el tempo se caía un 31 % con el pulso plano — se agota el gemelo, no tú",
+      { n: "Elevación de gemelos",s: 2, r: "12",          kg: 15,
+        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano. Descanso de 60 s: aquí sobran los 75. Se bajó a diez el 2-oct porque el tempo se caía un 31 %; el 8-oct la serie de doce salió controlada y con el pulso bajando, así que vuelve a doce",
         garmin: "Elevación de gemelos de pie con mancuernas" },
       { n: "Pallof",              s: 2, r: "12 por lado", goma: "23-57",
         nota: "Goma de anilla 23-57 en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado. El 23-57 es lo que marca la goma, no el peso que mueves",
