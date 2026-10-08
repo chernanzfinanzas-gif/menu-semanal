@@ -996,6 +996,24 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL2) {}
       }
 
+      /* EL NOMBRE DE LA PIEZA QUE SE PERDIÓ (8-oct-2026). Repaso de las fichas
+         con `editado` de su estado real: en tres faltaba `pz` (alitas,
+         panecillos, vasos de limonada), que el arreglo del 5-oct copió y la
+         sincronización devolvió sin él, igual que pasó con el lomo. Solo se
+         copia `pz`, con hora para que gane; lo demás de esas fichas es suyo
+         (estante del panecillo en el congelador, «nunca» de las alitas…). */
+      if (!e.arreglos["2026-10-08-pz-con-hora"]) {
+        var semPZ = ((SEMILLA_BASE && SEMILLA_BASE.ingObj) || {});
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || g.pz || !semPZ[g.id] || !semPZ[g.id].pz) return;
+          if (["bk_alita", "pan_panecillo_sinsal", "limonada_light"].indexOf(g.id) < 0) return;
+          g.pz = semPZ[g.id].pz.slice();
+          g.tocado = new Date().toISOString();
+        });
+        e.arreglos["2026-10-08-pz-con-hora"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPZ) {}
+      }
+
       /* Y LOS FILETES, DETRÁS DEL YOGUR GRIEGO EN LA LISTA (7-oct-2026).
          Carlos: «los filetes de lomo de cerdo cabeza han de ocupar el sitio en
          el estante del stock de la pieza sin cortar y en la lista de la compra
