@@ -971,6 +971,31 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL) {}
       }
 
+      /* EL LOMO, OTRA VEZ, Y AHORA CON HORA (8-oct-2026). El arreglo de arriba
+         puso la ficha al día el 7-oct, pero en el repositorio seguía la copia
+         vieja (rev 6: pieza de 1,14 kg, 129 kcal, ración 200, sin peso
+         variable) y al sincronizar volvía: las dos copias sin hora y, campo a
+         campo, gana la que se aparta del catálogo —que era justo la vieja—.
+         Visto en su estado real del 8-oct, guardado ya con la v499. Ahora la
+         ficha buena lleva `tocado`, y una ficha con hora gana a una sin hora. */
+      if (!e.arreglos["2026-10-08-cerdo-lomo-con-hora"]) {
+        var buenoCL2 = ((SEMILLA_BASE && SEMILLA_BASE.ingObj) || {})["cerdo_lomo"];
+        if (buenoCL2) {
+          (e.ingredientes || []).forEach(function (g, i) {
+            if (!g || g.id !== "cerdo_lomo") return;
+            if ((g.rev || 1) >= (buenoCL2.rev || 1) && !g.editado && g.k === buenoCL2.k) return;
+            var suyoCL2 = { pedir: g.pedir, minimo: g.minimo, lote: g.lote, sitio: g.sitio };
+            e.ingredientes[i] = JSON.parse(JSON.stringify(buenoCL2));
+            Object.keys(suyoCL2).forEach(function (k) {
+              if (suyoCL2[k] !== undefined && suyoCL2[k] !== null) e.ingredientes[i][k] = suyoCL2[k];
+            });
+            e.ingredientes[i].tocado = new Date().toISOString();
+          });
+        }
+        e.arreglos["2026-10-08-cerdo-lomo-con-hora"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL2) {}
+      }
+
       /* Y LOS FILETES, DETRÁS DEL YOGUR GRIEGO EN LA LISTA (7-oct-2026).
          Carlos: «los filetes de lomo de cerdo cabeza han de ocupar el sitio en
          el estante del stock de la pieza sin cortar y en la lista de la compra
