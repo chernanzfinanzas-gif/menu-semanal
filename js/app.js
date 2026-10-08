@@ -1847,18 +1847,37 @@
       });
       var otras = todasG.filter(function (g) { return sug.indexOf(g) < 0; })
                         .sort(function (a, b) { return a.n.localeCompare(b.n); });
+      /* LO QUE TE QUEDA EN ESTA COMIDA (8-oct-2026): con eso, cada guarnición
+         que no quepa entera ofrece su versión ajustada. Ver `huecoGuarnicion`. */
+      var hg = null;
+      try { hg = Almacen.huecoGuarnicion(fecha, toma, P.id); } catch (eHG) { hg = null; }
       var boton = function (g) {
         var k = nP.k + (g ? Almacen.nutrReceta(g).k : 0);
         var sal = sP + (g ? Almacen.salReceta(g) : 0);
-        return '<button data-guar="' + (g ? esc(g.id) : "") + '">' +
+        var html1 = '<button data-guar="' + (g ? esc(g.id) : "") + '">' +
                (g ? esc(g.n) : "<b>Sin guarnici\u00f3n</b>") +
                "<small>" + (g ? "+" + Util.kcal(Almacen.nutrReceta(g).k) + " \u00b7 " : "") +
                "el plato entero: " + Util.kcal(k) + " \u00b7 " + Util.sal(sal) + " de sal</small></button>";
+        if (!g || !hg) return html1;
+        var aj = Almacen.ajusteGuarnicion(hg.hueco, g);
+        if (!aj) return html1;
+        if (aj.noCabe) return html1.replace("</small></button>",
+          " \u00b7 <span class=\"guar-pasa\">entera te pasas " + Util.kcal(aj.noCabe) + "</span></small></button>");
+        return html1 + '<button class="guar-ajustada" data-guaraj="' + esc(g.id) + '|' + aj.f + '">' +
+          "Ajustada a lo que te queda: " + Math.round(aj.f * 100) + " %" +
+          (aj.principal ? " \u00b7 " + esc(aj.nombre) + " " + aj.principal + " g" : "") +
+          "<small>+" + Util.kcal(aj.kcal) + " \u00b7 el plato entero: " + Util.kcal(nP.k + aj.kcal) + "</small></button>";
       };
+      var cabecera = !hg ? "" : (hg.hueco > 40
+        ? '<p class="aviso-grupo">Con este plato te quedan <b>' + Util.kcal(hg.hueco) + '</b> para la guarnici\u00f3n' +
+          (hg.fijos ? ' (ya cuenta ' + Util.kcal(hg.fijos) + ' de lo fijo de la comida)' : '') + '.</p>'
+        : '<p class="aviso-grupo">Con este plato ya llegas a lo que toca en esta comida' +
+          (hg.hueco < 0 ? ' y te pasas ' + Util.kcal(-hg.hueco) : '') + ': mejor sin guarnici\u00f3n o una verdura.</p>');
       var html = '<div class="paso-guar">' +
         '<button class="btn mini" data-guarvolver="1">\u2190 Volver</button>' +
         '<h3>Guarnici\u00f3n para \u00ab' + esc(P.n) + '\u00bb</h3>' +
         '<p class="aviso-grupo">Entra como un solo plato: los ingredientes, las calor\u00edas y un reloj para los dos.</p>' +
+        cabecera +
         boton(null) +
         (sug.length ? '<p class="aviso-grupo"><b>Le van bien</b></p>' + sug.map(boton).join("") : "") +
         (otras.length ? '<details class="grupo-selec"' + (sug.length ? "" : " open") + '><summary><span class="tit">' +
@@ -1901,6 +1920,18 @@
       if (kit) { meterVarios(kit.getAttribute("data-combina").split(",")); return; }
       /* EL PASO DE LA GUARNICIÓN (v369). */
       if (e.target.closest("[data-guarvolver]")) { cerrarModal(); abrirSelector(fecha, toma); return; }
+      /* la versión ajustada: entra el conjunto y luego se le ponen los gramos */
+      var bga = e.target.closest("[data-guaraj]");
+      if (bga && guarDe) {
+        var pa = bga.getAttribute("data-guaraj").split("|");
+        var idCj = Almacen.crearConjunto(guarDe.id, pa[0]);
+        if (!idCj) return;
+        meter(idCj);
+        Almacen.aplicarAjusteGuarnicion(fecha, idCj, parseFloat(pa[1]));
+        pintarMenu();
+        Util.toast("Guarnici\u00f3n al " + Math.round(parseFloat(pa[1]) * 100) + " %");
+        return;
+      }
       var bg = e.target.closest("[data-guar]");
       if (bg && guarDe) {
         var gid = bg.getAttribute("data-guar");

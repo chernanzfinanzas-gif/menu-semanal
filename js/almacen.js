@@ -2616,6 +2616,81 @@
     /* PESAR LA CARNE DE UN PLATO DE UN DÍA. Gramos POR RACIÓN, que es lo que se
        tiene en la mano. 0 o nada borra el peso y el plato vuelve al catálogo.
        NO toca la despensa: eso lo sigue haciendo el ✓, y en raciones. */
+    /* ---------- GUARNICIÓN AJUSTADA A LO QUE TE QUEDA (8-oct-2026) ----------
+       Fase 1 de las recetas variables (encargo del 7-oct). Al elegir guarnición
+       para un principal, cuánto le queda a ESA toma: la cuota, menos lo que ya
+       hay puesto, menos los fijos que entrarán con el plato (los que cuentan
+       para Carlos: los de Susana no) y menos el principal. No toca nada. */
+    huecoGuarnicion: function (fecha, toma, principalId) {
+      var cuota = Math.round(((this.cuotaTomas(fecha) || {})[toma]) || 0);
+      var P = this.receta(principalId);
+      if (!cuota || !P) return null;
+      var ya = this.nutrToma(fecha, toma).k, fijos = 0, self = this;
+      var puestos = ((this.estado.plan[fecha] || {})[toma]) || [];
+      if (!this.esPasado(fecha) && !this.esFuera(fecha, toma) &&
+          this.fichaTipoDia(fecha).mochila.indexOf(toma) < 0) {
+        (this.estado.config.fijos || []).forEach(function (f) {
+          var rf = self.receta(f.r);
+          if (!rf || (f.tomas || []).indexOf(toma) < 0) return;
+          if (puestos.indexOf(f.r) >= 0 || self.estaQuitado(fecha, toma, f.r)) return;
+          if (self.esDeOtro(f.r)) return;
+          fijos += self.nutrReceta(rf).k;
+        });
+      }
+      var kP = this.nutrReceta(P).k;
+      return { cuota: cuota, ya: Math.round(ya), fijos: Math.round(fijos), principal: Math.round(kP),
+               hueco: Math.round(cuota - ya - fijos - kP) };
+    },
+    /* Cuánto de la guarnición cabe en ese hueco, en pasos de 5 % y nunca por
+       debajo del 40 %. Devuelve null si cabe entera o si ni el 40 % cabe; en
+       ese caso `noCabe` dice cuánto se pasaría entera. */
+    ajusteGuarnicion: function (hueco, g) {
+      var kG = this.nutrReceta(g).k;
+      if (!(kG > 0) || hueco == null) return null;
+      if (kG <= hueco + 20) return null;
+      var f = Math.floor(hueco / kG * 20) / 20;
+      if (f < 0.4) return { noCabe: Math.round(kG - hueco) };
+      if (f >= 0.95) return null;
+      /* la línea que más pesa, para enseñar los gramos que salen */
+      var self = this, rc = g.raciones || 1, mayor = null;
+      (g.ing || []).forEach(function (l) {
+        var gr = self.gramosDeLinea(l) / rc;
+        if (!mayor || gr > mayor.gr) mayor = { i: l.i, gr: gr };
+      });
+      var ing = mayor && this.ingrediente(mayor.i);
+      return { f: f, kcal: Math.round(kG * f), principal: mayor ? Math.round(mayor.gr * f) : null,
+               nombre: ing ? this.cortoIngrediente(ing) : "" };
+    },
+    cortoIngrediente: function (g) {
+      return String(g.n || "").replace(/\s*\(.*$/, "").split(" ").slice(0, 2).join(" ").toLowerCase();
+    },
+    /* Lo aplica al plato YA PUESTO: cada línea de la guarnición que pese 5 g o
+       más pasa a f veces lo suyo, sumado a lo que ponga el principal del mismo
+       ingrediente (el conjunto los junta en una línea). Va a la foto del plato
+       como el lápiz: sólo ese día, la receta no cambia y la despensa sigue
+       gastando una ración. Si un ingrediente sale en dos líneas no se toca. */
+    aplicarAjusteGuarnicion: function (fecha, conjId, f) {
+      var C = this.receta(conjId);
+      if (!C || !C.conj) return 0;
+      var G = this.receta(C.conj.g), self = this, n = 0;
+      if (!G) return 0;
+      var cuenta = {};
+      (C.ing || []).forEach(function (l) { cuenta[l.i] = (cuenta[l.i] || 0) + 1; });
+      var rc = G.raciones || 1;
+      (G.ing || []).forEach(function (lg) {
+        if (cuenta[lg.i] !== 1) return;
+        var gG = self.gramosDeLinea(lg) / rc;
+        if (!(gG >= 5)) return;
+        var lc = null;
+        (C.ing || []).forEach(function (l) { if (l.i === lg.i) lc = l; });
+        if (!lc) return;
+        var gC = self.gramosDeLinea(lc) / (C.raciones || 1);
+        self.ponerPesoReal(fecha, conjId, lg.i, gC - (1 - f) * gG);
+        n++;
+      });
+      return n;
+    },
+
     ponerPesoReal: function (fecha, id, ingId, gramos) {
       var r = this.receta(id);
       if (!r) return false;

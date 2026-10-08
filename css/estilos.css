@@ -1386,6 +1386,10 @@ button.enlace {
 .aviso.pendiente-cuadre{background:var(--ambar-fondo);border-color:var(--ambar);color:#8a5d0e}
 .paso-guar h3{margin:10px 0 4px;font-size:16px}
 .paso-guar > button[data-guar]{width:100%}
+/* guarnición ajustada a lo que queda (8-oct-2026): pegada a la suya, con sangría y verde */
+.paso-guar button.guar-ajustada{width:calc(100% - 18px);margin:-4px 0 8px 18px;border-color:#9cc9a8;background:#f1f8f3;color:#24543a;font-size:13px}
+.paso-guar details button.guar-ajustada{width:calc(100% - 18px)}
+.guar-pasa{color:#a0522d}
 
 /* ---- ESTRELLAS Y FAVORITAS (v370) ---- */
 .estrellas{display:flex;gap:4px;margin:8px 0 10px}
