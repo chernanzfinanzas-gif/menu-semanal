@@ -1073,6 +1073,21 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPO8) {}
       }
 
+      /* DOS ENVASES CORREGIDOS (8-oct-2026). El solomillo pasa de «paquete 500 g» a
+         pieza de 370 g (Carlos: el 7-oct no había de 500; la suya pesó 370, a 7,80 €/kg)
+         y el chorizo de 200 a 100 g (la barqueta es de 100, «el paquete son 100g»).
+         Si su copia de la ficha está `editado`, el refresco por `rev` no la toca: se
+         le pone a mano SOLO el nombre y el envase, y se respeta todo lo demás suyo. */
+      if (!e.arreglos["2026-10-08-envases-solomillo-chorizo"]) {
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g) return;
+          if (g.id === "cerdo_solomillo") { g.envase = 370; g.n = "Solomillo de cerdo (pieza de 350-400 g)"; }
+          if (g.id === "chorizo_sarta_en_tacos") { g.envase = 100; }
+        });
+        e.arreglos["2026-10-08-envases-solomillo-chorizo"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errEN) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
