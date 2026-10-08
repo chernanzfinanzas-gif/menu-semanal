@@ -36,28 +36,32 @@
       try { guardado = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { guardado = null; }
       this.estado = guardado && guardado.v ? guardado : this.estadoInicial();
       this.reparar();
-      /* EL YOGUR GRIEGO DE LA CENA DEL 8-OCT (8-oct-2026). Carlos lo pasó a «solo
-         Carlos» después de marcarlo comido, y el descuento se quedó en dos. Con
-         reajustarGasto eso ya no pasa; esto devuelve el de esa noche, una vez. */
-      try {
-        var eG = this.estado;
-        if (!eG.arreglos) eG.arreglos = {};
-        if (!eG.arreglos["2026-10-08-griego-cena"]) {
-          var apG = this.gastoApuntado("2026-10-08", "cena", "solo_yogur_griego_hacendado_1");
-          if (apG && apG.yogur_griego_hacendado === 2 &&
-              this.quienDe("2026-10-08", "cena", "solo_yogur_griego_hacendado_1") === "carlos") {
-            this.reajustarGasto("2026-10-08", "cena", "solo_yogur_griego_hacendado_1");
-          }
-          eG.arreglos["2026-10-08-griego-cena"] = true;
-          try { localStorage.setItem(CLAVE, JSON.stringify(eG)); } catch (errG) {}
-        }
-      } catch (errG2) {}
+      this._griegoCena8oct();
       /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
       if (this._fotosNuevas) { try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {} }
       this._reiniciarFotoDias();   /* punto de partida: nada ha cambiado todavía */
       return this.estado;
+    },
+
+    /* EL YOGUR GRIEGO DE LA CENA DEL 8-OCT (8-oct-2026). Carlos lo pasó a «solo
+       Carlos» después de marcarlo comido, y el descuento se quedó en dos.
+       La v506 lo arreglaba UNA VEZ al arrancar, con marca, y falló: el aparato
+       que la abrió primero aún no tenía el cambio a «solo Carlos» (llegó al
+       sincronizar, después), no hizo nada y puso la marca, y la marca viajó a
+       los demás. Ahora no lleva marca: mira el dato. Si la cena de ese día
+       sigue con dos descontados y es solo suya, devuelve uno; al hacerlo la
+       nota queda en uno y ya no vuelve a actuar. Se mira al arrancar y después
+       de cada sincronización. */
+    _griegoCena8oct: function () {
+      try {
+        var F = "2026-10-08", T = "cena", R = "solo_yogur_griego_hacendado_1";
+        var ap = this.gastoApuntado(F, T, R);
+        if (!ap || ap.yogur_griego_hacendado !== 2 || this.quienDe(F, T, R) !== "carlos") return;
+        this.reajustarGasto(F, T, R);
+        try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e1) {}
+      } catch (e2) {}
     },
 
     estadoInicial: function () {
@@ -2329,6 +2333,7 @@
         if (mio.pausada != null) g.pausada = mio.pausada;
       }
       this.reparar();
+      this._griegoCena8oct();
       this._reiniciarFotoDias();
       try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
       this.avisar("recarga");
