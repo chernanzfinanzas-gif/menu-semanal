@@ -8596,10 +8596,7 @@
       var b = e.target.closest("[data-quitapeso]");
       if (!b) return;
       var f = b.getAttribute("data-quitapeso");
-      Almacen.estado.pesos = Almacen.estado.pesos.filter(function (x) { return x.f !== f; });
-      if (Almacen.estado.pesos.length)
-        Almacen.estado.perfil.peso = Almacen.estado.pesos[Almacen.estado.pesos.length - 1].kg;
-      Almacen.guardar("peso");
+      Almacen.quitarPeso(f);
       pintarPerfil();
     });
 

@@ -6582,14 +6582,28 @@
       };
     },
 
+    /* CADA PESADA CON SU HORA (8-oct-2026). `t` es cuándo se apuntó; con ella la
+       sincronización junta las pesadas de los dos aparatos por fecha en vez de
+       quedarse con la lista entera del que guardó lo último. Ver github.js. */
     anotarPeso: function (fecha, kg) {
-      var lista = this.estado.pesos;
+      var lista = this.estado.pesos, t = new Date().toISOString();
+      if (this.estado.pesosBorrados) delete this.estado.pesosBorrados[fecha];
       for (var i = 0; i < lista.length; i++) {
-        if (lista[i].f === fecha) { lista[i].kg = kg; this.estado.perfil.peso = kg; this.guardar("peso"); return; }
+        if (lista[i].f === fecha) { lista[i].kg = kg; lista[i].t = t; this.estado.perfil.peso = lista[lista.length - 1].kg; this.guardar("peso"); return; }
       }
-      lista.push({ f: fecha, kg: kg });
+      lista.push({ f: fecha, kg: kg, t: t });
       lista.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
       this.estado.perfil.peso = lista[lista.length - 1].kg;
+      this.guardar("peso");
+    },
+
+    /* Borrar una pesada deja constancia de cuándo, para que otro aparato que
+       todavía la tenga no la devuelva al sincronizar (8-oct-2026). */
+    quitarPeso: function (fecha) {
+      this.estado.pesos = (this.estado.pesos || []).filter(function (x) { return x.f !== fecha; });
+      if (!this.estado.pesosBorrados) this.estado.pesosBorrados = {};
+      this.estado.pesosBorrados[fecha] = new Date().toISOString();
+      if (this.estado.pesos.length) this.estado.perfil.peso = this.estado.pesos[this.estado.pesos.length - 1].kg;
       this.guardar("peso");
     },
 

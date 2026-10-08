@@ -165,6 +165,42 @@
     junto.actualizado = (local.actualizado || "") > (remoto.actualizado || "")
       ? local.actualizado : remoto.actualizado;
 
+    /* ── LAS PESADAS, UNA A UNA POR FECHA (8-oct-2026) ──────────────────
+       La lista de pesos no lleva id, y una lista sin id la decidía entera el
+       reloj GLOBAL: si apuntabas el peso en el móvil y el ordenador guardaba
+       cualquier otra cosa antes de que el móvil subiera, ganaba la lista del
+       ordenador y la pesada desaparecía. Mismo agujero que costó los días 21
+       y 22 de septiembre. Ahora se juntan por fecha; si las dos tienen la
+       misma fecha con distinto peso, gana la apuntada más tarde (`t`); una
+       pesada con hora gana a una sin hora. Lo borrado deja su hora en
+       `pesosBorrados` y sólo vuelve si alguien la apunta DESPUÉS de borrarla. */
+    (function () {
+      var L = Array.isArray(local.pesos) ? local.pesos : [];
+      var R = Array.isArray(remoto.pesos) ? remoto.pesos : [];
+      var borr = {};
+      [local.pesosBorrados || {}, remoto.pesosBorrados || {}].forEach(function (b) {
+        Object.keys(b).forEach(function (f) {
+          if (!borr[f] || String(b[f]) > String(borr[f])) borr[f] = b[f];
+        });
+      });
+      var porF = {};
+      function pon(p, manda) {
+        if (!p || !p.f) return;
+        var y = porF[p.f];
+        if (!y) { porF[p.f] = p; return; }
+        var tp = String(p.t || ""), ty = String(y.t || "");
+        if (tp !== ty) { if (tp > ty) porF[p.f] = p; }
+        else if (manda) porF[p.f] = p;
+      }
+      L.forEach(function (p) { pon(p, false); });
+      R.forEach(function (p) { pon(p, remotoManda); });
+      var lista = Object.keys(porF).sort().map(function (f) { return porF[f]; })
+        .filter(function (p) { return !borr[p.f] || String(p.t || "") > String(borr[p.f]); });
+      junto.pesos = JSON.parse(JSON.stringify(lista));
+      junto.pesosBorrados = borr;
+      if (lista.length && junto.perfil) junto.perfil.peso = lista[lista.length - 1].kg;
+    })();
+
     /* ── CADA FICHA, LA DEL ÚLTIMO QUE LA TOCÓ (4-oct-2026) ──────────────
        Carlos: «Ajos morados lo sigo viendo en Despensa - Conserva… cebolla
        dulce Tara la sigo viendo en Nevera - Frutero». Se habían movido a
