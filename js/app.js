@@ -791,6 +791,11 @@
             var rid = gr.rid;
             var veces = gr.idxs.length;
             var idx = gr.idxs[gr.idxs.length - 1];   // el último: el que quita el «−»
+            /* MEDIA RACIÓN (v494): `cuenta` es lo que de verdad está puesto —½, 1, 1½…—
+               y es lo que multiplica; `veces` sigue siendo cuántas veces está el id. */
+            var media = Almacen.esMedia(fecha, t.k, rid);
+            var cuenta = Almacen.racionesPuestas(fecha, t.k, rid, veces);
+            var cuentaTxt = (Math.floor(cuenta) ? String(Math.floor(cuenta)) : "") + (cuenta % 1 ? "\u00bd" : "");
             var r = Almacen.receta(rid);
             /* EL PASADO SE LEE DE LA FOTO, NO DE LA RECETA. Un día ya comido
                guarda el nombre y los números que el plato tenía ESE día, así que
@@ -808,7 +813,7 @@
                que esté puesto; con corrección, lo que diga ella, que ya es el
                total de esa toma. */
             var real = Almacen.cantidadReal(fecha, t.k, rid);
-            var fac = Almacen.factorPlato(fecha, t.k, rid, veces);
+            var fac = Almacen.factorPlato(fecha, t.k, rid, cuenta);
             /* LA FILA, EN DOS LINEAS (23-sep-2026, disenada con Carlos sobre un mock).
                Arriba: las dos casillas, el nombre con todo el ancho que sobra, las
                calorias y la x. Abajo: las unidades JUSTO DEBAJO de las casillas, y lo
@@ -818,7 +823,7 @@
                «0 g», y la que importa —la del dia— sigue arriba en la cabecera.
                Clase propia `dos-lineas` y no `.plato` a secas, porque esa clase la
                comparten el capricho y el entreno y cambiarla los rompe. */
-            var hayCant = !cerr || veces > 1;
+            var hayCant = !cerr || cuenta !== 1;
             var hayReal = !cerr && com;
             html += '<div class="plato dos-lineas' + (com ? " comido" : "") + (cpr && !com ? " comprado" : "") + '">' +
                       '<div class="pl-arriba">' +
@@ -888,14 +893,19 @@
                          sin marcar y con una sola racion no la necesita. */
                       ((hayCant || hayReal) ?
                       '<div class="pl-abajo">' +
-                        '<span class="grupo-cantidad pl-cant' + (veces > 1 ? " varias" : "") + '">' +
-                          (cerr ? (veces > 1 ? '<span class="cuantos">\u00d7' + veces + '</span>' : '') :
+                        '<span class="grupo-cantidad pl-cant' + (cuenta !== 1 ? " varias" : "") + '">' +
+                          (cerr ? (cuenta !== 1 ? '<span class="cuantos">\u00d7' + cuentaTxt + '</span>' : '') :
+                            /* «−»: con más de una, quita una; con una entera, la deja en media.
+                               Con media no baja más: para quitarla, la «×». */
                             (veces > 1
-                              ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">\u2212</button>' +
-                                '<span class="cuantos" title="' + veces + ' raciones">\u00d7' + veces + '</span>'
-                              : '') +
-                            '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
-                              'title="Otro m\u00e1s"' + (veces >= 12 ? ' disabled' : '') + '>+</button>') +
+                              ? '<button class="paso" data-menos="' + fecha + '|' + t.k + '|' + idx + '" title="Uno menos">\u2212</button>'
+                              : (!media ? '<button class="paso" data-media="' + fecha + '|' + t.k + '|' + esc(rid) + '|1" title="Media raci\u00f3n">\u2212</button>' : '')) +
+                            (cuenta !== 1 ? '<span class="cuantos" title="' + (cuenta === 0.5 ? "media raci\u00f3n" : String(cuenta).replace(".", ",") + " raciones") + '">\u00d7' + cuentaTxt + '</span>' : '') +
+                            /* «+»: con media, la completa; si no, otra más. */
+                            (media
+                              ? '<button class="paso" data-media="' + fecha + '|' + t.k + '|' + esc(rid) + '|0" title="Raci\u00f3n entera">+</button>'
+                              : '<button class="paso" data-mas="' + fecha + '|' + t.k + '|' + esc(rid) + '" ' +
+                                'title="Otro m\u00e1s"' + (veces >= 12 ? ' disabled' : '') + '>+</button>')) +
                         '</span>' +
                         /* La cantidad real sale cuando el plato esta comido: antes de
                            comertelo no hay nada que corregir. Si ya hay correccion se ve
@@ -2606,6 +2616,11 @@
     /* Las recetas de TANDA se cocinan enteras y se reparten en porciones: escalarlas
        por comensales no tiene sentido. */
     var factor = (personas && !r.tanda) ? personas / base : 1;
+    /* media ración puesta una sola vez: la ficha enseña la mitad (v494) */
+    var mediaFicha = !!(fecha && toma && !r.tanda && Almacen.esMedia(fecha, toma, id) &&
+                        Almacen.racionesPuestas(fecha, toma, id, 1) === 0.5 &&
+                        ((Almacen.estado.plan[fecha] || {})[toma] || []).filter(function (x) { return x === id; }).length === 1);
+    if (mediaFicha) factor = factor * 0.5;
     var escalada = factor !== 1;
 
     var html = '<header><h2>' + esc(r.n) + '</h2><button class="cerrar" data-cerrar>×</button></header>';
@@ -2613,7 +2628,7 @@
             '<span class="etiqueta verde">' + Util.kcal(n.k) + ' / ración</span>' +
             '<span class="etiqueta verde">' + Util.sal(salRacion) + ' de sal / ración</span>' +
             '<span class="etiqueta' + (escalada ? ' raro' : '') + '">' +
-              (escalada ? 'cantidades para ' + personas : base + ' ración(es)') + '</span>' +
+              (mediaFicha ? 'media ración' + (personas > 1 ? ' para ' + personas : '') : escalada ? 'cantidades para ' + personas : base + ' ración(es)') + '</span>' +
             '<span class="etiqueta">' + (r.min || "?") + ' min</span>' +
             (r.grupo ? '<span class="etiqueta">' + esc(NOMBRE_GRUPO[r.grupo] || r.grupo) + '</span>' : '') +
             etiquetasTool(r.tools) +
@@ -4305,6 +4320,7 @@
     var prev = Almacen.cantidadPrevista(rec);
     var real = Almacen.cantidadReal(fecha, toma, rid);
     var veces = ((Almacen.estado.plan[fecha] || {})[toma] || []).filter(function (x) { return x === rid; }).length || 1;
+    veces = Almacen.racionesPuestas(fecha, toma, rid, veces);
     var previsto = prev * veces;
     var nUna = Almacen.nutrReceta(rec);
     var salUna = Almacen.salReceta(rec);
@@ -7396,6 +7412,15 @@
       /* Contador de cantidad. En las tomas y en los caprichos funciona igual:
          «+» mete otra ración del mismo plato, «−» quita la última, «×» las quita
          todas. Todo sobre las mismas listas de ids que ya había. */
+      var med = e.target.closest("[data-media]");
+      if (med) {
+        var pmd = med.getAttribute("data-media").split("|");
+        if (Almacen.estado.plan[pmd[0]]) {
+          Almacen.ponerMedia(pmd[0], pmd[1], pmd[2], pmd[3] === "1");
+          Almacen.tocarDia(pmd[0]); Almacen.guardar("plato"); pintarMenu();
+        }
+        return;
+      }
       var mas = e.target.closest("[data-mas]");
       if (mas) {
         var pm = mas.getAttribute("data-mas").split("|");
@@ -7420,6 +7445,7 @@
         var dt = Almacen.estado.plan[qt[0]];
         if (dt && dt[qt[1]]) {
           dt[qt[1]] = dt[qt[1]].filter(function (x) { return x !== qt[2]; });
+          Almacen.ponerMedia(qt[0], qt[1], qt[2], false);
           tocarYGuardarToma(qt[0], qt[1], qt[2]);
         }
         return;
@@ -8592,6 +8618,7 @@
            contado no se ense\u00f1a: cero es \u00abse ha acabado\u00bb, no \u00abacabo de a\u00f1adirlo\u00bb. */
         if (!Almacen.estado.stock) Almacen.estado.stock = {};
         Almacen.estado.stock[id] = { c: 0, f: null, pte: true };
+        Almacen._sellarStock();
         Almacen.guardar("stock");
         var sitio2 = Almacen.sitioDe(id);
         UI.busquedaDespensa = "";

@@ -2779,7 +2779,7 @@
           /* Igual que en las calorías: lo apuntado manda sobre la estimación. */
           var puestos = dia[toma] || [];
           if (puestos.length) {
-            var gf = self.agrupar(puestos);
+            var gf = self.agrupar(puestos, fecha, toma);
             gf.orden.forEach(function (id) {
               if (self.noMeCuenta(fecha, toma, id)) return;   /* tampoco fuera de casa */
               total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, gf.veces[id]);
@@ -2790,7 +2790,7 @@
           if (e) total += e.sal;
           return;                                   // fuera no se cocina: nada más que sumar
         }
-        var g = self.agrupar(dia[toma]);
+        var g = self.agrupar(dia[toma], fecha, toma);
         g.orden.forEach(function (id) {
           /* EL PAN DE SUSANA NO SUMA SU SAL (1-oct-2026). El filtro estaba en
              `nutrToma` —las calorías— y aquí no, porque la sal del día no pasa
@@ -2901,7 +2901,7 @@
            marcado que comes fuera es que has comido, no hay nada que tachar. */
         var puestos = dia[toma] || [];
         if (puestos.length) {
-          var gf = self.agrupar(puestos);
+          var gf = self.agrupar(puestos, fecha, toma);
           gf.orden.forEach(function (id) {
             if (self.noMeCuenta(fecha, toma, id)) return;   /* tampoco fuera de casa */
             var nn = self.nutrEn(fecha, id);
@@ -2914,7 +2914,7 @@
         if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
         return t;
       }
-      var g = self.agrupar(dia[toma]);
+      var g = self.agrupar(dia[toma], fecha, toma);
       g.orden.forEach(function (id) {
         if (soloComido && !self.estaComido(fecha, toma, id)) return;
         if (self.noMeCuenta(fecha, toma, id)) return;   /* el plato de Susana no son tus calorías */
@@ -3451,13 +3451,45 @@
 
     /* Los ids de una toma agrupados: { rid: veces }. Lo usan las sumas del día
        para poder aplicar un factor por PLATO y no por cada repetición. */
-    agrupar: function (lista) {
-      var m = {}, orden = [];
+    agrupar: function (lista, fecha, toma) {
+      var m = {}, orden = [], self = this;
       (lista || []).forEach(function (id) {
         if (m[id] === undefined) { m[id] = 0; orden.push(id); }
         m[id]++;
       });
+      /* MEDIA RACIÓN (v494): con día y toma, un plato marcado a media cuenta
+         medio menos. Sin día ni toma, las veces de siempre. */
+      if (fecha && toma) orden.forEach(function (id) { if (self.esMedia(fecha, toma, id)) m[id] -= 0.5; });
       return { veces: m, orden: orden };
+    },
+
+    /* ================= MEDIA RACIÓN (8-oct-2026, v494) =================
+       Carlos: «además del más que dobla ración, poner un menos que baja a la
+       mitad la ración». Para poner en una cena media de unas tostas y media de
+       otras. Se guarda en el DÍA, como `quien`: `plan[f].medias[toma] = [ids]`,
+       y viaja con él al sincronizar. Significa «la última ración de este plato
+       es media»: puesto una vez cuenta ½, dos veces 1½. */
+    esMedia: function (fecha, toma, recetaId) {
+      var d = this.estado.plan[fecha];
+      return !!(d && d.medias && d.medias[toma] && d.medias[toma].indexOf(recetaId) >= 0);
+    },
+    ponerMedia: function (fecha, toma, recetaId, si) {
+      var d = this.estado.plan[fecha];
+      if (!d) return;
+      if (si) {
+        if (!d.medias) d.medias = {};
+        if (!d.medias[toma]) d.medias[toma] = [];
+        if (d.medias[toma].indexOf(recetaId) < 0) d.medias[toma].push(recetaId);
+      } else if (d.medias && d.medias[toma]) {
+        d.medias[toma] = d.medias[toma].filter(function (x) { return x !== recetaId; });
+        if (!d.medias[toma].length) delete d.medias[toma];
+        if (!Object.keys(d.medias).length) delete d.medias;
+      }
+    },
+    /* Raciones puestas de un plato en una toma: las veces, menos media si toca. */
+    racionesPuestas: function (fecha, toma, recetaId, veces) {
+      var v = veces || 1;
+      return this.esMedia(fecha, toma, recetaId) ? Math.max(0.5, v - 0.5) : v;
     },
 
     /* ================= LA DESPENSA CON CANTIDADES =================
@@ -4782,6 +4814,7 @@
       c = Number(c);
       if (!(c >= 0)) { delete this.estado.stock[id]; }
       else this.estado.stock[id] = { c: Math.round(c * 100) / 100, f: Util.hoyISO(), t: new Date().toISOString() };
+      this._sellarStock();
       var sitio = this.sitioDe(id);
       if (sitio) {
         if (!this.estado.stockSitios) this.estado.stockSitios = {};
@@ -4807,7 +4840,7 @@
           if (self.esFuera(fecha, toma)) return;       // lo de fuera no sale de tu despensa
           if (!self.tomaActiva(fecha, toma)) return;
           var personas = self.comensales(fecha, toma);
-          var g = self.agrupar(dia[toma]);
+          var g = self.agrupar(dia[toma], fecha, toma);
           g.orden.forEach(function (rid) {
             if (self.estaComido(fecha, toma, rid)) return;   // ya comido: ya descontado
             var rec = self.receta(rid);
@@ -4880,7 +4913,7 @@
       var lista = (dia && dia[toma]) || [];
       var n = 0;
       lista.forEach(function (x) { if (x === recetaId) n++; });
-      return n || 1;
+      return this.racionesPuestas(fecha, toma, recetaId, n || 1);
     },
 
     /* Lo que ese plato saca de la despensa, ingrediente a ingrediente. */
@@ -4932,6 +4965,13 @@
                                   pte: corto ? "corto" : ((f && f.pte) || false) };
       });
       if (!Object.keys(hecho).length) return;
+      /* EL ✓ CAMBIA LA FOTO DE LA DESPENSA, Y TIENE QUE DECIRLO (8-oct-2026).
+         Carlos: «ayer hice tortilla de calabacín y hoy seguían los 4 huevos».
+         El descuento no ponía la hora de la despensa, así que al sincronizar
+         los dos aparatos tenían la MISMA hora y cada uno se quedaba con su
+         foto: el ✓ viajaba, el descuento no. Medido antes del arreglo: móvil
+         con 0 huevos tras el ✓, ordenador con 4 después de sincronizar. */
+      this._sellarStock();
       if (!this.estado.gastado) this.estado.gastado = {};
       if (!this.estado.gastado[fecha]) this.estado.gastado[fecha] = {};
       if (!this.estado.gastado[fecha][toma]) this.estado.gastado[fecha][toma] = {};
@@ -4972,6 +5012,7 @@
         self.estado.stock[id] = { c: Math.round((habia + hecho[id]) * 100) / 100,
                                   f: (f && f.f) || null, pte: !!(f && f.pte) };
       });
+      this._sellarStock();   // devolver también cambia la foto (ver gastarDespensa)
       var g = this.estado.gastado;
       if (g && g[fecha] && g[fecha][toma]) {
         delete g[fecha][toma][recetaId];
@@ -5889,6 +5930,7 @@
         }
         delete self.estado.compraMarcada[l.id];
       });
+      if (entraron) this._sellarStock();   // lo comprado entra en la foto de la despensa
       this.guardar("compra");
       return { entraron: entraron, recados: aRecados, suplentes: suplentes };
     },
@@ -5974,6 +6016,7 @@
           var fch = this.fichaStock(id);
           var ahora = (fch && fch.c > 0 ? fch.c : 0) + q;
           this.estado.stock[id] = { c: Math.round(ahora * 100) / 100, f: Util.hoyISO() };
+          this._sellarStock();
           this.guardar("stock");
         }
       }
@@ -6120,8 +6163,11 @@
       var estaba = i >= 0;
       if (comido && i < 0) d[toma].push(recetaId);
       if (!comido && i >= 0) d[toma].splice(i, 1);
-      if (!d[toma].length) delete d[toma];
-      if (!Object.keys(d).length) delete this.estado.comido[fecha];
+      /* LA TOMA VACÍA SE QUEDA, COMO LÁPIDA (8-oct-2026). Al quitar el único ✓
+         de una toma se borraba la clave, y al sincronizar «la toma que el
+         ganador no tiene» se conserva del otro aparato: el ✓ volvía. Medido:
+         desmarcar en uno y en el otro seguía marcado. Una lista vacía sí dice
+         «aquí no hay nada», y la fusión la respeta. */
       /* EL ✓ ES EL MOMENTO EN QUE EL PLATO DEJA DE SER PLAN Y PASA A SER UN
          HECHO: aquí se le hace la foto. Quitar el ✓ no la borra, porque lo que
          sigue puesto en el día sigue siendo lo que había ese día. */
@@ -6154,7 +6200,7 @@
     /* ¿queda algo del día sin marcar? */
     hayComidoAlgo: function (fecha) {
       var d = this.estado.comido[fecha];
-      return !!(d && Object.keys(d).length);
+      return !!(d && Object.keys(d).some(function (t) { return (d[t] || []).length; }));
     },
 
     /* LOS OBJETIVOS DE CADA MACRO PARA UN DÍA CONCRETO.
@@ -7838,9 +7884,13 @@
           /* Y se compra para los que comen ESA toma, no para los de la semana: un
              miércoles que cena solo son la mitad de raciones que un martes. */
           var personas = self.comensales(fecha, toma);
+          var mediaVista = {};
           (dia[toma] || []).forEach(function (rid) {
             var rec = self.receta(rid);
             if (!rec) return;
+            /* media ración: la primera vez que sale el plato pide la mitad */
+            var parte = 1;
+            if (!mediaVista[rid] && self.esMedia(fecha, toma, rid)) { parte = 0.5; mediaVista[rid] = 1; }
             /* Lo ya COMPRADO no se vuelve a pedir, aunque no se haya cocinado todavía.
                Y lo ya comido tampoco, obviamente. */
             if (opciones.saltarComprado !== false && self.estaComprado(fecha, toma, rid)) return;
@@ -7848,7 +7898,7 @@
             /* Las TANDAS se apuntan aparte y se resuelven al final: no se puede comprar
                un cuarto de bandeja de barritas. Ver `tandas` más abajo. */
             /* Un plato con dueño se compra para uno solo: ver `duenoDe`. */
-            var pers = self.comensalesDePlato(rec, personas, fecha, toma);
+            var pers = self.comensalesDePlato(rec, personas, fecha, toma) * parte;
             if (rec.tanda) {
               porciones[rid] = (porciones[rid] || 0) + pers;
               return;
@@ -8220,6 +8270,7 @@
       else if (r === "parte") c = Math.max(0, Number(cant) || 0);
       else c = Math.max(this.stockDe(id), Number(cant) || 0);   // "hay": al menos lo que hace falta
       this.estado.stock[id] = { c: Math.round(c * 100) / 100, f: Util.hoyISO() };
+      this._sellarStock();
       var k = this.sitioDe(id);
       if (k) {
         if (!this.estado.stockSitios) this.estado.stockSitios = {};
