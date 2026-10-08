@@ -1026,6 +1026,16 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCE) {}
       }
 
+      /* LA TORTILLA DE CALABACIN, A «ME VALE» (8-oct-2026). Carlos: «la tortilla de
+         calabacín le quitamos el no me vale, estaba muy rica ayer». La cocinó el 7-oct
+         con la rev 6 (el requesón en el minuto 16 y la pimienta en dos mitades). */
+      if (!e.arreglos["2026-10-08-tortilla-calabacin-ok"]) {
+        if (!e.recetaVista) e.recetaVista = {};
+        e.recetaVista["tortilla_calabacin"] = { v: "ok", f: Util.hoyISO() };
+        e.arreglos["2026-10-08-tortilla-calabacin-ok"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTC) {}
+      }
+
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
          ración para sacar 6 raciones por bolsa de La Sirena». El catálogo ya la
          tenía en 60, pero si su copia de la ficha está `editado` el catálogo no
