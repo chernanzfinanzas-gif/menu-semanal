@@ -6895,14 +6895,26 @@
       var extra    = this.extraDelDia(fecha);
       var base     = Math.max(0, objetivo - extra);
 
+      /* LO DE FUERA OCUPA SU SITIO (9-oct-2026). Carlos: «hoy ceno fuera y la
+         comida dice que tengo que comer 1500 kcal». La toma de fuera se
+         quitaba del reparto como si no existiera y su parte se iba entera a la
+         comida. Pero fuera también se come: cuenta lo apuntado o, si no hay
+         nada, la estimación de Ajustes (cena 800). Ahora el reparto se hace
+         como si se comiera en casa, la toma de fuera se queda con lo que va a
+         contar, y la diferencia —a favor o en contra— la absorben las tomas de
+         casa, sin bajar de cero (el desayuno, de su parte fija). Si lo de fuera
+         ya se come todo el día, el día se pasa: eso no lo arregla el reparto. */
+      var fuera = {};
       var activa = {};
       ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (t) {
-        activa[t] = self.tomaActiva(fecha, t) && !self.esFuera(fecha, t);
+        activa[t] = self.tomaActiva(fecha, t);
+        fuera[t] = activa[t] && self.esFuera(fecha, t);
       });
       var q = { desayuno: 0, almuerzo: 0, comida: 0, merienda: 0, cena: 0 };
 
       /* 1. el desayuno, su cantidad fija */
       if (activa.desayuno) q.desayuno = Math.min(desFijo, base);
+      var suelo = { desayuno: q.desayuno };      /* su café no se recorta (domingo 11-oct) */
       var restoBase = base - q.desayuno;
 
       /* 2. el extra al avituallamiento, sin pasar del techo */
@@ -6922,6 +6934,28 @@
       else if (activa.cena)   q.cena   = grande;
       else if (avit.length)   avit.forEach(function (t) { q[t] += grande / avit.length; });
       else if (activa.desayuno) q.desayuno += grande;
+
+      /* 4. lo de fuera: se queda con lo que va a contar y el resto se ajusta */
+      var delta = 0;
+      Object.keys(q).forEach(function (t) {
+        if (!fuera[t]) return;
+        var kf = 0;
+        try { kf = self.nutrToma(fecha, t, false).k || 0; } catch (eF) { kf = 0; }
+        delta += q[t] - kf;
+        q[t] = kf;
+      });
+      if (delta) {
+        var casa = ["comida", "cena"].filter(function (t) { return activa[t] && !fuera[t]; });
+        if (!casa.length) casa = ["almuerzo", "merienda", "desayuno"].filter(function (t) { return activa[t] && !fuera[t]; });
+        if (casa.length) {
+          var suma = 0;
+          casa.forEach(function (t) { suma += q[t]; });
+          casa.forEach(function (t) {
+            var parte = suma > 0 ? q[t] / suma : 1 / casa.length;
+            q[t] = Math.max(suelo[t] || 0, q[t] + delta * parte);
+          });
+        }
+      }
 
       Object.keys(q).forEach(function (k) { q[k] = Math.round(q[k]); });
       return q;
