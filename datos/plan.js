@@ -196,8 +196,8 @@
       { n: 1, desde: "2026-09-18", hasta: "2026-09-27", carga: 196, talla: "R", criterio: "asistencia", notaFecha: "Con prednisona. Fuerza a media carga. Diez días, no siete" },
       { n: 2, desde: "2026-09-28", hasta: "2026-10-04", carga: 160, talla: "R", notaFecha: "Revisión el 28. El corticoide sigue hasta el domingo 4. Entra la bici. Volver a medir el ritmo de caminar" },
       { n: 3, desde: "2026-10-05", hasta: "2026-10-11", carga: 162, cargaAntes: 180, talla: "A", nota: "Primera semana de verdad", notaFecha: "162 de bici: el tope del 12 % sobre los 145 de la semana 2 (decisión suya del 4-oct, «a ver qué dice la fatiga»)" },
-      { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 106, cargaAntes: 125, talla: "B", nota: "DESCARGA, no se negocia. El domingo, test de 20 minutos" },
-      { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 170, cargaAntes: 200, talla: "A" },
+      { n: 4, desde: "2026-10-12", hasta: "2026-10-18", carga: 106, cargaAntes: 125, talla: "B", nota: "DESCARGA, no se negocia", notaFecha: "El test de 20 minutos pasa al lunes 19 (Carlos, 9-oct: el domingo 18 no puede)" },
+      { n: 5, desde: "2026-10-19", hasta: "2026-10-25", carga: 170, cargaAntes: 200, talla: "A", nota: "El lunes 19, test de 20 minutos", notaFecha: "Movido del domingo 18. Antes, el visto bueno de cardiología para un esfuerzo máximo" },
       { n: 6, desde: "2026-10-26", hasta: "2026-11-01", carga: 191, cargaAntes: 225, talla: "A" },
       { n: 7, desde: "2026-11-02", hasta: "2026-11-08", carga: 213, cargaAntes: 250, talla: "A" },
       { n: 8, desde: "2026-11-09", hasta: "2026-11-15", carga: 149, cargaAntes: 175, talla: "B", nota: "DESCARGA, no se negocia. Noviembre es su mes de parón histórico" },
@@ -736,7 +736,7 @@
       /* «test1» QUITADA el 2-oct-2026 (Carlos): «retira el aviso. En el pase del
          domingo 11 ya hablaremos de ello con una semana anticipada, no necesito
          tener un aviso más cada día». Además su límite (12-oct) estaba mal: el
-         test va el domingo 18-oct, en la nota de la semana 4 de la rampa, y
+         test va el lunes 19-oct (movido del domingo 18 el 9-oct), en la nota de la semana 5 de la rampa, y
          antes hay que hablar del visto bueno de cardiología para un esfuerzo
          máximo. */
     ],
