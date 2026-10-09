@@ -714,12 +714,15 @@
             "lavavajillas_a_mano", "limpiacristales", "friegasuelos", "ambientador_lavavajillas", "abrillantador_de_lavavajillas",
             "limpiamaquinas_lavavajillas", "bayeta_polvo", "bayeta_cristales", "bayetas", "pastillas_de_lavavajillas",
             "suavizante", "lejia" ] },
-        "Mercadona|hog_aseo": { f: "2026-10-04", ids: [
-            "lagrimas_hidratantes", "gasas_esteriles", "tiritas_aqua", "tiritas_espuma", "esparadrapo",
-            "tiritas_classic", "alcohol_96", "agua_oxigenada", "cepillo_de_dientes", "limpieza_ortodoncia",
-            "champu", "champu_deliplus", "cera_pelo", "esponja_de_bano", "jabon_de_manos",
-            "desodorante_rollon", "desodorante_viaje", "desodorante", "crema_de_manos", "crema_cara_cuerpo_manos",
-            "toallitas_refrescantes", "panuelos_de_papel", "papel_higienico", "gel_de_ducha" ] },
+        /* Aseo puesto al día el 9-oct-2026 con su captura (33 productos). El
+           cepillo Deliplus lo quita de Mercadona: va por suscripción de Amazon. */
+        "Mercadona|hog_aseo": { f: "2026-10-09", ids: [
+            "balsamo_labios", "protector_labial_fps30", "solar_facial_fps50", "solar_spray_fps50", "mascarillas_quirurgicas", "povidona_yodada",
+            "vaselina", "banda_adhesiva_cortar", "locion_corporal", "desodorante", "lagrimas_hidratantes", "gasas_esteriles",
+            "tiritas_aqua", "tiritas_espuma", "esparadrapo", "tiritas_classic", "alcohol_96", "agua_oxigenada",
+            "limpieza_ortodoncia", "champu", "champu_deliplus", "cera_pelo", "esponja_de_bano",
+            "jabon_de_manos", "desodorante_rollon", "desodorante_viaje", "crema_de_manos", "crema_cara_cuerpo_manos", "toallitas_refrescantes",
+            "panuelos_de_papel", "papel_higienico", "gel_de_ducha" ] },
         "Mercadona|hog_menaje": { f: "2026-10-04", ids: [
             "servilletas_de_papel", "papel_de_cocina", "bolsas_de_cierre_zip", "bolsas_de_congelacion", "papel_de_horno",
             "film_transparente", "papel_de_aluminio" ] },
