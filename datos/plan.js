@@ -513,6 +513,20 @@
       { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,
         dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
         ayuda: "El que marca el tensiómetro en esa misma medida. Sirve de contraste con el pulso en reposo del reloj." },
+      /* LO QUE EL RELOJ MIDE DE NOCHE Y NO LLEGA SOLO  ·  9-oct-2026.
+         Carlos: «lo puedo meter a mano, sin problema… se hace mientras se anotan
+         medidas de cuerpo». El oxígeno y la respiración sólo bajan con la
+         exportación de Garmin, cada mucho; para un aviso de que algo se incuba
+         hacen falta cada mañana. Los tres de la pantalla de Garmin Connect. */
+      { id: "spo2_noche", nombre: "SpO2 noche", unidad: "%", paso: 1, min: 70, max: 100,
+        dias: [0, 1, 2, 3, 4, 5, 6], desde: "2026-10-09",
+        ayuda: "La media de la noche de «Pulsioximetría» en Garmin Connect. El de muñeca es aproximado: lo que cuenta es la tendencia, no un número suelto." },
+      { id: "resp_sueno", nombre: "Respiración durmiendo", unidad: "rpm", paso: 1, min: 5, max: 40,
+        dias: [0, 1, 2, 3, 4, 5, 6], desde: "2026-10-09",
+        ayuda: "Respiraciones por minuto, la media mientras dormías (Garmin Connect → Respiración). Sube unos días antes de ponerte malo." },
+      { id: "resp_despierto", nombre: "Respiración despierto", unidad: "rpm", paso: 1, min: 5, max: 40,
+        dias: [0, 1, 2, 3, 4, 5, 6], desde: "2026-10-09",
+        ayuda: "La media despierto de la misma pantalla." },
       /* EL ECG DE LA MAÑANA  ·  28-sep-2026. Con la Polar H10 y la app ECG
          Analysis; el primer mes a diario para tener línea base, después lunes,
          miércoles y viernes. No se teclea: el programa del portátil
@@ -819,7 +833,15 @@
                "supervivencia: tres sesiones de 40 minutos, sin salida— y desde ahí se sube.", requiere: "salud.json" },
       { id: "M11", nivel: "nota", titulo: "Pulso en reposo alto", umbral: 5, dias: 3,
         texto: "Cinco pulsaciones sobre tu base tres días seguidos: fatiga, poco sueño o algo incubándose.",
-        requiere: "salud.json", silenciado_hasta: "2026-09-28" }
+        requiere: "salud.json", silenciado_hasta: "2026-09-28" },
+      /* 9-oct-2026. Con la inmunosupresión y la neumonía de 2010 que tardó en
+         verse, la señal que más vale: varias medidas de la noche torciéndose
+         a la vez. Una sola no dice nada; dos durante dos noches, sí. */
+      { id: "M12", nivel: "atencion", titulo: "Algo se puede estar incubando", noches: 2, senales: 2,
+        fcr: 5, vfc: 0.85, resp: 1, spo2: 2,
+        texto: "Dos o más medidas de la noche se han torcido a la vez dos noches seguidas. No es un diagnóstico. " +
+               "Si además notas fiebre, tos o un cansancio que no es el de entrenar, con tu medicación no se espera: se consulta.",
+        requiere: "salud.json" }
     ],
 
     /* ---------- reglas que la pantalla enseña ---------- */

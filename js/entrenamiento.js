@@ -4350,6 +4350,51 @@
       }
     }
 
+    /* ---------- M12 — algo se puede estar incubando (9-oct-2026) ----------
+       Cuatro señales de la noche, cada una contra lo suyo:
+         pulso en reposo  ≥ base + 5        (intervals, cada día)
+         VFC              ≤ 85 % de la base (intervals, cada día)
+         respiración      ≥ su mediana de las 14 noches anteriores + 1 rpm  (a mano)
+         SpO2 noche       ≤ su mediana de las 14 noches anteriores − 2 puntos (a mano)
+       Salta si hay dos o más señales en cada una de las dos últimas noches.
+       Callado con el corticoide, como M11: sube el pulso y baja la VFC solo. */
+    d = def("M12");
+    if (d && !Salud.conFarmaco(dia)) {
+      var bF = Salud.base("base_fcr"), bV = Salud.base("base_vfc");
+      var medianaAntes = function (id, f) {
+        var vals = [];
+        for (var k = 1; k <= 14; k++) {
+          var x = parseFloat(medida(U.sumarDias(f, -k), id));
+          if (!isNaN(x)) vals.push(x);
+        }
+        if (vals.length < 5) return null;           // con menos de 5 noches no hay referencia
+        vals.sort(function (a, b) { return a - b; });
+        var m = Math.floor(vals.length / 2);
+        return vals.length % 2 ? vals[m] : (vals[m - 1] + vals[m]) / 2;
+      };
+      var senalesDe = function (f) {
+        var s = [];
+        var fc = valorDia("fcr", f), hv = valorDia("vfc", f);
+        if (bF && typeof fc === "number" && fc >= bF + d.fcr) s.push("pulso " + fc + " (base " + num(bF) + ")");
+        if (bV && typeof hv === "number" && hv <= bV * d.vfc) s.push("VFC " + hv + " ms (base " + num(bV) + ")");
+        var r = parseFloat(medida(f, "resp_sueno")), mr = medianaAntes("resp_sueno", f);
+        if (!isNaN(r) && mr !== null && r >= mr + d.resp) s.push("respiración " + num(r, 0) + " rpm (suele " + num(mr, 0) + ")");
+        var o = parseFloat(medida(f, "spo2_noche")), mo = medianaAntes("spo2_noche", f);
+        if (!isNaN(o) && mo !== null && o <= mo - d.spo2) s.push("SpO2 " + num(o, 0) + " % (suele " + num(mo, 0) + ")");
+        return s;
+      };
+      var noches = [], fN = dia, okN = true;
+      for (var iN = 0; iN < d.noches; iN++) {
+        var sN = senalesDe(fN);
+        if (sN.length < d.senales) { okN = false; break; }
+        noches.push(sN);
+        fN = U.sumarDias(fN, -1);
+      }
+      if (okN && noches.length === d.noches) {
+        out.push({ d: d, dato: "anoche: " + noches[0].join(", ") });
+      }
+    }
+
     var orden = { consulta: 0, atencion: 1, nota: 2 };
     out.sort(function (a, b) { return orden[a.d.nivel] - orden[b.d.nivel]; });
     return out;
@@ -9487,6 +9532,15 @@
               pie: "Sube al perder grasa y sube al retener líquido: con el corticoide pueden estar pasando las dos. Se mira junto al tobillo y al peso, nunca sola." },
       hueso: { n: "Masa ósea", u: "kg", dias: 365, serie: function () { return serieMixta("hueso", v); },
                pie: "En un adulto es casi una constante. Sirve de control de la báscula: si baila, la medición de ese día no vale." },
+      /* 9-oct-2026: lo de la noche que se anota a mano. El oxígeno se junta con
+         el de la exportación de Garmin, que lo trae desde 2019: lo tecleado
+         manda en el día que lo haya. */
+      spo2_noche: { n: "SpO2 de la noche", u: "%", dias: 60, serie: function () { return serieMixta("spo2_noche", v); },
+                    pie: "Media de la noche, de muñeca: es aproximada y vale por la tendencia. Si se queda baja semanas, es dato para la revisión de cardiología." },
+      resp_sueno: { n: "Respiración durmiendo", u: "rpm", dias: 60, serie: function () { return serieApp("resp_sueno", v); },
+                    pie: "Suele ser muy estable. Una subida de uno o dos puntos que se sostiene, con el pulso arriba, es la señal de que algo se incuba." },
+      resp_despierto: { n: "Respiración despierto", u: "rpm", dias: 60, serie: function () { return serieApp("resp_despierto", v); },
+                        pie: "Más variable que la de la noche: se mira junto a ella." },
       magra: { n: "Masa magra", u: "kg", dias: 120, serie: function () { return serieSalud("magra", v); },
                pie: "El indicador principal del plan: lo que se quiere es que baje el peso y ésta aguante." },
       /* LA MISMA LECTURA QUE EN EVOLUCIÓN (22-sep-2026, Carlos: «los cambios de
