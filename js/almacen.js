@@ -1938,6 +1938,27 @@
         try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errOC) {}
       }
 
+      /* EL CONTRAMUSLO EN SU SITIO (9-oct-2026). Carlos: «En nevera - estante
+         superior, al lado de pechuga de pollo. En lista de la compra la primera
+         de Nevera». Lo demás no se mueve. Sellado, para que gane al sincronizar. */
+      if (!e.arreglos["2026-10-09-orden-contramuslo"]) {
+        if (!e.ordenCompra) e.ordenCompra = {};
+        if (!e.ordenCasa) e.ordenCasa = {};
+        if (!e.ordenSello) e.ordenSello = {};
+        if (!e.ordenSello.compra) e.ordenSello.compra = {};
+        if (!e.ordenSello.casa) e.ordenSello.casa = {};
+        var restoCM = (e.ordenCompra["Mercadona|nevera"] || []).filter(function (x) { return x !== "pollo_contramuslo"; });
+        e.ordenCompra["Mercadona|nevera"] = ["pollo_contramuslo"].concat(restoCM);
+        e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
+        var casaCM = (e.ordenCasa["est_arriba"] || []).filter(function (x) { return x !== "pollo_contramuslo"; });
+        var posCM = casaCM.indexOf("pollo_pechuga");
+        if (posCM >= 0) casaCM.splice(posCM + 1, 0, "pollo_contramuslo"); else casaCM.push("pollo_contramuslo");
+        e.ordenCasa["est_arriba"] = casaCM;
+        e.ordenSello.casa["est_arriba"] = new Date().toISOString();
+        e.arreglos["2026-10-09-orden-contramuslo"] = true;
+        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCM) {}
+      }
+
       /* LOS DOS CAFÉS Y EL PAN INTEGRAL, TAMBIÉN EN LOS DÍAS QUE LLEGAN DE FUERA
          (8-oct-2026). Los dos arreglos de arriba corren una sola vez y sobre lo
          que el aparato tiene EN ESE MOMENTO. Si el aparato arrancaba con el plan
