@@ -1114,6 +1114,85 @@
     }
   }
 
+  /* ==================== ALMACÉN GRANDE PARA LAS CACHÉS (10-oct-2026, v523) ====================
+     Las copias de salud, actividades, trazos, monte, curva… vivían en
+     localStorage, que tiene unos 5 MB para TODA la web y se llenó: el 10-oct
+     el menú (0,35 MB) ya no cabía y salió la franja roja. Ahora van a
+     IndexedDB, que tiene cientos de MB.
+     · Se lee de memoria (como antes, sin esperar): al abrir la app se cargan
+       todas de IndexedDB y, mientras tanto, se sigue leyendo de localStorage.
+     · Al terminar de cargar se MUDAN: lo que quede en localStorage se copia a
+       IndexedDB y se borra de localStorage, que queda libre para el menú.
+     · Si el navegador no tiene IndexedDB o falla, todo sigue como antes
+       (localStorage), sin romper nada. Son copias: si se pierden, se bajan. */
+  var CacheGrande = (function () {
+    var BD = "khb-caches", ALM = "c";
+    var RE = /^khb-(salud-cache|salud-hist|archivo-actividad|act-hist|trazos-strava|curva|rodillo|revisiones|monte|ecg|tension-correo|historial|ecg-ultimo|rev-garmin|diario-salud|agenda|fuerza|casos|nombres|rutas-nuevas|rutas-indice)-v\d+$/;
+    var mem = {}, db = null, listo = false, esperando = [];
+
+    function fin() {
+      listo = true;
+      var l = esperando; esperando = [];
+      l.forEach(function (f) { try { f(); } catch (e) {} });
+    }
+    function poner(k, v) {
+      if (!db) { try { localStorage.setItem(k, v); } catch (e) {} return; }
+      try {
+        var tx = db.transaction(ALM, "readwrite");
+        tx.objectStore(ALM).put(v, k);
+      } catch (e) { try { localStorage.setItem(k, v); } catch (e2) {} }
+    }
+    function quitar(k) {
+      if (db) { try { db.transaction(ALM, "readwrite").objectStore(ALM).delete(k); } catch (e) {} }
+      try { localStorage.removeItem(k); } catch (e) {}
+    }
+    function mudar() {
+      if (db) {
+        var claves = [];
+        try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (RE.test(k)) claves.push(k); } } catch (e) {}
+        claves.forEach(function (k) {
+          var v = null;
+          try { v = localStorage.getItem(k); } catch (e) {}
+          if (v != null && !(k in mem)) { mem[k] = v; poner(k, v); }
+          try { localStorage.removeItem(k); } catch (e) {}
+        });
+      }
+      fin();
+    }
+    function precargar() {
+      try {
+        if (!global.indexedDB) { fin(); return; }
+        var rq = indexedDB.open(BD, 1);
+        rq.onupgradeneeded = function () { try { rq.result.createObjectStore(ALM); } catch (e) {} };
+        rq.onerror = function () { fin(); };
+        rq.onblocked = function () { fin(); };
+        rq.onsuccess = function () {
+          db = rq.result;
+          try {
+            var cur = db.transaction(ALM, "readonly").objectStore(ALM).openCursor();
+            cur.onsuccess = function () {
+              var c = cur.result;
+              if (c) { mem[c.key] = c.value; c.continue(); } else mudar();
+            };
+            cur.onerror = function () { mudar(); };
+          } catch (e) { mudar(); }
+        };
+      } catch (e) { fin(); }
+    }
+    precargar();
+
+    return {
+      getItem: function (k) {
+        if (k in mem) return mem[k];
+        try { return localStorage.getItem(k); } catch (e) { return null; }
+      },
+      setItem: function (k, v) { mem[k] = v; poner(k, v); },
+      removeItem: function (k) { delete mem[k]; quitar(k); },
+      listo: function () { return listo; },
+      alListo: function (f) { if (listo) f(); else esperando.push(f); }
+    };
+  })();
+
   /* ==================== salud.json ====================
      Vive en el mismo repositorio privado y con la misma clave que ya usa la app
      para sincronizarse. No se guarda dentro del estado —son 128 KB y viajarían
@@ -1145,7 +1224,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (j && j.datos) {
           this.datos = j.datos; this.traidoEl = j.traidoEl; this.sha = j.sha || null;
           this.estado = "ok"; return true;
@@ -1156,7 +1235,7 @@
 
     aCache: function () {
       try {
-        localStorage.setItem(this.CLAVE, JSON.stringify(
+        CacheGrande.setItem(this.CLAVE, JSON.stringify(
           { traidoEl: this.traidoEl, sha: this.sha, datos: this.datos }));
       } catch (e) { /* si no cabe, se vive sin caché */ }
     },
@@ -4942,7 +5021,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || (!j.crudo && !j.datos)) return false;
         this.datos = j.crudo ? this.arma(j.crudo) : j.datos;
         this.traidoEl = j.traidoEl; this.estado = "ok";
@@ -4967,7 +5046,7 @@
           self.datos = self.arma(crudo);
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, crudo: crudo }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -5015,7 +5094,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
@@ -5043,7 +5122,7 @@
           self.datos = crudo && crudo.cols ? actsDeColumnas(crudo) : crudo;
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ sha: Firmas.de(self.RUTA), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -5107,7 +5186,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || (!j.crudo && !j.datos)) return false;
         this.datos = j.crudo ? actsDeColumnas(j.crudo) : j.datos;
         this.traidoEl = j.traidoEl; this.estado = "ok";
@@ -5140,7 +5219,7 @@
           try {
             /* se guarda el fichero tal cual vino, por columnas: es la mitad de
                grande que la lista ya armada, y el móvil no va sobrado */
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, crudo: d }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -5182,7 +5261,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.dosValen(j.sha, j.shaA, this.RUTA, this.RUTA_ARCHIVO, j.traidoEl, this.FRESCO_H);
@@ -5224,7 +5303,7 @@
           self.datos = { trazos: junto };
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ sha: Firmas.de(self.RUTA), shaA: Firmas.de(self.RUTA_ARCHIVO), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -5252,7 +5331,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
@@ -5277,7 +5356,7 @@
           self.datos = JSON.parse(Salud.deB64(j.content));
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ sha: Firmas.de(self.RUTA), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -5923,7 +6002,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.zwift = j.zwift || null;
         this.traidoEl = j.traidoEl; this.estado = "ok";
@@ -5949,7 +6028,7 @@
           self.datos = JSON.parse(Salud.deB64(j.content));
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ sha: Firmas.de(self.RUTA), datos: self.datos, traidoEl: self.traidoEl }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -6002,7 +6081,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
@@ -6030,7 +6109,7 @@
           self.datos = JSON.parse(Salud.deB64(j.content));
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE, JSON.stringify(
+            CacheGrande.setItem(self.CLAVE, JSON.stringify(
               { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, datos: self.datos }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -6169,7 +6248,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
@@ -6199,7 +6278,7 @@
           self.zwift = (d && d.zwift && d.zwift.length) ? d.zwift : null;
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE, JSON.stringify(
+            CacheGrande.setItem(self.CLAVE, JSON.stringify(
               { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl,
                 datos: self.datos, zwift: self.zwift }));
           } catch (e) {}
@@ -6262,7 +6341,7 @@
                 self.datos[String(id)] = nombre;
                 self.traidoEl = Date.now();
                 try {
-                  localStorage.setItem(self.CLAVE, JSON.stringify(
+                  CacheGrande.setItem(self.CLAVE, JSON.stringify(
                     { sha: null, traidoEl: self.traidoEl,
                       datos: self.datos, zwift: self.zwift }));
                 } catch (e) {}
@@ -6419,7 +6498,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return Firmas.vale(j.sha, this.RUTA, j.traidoEl, this.FRESCO_H);
@@ -6447,7 +6526,7 @@
           self.datos = JSON.parse(Salud.deB64(j.content)) || {};
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE, JSON.stringify(
+            CacheGrande.setItem(self.CLAVE, JSON.stringify(
               { sha: Firmas.de(self.RUTA), traidoEl: self.traidoEl, datos: self.datos }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -6516,7 +6595,7 @@
 
     deCache: function () {
       try {
-        var j = JSON.parse(localStorage.getItem(this.CLAVE));
+        var j = JSON.parse(CacheGrande.getItem(this.CLAVE));
         if (!j || !j.datos) return false;
         this.datos = j.datos; this.traidoEl = j.traidoEl; this.estado = "ok";
         return !!(j.traidoEl && (Date.now() - j.traidoEl) < this.FRESCO_H * 3600000);
@@ -6534,7 +6613,7 @@
           self.datos = j.rutas || [];
           self.estado = "ok"; self.traidoEl = Date.now();
           try {
-            localStorage.setItem(self.CLAVE,
+            CacheGrande.setItem(self.CLAVE,
               JSON.stringify({ traidoEl: self.traidoEl, datos: self.datos }));
           } catch (e) {}
           if (alTerminar) alTerminar();
@@ -8758,7 +8837,7 @@
           self.yendo = false;
           self.decir("Hecho: " + v.length + " apuntadas. Salen del archivo al pasar " +
                      "<b>Rutas al día</b>.");
-          try { localStorage.removeItem(Salud.CLAVE); } catch (e) {}
+          try { CacheGrande.removeItem(Salud.CLAVE); } catch (e) {}
           Salud.datos = null; Salud.sha = null;
           Salud.cargar(true, function () { pintarConservando(); });   // el tercer repintado que saltaba
           return;
@@ -10513,7 +10592,7 @@
         return fetch(url, { method: "PUT", headers: cab, body: JSON.stringify(cuerpo) }).then(function (r) {
           if (r.ok) {
             Historial.datos = doc; Historial.traidoEl = Date.now(); Historial.estado = "ok";
-            try { localStorage.setItem(Historial.CLAVE, JSON.stringify({ sha: null, datos: doc, traidoEl: Historial.traidoEl })); } catch (e) {}
+            try { CacheGrande.setItem(Historial.CLAVE, JSON.stringify({ sha: null, datos: doc, traidoEl: Historial.traidoEl })); } catch (e) {}
             listo(true);
             return;
           }
@@ -15039,6 +15118,14 @@
   function arrancar() {
     if (!U || !A || !P) return;
     if (!A.estado) { setTimeout(arrancar, 80); return; }      // esperamos a que app.js inicie el almacén
+    /* Se espera al almacén grande de las cachés, como mucho 1,5 s: si tarda
+       más, se arranca igual leyendo de lo que haya (v523). */
+    if (!CacheGrande.listo() && !arrancar.esperado) {
+      arrancar.esperado = true;
+      var yaVa = false, go = function () { if (!yaVa) { yaVa = true; arrancar(); } };
+      CacheGrande.alListo(go); setTimeout(go, 1500);
+      return;
+    }
     inyectarEstilos();
     inyectarHtml();
     conectar();
