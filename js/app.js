@@ -408,6 +408,14 @@
   function pintarMenu() {
     var movil = esMovil();
     $("#rango-semana").textContent = movil ? Util.etiquetaRangoCorto(UI.lunes) : Util.etiquetaRango(UI.lunes);
+    /* COSTE DE LA SEMANA (10-oct-2026): lo planificado en casa, por ración y
+       por quien lo come, con el último precio de cada ingrediente. */
+    var cs = $("#coste-semana");
+    if (cs) {
+      var cw = Almacen.costeSemana(UI.lunes);
+      cs.textContent = cw.n ? "Comida de la semana \u2248 " + Util.euros(cw.e) +
+        (cw.con < cw.n ? " \u00b7 " + Math.round(cw.con / cw.n * 100) + " % con precio" : "") : "";
+    }
     var cont = $("#rejilla-dias"), html = "", hoy = Util.hoyISO();
     if (UI.diaActivo === null || UI.diaActivo < 0 || UI.diaActivo > 6) UI.diaActivo = diaPorDefecto();
 
@@ -2620,6 +2628,18 @@
      Se guarda donde el peso de la carne, que ya es un mapa de ingredientes. */
   var ajusteIng = null;
 
+  /* COSTE DE UNA RACIÓN (10-oct-2026), con el precio más reciente de cada
+     ingrediente: el de su último ticket o el de su ficha. Si falta el precio de
+     alguno, se dice cuántos y la cifra lleva «≥»: se queda corta, no inventa. */
+  function etiquetaCoste(r) {
+    var c = Almacen.costeReceta(r);
+    if (!c || !c.con) return "";
+    var corto = c.con < c.n;
+    return '<span class="etiqueta" title="' + esc(corto ? "Sin precio: " + c.faltan.join(", ") : "Con el último precio de cada ingrediente") + '">' +
+           (corto ? "\u2265 " : "") + Util.euros(c.e) + ' / ración' +
+           (corto ? ' \u00b7 ' + (c.n - c.con) + ' sin precio' : '') + '</span>';
+  }
+
   function abrirFicha(id, fecha, toma) {
     var r = Almacen.receta(id);
     if (!r) return;
@@ -2651,6 +2671,7 @@
     html += '<div class="etiquetas">' +
             '<span class="etiqueta verde">' + Util.kcal(n.k) + ' / ración</span>' +
             '<span class="etiqueta verde">' + Util.sal(salRacion) + ' de sal / ración</span>' +
+            etiquetaCoste(r) +
             '<span class="etiqueta' + (escalada ? ' raro' : '') + '">' +
               (mediaFicha ? 'media ración' + (personas > 1 ? ' para ' + personas : '') : escalada ? 'cantidades para ' + personas : base + ' ración(es)') + '</span>' +
             '<span class="etiqueta">' + (r.min || "?") + ' min</span>' +
@@ -6101,15 +6122,27 @@
       var total = todas.length + g.casa.length;
       var cogidos = todas.filter(function (l) { return l.marcado; }).length +
                     g.casa.filter(function (x) { return Almacen.estaPedido(x.id); }).length;
+      /* LO QUE VAS A GASTAR EN ESA TIENDA (10-oct-2026): lo de comida, con el
+         último precio de cada producto. Lo de casa no lleva precio todavía. */
+      var gasto = 0, sinP = 0;
+      todas.forEach(function (l) {
+        var pu = Almacen.precioUnidad(l.id);
+        if (pu && l.cantidad > 0) gasto += pu.e * l.cantidad; else sinP++;
+      });
       html += '<button type="button" class="tile-tienda' + (cogidos && !esOnline(nom) ? " con-cogidos" : "") + (total ? "" : " tile-vacia") +
               '" data-abrirtienda="' + esc(nom) + '">' +
               '<span class="tile-nom">' + esc(nom) + '</span>' +
               '<span class="tile-num">' + total + '</span>' +
               '<span class="tile-pie">' + (total === 1 ? "producto" : "productos") +
-                (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span></button>';
+                (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span>' +
+              (gasto > 0 ? '<span class="tile-pie">\u2248 ' + Util.euros(gasto) + (sinP ? " \u00b7 " + sinP + " sin precio" : "") + '</span>' : '') +
+              '</button>';
     });
     html += '</div>';
-    if (!html) html = '<div class="vacio">Nada por comprar.</div>';
+    /* LO GASTADO DE VERDAD ESTE MES, con los tickets archivados (10-oct-2026) */
+    var mesHoy = Util.hoyISO().slice(0, 7), gm = Almacen.gastoMes(mesHoy);
+    if (gm.tickets) html += '<p class="nota-peque" style="margin-top:8px">Gastado este mes, seg\u00fan tus tickets: <b>' +
+      Util.euros(gm.e) + '</b> \u00b7 ' + gm.tickets + (gm.tickets === 1 ? ' ticket' : ' tickets') + '</p>';
     $("#lista-compra").innerHTML = html;
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar lo cogido";
     refrescarBotonRecibida();
@@ -7939,7 +7972,8 @@
          marcado, y «Comprado» para desmarcar lo que no llegó—, con los envases
          bien contados y sin sumarse a lo que pedía el menú. Ver
          `Almacen.cargarTicketEnLista`. */
-      var res = Almacen.cargarTicketEnLista(c.lineas);
+      var res = Almacen.cargarTicketEnLista(c.lineas, { ref: c.ref, fecha: c.fecha, n: c.n,
+                                                        tienda: c.tienda || "Mercadona", extra: c.extra });
       if (!Almacen.estado.config.comprasCargadas) Almacen.estado.config.comprasCargadas = {};
       Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
       Almacen.guardar("config");
@@ -8929,6 +8963,44 @@
       Sync.cargar().then(function (cambio) {
         if (!cambio) Util.toast("No había nada más nuevo en el repositorio");
         mostrar(UI.vista);
+      });
+    });
+
+    /* LAS COPIAS DIARIAS (10-oct-2026): ver y recuperar. Ver `Sync.copiaDiaria`. */
+    function abrirCopias() {
+      if (!Sync.configurado()) { Util.toast("Primero conecta con GitHub"); return; }
+      abrirModal('<header><h2>Copias diarias</h2><button class="cerrar" data-cerrar>\u00d7</button></header>' +
+                 '<p class="nota-peque" id="copias-estado">Mirando el repositorio\u2026</p><div id="copias-lista"></div>');
+      Sync.listarCopias().then(function (l) {
+        var est = $("#copias-estado"), caja = $("#copias-lista");
+        if (!est || !caja) return;
+        if (!l.length) { est.textContent = "Todav\u00eda no hay ninguna copia: se hace sola la primera vez que se guarda cada d\u00eda."; return; }
+        est.textContent = l.length + (l.length === 1 ? " copia" : " copias") + ". La m\u00e1s nueva arriba.";
+        caja.innerHTML = l.map(function (x) {
+          return '<div class="fila entre" style="padding:6px 0;border-bottom:1px solid var(--borde,#e3e7ee)">' +
+                 '<span><b>' + esc(Util.etiquetaFecha(x.f)) + '</b> <small>' + x.f.slice(0, 4) + ' \u00b7 ' +
+                 Math.round((x.bytes || 0) / 1024) + ' KB</small></span>' +
+                 '<button class="btn mini" data-copia-recuperar="' + esc(x.ruta) + '" data-copia-dia="' + esc(x.f) + '">Recuperar</button></div>';
+        }).join("");
+      }).catch(function (e) {
+        var est = $("#copias-estado"); if (est) est.textContent = "No se han podido leer: " + ((e && e.message) || e);
+      });
+    }
+    var bCop = $("#copias-ver");
+    if (bCop) bCop.addEventListener("click", abrirCopias);
+    $("#modal").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-copia-recuperar]") : null;
+      if (!b) return;
+      var dia = b.getAttribute("data-copia-dia");
+      if (!confirm("Vas a recuperar la copia del " + Util.etiquetaFecha(dia) + ".\n\n" +
+                   "Todo lo que hayas apuntado DESPU\u00c9S se pierde, en este aparato y en los dem\u00e1s.\n\n\u00bfSeguro?")) return;
+      b.disabled = true; b.textContent = "Recuperando\u2026";
+      Sync.recuperarCopia(b.getAttribute("data-copia-recuperar")).then(function (ok) {
+        cerrarModal(); mostrar(UI.vista);
+        Util.toast(ok ? "Recuperada la copia del " + Util.etiquetaFecha(dia) : "Recuperada aqu\u00ed, pero no se pudo subir: pulsa \u00abSubir ahora\u00bb");
+      }).catch(function (e) {
+        b.disabled = false; b.textContent = "Recuperar";
+        Util.toast("No se pudo recuperar: " + ((e && e.message) || e));
       });
     });
 

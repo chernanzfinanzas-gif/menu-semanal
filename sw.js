@@ -2,7 +2,7 @@
 /* M13 · 10-oct-2026: UNA sola versión para todo. La lista llevaba ?v=426 cuando
    la app cargaba la 519: lo guardado no casaba con lo que pide index.html y sin
    cobertura no servía. Al subir de versión sólo se toca la línea de V. */
-var V = "523";
+var V = "524";
 var CACHE = "menu-semanal-v" + V;
 var FICHEROS = [
   "./", "./index.html", "./css/estilos.css?v=" + V,

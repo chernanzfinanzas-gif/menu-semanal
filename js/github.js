@@ -155,12 +155,43 @@
     return JSON.stringify(c);
   }
 
+  /* El catálogo entero de aquí con las fichas que trae una copia encima (el
+     paquete sube podado: sólo lo tuyo, ver `paquete`). */
+  function catalogoConNovedades(aqui, copia) {
+    var porId = {}, orden = [];
+    (aqui || []).forEach(function (x) { if (x && x.id) { porId[x.id] = x; orden.push(x.id); } });
+    (copia || []).forEach(function (x) {
+      if (!x || !x.id) return;
+      if (!porId[x.id]) orden.push(x.id);
+      porId[x.id] = x;
+    });
+    return JSON.parse(JSON.stringify(orden.map(function (id) { return porId[id]; })));
+  }
+
   /* Junta el estado de aquí con el del repositorio y devuelve el resultado,
      listo para reemplazar el local. Conserva el token, que no viaja. */
   function fusionarConRemoto(remoto, sha) {
     var local = JSON.parse(JSON.stringify(Almacen.estado));
     var token = (local.config && local.config.github && local.config.github.token) || "";
     var tokenCat = (local.config && local.config.catalogo && local.config.catalogo.token) || "";
+    /* UNA COPIA RECUPERADA MANDA ENTERA (10-oct-2026). Si en otro aparato se
+       recuperó una copia diaria DESPUÉS de la última vez que éste sincronizó, lo
+       de aquí es justamente lo que se quería deshacer: no se junta, se toma la
+       copia tal cual. Sin esto, los sellos de los días —más nuevos aquí— le
+       devolverían a la copia lo que se quiso quitar. */
+    if (remoto.restaurado &&
+        String(remoto.restaurado) > String((Almacen.estado.sync && Almacen.estado.sync.ultima) || "")) {
+      var rec = JSON.parse(JSON.stringify(remoto));
+      rec.ingredientes = catalogoConNovedades(local.ingredientes, remoto.ingredientes);
+      rec.recetas = catalogoConNovedades(local.recetas, remoto.recetas);
+      delete rec.catalogoFuera;
+      if (!rec.config) rec.config = {};
+      if (!rec.config.github) rec.config.github = {};
+      rec.config.github.token = token;
+      if (tokenCat) { if (!rec.config.catalogo) rec.config.catalogo = {}; rec.config.catalogo.token = tokenCat; }
+      rec.sync = { sha: sha, ultima: new Date().toISOString() };
+      return rec;
+    }
     /* A3 · 10-oct-2026 — APARATO NUEVO O CON LA MEMORIA BORRADA.
        Al conectar, `guardar("config")` le pone la hora de AHORA, más nueva que la
        del repositorio, y sus valores de fábrica (kcal, proteína, ritmo de bajada,
@@ -968,6 +999,7 @@
           try { localStorage.setItem("asistente-alimentacion-v1", JSON.stringify(Almacen.estado)); } catch (e) {}
           self.indicar("Guardado en GitHub", "ok");
           self.ocupado = false;
+          self.copiaDiaria();
           return true;
         });
       }).catch(function (e) {
@@ -982,6 +1014,97 @@
         } catch (e3) {}
         console.warn("Sync guardar:", e);
         return false;
+      });
+    },
+
+    /* ==================== LA COPIA DIARIA (10-oct-2026) ====================
+       Carlos aceptó «copia diaria automática de tus datos, con un botón para
+       recuperarlos». Hasta hoy había UN fichero, datos/estado.json, y cada
+       guardado lo sustituía: los sustos del 21 y 22 de septiembre se arreglaron
+       buscando a mano ficheros «COPIA BUENA».
+       Ahora, la primera vez que se guarda bien cada día, se deja además una copia
+       en datos/copias/estado-AAAA-MM-DD.json del mismo repositorio privado, y se
+       quedan las 30 más nuevas. En Ajustes se ven y se recuperan. */
+    CARPETA_COPIAS: "datos/copias",
+    apiRuta: function (metodo, ruta, cuerpo) {
+      var c = this.cfg();
+      var url = "https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+                encodeURIComponent(c.repo) + "/contents/" + ruta;
+      if (metodo === "GET") url += "?ref=" + encodeURIComponent(c.rama || "main");
+      return fetch(url, {
+        method: metodo, cache: "no-store",
+        headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json",
+                   "Content-Type": "application/json" },
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined
+      });
+    },
+    listarCopias: function () {
+      return this.apiRuta("GET", this.CARPETA_COPIAS).then(function (r) {
+        if (r.status === 404) return [];
+        if (!r.ok) throw new Error(motivoHttp(r.status, ""));
+        return r.json();
+      }).then(function (l) {
+        return (Array.isArray(l) ? l : []).filter(function (x) { return /^estado-\d{4}-\d{2}-\d{2}\.json$/.test(x.name); })
+          .map(function (x) { return { nombre: x.name, ruta: x.path, sha: x.sha, f: x.name.slice(7, 17), bytes: x.size }; })
+          .sort(function (a, b) { return a.f < b.f ? 1 : -1; });
+      });
+    },
+    copiaDiaria: function () {
+      var self = this, hoy = Util.hoyISO(), CL = "khb-copia-diaria";
+      try { if (localStorage.getItem(CL) === hoy) return Promise.resolve(false); } catch (e) {}
+      if (this.copiando || this.enPausa() || !this.configurado()) return Promise.resolve(false);
+      this.copiando = true;
+      var nombre = "estado-" + hoy + ".json";
+      return this.listarCopias().then(function (lista) {
+        if (lista.some(function (x) { return x.nombre === nombre; })) return lista;     // ya la hizo otro aparato
+        return self.apiRuta("PUT", self.CARPETA_COPIAS + "/" + nombre, {
+          message: "Copia diaria " + hoy,
+          content: b64(JSON.stringify(self.paquete(), null, 1)),
+          branch: self.cfg().rama || "main"
+        }).then(function (r) {
+          if (!r.ok && r.status !== 422) throw new Error("copia " + r.status);   // 422: la acaba de hacer otro
+          return self.listarCopias();
+        });
+      }).then(function (lista) {
+        try { localStorage.setItem(CL, hoy); } catch (e) {}
+        /* se quedan las 30 más nuevas; se borran de una en una, sin prisa */
+        var sobran = lista.slice(30);
+        return sobran.reduce(function (p, x) {
+          return p.then(function () {
+            return self.apiRuta("DELETE", x.ruta, { message: "Copia diaria: fuera la del " + x.f,
+                                                    sha: x.sha, branch: self.cfg().rama || "main" });
+          });
+        }, Promise.resolve());
+      }).then(function () { self.copiando = false; return true; })
+        .catch(function (e) { self.copiando = false; console.warn("Copia diaria:", e); return false; });
+    },
+    /* RECUPERAR UNA COPIA: se trae, se completa con el catálogo de aquí, se le
+       pone la hora de la recuperación (`restaurado`) y se sube encima del
+       estado actual. Los demás aparatos, al ver esa hora más nueva que su última
+       sincronización, la toman entera (ver `fusionarConRemoto`). */
+    recuperarCopia: function (ruta) {
+      var self = this;
+      if (this.ocupado) return Promise.reject(new Error("se está guardando; prueba en unos segundos"));
+      var copia;
+      return this.apiRuta("GET", ruta).then(function (r) {
+        if (!r.ok) throw new Error(motivoHttp(r.status, ""));
+        return r.json();
+      }).then(contenidoDe).then(function (c) {
+        copia = c;
+        return self.api("GET");
+      }).then(function (r) {
+        if (!r.ok) throw new Error(motivoHttp(r.status, ""));
+        return r.json();
+      }).then(function (actual) {
+        var aqui = Almacen.estado;
+        copia.ingredientes = catalogoConNovedades(aqui.ingredientes, copia.ingredientes);
+        copia.recetas = catalogoConNovedades(aqui.recetas, copia.recetas);
+        delete copia.catalogoFuera;
+        copia.restaurado = new Date().toISOString();
+        copia.actualizado = copia.restaurado;
+        Almacen.reemplazar(copia);
+        Almacen.estado.sync = { sha: actual.sha, ultima: copia.restaurado };
+        return self.guardar();
       });
     },
 

@@ -527,6 +527,13 @@
       { id: "resp_despierto", nombre: "Respiración despierto", unidad: "rpm", paso: 1, min: 5, max: 40,
         dias: [0, 1, 2, 3, 4, 5, 6], desde: "2026-10-09",
         ayuda: "La media despierto de la misma pantalla." },
+      /* ESTRÉS DURMIENDO Y PULSO MÍNIMO  ·  10-oct-2026. Medido con su histórico:
+         en la gripe A (2-mar-2023) y en el covid (17-jun-2024) fueron las dos
+         señales que saltaron la primera noche, y la respiración y el oxígeno no se
+         movieron. Se pensó apuntarlos a mano, pero Carlos no los encuentra en
+         Garmin Connect, así que NO hay casilla: el aviso M12 los lee de lo que
+         trae la exportación de Garmin (`sueno_estres`, `pulso_min`) y, si algún
+         día llegan solos cada noche, entrarán por ahí sin tocar nada más. */
       /* EL ECG DE LA MAÑANA  ·  28-sep-2026. Con la Polar H10 y la app ECG
          Analysis; el primer mes a diario para tener línea base, después lunes,
          miércoles y viernes. No se teclea: el programa del portátil
@@ -838,7 +845,7 @@
          verse, la señal que más vale: varias medidas de la noche torciéndose
          a la vez. Una sola no dice nada; dos durante dos noches, sí. */
       { id: "M12", nivel: "atencion", titulo: "Algo se puede estar incubando", noches: 2, senales: 2,
-        fcr: 5, vfc: 0.85, resp: 1, spo2: 2,
+        fcr: 5, vfc: 0.85, resp: 1, spo2: 2, estres: 15, pmin: 4,
         texto: "Dos o más medidas de la noche se han torcido a la vez dos noches seguidas. No es un diagnóstico. " +
                "Si además notas fiebre, tos o un cansancio que no es el de entrenar, con tu medicación no se espera: se consulta.",
         requiere: "salud.json" }

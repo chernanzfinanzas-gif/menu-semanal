@@ -1,6 +1,10 @@
 /* Compra recibida, lista para cargar de un golpe en la lista de la compra.
    La genero yo con el ticket delante; el la carga con un boton y pulsa «Ha llegado».
-   `p` son ENVASES, que es lo que cuenta `confirmarCompra`: multiplica por `envase`. */
+   `p` son ENVASES, que es lo que cuenta `confirmarCompra`: multiplica por `envase`.
+   Desde el 10-oct-2026 cada línea lleva además `e`: los EUROS de esa línea tal
+   como vienen en el ticket (todos los envases juntos). Con eso la app archiva el
+   ticket y guarda el precio de cada producto. Opcionales arriba: `tienda`
+   (si no, Mercadona) y `extra` (envío, bolsas: lo que no es producto). */
 window.COMPRA_RECIBIDA = {
   ref: "mercadona-941497",
   fecha: "2026-10-01",

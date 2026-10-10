@@ -55,6 +55,12 @@
       return this.aISO(d);
     },
 
+    /* euros a la española: «2,35 €» */
+    euros: function (e) {
+      if (!(e >= 0)) return "—";
+      return (Math.round(e * 100) / 100).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " \u20ac";
+    },
+
     /* baja · 10-oct-2026: «hace 0 días» y «hace 1 días» */
     hace: function (n) {
       n = Math.round(Number(n) || 0);

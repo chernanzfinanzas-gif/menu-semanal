@@ -4504,6 +4504,8 @@
          VFC              ≤ 85 % de la base (intervals, cada día)
          respiración      ≥ su mediana de las 14 noches anteriores + 1 rpm  (a mano)
          SpO2 noche       ≤ su mediana de las 14 noches anteriores − 2 puntos (a mano)
+         estrés durmiendo ≥ su mediana de 14 noches + 15  (a mano o Garmin) · 10-oct
+         pulso mínimo     ≥ su mediana de 14 noches + 4   (a mano o Garmin) · 10-oct
        Salta si hay dos o más señales en cada una de las dos últimas noches.
        Callado con el corticoide, como M11: sube el pulso y baja la VFC solo. */
     d = def("M12");
@@ -4520,6 +4522,24 @@
         var m = Math.floor(vals.length / 2);
         return vals.length % 2 ? vals[m] : (vals[m - 1] + vals[m]) / 2;
       };
+      /* el valor de una noche: lo apuntado a mano y, si no hay, el de Garmin */
+      var noche = function (idMano, campo, f) {
+        var x = parseFloat(medida(f, idMano));
+        if (!isNaN(x)) return x;
+        var g = parseFloat(valorDia(campo, f));
+        return isNaN(g) ? null : g;
+      };
+      var medianaMixta = function (idMano, campo, f) {
+        var vals = [];
+        for (var k = 1; k <= 14; k++) {
+          var x = noche(idMano, campo, U.sumarDias(f, -k));
+          if (x !== null) vals.push(x);
+        }
+        if (vals.length < 5) return null;
+        vals.sort(function (a, b) { return a - b; });
+        var m = Math.floor(vals.length / 2);
+        return vals.length % 2 ? vals[m] : (vals[m - 1] + vals[m]) / 2;
+      };
       var senalesDe = function (f) {
         var s = [];
         var fc = valorDia("fcr", f), hv = valorDia("vfc", f);
@@ -4529,6 +4549,18 @@
         if (!isNaN(r) && mr !== null && r >= mr + d.resp) s.push("respiración " + num(r, 0) + " rpm (suele " + num(mr, 0) + ")");
         var o = parseFloat(medida(f, "spo2_noche")), mo = medianaAntes("spo2_noche", f);
         if (!isNaN(o) && mo !== null && o <= mo - d.spo2) s.push("SpO2 " + num(o, 0) + " % (suele " + num(mo, 0) + ")");
+        /* 10-oct-2026: estrés durmiendo y pulso mínimo, las dos que saltaron
+           la primera noche en la gripe de 2023 y el covid de 2024. La referencia
+           mezcla lo apuntado a mano con lo que trajo la exportación de Garmin,
+           así funciona desde el primer día sin esperar dos semanas. */
+        if (d.estres) {
+          var e = noche("estres_sueno", "sueno_estres", f), me = medianaMixta("estres_sueno", "sueno_estres", f);
+          if (e !== null && me !== null && e >= me + d.estres) s.push("estrés durmiendo " + num(e, 0) + " (suele " + num(me, 0) + ")");
+        }
+        if (d.pmin) {
+          var pm = noche("pulso_min_noche", "pulso_min", f), mpm = medianaMixta("pulso_min_noche", "pulso_min", f);
+          if (pm !== null && mpm !== null && pm >= mpm + d.pmin) s.push("pulso mínimo " + num(pm, 0) + " (suele " + num(mpm, 0) + ")");
+        }
         return s;
       };
       var noches = [], fN = dia, okN = true;
@@ -5924,6 +5956,128 @@
     return h + '<p class="ecg-pie">Tomas enviadas por el propio tensiómetro (con su hora) y, si las hay, anotadas a mano ' +
       "(«s/h»: sin hora). Umbral de hipertensión en domicilio: 135/85 mmHg (guías europeas). ⚠: el aparato marcó " +
       "posible fibrilación auricular o latido irregular en esa toma. Datos sin revisar por un profesional.</p>";
+  }
+
+  /* ==================== EL RESUMEN PARA LA CITA (10-oct-2026) ====================
+     Carlos lo aceptó de la auditoría: «resumen médico antes de cada cita».
+     Una hoja para llevar: los últimos 30 días de tensión (la misma hoja de
+     siempre, `papelTension`), los ECG, el peso y la cintura, y cuánto se ha
+     cumplido cada medicina. Arriba, la cita y lo que tiene apuntado para
+     preguntar. Se imprime o se guarda en PDF por el mismo camino que la
+     tensión. Sólo enseña lo medido; no interpreta nada. */
+  var citaResumen = null;
+  function citaPorClave(k) {
+    var d = hmDatos();
+    return ((d && d.citas) || []).filter(function (c) { return citaClave(c) === k; })[0] || null;
+  }
+  function papelCita(c) {
+    var dias = 30, hasta = U.hoyISO(), desde = U.sumarDias(hasta, -(dias - 1));
+    var h = '<p class="ecg-cab"><b>Resumen para la cita' + (c ? ": " + U.esc(c.que || "") : "") + "</b><br>" +
+      (c ? U.esc(citaCuando(c) + (c.donde ? " · " + c.donde : "")) + "<br>" : "") +
+      "Datos del " + tenFecha(desde) + " al " + tenFecha(hasta) + " (" + dias + " días). Medido en casa; sin revisar por un profesional.</p>";
+    if (c && (c.pendiente || []).length) {
+      h += '<h3 class="ten-h">Para preguntar</h3><ul class="ten-med">' +
+        c.pendiente.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>";
+    }
+
+    /* medicación: tomas marcadas sobre tomas previstas, por medicina */
+    var tt = ent().tomas || {}, porMed = {};
+    for (var f = desde; f <= hasta; f = U.sumarDias(f, 1)) {
+      hmTomasDe(f).forEach(function (x) {
+        var k = x.t.id, m = porMed[k] || (porMed[k] = { n: x.t.nombre, dosis: x.t.dosis || "", tot: 0, hech: 0 });
+        if (f === hasta && !(tt[f] && tt[f][x.id])) return;      // lo de hoy, sólo si ya está marcado
+        m.tot++;
+        if (tt[f] && tt[f][x.id]) m.hech++;
+      });
+    }
+    var meds = Object.keys(porMed).map(function (k) { return porMed[k]; });
+    if (meds.length) {
+      h += '<h3 class="ten-h">Medicación: tomas marcadas como hechas</h3><table class="ten-res"><tbody>' +
+        meds.map(function (m) {
+          return "<tr><td>" + U.esc(m.n) + (m.dosis ? " · " + U.esc(m.dosis) : "") + "</td><td><b>" + m.hech + " de " + m.tot + "</b>" +
+            (m.tot ? " (" + Math.round(100 * m.hech / m.tot) + " %)" : "") + "</td></tr>";
+        }).join("") + "</tbody></table>" +
+        '<p class="ecg-pie">Una toma sin marcar puede ser un olvido de marcarla, no de tomarla.</p>';
+    }
+
+    /* peso y cintura */
+    var pesos = [];
+    for (var fp = desde; fp <= hasta; fp = U.sumarDias(fp, 1)) {
+      var kg = valorDia("peso", fp);
+      if (typeof kg !== "number") {
+        ((A.estado && A.estado.pesos) || []).forEach(function (p) { if (p.f === fp && typeof p.kg === "number") kg = p.kg; });
+      }
+      if (typeof kg === "number") pesos.push({ f: fp, v: kg });
+    }
+    var cint = [];
+    Object.keys(ent().medidas || {}).sort().forEach(function (fc) {
+      if (fc < desde || fc > hasta) return;
+      var v = parseFloat(medida(fc, "cintura"));
+      if (!isNaN(v)) cint.push({ f: fc, v: v });
+    });
+    if (pesos.length || cint.length) {
+      h += '<h3 class="ten-h">Peso y cintura</h3><table class="ten-res"><tbody>';
+      if (pesos.length) {
+        var p0 = pesos[0], p1 = pesos[pesos.length - 1];
+        h += "<tr><td>Peso</td><td><b>" + num(p1.v) + " kg</b> el " + tenFecha(p1.f) +
+          (pesos.length > 1 ? " · " + num(p0.v) + " kg el " + tenFecha(p0.f) + " (" + signo(p1.v - p0.v) + " kg) · " + pesos.length + " pesadas" : "") + "</td></tr>";
+      }
+      if (cint.length) {
+        var c0 = cint[0], c1 = cint[cint.length - 1];
+        h += "<tr><td>Cintura</td><td><b>" + num(c1.v) + " cm</b> el " + tenFecha(c1.f) +
+          (cint.length > 1 ? " · " + num(c0.v) + " cm el " + tenFecha(c0.f) + " (" + signo(c1.v - c0.v) + " cm)" : "") + "</td></tr>";
+      }
+      h += "</tbody></table>";
+    }
+
+    /* ECG */
+    var ecgs = registrosEcg().filter(function (x) { return x.f >= desde && x.f <= hasta; })
+      .sort(function (a, b) { return (a.f + (a.h || "")) < (b.f + (b.h || "")) ? 1 : -1; });
+    if (ecgs.length) {
+      var limpios = ecgs.filter(function (x) { return !x.revisar; });
+      var media = function (campo) {
+        var l = limpios.map(function (x) { return parseFloat(x[campo]); }).filter(function (v) { return !isNaN(v); });
+        return l.length ? l.reduce(function (a, b) { return a + b; }, 0) / l.length : null;
+      };
+      var ect = limpios.filter(function (x) { return parseFloat(x.ectopicos) > 0; });
+      h += '<h3 class="ten-h">ECG de una derivación (banda de pecho, en reposo)</h3><table class="ten-res"><tbody>' +
+        "<tr><td>Registros</td><td><b>" + ecgs.length + "</b>" + (ecgs.length > limpios.length ? " · " + (ecgs.length - limpios.length) + " con ruido de contacto, fuera de las medias" : "") + "</td></tr>" +
+        (media("fc") !== null ? "<tr><td>Frecuencia media</td><td><b>" + num(media("fc"), 0) + "</b> lpm</td></tr>" : "") +
+        (media("qrs") !== null ? "<tr><td>QRS medio</td><td>" + num(media("qrs"), 0) + " ms</td></tr>" : "") +
+        (media("qtc") !== null ? "<tr><td>QTc medio</td><td>" + num(media("qtc"), 0) + " ms</td></tr>" : "") +
+        (media("rmssd") !== null ? "<tr><td>RMSSD medio</td><td>" + num(media("rmssd"), 0) + " ms</td></tr>" : "") +
+        "<tr><td>Con latidos ectópicos</td><td><b>" + ect.length + "</b> de " + limpios.length +
+          (ect.length ? " · " + ect.slice(0, 10).map(function (x) { return tenFecha(x.f) + " (" + x.ectopicos + ")"; }).join(", ") : "") + "</td></tr>" +
+        "</tbody></table>";
+    }
+
+    /* y la tensión, la misma hoja de siempre */
+    h += '<div style="page-break-before:always"></div>' + papelTension(dias);
+    return h;
+  }
+  function abrirResumenCita(k) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    citaResumen = k || null;
+    var c = k ? citaPorClave(k) : null;
+    caja.innerHTML = '<header><h2>Resumen para la cita</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      papelCita(c) +
+      '<button class="btn principal ecg-btn" type="button" data-cita-imprimir="1">Guardar en PDF o imprimir</button>' +
+      '<p class="nota-peque" style="margin:6px 0 0">En el móvil, en la ventana de imprimir elige «Guardar como PDF».</p>';
+    modal.classList.add("abierta");
+  }
+  function imprimirResumenCita() {
+    var hueco = document.getElementById("ten-imprimir");
+    if (!hueco) { hueco = document.createElement("div"); hueco.id = "ten-imprimir"; document.body.appendChild(hueco); }
+    hueco.innerHTML = papelCita(citaResumen ? citaPorClave(citaResumen) : null);
+    document.body.classList.add("imprime-ten");
+    var fuera = function () {
+      document.body.classList.remove("imprime-ten");
+      window.removeEventListener("afterprint", fuera);
+    };
+    window.addEventListener("afterprint", fuera);
+    setTimeout(function () { window.print(); }, 50);
   }
 
   function abrirTensionPapel() {
@@ -10498,13 +10652,23 @@
     var d = hmDatos();
     if (!d) return "";                        // sin fichero, El Plan como siempre
     var tomas = hmTomasDe(dia), previos = previosDe(dia), citasHoy = citasDelDia(dia);
-    if (!tomas.length && !previos.length && !citasHoy.length) return "";
+    var proximas = dia === U.hoyISO() ? citasProximas(dia, 7) : [];
+    if (!tomas.length && !previos.length && !citasHoy.length && !proximas.length) return "";
     var hechas = (ent().tomas && ent().tomas[dia]) || {}, n = 0, h = "", horaAnt = null;
     /* lo de las citas primero (v450): la cita de ese día y lo que hay que preparar */
     citasHoy.forEach(function (c) {
       h += '<div class="med-cita"><b>Cita' + (c.h ? " a las " + U.esc(c.h) : "") + ":</b> " + U.esc(c.que || "") +
-        (c.donde ? " · " + U.esc(c.donde) : "") + "</div>";
+        (c.donde ? " · " + U.esc(c.donde) : "") +
+        ' <button type="button" class="btn mini" data-cita-resumen="' + U.esc(citaClave(c)) + '">Resumen para llevar</button></div>';
     });
+    /* LAS CITAS DE LA SEMANA QUE VIENE, con su resumen a mano (10-oct-2026):
+       así se prepara antes, no en la sala de espera. Sólo en el día de hoy. */
+    if (dia === U.hoyISO()) {
+      citasProximas(dia, 7).forEach(function (c) {
+        h += '<div class="med-cita"><b>Cita el ' + U.esc(U.etiquetaFecha(c.f)) + (c.h ? " a las " + U.esc(c.h) : "") + ":</b> " +
+          U.esc(c.que || "") + ' <button type="button" class="btn mini" data-cita-resumen="' + U.esc(citaClave(c)) + '">Resumen para llevar</button></div>';
+      });
+    }
     if (previos.length) {
       h += '<div class="med-hora">Para tus citas</div>';
       previos.forEach(function (x) {
@@ -10870,6 +11034,13 @@
     });
     return out;
   }
+  /* las citas con día de los próximos n días, sin contar el de hoy */
+  function citasProximas(iso, n) {
+    var d = hmDatos(), tope = U.sumarDias(iso, n);
+    return ((d && d.citas) || []).filter(function (c) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(String(c.f || "")) && c.f > iso && c.f <= tope;
+    }).sort(function (a, b) { return citaOrden(a) < citaOrden(b) ? -1 : 1; });
+  }
   function citasDelDia(iso) {
     var d = hmDatos();
     return ((d && d.citas) || []).filter(function (c) { return c.f === iso; })
@@ -10883,6 +11054,7 @@
         var fp = previoFecha(c, p); return p.t + (fp ? " (" + U.etiquetaFecha(fp) + ")" : "");
       }).join(" · ")) + "</p>" : "") +
       ((c.pendiente || []).length ? '<ul class="hm-lista">' + c.pendiente.map(function (x) { return "<li>" + U.esc(x) + "</li>"; }).join("") + "</ul>" : "") +
+      (pasada ? "" : '<button type="button" class="btn mini" data-cita-resumen="' + U.esc(citaClave(c)) + '">Resumen para llevar</button>') +
       "</div>";
   }
 
@@ -14154,6 +14326,8 @@
         if (!hmDatos()) Historial.cargar(function () { abrirEditorCitas(); });
         abrirEditorCitas(); return;
       }
+      var cr = t.closest ? t.closest("[data-cita-resumen]") : null;
+      if (cr) { e.preventDefault(); abrirResumenCita(cr.getAttribute("data-cita-resumen")); return; }
       if (t.closest && t.closest("[data-med-abrir]")) {
         e.preventDefault(); medEd = { vista: "lista", id: null, dejando: null, borrando: null, estado: "" };
         if (!hmDatos()) Historial.cargar(function () { abrirEditorMed(); });
@@ -14478,6 +14652,7 @@
       /* el botón de imprimir el ECG vive en la ventana: se atiende aquí */
       if (e.target.closest && e.target.closest("[data-ecg-imprimir]")) { e.preventDefault(); imprimirEcg(); return; }
       if (e.target.closest && e.target.closest("[data-ten-imprimir]")) { e.preventDefault(); imprimirTension(); return; }
+      if (e.target.closest && e.target.closest("[data-cita-imprimir]")) { e.preventDefault(); imprimirResumenCita(); return; }
       var tdi = e.target.closest ? e.target.closest("[data-ten-dias]") : null;
       if (tdi) { e.preventDefault(); tenPapelDias = parseInt(tdi.getAttribute("data-ten-dias"), 10) || 30; abrirTensionPapel(); return; }
       if (medClick(e)) return;

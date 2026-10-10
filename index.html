@@ -8,9 +8,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=523">
-<link rel="stylesheet" href="css/actividad-khb.css?v=523">
-<link rel="stylesheet" href="css/avances-khb.css?v=523">
+<link rel="stylesheet" href="css/estilos.css?v=524">
+<link rel="stylesheet" href="css/actividad-khb.css?v=524">
+<link rel="stylesheet" href="css/avances-khb.css?v=524">
 </head>
 <body>
 
@@ -65,7 +65,8 @@
       <div><h2>Menú semanal</h2><span class="nota-peque">Las cinco tomas de cada día, con su sal y sus calorías</span></div>
     </div>
     <div class="cabecera-semana">
-      <span class="rango" id="rango-semana"></span>
+      <div><span class="rango" id="rango-semana"></span>
+        <div class="nota-peque" id="coste-semana"></div></div>
       <div class="fila">
         <button class="btn icono" id="semana-anterior" title="Semana anterior">‹</button>
         <button class="btn mini" id="ir-hoy">Hoy</button>
@@ -488,6 +489,14 @@
     </div>
 
     <div class="tarjeta">
+      <h2>Copias diarias</h2>
+      <p class="nota-peque">Cada día, la primera vez que se guarda, queda una copia de todos tus datos en
+        el repositorio privado. Se guardan las de los últimos 30 días. Si algo sale mal, recupera la
+        de un día bueno: sustituye lo de ahora en todos tus aparatos.</p>
+      <button class="btn" id="copias-ver">Ver las copias</button>
+    </div>
+
+    <div class="tarjeta">
       <h2>Subir lo que creas al catálogo público</h2>
       <p class="nota-peque">Cada vez que guardas una receta o un ingrediente, lo tuyo sube solo al fichero
         <code>datos/nuevos.js</code> del repositorio de la app. Ese fichero es tuyo y de nadie más: la app
@@ -547,20 +556,20 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=523"></script>
-<script src="datos/recetas.js?v=523"></script>
-<script src="datos/nuevos.js?v=523"></script>
-<script src="datos/hogar.js?v=523"></script>
-<script src="datos/plantillas.js?v=523"></script>
-<script src="datos/actividades.js?v=523"></script>
-<script src="datos/plan.js?v=523"></script>
-<script src="datos/compra-recibida.js?v=523"></script>
-<script src="js/util.js?v=523"></script>
-<script src="js/almacen.js?v=523"></script>
-<script src="js/github.js?v=523"></script>
-<script src="js/app.js?v=523"></script>
-<script src="js/actividad-khb.js?v=523"></script>
-<script src="js/avances-khb.js?v=523"></script>
-<script src="js/entrenamiento.js?v=523"></script>
+<script src="datos/ingredientes.js?v=524"></script>
+<script src="datos/recetas.js?v=524"></script>
+<script src="datos/nuevos.js?v=524"></script>
+<script src="datos/hogar.js?v=524"></script>
+<script src="datos/plantillas.js?v=524"></script>
+<script src="datos/actividades.js?v=524"></script>
+<script src="datos/plan.js?v=524"></script>
+<script src="datos/compra-recibida.js?v=524"></script>
+<script src="js/util.js?v=524"></script>
+<script src="js/almacen.js?v=524"></script>
+<script src="js/github.js?v=524"></script>
+<script src="js/app.js?v=524"></script>
+<script src="js/actividad-khb.js?v=524"></script>
+<script src="js/avances-khb.js?v=524"></script>
+<script src="js/entrenamiento.js?v=524"></script>
 </body>
 </html>

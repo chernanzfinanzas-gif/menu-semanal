@@ -6419,6 +6419,8 @@
            cuando el suplente es EL MISMO producto en otra tienda, lo que se
            apunta en `quiero` lleva su propio id, y si el borrado fuera despues
            se borraria a si mismo. Lo destapo la prueba de las salchichas. */
+        /* si venía en un ticket y estaba en Pendiente, ya no está pendiente */
+        if (llegaron > 0 && ((self.estado.quiero || {})[l.id] || {}).ticket) delete self.estado.recados[l.id];
         if (self.estado.quiero) delete self.estado.quiero[l.id];
         if (llegaron < pedidos) {
           var sup = alSuplente[l.id] ? self.elSuplenteDe(l.id) : null;
@@ -6460,7 +6462,7 @@
            pide EXACTAMENTE lo del ticket, ni lo que falte para el menú encima
            ni descontando lo que ya hubiera en casa: es lo que ha llegado.
        Devuelve { puestas, sinFicha }. */
-    cargarTicketEnLista: function (lineas) {
+    cargarTicketEnLista: function (lineas, opciones) {
       var self = this, puestas = 0, sinFicha = [];
       if (!this.estado.quiero) this.estado.quiero = {};
       if (!this.estado.compraMarcada) this.estado.compraMarcada = {};
@@ -6471,13 +6473,143 @@
         var env = l.p > 0 ? l.p : 1;
         var tam = self.tamanoPieza(g) || 1;
         var piezas = g.envase > 0 ? Math.round(env * g.envase / tam * 100) / 100 : env;
-        self.estado.quiero[l.i] = { p: piezas, env: env, ticket: true, f: Util.hoyISO() };
+        /* `donde`: la tienda DEL TICKET, no la de la ficha. Si no, el tomate
+           triturado (ficha: DIA) salía en la lista de DIA y al pulsar «Comprado»
+           en Mercadona no entraba en la despensa. */
+        self.estado.quiero[l.i] = { p: piezas, env: env, ticket: true, f: Util.hoyISO(),
+                                    donde: (opciones && opciones.tienda) || "Mercadona" };
         self.estado.compraMarcada[l.i] = true;
         puestas++;
       });
+      this.archivarTicket(lineas, opciones || {});
       this._sellarPedido();
       this.guardar("quiero");
       return { puestas: puestas, sinFicha: sinFicha };
+    },
+
+    /* EL TICKET SE ARCHIVA, CON SUS PRECIOS (10-oct-2026). Carlos aceptó que cada
+       ticket que le leo guarde lo que costó cada línea. Hasta hoy el precio de un
+       producto era UNO, casi todos apuntados el 29-30 de septiembre, y el ticket
+       solo traía cantidades.
+         · `estado.tickets[ref]`        el ticket entero: fecha, tienda, líneas y total.
+         · `estado.preciosCompra[id][ref]` lo que costó UN ENVASE en esa compra.
+       Los dos van por clave (ref), no en listas: así la sincronización los suma
+       de los dos aparatos sin perder ninguno. Una línea sin precio se archiva
+       igual, sin precio. */
+    archivarTicket: function (lineas, c) {
+      if (!c.ref) return;
+      var self = this, f = c.fecha || Util.hoyISO(), donde = c.tienda || "Mercadona", total = 0;
+      if (!this.estado.tickets) this.estado.tickets = {};
+      if (!this.estado.preciosCompra) this.estado.preciosCompra = {};
+      var ls = [];
+      (lineas || []).forEach(function (l) {
+        if (!l || !l.i) return;
+        var env = l.p > 0 ? l.p : 1;
+        var x = { i: l.i, p: env };
+        if (l.e > 0) {
+          x.e = Math.round(l.e * 100) / 100;
+          total += x.e;
+          if (self.ingrediente(l.i)) {
+            if (!self.estado.preciosCompra[l.i]) self.estado.preciosCompra[l.i] = {};
+            self.estado.preciosCompra[l.i][c.ref] = { f: f, e: Math.round(l.e / env * 1000) / 1000, donde: donde };
+          }
+        }
+        ls.push(x);
+      });
+      this.estado.tickets[c.ref] = { f: f, n: c.n || "", donde: donde, lineas: ls,
+                                     total: Math.round(total * 100) / 100,
+                                     extra: c.extra > 0 ? c.extra : 0 };   // envío, bolsas: lo que no es producto
+    },
+
+    /* LO QUE CUESTA UNA UNIDAD DE DESPENSA (g, ml o ud) de un producto, con el
+       precio más reciente que haya: el de un ticket o el de la ficha. Devuelve
+       { e, f, donde, de } o null si no hay ninguno. */
+    precioUnidad: function (id) {
+      var g = this.ingrediente(id);
+      if (!g) return null;
+      var mejor = null;
+      var pc = (this.estado.preciosCompra || {})[id] || {};
+      Object.keys(pc).forEach(function (ref) {
+        var x = pc[ref];
+        if (!x || !(x.e > 0)) return;
+        if (!mejor || String(x.f) > String(mejor.f)) mejor = { porEnvase: x.e, f: x.f, donde: x.donde, de: "ticket" };
+      });
+      (g.precios || []).forEach(function (x) {
+        if (!x || !(x.p > 0 || x.pu > 0)) return;
+        if (mejor && String(mejor.f) >= String(x.f)) return;
+        mejor = { porEnvase: x.p, pu: x.pu, u: x.u, f: x.f, donde: x.donde, de: "ficha" };
+      });
+      if (!mejor) return null;
+      var e = null;
+      if (mejor.porEnvase > 0 && g.envase > 0) e = mejor.porEnvase / g.envase;
+      else if (mejor.pu > 0) {
+        var u = String(mejor.u || "").toLowerCase();
+        if ((u === "kg" && g.u === "g") || (u === "l" && g.u === "ml")) e = mejor.pu / 1000;
+        else if (u === "ud" && g.u === "ud") e = mejor.pu;
+        else if (u === "docena" && g.u === "ud") e = mejor.pu / 12;
+        else if (u === "kg" && g.u === "ud" && g.pesoUd > 0) e = mejor.pu * g.pesoUd / 1000;
+      }
+      else if (mejor.porEnvase > 0) e = mejor.porEnvase;     // sin envase: el precio es de la pieza
+      if (!(e > 0)) return null;
+      return { e: e, f: mejor.f, donde: mejor.donde, de: mejor.de };
+    },
+
+    /* COSTE DE UNA RACIÓN de una receta, con los precios de arriba. `n` es
+       cuántos ingredientes entran y `con` cuántos tienen precio: si falta
+       alguno, la cifra se queda corta y la pantalla lo dice. */
+    costeReceta: function (rec) {
+      if (typeof rec === "string") rec = this.receta(rec);
+      if (!rec || rec.nutrManual) return null;
+      if (rec.conj && !(rec.ing || []).length) this.armarConjunto(rec);
+      var self = this, t = 0, n = 0, con = 0, faltan = [];
+      (rec.ing || []).forEach(function (l) {
+        var g = self.ingrediente(l.i);
+        if (!g || !(l.c > 0)) return;
+        var pu = self.precioUnidad(l.i);
+        /* lo básico (aceite, especias) cuenta si tiene precio; si no, no se
+           da por «falta»: son céntimos y siempre hay en casa */
+        if (g.basico && !pu) return;
+        n++;
+        if (!pu) { faltan.push(g.n); return; }
+        con++;
+        t += l.c * pu.e;
+      });
+      if (!n) return null;
+      return { e: t / (rec.raciones || 1), n: n, con: con, faltan: faltan };
+    },
+
+    /* COSTE DE LA SEMANA: cada plato planificado (no los de fuera) por su
+       ración y por quien lo come. */
+    costeSemana: function (lunesISO) {
+      var self = this, t = 0, n = 0, con = 0;
+      for (var i = 0; i < 7; i++) {
+        var f = Util.sumarDias(lunesISO, i), d = this.estado.plan[f];
+        if (!d) continue;
+        Util.TOMAS.forEach(function (tm) {
+          if (self.esFuera(f, tm.k)) return;
+          var pers = self.comensales(f, tm.k);
+          (d[tm.k] || []).forEach(function (rid) {
+            var r = self.receta(rid);
+            if (!r || r.grupo === "restaurante") return;
+            var c = self.costeReceta(r);
+            if (!c) return;
+            var quien = self.comensalesDePlato(r, pers, f, tm.k);
+            t += c.e * quien; n += c.n; con += c.con;
+          });
+        });
+      }
+      return { e: t, n: n, con: con };
+    },
+
+    /* LO QUE SE HA GASTADO DE VERDAD en un mes, sumando los tickets archivados. */
+    gastoMes: function (mes) {
+      var self = this, t = 0, k = 0;
+      Object.keys(this.estado.tickets || {}).forEach(function (ref) {
+        var x = self.estado.tickets[ref];
+        if (!x || String(x.f).slice(0, 7) !== mes) return;
+        t += (x.total || 0) + (x.extra || 0); k++;
+      });
+      return { e: t, tickets: k };
     },
 
     /* Lo de Hogar, al confirmar: no hay stock que subir, solo se quita la marca
@@ -7494,8 +7626,10 @@
 
         if (ficha.mochila.indexOf(t.k) >= 0) {
           if (!pool.length) return;
-          var aptas = pool.filter(function (r) { return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(t.k) >= 0; });
-          if (!aptas.length) aptas = pool;
+          var aptas = pool.filter(function (r) { return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(t.k) >= 0 &&
+                                                       self.vistaReceta(r.id) !== "no"; });   // ni «no me vale»
+          if (!aptas.length) aptas = pool.filter(function (r) { return self.vistaReceta(r.id) !== "no"; });
+          if (!aptas.length) return;
           /* reparto estable: el mismo día siempre propone lo mismo */
           var semilla = 0, s = fecha + t.k;
           for (var i = 0; i < s.length; i++) semilla = (semilla * 31 + s.charCodeAt(i)) % 100000;
@@ -8103,11 +8237,17 @@
 
         var candidatas = (pool && ficha.mochila.indexOf(t.k) >= 0 ? pool : self.estado.recetas)
           .filter(function (r) { return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf(t.k) >= 0; });
+        /* «NO ME VALE» NO SE PROPONE (10-oct-2026). Hasta hoy el completador sólo
+           miraba las estrellas: un plato marcado «no me vale» en el recetario podía
+           volver solo. Ahora se quita siempre, quede lo que quede: es un no suyo,
+           no una preferencia. */
+        candidatas = candidatas.filter(function (r) { return self.vistaReceta(r.id) !== "no"; });
         /* Lo que puntuó con 1 o 2 estrellas no se le vuelve a proponer (v370),
            salvo que no quede otra cosa. */
         var sinMalas = candidatas.filter(function (r) { var e = self.estrellasPlato(r.id); return !e || e >= 3; });
         if (sinMalas.length) candidatas = sinMalas;
-        if (!candidatas.length && pool && ficha.mochila.indexOf(t.k) >= 0) candidatas = pool;
+        if (!candidatas.length && pool && ficha.mochila.indexOf(t.k) >= 0)
+          candidatas = pool.filter(function (r) { return self.vistaReceta(r.id) !== "no"; });
         if (!candidatas.length) return;
 
         var salYa = self.salDia(fecha);
@@ -8172,7 +8312,8 @@
           var guar = self.estado.recetas.filter(function (r) {
             var e = self.estrellas(r.id);
             return !r.oculta && !self.esDeOtro(r) && (r.tipo || []).indexOf("guarnicion") >= 0 &&
-                   (d[toma] || []).indexOf(r.id) < 0 && (!e || e >= 3);
+                   (d[toma] || []).indexOf(r.id) < 0 && (!e || e >= 3) &&
+                   self.vistaReceta(r.id) !== "no";          // ni la guarnición «no me vale» (10-oct-2026)
           });
           if (!guar.length) return;
           var salHoy2 = self.salDia(fecha);
@@ -8539,7 +8680,7 @@
       Object.keys(acumulado).forEach(function (id) {
         var ing = self.ingrediente(id);
         if (!ing) return;
-        if (enPendiente[id]) return;
+        if (enPendiente[id] && !((self.estado.quiero || {})[id] || {}).ticket) return;   // el ticket entra siempre
         /* LO QUE HACE FALTA MENOS LO QUE HAY DISPONIBLE PARA ESTA SEMANA. Y
            luego, redondeado al envase: en la tienda no venden 340 g de arroz,
            venden bolsas de kilo.
@@ -8599,8 +8740,8 @@
           envase: ing.envase || 0,
           envases: envases,
           apartado: Math.round(apartado * 100) / 100,   // lo que el stock ya debe a otros platos
-          cajon: self.cajonDe(ing),
-          tienda: self.tiendaDe(ing),
+          cajon: (qx && qx.ticket && qx.donde) ? (qx.donde === "Amazon" ? "amazon" : "super") : self.cajonDe(ing),
+          tienda: (qx && qx.ticket && qx.donde) ? qx.donde : self.tiendaDe(ing),
           unidad: ing.u,
           /* LA CIFRA DEL PARÉNTESIS ES DE UN ENVASE, NO DE TODOS (25-sep-2026).
              «2 × 6 ud (330 g)» son dos hueveras de seis huevos, y 330 g es lo
@@ -8635,7 +8776,8 @@
            cambiar. Ahora lo dice la ficha, con `pedir: "nunca"`, y `modoPedir`
            deduce exactamente esas mismas dos condiciones mientras él no diga
            otra cosa: el día que se estrenó, la lista salió idéntica. */
-        if (self.modoPedir(ing) === "nunca") return;
+        /* lo que trae un ticket entra siempre: ya está comprado (10-oct-2026) */
+        if (self.modoPedir(ing) === "nunca" && !(qx && qx.ticket)) return;
         /* NI LA SUSCRIPCIÓN NI LO QUE SE PIDE APARTE (23-sep-2026). La suscripción
            llega sola cada seis semanas; lo de «aparte» —la proteína y los geles de
            HSN, las barritas de Decathlon— lo pide Carlos por su cuenta cuando ve
@@ -8652,10 +8794,16 @@
          porque si has dicho que lo quieres, lo quieres aunque tengas de sobra. */
       Object.keys(this.estado.quiero || {}).forEach(function (id) {
         var ing = self.ingrediente(id);
-        if (!ing || (ing.oculta && !ing.reserva)) return;
-        if (self.modoPedir(ing) === "nunca") return;
-        if (acumulado[id]) return;                  // ya lo pide un plato
-        if (enPendiente[id]) return;                // ya está en Pendiente
+        var deTicket = !!(self.estado.quiero[id] && self.estado.quiero[id].ticket);
+        if (!ing) return;
+        if (acumulado[id]) return;                  // ya lo pide un plato: esa línea lo lleva
+        /* Lo que trae un ticket ya está comprado: entra aunque la ficha esté
+           oculta, sea de suscripción o esté en Pendiente (10-oct-2026). */
+        if (!deTicket) {
+          if (ing.oculta && !ing.reserva) return;
+          if (self.modoPedir(ing) === "nunca") return;
+          if (enPendiente[id]) return;              // ya está en Pendiente
+        }
         var tamq = self.tamanoPieza(ing);
         var pediste = self.estado.quiero[id].p || 1;
         var dondeQ = self.estado.quiero[id].donde || null;   /* tienda forzada por el suplente */
