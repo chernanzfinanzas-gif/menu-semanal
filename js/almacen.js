@@ -32,7 +32,46 @@
      Ahora todos pasan por aquí. Si falla, sale una franja roja que no se va
      sola, con el tamaño del estado, y queda apuntado en `Almacen.errorGuardar`
      (lo enseña también el medidor de Ajustes). */
-  function escribirEstado(est) {
+  /* M10 · 10-oct-2026 — EL MENÚ PRIMERO, LAS CACHÉS DESPUÉS.
+     La franja roja salió con el estado en 0,35 MB: no estaba lleno el menú,
+     estaban llenas las cachés de salud y entreno (copias de ficheros del
+     repositorio, más de 2,5 MB) que comparten los ~5 MB del navegador.
+     Esas cachés se vuelven a bajar solas, así que si el menú no cabe se
+     tiran y se reintenta UNA vez. También se tiran al arrancar las versiones
+     viejas que se quedaron olvidadas (p. ej. khb-trazos-strava-v3 cuando ya
+     se usa la v4). Solo se tocan claves de esta lista: nada de lo que
+     apunta Carlos (khb-sobran-pedidas, menús, borradores) entra aquí. */
+  var CACHES_KHB = /^khb-(salud-cache|salud-hist|archivo-actividad|act-hist|trazos-strava|curva|rodillo|revisiones|monte|ecg|tension-correo|historial|ecg-ultimo|rev-garmin|diario-salud|agenda|fuerza|casos|nombres|rutas-nuevas|rutas-indice)-v(\d+)$/;
+
+  function clavesCache() {
+    var out = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i), m = k && k.match(CACHES_KHB);
+        if (m) out.push({ k: k, base: m[1], ver: +m[2], tam: (localStorage.getItem(k) || "").length });
+      }
+    } catch (e) {}
+    return out;
+  }
+
+  /* Tira las versiones viejas (se queda con la más alta de cada caché). */
+  function limpiarCachesViejas() {
+    var lista = clavesCache(), mayor = {}, n = 0;
+    lista.forEach(function (c) { if (!(c.base in mayor) || c.ver > mayor[c.base]) mayor[c.base] = c.ver; });
+    lista.forEach(function (c) {
+      if (c.ver < mayor[c.base]) { try { localStorage.removeItem(c.k); n++; } catch (e) {} }
+    });
+    return n;
+  }
+
+  /* Tira TODAS las cachés, de la más grande a la más pequeña. */
+  function vaciarCaches() {
+    var lista = clavesCache().sort(function (a, b) { return b.tam - a.tam; }), n = 0;
+    lista.forEach(function (c) { try { localStorage.removeItem(c.k); n++; } catch (e) {} });
+    return n;
+  }
+
+  function escribirEstado(est, reintento) {
     var txt;
     try { txt = JSON.stringify(est); } catch (e0) { return false; }
     try {
@@ -45,6 +84,7 @@
       if (global.Almacen) global.Almacen.tamGuardado = txt.length;
       return true;
     } catch (e) {
+      if (!reintento && vaciarCaches() > 0) return escribirEstado(est, true);
       var info = { f: new Date().toISOString(), tam: txt.length, porque: String((e && e.name) || e) };
       if (global.Almacen) global.Almacen.errorGuardar = info;
       try {
@@ -52,12 +92,14 @@
           var d = document.createElement("div");
           d.id = "aviso-sin-guardar";
           d.setAttribute("role", "alert");
-          d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:9999;background:#b23a30;color:#fff;" +
+          /* En el flujo de la página y no fija encima: fija tapaba la barra y
+             las pestañas, justo las que llevan a Ajustes → «Subir ahora». */
+          d.style.cssText = "position:relative;background:#b23a30;color:#fff;" +
                             "padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif;text-align:center";
           d.textContent = "\u26a0 No se ha podido guardar en este aparato (memoria del navegador llena, " +
                           (Math.round(info.tam / 1024 / 10.24) / 100) + " MB). Lo último puede perderse al " +
                           "recargar: sincroniza con GitHub ahora.";
-          document.body.appendChild(d);
+          document.body.insertBefore(d, document.body.firstChild);
         }
       } catch (e2) {}
       return false;
@@ -70,6 +112,7 @@
 
     /* ---------- arranque ---------- */
     iniciar: function () {
+      limpiarCachesViejas();
       var guardado = null;
       try { guardado = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { guardado = null; }
       this.estado = guardado && guardado.v ? guardado : this.estadoInicial();
