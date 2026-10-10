@@ -389,7 +389,8 @@
       }
       if (!e.ingredientes || !e.ingredientes.length) e.ingredientes = JSON.parse(JSON.stringify(global.DATOS_INGREDIENTES || []));
       if (!e.recetas || !e.recetas.length) e.recetas = JSON.parse(JSON.stringify(global.DATOS_RECETAS || []));
-      if (!e.plantillas || !e.plantillas.length) e.plantillas = JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || []));
+      /* sólo si no hay ni la lista: si las ha borrado todas, es decisión suya */
+      if (!e.plantillas) e.plantillas = JSON.parse(JSON.stringify(global.DATOS_PLANTILLAS || []));
       if (!e.plan) e.plan = {};
       if (!e.comido) e.comido = {};
       if (!e.selloDia) e.selloDia = {};
@@ -472,6 +473,8 @@
       ].forEach(function (par) {
         var clave = par[0], datos = par[1] || [];
         if (!e[clave]) return;
+        /* una plantilla que él borró no vuelve de la semilla (10-oct-2026) */
+        if (clave === "plantillas") datos = datos.filter(function (x) { return !(e.plantillasBorradas || {})[x.id]; });
         var hay = {};
         e[clave].forEach(function (x) { hay[x.id] = true; });
         datos.forEach(function (x) {
@@ -7644,7 +7647,13 @@
           if (fuerte) { d[t.k] = [fuerte.id]; puesto++; return; }
         }
         if (!molde) return;
-        d[t.k] = (molde[t.k] || []).slice();
+        /* M8 de verdad (10-oct-2026, v525). El filtro de la v520 se puso en
+           `aplicarPlantilla`, que ya no tiene botón; «Copiar plantilla» viene por
+           aquí y seguía copiando los platos retirados a la compra. Ahora tampoco. */
+        d[t.k] = (molde[t.k] || []).filter(function (rid) {
+          var r = self.receta(rid);
+          return r && !r.borrada && !r.oculta && r.grupo !== "retirado";
+        });
         if (d[t.k].length) puesto++;
       });
 
@@ -8451,6 +8460,64 @@
       }
       if (total) this.guardar("rellenar");
       return { tomas: total, dias: 0 };
+    },
+
+    /* ==================== LAS PLANTILLAS, SUYAS (10-oct-2026) ====================
+       Carlos: «no se podría poner 4 y las relleno yo desde una semana futura que
+       relleno y guardo como plantilla y luego borro. Luego me permitirá elegir
+       entre las plantillas disponibles?» y «poder cambiar el nombre sería útil».
+       Hasta hoy «Copiar plantilla» usaba siempre la Semana A, y las guardadas no
+       se podían usar ni tocar. Ahora: tantas como quiera, se eligen, se
+       sustituyen, se renombran y se borran. Cada una lleva su hora (`t`) y lo
+       borrado deja la suya en `plantillasBorradas`, para que la sincronización
+       no la resucite desde el otro aparato. */
+    diasDeSemana: function (lunesISO) {
+      /* los fijos (pan, yogur, bebida de mesa) no se guardan: al copiar los pone
+         la app sola, y guardados salían repetidos */
+      var fijos = {};
+      ((this.estado.config && this.estado.config.fijos) || []).forEach(function (f) { if (f && f.r) fijos[f.r] = 1; });
+      var dias = [];
+      for (var i = 0; i < 7; i++) {
+        var d = this.estado.plan[Util.sumarDias(lunesISO, i)] || {};
+        var x = { d: Util.DIAS[i] };
+        Util.TOMAS.forEach(function (t) { x[t.k] = (d[t.k] || []).filter(function (id) { return !fijos[id]; }); });
+        dias.push(x);
+      }
+      return dias;
+    },
+    guardarPlantilla: function (lunesISO, nombre, idExistente) {
+      var ahora = new Date().toISOString(), dias = this.diasDeSemana(lunesISO), p = null;
+      if (idExistente) this.estado.plantillas.forEach(function (x) { if (x.id === idExistente) p = x; });
+      if (p) { p.dias = dias; if (nombre) p.nombre = nombre; p.editado = true; p.t = ahora; }
+      else {
+        p = { id: "p" + Date.now().toString(36), nombre: nombre || "Mi semana", dias: dias, editado: true, t: ahora };
+        this.estado.plantillas.push(p);
+      }
+      this.guardar("plantilla");
+      return p;
+    },
+    renombrarPlantilla: function (id, nombre) {
+      var ok = false;
+      this.estado.plantillas.forEach(function (x) {
+        if (x.id === id && nombre) { x.nombre = nombre; x.editado = true; x.t = new Date().toISOString(); ok = true; }
+      });
+      if (ok) this.guardar("plantilla");
+      return ok;
+    },
+    borrarPlantilla: function (id) {
+      var n = this.estado.plantillas.length;
+      this.estado.plantillas = this.estado.plantillas.filter(function (x) { return x.id !== id; });
+      if (this.estado.plantillas.length === n) return false;
+      if (!this.estado.plantillasBorradas) this.estado.plantillasBorradas = {};
+      this.estado.plantillasBorradas[id] = new Date().toISOString();
+      this.guardar("plantilla");
+      return true;
+    },
+    /* cuántos platos tiene una plantilla, para la lista */
+    platosDePlantilla: function (p) {
+      var n = 0;
+      (p.dias || []).forEach(function (d) { Util.TOMAS.forEach(function (t) { n += (d[t.k] || []).length; }); });
+      return n;
     },
 
     aplicarPlantilla: function (plantillaId, lunesISO) {

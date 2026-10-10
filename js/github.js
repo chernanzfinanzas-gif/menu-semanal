@@ -206,6 +206,27 @@
     junto.actualizado = (local.actualizado || "") > (remoto.actualizado || "")
       ? local.actualizado : remoto.actualizado;
 
+    /* ── LAS PLANTILLAS, UNA A UNA POR SU HORA (10-oct-2026) ─────────────
+       De cada plantilla manda la que se tocó más tarde (`t`); una borrada
+       (`plantillasBorradas`) no vuelve salvo que alguien la guarde después. */
+    (function () {
+      var bor = {};
+      [local.plantillasBorradas || {}, remoto.plantillasBorradas || {}].forEach(function (b) {
+        Object.keys(b).forEach(function (id) { if (!bor[id] || String(b[id]) > String(bor[id])) bor[id] = b[id]; });
+      });
+      var porId = {}, orden = [];
+      function pon(x) {
+        if (!x || !x.id) return;
+        if (!porId[x.id]) { porId[x.id] = x; orden.push(x.id); return; }
+        if (String(x.t || "") > String(porId[x.id].t || "")) porId[x.id] = x;
+      }
+      (local.plantillas || []).forEach(pon);
+      (remoto.plantillas || []).forEach(pon);
+      junto.plantillas = JSON.parse(JSON.stringify(orden.map(function (id) { return porId[id]; })
+        .filter(function (x) { return !bor[x.id] || String(x.t || "") > String(bor[x.id]); })));
+      junto.plantillasBorradas = bor;
+    })();
+
     /* ── LAS PESADAS, UNA A UNA POR FECHA (8-oct-2026) ──────────────────
        La lista de pesos no lleva id, y una lista sin id la decidía entera el
        reloj GLOBAL: si apuntabas el peso en el móvil y el ordenador guardaba

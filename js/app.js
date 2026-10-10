@@ -7243,21 +7243,7 @@
                     sal.map(function (x) { return Util.etiquetaFecha(x.f); }).join(", ") + "): elige otro" : ""));
       });
     });
-    $("#guardar-como-plantilla").addEventListener("click", function () {
-      var nombre = prompt("Nombre de la plantilla:", "Mi semana");
-      if (!nombre) return;
-      var dias = [];
-      for (var i = 0; i < 7; i++) {
-        var d = Almacen.estado.plan[Util.sumarDias(UI.lunes, i)] || Almacen.diaVacio();
-        dias.push({
-          d: Util.DIAS[i], desayuno: (d.desayuno || []).slice(), almuerzo: (d.almuerzo || []).slice(),
-          comida: (d.comida || []).slice(), merienda: (d.merienda || []).slice(), cena: (d.cena || []).slice()
-        });
-      }
-      Almacen.estado.plantillas.push({ id: "p" + Date.now().toString(36), nombre: nombre, dias: dias });
-      Almacen.guardar("plantilla");
-      Util.toast("Plantilla guardada");
-    });
+    $("#guardar-como-plantilla").addEventListener("click", abrirGuardarPlantilla);
 
     $("#completar-semana").addEventListener("click", function () {
       if (!confirmarSemana("Vas a completar")) return;
@@ -7277,16 +7263,79 @@
                  " · se queda a " + medio + " kcal del objetivo de media");
     });
 
-    $("#rellenar-semana").addEventListener("click", function () {
-      if (!confirmarSemana("Vas a rellenar con la Semana A")) return;
-      var r = Almacen.rellenarSemana(UI.lunes, "A");
-      pintarMenu();
-      var partes = [];
-      if (r.tomas) partes.push(r.tomas + " toma" + (r.tomas === 1 ? "" : "s"));
-      if (r.dias) partes.push("entreno en " + r.dias + " día" + (r.dias === 1 ? "" : "s"));
-      Util.toast(partes.length
-        ? "Rellenado: " + partes.join(" y ") + " (los días pasados se respetan)"
-        : "No había huecos que rellenar de hoy en adelante");
+    /* «COPIAR PLANTILLA» CON LISTA (10-oct-2026): se elige cuál, y desde aquí
+       mismo se renombran y se borran. Copia sólo en los huecos, como siempre. */
+    function abrirPlantillas() {
+      var lista = Almacen.estado.plantillas || [];
+      var h = '<header><h2>Copiar plantilla</h2><button class="cerrar" data-cerrar>×</button></header>' +
+        '<p class="nota-peque">Se copia en los huecos de la semana que estás viendo (' + esc(Util.etiquetaRango(UI.lunes)) +
+        '). Lo que ya tengas puesto y los días pasados no se tocan.</p>';
+      if (!lista.length) h += '<p class="nota-peque">No tienes ninguna plantilla. Rellena una semana y pulsa «Guardar como plantilla».</p>';
+      lista.forEach(function (p) {
+        h += '<div class="fila entre" style="padding:8px 0;border-bottom:1px solid var(--borde,#e3e7ee);gap:6px;flex-wrap:wrap">' +
+          '<span><b>' + esc(p.nombre || p.id) + '</b> <small>' + Almacen.platosDePlantilla(p) + ' platos</small></span>' +
+          '<span class="fila" style="gap:4px">' +
+          '<button class="btn mini principal" data-pla-copiar="' + esc(p.id) + '">Copiar</button>' +
+          '<button class="btn mini" data-pla-nombre="' + esc(p.id) + '">Renombrar</button>' +
+          '<button class="btn mini" data-pla-borrar="' + esc(p.id) + '">Borrar</button></span></div>';
+      });
+      abrirModal(h);
+    }
+    function abrirGuardarPlantilla() {
+      var lista = Almacen.estado.plantillas || [];
+      var h = '<header><h2>Guardar como plantilla</h2><button class="cerrar" data-cerrar>×</button></header>' +
+        '<p class="nota-peque">Se guarda la semana que estás viendo (' + esc(Util.etiquetaRango(UI.lunes)) + ').</p>' +
+        '<label class="campo"><span>Nombre de la plantilla nueva</span><input type="text" id="pla-nombre-nueva" placeholder="Ej.: Semana de rodillo"></label>' +
+        '<button class="btn principal" data-pla-nueva="1">Guardar como nueva</button>';
+      if (lista.length) {
+        h += '<p class="nota-peque" style="margin-top:14px"><b>O sustituir una que ya tienes</b> (se queda con su nombre):</p>';
+        lista.forEach(function (p) {
+          h += '<div class="fila entre" style="padding:6px 0;border-bottom:1px solid var(--borde,#e3e7ee)">' +
+            '<span>' + esc(p.nombre || p.id) + ' <small>' + Almacen.platosDePlantilla(p) + ' platos</small></span>' +
+            '<button class="btn mini" data-pla-sustituir="' + esc(p.id) + '">Sustituir</button></div>';
+        });
+      }
+      abrirModal(h);
+    }
+    $("#rellenar-semana").addEventListener("click", abrirPlantillas);
+    $("#modal").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-pla-copiar],[data-pla-nombre],[data-pla-borrar],[data-pla-nueva],[data-pla-sustituir]") : null;
+      if (!b) return;
+      var buscar = function (id) { return (Almacen.estado.plantillas || []).filter(function (x) { return x.id === id; })[0]; };
+      var id;
+      if ((id = b.getAttribute("data-pla-copiar"))) {
+        var p = buscar(id);
+        if (!p || !confirmarSemana("Vas a copiar «" + (p.nombre || id) + "» en")) return;
+        var r = Almacen.rellenarSemana(UI.lunes, id);
+        cerrarModal(); pintarMenu();
+        Util.toast(r.tomas ? "Copiada «" + (p.nombre || id) + "» en " + r.tomas + " toma" + (r.tomas === 1 ? "" : "s") + " (los días pasados se respetan)"
+                           : "No había huecos que rellenar de hoy en adelante");
+        return;
+      }
+      if ((id = b.getAttribute("data-pla-nombre"))) {
+        var p2 = buscar(id); if (!p2) return;
+        var nom = prompt("Nuevo nombre:", p2.nombre || "");
+        if (!nom || !nom.trim()) return;
+        Almacen.renombrarPlantilla(id, nom.trim()); abrirPlantillas(); Util.toast("Renombrada");
+        return;
+      }
+      if ((id = b.getAttribute("data-pla-borrar"))) {
+        var p3 = buscar(id); if (!p3) return;
+        if (!confirm("¿Borrar la plantilla «" + (p3.nombre || id) + "»? No se puede deshacer.")) return;
+        Almacen.borrarPlantilla(id); abrirPlantillas(); Util.toast("Plantilla borrada");
+        return;
+      }
+      if (b.hasAttribute("data-pla-nueva")) {
+        var inp = $("#pla-nombre-nueva"), n = inp ? inp.value.trim() : "";
+        if (!n) { Util.toast("Ponle un nombre"); if (inp) inp.focus(); return; }
+        Almacen.guardarPlantilla(UI.lunes, n); cerrarModal(); Util.toast("Plantilla «" + n + "» guardada");
+        return;
+      }
+      if ((id = b.getAttribute("data-pla-sustituir"))) {
+        var p4 = buscar(id); if (!p4) return;
+        if (!confirm("¿Sustituir «" + (p4.nombre || id) + "» por esta semana?")) return;
+        Almacen.guardarPlantilla(UI.lunes, null, id); cerrarModal(); Util.toast("«" + (p4.nombre || id) + "» sustituida");
+      }
     });
 
     /* El deporte y las horas de una ruta son un select y un número: van por «change»,
