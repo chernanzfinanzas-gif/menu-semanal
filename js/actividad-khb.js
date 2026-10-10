@@ -553,6 +553,10 @@
   var MUSCULOS = [
     // [ qué palabras, {zona: parte del trabajo} ]
     [["curl de muñeca","estiramiento de antebrazos"], {antebrazo:1}],
+    /* M14 · 10-oct-2026: el curl femoral (y el de isquios, el nórdico) va
+       ANTES que «curl»: la regla general lo capturaba y lo pintaba en bíceps,
+       con los isquios en gris. */
+    [["curl femoral","curl de isquio","curl nórdico","curl nordico","curl de pierna"], {isquios:1}],
     [["curl"],                      {biceps:.75, antebrazo:.25}],
     /* «Jalón a la cara» es un face pull, no un jalón de espalda: tira con los
        codos altos hacia la cara y se lo llevan hombro y trapecio. Va antes que

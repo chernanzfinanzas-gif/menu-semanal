@@ -26,6 +26,44 @@
 
   var CLAVE = "asistente-alimentacion-v1";
 
+  /* M9 · 10-oct-2026 — SI NO SE PUEDE GUARDAR, SE DICE.
+     Había unos ochenta `try { setItem } catch {}` vacíos: si la memoria del
+     navegador se llenaba, lo apuntado se perdía al recargar y nadie se enteraba.
+     Ahora todos pasan por aquí. Si falla, sale una franja roja que no se va
+     sola, con el tamaño del estado, y queda apuntado en `Almacen.errorGuardar`
+     (lo enseña también el medidor de Ajustes). */
+  function escribirEstado(est) {
+    var txt;
+    try { txt = JSON.stringify(est); } catch (e0) { return false; }
+    try {
+      localStorage.setItem(CLAVE, txt);
+      if (global.Almacen && global.Almacen.errorGuardar) {
+        global.Almacen.errorGuardar = null;
+        var vieja = global.document && document.getElementById("aviso-sin-guardar");
+        if (vieja) vieja.remove();
+      }
+      if (global.Almacen) global.Almacen.tamGuardado = txt.length;
+      return true;
+    } catch (e) {
+      var info = { f: new Date().toISOString(), tam: txt.length, porque: String((e && e.name) || e) };
+      if (global.Almacen) global.Almacen.errorGuardar = info;
+      try {
+        if (global.document && document.body && !document.getElementById("aviso-sin-guardar")) {
+          var d = document.createElement("div");
+          d.id = "aviso-sin-guardar";
+          d.setAttribute("role", "alert");
+          d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:9999;background:#b23a30;color:#fff;" +
+                            "padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif;text-align:center";
+          d.textContent = "\u26a0 No se ha podido guardar en este aparato (memoria del navegador llena, " +
+                          (Math.round(info.tam / 1024 / 10.24) / 100) + " MB). Lo último puede perderse al " +
+                          "recargar: sincroniza con GitHub ahora.";
+          document.body.appendChild(d);
+        }
+      } catch (e2) {}
+      return false;
+    }
+  }
+
   var Almacen = {
     estado: null,
     suscriptores: [],
@@ -40,7 +78,7 @@
       /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
-      if (this._fotosNuevas) { try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {} }
+      if (this._fotosNuevas) { escribirEstado(this.estado); }
       this._reiniciarFotoDias();   /* punto de partida: nada ha cambiado todavía */
       return this.estado;
     },
@@ -60,7 +98,7 @@
         var ap = this.gastoApuntado(F, T, R);
         if (!ap || ap.yogur_griego_hacendado !== 2 || this.quienDe(F, T, R) !== "carlos") return;
         this.reajustarGasto(F, T, R);
-        try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e1) {}
+        escribirEstado(this.estado);
       } catch (e2) {}
     },
 
@@ -359,7 +397,7 @@
         });
       });
       if (completados) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Nutrición completada en " + completados + " campos.");
       }
       /* Plantillas: igual que ingredientes y recetas. Sin esto, añadir el pan de
@@ -375,7 +413,7 @@
         plaRefrescadas.push(nueva.nombre);
       });
       if (plaRefrescadas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Plantillas actualizadas: " + plaRefrescadas.join(", "));
       }
 
@@ -400,7 +438,7 @@
         });
       });
       if (altas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Altas nuevas (" + altas.length + "): " + altas.join(", "));
       }
 
@@ -437,7 +475,7 @@
         ingRefrescados.push(nuevo.n);
       });
       if (ingRefrescados.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Ingredientes actualizados: " + ingRefrescados.join(", "));
       }
 
@@ -468,7 +506,7 @@
           if (q27.length) e.actividad["2026-09-27"] = q27; else delete e.actividad["2026-09-27"];
         }
         e.arreglos["2026-10-03-ruta27"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err27) {}
+        escribirEstado(e);
       }
       /* LAS MARCAS VIEJAS PASAN AL SELECTOR (v378, decidido con Carlos): «no me
          cuenta» → solo Susana; «solo yo» y «hoy me lo tomo yo» → solo Carlos.
@@ -529,7 +567,7 @@
           if (e.stockSitios) delete e.stockSitios[dest];
         });
         e.arreglos["2026-10-04-estantes"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM) {}
+        escribirEstado(e);
       }
       /* SEGUNDA PASADA (4-oct-2026, v386). La primera se aplicó, pero el
          repositorio la deshizo al sincronizar (ver «CADA FICHA, LA DEL ÚLTIMO
@@ -551,7 +589,7 @@
           g.sitio = dest; g.tocado = ahoraM2;     /* con hora aunque ya esté bien: así gana al sincronizar */
         });
         e.arreglos["2026-10-04-estantes-2"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM2) {}
+        escribirEstado(e);
       }
       /* EL CALDO DE POLLO, A DESPENSA · ESENCIAL (4-oct-2026, v388). Carlos lo
          pidió junto al fumet («Caldo Fumet caldo de pescado, pasan a Despensa -
@@ -564,7 +602,7 @@
           g.sitio = "esencial"; g.tocado = new Date().toISOString();
         });
         e.arreglos["2026-10-04-caldo"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errC) {}
+        escribirEstado(e);
       }
       /* EL PURÉ HERO, FUERA DE CUALQUIER RECETA GUARDADA (4-oct-2026, v390).
          Carlos: «¿las recetas que usaban puré de pera han cambiado al que
@@ -598,7 +636,7 @@
           else e.ordenCasa.cajones.push("guacamole");
         }
         e.arreglos["2026-10-04-guacamole"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errG) {}
+        escribirEstado(e);
       }
       /* EL GAZPACHO, A NEVERA · ESTANTE ABAJO (4-oct-2026, v392). Carlos: «no
          encuentro este ingrediente en nevera estante abajo» — estaba en la
@@ -611,7 +649,7 @@
           g.sitio = "est_abajo"; g.tocado = new Date().toISOString();
         });
         e.arreglos["2026-10-04-gazpacho"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errGz) {}
+        escribirEstado(e);
       }
       /* EL GAZPACHO, DE VUELTA (4-oct-2026, v393). Tras publicar la v392 no
          salía en Estante abajo ni en el buscador: en su copia estaba retirado
@@ -634,7 +672,7 @@
         }
         if (e.stockSitios) delete e.stockSitios.est_abajo;
         e.arreglos["2026-10-04-gazpacho-2"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errGz2) {}
+        escribirEstado(e);
       }
       /* LA ALUBIA BLANCA, DE VUELTA A ESTANTE ABAJO (4-oct-2026, v394). Carlos
          la había puesto en Nevera · Estante abajo y volvió a Conserva por la
@@ -646,7 +684,7 @@
           g.sitio = "est_abajo"; g.editado = true; g.tocado = new Date().toISOString();
         });
         e.arreglos["2026-10-04-alubia"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAl) {}
+        escribirEstado(e);
       }
       /* DESAYUNO Y POSTRES, UN SOLO ESTANTE (4-oct-2026, v396). Carlos:
          «podríamos unir la categoría desayuno y postres en una sola que se
@@ -671,7 +709,7 @@
         if (e.stockSitios) { delete e.stockSitios.postres; delete e.stockSitios.desayuno; }
         if (e.sitiosSaltados) delete e.sitiosSaltados.postres;
         e.arreglos["2026-10-04-desayuno-postres"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDP) {}
+        escribirEstado(e);
       }
       /* LA FRUTA, UNA A UNA (4-oct-2026, v397). Carlos: «fruta de temporada es
          un poco abstracto, deberíamos añadir la fruta de forma individual».
@@ -686,7 +724,7 @@
           delete g.oculta; g.tocado = new Date().toISOString();
         });
         e.arreglos["2026-10-04-albaricoque"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAb) {}
+        escribirEstado(e);
       }
       (e.recetas || []).forEach(function (r) {
         if (r.oculta) return;
@@ -766,7 +804,7 @@
         if (!e.ordenSello.compra) e.ordenSello.compra = {};
         e.ordenSello.compra[clave] = new Date().toISOString();
         e.arreglos[marca] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLM) {}
+        escribirEstado(e);
       });
       /* CUATRO DE ASEO, A MERCADONA (4-oct-2026, v403). Estaban en el súper sin
          tienda y salían en «Sin tienda asignada»; están en su lista Aseo de
@@ -777,7 +815,7 @@
           if (!x.tienda) { x.tienda = "Mercadona"; x.tocado = new Date().toISOString(); }
         });
         e.arreglos["2026-10-04-aseo-tienda"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAs) {}
+        escribirEstado(e);
       }
       /* FANTAS Y ALBARICOQUE, A MERCADONA (4-oct-2026, v405). Carlos: «Fanta
          naranja y Fanta limón son productos de Mercadona, albaricoque es
@@ -791,7 +829,7 @@
           g.cajon = "super"; g.tienda = "Mercadona"; g.tocado = new Date().toISOString();
         });
         e.arreglos["2026-10-04-mercadona-fantas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errFz) {}
+        escribirEstado(e);
       }
       /* LA ALUBIA BLANCA ES DE SUSANA (4-oct-2026, v406). Carlos: «yo no la
          como, solo la come ella; no tiene por qué ser baja en sal». Pasa a la
@@ -812,7 +850,7 @@
           if (r.id === "ensalada_alubias_atun" && !r.dueno) { r.dueno = "ella"; r.tocado = new Date().toISOString(); }
         });
         e.arreglos["2026-10-04-alubia-susana"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAs2) {}
+        escribirEstado(e);
       }
       /* Y la proteína Evowhey a Alacena · Sports (Carlos, 4-oct-2026). */
       if (!e.arreglos["2026-10-04-sports"]) {
@@ -822,7 +860,7 @@
           if (e.stockSitios) delete e.stockSitios.sports;
         });
         e.arreglos["2026-10-04-sports"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errS) {}
+        escribirEstado(e);
       }
 
       /* La bandeja de filetes de cabeza de lomo es nueva en su lista de
@@ -839,7 +877,7 @@
           e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
         }
         e.arreglos["2026-10-05-lomo-arriba"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLA) {}
+        escribirEstado(e);
       }
 
       /* EL STOCK DEL LOMO, EN GRAMOS. Carlos, 5-oct-2026: «el stock es 1
@@ -852,7 +890,7 @@
         if (!e.stockSitios) e.stockSitios = {};
         e.stockSitios["est_arriba"] = Util.hoyISO();
         e.arreglos["2026-10-05-lomo-stock"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLS) {}
+        escribirEstado(e);
       }
 
       /* EL RÓTULO LLEGA TAMBIÉN A LAS FICHAS QUE ÉL TOCÓ (5-oct-2026). Una
@@ -869,7 +907,7 @@
           g.pz = sPZ.pz.slice();
         });
         e.arreglos["2026-10-05-nombre-pieza"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPZ) {}
+        escribirEstado(e);
       }
 
       /* EL YOGUR GRIEGO, EL PRIMERO DE LA LISTA (5-oct-2026). Carlos: «en la
@@ -888,7 +926,7 @@
         if (!e.ordenSello.compra) e.ordenSello.compra = {};
         e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
         e.arreglos["2026-10-05-yogur-primero"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errYG) {}
+        escribirEstado(e);
       }
 
       /* EL MEMBRILLO, EL PRIMERO DE LA LISTA (6-oct-2026). Carlos: «hay que
@@ -910,7 +948,7 @@
         if (!e.ordenSello.compra) e.ordenSello.compra = {};
         e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
         e.arreglos["2026-10-06-membrillo-primero"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMB) {}
+        escribirEstado(e);
       }
 
       /* EL PURÉ DE TARRITO, EL PRIMERO DE LA LISTA (7-oct-2026). Carlos:
@@ -940,7 +978,7 @@
           if (r && r.id === "lote_pure_pera_manzana") { r.oculta = true; r.grupo = "retirado"; }
         });
         e.arreglos["2026-10-07-pure-tarrina-primero"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPT) {}
+        escribirEstado(e);
       }
 
       /* LAS FICHAS DE PESO VARIABLE, MARCADAS A MANO (7-oct-2026). Subirles el
@@ -958,7 +996,7 @@
           if (g && VAR11.indexOf(g.id) >= 0) g.pesoVar = true;
         });
         e.arreglos["2026-10-07-peso-variable"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPV) {}
+        escribirEstado(e);
       }
 
       /* EL LOMO CONGELADO EN LA REV 6 (7-oct-2026). Carlos, desde el ordenador:
@@ -991,7 +1029,7 @@
           });
         }
         e.arreglos["2026-10-07-cerdo-lomo-al-dia"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL) {}
+        escribirEstado(e);
       }
 
       /* EL LOMO, OTRA VEZ, Y AHORA CON HORA (8-oct-2026). El arreglo de arriba
@@ -1016,7 +1054,7 @@
           });
         }
         e.arreglos["2026-10-08-cerdo-lomo-con-hora"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL2) {}
+        escribirEstado(e);
       }
 
       /* EL NOMBRE DE LA PIEZA QUE SE PERDIÓ (8-oct-2026). Repaso de las fichas
@@ -1034,7 +1072,7 @@
           g.tocado = new Date().toISOString();
         });
         e.arreglos["2026-10-08-pz-con-hora"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPZ) {}
+        escribirEstado(e);
       }
 
       /* LA CABEZA DE LOMO, OTRA VEZ, Y AHORA EN TODOS LOS APARATOS (8-oct-2026).
@@ -1061,7 +1099,7 @@
           });
         }
         e.arreglos["2026-10-08-cerdo-lomo-3"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCL3) {}
+        escribirEstado(e);
       }
 
       /* EL CHOCOLATE NEGRO Y EL DESCAFEINADO, FIJADOS (8-oct-2026). Desde el 5-oct
@@ -1091,7 +1129,7 @@
           e.ingredientes[i] = nuevoCD;
         });
         e.arreglos["2026-10-08-choco-desca"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCD) {}
+        escribirEstado(e);
       }
 
       /* Y LOS FILETES, DETRÁS DEL YOGUR GRIEGO EN LA LISTA (7-oct-2026).
@@ -1116,7 +1154,7 @@
         if (!e.ordenSello.compra) e.ordenSello.compra = {};
         e.ordenSello.compra["Mercadona|nevera"] = new Date().toISOString();
         e.arreglos["2026-10-07-filetes-tras-yogur"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errFL) {}
+        escribirEstado(e);
       }
 
       /* LA TORTILLA FRANCESA, REVISADA (7-oct-2026). Carlos, al final del dia:
@@ -1130,7 +1168,7 @@
         if (!e.recetaVista) e.recetaVista = {};
         e.recetaVista["tortilla_calabacin"] = { v: "no", f: Util.hoyISO() };
         e.arreglos["2026-10-07-tortilla-revisada"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTF) {}
+        escribirEstado(e);
       }
 
       /* DOS MAS DADAS POR BUENAS (7-oct-2026). «La de cous cous dulce con
@@ -1146,7 +1184,7 @@
           e.recetaVista[idCE] = { v: "ok", f: Util.hoyISO() };
         });
         e.arreglos["2026-10-07-cous-y-entrecot"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCE) {}
+        escribirEstado(e);
       }
 
       /* LA TORTILLA DE CALABACIN, A «ME VALE» (8-oct-2026). Carlos: «la tortilla de
@@ -1156,7 +1194,7 @@
         if (!e.recetaVista) e.recetaVista = {};
         e.recetaVista["tortilla_calabacin"] = { v: "ok", f: Util.hoyISO() };
         e.arreglos["2026-10-08-tortilla-calabacin-ok"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTC) {}
+        escribirEstado(e);
       }
 
       /* LAS SEIS RAPIDAS DE LATA, REVISADAS UNA A UNA (8-oct-2026, v484). Carlos las
@@ -1171,7 +1209,7 @@
           e.recetaVista[idRL] = { v: "ok", f: Util.hoyISO() };
         });
         e.arreglos["2026-10-08-rapidas-ok"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRL) {}
+        escribirEstado(e);
       }
 
       /* TODO LO PENDIENTE DE VER, DADO POR BUENO (8-oct-2026, v485). Carlos: «haz los
@@ -1193,7 +1231,7 @@
           e.recetaVista[idPO8] = { v: "ok", f: Util.hoyISO() };
         });
         e.arreglos["2026-10-08-pendientes-ok"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPO8) {}
+        escribirEstado(e);
       }
 
       /* DOS ENVASES CORREGIDOS (8-oct-2026). El solomillo pasa de «paquete 500 g» a
@@ -1208,7 +1246,7 @@
           if (g.id === "chorizo_sarta_en_tacos") { g.envase = 100; }
         });
         e.arreglos["2026-10-08-envases-solomillo-chorizo"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errEN) {}
+        escribirEstado(e);
       }
 
       /* LA RACION DEL LANGOSTINO, 60 g (6-oct-2026). Carlos: «pondría 60 gr por
@@ -1225,7 +1263,7 @@
           }
         });
         e.arreglos["2026-10-06-langostino-60"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errLG) {}
+        escribirEstado(e);
       }
 
       /* LA CEBOLLA, UN CUARTO POR COMENSAL (6-oct-2026). Carlos: «en cebolla uso
@@ -1241,7 +1279,7 @@
           }
         });
         e.arreglos["2026-10-06-cebolla-cuarto"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCB) {}
+        escribirEstado(e);
       }
 
       /* DESHACER SU EDICIÓN DEL BATIDO Y DEVOLVERLO AL CATÁLOGO (6-oct-2026).
@@ -1270,7 +1308,7 @@
           e.recetaVista[idBT] = { v: "ok", f: Util.hoyISO() };
         });
         e.arreglos["2026-10-06-batidos-evowhey"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errBT) {}
+        escribirEstado(e);
       }
 
       /* LAS TRES DE CARNE PICADA, REVISADAS (6-oct-2026). Carlos las repasó una
@@ -1284,7 +1322,7 @@
         ["albondigas_tomate", "pasta_bolonesa", "macarrones_gratinados_bolonesa"]
           .forEach(function (idCP) { e.recetaVista[idCP] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-carne-picada-revisadas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCP) {}
+        escribirEstado(e);
       }
 
       /* LAS NUEVE DE ARROZ, REVISADAS (6-oct-2026). Carlos: «pon todas como
@@ -1300,7 +1338,7 @@
          "ensalada_arroz_mango_pollo", "arroz_bacalao_alcachofas"]
           .forEach(function (idAR) { e.recetaVista[idAR] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-arroces-revisados"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAR) {}
+        escribirEstado(e);
       }
 
       /* FUERA LA RECETA DEL YOGUR GRIEGO SUELTO (6-oct-2026). Carlos: «yogur
@@ -1340,7 +1378,7 @@
           });
         })(raizYG, 0);
         e.arreglos["2026-10-06-fuera-solo-yogur-griego"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errYG) {}
+        escribirEstado(e);
         if (global.console && (fueraYG || refsYG))
           console.log("Yogur griego suelto: recetas borradas " + fueraYG + ", referencias limpiadas " + refsYG);
       }
@@ -1364,7 +1402,7 @@
          "des_tostada_tomate", "snack_yogur_mango"]
           .forEach(function (idTO) { e.recetaVista[idTO] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-tostas-revisadas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errTO) {}
+        escribirEstado(e);
       }
 
       /* EL ATÚN Y LA BERENJENA, REVISADOS (6-oct-2026). Carlos: «el atún fresco
@@ -1383,7 +1421,7 @@
          "guar_berenjena_tomillo", "guar_zanahoria_miel"]
           .forEach(function (idAB) { e.recetaVista[idAB] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-atun-y-berenjena-revisados"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errAB) {}
+        escribirEstado(e);
       }
 
       /* LOS MACARRONES DE GORGONZOLA, REVISADOS (6-oct-2026). Carlos: «están
@@ -1395,7 +1433,7 @@
         ["macarrones_gorgonzola_pera_pollo", "macarrones_gorgonzola_pera_solomillo"]
           .forEach(function (idMG) { e.recetaVista[idMG] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-macarrones-gorgonzola-revisados"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMG) {}
+        escribirEstado(e);
       }
 
       /* LOS OTROS DOS MACARRONES Y EL MENÚ DEL McDONALD'S (6-oct-2026).
@@ -1411,7 +1449,7 @@
          "cap_mcd_menu"]
           .forEach(function (idMM) { e.recetaVista[idMM] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-macarrones-y-mcdonalds-revisados"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errMM) {}
+        escribirEstado(e);
       }
 
       /* EL SALMÓN Y LOS DESAYUNOS (6-oct-2026). Carlos: «Salmón, todas las
@@ -1434,7 +1472,7 @@
          "des_leche_cafe"]
           .forEach(function (idSD) { e.recetaVista[idSD] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-salmon-y-desayunos"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errSD) {}
+        escribirEstado(e);
       }
 
       /* LA MEDIDA DE LOS PORRIDGE (6-oct-2026). Carlos: «todos los porridge
@@ -1448,7 +1486,7 @@
         ["des_porridge_rojos", "des_porridge_manzana", "des_overnight"]
           .forEach(function (idPO) { e.recetaVista[idPO] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-medida-porridge"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPO) {}
+        escribirEstado(e);
       }
 
       /* LAS DOS DE MERLUZA (6-oct-2026). Carlos: «una receta de lomos de
@@ -1460,7 +1498,7 @@
         ["merluza_vapor", "merluza_lekue_batata"]
           .forEach(function (idME) { e.recetaVista[idME] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-06-merluzas-revisadas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errME) {}
+        escribirEstado(e);
       }
 
       /* LAS DOS QUE ESCRIBI YO, REVISADAS (7-oct-2026). Carlos: «la de
@@ -1477,7 +1515,7 @@
          "albondigas_tomate_lata", "bacalao_tomate", "bacalao_tomate_lata"]
           .forEach(function (idBY) { e.recetaVista[idBY] = { v: "ok", f: Util.hoyISO() }; });
         e.arreglos["2026-10-07-berenjena-y-yogur-griego-revisadas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errBY) {}
+        escribirEstado(e);
       }
 
       /* SIEMBRA DE LAS RECETAS YA VISTAS (6-oct-2026). Empezar con las 290 en
@@ -1514,7 +1552,7 @@
           puestas++;
         });
         e.arreglos["2026-10-06-recetas-vistas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRV) {}
+        escribirEstado(e);
         if (global.console) console.log("Recetas marcadas como vistas: " + puestas);
       }
 
@@ -1538,7 +1576,7 @@
           if (g.pz) delete g.pz;
         });
         e.arreglos["2026-10-05-mallas"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errML) {}
+        escribirEstado(e);
       }
 
       /* EL REQUESÓN GUARDADO SE QUEDÓ SIENDO EL PASTORET (5-oct-2026). Carlos
@@ -1563,7 +1601,7 @@
           delete e.ingredientes[i].editado;
         });
         e.arreglos["2026-10-05-requeson-hacendado"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errRQ) {}
+        escribirEstado(e);
       }
 
       /* SEGUNDO INTENTO CON LAS MALLAS (5-oct-2026). El arreglo de arriba entró
@@ -1585,7 +1623,7 @@
           g.tocado = ahoraML;
         });
         e.arreglos["2026-10-05-mallas-2"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errM2) {}
+        escribirEstado(e);
       }
 
       /* EL PASTORET DEJA DE SER SUPLENTE (5-oct-2026). Carlos: «quita el papel
@@ -1607,7 +1645,7 @@
         });
         if (e.quiero) delete e.quiero["requeson_pastoret"];
         e.arreglos["2026-10-05-pastoret-sin-papel"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPS) {}
+        escribirEstado(e);
       }
       if (!e.recRefrescadas) e.recRefrescadas = {};
       e.recetas.forEach(function (r, i) {
@@ -1627,7 +1665,7 @@
         refrescadas.push(nueva.n);
       });
       if (refrescadas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Recetas actualizadas: " + refrescadas.join(", "));
       }
 
@@ -1655,7 +1693,7 @@
         retiradas.push(r.n);
       });
       if (retiradas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Retirados del catálogo (" + retiradas.length + "): " + retiradas.join(", "));
       }
 
@@ -1678,7 +1716,7 @@
         renombradas.push(s.n);
       });
       if (renombradas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Renombrados (" + renombradas.length + "): " + renombradas.join(", "));
       }
 
@@ -1709,7 +1747,7 @@
         refrescadas.push(s2.n);
       });
       if (refrescadas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Fichas refrescadas (" + refrescadas.length + "): " + refrescadas.join(", "));
       }
 
@@ -1731,7 +1769,7 @@
         hogRefrescados.push(nuevo.n);
       });
       if (hogRefrescados.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Hogar actualizado (" + hogRefrescados.length + "): " + hogRefrescados.join(", "));
       }
 
@@ -1748,7 +1786,7 @@
         hogRetirados.push(x.n);
       });
       if (hogRetirados.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Hogar retirado (" + hogRetirados.length + "): " + hogRetirados.join(", "));
       }
 
@@ -1776,7 +1814,7 @@
         hogPuestos.push(x.n || x.id);
       });
       if (hogPuestos.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Hogar a la lista (" + hogPuestos.length + "): " + hogPuestos.join(", "));
       }
 
@@ -1820,7 +1858,7 @@
         });
       });
       if (corregidos.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Tus correcciones traídas: " + corregidos.join(", "));
       }
 
@@ -1838,7 +1876,7 @@
           if (m && m.r == null && revPorId[id] != null) m.r = revPorId[id];
         });
         e.arreglos["2026-10-08-vista-con-rev"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errVR) {}
+        escribirEstado(e);
       }
 
       /* LOS DOS CAFÉS DEL DESAYUNO (8-oct-2026). Carlos: «en desayuno debe salir
@@ -1868,7 +1906,7 @@
           e.selloDia[f] = ahoraDC;
         });
         e.arreglos["2026-10-08-dos-cafes"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDC) {}
+        escribirEstado(e);
       }
 
       /* EL PAN INTEGRAL PASA A SER EL DE DIARIO (8-oct-2026). Carlos: «el pan lo
@@ -1914,7 +1952,7 @@
           if (m && m.v === "ok" && revPI[id] != null) m.r = revPI[id];
         });
         e.arreglos["2026-10-08-pan-integral"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errPI) {}
+        escribirEstado(e);
       }
 
       /* EL ORDEN DE LA COMPRA PARA LO NUEVO (8-oct-2026). Carlos: «Leche proteína
@@ -1935,7 +1973,7 @@
           e.ordenSello.compra[clave] = new Date().toISOString();
         });
         e.arreglos["2026-10-08-orden-pan-leche-queso"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errOC) {}
+        escribirEstado(e);
       }
 
       /* EL CONTRAMUSLO EN SU SITIO (9-oct-2026). Carlos: «En nevera - estante
@@ -1956,7 +1994,7 @@
         e.ordenCasa["est_arriba"] = casaCM;
         e.ordenSello.casa["est_arriba"] = new Date().toISOString();
         e.arreglos["2026-10-09-orden-contramuslo"] = true;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errCM) {}
+        escribirEstado(e);
       }
 
       /* LOS DOS CAFÉS Y EL PAN INTEGRAL, TAMBIÉN EN LOS DÍAS QUE LLEGAN DE FUERA
@@ -2008,7 +2046,7 @@
           }
           if (cambia) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraDV; tocado = true; }
         });
-        if (tocado) { try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errDV) {} }
+        if (tocado) { escribirEstado(e); }
       })();
 
       /* LAS MARCAS CON NOMBRE DE PESTAÑA, FUERA (8-oct-2026). Desde el 6-oct cada
@@ -2026,7 +2064,7 @@
         });
         if (basura.length) {
           basura.forEach(function (id) { delete e.recetaVista[id]; });
-          try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (errVB) {}
+          escribirEstado(e);
         }
       }
 
@@ -2079,7 +2117,7 @@
         if (cambios.length) arregladas.push(r.n + ": " + cambios.join(", "));
       });
       if (arregladas.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Recetas reparadas (" + arregladas.length + "): " +
           arregladas.join(" | "));
       }
@@ -2178,14 +2216,14 @@
         }
       });
       if (añadidos.length) {
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Ajustes nuevos: " + añadidos.join(", "));
       }
 
       if (e.config.limiteSal === 2.0 && e.config.avisoSal === 1.5) {
         e.config.limiteSal = 4.0;
         e.config.avisoSal = 2.0;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
         if (global.console) console.log("Topes de sal actualizados a 4,0 / 2,0 g.");
       }
 
@@ -2195,7 +2233,7 @@
       if (!e.config.v_sal475) {
         if (e.config.limiteSal === 4 || e.config.limiteSal === 4.0) e.config.limiteSal = 4.75;
         e.config.v_sal475 = 1;
-        try { localStorage.setItem(CLAVE, JSON.stringify(e)); } catch (err) {}
+        escribirEstado(e);
       }
 
       /* CORRECCIÓN DE UNA SOLA VEZ. Durante unos minutos del 21-sep-2026 se
@@ -2292,27 +2330,94 @@
        cambiado. Es una comparación de textos sobre nueve días: no se nota. */
     _fotoDias: null,
 
+    /* A4 · 10-oct-2026 — EL RETRATO MIRA TODO LO QUE VIVE POR DÍA.
+       Antes sólo miraba plan y comido: un día en el que sólo se apuntaba una
+       actividad, una foto, lo comido de verdad, lo comprado o lo gastado de la
+       despensa NO recibía sello, y en la fusión ganaba el reloj global. */
     _retratarDias: function () {
       var f = {}, e = this.estado;
-      Object.keys(e.plan || {}).forEach(function (d) { f["p" + d] = JSON.stringify(e.plan[d]); });
-      Object.keys(e.comido || {}).forEach(function (d) { f["c" + d] = JSON.stringify(e.comido[d]); });
+      [["p", "plan"], ["c", "comido"], ["a", "actividad"], ["f", "fotos"],
+       ["r", "real"], ["b", "comprado"], ["g", "gastado"]].forEach(function (par) {
+        var o = e[par[1]] || {};
+        Object.keys(o).forEach(function (d) { f[par[0] + d] = JSON.stringify(o[d]); });
+      });
       return f;
+    },
+
+    /* A4 · Las actividades de un día no llevan id. Para poder juntar las de dos
+       aparatos sin perder ninguna ni resucitar las borradas, cada una se
+       identifica por su contenido más el número de vez que aparece ese mismo
+       contenido en el día. Lo que entra deja su hora en `actividadAlta`; lo que
+       sale, en `actividadQuitada`. Cambiar los minutos es quitar una y poner otra. */
+    _firmasActividad: function (lista) {
+      var vistas = {};
+      return (lista || []).map(function (x) {
+        var c = JSON.stringify(x, Object.keys(x || {}).sort());
+        vistas[c] = (vistas[c] || 0) + 1;
+        return c + "#" + vistas[c];
+      });
+    },
+
+    _sellarActividad: function (antes, iso) {
+      var e = this.estado, self = this;
+      var dias = {};
+      Object.keys(antes).forEach(function (d) { dias[d] = 1; });
+      Object.keys(e.actividad || {}).forEach(function (d) { dias[d] = 1; });
+      Object.keys(dias).forEach(function (d) {
+        var A0 = {}, A1 = {};
+        self._firmasActividad(antes[d]).forEach(function (s) { A0[s] = 1; });
+        self._firmasActividad((e.actividad || {})[d]).forEach(function (s) { A1[s] = 1; });
+        Object.keys(A1).forEach(function (s) {
+          if (A0[s]) return;
+          if (!e.actividadAlta) e.actividadAlta = {};
+          (e.actividadAlta[d] = e.actividadAlta[d] || {})[s] = iso;
+        });
+        Object.keys(A0).forEach(function (s) {
+          if (A1[s]) return;
+          if (!e.actividadQuitada) e.actividadQuitada = {};
+          (e.actividadQuitada[d] = e.actividadQuitada[d] || {})[s] = iso;
+        });
+      });
     },
 
     _sellarLoCambiado: function () {
       var ahora = this._retratarDias();
-      if (!this._fotoDias) { this._fotoDias = ahora; return; }
+      if (!this._fotoDias) { this._fotoDias = ahora; this._fotoActividad = JSON.parse(JSON.stringify(this.estado.actividad || {})); return; }
       var antes = this._fotoDias, tocados = {}, k;
       for (k in ahora) if (ahora[k] !== antes[k]) tocados[k.slice(1)] = 1;
       for (k in antes) if (!(k in ahora)) tocados[k.slice(1)] = 1;
       var dias = Object.keys(tocados);
+      var iso = new Date().toISOString();
       if (dias.length) {
-        var iso = new Date().toISOString();
         if (!this.estado.selloDia) this.estado.selloDia = {};
         var s = this.estado.selloDia;
         dias.forEach(function (d) { s[d] = iso; });
       }
+      this._sellarActividad(this._fotoActividad || {}, iso);
+      this._sellarStockPorFicha(iso);
       this._fotoDias = ahora;
+      this._fotoActividad = JSON.parse(JSON.stringify(this.estado.actividad || {}));
+    },
+
+    /* M12 · 10-oct-2026 — LA DESPENSA, FICHA A FICHA.
+       La despensa viajaba como una foto entera: si se contaba la nevera en el
+       móvil y el congelador en el ordenador a la vez, el segundo en guardar se
+       llevaba por delante todo lo del primero. Ahora cada ficha que cambia (o se
+       borra) deja su hora en `stockHora`, y al juntar gana, ficha a ficha, el
+       que la tocó más tarde. Lo que nadie tocó desde esta versión sigue con la
+       foto de siempre. */
+    _retratarStock: function () {
+      var f = {}, st = this.estado.stock || {};
+      Object.keys(st).forEach(function (id) { f[id] = JSON.stringify(st[id]); });
+      return f;
+    },
+    _sellarStockPorFicha: function (iso) {
+      var ahora = this._retratarStock(), antes = this._fotoStock;
+      this._fotoStock = ahora;
+      if (!antes) return;
+      var e = this.estado, id;
+      for (id in ahora) if (ahora[id] !== antes[id]) { (e.stockHora = e.stockHora || {})[id] = iso; }
+      for (id in antes) if (!(id in ahora)) { (e.stockHora = e.stockHora || {})[id] = iso; }
     },
 
     /* LO PEDIDO A MANO TAMBIÉN ES UNA FOTO (25-sep-2026).
@@ -2330,14 +2435,18 @@
       this._sello++;              /* invalida la cuenta de lo comprometido */
       this._cacheEntreno = null;          // ver `hayEntreno`
       this.estado.actualizado = new Date().toISOString();
-      try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
+      escribirEstado(this.estado);
       this.avisar(motivo || "cambio");
       if (global.Sync && global.Sync.programarGuardado) global.Sync.programarGuardado();
     },
 
     /* Se llama al acabar de cargar o de reemplazar: fija el punto de partida
        para que el primer `guardar` no crea que ha cambiado el mundo entero. */
-    _reiniciarFotoDias: function () { this._fotoDias = this._retratarDias(); },
+    _reiniciarFotoDias: function () {
+      this._fotoDias = this._retratarDias();
+      this._fotoActividad = JSON.parse(JSON.stringify(this.estado.actividad || {}));
+      this._fotoStock = this._retratarStock();
+    },
 
     reemplazar: function (nuevo) {
       /* LA CLAVE Y LA PAUSA SON DE ESTE APARATO, NO DE LA COPIA (23-sep-2026).
@@ -2348,7 +2457,13 @@
          Carlos teniendo que ir a buscar la clave a otro sitio.
          Lo de este aparato se queda en este aparato. */
       var mio = (this.estado && this.estado.config && this.estado.config.github) || {};
+      var miCat = (this.estado && this.estado.config && this.estado.config.catalogo && this.estado.config.catalogo.token) || "";
       this.estado = nuevo;
+      if (miCat) {                                    // M11: la clave del catálogo, igual que la de GitHub
+        if (!this.estado.config) this.estado.config = {};
+        if (!this.estado.config.catalogo) this.estado.config.catalogo = {};
+        if (!this.estado.config.catalogo.token) this.estado.config.catalogo.token = miCat;
+      }
       if (mio.token || mio.pausada != null) {
         if (!this.estado.config) this.estado.config = {};
         if (!this.estado.config.github) this.estado.config.github = {};
@@ -2359,7 +2474,7 @@
       this.reparar();
       this._griegoCena8oct();
       this._reiniciarFotoDias();
-      try { localStorage.setItem(CLAVE, JSON.stringify(this.estado)); } catch (e) {}
+      escribirEstado(this.estado);
       this.avisar("recarga");
     },
 
@@ -6290,6 +6405,38 @@
       return { entraron: entraron, recados: aRecados, suplentes: suplentes };
     },
 
+    /* EL TICKET A LA LISTA, EN ENVASES (A5 + A6 · 10-oct-2026).
+       El camino es el de siempre: el botón pone el pedido en la lista ya
+       marcado, y con «Comprado» sale la ventana para desmarcar lo que no llegó
+       antes de que entre en la despensa. Lo que se corrige son dos cuentas:
+         · `p` del ticket son ENVASES y `quiero` cuenta PIEZAS: 2 packs de flan
+           salían 4 flanes en vez de 8, y 2 packs de Activia 8 yogures, no 16.
+           Ahora se guarda `env` (los envases del ticket) y `p` en piezas.
+         · lo que el menú ya pedía se sumaba al capricho: la sepia salía 1020 g
+           en vez de los 510 g de la bolsa. Una línea del ticket (`ticket:true`)
+           pide EXACTAMENTE lo del ticket, ni lo que falte para el menú encima
+           ni descontando lo que ya hubiera en casa: es lo que ha llegado.
+       Devuelve { puestas, sinFicha }. */
+    cargarTicketEnLista: function (lineas) {
+      var self = this, puestas = 0, sinFicha = [];
+      if (!this.estado.quiero) this.estado.quiero = {};
+      if (!this.estado.compraMarcada) this.estado.compraMarcada = {};
+      (lineas || []).forEach(function (l) {
+        if (!l || !l.i) return;
+        var g = self.ingrediente(l.i);
+        if (!g) { sinFicha.push(l.i); return; }
+        var env = l.p > 0 ? l.p : 1;
+        var tam = self.tamanoPieza(g) || 1;
+        var piezas = g.envase > 0 ? Math.round(env * g.envase / tam * 100) / 100 : env;
+        self.estado.quiero[l.i] = { p: piezas, env: env, ticket: true, f: Util.hoyISO() };
+        self.estado.compraMarcada[l.i] = true;
+        puestas++;
+      });
+      this._sellarPedido();
+      this.guardar("quiero");
+      return { puestas: puestas, sinFicha: sinFicha };
+    },
+
     /* Lo de Hogar, al confirmar: no hay stock que subir, solo se quita la marca
        o se manda a recados. */
     confirmarHogar: function (ids, faltas) {
@@ -8126,7 +8273,7 @@
       var p = null;
       this.estado.plantillas.forEach(function (x) { if (x.id === plantillaId) p = x; });
       if (!p) return false;
-      var self = this;
+      var self = this, saltadas = [];
       p.dias.forEach(function (d, idx) {
         var fecha = Util.sumarDias(lunesISO, idx);
         if (self.esPasado(fecha)) return;              // el pasado no se replanifica
@@ -8148,14 +8295,21 @@
              más fuerte del recetario en vez del de la plantilla). */
           var salta = self.esFuera(fecha, t.k) || ficha.mochila.indexOf(t.k) >= 0 ||
                       (ficha.ruta && t.k === "desayuno");
-          nuevo[t.k] = salta ? [] : (d[t.k] || []).slice();
+          /* M8 · 10-oct-2026: una receta retirada, oculta o borrada no se
+             planifica ni acaba en la compra. Se apunta para decírselo. */
+          nuevo[t.k] = salta ? [] : (d[t.k] || []).filter(function (rid) {
+            var r = self.receta(rid);
+            if (r && !r.borrada && !r.oculta && r.grupo !== "retirado") return true;
+            saltadas.push({ f: fecha, toma: t.k, id: rid, n: r ? r.n : rid });
+            return false;
+          });
         });
         self.estado.plan[fecha] = nuevo;
         /* las tomas de mochila y el desayuno fuerte de ruta los pone rellenarDia */
         if (ficha.mochila.length || ficha.ruta) self.rellenarDia(fecha, plantillaId);
       });
       this.guardar("plantilla");
-      return true;
+      return { saltadas: saltadas };
     },
 
     /* Vaciar la semana borra TODO LO PLANIFICADO: el menú, el tipo de cada día, la
@@ -8379,7 +8533,11 @@
            peras del puré desaparecían de la lista. Ahora van encima de lo que
            falte para el menú. */
         var qx = (self.estado.quiero || {})[id];
-        if (qx && qx.p > 0) falta = Math.max(0, falta) + qx.p * (self.tamanoPieza(ing) || 1);
+        if (qx && qx.ticket) {
+          /* A6: la línea del ticket pide lo que trae el ticket, ni más ni menos */
+          falta = ing.envase > 0 ? (qx.env || 1) * ing.envase : qx.p * (self.tamanoPieza(ing) || 1);
+        }
+        else if (qx && qx.p > 0) falta = Math.max(0, falta) + qx.p * (self.tamanoPieza(ing) || 1);
         /* `todo: true` lo usa la PASADA PREVIA: necesita también lo que ya está
            cubierto, porque lo que repasas antes de comprar es todo lo que el
            menú va a gastar, no sólo lo que falta. */
@@ -8467,7 +8625,9 @@
            vienes con doce. Por eso lo que se enseña son las piezas que traes de
            verdad, con `pediste` aparte para que la pantalla pueda decir que tú
            habías pedido dos. */
-        var envq = ing.envase > 0 ? Math.max(1, Math.ceil(pediste * tamq / ing.envase)) : 0;
+        var qt = self.estado.quiero[id];
+        var envq = ing.envase > 0 ? (qt.ticket && qt.env > 0 ? qt.env      // A5: los envases del ticket
+                                     : Math.max(1, Math.ceil(pediste * tamq / ing.envase))) : 0;
         var pz = envq > 0 ? Math.round(envq * ing.envase / tamq * 100) / 100 : pediste;
         var lq = {
           id: id, nombre: ing.n, producto: ing.producto || "", suplente: ing.suplente || "",

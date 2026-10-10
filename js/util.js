@@ -55,8 +55,19 @@
       return this.aISO(d);
     },
 
+    /* baja · 10-oct-2026: «hace 0 días» y «hace 1 días» */
+    hace: function (n) {
+      n = Math.round(Number(n) || 0);
+      return n <= 0 ? "hoy" : n === 1 ? "ayer" : "hace " + n + " d\u00edas";
+    },
+
     etiquetaFecha: function (iso) {
+      /* M7 · 10-oct-2026: una cita con sólo el mes («2026-11») salía «NaN undefined» */
+      var mm = /^(\d{4})-(\d{2})$/.exec(String(iso || ""));
+      if (mm) return MESES[+mm[2] - 1] + " de " + mm[1];
+      if (/^\d{4}$/.test(String(iso || ""))) return String(iso);
       var d = this.desdeISO(iso);
+      if (isNaN(d.getTime())) return String(iso || "");
       return d.getDate() + " " + MESES[d.getMonth()];
     },
 

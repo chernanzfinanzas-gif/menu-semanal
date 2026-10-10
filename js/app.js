@@ -2447,7 +2447,11 @@
     for (var i = 0; i < actividades.length; i++) {
       var act = actividades[i];
       var idEl = act.getElementsByTagName("Id")[0];
-      var fechaISO = idEl ? (idEl.textContent || "").slice(0, 10) : "";
+      /* baja · 10-oct-2026: el Id del TCX va en UTC; cortarlo a 10 letras
+         apuntaba al día anterior lo empezado entre las 00:00 y las 02:00 */
+      var idTxt = idEl ? (idEl.textContent || "").trim() : "";
+      var idD = idTxt ? new Date(idTxt) : null;
+      var fechaISO = idD && !isNaN(idD.getTime()) ? Util.aISO(idD) : idTxt.slice(0, 10);
       var seg = 0, kcal = 0;
       var laps = act.getElementsByTagName("Lap");
       for (var j = 0; j < laps.length; j++) {
@@ -5019,7 +5023,7 @@
     var ultima = r.ultimo ? comoFecha(r.diasUltimo, r.ultimo) : "";
     var aviso = (r.masViejo && r.masViejo.dias > 2)
       ? ' \u00b7 <b class="viejo">el dato m\u00e1s viejo es ' + esc(r.masViejo.n) +
-        ", de hace " + r.masViejo.dias + " d\u00edas</b>"
+        ", de " + Util.hace(r.masViejo.dias) + "</b>"
       : "";
     var tit, sub;
     if (!r.ronda) {
@@ -6344,7 +6348,9 @@
      siempre —`confirmarCompra`—, sin inventar un segundo camino al stock.
      Lo que no case con una ficha no se mete a la fuerza: se dice y se queda
      fuera. UNA SOLA VEZ POR COMPRA: la `ref` se apunta y el boton desaparece,
-     que si no, dos clics meten la compra dos veces y nadie se entera. */
+     que si no, dos clics meten la compra dos veces y nadie se entera.
+     10-oct-2026 (A5/A6 de la auditoría v519): mismo camino, con los envases
+     bien contados y sin doble cuenta. Ver `Almacen.cargarTicketEnLista`. */
   function compraRecibidaPendiente() {
     var c = window.COMPRA_RECIBIDA;
     if (!c || !c.lineas || !c.lineas.length) return null;
@@ -6751,7 +6757,7 @@
       pie = '<span style="color:var(--ambar)">' +
             (l.pte === "corto" ? "se gastó más de lo apuntado"
              : l.pte ? "no sabemos cuánto hay"
-             : l.dias === null ? "nunca contado" : "contado hace " + l.dias + " días") + "</span>";
+             : l.dias === null ? "nunca contado" : "contado " + Util.hace(l.dias) + "") + "</span>";
     } else if (l.avisa) {
       pie = '<span style="color:var(--ambar)">por debajo del mínimo (' + cant(l.minimo) + ')</span>';
     } else {
@@ -6806,7 +6812,7 @@
            '<span class="cuantas">' + s.total + "</span></summary>";
       h += '<p class="aviso-grupo">' +
            (s.dias === null ? "sin contar todavía"
-            : s.dias === 0 ? "repasado hoy" : "repasado hace " + s.dias + " días") +
+            : s.dias === 0 ? "repasado hoy" : "repasado " + Util.hace(s.dias) + "") +
            (pend ? " · <b>" + pend + " por mirar</b>" : " · todo en orden") + "</p>";
       s.lineas.forEach(function (l) { h += lineaPasadaHTML(l); });
       if (s.basicos.length) {
@@ -6871,7 +6877,7 @@
       var f = (Almacen.estado.stockSitios || {})[sitio.k];
       var dias = f ? Util.diasEntre(f, hoy) : null;
       var cuando = f
-        ? (dias === 0 ? "contado hoy" : dias === 1 ? "contado ayer" : "contado hace " + dias + " d\u00edas")
+        ? (dias === 0 ? "contado hoy" : dias === 1 ? "contado ayer" : "contado " + Util.hace(dias) + "")
         : "sin contar todav\u00eda";
       var viejo = (dias === null || dias > 7);
 
@@ -7195,9 +7201,13 @@
     $$("[data-plantilla]").forEach(function (b) {
       b.addEventListener("click", function () {
         if (!confirmarSemana("Vas a aplicar la Semana " + b.getAttribute("data-plantilla") + " a")) return;
-        Almacen.aplicarPlantilla(b.getAttribute("data-plantilla"), UI.lunes);
+        var res = Almacen.aplicarPlantilla(b.getAttribute("data-plantilla"), UI.lunes);
         pintarMenu();
-        Util.toast("Semana " + b.getAttribute("data-plantilla") + " aplicada");
+        var sal = (res && res.saltadas) || [];
+        Util.toast("Semana " + b.getAttribute("data-plantilla") + " aplicada" +
+                   (sal.length ? " \u00b7 " + sal.length + " plato" + (sal.length > 1 ? "s" : "") +
+                    " retirado" + (sal.length > 1 ? "s" : "") + " sin poner (" +
+                    sal.map(function (x) { return Util.etiquetaFecha(x.f); }).join(", ") + "): elige otro" : ""));
       });
     });
     $("#guardar-como-plantilla").addEventListener("click", function () {
@@ -7925,20 +7935,17 @@
     $("#compra-recibida").addEventListener("click", function () {
       var c = compraRecibidaPendiente();
       if (!c) return;
-      var puestas = 0, sinFicha = [];
-      c.lineas.forEach(function (l) {
-        if (!l || !l.i) return;
-        if (!Almacen.ingrediente(l.i)) { sinFicha.push(l.i); return; }
-        Almacen.quererEstaVez(l.i, true, l.p > 0 ? l.p : 1);
-        Almacen.ponerPedido(l.i, true);
-        puestas++;
-      });
+      /* A5 + A6 · 10-oct-2026: el mismo camino de siempre —a la lista, ya
+         marcado, y «Comprado» para desmarcar lo que no llegó—, con los envases
+         bien contados y sin sumarse a lo que pedía el menú. Ver
+         `Almacen.cargarTicketEnLista`. */
+      var res = Almacen.cargarTicketEnLista(c.lineas);
       if (!Almacen.estado.config.comprasCargadas) Almacen.estado.config.comprasCargadas = {};
       Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
       Almacen.guardar("config");
       pintarCompra();
-      Util.toast(puestas + " productos en la lista, ya marcados. Ahora pulsa \u00abComprado\u00bb en su tienda" +
-                 (sinFicha.length ? " \u00b7 " + sinFicha.length + " sin ficha, fuera" : ""));
+      Util.toast(res.puestas + " productos en la lista, ya marcados. Ahora pulsa \u00abComprado\u00bb en su tienda" +
+                 (res.sinFicha.length ? " \u00b7 " + res.sinFicha.length + " sin ficha, fuera" : ""));
     });
     var bp = $("#compra-pasada");
     if (bp) bp.addEventListener("click", abrirPasada);

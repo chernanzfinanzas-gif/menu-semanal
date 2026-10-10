@@ -1673,8 +1673,10 @@
     for (var i = 0; i < Math.min(5, lineas.length) && cab < 0; i++) {
       var campos = partirLinea(lineas[i], sep).map(normaliza), c = {};
       campos.forEach(function (n, j) {
-        if (c.sis === undefined && /sist|systol|sys|alta|superior/.test(n)) c.sis = j;
-        else if (c.dia === undefined && /diast|dia\b|baja|inferior/.test(n)) c.dia = j;
+        /* M1 · 10-oct-2026: «Día y hora» es la FECHA, no la diastólica */
+        var esFecha = /fecha|date|dia y hora|hora|time|measurement/.test(n);
+        if (c.sis === undefined && !esFecha && /sist|systol|sys|alta|superior/.test(n)) c.sis = j;
+        else if (c.dia === undefined && !esFecha && /diast|dia\b|baja|inferior/.test(n)) c.dia = j;
         else if (c.pul === undefined && /puls|heart|hr\b|lpm|bpm|frecuencia/.test(n)) c.pul = j;
         if (c.fec === undefined && /fecha|date|dia y hora|measurement/.test(n)) c.fec = j;
         if (c.hor === undefined && /hora|time/.test(n) && !/fecha|date/.test(n)) c.hor = j;
@@ -1713,24 +1715,29 @@
       if (!fecha || !(sis >= 60 && sis <= 260) || !(dia >= 30 && dia <= 160) || dia >= sis) { malas++; continue; }
       tomas.push({ f: fecha, h: hora, sis: Math.round(sis), dia: Math.round(dia),
                    pul: (pul >= 30 && pul <= 220) ? Math.round(pul) : null,
-                   arr: !!arr, origen: "omron" });
+                   arr: !!arr, fib: !!fib, origen: "omron" });   // A2: la FA ya se guarda
     }
     return { tomas: tomas, malas: malas, conCabecera: cab >= 0 };
   }
 
   /* mete las tomas nuevas en el almacén; devuelve el recuento */
   function importarTomas(tomas) {
-    var lista = tomasImportadas(), hay = {}, nuevas = 0;
-    lista.forEach(function (t) { hay[claveToma(t)] = 1; });
+    var lista = tomasImportadas(), hay = {}, nuevas = 0, marcadas = 0;
+    lista.forEach(function (t) { hay[claveToma(t)] = t; });
     tomas.forEach(function (t) {
       var k = claveToma(t);
-      if (hay[k]) return;
-      hay[k] = 1;
+      if (hay[k]) {
+        /* A2: las tomas importadas antes del arreglo no traían la FA; al volver
+           a cargar el mismo CSV se completa la marca sin duplicar la toma */
+        if (t.fib && !hay[k].fib) { hay[k].fib = true; marcadas++; }
+        return;
+      }
+      hay[k] = t;
       lista.push(t);
       nuevas++;
     });
     lista.sort(function (a, b) { return (a.f + (a.h || "")) < (b.f + (b.h || "")) ? -1 : 1; });
-    if (nuevas) A.guardar("entreno");
+    if (nuevas || marcadas) A.guardar("entreno");
     return { nuevas: nuevas, repetidas: tomas.length - nuevas, total: lista.length };
   }
 
@@ -2359,9 +2366,24 @@
     var huecos = Math.max(1, n - 1);                 // el último día se deja libre
     var ordRod = [0, 3, 1, 4, 2, 5], ordCam = [2, 5, 1, 4, 0, 3], ordFue = [0, 3, 1];
     var iR = 0, iC = 0, iF = 0, huerfanos = [];
+    /* M5 · 10-oct-2026: con el orden fijo [0, 3, 1] la Fuerza A caía el lunes
+       y la C el martes TODAS las semanas, y la propia app avisaba «dos días
+       seguidos de fuerza». Ahora la fuerza busca, por orden, el primer día que
+       no tenga ya fuerza ni la tenga al lado; si no hay, el orden de siempre. */
+    var diasFuerza = {};
+    function diaParaFuerza() {
+      var cand = [0, 2, 4, 1, 3, 5];
+      for (var q = 0; q < cand.length; q++) {
+        var d = dias[cand[q] % huecos];
+        if (!d || diasFuerza[d]) continue;
+        if (diasFuerza[U.sumarDias(d, -1)] || diasFuerza[U.sumarDias(d, 1)]) continue;
+        return d;
+      }
+      return dias[ordFue[iF % ordFue.length] % huecos];
+    }
     b.forEach(function (x) {
       /* si el bloque viene de una línea escrita a mano, arranca en SU día */
-      if (x.dia && !noHabilDe(x.dia)) { mapa[x.id] = x.dia; return; }
+      if (x.dia && !noHabilDe(x.dia)) { mapa[x.id] = x.dia; if (x.fam === "fuerza") diasFuerza[x.dia] = 1; return; }
       /* SI SU DÍA SE HA MARCADO COMO NO DISPONIBLE no entra en el reparto por
          orden —que va por índices y en una semana larga puede caer en un día ya
          pasado—: se aparta y al final se le busca el hueco que menos carga lleve
@@ -2369,7 +2391,7 @@
       if (x.dia) { huerfanos.push(x); return; }
       if (x.largo) { mapa[x.id] = dias[Math.max(0, n - 2)]; return; }
       if (x.fam === "caminar") { mapa[x.id] = dias[ordCam[iC++ % ordCam.length] % huecos]; return; }
-      if (x.fam === "fuerza") { mapa[x.id] = dias[ordFue[iF++ % ordFue.length] % huecos]; return; }
+      if (x.fam === "fuerza") { var dF = diaParaFuerza(); iF++; mapa[x.id] = dF; diasFuerza[dF] = 1; return; }
       mapa[x.id] = dias[ordRod[iR++ % ordRod.length] % huecos];
     });
     huerfanos.forEach(function (x) { mapa[x.id] = mejorDiaPara(sem, mapa, x); });
@@ -2406,10 +2428,16 @@
     return !!(A.hayComidoAlgo && A.hayComidoAlgo(f) && A.sinMarcar && A.sinMarcar(f) === 0);
   }
   function pesoMedio(desde, hasta) {
-    var d = (Salud.datos && Salud.datos.dias) || {}, s = 0, n = 0;
+    /* baja · 10-oct-2026: también los pesos tecleados a mano en la app; si el
+       mismo día hay los dos, manda el de la báscula */
+    var d = (Salud.datos && Salud.datos.dias) || {}, s = 0, n = 0, aMano = {};
+    ((A.estado && A.estado.pesos) || []).forEach(function (p) {
+      if (p && p.f && typeof p.kg === "number") aMano[p.f] = p.kg;
+    });
     for (var f = desde; f <= hasta; f = U.sumarDias(f, 1)) {
       var x = d[f];
       if (x && typeof x.peso === "number") { s += x.peso; n++; }
+      else if (typeof aMano[f] === "number") { s += aMano[f]; n++; }
     }
     return n ? { v: s / n, n: n } : null;
   }
@@ -2717,7 +2745,7 @@
   }
 
   function horasTxt(h) {
-    var e = Math.floor(h), m = Math.round((h - e) * 60);
+    var tot = Math.round(h * 60), e = Math.floor(tot / 60), m = tot % 60;   // mismo «h60»
     return e + (m ? "h" + (m < 10 ? "0" : "") + m : " h");
   }
 
@@ -3119,19 +3147,40 @@
     /* la marca viaja con el bloque: las casillas se guardan por día y posición,
        así que mover sin llevarse la marca la dejaría en el día viejo */
     var antes = r[sem.desde][bid] || null;
-    /* el índice VIEJO hay que sacarlo antes de mover y el NUEVO después: si se
-       sacan los dos a la vez, el viejo ya no existe y la marca se pierde */
-    var vIdx = antes ? indiceDe(sem, bid, antes) : -1;
+    /* M3 · 10-oct-2026 — LAS MARCAS SE RECOLOCAN POR BLOQUE, NO POR SITIO.
+       Las casillas se guardan por posición ("s0", "s1"…). Mover sólo la marca
+       del bloque movido no bastaba: al entrar un bloque en un día, los que ya
+       estaban corren un puesto (y al salir de otro, los de detrás suben), y su
+       marca se quedaba en el sitio viejo, o sea, encima de OTRO bloque.
+       Ahora se lee qué bloque tenía cada marca en los dos días afectados, se
+       mueve, y se vuelven a escribir en su posición nueva. */
+    var c = ent().checks, b = bolsilloDe(sem) || [];
+    var dias = [];
+    if (antes) dias.push(antes);
+    if (iso && iso !== antes) dias.push(iso);
+    var marcas = {};                                  // bid → valor
+    dias.forEach(function (d) {
+      b.forEach(function (x) {
+        if (r[sem.desde][x.id] !== d) return;
+        var k = indiceDe(sem, x.id, d);
+        if (k >= 0 && c[d] && c[d]["s" + k] !== undefined) marcas[x.id] = c[d]["s" + k];
+      });
+    });
     r[sem.desde][bid] = iso;
-    if (antes && antes !== iso) {
-      var nIdx = iso ? indiceDe(sem, bid, iso) : -1;
-      var c = ent().checks;
-      if (vIdx >= 0 && c[antes] && c[antes]["s" + vIdx] !== undefined) {
-        var val = c[antes]["s" + vIdx];
-        delete c[antes]["s" + vIdx];
-        if (!Object.keys(c[antes]).length) delete c[antes];
-        if (iso && nIdx >= 0) { if (!c[iso]) c[iso] = {}; c[iso]["s" + nIdx] = val; }
-      }
+    if (antes !== iso) {
+      dias.forEach(function (d) {
+        if (!c[d]) return;
+        Object.keys(c[d]).forEach(function (k) { if (/^s\d+$/.test(k)) delete c[d][k]; });
+      });
+      Object.keys(marcas).forEach(function (id) {
+        var d = r[sem.desde][id];
+        if (!d) return;                               // a la bandeja: la marca no viaja
+        var k = indiceDe(sem, id, d);
+        if (k < 0) return;
+        if (!c[d]) c[d] = {};
+        c[d]["s" + k] = marcas[id];
+      });
+      dias.forEach(function (d) { if (c[d] && !Object.keys(c[d]).length) delete c[d]; });
     }
     A.guardar("entreno");
   }
@@ -3332,10 +3381,13 @@
           p.esf = Math.max(p.esf, a.esf);
           p.dobles = (p.dobles || 0) + 1;
         } else {                               // dos trozos: se suman
-          p.min += a.min;
-          p.minTot += a.minTot;
+          /* M2 · 10-oct-2026: la media se pondera ANTES de sumar los minutos;
+             antes se sumaban primero y el primer trozo pesaba de más (106,7 en
+             vez de 110), y el paseo podía quedarse fuera de la carga. */
           if (a.pulso && p.pulso) p.pulso = (p.pulso * p.min + a.pulso * a.min) / Math.max(1, p.min + a.min);
           else p.pulso = p.pulso || a.pulso || null;
+          p.min += a.min;
+          p.minTot += a.minTot;
           p.desn = (p.desn || 0) + (a.desn || 0);
           p.esf += a.esf;
           p.trozos = (p.trozos || 1) + 1;
@@ -3382,9 +3434,19 @@
     ss.forEach(function (sx, i) {
       if (sinReloj(sx)) return;
       var fam = sx.fam || familia(sx.t);
-      var libre = sx.grande || sx.largo || !fam || fam === "otra";
+      /* M4 · 10-oct-2026: el LARGO ya no acepta cualquier cosa. Con el modo
+         declarado se sabe qué es: rodillo o bici → sólo bici; a pie → sólo
+         caminar. Antes, un paseo el día del rodillo largo lo daba por hecho y
+         sumaba su carga. Sin modo conocido, como antes. */
+      var famLargo = null;
+      if (sx.largo && sx.modo) {
+        if (/^(rodillo|bici)/.test(sx.modo) || /rodillo/i.test(sx.t || "")) famLargo = "bici";
+        else if (/^pie/.test(sx.modo)) famLargo = "caminar";
+      }
+      var libre = !famLargo && (sx.grande || sx.largo || !fam || fam === "otra");
       act.forEach(function (a, j) {
-        var vale = libre
+        var vale = famLargo ? (a.fam === famLargo)
+          : libre
           ? (a.fam === "caminar" || a.fam === "bici" || a.fam === "correr")
           : (a.fam === fam);
         if (!vale) return;
@@ -4194,14 +4256,21 @@
      los umbrales no se escriben en este fichero. Los avisos que necesitan
      salud.json quedan fuera hasta que la app lo lea. */
 
+  /* baja · 10-oct-2026: `silenciado_hasta` de un aviso (datos/plan.js) no lo
+     leía nadie. Ahora, hasta ese día incluido, el aviso no sale. */
+  var diaDeAvisos = null;
   function def(id) {
     var l = P.avisos || [];
-    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) {
+      if (l[i].silenciado_hasta && diaDeAvisos && diaDeAvisos <= l[i].silenciado_hasta) return null;
+      return l[i];
+    }
     return null;
   }
 
   function avisos(dia) {
     var out = [], d;
+    diaDeAvisos = dia;
 
     /* M1 y M2 — cintura */
     var cin = ultimaMedida(dia, "cintura"), rc = cinturaAltura(dia);
@@ -6405,7 +6474,7 @@
       if (h < 1.5) return "hace un rato";
       if (h < 24) return "hace " + Math.round(h) + " horas";
       var d = Math.round(h / 24);
-      return d === 1 ? "ayer" : "hace " + d + " días";
+      return d === 1 ? "ayer" : "" + U.hace(d) + "";
     },
 
     /* El aviso, en una tarjeta propia encima del archivo. */
@@ -7994,7 +8063,10 @@
           fz.previstos++;
           if (hecho && !q) fz.hechos++;
         }
-        else fallos[f] = { f: f, m: motivosDe(f), nota: (obsDe(f) || {}).nota };
+        /* A1 · 10-oct-2026: antes el «else» colgaba del test de fuerza y metía en
+           «Lo que falló» todo día con un bloque que no fuese fuerza, hecho o no; y
+           una fuerza fallada no salía nunca. Ahora falla lo que no se hizo. */
+        if (!hecho || q) fallos[f] = { f: f, m: motivosDe(f), nota: (obsDe(f) || {}).nota };
       });
     });
     var lista = Object.keys(fallos).sort().map(function (f) { return fallos[f]; });
@@ -8351,7 +8423,9 @@
     }
 
     /* 2. peso */
-    var a7 = mediaPesos(hasta, 7), b7 = mediaPesos(U.sumarDias(sem.desde, -1), 7);
+    /* baja · 10-oct-2026: «los 7 anteriores» son los siete días justo ANTES de
+       los siete de la media. A mitad de semana se solapaban con ellos. */
+    var a7 = mediaPesos(hasta, 7), b7 = mediaPesos(U.sumarDias(hasta, -7), 7);
     bPeso = '<h3 class="evo-sub">Peso</h3>';
     if (a7 && a7.n >= 2) {
       var dif = b7 && b7.n >= 2 ? a7.m - b7.m : null;
@@ -8755,7 +8829,7 @@
                   (m.de !== "garmin" && d != null && d > 10);
       var cuando = esFuerza
         ? (viejo ? "faltan sesiones" : "tu última sesión")
-        : (d === 0 ? "hoy" : d === 1 ? "ayer" : "hace " + d + " días");
+        : (d === 0 ? "hoy" : d === 1 ? "ayer" : "" + U.hace(d) + "");
       filas += "<tr" + (viejo ? ' class="evo-toca"' : "") + "><td>" + U.esc(m.n) + "</td>" +
         "<td>" + U.esc(U.etiquetaFecha(u)) + "</td>" +
         "<td>" + U.esc(cuando) + "</td>" +
@@ -8767,7 +8841,7 @@
     var toca = dg != null && dg > CADA_DIAS_GARMIN;
     var cab = ultGarmin
       ? ("<p>La última exportación de Garmin llega hasta el <b>" +
-         U.esc(U.etiquetaFecha(ultGarmin)) + "</b>, hace " + dg + " días. " +
+         U.esc(U.etiquetaFecha(ultGarmin)) + "</b>, " + U.hace(dg) + ". " +
          (toca ? "<b>Toca pedir una nueva.</b>"
                : "La siguiente, a partir de los " + CADA_DIAS_GARMIN + " días.") + "</p>")
       : "";
@@ -9355,7 +9429,7 @@
       cuerpo4 += sinDatos(
         cin.length === 1 ? "Solo hay una medida de cintura: " + num(cin[0].v) + " cm"
                          : "Todavía no hay medidas de cintura",
-        "La gráfica aparece con la tercera. Se mide los lunes.");
+        "La gráfica aparece con la segunda. Se mide los lunes.");
     }
     if (wkg.length) {
       var uw = wkg[wkg.length - 1], pw = wkg[0];
@@ -10356,7 +10430,7 @@
       h += '<div class="med-hora">Para tus citas</div>';
       previos.forEach(function (x) {
         var ok = !!hechas[x.id]; if (ok) n++;
-        var cuando = x.c.f === dia ? "hoy" : (x.c.f ? "el " + U.etiquetaFecha(x.c.f) : "");
+        var cuando = x.c.f === dia ? "hoy" : (x.c.f ? (/^\d{4}-\d{2}-\d{2}$/.test(x.c.f) ? "el " : "en ") + U.etiquetaFecha(x.c.f) : "");
         h += '<label class="med-toma' + (ok ? " hecha" : "") + '">' +
           '<input type="checkbox" data-toma="' + U.esc(x.id) + '" data-toma-dia="' + dia + '"' + (ok ? " checked" : "") + ">" +
           '<span><span class="med-n">' + U.esc(x.p.t) + "</span>" +
@@ -10390,8 +10464,7 @@
   function hmCumplimiento() {
     var hoy = U.hoyISO(), tot = 0, hech = 0, i, iso, tt = ent().tomas || {};
     for (i = 0; i < 7; i++) {
-      iso = U.aISO ? U.aISO(new Date(U.desdeISO(hoy).getTime() - i * 86400000)) : null;
-      if (!iso) break;
+      iso = U.sumarDias(hoy, -i);     // baja · 10-oct-2026: restar 24 h se saltaba un día con el cambio de hora
       hmTomasDe(iso).forEach(function (x) { tot++; if (tt[iso] && tt[iso][x.id]) hech++; });
     }
     return { tot: tot, hech: hech };
@@ -10468,7 +10541,12 @@
         MED_HORAS.map(function (x) {
           return '<label class="med-ed-chip"><input type="checkbox" data-med-hora="' + x + '"' + (tomas.indexOf(x) >= 0 ? " checked" : "") + "> " + x + "</label>";
         }).join("") +
-        '<label class="med-ed-chip">Otra: <input type="time" data-med-campo="otra" value="' + U.esc(otras[0] || "") + '"></label>' +
+        /* M6 · 10-oct-2026: una casilla «Otra» por cada hora no habitual, más
+           una vacía. Antes había una sola y la segunda (09:00 y 21:00) se perdía
+           al guardar. */
+        otras.concat([""]).map(function (o) {
+          return '<label class="med-ed-chip">Otra: <input type="time" data-med-otra="1" value="' + U.esc(o) + '"></label>';
+        }).join("") +
       '</div><small>Sin ninguna hora marcada sale como «a tu hora de siempre».</small></div>' +
       '<label class="med-ed-check"><input type="checkbox" data-med-campo="conComida"' + (t.conComida ? " checked" : "") + "> Se toma con comida</label>" +
       '<div class="med-ed-fila">' +
@@ -10583,7 +10661,10 @@
     });
     v.tomas = [];
     caja.querySelectorAll("[data-med-hora]").forEach(function (el) { if (el.checked) v.tomas.push(el.getAttribute("data-med-hora")); });
-    if (v.otra && v.tomas.indexOf(v.otra) < 0) v.tomas.push(v.otra);
+    caja.querySelectorAll("[data-med-otra]").forEach(function (el) {
+      var o = String(el.value || "").trim();
+      if (o && v.tomas.indexOf(o) < 0) v.tomas.push(o);
+    });
     v.tomas.sort();
     return v;
   }
@@ -11527,7 +11608,7 @@
     var deCuando = "";
     if (uCtl && uCtl.atras > 0) {
       deCuando = " · medido el " + fechaCorta(uCtl.f) +
-        (uCtl.atras === 1 ? " (ayer)" : " (hace " + uCtl.atras + " días)");
+        (uCtl.atras === 1 ? " (ayer)" : " (" + U.hace(uCtl.atras) + ")");
     }
     h += '<div class="tarjeta evo-t"><div class="evo-cab"><h2>Dónde estás hoy</h2></div>' +
       '<p class="nota-peque evo-pie">' +
@@ -13487,7 +13568,8 @@
 
   function hhmm(min) {
     if (!min && min !== 0) return null;
-    var h = Math.floor(min / 60), m = Math.round(min % 60);
+    min = Math.round(min);            // baja · 10-oct-2026: 419,6 min salía «6h60»
+    var h = Math.floor(min / 60), m = min % 60;
     return h + "h" + (m < 10 ? "0" : "") + m;
   }
 

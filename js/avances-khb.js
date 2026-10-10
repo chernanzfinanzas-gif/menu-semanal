@@ -135,13 +135,17 @@
   }
 
   function grafico(o) {
-    var pts = o.puntos;
+    /* baja · 10-oct-2026: sin puntos el dibujo salía con NaN por todas partes */
+    var pts = (o.puntos || []).filter(function (p) { return p && p.y != null && isFinite(p.y) && isFinite(p.x); });
+    o.puntos = pts;
     var ys = pts.map(function (p) { return p.y; });
     if (o.umbral) ys.push(o.umbral.y);
     if (o.ref) ys.push(o.ref.y);
     if (o.banda) ys.push(o.banda[0], o.banda[1]);
     if (o.extra) ys = ys.concat(o.extra);
     if (o.meta) o.meta.forEach(function (e) { ys.push(e.y); });
+    ys = ys.filter(function (v) { return v != null && isFinite(v); });
+    if (!ys.length || !o.dom || !(o.dom[1] > o.dom[0])) return '<p class="av-sub">Sin datos todavía.</p>';
     var y0 = o.minY != null ? o.minY : Math.min.apply(null, ys);
     var y1 = o.maxY != null ? o.maxY : Math.max.apply(null, ys);
     if (y1 - y0 < (o.rangoMin || 1)) { var c = (y0 + y1) / 2; y0 = c - (o.rangoMin || 1) / 2; y1 = c + (o.rangoMin || 1) / 2; }
@@ -281,7 +285,10 @@
       if (!esBici(a)) return;
       var f = String(a.fecha || "").slice(0, 10);
       if (!f) return;
-      var k = Math.floor((msDe(f) - i0) / (7 * DIA)) + 1;
+      /* M16 · 10-oct-2026: días enteros redondeados antes de partir en semanas;
+         con el cambio de hora a un jueves de verano le faltaba una hora y caía
+         en la semana anterior. */
+      var k = Math.floor(Math.round((msDe(f) - i0) / DIA) / 7) + 1;
       if (k < 1 || k > nSem) return;
       var s = out[k - 1];
       s.n++; s.min += a.min_mov || 0;
@@ -341,7 +348,7 @@
   function htmlFantasma(o, inicioPlan, hoy) {
     if (!o.todas || !o.todas.length) return "";
     var F = FANTASMA;
-    var hoyK = Math.floor((msDe(hoy) - msDe(inicioPlan)) / (7 * DIA)) + 1;
+    var hoyK = Math.floor(Math.round((msDe(hoy) - msDe(inicioPlan)) / DIA) / 7) + 1;
     var K = Math.max(hoyK + 6, 12);
     var ent = porSemanas(o.todas, o.curvas, F.inicio, F.factor, 120);
     var aho = porSemanas(o.todas, o.curvas, inicioPlan, 1, K);
@@ -381,7 +388,7 @@
     txt.push("Horas de bici acumuladas hasta esta semana: " + num(hAho, 1) + " h ahora, " + num(hEnt, 1) + " h en " + F.et + ".");
     for (var j = 0; j < ent.length; j++) {
       if (ent[j].m20 != null && ent[j].m20 * 0.95 >= FTP_OBJETIVO) {
-        var d = new Date(msDe(F.inicio) + (ent[j].k - 1) * 7 * DIA);
+        var d0 = new Date(msDe(F.inicio)), d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + (ent[j].k - 1) * 7);
         txt.push("Aquella subida llegó a una FTP de " + FTP_OBJETIVO + " (ya corregida) en la semana " + ent[j].k +
           " (" + MES[d.getMonth()] + " " + d.getFullYear() + "): algo más de un año.");
         break;
@@ -442,10 +449,11 @@
               .filter(Boolean).join(" · ") : "") +
       cifra("Rodillo analizado", ses.length + (ses.length === 1 ? " sesión" : " sesiones"), num(horas, 1) + " h") +
       cifra("Deriva", ult && ult.a.deriva != null ? num(ult.a.deriva, 1) + " %" : "—",
-            prim && ult && prim !== ult ? "al empezar " + num(prim.a.deriva, 1) + " % · " + cambio(prim.a.deriva, ult.a.deriva, 1, " pt", true) : "objetivo &lt; 5 %") +
+            prim && ult && prim !== ult && prim.a.deriva != null && ult.a.deriva != null
+              ? "al empezar " + num(prim.a.deriva, 1) + " % · " + cambio(prim.a.deriva, ult.a.deriva, 1, " pt", true) : "objetivo &lt; 5 %") +
       cifra("Vatios por pulsación", ult ? num(ult.a.w_ppm, 2) : "—",
-            (prim && ult && prim !== ult ? "al empezar " + num(prim.a.w_ppm, 2) + " · " + cambio(prim.a.w_ppm, ult.a.w_ppm, 2, "", false) : "") +
-            (ref ? (prim && ult && prim !== ult ? "<br>" : "") + "en " + ref.et + ": " + num(ref.wppm, 2) : "")) +
+            (prim && ult && prim !== ult && prim.a.w_ppm != null && ult.a.w_ppm != null ? "al empezar " + num(prim.a.w_ppm, 2) + " · " + cambio(prim.a.w_ppm, ult.a.w_ppm, 2, "", false) : "") +
+            (ref ? (prim && ult && prim !== ult && prim.a.w_ppm != null ? "<br>" : "") + "en " + ref.et + ": " + num(ref.wppm, 2) : "")) +
       cifra("FTP", ftpAhora ? ftpAhora + " W" : "—",
             (tests.length ? "medida en test" : "declarada, sin test") + " · objetivo " + FTP_OBJETIVO + " W") +
       "</div>";
@@ -593,9 +601,13 @@
       grafico({ titulo: "FTP", puntos: tests.map(function (t) { return { x: t.t, y: t.a.ftp_test, f: t.f, et: "test" }; }),
                 escalones: esc0, dom: dom, semanas: semFondo, umbral: { y: FTP_OBJETIVO, et: "objetivo" },
                 extra: ftpD ? [ftpD.w] : [], fmt: function (v) { return num(v, 0); }, suf: " W", minY: 100 }) +
-      (ftpAhora ? '<p class="av-sub">Con ' + ftpAhora + " W, para llegar a " + FTP_OBJETIVO + " faltan " +
+      /* baja · 10-oct-2026: pasado el objetivo decía «faltan -10 W» */
+      (ftpAhora ? (ftpAhora >= FTP_OBJETIVO
+        ? '<p class="av-sub">Con ' + ftpAhora + " W ya has llegado al objetivo de " + FTP_OBJETIVO +
+          " W" + (ftpAhora > FTP_OBJETIVO ? " y lo pasas en " + (ftpAhora - FTP_OBJETIVO) + " W" : "") + ".</p>"
+        : '<p class="av-sub">Con ' + ftpAhora + " W, para llegar a " + FTP_OBJETIVO + " faltan " +
         (FTP_OBJETIVO - ftpAhora) + " W (" + Math.round((FTP_OBJETIVO / ftpAhora - 1) * 100) + " %). " +
-        "La fecha del objetivo se pone con dos tests: el primero da el punto de partida y el segundo, la velocidad de mejora.</p>" : ""),
+        "La fecha del objetivo se pone con dos tests: el primero da el punto de partida y el segundo, la velocidad de mejora.</p>") : ""),
       "");
 
     var aviso = ses.length < 3 ? '<p class="av-aviso">Con ' + ses.length + (ses.length === 1 ? " sesión" : " sesiones") +

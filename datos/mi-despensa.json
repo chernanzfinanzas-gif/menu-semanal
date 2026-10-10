@@ -1,7 +1,7 @@
 {
  "_que_es": "Los ingredientes que Carlos tiene dados de alta en la app. La IA SOLO puede usar estos identificadores. Lo que haga falta y no este aqui va en ingredientesNuevos, nunca en ingredientes.",
  "_generado_desde": "datos/ingredientes.js",
- "_generado_el": "2026-09-20",
+ "_generado_el": "2026-10-10",
  "_campos": {
   "id": "identificador que hay que usar en la receta",
   "n": "nombre",
@@ -11,105 +11,42 @@
   "pesoUd": "gramos que pesa una unidad (solo si u es ud)",
   "basico": "esta siempre en casa; no entra en la compra semanal"
  },
- "total": 77,
+ "total": 238,
  "ingredientes": [
   {
-   "id": "ternera_entrecot",
-   "n": "Entrecot de ternera",
+   "id": "cerdo_secreto",
+   "n": "Filetes de secreto de cerdo",
    "cat": "Carnicería",
    "u": "g",
    "sal": 0.15
   },
   {
-   "id": "ternera_picada",
-   "n": "Carne picada magra de ternera",
-   "cat": "Carnicería",
-   "u": "g",
-   "sal": 0.15
-  },
-  {
-   "id": "hamburguesa_bajasal",
-   "n": "Hamburguesa de vacuno baja en sal (≤0,25 g/100 g)",
-   "cat": "Carnicería",
+   "id": "flan_proteinas",
+   "n": "Flan +Proteínas 0 % (unidad 100 g)",
+   "cat": "Dulces",
    "u": "ud",
-   "sal": 0.25,
-   "pesoUd": 150
+   "sal": 0.28,
+   "pesoUd": 100
   },
   {
-   "id": "pollo_pechuga",
-   "n": "Pechuga de pollo fresca",
-   "cat": "Carnicería",
+   "id": "cayena",
+   "n": "Cayena guindillas Hacendado (bote 23 g)",
+   "cat": "Especias y aromáticos",
    "u": "g",
-   "sal": 0.15
+   "sal": 0.08,
+   "basico": true
   },
   {
-   "id": "cerdo_solomillo",
-   "n": "Solomillo de cerdo fresco",
-   "cat": "Carnicería",
+   "id": "nuez_moscada",
+   "n": "Nuez moscada molida Hacendado (bote 58 g)",
+   "cat": "Especias y aromáticos",
    "u": "g",
-   "sal": 0.15
-  },
-  {
-   "id": "cerdo_lomo",
-   "n": "Lomo de cerdo fresco en filetes (sin adobar)",
-   "cat": "Carnicería",
-   "u": "g",
-   "sal": 0.15
-  },
-  {
-   "id": "bacalao_natural",
-   "n": "Lomo de bacalao al natural SIN SALAR (congelado)",
-   "cat": "Pescadería",
-   "u": "ud",
-   "sal": 0.16,
-   "pesoUd": 130
-  },
-  {
-   "id": "merluza_lomo",
-   "n": "Lomo de merluza fresca o congelada",
-   "cat": "Pescadería",
-   "u": "g",
-   "sal": 0.25
-  },
-  {
-   "id": "lubina",
-   "n": "Lomos de lubina congelados sin aditivos",
-   "cat": "Pescadería",
-   "u": "g",
-   "sal": 0.2
-  },
-  {
-   "id": "calamar_fresco",
-   "n": "Calamar fresco limpio",
-   "cat": "Pescadería",
-   "u": "g",
-   "sal": 0.25
-  },
-  {
-   "id": "salmon_lomo",
-   "n": "Lomo de salmón fresco o congelado",
-   "cat": "Pescadería",
-   "u": "g",
-   "sal": 0.15
-  },
-  {
-   "id": "atun_fresco",
-   "n": "Atún fresco (lomo)",
-   "cat": "Pescadería",
-   "u": "g",
-   "sal": 0.15
-  },
-  {
-   "id": "cebolla_dulce",
-   "n": "Cebolla dulce",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.01,
-   "pesoUd": 150
+   "sal": 0.04,
+   "basico": true
   },
   {
    "id": "ajo",
-   "n": "Ajo",
+   "n": "Ajos morados (malla 250 g)",
    "cat": "Frutas y verduras",
    "u": "ud",
    "sal": 0.04,
@@ -117,448 +54,1453 @@
    "basico": true
   },
   {
-   "id": "patata",
-   "n": "Patata",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.02,
-   "pesoUd": 180
-  },
-  {
-   "id": "calabacin",
-   "n": "Calabacín",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.02,
-   "pesoUd": 250
-  },
-  {
-   "id": "berenjena",
-   "n": "Berenjena",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.01,
-   "pesoUd": 250
-  },
-  {
-   "id": "tomate",
-   "n": "Tomate maduro",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.01,
-   "pesoUd": 150
-  },
-  {
-   "id": "zanahoria",
-   "n": "Zanahoria",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.17,
-   "pesoUd": 80
-  },
-  {
-   "id": "puerro",
-   "n": "Puerro",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0.05,
-   "pesoUd": 150
-  },
-  {
-   "id": "espinacas",
-   "n": "Espinacas frescas",
-   "cat": "Frutas y verduras",
-   "u": "g",
-   "sal": 0.2
-  },
-  {
-   "id": "brotes_verdes",
-   "n": "Brotes verdes (bolsa ensalada)",
-   "cat": "Frutas y verduras",
-   "u": "g",
-   "sal": 0.05
-  },
-  {
-   "id": "setas",
-   "n": "Setas o champiñones frescos",
-   "cat": "Frutas y verduras",
-   "u": "g",
-   "sal": 0.01
-  },
-  {
-   "id": "guisantes",
-   "n": "Guisantes tiernos (congelados)",
-   "cat": "Congelados",
-   "u": "g",
-   "sal": 0.01
-  },
-  {
-   "id": "pina_fresca",
-   "n": "Piña fresca",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0,
-   "pesoUd": 1200
-  },
-  {
-   "id": "manzana_reineta",
-   "n": "Manzana reineta o golden",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0,
-   "pesoUd": 180
-  },
-  {
-   "id": "platano",
-   "n": "Plátano",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0,
-   "pesoUd": 120
-  },
-  {
-   "id": "mango",
-   "n": "Mango",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0,
-   "pesoUd": 350
-  },
-  {
-   "id": "limon",
-   "n": "Limón",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0,
-   "pesoUd": 110
-  },
-  {
-   "id": "fruta_temporada",
-   "n": "Fruta de temporada (pera, kiwi, naranja…)",
-   "cat": "Frutas y verduras",
-   "u": "ud",
-   "sal": 0,
-   "pesoUd": 150
-  },
-  {
-   "id": "arandanos",
-   "n": "Arándanos o frambuesas",
-   "cat": "Frutas y verduras",
-   "u": "g",
-   "sal": 0
-  },
-  {
    "id": "albahaca",
-   "n": "Albahaca fresca",
+   "n": "Albahaca Herbetec fresca (bandeja 20 g)",
    "cat": "Frutas y verduras",
    "u": "g",
    "sal": 0.02
   },
   {
+   "id": "albaricoque",
+   "n": "Albaricoque",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 35
+  },
+  {
+   "id": "arandanos",
+   "n": "Arandanos BerryWorld (vaso 225 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "frambuesas",
+   "n": "Frambuesas Driscolls (bandeja 200 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "berenjena",
+   "n": "Berenjena (pieza 380 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 380
+  },
+  {
+   "id": "ensalada_gourmet",
+   "n": "Brotes tiernos Hacendado (bolsa 100 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.04
+  },
+  {
+   "id": "brotes_verdes",
+   "n": "Duo de canonigos y rucula Hacendado (bolsa 100 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.03
+  },
+  {
+   "id": "calabacin",
+   "n": "Calabacin verde (pieza 420 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.02,
+   "pesoUd": 420
+  },
+  {
+   "id": "cebolla_morada",
+   "n": "Cebolla roja (malla 500 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 125
+  },
+  {
+   "id": "cebolla_dulce",
+   "n": "Cebolla dulce Tara (malla 1 kg)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 165
+  },
+  {
+   "id": "cebolla_verde",
+   "n": "Cebollas tiernas (manojo de 3)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.04,
+   "pesoUd": 50
+  },
+  {
+   "id": "espinacas",
+   "n": "Espinacas baby lavadas Hacendado (bolsa 100 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.14
+  },
+  {
+   "id": "limon",
+   "n": "Limon (pieza 180 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 180
+  },
+  {
+   "id": "kiwi",
+   "n": "Kiwi verde (pieza 95 g pelado)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 95
+  },
+  {
+   "id": "naranja",
+   "n": "Naranja de mesa (pieza 190 g pelada)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 190
+  },
+  {
+   "id": "mandarina",
+   "n": "Mandarina (pieza 90 g pelada)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 90
+  },
+  {
+   "id": "lima",
+   "n": "Lima (pieza 59 g pelada)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 59
+  },
+  {
+   "id": "guacamole",
+   "n": "Guacamole Hacendado 95% aguacate (tarrina 200 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 1.5
+  },
+  {
+   "id": "mango",
+   "n": "Mango (pieza, 300 g de carne)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 300
+  },
+  {
+   "id": "manzana_reineta",
+   "n": "Manzana Golden (pieza 210 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 210
+  },
+  {
+   "id": "melocoton",
+   "n": "Melocoton amarillo (pieza 230 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 230
+  },
+  {
+   "id": "batata_pieza_pelada_330_g",
+   "n": "Batata (pieza pelada 330 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.27,
+   "pesoUd": 330
+  },
+  {
+   "id": "patata",
+   "n": "Patata nueva (malla 3 kg)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.015,
+   "pesoUd": 180
+  },
+  {
    "id": "perejil",
-   "n": "Perejil fresco",
+   "n": "Perejil troceado lavado Hacendado (bolsa 40 g)",
    "cat": "Frutas y verduras",
    "u": "g",
    "sal": 0.14,
    "basico": true
   },
   {
-   "id": "leche",
-   "n": "Leche",
-   "cat": "Lácteos y huevos",
-   "u": "ml",
-   "sal": 0.1
-  },
-  {
-   "id": "yogur_natural",
-   "n": "Yogur natural sin azúcar",
-   "cat": "Lácteos y huevos",
-   "u": "ud",
-   "sal": 0.13,
-   "pesoUd": 125
-  },
-  {
-   "id": "yogur_griego",
-   "n": "Yogur griego natural sin azúcar",
-   "cat": "Lácteos y huevos",
-   "u": "ud",
-   "sal": 0.09,
-   "pesoUd": 125
-  },
-  {
-   "id": "yogur_desnatado",
-   "n": "Yogur natural desnatado bio",
-   "cat": "Lácteos y huevos",
-   "u": "ud",
-   "sal": 0.13,
-   "pesoUd": 125
-  },
-  {
-   "id": "requeson",
-   "n": "Requesón fresco (o ricotta)",
-   "cat": "Lácteos y huevos",
+   "id": "picada_ajo_perejil",
+   "n": "Picada de ajo y perejil Salses Fruits (bandeja 100 g)",
+   "cat": "Frutas y verduras",
    "u": "g",
-   "sal": 0.12
+   "sal": 0.03
   },
   {
-   "id": "queso_burgos_sinsal",
-   "n": "Queso fresco tipo Burgos 0% sal añadida",
-   "cat": "Lácteos y huevos",
+   "id": "pera",
+   "n": "Pera Conferencia (pieza 170 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 170
+  },
+  {
+   "id": "pina_fresca",
+   "n": "Pina natural a rodajas Hacendado (bote 580 g)",
+   "cat": "Frutas y verduras",
    "u": "g",
-   "sal": 0.1
+   "sal": 0
   },
   {
-   "id": "mozzarella_fresca",
-   "n": "Mozzarella fresca de bola",
-   "cat": "Lácteos y huevos",
-   "u": "g",
-   "sal": 0.35
-  },
-  {
-   "id": "huevo",
-   "n": "Huevos",
-   "cat": "Lácteos y huevos",
+   "id": "platano",
+   "n": "Platano de Canarias IGP (pieza pelada 105 g)",
+   "cat": "Frutas y verduras",
    "u": "ud",
-   "sal": 0.35,
-   "pesoUd": 55
+   "sal": 0,
+   "pesoUd": 105
   },
   {
-   "id": "pan_ortiz",
-   "n": "Pan tostado Ortiz estilo tradicional (rebanada 10,8 g)",
-   "cat": "Panadería",
-   "u": "ud",
-   "sal": 1.4,
-   "pesoUd": 10.8
-  },
-  {
-   "id": "pan_tostado_sinsal",
-   "n": "Pan tostado INTEGRAL SIN SAL (rebanada 10,8 g)",
-   "cat": "Panadería",
-   "u": "ud",
-   "sal": 0.03,
-   "pesoUd": 10.8
-  },
-  {
-   "id": "pan_ortiz_bajosal",
-   "n": "Pan tostado 100% integral BAJO EN SAL (rebanada 10,8 g)",
-   "cat": "Panadería",
-   "u": "ud",
-   "sal": 0.2,
-   "pesoUd": 10.8
-  },
-  {
-   "id": "leche_desnatada",
-   "n": "Leche desnatada",
-   "cat": "Lácteos y huevos",
-   "u": "ml",
-   "sal": 0.13,
-   "basico": true
-  },
-  {
-   "id": "pan_sin_sal",
-   "n": "Pan artesanal SIN SAL (barra o rebanadas congeladas)",
-   "cat": "Panadería",
+   "id": "puerro",
+   "n": "Puerros (pack de 3, 450 g)",
+   "cat": "Frutas y verduras",
    "u": "ud",
    "sal": 0.05,
-   "pesoUd": 40
+   "pesoUd": 150
   },
   {
-   "id": "arroz_redondo",
-   "n": "Arroz redondo o bomba",
-   "cat": "Despensa",
-   "u": "g",
-   "sal": 0.01,
-   "basico": true
-  },
-  {
-   "id": "pasta",
-   "n": "Pasta (macarrones, hélices, espaguetis)",
-   "cat": "Despensa",
-   "u": "g",
-   "sal": 0.01,
-   "basico": true
-  },
-  {
-   "id": "lentejas",
-   "n": "Lentejas pardinas",
-   "cat": "Despensa",
-   "u": "g",
-   "sal": 0.02,
-   "basico": true
-  },
-  {
-   "id": "copos_avena",
-   "n": "Copos de avena integrales",
-   "cat": "Despensa",
-   "u": "g",
-   "sal": 0.02,
-   "basico": true
-  },
-  {
-   "id": "nueces",
-   "n": "Nueces crudas sin sal",
-   "cat": "Despensa",
+   "id": "setas",
+   "n": "Setas de ostra Champinter (bandeja 250 g)",
+   "cat": "Frutas y verduras",
    "u": "g",
    "sal": 0.01
   },
   {
-   "id": "aove",
-   "n": "Aceite de oliva virgen extra",
-   "cat": "Despensa",
-   "u": "ml",
-   "sal": 0,
-   "basico": true
+   "id": "champinones",
+   "n": "Champinones laminados limpios Champinter (bandeja 320 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.06
   },
   {
-   "id": "vinagre",
-   "n": "Vinagre de manzana o balsámico",
-   "cat": "Despensa",
-   "u": "ml",
-   "sal": 0.02,
-   "basico": true
+   "id": "setas_congeladas",
+   "n": "Surtido de setas troceadas Basic La Sirena (bolsa 450 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.1
   },
   {
-   "id": "miel",
-   "n": "Miel pura",
+   "id": "setas_boletus",
+   "n": "Surtido de setas con boletus silvestres La Sirena (bolsa 500 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "boletus_troceados",
+   "n": "Boletus troceados Premium La Sirena (bolsa 300 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "tomate_cherry",
+   "n": "Tomates cherry (bandeja 500 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "tomate",
+   "n": "Tomate ensalada (pieza 260 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.01,
+   "pesoUd": 260
+  },
+  {
+   "id": "tomate_rallado",
+   "n": "Tomate rallado fresco Bonnysa (tarrina 290 g)",
+   "cat": "Frutas y verduras",
+   "u": "g",
+   "sal": 0.08
+  },
+  {
+   "id": "zanahoria",
+   "n": "Zanahorias (paquete 500 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0.17,
+   "pesoUd": 80
+  },
+  {
+   "id": "ternera_picada",
+   "n": "Carne picada de vacuno (preparado, 90 por ciento carne)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.59
+  },
+  {
+   "id": "chorizo_sarta_en_tacos",
+   "n": "Taquitos de chorizo extra Revilla (barqueta 100 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 3.5
+  },
+  {
+   "id": "ternera_entrecot",
+   "n": "Entrecot de vacuno angus (paquete 205 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "hamburguesa_finca",
+   "n": "Burger de vacuno gruesa (unidad 180 g)",
+   "cat": "Carnicería",
+   "u": "ud",
+   "sal": 1.5,
+   "pesoUd": 180
+  },
+  {
+   "id": "lomo_iberico_adobado",
+   "n": "Filetes de lomo de cerdo ibérico adobado (paquete 290 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 1.2
+  },
+  {
+   "id": "cerdo_lomo",
+   "n": "Filetes de cabeza de lomo de cerdo Duroc (bandeja 650 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.18
+  },
+  {
+   "id": "cerdo_lomo_trozo",
+   "n": "Lomo de cerdo Duroc en trozo, sin cortar (pieza 1,1 kg)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.15
+  },
+  {
+   "id": "pollo_pechuga",
+   "n": "Filetes de pechuga de pollo certificado (bandeja 590 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.14
+  },
+  {
+   "id": "pollo_contramuslo",
+   "n": "Contramuslos de pollo deshuesados y sin piel (bandeja 550 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.22
+  },
+  {
+   "id": "cerdo_solomillo",
+   "n": "Solomillo de cerdo (pieza de 350-400 g)",
+   "cat": "Carnicería",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "atun_fresco",
+   "n": "Solomillos de atun Premium La Sirena (skinpack 300 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.04
+  },
+  {
+   "id": "calamar_fresco",
+   "n": "Calamar puntilla limpia oriental La Sirena (bolsa 450 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.44
+  },
+  {
+   "id": "bacalao_natural",
+   "n": "Lomos de bacalao MSC Premium La Sirena SIN SALAR (pack 4, 500 g)",
+   "cat": "Pescadería",
+   "u": "ud",
+   "sal": 0.16,
+   "pesoUd": 125
+  },
+  {
+   "id": "merluza_lomo",
+   "n": "Lomos de merluza austral MSC Premium La Sirena (pack 4, 580 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.23
+  },
+  {
+   "id": "bacalao_ahumado",
+   "n": "Bacalao ahumado Hacendado en aceite de girasol (bandeja 110 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 2.3
+  },
+  {
+   "id": "salmon_ahumado",
+   "n": "Salmón ahumado Hacendado (paquete 100 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 2.5
+  },
+  {
+   "id": "sardina_ahumada",
+   "n": "Filetes de sardina ahumada Hacendado (bandeja 85 g, 65 g escurrido)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 3.8
+  },
+  {
+   "id": "salmon_lomo",
+   "n": "Lomos de salmon noruego Premium La Sirena (pack 4 x 125 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.09
+  },
+  {
+   "id": "lubina",
+   "n": "Filetes de lubina Premium La Sirena (pack 180 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.2
+  },
+  {
+   "id": "sepia_limpia",
+   "n": "Sepia faraónica limpia La Sirena, 4-8 piezas (bolsa 510 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.95
+  },
+  {
+   "id": "gambon_austral",
+   "n": "Cola pelada de gambón austral Premium MSC La Sirena (bolsa 425 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.55
+  },
+  {
+   "id": "dorada_filete",
+   "n": "Filetes de dorada Premium La Sirena (pack 180 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.2
+  },
+  {
+   "id": "jamon_iberico",
+   "n": "Jamón de cebo ibérico cortado a máquina (paquete 190 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 3.5
+  },
+  {
+   "id": "pavo_lonchas",
+   "n": "Pechuga de pavo 92% Hacendado en lonchas (paquete 200 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.9
+  },
+  {
+   "id": "bacon_lonchas",
+   "n": "Bacon ahumado Monells en lonchas (paquete 225 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 2.4
+  },
+  {
+   "id": "jamon_cocido",
+   "n": "Jamón cocido Hacendado en lonchas (paquete 200 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.9
+  },
+  {
+   "id": "jamon_cocido_mano",
+   "n": "Jamón cocido extra cortado a mano Noel (paquete 250 g)",
+   "cat": "Charcutería",
+   "u": "g",
+   "sal": 1.4
+  },
+  {
+   "id": "lacon_lonchas",
+   "n": "Lacón al horno Noel en lonchas (paquete 200 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.9
+  },
+  {
+   "id": "queso_tierno",
+   "n": "Queso tierno mezcla Hacendado en lonchas (paquete 250 g, 10 lonchas)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.2
+  },
+  {
+   "id": "queso_semicurado",
+   "n": "Queso semicurado mezcla Hacendado en lonchas (paquete 210 g, 8 lonchas)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.5
+  },
+  {
+   "id": "gorgonzola",
+   "n": "Queso gorgonzola DOP dolce Hacendado (pieza 170 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.9
+  },
+  {
+   "id": "queso_curado",
+   "n": "Queso semicurado mezcla Hacendado en cuñitas (pieza 340 g)",
+   "cat": "Charcutería y quesos",
+   "u": "g",
+   "sal": 1.6
+  },
+  {
+   "id": "salchichas_oscar_mayer_tipo_fr",
+   "n": "Salchichas de bocadillo Oscar Mayer (unidad 55 g)",
+   "cat": "Charcutería y quesos",
+   "u": "ud",
+   "sal": 2,
+   "pesoUd": 55
+  },
+  {
+   "id": "huevo",
+   "n": "Huevos de gallinas camperas Hacendado (6 unidades)",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.36,
+   "pesoUd": 50
+  },
+  {
+   "id": "leche_desnatada",
+   "n": "Leche desnatada con calcio Hacendado",
+   "cat": "Bebida",
+   "u": "ml",
+   "sal": 0.13
+  },
+  {
+   "id": "leche_proteinas",
+   "n": "Leche desnatada +Proteínas & calcio Hacendado, sin lactosa (brik 1 L)",
+   "cat": "Bebida",
+   "u": "ml",
+   "sal": 0.13
+  },
+  {
+   "id": "burrata",
+   "n": "Burrata fresca Hacendado (tarrina 250 g, 150 g escurrido)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.7
+  },
+  {
+   "id": "queso_cottage",
+   "n": "Queso fresco cottage semidesnatado Hacendado (tarrina 200 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.82
+  },
+  {
+   "id": "mozzarella_fresca",
+   "n": "Mozzarella fresca di bufala campana DOP Hacendado (tarrina 280 g, 125 g escurrido)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.6
+  },
+  {
+   "id": "mozzarella_vaca",
+   "n": "Mozzarella fresca de vaca Hacendado (paquete 250 g, 125 g escurrido)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.6
+  },
+  {
+   "id": "parmesano_rallado",
+   "n": "Queso en polvo Grana Padano Hacendado (100 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 1.3
+  },
+  {
+   "id": "parmigiano_reggiano_en_cuna_ra",
+   "n": "Queso Grana Padano DOP Hacendado en escamas (bote 100 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 1.5
+  },
+  {
+   "id": "queso_el_caserio_rallado_espec",
+   "n": "Queso rallado mozzarella pizza-Roma Hacendado (200 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 1
+  },
+  {
+   "id": "nata_cocinar_ligera",
+   "n": "Nata ligera para cocinar Hacendado 15% M.G. (3 briks de 200 ml)",
+   "cat": "Lácteos y huevos",
+   "u": "ml",
+   "sal": 0.1
+  },
+  {
+   "id": "caldo_pollo_bajo_sal",
+   "n": "Caldo de pollo Hacendado bajo en sal (brik 1 L)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0.3
+  },
+  {
+   "id": "fumet_hacendado",
+   "n": "Fumet caldo de pescado Hacendado (botella 950 g)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 1.1
+  },
+  {
+   "id": "queso_crema",
+   "n": "Queso fresco crema estilo Cottage Hacendado (tarrina 200 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.6
+  },
+  {
+   "id": "queso_untar_light",
+   "n": "Queso de untar light de vaca Hacendado (tarrina 300 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.76
+  },
+  {
+   "id": "mantequilla_sinsal",
+   "n": "Mantequilla sin sal añadida Hacendado (pastilla 250 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.05
+  },
+  {
+   "id": "vino_blanco",
+   "n": "Vino blanco Don Simón Chardonnay-Airén (3 briks de 250 ml)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0.01
+  },
+  {
+   "id": "cebolla_caramelizada",
+   "n": "Cebolla caramelizada Vegecampo DIA (tarro 210 g)",
    "cat": "Despensa",
    "u": "g",
+   "sal": 0.61
+  },
+  {
+   "id": "salsa_trufa",
+   "n": "Salsa de trufa Hacendado (bote 80 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 1.65
+  },
+  {
+   "id": "mostaza_dijon",
+   "n": "Mostaza de Dijon Hacendado (tarro 200 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 6.1
+  },
+  {
+   "id": "queso_burgos_sinsal",
+   "n": "Queso fresco de Burgos BAJO EN SAL Dia Lactea (pack 4 x 62,5 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "requeson",
+   "n": "Requesón mezcla Hacendado (tarrina 200 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.2
+  },
+  {
+   "id": "queso_batido_0",
+   "n": "Queso fresco batido desnatado 0% M.G. Hacendado (tarrina 500 g)",
+   "cat": "Lácteos y huevos",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "yogur_griego_hacendado",
+   "n": "Yogur griego natural Hacendado (6 ud x 125 g)",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.12,
+   "pesoUd": 125
+  },
+  {
+   "id": "yogur_activia",
+   "n": "Yogur Danone Activia desnatado edulcorado con probióticos (unidad 120 g)",
+   "cat": "Lácteos y huevos",
+   "u": "ud",
+   "sal": 0.1,
+   "pesoUd": 120
+  },
+  {
+   "id": "croissant",
+   "n": "Croissant de mantequilla (unidad 50 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 1,
+   "pesoUd": 50
+  },
+  {
+   "id": "donut_panrico",
+   "n": "Berlina glacé (unidad 50 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.94,
+   "pesoUd": 50
+  },
+  {
+   "id": "magdalena",
+   "n": "Magdalena con azúcar (unidad 65 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.83,
+   "pesoUd": 65
+  },
+  {
+   "id": "pan_molde",
+   "n": "Pan de molde blanco Hacendado (rebanada 28,7 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.95,
+   "pesoUd": 28.7
+  },
+  {
+   "id": "pan_ortiz_bajosal",
+   "n": "Pan tostado 100% integral bajo en sal y azúcares Hacendado (rebanada 11,25 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 0.2,
+   "pesoUd": 11.25
+  },
+  {
+   "id": "pan_ortiz",
+   "n": "Pan tostado classic Hacendado (rebanada 11,5 g)",
+   "cat": "Panadería",
+   "u": "ud",
+   "sal": 1.8,
+   "pesoUd": 11.5
+  },
+  {
+   "id": "pan_panecillo_sinsal",
+   "n": "Panecillo sin sal añadida (unidad 85 g)",
+   "cat": "Panadería",
+   "u": "ud",
    "sal": 0,
+   "pesoUd": 85
+  },
+  {
+   "id": "rollitos_primavera",
+   "n": "Mini rollitos primavera Cocinas del Mundo La Sirena (caja 300 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 1.3
+  },
+  {
+   "id": "langostino_cocido",
+   "n": "Cola de langostino vannamei cocida y pelada ASC La Sirena (bolsa 360 g)",
+   "cat": "Pescadería",
+   "u": "g",
+   "sal": 0.75
+  },
+  {
+   "id": "langostinos_ajillo",
+   "n": "Langostinos al ajillo Listisimos La Sirena (pack 125 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 1.8
+  },
+  {
+   "id": "guarnicion_verduras_asadas",
+   "n": "Guarnición de verduras asadas Listísimos La Sirena (bolsa 200 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.73
+  },
+  {
+   "id": "aguacate_dados",
+   "n": "Aguacate a dados La Sirena (bolsa 250 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.3
+  },
+  {
+   "id": "mango_congelado",
+   "n": "Mango a dados La Sirena (bolsa 300 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "guisantes",
+   "n": "Guisante extrafino Premium La Sirena (bolsa 300 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "alcachofa_troceada",
+   "n": "Alcachofa troceada La Sirena (bolsa 400 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.24
+  },
+  {
+   "id": "polo_agua",
+   "n": "Polo de agua Alipende de naranja o limón (unidad 70 ml)",
+   "cat": "Congelados",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 70
+  },
+  {
+   "id": "helado_benjerry_cheesecake",
+   "n": "Tarrina Haagen-Dazs Strawberry Cheesecake (460 ml)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.3
+  },
+  {
+   "id": "helado_choco",
+   "n": "Helado artesanal (heladería)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 0.1
+  },
+  {
+   "id": "do_ristorante_barbacoa",
+   "n": "Pizza fina Ristorante Barbacoa Dr. Oetker (caja 350 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 1.3
+  },
+  {
+   "id": "do_ristorante_quattro_formaggi",
+   "n": "Pizza fina Ristorante 4 quesos Dr. Oetker (caja 340 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 1
+  },
+  {
+   "id": "do_ristorante_speciale",
+   "n": "Pizza fina Ristorante Speciale Dr. Oetker (caja 330 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 1.3
+  },
+  {
+   "id": "do_rustica_cheese_deluxe",
+   "n": "Pizza rustica Cheese Deluxe Dr. Oetker (caja 555 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.97
+  },
+  {
+   "id": "do_rustica_double_pepperoni_cheddar_y",
+   "n": "Pizza rustica Double Pepperoni Cheddar y Mozzarella Dr. Oetker (caja 565 g)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 1.3
+  },
+  {
+   "id": "aove",
+   "n": "Aceite de oliva virgen extra Hacendado Gran Seleccion (botella 750 ml)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0,
+   "basico": true
+  },
+  {
+   "id": "aceite_trufa",
+   "n": "Aceite de oliva virgen extra de trufa La Espanola (botella 250 ml)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0
+  },
+  {
+   "id": "cous_cous",
+   "n": "Cous cous mediano Hacendado (caja 1 kg)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "arroz_redondo",
+   "n": "Arroz Albufera Hacendado (paquete 1 kg)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.01,
    "basico": true
   },
   {
    "id": "cacao_puro",
-   "n": "Cacao puro 100% desgrasado",
+   "n": "Cacao puro 100% desgrasado La Chocolatera (bote 265 g)",
    "cat": "Despensa",
    "u": "g",
-   "sal": 0.05,
+   "sal": 0.03,
    "basico": true
   },
   {
-   "id": "chia",
-   "n": "Semillas de chía",
+   "id": "cafe_desca",
+   "n": "Capsulas L'Or Ristretto Decaffeinato (caja 20, 104 g)",
+   "cat": "Despensa",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 5.2,
+   "basico": true
+  },
+  {
+   "id": "cafe_grano",
+   "n": "Cafe en grano Lavazza Qualita Oro (paquete 1 kg)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "copos_avena",
+   "n": "Copos de avena extra suaves Brüggen (caja 800 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "datiles",
+   "n": "Datiles desecados sin hueso Hacendado (paquete 250 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "lentejas",
+   "n": "Lenteja pardina Hacendado categoria extra (paquete 1 kg)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.05
+  },
+  {
+   "id": "pure_pera_manzana_tarrina",
+   "n": "Papilla de pera y manzana Hacendado (4 tarritos x 130 g)",
+   "cat": "Frutas y verduras",
+   "u": "ud",
+   "sal": 0,
+   "pesoUd": 130
+  },
+  {
+   "id": "mermelada_fresa",
+   "n": "Mermelada de frambuesa Hacendado (tarro 340 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.03
+  },
+  {
+   "id": "mermelada_naranja",
+   "n": "Mermelada de naranja amarga Hacendado (tarro 440 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "miel",
+   "n": "Miel de flores Hacendado (bote 500 g)",
    "cat": "Despensa",
    "u": "g",
    "sal": 0.04,
    "basico": true
   },
   {
-   "id": "vino_blanco",
-   "n": "Vino blanco para cocinar",
-   "cat": "Despensa",
-   "u": "ml",
-   "sal": 0.02,
-   "basico": true
-  },
-  {
-   "id": "aceite_sesamo",
-   "n": "Aceite de sésamo",
-   "cat": "Despensa",
-   "u": "ml",
-   "sal": 0,
-   "basico": true
-  },
-  {
-   "id": "mostaza_bajasal",
-   "n": "Mostaza a la antigua baja en sal (o semillas de mostaza)",
+   "id": "pesto_genovese",
+   "n": "Salsa pesto con albahaca Hacendado (tarro 190 g)",
    "cat": "Despensa",
    "u": "g",
-   "sal": 1,
-   "basico": true
+   "sal": 3
   },
   {
-   "id": "cafe_desca",
-   "n": "Café descafeinado",
+   "id": "ketchup_bajo_sal",
+   "n": "Ketchup Hacendado (bote 600 g)",
    "cat": "Despensa",
    "u": "g",
-   "sal": 0,
-   "basico": true
+   "sal": 1.8
   },
   {
-   "id": "datiles",
-   "n": "Dátiles sin hueso",
+   "id": "mayonesa",
+   "n": "Mayonesa Hacendado (bote 490 ml)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 1.1
+  },
+  {
+   "id": "salsa_miel_mostaza",
+   "n": "Salsa de miel y mostaza Hacendado (bote 340 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 1.6
+  },
+  {
+   "id": "pina_conserva",
+   "n": "Piña en su jugo Hacendado en rodajas (3 latas, 140 g escurrido cada una)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.004
+  },
+  {
+   "id": "edulcorante_comprimidos",
+   "n": "Edulcorante en pastillas de sacarina Hacendado (bote 850)",
+   "cat": "Despensa",
+   "u": "ud",
+   "sal": 12.84,
+   "pesoUd": 0.061
+  },
+  {
+   "id": "tomate_triturado",
+   "n": "Tomate triturado Vegecampo DIA (lata 400 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.45
+  },
+  {
+   "id": "sardinillas_bajasal",
+   "n": "Sardinillas Calvo en aceite de oliva BAJO EN SAL (lata 60 g escurrido)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.3
+  },
+  {
+   "id": "anchoas",
+   "n": "Anchoas Hacendado en aceite de oliva (bandeja 110 g escurrido)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 12.8
+  },
+  {
+   "id": "atun_lata_natural",
+   "n": "Atun claro al natural Hacendado (6 latas, 360 g escurrido)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 1.2
+  },
+  {
+   "id": "alubia_blanca_cocida",
+   "n": "Alubia blanca cocida Hacendado (tarro 295 g, 210 g escurrido)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 0.8
+  },
+  {
+   "id": "calamares_tinta",
+   "n": "Calamar en tinta Hacendado (3 latas de 80 g)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 1
+  },
+  {
+   "id": "zumo_granini",
+   "n": "Zumo de naranja exprimido Hacendado (mini brik 200 ml)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0
+  },
+  {
+   "id": "limonada_light",
+   "n": "Limonada natural sin gas light Don Simón (botella 1,5 L)",
+   "cat": "Bebida",
+   "u": "ml",
+   "sal": 0.01
+  },
+  {
+   "id": "orejones",
+   "n": "Orejones de albaricoque Hacendado (paquete 200 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "pasas",
+   "n": "Pasas sultanas sin semillas Hacendado (paquete 250 g)",
    "cat": "Despensa",
    "u": "g",
    "sal": 0
   },
   {
-   "id": "orejones",
-   "n": "Orejones de albaricoque",
+   "id": "pasta",
+   "n": "Macarron Hacendado (paquete 1 kg)",
    "cat": "Despensa",
    "u": "g",
-   "sal": 0.03
+   "sal": 0.01,
+   "basico": true
   },
   {
-   "id": "pasas",
-   "n": "Pasas sultanas",
-   "cat": "Despensa",
-   "u": "g",
-   "sal": 0.03
-  },
-  {
-   "id": "almendras",
-   "n": "Almendras crudas sin sal",
+   "id": "pasta_fusilli",
+   "n": "Helices Hacendado (paquete 500 g)",
    "cat": "Despensa",
    "u": "g",
    "sal": 0.01
   },
   {
-   "id": "crema_cacahuete",
-   "n": "Crema de cacahuete 100% sin sal ni azúcar",
+   "id": "pasta_frutas_energetica",
+   "n": "Pasta de frutas Decathlon energética (unidad 25 g)",
+   "cat": "Despensa",
+   "u": "ud",
+   "sal": 0.24,
+   "pesoUd": 25
+  },
+  {
+   "id": "gel_energetico",
+   "n": "Gel energético HSN Evoenergy con cafeína (unidad 70 ml)",
+   "cat": "Despensa",
+   "u": "ud",
+   "sal": 0.43,
+   "pesoUd": 70
+  },
+  {
+   "id": "evowhey",
+   "n": "Proteina Evowhey HSN cafe con leche (bolsa 2 kg)",
    "cat": "Despensa",
    "u": "g",
-   "sal": 0.02
+   "sal": 0.77
+  },
+  {
+   "id": "evorecovery",
+   "n": "Recuperador Evorecovery HSN limon (bolsa 2 kg)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 4.2
+  },
+  {
+   "id": "evocarbs",
+   "n": "Carbohidratos Evocarbs 2.0 HSN neutro (bolsa 1 kg)",
+   "cat": "Despensa",
+   "u": "g",
+   "sal": 2.15
   },
   {
    "id": "sal",
-   "n": "Sal fina",
+   "n": "Sal fina de mesa Hacendado (bote 300 g)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 100
+  },
+  {
+   "id": "chia",
+   "n": "Semillas de chía Hacendado (bolsa 150 g)",
    "cat": "Despensa",
    "u": "g",
-   "sal": 100,
-   "basico": true
+   "sal": 0.01
   },
   {
-   "id": "pimenton",
-   "n": "Pimentón de la Vera (dulce o ahumado)",
-   "cat": "Especias y aromáticos",
-   "u": "g",
-   "sal": 0.1,
-   "basico": true
-  },
-  {
-   "id": "pimienta",
-   "n": "Pimienta negra en molinillo",
-   "cat": "Especias y aromáticos",
-   "u": "g",
-   "sal": 0.02,
-   "basico": true
-  },
-  {
-   "id": "oregano",
-   "n": "Orégano seco",
-   "cat": "Especias y aromáticos",
-   "u": "g",
+   "id": "vinagre",
+   "n": "Vinagre de manzana Hacendado (botella 1 L)",
+   "cat": "Despensa",
+   "u": "ml",
    "sal": 0.03,
    "basico": true
   },
   {
-   "id": "tomillo",
-   "n": "Tomillo seco",
-   "cat": "Especias y aromáticos",
-   "u": "g",
-   "sal": 0.014,
+   "id": "vinagre_balsamico",
+   "n": "Vinagre balsámico de Módena Hacendado (botella 500 ml)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0.06,
    "basico": true
   },
   {
-   "id": "romero",
-   "n": "Romero seco",
-   "cat": "Especias y aromáticos",
-   "u": "g",
-   "sal": 0.013,
-   "basico": true
+   "id": "limon_exprimido",
+   "n": "Limón exprimido Hacendado (botella 280 ml)",
+   "cat": "Despensa",
+   "u": "ml",
+   "sal": 0.01
   },
   {
-   "id": "laurel",
-   "n": "Laurel",
+   "id": "aceitunas_rell",
+   "n": "Aceitunas verdes rellenas de anchoa Hacendado (3 botes, 150 g escurrido)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "ud",
+   "sal": 3.1,
+   "pesoUd": 4
+  },
+  {
+   "id": "aceitunas_negras",
+   "n": "Aceitunas negras sin hueso Hacendado (bote 350 g, 150 g escurrido)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 2
+  },
+  {
+   "id": "avellanas",
+   "n": "Avellana tostada Hacendado 0% SAL ANADIDA (paquete 200 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "almendras",
+   "n": "Almendra tostada Hacendado 0% SAL ANADIDA pelada (paquete 200 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "cacahuetes_sinsal",
+   "n": "Cacahuete tostado Hacendado 0% SAL ANADIDA pelado (paquete 200 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "crema_cacahuete",
+   "n": "Crema de cacahuete 100 % Hacendado (tarro 500 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "barrita_nakd_cacahuete",
+   "n": "Barrita Nakd Peanut Delight (unidad 35 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "ud",
+   "sal": 0.58,
+   "pesoUd": 35
+  },
+  {
+   "id": "barrita_nakd_cacao",
+   "n": "Barrita Nakd Protein Cacao Avellana (unidad 45 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "ud",
+   "sal": 0.03,
+   "pesoUd": 45
+  },
+  {
+   "id": "barrita_nakd_caramelo",
+   "n": "Barrita Nakd Salted Caramel (unidad 35 g)",
+   "cat": "Dulces",
+   "u": "ud",
+   "sal": 0.45,
+   "pesoUd": 35
+  },
+  {
+   "id": "barrita_nakd_fruta_fibra",
+   "n": "Barrita Nakd Fruta & Fibra manzana y canela (unidad 44 g)",
+   "cat": "Dulces",
+   "u": "ud",
+   "sal": 0.02,
+   "pesoUd": 44
+  },
+  {
+   "id": "maiz_palomitas",
+   "n": "Maiz para palomitas Hacendado (paquete 300 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "tortitas_maiz",
+   "n": "Tortitas de maiz Hacendado (4 packs, 120 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "ud",
+   "sal": 0.7,
+   "pesoUd": 7.5
+  },
+  {
+   "id": "tortitas_arroz_yogur",
+   "n": "Tortitas de arroz con chocolate blanco sabor yogur Hacendado (4 packs, 120 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "ud",
+   "sal": 0.72,
+   "pesoUd": 15
+  },
+  {
+   "id": "galletas_maria",
+   "n": "Galletas María dorada Hacendado (unidad 5,6 g)",
+   "cat": "Dulces",
+   "u": "ud",
+   "sal": 1,
+   "pesoUd": 5.6
+  },
+  {
+   "id": "mango_deshidratado",
+   "n": "Mango deshidratado Hacendado SIN AZUCARES ANADIDOS (bolsa 60 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0.16
+  },
+  {
+   "id": "doritos",
+   "n": "Nachos Hacendado (paquete 150 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0.6
+  },
+  {
+   "id": "nueces",
+   "n": "Nuez natural Hacendado pelada (paquete 200 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "patatas_fritas_congeladas_para",
+   "n": "Patata prefrita 7x7 La Sirena (bolsa 1 kg)",
+   "cat": "Congelados",
+   "u": "g",
+   "sal": 0.02
+  },
+  {
+   "id": "patatas_bolsa",
+   "n": "Patatas fritas extra crujientes Hacendado (paquete 150 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 1.4
+  },
+  {
+   "id": "mcd_patatas_med",
+   "n": "Patatas fritas medianas de McDonald's (una ración)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 0.66,
+   "pesoUd": 100
+  },
+  {
+   "id": "pinones",
+   "n": "Pinones al natural Naturmundo DIA (bolsa 70 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0.01
+  },
+  {
+   "id": "pistachos_sinsal",
+   "n": "Pistacho natural Hacendado PELADO (paquete 100 g)",
+   "cat": "Aperitivos y frutos secos",
+   "u": "g",
+   "sal": 0
+  },
+  {
+   "id": "chocolate_leche",
+   "n": "Chocolate con leche extrafino Nestlé (tableta 125 g)",
+   "cat": "Dulces",
+   "u": "g",
+   "sal": 0.13
+  },
+  {
+   "id": "chocolate_negro",
+   "n": "Chocolate negro 85 % cacao Hacendado (tableta 100 g)",
+   "cat": "Dulces",
+   "u": "g",
+   "sal": 0.03
+  },
+  {
+   "id": "dulce_membrillo",
+   "n": "Dulce de membrillo Hacendado (taco 250 g)",
+   "cat": "Dulces",
+   "u": "g",
+   "sal": 0.02
+  },
+  {
+   "id": "tarta_queso",
+   "n": "Tarta de queso Lolitas (porción de restaurante, 150 g)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 0.33
+  },
+  {
+   "id": "cerveza",
+   "n": "Cerveza Mahou rubia (lager, 5,5% vol) (lata 330 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0
+  },
+  {
+   "id": "bebida_isotonica",
+   "n": "Bebida isotonica de limon Aquarius (botella 1,5 L)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.05
+  },
+  {
+   "id": "cerveza_sin_rubia",
+   "n": "Cerveza Mahou SIN alcohol rubia (0,0) (lata 330 ml)",
+   "cat": "Bebida",
+   "u": "ml",
+   "sal": 0
+  },
+  {
+   "id": "cerveza_sin_tostada",
+   "n": "Cerveza Mahou SIN alcohol tostada (0,0) (lata 330 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0
+  },
+  {
+   "id": "gazpacho",
+   "n": "Gazpacho tradicional Hacendado (3 briks de 330 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.8
+  },
+  {
+   "id": "sodastream_limon",
+   "n": "Concentrado SodaStream Limón Zero (botella 440 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.4
+  },
+  {
+   "id": "sodastream_7up",
+   "n": "Concentrado SodaStream 7UP Zero (botella 440 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 1.03
+  },
+  {
+   "id": "sodastream_pepsi",
+   "n": "Concentrado SodaStream Pepsi Zero (botella 440 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.3
+  },
+  {
+   "id": "cocacola_zero",
+   "n": "Coca-Cola Zero azúcar y Zero cafeína (lata 330 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.02
+  },
+  {
+   "id": "fanta_lim_zero",
+   "n": "Fanta Limón Zero (lata 330 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.06
+  },
+  {
+   "id": "fanta_nar_zero",
+   "n": "Fanta Naranja Zero (lata 330 ml)",
+   "cat": "Bebidas",
+   "u": "ml",
+   "sal": 0.02
+  },
+  {
+   "id": "ajo_polvo",
+   "n": "Ajo granulado Hacendado (bote 115 g)",
    "cat": "Especias y aromáticos",
    "u": "g",
    "sal": 0.06,
@@ -566,7 +1508,7 @@
   },
   {
    "id": "canela",
-   "n": "Canela en polvo",
+   "n": "Canela molida Hacendado (bote 52 g)",
    "cat": "Especias y aromáticos",
    "u": "g",
    "sal": 0.02,
@@ -574,35 +1516,255 @@
   },
   {
    "id": "comino",
-   "n": "Comino molido",
+   "n": "Comino molido Hacendado (bote 58 g)",
    "cat": "Especias y aromáticos",
    "u": "g",
    "sal": 0.04,
    "basico": true
   },
   {
-   "id": "ajo_polvo",
-   "n": "Ajo en polvo",
+   "id": "eneldo",
+   "n": "Eneldo Hacendado (bote 18 g)",
    "cat": "Especias y aromáticos",
    "u": "g",
-   "sal": 0.06,
+   "sal": 0.05,
    "basico": true
   },
   {
    "id": "jengibre",
-   "n": "Jengibre fresco o molido",
+   "n": "Jengibre molido Hacendado (bote 49 g)",
    "cat": "Especias y aromáticos",
    "u": "g",
    "sal": 0.03,
    "basico": true
   },
   {
-   "id": "eneldo",
-   "n": "Eneldo seco",
+   "id": "laurel",
+   "n": "Hoja de laurel Hacendado (paquete 12 g)",
    "cat": "Especias y aromáticos",
    "u": "g",
-   "sal": 0.05,
+   "sal": 0.06,
    "basico": true
+  },
+  {
+   "id": "oregano",
+   "n": "Oregano Hacendado (bote 25 g)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.03,
+   "basico": true
+  },
+  {
+   "id": "pimenton",
+   "n": "Pimenton dulce de la Vera Hacendado (bote 75 g)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.1,
+   "basico": true
+  },
+  {
+   "id": "pimienta",
+   "n": "Molinillo de pimienta negra Hacendado (bote 65 g)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.02,
+   "basico": true
+  },
+  {
+   "id": "romero",
+   "n": "Romero Hacendado (bote 35 g)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.013,
+   "basico": true
+  },
+  {
+   "id": "tomillo",
+   "n": "Tomillo Hacendado (bote 24 g)",
+   "cat": "Especias y aromáticos",
+   "u": "g",
+   "sal": 0.014,
+   "basico": true
+  },
+  {
+   "id": "bk_alita",
+   "n": "Alita de pollo de Burger King (unidad 39 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 2,
+   "pesoUd": 39
+  },
+  {
+   "id": "pj_alitas",
+   "n": "Alitas de pollo de Papa John's",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.37
+  },
+  {
+   "id": "bk_aros_cebolla",
+   "n": "Aros de cebolla de Burger King (unidad 11,8 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 0.51,
+   "pesoUd": 11.8
+  },
+  {
+   "id": "pj_aros_cebolla",
+   "n": "Aros de cebolla de Papa John's (unidad 12 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 0.78,
+   "pesoUd": 12
+  },
+  {
+   "id": "tapa_calamares",
+   "n": "Calamares a la romana (de bar)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.34
+  },
+  {
+   "id": "mcd_cheeseburger",
+   "n": "Cheeseburger de McDonald's (unidad 120 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 1.33,
+   "pesoUd": 120
+  },
+  {
+   "id": "pj_chococookie",
+   "n": "ChocoCookie de Papa John's",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 0.84
+  },
+  {
+   "id": "mcd_cono_helado",
+   "n": "Cono de helado de McDonald's (una ración)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 0.1,
+   "pesoUd": 100
+  },
+  {
+   "id": "tapa_croqueta",
+   "n": "Croqueta de jamón de bar (unidad 33 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 1.02,
+   "pesoUd": 33
+  },
+  {
+   "id": "mcd_quarter",
+   "n": "Cuarto de Libra con queso de McDonald's (una ración)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 2.6,
+   "pesoUd": 100
+  },
+  {
+   "id": "mcd_mcflurry_kitkat",
+   "n": "McFlurry KitKat de McDonald's (una ración)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 0.4,
+   "pesoUd": 100
+  },
+  {
+   "id": "mcd_wrap_cbo",
+   "n": "McWrap CBO de McDonald's (unidad 243 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 1.11,
+   "pesoUd": 243
+  },
+  {
+   "id": "tapa_oreja",
+   "n": "Oreja de cerdo a la plancha (de bar)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.42
+  },
+  {
+   "id": "pj_mozza_sticks",
+   "n": "Palitos de mozzarella de Papa John's",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.8
+  },
+  {
+   "id": "pj_pan_ajo",
+   "n": "Pan de ajo con mozzarella de Papa John's",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 0.47
+  },
+  {
+   "id": "pj_patatas",
+   "n": "Papas (patatas) de Papa John's",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.2
+  },
+  {
+   "id": "tapa_bravas",
+   "n": "Patatas bravas (de bar)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.02
+  },
+  {
+   "id": "pj_pechuguitas",
+   "n": "Pechuguitas de pollo de Papa John's (unidad 30 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 1.39,
+   "pesoUd": 30
+  },
+  {
+   "id": "pizza_bbq_pollo",
+   "n": "Pizza mediana barbacoa con pollo (restaurante, 525 g)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1
+  },
+  {
+   "id": "pizza_carbonara",
+   "n": "Pizza mediana carbonara (restaurante, 525 g)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 0.9
+  },
+  {
+   "id": "pizza_pepperoni",
+   "n": "Pizza mediana de pepperoni (restaurante, 465 g)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 1.3
+  },
+  {
+   "id": "tapa_sepia",
+   "n": "Sepia a la plancha (de bar)",
+   "cat": "Restaurante y bar",
+   "u": "g",
+   "sal": 2.28
+  },
+  {
+   "id": "mcd_topfries_bacon",
+   "n": "Top Fries Bacon & Cheese de McDonald's, individuales (una ración)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 1.5,
+   "pesoUd": 100
+  },
+  {
+   "id": "bk_whopper",
+   "n": "Whopper de Burger King (unidad 289 g)",
+   "cat": "Restaurante y bar",
+   "u": "ud",
+   "sal": 0.9,
+   "pesoUd": 289
   }
  ]
 }

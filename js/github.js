@@ -151,6 +151,7 @@
     var c = JSON.parse(JSON.stringify(e || {}));
     delete c.sync; delete c.actualizado;
     if (c.config && c.config.github) c.config.github.token = "";
+    if (c.config && c.config.catalogo) c.config.catalogo.token = "";
     return JSON.stringify(c);
   }
 
@@ -159,7 +160,16 @@
   function fusionarConRemoto(remoto, sha) {
     var local = JSON.parse(JSON.stringify(Almacen.estado));
     var token = (local.config && local.config.github && local.config.github.token) || "";
-    var remotoManda = String(remoto.actualizado || "") > String(local.actualizado || "");
+    var tokenCat = (local.config && local.config.catalogo && local.config.catalogo.token) || "";
+    /* A3 · 10-oct-2026 — APARATO NUEVO O CON LA MEMORIA BORRADA.
+       Al conectar, `guardar("config")` le pone la hora de AHORA, más nueva que la
+       del repositorio, y sus valores de fábrica (kcal, proteína, ritmo de bajada,
+       favoritas) pisaban los buenos en todos los aparatos. Un aparato que nunca
+       ha sincronizado no tiene nada que defender: manda el repositorio. Lo que
+       haya añadido él (con id propio) se sigue sumando, porque la unión es por id. */
+    var nuncaSincronizo = !(Almacen.estado.sync && Almacen.estado.sync.sha);
+    var remotoManda = nuncaSincronizo ||
+      String(remoto.actualizado || "") > String(local.actualizado || "");
     delete local.sync;
     var junto = fusionar(local, remoto, remotoManda);
     junto.actualizado = (local.actualizado || "") > (remoto.actualizado || "")
@@ -294,6 +304,25 @@
       junto.rondaStock     = foto.rondaStock     || null;
       junto.stockSello     = ganaR ? selloR : selloL;
     }
+    /* M12 · 10-oct-2026: encima de la foto, ficha a ficha por su hora
+       (`stockHora`, ver `_sellarStockPorFicha` en almacen.js). Así dos aparatos
+       contando sitios distintos a la vez no se borran el uno al otro. */
+    (function () {
+      var hL = local.stockHora || {}, hR = remoto.stockHora || {}, hJ = {}, id;
+      for (id in hL) if (Object.prototype.hasOwnProperty.call(hL, id)) hJ[id] = hL[id];
+      for (id in hR) if (Object.prototype.hasOwnProperty.call(hR, id)) {
+        if (!hJ[id] || String(hR[id]) > String(hJ[id])) hJ[id] = hR[id];
+      }
+      if (!Object.keys(hJ).length) return;
+      junto.stock = JSON.parse(JSON.stringify(junto.stock || {}));
+      Object.keys(hJ).forEach(function (k) {
+        var tl = String(hL[k] || ""), tr = String(hR[k] || "");
+        var src = tr > tl ? (remoto.stock || {}) : (local.stock || {});
+        if (Object.prototype.hasOwnProperty.call(src, k)) junto.stock[k] = JSON.parse(JSON.stringify(src[k]));
+        else delete junto.stock[k];
+      });
+      junto.stockHora = hJ;
+    })();
 
     /* Lo pedido a mano —faltas de hogar y caprichos— es una foto igual que la
        despensa: manda entera la del lado que la tocó más tarde, para que borrar
@@ -517,6 +546,51 @@
       var b = ((est.corregido || {})[dia]) || "";
       return a > b ? a : b;
     }
+    /* ── A4 · LAS ACTIVIDADES DE UN DÍA, UNA A UNA (10-oct-2026) ─────────
+       Del día mandaba la lista entera del último que lo tocó: si el móvil
+       apuntaba un paseo y el ordenador el rodillo antes de recibirlo, se perdía
+       uno; y una borrada volvía con el reloj global. Ahora cada actividad lleva
+       su hora de alta y de baja (`actividadAlta` / `actividadQuitada`, ver
+       `_sellarActividad` en almacen.js) y se juntan las dos listas: queda todo
+       lo que alguien apuntó y nadie quitó después. Los días anteriores a esta
+       versión, sin horas, siguen como antes. */
+    var altaAct = {}, quitAct = {};
+    [[local.actividadAlta, altaAct], [remoto.actividadAlta, altaAct],
+     [local.actividadQuitada, quitAct], [remoto.actividadQuitada, quitAct]].forEach(function (par) {
+      var o = par[0] || {}, dst = par[1];
+      Object.keys(o).forEach(function (d) {
+        Object.keys(o[d] || {}).forEach(function (sg) {
+          if (!dst[d]) dst[d] = {};
+          if (!dst[d][sg] || String(o[d][sg]) > String(dst[d][sg])) dst[d][sg] = o[d][sg];
+        });
+      });
+    });
+    junto.actividadAlta = altaAct;
+    junto.actividadQuitada = quitAct;
+    function actividadConHoras(d) { return !!(altaAct[d] || quitAct[d]); }
+    (function () {
+      var firmas = Almacen._firmasActividad.bind(Almacen);
+      var diasAct = {};
+      Object.keys(local.actividad || {}).forEach(function (d) { diasAct[d] = 1; });
+      Object.keys(remoto.actividad || {}).forEach(function (d) { diasAct[d] = 1; });
+      Object.keys(diasAct).forEach(function (d) {
+        if (!actividadConHoras(d)) return;
+        var lL = (local.actividad || {})[d] || [], lR = (remoto.actividad || {})[d] || [];
+        var sL = firmas(lL), sR = firmas(lR), visto = {}, fuera = [];
+        function vale(sg) {
+          var q = (quitAct[d] || {})[sg];
+          if (!q) return true;
+          var a = (altaAct[d] || {})[sg];
+          return !!a && String(a) > String(q);
+        }
+        lL.forEach(function (x, i) { if (!visto[sL[i]] && vale(sL[i])) { visto[sL[i]] = 1; fuera.push(x); } });
+        lR.forEach(function (x, i) { if (!visto[sR[i]] && vale(sR[i])) { visto[sR[i]] = 1; fuera.push(x); } });
+        if (!junto.actividad) junto.actividad = {};
+        if (fuera.length) junto.actividad[d] = JSON.parse(JSON.stringify(fuera));
+        else delete junto.actividad[d];
+      });
+    })();
+
     var dias = {}, f, fuentes = [local.corregido || {}, remoto.corregido || {},
                                 local.selloDia || {}, remoto.selloDia || {},
                                 local.gastado || {}, remoto.gastado || {}];
@@ -590,13 +664,21 @@
       diaDelQueMandaManda(junto, manda, otro, dia, "fotos", selloDelQueManda);
       diaDelQueMandaManda(junto, manda, otro, dia, "real", selloDelQueManda);
       diaDelQueMandaManda(junto, manda, otro, dia, "comprado", selloDelQueManda);
-      diaDelQueMandaManda(junto, manda, otro, dia, "actividad", selloDelQueManda);
+      /* la actividad va aparte, una a una: ver «A4» justo debajo */
+      if (!actividadConHoras(dia)) diaDelQueMandaManda(junto, manda, otro, dia, "actividad", selloDelQueManda);
       diaDelQueMandaManda(junto, manda, otro, dia, "gastado", selloDelQueManda);
 
     });
     if (!junto.config) junto.config = {};
     if (!junto.config.github) junto.config.github = {};
     junto.config.github.token = token;
+    /* la clave del catálogo es de este aparato; si aquí no hay, se aprovecha la
+       que aún traiga una copia vieja del repositorio, para no dejarlo cojo */
+    var catR = (remoto.config && remoto.config.catalogo && remoto.config.catalogo.token) || "";
+    if (tokenCat || catR) {
+      if (!junto.config.catalogo) junto.config.catalogo = {};
+      junto.config.catalogo.token = tokenCat || catR;
+    }
     junto.sync = { sha: sha, ultima: new Date().toISOString() };
     return junto;
   }
@@ -641,6 +723,7 @@
       if (metodo !== "GET") url = url.split("?")[0];
       return fetch(url, {
         method: metodo,
+        cache: "no-store",             // M10 · 10-oct-2026: nunca un GET viejo de la caché
         headers: {
           "Authorization": "Bearer " + c.token,
           "Accept": "application/vnd.github+json",
@@ -677,6 +760,9 @@
     paquete: function () {
       var copia = JSON.parse(JSON.stringify(Almacen.estado));
       if (copia.config && copia.config.github) copia.config.github.token = "";
+      /* M11 · 10-oct-2026: la clave del catálogo tampoco viaja. Iba dentro de
+         estado.json y quedaba en el historial del repositorio privado. */
+      if (copia.config && copia.config.catalogo) copia.config.catalogo.token = "";
       delete copia.sync;
       copia.codigo = codigoApp();      /* qué versión de la app lo guardó (v395) */
       try {
@@ -820,8 +906,9 @@
       this.temporizador = setTimeout(function () { self.guardar(); }, 3500);
     },
 
-    guardar: function () {
+    guardar: function (intento) {
       var self = this;
+      intento = intento || 0;
       if (this.enPausa()) { this.indicar("Sincronización en pausa", ""); return Promise.resolve(false); }
       if (!this.configurado()) { this.indicar("Solo en este dispositivo", ""); return Promise.resolve(false); }
       if (this.bloqueado) { this.avisoVersion(); return Promise.resolve(false); }
@@ -842,7 +929,13 @@
           /* Otro aparato escribió mientras tanto. ANTES se releía el sha y se
              reescribía lo de aquí encima, y así se perdieron las medidas del
              21-sep. Ahora se trae lo suyo, se fusiona, y se sube la unión. */
-          return self.api("GET").then(function (r2) {
+          /* M10 · 10-oct-2026: tope de reintentos. En la prueba de la auditoría
+             llegó a 51 seguidos hasta que GitHub cortó. Cinco, con espera
+             creciente; si no basta, se dice y se deja para el próximo guardado. */
+          if (intento >= 5) throw new Error("el otro aparato sigue guardando; se reintentará en el próximo cambio");
+          return new Promise(function (ok) { setTimeout(ok, 400 * (intento + 1)); }).then(function () {
+            return self.api("GET");
+          }).then(function (r2) {
             if (!r2.ok) throw new Error("conflicto irresoluble");
             return r2.json();
           }).then(function (j) {
@@ -859,7 +952,7 @@
             Almacen.reemplazar(junto);
             self.ocupado = false;
             self.indicar("Juntando con el otro aparato\u2026", "trabajando");
-            return self.guardar();
+            return self.guardar(intento + 1);
           });
         }
         if (!r.ok) {
@@ -1007,6 +1100,7 @@
       if (metodo === "GET") url += "?ref=" + encodeURIComponent(c.rama || "main");
       return fetch(url, {
         method: metodo,
+        cache: "no-store",             // M10 · 10-oct-2026: nunca un GET viejo de la caché
         headers: {
           "Authorization": "Bearer " + c.token,
           "Accept": "application/vnd.github+json",
@@ -1023,7 +1117,16 @@
         if (r.status === 404) return { datos: { ingredientes: [], recetas: [] }, sha: null };
         if (!r.ok) throw new Error("GitHub respondió " + r.status);
         return r.json().then(function (j) {
-          return { datos: leerFicheroCatalogo(deB64(j.content)), sha: j.sha };
+          /* baja · 10-oct-2026: por encima de 1 MB la API no manda `content`;
+             plan B por `download_url`, igual que el estado (`contenidoDe`). */
+          if (j && j.content) return { datos: leerFicheroCatalogo(deB64(j.content)), sha: j.sha };
+          if (j && j.download_url) {
+            return fetch(j.download_url, { cache: "no-store" }).then(function (r2) {
+              if (!r2.ok) throw new Error("no se pudo leer el catálogo (" + r2.status + ")");
+              return r2.text();
+            }).then(function (t) { return { datos: leerFicheroCatalogo(t), sha: j.sha }; });
+          }
+          throw new Error("el repositorio no devolvió el catálogo");
         });
       });
     },
