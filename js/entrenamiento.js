@@ -13987,16 +13987,18 @@
         return '<label class="ent-medida' + claseOrigen(m) + (re ? " puesta" : "") + (tocaE ? " toca" : "") + '">' +
           "<span>ECG (" + m.unidad + ")" +
             '<button type="button" class="ent-ver" tabindex="-1" data-historia="ecgFc" title="Ver histórico" aria-label="Ver histórico del ECG">' +
-            ICONO_GRAF + "</button></span>" +
-          (re && re.fuente === "propio" ? '<button type="button" class="ent-ver" tabindex="-1" data-ecg-papel-id="' + U.esc(re.id) +
-            '" title="Ver en papel" aria-label="Ver este ECG en papel">' + (enCardio(re.id) ? "★" : "📄") + "</button>" : "") +
+            ICONO_GRAF + "</button>" +
+            /* v527: el papel de ese ECG, junto al icono del histórico (dentro del título, que es donde cabe) */
+            (re && re.fuente === "propio" ? '<button type="button" class="ent-ver" tabindex="-1" data-ecg-papel-id="' + U.esc(re.id) +
+              '" title="Ver en papel y marcar para cardiología" aria-label="Ver este ECG en papel">' + (enCardio(re.id) ? "★" : "📄") + "</button>" : "") +
+            "</span>" +
           '<input type="text" readonly tabindex="-1" value="' + (re && re.fc ? Math.round(re.fc) : "") + '"' +
             ' placeholder="' + (re ? "—" : "llega solo") + '">' +
           "<small>" + (re ? (re.revisar ? "con ruido · repítelo"
                                 : re.orto ? "prueba ortostática a las " + U.esc(re.h) + " · fuera de la serie sentado"
                                 : "hecho a las " + U.esc(re.h) +
                                   (re.fuente === "propio" ? " · QTc " + Math.round(re.qtc) + " · " + re.prematuros +
-                                   (re.prematuros === 1 ? " prematuro" : " prematuros") : ""))
+                                   (re.prematuros === 1 ? " adelantado" : " adelantados") : ""))
             : ((dia >= ECG_PROPIO_DESDE ? SensorLogger : Ecg).estado === "cargando" ? "mirando…"
                : dia >= ECG_PROPIO_DESDE ? "Sensor Logger sentado, por Gmail" : "mándalo por correo")) + "</small>" +
           "</label>";
