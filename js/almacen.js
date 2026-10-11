@@ -6686,6 +6686,25 @@
        lo que faltaba; lo de casa no lleva stock y solo se quita. Hasta la v413
        «Ya lo tengo» lo borraba sin meterlo en la despensa, y la lista lo
        volvía a pedir. */
+    /* LO QUITADO QUE LLEGÓ IGUALMENTE (11-oct-2026). Algo salió de la lista
+       después de hacer el pedido —calabacines y cherry que le dieron en el
+       pueblo— y no dio tiempo a quitarlo del pedido: llega y tiene que entrar
+       en la despensa aunque la lista ya no lo pida. `envases` en unidades de
+       compra, como el pedido. */
+    entrarEnDespensa: function (id, envases) {
+      var g = this.ingrediente(id);
+      if (!g || !(envases > 0)) return false;
+      var cuanto = (g.envase > 0 ? g.envase : (this.tamanoPieza(g) || 1)) * envases;
+      var f = this.fichaStock(id);
+      var ahora = (f && f.c > 0 ? f.c : 0) + cuanto;
+      if (!this.estado.stock) this.estado.stock = {};
+      var tam = this.tamanoPieza(g) || 1;
+      this.estado.stock[id] = { c: Math.round(ahora * 100) / 100, piezas: Math.round(ahora / tam * 100) / 100,
+                                f: Util.hoyISO(), t: new Date().toISOString() };
+      this._sellarStock();
+      return true;
+    },
+
     comprarPendiente: function (id) {
       var r = (this.estado.recados || {})[id];
       if (!r) return false;

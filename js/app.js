@@ -6136,7 +6136,7 @@
         if (pu && l.cantidad > 0) gasto += pu.e * l.cantidad; else sinP++;
       });
       html += '<button type="button" class="tile-tienda' + (cogidos && !esOnline(nom) ? " con-cogidos" : "") + (total ? "" : " tile-vacia") +
-              (esOnline(nom) && nuevosDe(nom, g).length ? " con-nuevos" : "") +
+              (esOnline(nom) && (nuevosDe(nom, g).length || quitadosDe(nom, g).length) ? " con-nuevos" : "") +
               '" data-abrirtienda="' + esc(nom) + '">' +
               '<span class="tile-nom">' + esc(nom) + '</span>' +
               '<span class="tile-num">' + total + '</span>' +
@@ -6144,10 +6144,11 @@
                 (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span>' +
               (gasto > 0 ? '<span class="tile-pie">\u2248 ' + Util.euros(gasto) + (sinP ? " \u00b7 " + sinP + " sin precio" : "") + '</span>' : '') +
               (esOnline(nom) && pedidoDe(nom) ? (function () {
-                 var nn = nuevosDe(nom, g).length;
-                 if (pedidoDe(nom).cerrado) return '<span class="tile-pie">🔒 pedido cerrado</span>';
-                 return nn ? '<span class="tile-nuevos">' + nn + (nn === 1 ? " NUEVO" : " NUEVOS") + ' desde el pedido</span>'
-                           : '<span class="tile-pie">✓ pedido hecho</span>';
+                 var nn = nuevosDe(nom, g).length, nq = quitadosDe(nom, g).length;
+                 var q = nq ? '<span class="tile-quitados">' + nq + (nq === 1 ? " QUITADO" : " QUITADOS") + ' desde el pedido</span>' : '';
+                 if (pedidoDe(nom).cerrado) return '<span class="tile-pie">🔒 pedido cerrado</span>' + q;
+                 return (nn ? '<span class="tile-nuevos">' + nn + (nn === 1 ? " NUEVO" : " NUEVOS") + ' desde el pedido</span>'
+                            : (nq ? '' : '<span class="tile-pie">✓ pedido hecho</span>')) + q;
                })() : '') +
               '</button>';
     });
@@ -6226,6 +6227,34 @@
       return a == null || cantDeLinea(o.l) > a + 0.001;
     });
   }
+  /* LO QUITADO DESDE EL PEDIDO (11-oct-2026). Carlos: «me han dado calabacines
+     en el pueblo y cherry que me iban a traer en Mercadona y parece que han
+     desaparecido de la lista… igual que con lo nuevo, lo borrado debería
+     desaparecer anunciándolo para que lo quite del pedido de mercadona si estoy
+     a tiempo». Es la otra mitad de NUEVO: lo que estaba en la foto del pedido y
+     ya no está en la lista, o está con menos envases. */
+  function quitadosDe(nom, g) {
+    var p = pedidoDe(nom);
+    if (!p || !g) return [];
+    var ahora = {};
+    lineasDeTienda(g).forEach(function (o) { ahora[o.l.id] = { q: cantDeLinea(o.l), casa: o.casa }; });
+    var out = [];
+    Object.keys(p.ids).forEach(function (id) {
+      var antes = p.ids[id], hoy = ahora[id] ? ahora[id].q : 0;
+      if (!(hoy < antes - 0.001)) return;
+      var ing = Almacen.ingrediente(id), hog = !ing && Almacen.hogarDe ? Almacen.hogarDe(id) : null;
+      var nombre = ing ? (ing.producto || ing.n) : hog ? hog.n : id;
+      var fmt = function (q) {
+        if (!ing) return "\u00d7" + q;
+        if (ing.u === "ud" && ing.envase > 0) return Math.round(q * ing.envase * 100) / 100 + " ud";
+        if (ing.envase > 0) return (q === 1 ? "" : q + " \u00d7 ") + Util.formatearCantidad(ing.envase, ing.u);
+        return Util.formatearCantidad(q, ing.u);
+      };
+      out.push({ id: id, nombre: nombre, antes: antes, hoy: hoy, sobra: Math.round((antes - hoy) * 100) / 100,
+                 casa: !ing, txtAntes: fmt(antes), txtHoy: hoy > 0 ? fmt(hoy) : "" });
+    });
+    return out;
+  }
   function fotoPedido(nom, g, quitar) {
     var ids = {};
     lineasDeTienda(g).forEach(function (o) { if (!(quitar && quitar[o.l.id])) ids[o.l.id] = cantDeLinea(o.l); });
@@ -6293,11 +6322,28 @@
       Almacen.confirmarCompra([o.l], fl, {});
     });
   }
+  function bloqueQuitados(nom, g) {
+    var p = pedidoDe(nom), qt = quitadosDe(nom, g);
+    if (!p || !qt.length) return "";
+    var h = '<div class="compra-quitados"><div class="cn-cab"><span class="cq-etq">QUITADO</span> ' +
+      '<b>' + qt.length + (qt.length === 1 ? " producto ya no hace falta" : " productos ya no hacen falta") + '</b> desde tu pedido ' + esc(delPedido(p)) + '</div>' +
+      '<p class="cq-ayuda">' + (p.cerrado
+        ? 'El pedido ya est\u00e1 cerrado, as\u00ed que llegar\u00e1n igualmente: al pulsar <b>\u00abPedido recibido\u00bb</b> salen marcados y entran en la despensa.'
+        : 'Si a\u00fan puedes, <b>qu\u00edtalos del pedido de ' + esc(nom) + '</b> y pulsa <b>\u00abPedido hecho\u00bb</b> otra vez. Si ya no puedes y llegan, al pulsar \u00abPedido recibido\u00bb los marcas y entran en la despensa.') + '</p>';
+    qt.forEach(function (x) {
+      h += '<div class="cn-fila"><div class="cn-dato"><span class="cn-n cq-n">' + esc(x.nombre) + '</span> ' +
+        '<span class="cn-q">' + esc(x.hoy > 0 ? "sobran " + x.sobra : x.txtAntes) + '</span>' +
+        '<div class="cn-por">' + esc(x.hoy > 0 ? "en el pedido iban " + x.txtAntes + " y ahora basta con " + x.txtHoy
+                                               : "en el pedido, pero ya no lo pide nada (lo tienes en casa o ya no est\u00e1 en el men\u00fa)") +
+        '</div></div></div>';
+    });
+    return h + '</div>';
+  }
   function bloqueNuevos(nom, g) {
     var p = pedidoDe(nom), nv = nuevosDe(nom, g);
     if (!p) return "";
-    if (p.cerrado) return '<p class="pedido-hecho">🔒 Pedido ' + esc(delPedido(p)) + ' cerrado: lo que aparezca a partir de ahora va directo a Pendiente.</p>';
-    if (!nv.length) return '<p class="pedido-hecho">✓ Pedido ' + esc(delPedido(p)) + ' hecho. Nada nuevo desde entonces.</p>';
+    if (p.cerrado) return '<p class="pedido-hecho">🔒 Pedido ' + esc(delPedido(p)) + ' cerrado: lo que aparezca a partir de ahora va directo a Pendiente.</p>' + bloqueQuitados(nom, g);
+    if (!nv.length) return (quitadosDe(nom, g).length ? '' : '<p class="pedido-hecho">✓ Pedido ' + esc(delPedido(p)) + ' hecho. Nada nuevo desde entonces.</p>') + bloqueQuitados(nom, g);
     var h = '<div class="compra-nuevos" id="lt-nuevos"><div class="cn-cab"><span class="cn-etq">NUEVO</span> ' +
       '<b>' + nv.length + (nv.length === 1 ? " producto añadido" : " productos añadidos") + ' desde tu pedido</b> ' + esc(delPedido(p)) + '</div>' +
       '<p class="cn-ayuda">Salen porque algo cambió después de hacer el pedido. Si aún puedes, añádelos al pedido de ' + esc(nom) +
@@ -6310,7 +6356,7 @@
       h += '<div class="cn-fila"><div class="cn-dato"><span class="cn-n">' + esc(nombre) + '</span> <span class="cn-q">' + esc(cant) + '</span>' +
         (porque ? '<div class="cn-por">' + esc(porque) + '</div>' : "") + '</div></div>';
     });
-    return h + "</div>";
+    return h + "</div>" + bloqueQuitados(nom, g);
   }
   var listaSoloLectura = false;
   var nuevosAbiertos = {};          // ids NUEVOS de la tienda abierta (v529)
@@ -6401,7 +6447,7 @@
                 : esOnline(nom)
                   ? '<span class="botones-pedido">' +
                     (!(pedidoDe(nom) && pedidoDe(nom).cerrado)
-                      ? '<button class="btn' + (pedidoDe(nom) && nuevosDe(nom, g).length ? " btn-nuevo" : "") + '" id="lt-pedido">Pedido hecho</button>' +
+                      ? '<button class="btn' + (pedidoDe(nom) && (nuevosDe(nom, g).length || quitadosDe(nom, g).length) ? " btn-nuevo" : "") + '" id="lt-pedido">Pedido hecho</button>' +
                         (pedidoDe(nom) ? '<button class="btn" id="lt-cerrado">Pedido cerrado</button>' : "") : "") +
                     '<button class="btn principal" id="lt-comprado">Pedido recibido</button></span>'
                   : '<button class="btn principal" id="lt-comprado">He salido de la tienda</button>') + '</div>';
@@ -6491,6 +6537,18 @@
         html += fila(x.id, x.n, x.c > 1 ? "×" + x.c : "", x.c, algo ? Almacen.estaPedido(x.id) : true, true);
       });
     }
+    /* lo QUITADO después del pedido: si llegó igualmente, a la despensa (11-oct-2026).
+       Con el pedido cerrado sale marcado (no se pudo quitar); si no, sin marcar. */
+    var qtR = esOnline(nom) ? quitadosDe(nom, g).filter(function (x) { return !x.casa; }) : [];
+    if (qtR.length) {
+      var cerr = !!(pedidoDe(nom) && pedidoDe(nom).cerrado);
+      html += '<p class="aviso-grupo">Quitado despu\u00e9s del pedido: <b>marca lo que haya llegado igualmente</b></p>';
+      qtR.forEach(function (x) {
+        html += '<label class="linea"><input type="checkbox" data-quitado-llego="' + esc(x.id) + '" data-sobra="' + x.sobra + '"' + (cerr ? " checked" : "") + '>' +
+          '<div class="datos"><div class="nombre">' + esc(x.nombre) + '</div><div class="detalle">' +
+          esc(x.hoy > 0 ? "sobraban " + x.sobra + " de " + x.txtAntes : x.txtAntes) + '</div></div></label>';
+      });
+    }
     html += '</div><div class="pie-compacto"><span class="nota-peque" id="ct-cuenta"></span>' +
             '<span><button class="btn" data-cerrar>Cancelar</button> ' +
             '<button class="btn principal" id="ct-ok">Pasar a la despensa</button></span></div>';
@@ -6530,12 +6588,18 @@
         faltas[l.id] = n ? Math.min(l.envases || 1, parseInt(n.value, 10) || 0) : 0;
       });
       casa.forEach(function (x) { if (!llego(x.id)) faltasHogar[x.id] = { t: nom }; });
+      /* lo quitado que llegó igualmente entra en la despensa (11-oct-2026) */
+      var entraronQ = 0;
+      document.querySelectorAll("#ct-cuerpo [data-quitado-llego]").forEach(function (c) {
+        if (c.checked && Almacen.entrarEnDespensa(c.getAttribute("data-quitado-llego"), parseFloat(c.getAttribute("data-sobra")) || 1)) entraronQ++;
+      });
       if (esOnline(nom) && Almacen.estado.compraPedido) delete Almacen.estado.compraPedido[nom];   // v529: pedido cerrado
       var res = Almacen.confirmarCompra(lineas, faltas, alSuplente);
       Almacen.confirmarHogar(casa.map(function (x) { return x.id; }), faltasHogar);
       var aPend = res.recados + Object.keys(faltasHogar).length;
       cerrarModal(); pintarCompra(); pintarDespensa();
-      Util.toast(nom + ": entraron " + res.entraron + " en la despensa" +
+      Util.toast(nom + ": entraron " + (res.entraron + entraronQ) + " en la despensa" +
+                 (entraronQ ? " (" + entraronQ + " de lo quitado)" : "") +
                  (aPend ? " · " + aPend + " a Pendiente" : "") +
                  (res.suplentes ? " · " + res.suplentes + " al suplente" : ""));
     });
