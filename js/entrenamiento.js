@@ -1055,6 +1055,13 @@
       ".ecg-pie{font-size:.74rem;line-height:1.4;color:#555;margin:6px 0 0}",
       ".ecg-btn{display:block;width:100%;margin-top:10px}",
       "#ecg-imprimir{display:none}",
+      ".cardio-caja{border:1px solid #e6c3bb;background:#fdf5f3;border-radius:8px;padding:8px 10px;margin:4px 0 10px}",
+      ".cardio-caja.marcada{border-color:#9cc7a8;background:#f1f8f3}",
+      ".cardio-caja textarea{width:100%;box-sizing:border-box;margin:6px 0;font:inherit;font-size:.85rem}",
+      ".cardio-bot{display:flex;gap:8px;flex-wrap:wrap}",
+      ".cardio-lista{margin:4px 0 8px;padding-left:18px;font-size:.88rem;line-height:1.5}",
+      ".cardio-lista .enlace{background:none;border:0;padding:0;color:#2f5c8a;text-decoration:underline;cursor:pointer;font:inherit}",
+      ".cardio-tab th,.cardio-tab td{font-size:.8rem;padding:2px 6px;text-align:left;vertical-align:top}",
       /* ---- las cuatro casillas de la variabilidad (v340) ---- */
       ".vfc-casillas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;margin:8px 0 2px;font-size:.78rem}",
       ".vfc-casillas span{display:block;line-height:1.3}",
@@ -4788,7 +4795,7 @@
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
         "<b>Sensor Logger</b> sentado, espalda apoyada, sin hablar y respirando normal: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. De esta grabación salen el pulso, el QRS, el QTc y los latidos adelantados: es el ECG del día. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
         "<b>ECG Analysis ya no hace falta</b> (desde el 11-oct). Si aún te deja grabar y quieres seguir comparando unos días, hazlo antes, mándalo por correo y ciérralo del todo (Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>) antes de abrir Sensor Logger, o se queda con la banda.",
-        "Los <b>martes</b>, la prueba ortostática en la cama sustituye a esta grabación: cuenta como hecha, pero no entra en la serie sentado.",
+        "Los <b>martes</b>, primero la prueba ortostática en la cama y después, en la oficina, este Sensor Logger sentado como cualquier día: hacen falta las dos.",
         "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
       ],
       fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen latidos de forma rara que no son del corazón, y ese ECG queda marcado con ruido. " +
@@ -5494,6 +5501,7 @@
      el QRS propio sale 4-8 ms más corto. La prueba ortostática de los martes
      cuenta como hecha, pero no entra en la serie sentado. */
   var ECG_PROPIO_DESDE = "2026-10-11";
+  var ORTO_DESDE = "2026-10-13";          // los martes: prueba ortostática Y Sensor Logger sentado (v527)
   var SensorLogger = {
     CLAVE: "khb-sensor-logger-v1",
     RUTA: "datos/sensor-logger.json",
@@ -5647,8 +5655,8 @@
   function panelFuturo(dia, hoyReal) {
     var dSem = new Date(dia + "T12:00:00").getDay();
     var toca = ["Tensión", "Báscula"];
-    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
-      toca.push(dSem === 2 && dia >= "2026-10-13" ? "ECG (Sensor Logger: prueba ortostática)" : "ECG (Sensor Logger sentado)");
+    if (dSem === 2 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (Sensor Logger en la cama)");
+    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5) toca.push("ECG (Sensor Logger sentado)");
     if (dSem === 1) toca.push("Medidas del lunes (cinta, músculo, agua y masa ósea)");
     var esManana = dia === U.sumarDias(hoyReal, 1);
     var h = '<div class="manana futura"><div class="manana-cab"><b>' +
@@ -5678,8 +5686,9 @@
       items = (L.items || []).slice();
     } else {
       items = [{ n: "Tensión", ok: false }, { n: "Báscula", ok: false }];
+      if (dSem === 2 && hoy >= ORTO_DESDE) items.push({ n: "Prueba ortostática", ok: false });
       if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
-        if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger)", ok: false });
+        if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger sentado)", ok: false });
         else items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
     }
     if (dSem === 1) {
@@ -5728,7 +5737,7 @@
      una fila de ECG Analysis (fc, qrs, qtc, cortos_min…) para que todo lo que ya
      pinta un ECG la entienda. «cortos_min» son aquí los prematuros por minuto. */
   function filaEcgPropio(x) {
-    return { f: x.f, h: x.h, fuente: "propio", fc: x.pulso, qrs: x.qrs_ms, qt: x.qt_ms, qtc: x.qtc,
+    return { id: x.id, f: x.f, h: x.h, fuente: "propio", fc: x.pulso, qrs: x.qrs_ms, qt: x.qt_ms, qtc: x.qtc,
              prematuros: x.prematuros, cortos_min: x.prematuros_min, horas: x.horas_prematuros || [],
              forma: x.forma_distinta || 0, rmssd_limpio: x.rmssd_limpio, dur_s: x.dur_s,
              revisar: !!(x.ruido || x.ecg_error), ruido: x.ruido || "", orto: !!x.ortostatico };
@@ -5742,6 +5751,83 @@
   }
   /* El ECG que cuenta de cada día, el primero de la mañana: sentado antes que
      ortostática, sin ruido antes que con ruido. */
+  /* LOS TRAZADOS DE CADA SENSOR LOGGER (v527, 11-oct-2026). La recogida v16 deja
+     el de cada grabación en datos/trazos-ecg/<id>.json (unos 90 KB): se trae sólo
+     cuando se abre en papel, y se guarda, porque no cambia nunca. */
+  var Trazos = {};
+  function trazoDe(id, alTerminar) {
+    var o = Trazos[id];
+    if (!o) {
+      o = Trazos[id] = { CLAVE: "khb-trazo-" + id, RUTA: "datos/trazos-ecg/" + id + ".json", FRESCO_H: 24 * 365,
+                         datos: null, traidoEl: null, estado: "nada", deCache: Curva.deCache, cargar: Curva.cargar };
+    }
+    if (o.datos || o.estado === "no-hay") { if (alTerminar) alTerminar(o); return o; }
+    o.cargar(function () { if (alTerminar) alTerminar(o); });
+    return o;
+  }
+  function slPorId(id) {
+    var l = (SensorLogger.datos && SensorLogger.datos.registros) || [];
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+    return null;
+  }
+  /* Los de ECG Analysis desde el 6-oct también tienen trazado (recogida v16) y se
+     pueden marcar: el 11-oct a las 07:38 marcó 10 latidos adelantados. */
+  function filaEcgApp(x) {
+    return { id: x.id, f: x.f, h: x.h, fuente: "app", fc: x.fc, qrs: x.qrs, qtc: x.qtc,
+             prematuros: x.ectopicos != null ? Math.round(x.ectopicos) : null, horas: [], forma: 0,
+             dur_s: x.dur_s, revisar: !!x.revisar, orto: false };
+  }
+  function ecgPorId(id) {
+    var x = slPorId(id);
+    if (x) return filaEcgPropio(x);
+    var l = registrosEcg();
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) return filaEcgApp(l[i]);
+    return null;
+  }
+
+  /* PARA CARDIOLOGÍA (v527, 11-oct-2026). Carlos: «de marcar algún resultado para
+     que lo vea el cardiólogo, se marca ese registro y se añade en una lista para
+     llevar cuando haya consulta de cardiología». Dos caminos a la misma lista:
+     lo que marca él desde el ECG en papel y lo que propone la revisión de la
+     mañana (`revision.cardiologia`: [{id, motivo}]). Se guarda en
+     entreno.cardiologia = { id: { estado: "si"|"no", nota, f, h, t } }: quitar NO
+     borra la clave, la deja en "no" (la sincronización mezcla campo a campo y un
+     borrado volvería del otro aparato; y así lo que propuso la revisión y él
+     quitó no reaparece). */
+  function cardioMarcas() { var e = ent(); if (!e.cardiologia) e.cardiologia = {}; return e.cardiologia; }
+  function cardioPropuestas() {
+    var D = DiarioSalud.datos, out = {};
+    Object.keys((D && D.dias) || {}).forEach(function (f) {
+      var R = D.dias[f] && D.dias[f].revision;
+      ((R && R.cardiologia) || []).forEach(function (c) { if (c && c.id) out[c.id] = { motivo: c.motivo || "", f: f }; });
+    });
+    return out;
+  }
+  function listaCardio() {
+    var m = cardioMarcas(), pr = cardioPropuestas(), ids = {}, out = [];
+    Object.keys(m).forEach(function (id) { if (m[id] && m[id].estado === "si") ids[id] = 1; });
+    Object.keys(pr).forEach(function (id) { if (!m[id]) ids[id] = 1; });
+    Object.keys(ids).forEach(function (id) {
+      var fila = ecgPorId(id) || { id: id, f: (m[id] && m[id].f) || (pr[id] && pr[id].f) || "", h: (m[id] && m[id].h) || "" };
+      fila.nota = (m[id] && m[id].nota) || "";
+      fila.motivo = pr[id] ? pr[id].motivo : "";
+      fila.deRevision = !!pr[id] && !(m[id] && m[id].estado === "si");
+      out.push(fila);
+    });
+    return out.sort(function (a, b) { return (a.f + a.h) < (b.f + b.h) ? -1 : 1; });
+  }
+  function enCardio(id) {
+    var m = cardioMarcas()[id];
+    if (m) return m.estado === "si";
+    return !!cardioPropuestas()[id];
+  }
+  function marcarCardio(id, si, nota) {
+    var m = cardioMarcas(), x = ecgPorId(id) || {}, viejo = m[id] || {};
+    m[id] = { estado: si ? "si" : "no", nota: nota != null ? String(nota).slice(0, 400) : (viejo.nota || ""),
+              f: x.f || viejo.f || "", h: x.h || viejo.h || "", t: new Date().toISOString() };
+    A.guardar("entreno");
+  }
+
   function ecgPropioDelDia(iso, conOrto) {
     var mejor = null, peso = function (r) { return (r.orto ? 2 : 0) + (r.revisar ? 1 : 0); };
     registrosEcgPropio(conOrto).forEach(function (x) {
@@ -5779,9 +5865,19 @@
       if (yy < 0.3) yy = 0.3; if (yy > H - 0.3) yy = H - 0.3;       // lo que se salga, al borde
       pts.push((ECG_CAL + ((i - i0) / fs) * ECG_MM_S).toFixed(2) + "," + yy.toFixed(2));
     }
+    /* v527: un triángulo rojo bajo cada latido adelantado (y uno azul bajo los de
+       forma distinta), en el segundo exacto que dio el análisis propio */
+    var marcas = "";
+    [[d.seg_prematuros, "#c0392b"], [d.seg_forma, "#2f5c8a"]].forEach(function (par) {
+      (par[0] || []).forEach(function (sg) {
+        if (sg < t0 || sg >= t0 + ECG_TIRA_S) return;
+        var xm = ECG_CAL + (sg - t0) * ECG_MM_S;
+        marcas += '<path d="M' + xm.toFixed(2) + "," + (H - 2.6) + " l-1.1,2.2 h2.2 z" + '" fill="' + par[1] + '"/>';
+      });
+    });
     return '<svg class="ecg-papel" viewBox="0 0 ' + W + " " + H + '" width="' + W + 'mm" height="' + H + 'mm" ' +
       'preserveAspectRatio="xMinYMin meet" role="img" aria-label="ECG de ' + t0 + " a " + (t0 + ECG_TIRA_S) + ' segundos">' +
-      g + '<path d="' + cal + '" fill="none" stroke="#000" stroke-width="0.3"/>' +
+      g + marcas + '<path d="' + cal + '" fill="none" stroke="#000" stroke-width="0.3"/>' +
       '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#000" stroke-width="0.28" stroke-linejoin="round"/>' +
       '<text x="' + (W - 1) + '" y="' + (H - 1) + '" font-size="2.4" text-anchor="end" fill="#8a4a4a">' +
       t0 + "–" + Math.min(t0 + ECG_TIRA_S, Math.round(uv.length / fs)) + " s</text></svg>";
@@ -5791,6 +5887,20 @@
     var nombre = (A.estado.perfil && A.estado.perfil.nombre) || (P.atleta && P.atleta.nombre) || "Carlos Hernanz";
     var f = U.desdeISO(d.f), fecha = ("0" + f.getDate()).slice(-2) + "/" + ("0" + (f.getMonth() + 1)).slice(-2) + "/" + f.getFullYear();
     var dur = d.dur_s || Math.round((d.uV || []).length / (d.fs || 130));
+    if (d.fuente === "propio") {                                  // v527: del Sensor Logger
+      var hp = d.horas_prematuros || [], hf = d.horas_forma || [];
+      return '<p class="ecg-cab"><b>Electrocardiograma de reposo · una derivación</b><br>' +
+        U.esc(nombre) + " · " + fecha + " a las " + U.esc(d.ini || d.h) + " · " +
+        (d.ortostatico ? "prueba ortostática: tumbado y después de pie" : "sentado") + ", " + dur + " s<br>" +
+        "FC media <b>" + (d.fc ? Math.round(d.fc) : "—") + " lpm</b>" +
+        " · QRS <b>" + (d.qrs ? Math.round(d.qrs) : "—") + " ms</b> · QT <b>" + (d.qt ? Math.round(d.qt) : "—") + " ms</b>" +
+        " · QTc (Bazett) <b>" + (d.qtc ? Math.round(d.qtc) : "—") + " ms</b><br>" +
+        "Latidos adelantados: <b>" + (d.prematuros || 0) + "</b>" + (hp.length ? " (a las " + U.esc(hp.join(", ")) + ", marcados con ▲ rojo)" : "") +
+        (hf.length ? " · latidos de forma distinta: <b>" + hf.length + "</b> (a las " + U.esc(hf.join(", ")) + ", ▲ azul)" : "") +
+        (d.ruido ? "<br><b>Grabación con ruido:</b> " + U.esc(d.ruido) : "") +
+        (d.origen === "ECG Analysis" ? "<br>Grabado con la app ECG Analysis for Polar H10; cifras del análisis propio sobre ese registro" : "") + "<br>" +
+        "25 mm/s · 10 mm/mV · pulso de calibración de 1 mV al inicio de cada tira</p>";
+    }
     return '<p class="ecg-cab"><b>Electrocardiograma de reposo · una derivación</b><br>' +
       U.esc(nombre) + " · " + fecha + " a las " + U.esc(d.h) + " · sentado, " + dur + " s<br>" +
       "FC media <b>" + (d.fc ? Math.round(d.fc) : "—") + " lpm</b>" +
@@ -5805,27 +5915,146 @@
     "derivaciones. Línea base corregida (filtro de monitor, ≈0,5 Hz). Las cifras las calcula la app de forma " +
     "automática y no están revisadas por un profesional.";
 
+  var PIE_ECG_PROPIO = "Registro con banda de pecho Polar H10 grabado con Polar Sensor Logger (130 muestras/s): una sola " +
+    "derivación torácica. Sirve para valorar el ritmo (regularidad, latidos adelantados, pausas); no sustituye un ECG de 12 " +
+    "derivaciones. Línea base corregida (filtro de monitor, ≈0,5 Hz). Las cifras las calcula de forma automática un análisis " +
+    "propio, comprobado con los mismos registros frente a la app ECG Analysis for Polar H10 (pulso ±1 lpm, QTc ±12 ms, mismos " +
+    "latidos adelantados a la misma hora; su QRS sale 4-8 ms más corto), y no están revisadas por un profesional.";
+
   function papelEcgEntero(d) {
     var h = cabeceraEcg(d), dur = (d.uV || []).length / (d.fs || 130);
     for (var t = 0; t < dur - 0.5; t += ECG_TIRA_S) h += tiraEcg(d, t);
-    return h + '<p class="ecg-pie">' + U.esc(PIE_ECG) + "</p>";
+    var pie = d.fuente !== "propio" ? PIE_ECG : d.origen === "ECG Analysis"
+      ? PIE_ECG_PROPIO.replace("grabado con Polar Sensor Logger (130 muestras/s)", "grabado con la app ECG Analysis for Polar H10 (130 muestras/s)")
+      : PIE_ECG_PROPIO;
+    return h + '<p class="ecg-pie">' + U.esc(pie) + "</p>";
   }
 
-  function abrirEcgPapel() {
-    var d = EcgUltimo.datos, caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
-    if (!d || !caja || !modal) return;
-    caja.innerHTML = '<header><h2>El último ECG</h2>' +
+  /* v527: el papel de CUALQUIER grabación con trazado (sin id, el último ECG),
+     con la caja «Para cardiología» debajo. */
+  var ecgAbierto = null;
+  function abrirEcgPapel(id) {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    if (!id) { ecgAbierto = EcgUltimo.datos; pintarEcgPapel(); modal.classList.add("abierta"); return; }
+    ecgAbierto = null;
+    caja.innerHTML = '<header><h2>ECG en papel</h2>' +
       '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
-      papelEcgEntero(d) +
+      '<p class="nota-peque">Trayendo el trazado…</p>';
+    modal.classList.add("abierta");
+    trazoDe(id, function (o) {
+      if (!modal.classList.contains("abierta")) return;
+      if (o.datos) { ecgAbierto = o.datos; pintarEcgPapel(); return; }
+      caja.innerHTML = '<header><h2>ECG en papel</h2>' +
+        '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+        '<p class="nota-peque">El trazado de esta grabación todavía no está en el repositorio: lo deja la recogida en ' +
+        "la siguiente vuelta (cada 20 minutos por la mañana).</p>";
+    });
+  }
+  function cajaCardio(d) {
+    if (!d || d.fuente !== "propio" || !d.id) return "";
+    var si = enCardio(d.id), m = cardioMarcas()[d.id] || {}, pr = cardioPropuestas()[d.id];
+    return '<div class="cardio-caja' + (si ? " marcada" : "") + '">' +
+      "<b>" + (si ? "✓ En la lista para cardiología" : "Para cardiología") + "</b>" +
+      (pr && pr.motivo ? '<p class="nota-peque">La revisión de la mañana lo propuso: ' + U.esc(pr.motivo) + "</p>" : "") +
+      '<textarea id="cardio-nota" rows="2" placeholder="Nota para el cardiólogo (opcional): qué notaste, qué estabas haciendo…">' +
+      U.esc(m.nota || "") + "</textarea>" +
+      (si ? '<div class="cardio-bot"><button type="button" class="btn" data-cardio-nota="' + U.esc(d.id) + '">Guardar la nota</button>' +
+            '<button type="button" class="btn" data-cardio-quitar="' + U.esc(d.id) + '">Quitar de la lista</button></div>'
+          : '<div class="cardio-bot"><button type="button" class="btn principal" data-cardio-marcar="' + U.esc(d.id) + '">Marcar para cardiología</button></div>') +
+      "</div>";
+  }
+  function pintarEcgPapel() {
+    var d = ecgAbierto, caja = document.getElementById("modal-caja");
+    if (!d || !caja) return;
+    var titulo = d.fuente === "propio" ? "ECG del " + U.etiquetaFecha(d.f) + " a las " + d.h : "El último ECG";
+    caja.innerHTML = '<header><h2>' + U.esc(titulo) + '</h2>' +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      cajaCardio(d) + papelEcgEntero(d) +
       '<button class="btn principal ecg-btn" type="button" data-ecg-imprimir="1">Guardar en PDF o imprimir</button>' +
       '<p class="nota-peque" style="margin:6px 0 0">En el móvil, en la ventana de imprimir elige «Guardar como PDF». Sale en A4 apaisado y a escala real.</p>';
-    modal.classList.add("abierta");
+  }
+
+  /* La hoja para la consulta: portada con la tabla de lo marcado y, detrás,
+     cada grabación entera en papel. Se traen antes los trazados que falten. */
+  function cuerpoCardio() {
+    var l = listaCardio(), h = "";
+    if (l.length) {
+      h += '<ul class="cardio-lista">' + l.slice().reverse().map(function (x) {
+        return '<li><button type="button" class="enlace" data-ecg-papel-id="' + U.esc(x.id) + '"><b>' + U.esc(U.etiquetaFecha(x.f)) +
+          " " + U.esc(x.h || "") + "</b></button> · " + (x.orto ? "ortostática · " : "") +
+          (x.fc ? Math.round(x.fc) + " lpm · QTc " + Math.round(x.qtc) + " · " : "") +
+          (x.prematuros != null ? x.prematuros + (x.prematuros === 1 ? " adelantado" : " adelantados") : "") +
+          (x.nota ? '<br><small>' + U.esc(x.nota) + "</small>" : x.motivo ? '<br><small>Propuesto por la revisión: ' + U.esc(x.motivo) + "</small>" : "") + "</li>";
+      }).join("") + "</ul>" +
+        '<button type="button" class="btn principal ecg-btn" data-cardio-imprimir="1">Imprimir o guardar en PDF para la consulta</button>';
+    } else {
+      h += '<p class="nota-peque">Todavía no hay ninguno marcado.</p>';
+    }
+    /* los últimos ECG, para abrir cualquiera en papel y marcarlo */
+    /* aquí sí desde el 6-oct (el protocolo actual): se pueden marcar aunque no entren en la serie */
+    var rec = ((SensorLogger.datos && SensorLogger.datos.registros) || []).filter(function (x) {
+        return x.ecg_v && x.f >= "2026-10-06" && (x.dur_s || 0) >= 60; }).map(filaEcgPropio)
+      .concat(registrosEcg().filter(function (x) { return x.f >= "2026-10-06"; }).map(filaEcgApp))
+      .sort(function (a, b) { return (a.f + a.h) < (b.f + b.h) ? 1 : -1; }).slice(0, 10);
+    if (rec.length) {
+      h += '<h3 class="evo-sub">Últimos ECG · tócalo para verlo en papel</h3><ul class="cardio-lista">' + rec.map(function (x) {
+        return '<li><button type="button" class="enlace" data-ecg-papel-id="' + U.esc(x.id) + '">' + (enCardio(x.id) ? "★ " : "") +
+          U.esc(U.etiquetaFecha(x.f)) + " " + U.esc(x.h) + "</button> · " + (x.fuente === "app" ? "ECG Analysis · " : "") + (x.orto ? "ortostática · " : "") +
+          (x.fc ? Math.round(x.fc) + " lpm · QTc " + Math.round(x.qtc) + " · " : "") + x.prematuros +
+          (x.prematuros === 1 ? " adelantado" : " adelantados") + (x.revisar ? " · con ruido" : "") + "</li>";
+      }).join("") + "</ul>";
+    }
+    return h;
+  }
+  function papelCardioPortada(l) {
+    var nombre = (A.estado.perfil && A.estado.perfil.nombre) || (P.atleta && P.atleta.nombre) || "Carlos Hernanz";
+    return '<p class="ecg-cab"><b>ECG marcados para la consulta de cardiología</b><br>' + U.esc(nombre) +
+      " · banda de pecho Polar H10, una derivación · " + l.length + (l.length === 1 ? " registro" : " registros") + "</p>" +
+      '<table class="ten-res cardio-tab"><thead><tr><th>Fecha y hora</th><th>Postura</th><th>Pulso</th><th>QRS</th><th>QTc</th>' +
+      "<th>Latidos adelantados</th><th>Nota</th></tr></thead><tbody>" +
+      l.map(function (x) {
+        return "<tr><td>" + tenFecha(x.f) + " " + U.esc(x.h || "") + (x.fuente === "app" ? "<br><small>ECG Analysis</small>" : "") +
+          "</td><td>" + (x.orto ? "tumbado → de pie" : "sentado") + "</td>" +
+          "<td>" + (x.fc ? Math.round(x.fc) : "—") + "</td><td>" + (x.qrs ? Math.round(x.qrs) : "—") + "</td><td>" + (x.qtc ? Math.round(x.qtc) : "—") + "</td>" +
+          "<td>" + (x.prematuros != null ? x.prematuros : "—") + (x.horas && x.horas.length ? " (" + U.esc(x.horas.join(", ")) + ")" : "") +
+          (x.forma ? " · " + x.forma + " de forma distinta" : "") + "</td><td>" + U.esc(x.nota || x.motivo || "") + "</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+  function imprimirCardio() {
+    var l = listaCardio();
+    if (!l.length) { U.toast("La lista para cardiología está vacía"); return; }
+    var pend = l.length, datos = {};
+    U.toast("Preparando " + l.length + (l.length === 1 ? " ECG…" : " ECG…"));
+    l.forEach(function (x) {
+      trazoDe(x.id, function (o) {
+        datos[x.id] = o.datos; pend--;
+        if (pend) return;
+        var hueco = document.getElementById("ecg-imprimir");
+        if (!hueco) { hueco = document.createElement("div"); hueco.id = "ecg-imprimir"; document.body.appendChild(hueco); }
+        /* en la hoja, las cifras de cada fila son las de su papel (análisis propio) */
+        l.forEach(function (y) {
+          var t = datos[y.id];
+          if (!t) return;
+          y.fc = t.fc; y.qrs = t.qrs; y.qtc = t.qtc; y.prematuros = t.prematuros;
+          y.horas = t.horas_prematuros || []; y.forma = t.forma_distinta || 0;
+        });
+        hueco.innerHTML = papelCardioPortada(l) + l.map(function (y) {
+          return datos[y.id] ? '<div style="page-break-before:always"></div>' + papelEcgEntero(datos[y.id]) +
+            (y.nota ? '<p class="ecg-pie"><b>Nota:</b> ' + U.esc(y.nota) + "</p>" : "") : "";
+        }).join("");
+        document.body.classList.add("imprime-ecg");
+        var fuera = function () { document.body.classList.remove("imprime-ecg"); window.removeEventListener("afterprint", fuera); };
+        window.addEventListener("afterprint", fuera);
+        setTimeout(function () { window.print(); }, 50);
+      });
+    });
   }
 
   /* Imprimir SOLO el papel: se copia a un hueco fuera de la app y la hoja de
      estilos de impresión esconde todo lo demás. Al volver se deshace. */
   function imprimirEcg() {
-    var d = EcgUltimo.datos;
+    var d = ecgAbierto || EcgUltimo.datos;
     if (!d) return;
     var hueco = document.getElementById("ecg-imprimir");
     if (!hueco) { hueco = document.createElement("div"); hueco.id = "ecg-imprimir"; document.body.appendChild(hueco); }
@@ -6080,8 +6309,31 @@
       h += "</tbody></table>";
     }
 
-    /* ECG */
-    var ecgs = registrosEcg().filter(function (x) { return x.f >= desde && x.f <= hasta; })
+    /* ECG — v527: desde el 11-oct, el del Sensor Logger sentado (análisis propio), en
+       su propia tabla: no se mezcla con lo de ECG Analysis */
+    var props = registrosEcgPropio(false).filter(function (x) { return x.f >= desde && x.f <= hasta; });
+    if (props.length) {
+      var lp = props.filter(function (x) { return !x.revisar; });
+      var medP = function (campo) {
+        var l = lp.map(function (x) { return parseFloat(x[campo]); }).filter(function (v) { return !isNaN(v); });
+        return l.length ? l.reduce(function (a, b) { return a + b; }, 0) / l.length : null;
+      };
+      var conP = lp.filter(function (x) { return x.prematuros > 0; });
+      h += '<h3 class="ten-h">ECG de una derivación, sentado (banda de pecho con Polar Sensor Logger, desde el 11-oct)</h3><table class="ten-res"><tbody>' +
+        "<tr><td>Registros</td><td><b>" + props.length + "</b>" + (props.length > lp.length ? " · " + (props.length - lp.length) + " con ruido, fuera de las medias" : "") + "</td></tr>" +
+        (medP("fc") !== null ? "<tr><td>Frecuencia media</td><td><b>" + num(medP("fc"), 0) + "</b> lpm</td></tr>" : "") +
+        (medP("qrs") !== null ? "<tr><td>QRS medio</td><td>" + num(medP("qrs"), 0) + " ms</td></tr>" : "") +
+        (medP("qtc") !== null ? "<tr><td>QTc medio (Bazett)</td><td>" + num(medP("qtc"), 0) + " ms</td></tr>" : "") +
+        "<tr><td>Con latidos adelantados</td><td><b>" + conP.length + "</b> de " + lp.length +
+          (conP.length ? " · " + conP.slice(0, 10).map(function (x) { return tenFecha(x.f) + " (" + x.prematuros + ")"; }).join(", ") : "") + "</td></tr>" +
+        "</tbody></table>";
+    }
+    var marc = listaCardio();
+    if (marc.length) {
+      h += '<h3 class="ten-h">ECG marcados para cardiología</h3>' + papelCardioPortada(marc).replace(/^<p class="ecg-cab">[\s\S]*?<\/p>/, "") +
+        '<p class="ecg-pie">Las tiras de cada uno, en papel de electro, se imprimen aparte desde «Para cardiología».</p>';
+    }
+    var ecgs = registrosEcg().filter(function (x) { return x.f >= desde && x.f <= hasta && x.f < ECG_PROPIO_DESDE; })
       .sort(function (a, b) { return (a.f + (a.h || "")) < (b.f + (b.h || "")) ? 1 : -1; });
     if (ecgs.length) {
       var limpios = ecgs.filter(function (x) { return !x.revisar; });
@@ -8249,7 +8501,8 @@
         if (!d) return [filaInfo("Trazado", "todavía no ha llegado")];
         return [filaInfo("Fecha", U.etiquetaFecha(d.f) + " · " + d.h),
                 filaInfo("Pulso", d.fc ? Math.round(d.fc) + " lpm" : "—", false, d.fc_min && d.fc_max ? Math.round(d.fc_min) + "–" + Math.round(d.fc_max) : ""),
-                filaInfo("Extrasístoles según la app", String(d.ectopicos || 0)),
+                d.fuente === "propio" ? filaInfo("Latidos adelantados", String(d.prematuros || 0), false, (d.horas_prematuros || []).join(", "))
+                                      : filaInfo("Extrasístoles según la app", String(d.ectopicos || 0)),
                 filaInfo("Latidos cortos en el registro", String(d.cortos || 0))];
       }
     }
@@ -9830,6 +10083,11 @@
         EcgUltimo.estado === "cargando" ? "Trayendo el trazado…" : "Todavía no ha llegado ningún trazado",
         "Lo sube el programa del portátil con el siguiente ECG que mandes."), "");
     }
+
+    /* ---------- 9. para cardiología (v527) ---------- */
+    h += tarjetaEvo("Para cardiología", null, null,
+      "Los ECG que marcas tú o que propone la revisión de la mañana, para llevarlos a la consulta.",
+      cuerpoCardio(), "Se marcan desde el ECG en papel de cada día. " + LINEA_CARDIO);
 
     h += htmlFrescura();
     h += volver;
@@ -13730,6 +13988,8 @@
           "<span>ECG (" + m.unidad + ")" +
             '<button type="button" class="ent-ver" tabindex="-1" data-historia="ecgFc" title="Ver histórico" aria-label="Ver histórico del ECG">' +
             ICONO_GRAF + "</button></span>" +
+          (re && re.fuente === "propio" ? '<button type="button" class="ent-ver" tabindex="-1" data-ecg-papel-id="' + U.esc(re.id) +
+            '" title="Ver en papel" aria-label="Ver este ECG en papel">' + (enCardio(re.id) ? "★" : "📄") + "</button>" : "") +
           '<input type="text" readonly tabindex="-1" value="' + (re && re.fc ? Math.round(re.fc) : "") + '"' +
             ' placeholder="' + (re ? "—" : "llega solo") + '">' +
           "<small>" + (re ? (re.revisar ? "con ruido · repítelo"
@@ -14396,6 +14656,9 @@
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
+      var pid = t.closest ? t.closest("[data-ecg-papel-id]") : null;
+      if (pid) { e.preventDefault(); e.stopPropagation(); abrirEcgPapel(pid.getAttribute("data-ecg-papel-id")); return; }
+      if (t.closest && t.closest("[data-cardio-imprimir]")) { e.preventDefault(); imprimirCardio(); return; }
       if (t.closest && t.closest("[data-ecg-papel]")) { e.preventDefault(); abrirEcgPapel(); return; }
       if (t.closest && t.closest("[data-ten-papel]")) { e.preventDefault(); abrirTensionPapel(); return; }
       var verAct = t.closest ? t.closest("[data-ver-actividad]") : null;
@@ -14740,6 +15003,20 @@
       if (vidM) { e.preventDefault(); abrirVideo(vidM.getAttribute("data-video"), rutinaAbierta); return; }
       /* el botón de imprimir el ECG vive en la ventana: se atiende aquí */
       if (e.target.closest && e.target.closest("[data-ecg-imprimir]")) { e.preventDefault(); imprimirEcg(); return; }
+      /* v527: para cardiología, desde el papel */
+      var cm = e.target.closest ? e.target.closest("[data-cardio-marcar],[data-cardio-quitar],[data-cardio-nota]") : null;
+      if (cm) {
+        e.preventDefault();
+        var cid = cm.getAttribute("data-cardio-marcar") || cm.getAttribute("data-cardio-quitar") || cm.getAttribute("data-cardio-nota");
+        var nt = document.getElementById("cardio-nota");
+        marcarCardio(cid, !cm.hasAttribute("data-cardio-quitar"), nt ? nt.value : null);
+        U.toast(cm.hasAttribute("data-cardio-quitar") ? "Quitado de la lista para cardiología"
+              : cm.hasAttribute("data-cardio-nota") ? "Nota guardada" : "Añadido a la lista para cardiología");
+        pintarEcgPapel(); pintarConservando();
+        return;
+      }
+      var pidM = e.target.closest ? e.target.closest("[data-ecg-papel-id]") : null;
+      if (pidM) { e.preventDefault(); abrirEcgPapel(pidM.getAttribute("data-ecg-papel-id")); return; }
       if (e.target.closest && e.target.closest("[data-ten-imprimir]")) { e.preventDefault(); imprimirTension(); return; }
       if (e.target.closest && e.target.closest("[data-cita-imprimir]")) { e.preventDefault(); imprimirResumenCita(); return; }
       var tdi = e.target.closest ? e.target.closest("[data-ten-dias]") : null;
