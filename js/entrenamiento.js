@@ -4786,12 +4786,12 @@
       pasos: [
         "Al levantarte, antes del café y de moverte mucho. <b>Moja bien los electrodos</b> de la banda y póntela.",
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
-        "<b>ECG Analysis</b>: unos 3 minutos sentado, espalda apoyada y sin hablar. Al terminar, <b>mándalo por correo</b> como siempre: llega solo a la app en menos de un cuarto de hora.",
-        "Cierra ECG Analysis del todo: Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>. Si no, se queda con la banda y la otra app no la encuentra.",
-        "<b>Sensor Logger</b>, mientras estemos mirando los latidos cortos: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
+        "<b>Sensor Logger</b> sentado, espalda apoyada, sin hablar y respirando normal: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. De esta grabación salen el pulso, el QRS, el QTc y los latidos adelantados: es el ECG del día. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
+        "<b>ECG Analysis ya no hace falta</b> (desde el 11-oct). Si aún te deja grabar y quieres seguir comparando unos días, hazlo antes, mándalo por correo y ciérralo del todo (Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>) antes de abrir Sensor Logger, o se queda con la banda.",
+        "Los <b>martes</b>, la prueba ortostática en la cama sustituye a esta grabación: cuenta como hecha, pero no entra en la serie sentado.",
         "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
       ],
-      fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen picos de 190 o 260 que no son del corazón, y ese ECG queda marcado con ruido. " +
+      fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen latidos de forma rara que no son del corazón, y ese ECG queda marcado con ruido. " +
         "Un ECG suelto no dice nada: lo que se mira es la serie. Si notas palpitaciones, mareo o un vuelco, haz uno en ese momento aunque no toque. " +
         "Un desmayo, dolor en el pecho o palpitaciones que no se van no son para la app: son para urgencias."
     },
@@ -5483,6 +5483,27 @@
     deCache: Curva.deCache,
     cargar: Curva.cargar
   };
+  /* EL ECG PROPIO, DEL SENSOR LOGGER  ·  v526, 11-oct-2026.
+     ECG Analysis es de suscripción y llegó al límite. Desde la recogida v15 cada
+     Polar Sensor Logger lleva en `datos/sensor-logger.json` las cifras que daba la
+     app: pulso, qrs_ms, qt_ms, qtc (Bazett), prematuros (latidos adelantados = los
+     «ectópicos» de la app), prematuros_min, horas_prematuros, forma_distinta y
+     `ruido` (texto si no sirve). Validado el 11-oct contra ECG Analysis con la
+     misma señal. Desde ECG_PROPIO_DESDE el ECG del día es el Sensor Logger SENTADO;
+     lo de antes sigue saliendo de ECG Analysis y NUNCA se mezcla en una misma serie:
+     el QRS propio sale 4-8 ms más corto. La prueba ortostática de los martes
+     cuenta como hecha, pero no entra en la serie sentado. */
+  var ECG_PROPIO_DESDE = "2026-10-11";
+  var SensorLogger = {
+    CLAVE: "khb-sensor-logger-v1",
+    RUTA: "datos/sensor-logger.json",
+    FRESCO_H: 0.25,
+    datos: null,
+    traidoEl: null,
+    estado: "nada",
+    deCache: Curva.deCache,
+    cargar: Curva.cargar
+  };
 
   /* EL HISTORIAL MÉDICO (v272, 29-sep-2026). Lo escribe Claude cuando Carlos le
      cuenta un cambio de pauta y sube solo por el buzón nube. Opcional: si no
@@ -5626,7 +5647,8 @@
   function panelFuturo(dia, hoyReal) {
     var dSem = new Date(dia + "T12:00:00").getDay();
     var toca = ["Tensión", "Báscula"];
-    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5) toca.push("ECG", "Sensor Logger");
+    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
+      toca.push(dSem === 2 && dia >= "2026-10-13" ? "ECG (Sensor Logger: prueba ortostática)" : "ECG (Sensor Logger sentado)");
     if (dSem === 1) toca.push("Medidas del lunes (cinta, músculo, agua y masa ósea)");
     var esManana = dia === U.sumarDias(hoyReal, 1);
     var h = '<div class="manana futura"><div class="manana-cab"><b>' +
@@ -5657,7 +5679,8 @@
     } else {
       items = [{ n: "Tensión", ok: false }, { n: "Báscula", ok: false }];
       if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
-        items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
+        if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger)", ok: false });
+        else items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
     }
     if (dSem === 1) {
       var hechas = ["cintura", "musculo", "agua", "hueso"].filter(function (k) {
@@ -5666,7 +5689,7 @@
       items.push({ n: "Medidas del lunes", ok: hechas === 4,
                    detalle: hechas === 4 ? "apuntadas" : "cinta, músculo, agua y masa ósea (" + hechas + " de 4)" });
     }
-    var falta = items.filter(function (i) { return !i.ok; }).length;
+    var falta = items.filter(function (i) { return !i.ok && !i.opcional; }).length;   // ECG Analysis es opcional (v526)
     var h = '<div class="manana' + (falta ? "" : " completa") + '"><div class="manana-cab"><b>' +
       (esHoy ? "Esta mañana" : "La mañana del " + U.esc(U.etiquetaFecha(hoy))) + "</b>" +
       '<span>' + (falta ? "falta" + (falta === 1 ? " 1" : "n " + falta) : "todo recogido") + "</span></div><ul>";
@@ -5700,6 +5723,33 @@
   }
 
   function registrosEcg() { return (Ecg.datos && Ecg.datos.registros) || []; }
+
+  /* Una grabación del Sensor Logger con su ECG propio, con los mismos nombres que
+     una fila de ECG Analysis (fc, qrs, qtc, cortos_min…) para que todo lo que ya
+     pinta un ECG la entienda. «cortos_min» son aquí los prematuros por minuto. */
+  function filaEcgPropio(x) {
+    return { f: x.f, h: x.h, fuente: "propio", fc: x.pulso, qrs: x.qrs_ms, qt: x.qt_ms, qtc: x.qtc,
+             prematuros: x.prematuros, cortos_min: x.prematuros_min, horas: x.horas_prematuros || [],
+             forma: x.forma_distinta || 0, rmssd_limpio: x.rmssd_limpio, dur_s: x.dur_s,
+             revisar: !!(x.ruido || x.ecg_error), ruido: x.ruido || "", orto: !!x.ortostatico };
+  }
+  /* Las del ECG propio desde ECG_PROPIO_DESDE. Sin `conOrto`, solo las sentado. */
+  function registrosEcgPropio(conOrto) {
+    var l = (SensorLogger.datos && SensorLogger.datos.registros) || [];
+    return l.filter(function (x) {
+      return x.ecg_v && x.f >= ECG_PROPIO_DESDE && (x.dur_s || 0) >= 30 && (conOrto || !x.ortostatico);
+    }).map(filaEcgPropio);
+  }
+  /* El ECG que cuenta de cada día, el primero de la mañana: sentado antes que
+     ortostática, sin ruido antes que con ruido. */
+  function ecgPropioDelDia(iso, conOrto) {
+    var mejor = null, peso = function (r) { return (r.orto ? 2 : 0) + (r.revisar ? 1 : 0); };
+    registrosEcgPropio(conOrto).forEach(function (x) {
+      if (x.f !== iso) return;
+      if (!mejor || peso(x) < peso(mejor) || (peso(x) === peso(mejor) && x.h < mejor.h)) mejor = x;
+    });
+    return mejor;
+  }
 
   /* ==================== EL ECG EN PAPEL ====================
      Como lo lee un médico: cuadrícula de 1 mm y 5 mm, 25 mm/s y 10 mm/mV,
@@ -6109,6 +6159,7 @@
 
   /* El ECG de ese día: el último sin ruido; si todos tienen ruido, el último. */
   function ecgDelDia(iso) {
+    if (iso >= ECG_PROPIO_DESDE) return ecgPropioDelDia(iso, true);   // v526: el Sensor Logger
     var mejor = null;
     registrosEcg().forEach(function (x) {
       if (x.f !== iso) return;
@@ -6117,21 +6168,35 @@
     return mejor;
   }
 
-  /* El último ECG sin ruido hasta esa fecha */
+  /* El último ECG sin ruido hasta esa fecha. v526: el del Sensor Logger sentado;
+     antes de ECG_PROPIO_DESDE, el de ECG Analysis (las dos fuentes no se mezclan). */
   function ultimoEcg(iso) {
     var u = null;
-    registrosEcg().forEach(function (x) {
+    (iso >= ECG_PROPIO_DESDE ? registrosEcgPropio(false) : registrosEcg()).forEach(function (x) {
       if (x.revisar || x.f > iso) return;
       if (!u || x.f + x.h > u.f + u.h) u = x;
     });
     return u;
   }
 
-  /* Serie de un campo del ECG, una por día (la última sin ruido) */
+  /* Serie de un campo del ECG propio (Sensor Logger sentado), una por día: la
+     primera de la mañana sin ruido. Empieza en ECG_PROPIO_DESDE. */
   function serieEcg(campo, v) {
     var porDia = {};
-    registrosEcg().forEach(function (x) {
+    registrosEcgPropio(false).forEach(function (x) {
       if (x.revisar || x.f < v.desde || x.f > v.hasta) return;
+      var n = parseFloat(x[campo]);
+      if (isNaN(n)) return;
+      if (!porDia[x.f] || x.h < porDia[x.f].h) porDia[x.f] = { h: x.h, v: n };
+    });
+    return Object.keys(porDia).sort().map(function (f) { return { f: f, v: porDia[f].v }; });
+  }
+  /* La de ECG Analysis, solo hasta el día antes de ECG_PROPIO_DESDE: se pinta
+     aparte, en gris, para no mezclar cifras de dos medidores. */
+  function serieEcgApp(campo, v) {
+    var porDia = {}, hasta = v.hasta < ECG_PROPIO_DESDE ? v.hasta : U.sumarDias(ECG_PROPIO_DESDE, -1);
+    registrosEcg().forEach(function (x) {
+      if (x.revisar || x.f < v.desde || x.f > hasta) return;
       var n = parseFloat(x[campo]);
       if (isNaN(n)) return;
       if (!porDia[x.f] || x.h > porDia[x.f].h) porDia[x.f] = { h: x.h, v: n };
@@ -7313,7 +7378,10 @@
   }
   function vfcMananaEcg() {
     var porDia = {};
-    registrosEcg().forEach(function (x) {
+    /* v526: desde ECG_PROPIO_DESDE, la del Sensor Logger sentado (la misma
+       variabilidad sin latidos cortos, que la recogida ya calculaba) */
+    registrosEcg().filter(function (x) { return x.f < ECG_PROPIO_DESDE; })
+      .concat(registrosEcgPropio(false)).forEach(function (x) {
       if (x.revisar || !x.h || x.h >= "12:00") return;
       var n = parseFloat(x.rmssd_limpio);
       if (isNaN(n) || n <= 0) return;
@@ -8143,10 +8211,10 @@
     },
     ecg: {
       titulo: "Corazón en reposo",
-      mide: ["Del ECG de cada mañana, sentado: el <b>pulso</b>.",
+      mide: ["Del ECG de cada mañana, sentado (desde el 11-oct, el del Sensor Logger): el <b>pulso</b>.",
              "El <b>QRS</b>: lo que tarda en activarse el ventrículo.",
              "El <b>QTc</b>: lo que tarda el corazón en activarse y recuperarse, corregido por el pulso.",
-             "Los <b>latidos cortos</b>: uno que llega antes de tiempo seguido de uno largo, por minuto."],
+             "Los <b>latidos adelantados</b>: los que llegan antes de tiempo (los «ectópicos» de ECG Analysis), por minuto."],
       vigilar: ["<b>Cambios de nivel</b> frente a tu línea base, no el número de un día.",
                 "QTc por encima de <b>unos 450 ms</b>: en hombres ya se considera alargado (la app pone su límite en 470).",
                 "QRS por encima de <b>120 ms</b>.",
@@ -8154,16 +8222,17 @@
                 "Palpitaciones con mareo, desmayo o dolor en el pecho no son para la app: son para urgencias."],
       cardio: true,
       como: function () {
-        var rs = registrosEcg().filter(function (x) { return !x.revisar; });
+        /* v526: el ECG propio del Sensor Logger sentado, desde el 11-oct */
+        var rs = registrosEcgPropio(false).filter(function (x) { return !x.revisar; });
         if (!rs.length) return [filaInfo("ECG", "todavía ninguno")];
         rs.sort(function (a, b) { return (a.f + a.h) < (b.f + b.h) ? -1 : 1; });
         var u = rs[rs.length - 1], ult7 = rs.slice(-7);
         var co = ult7.filter(function (x) { return x.cortos_min !== undefined; });
-        return [filaInfo("ECG sin ruido", rs.length + "", false, rs.length < 14 ? "la línea base sale con unas dos semanas" : ""),
+        return [filaInfo("ECG sin ruido desde el 11-oct", rs.length + "", false, rs.length < 14 ? "la línea base sale con unas dos semanas" : ""),
                 filaInfo("Último pulso sentado", u.fc ? Math.round(u.fc) + " lpm" : "—", false, "del " + U.etiquetaFecha(u.f) + " a las " + u.h),
                 filaInfo("Último QRS", u.qrs ? Math.round(u.qrs) + " ms" : "—", u.qrs > 120, u.qrs > 120 ? "por encima de 120" : ""),
                 filaInfo("Último QTc", u.qtc ? Math.round(u.qtc) + " ms" : "—", u.qtc > 450, u.qtc > 450 ? "por encima de 450" : ""),
-                filaInfo("Latidos cortos, últimos " + co.length + " ECG", co.length ? num(mediaDe(co.map(function (x) { return { v: x.cortos_min }; }))) + " /min" : "—")];
+                filaInfo("Latidos adelantados, últimos " + co.length + " ECG", co.length ? num(mediaDe(co.map(function (x) { return { v: x.cortos_min }; }))) + " /min" : "—")];
       }
     },
     ecgUltimo: {
@@ -9719,22 +9788,28 @@
        Sin colores de bueno o malo, como en las tarjetas del día. Solo los ECG
        sin ruido de contacto. */
     v = ventanaDe("ecg");
+    /* v526: en azul el ECG propio (Sensor Logger sentado, desde el 11-oct); en
+       gris, aparte, lo de ECG Analysis de antes. Nunca una sola línea con las dos. */
     var eFc = serieEcg("fc", v), eQt = serieEcg("qtc", v), eCo = serieEcg("cortos_min", v);
+    var aFc = serieEcgApp("fc", v), aQt = serieEcgApp("qtc", v), aEc = serieEcgApp("ectopicos", v);
     var cuerpoE;
-    if (eFc.length || eQt.length) {
+    if (eFc.length || eQt.length || aFc.length || aQt.length) {
       var pocos = function (s) { return s.length < 3; };
+      var gris = function (pts) { return pts.length ? [{ pts: pts, color: GRIS, ancho: 1, soloPuntos: pocos(pts), marcarUltimo: false }] : []; };
       cuerpoE = '<h3 class="evo-sub">Pulso sentado</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, alto: 70, arriba: "lpm", unidadTip: "lpm", alt: "Pulso del ECG",
-          series: [{ pts: eFc, color: AZUL, ancho: 1.4, soloPuntos: pocos(eFc) }] }) +
+          series: gris(aFc).concat([{ pts: eFc, color: AZUL, ancho: 1.4, soloPuntos: pocos(eFc) }]) }) +
         '<h3 class="evo-sub">QTc</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, alto: 70, arriba: "ms", unidadTip: "ms", alt: "QTc del ECG",
           max: 480, lineasH: [{ v: 470, color: "#eccf9a", etq: "470" }],
-          series: [{ pts: eQt, color: AZUL, ancho: 1.4, soloPuntos: pocos(eQt) }] }) +
-        '<h3 class="evo-sub">Latidos cortos por minuto</h3>' + grafica({
-          desde: v.desde, hasta: v.hasta, alto: 70, arriba: "/min", unidadTip: "/min", alt: "Latidos cortos", min: 0,
-          series: [{ pts: eCo, color: AZUL, ancho: 1.4, soloPuntos: pocos(eCo) }] });
+          series: gris(aQt).concat([{ pts: eQt, color: AZUL, ancho: 1.4, soloPuntos: pocos(eQt) }]) }) +
+        '<h3 class="evo-sub">Latidos adelantados por minuto</h3>' + grafica({
+          desde: v.desde, hasta: v.hasta, alto: 70, arriba: "/min", unidadTip: "/min", alt: "Latidos adelantados", min: 0,
+          series: [{ pts: eCo, color: AZUL, ancho: 1.4, soloPuntos: pocos(eCo) }] }) +
+        ((aFc.length || aEc.length) ? '<p class="nota-peque">En gris, hasta el 10-oct, las cifras de ECG Analysis; en azul, desde el 11-oct, ' +
+          'las del Sensor Logger sentado. Son dos medidores y no se juntan: el QRS propio sale 4-8 ms más corto.</p>' : "");
     } else {
-      cuerpoE = sinDatos("Sin ECG en este tramo", "Llegan solos al mandarlos por correo desde ECG Analysis.");
+      cuerpoE = sinDatos("Sin ECG en este tramo", "Sale solo del Sensor Logger sentado al mandarlo por Gmail.");
     }
     h += tarjetaEvo("Corazón en reposo", eFc.length ? Math.round(eFc[eFc.length - 1].v) : null, "lpm",
       "Del ECG de la mañana, sentado. Lo que se mira es si cambia de nivel, no el número de un día.",
@@ -9786,12 +9861,12 @@
     var v = { desde: "2019-01-01", hasta: U.hoyISO() };
     var D = {
       ecgFc: { n: "ECG: pulso sentado", u: "lpm", dias: 60, serie: function () { return serieEcg("fc", v); },
-               pie: "Del ECG de la mañana, sentado. Solo cuentan los ECG sin ruido de contacto." },
+               pie: "Del Sensor Logger de la mañana, sentado, desde el 11-oct (antes era ECG Analysis y no se mezcla). Solo cuentan los ECG sin ruido." },
       ecgQtc: { n: "ECG: QTc", u: "ms", dias: 60, serie: function () { return serieEcg("qtc", v); },
-                techo: 470, etqTecho: "470 ms · límite de la app",
-                pie: "El intervalo QT corregido por el pulso, tal como lo calcula ECG Analysis. Lo que se mira es que no cambie de nivel." },
-      ecgCortos: { n: "ECG: latidos cortos", u: "/min", dias: 60, serie: function () { return serieEcg("cortos_min", v); },
-                   pie: "Latidos que llegan antes de tiempo seguidos de uno largo, por minuto. Con el pulso bajo pueden ser la respiración: se está comprobando con Sensor Logger." },
+                techo: 470, etqTecho: "470 ms",
+                pie: "El intervalo QT corregido por el pulso (Bazett), del Sensor Logger sentado desde el 11-oct. Lo que se mira es que no cambie de nivel." },
+      ecgCortos: { n: "ECG: latidos adelantados", u: "/min", dias: 60, serie: function () { return serieEcg("cortos_min", v); },
+                   pie: "Latidos que llegan antes de tiempo (los «ectópicos» de ECG Analysis), por minuto, del Sensor Logger sentado desde el 11-oct." },
       peso: { n: "Peso", u: "kg", dias: 90, serie: function () { return seriePeso(v); },
               /* `mediaDesde: 0`: el peso se suaviza TAMBIÉN en el tramo de un
                  mes. Las demás empiezan a los tres meses porque con treinta
@@ -13657,8 +13732,13 @@
             ICONO_GRAF + "</button></span>" +
           '<input type="text" readonly tabindex="-1" value="' + (re && re.fc ? Math.round(re.fc) : "") + '"' +
             ' placeholder="' + (re ? "—" : "llega solo") + '">' +
-          "<small>" + (re ? (re.revisar ? "con ruido · repítelo" : "hecho a las " + U.esc(re.h))
-            : (Ecg.estado === "cargando" ? "mirando…" : "mándalo por correo")) + "</small>" +
+          "<small>" + (re ? (re.revisar ? "con ruido · repítelo"
+                                : re.orto ? "prueba ortostática a las " + U.esc(re.h) + " · fuera de la serie sentado"
+                                : "hecho a las " + U.esc(re.h) +
+                                  (re.fuente === "propio" ? " · QTc " + Math.round(re.qtc) + " · " + re.prematuros +
+                                   (re.prematuros === 1 ? " prematuro" : " prematuros") : ""))
+            : ((dia >= ECG_PROPIO_DESDE ? SensorLogger : Ecg).estado === "cargando" ? "mirando…"
+               : dia >= ECG_PROPIO_DESDE ? "Sensor Logger sentado, por Gmail" : "mándalo por correo")) + "</small>" +
           "</label>";
       }
       var v = valorDe(dia, m.id);
@@ -14025,20 +14105,29 @@
        malo a propósito: no hay dirección «mejor» para estas cifras y un verde
        o un rojo aquí se leería como un diagnóstico. Solo cuentan los ECG sin
        ruido de contacto. */
-    var ue = ultimoEcg(dia);
-    var cuandoE = ue ? "a las " + ue.h : "";
+    /* v526: las tres salen del Sensor Logger sentado (análisis propio). */
+    var ue = ultimoEcg(dia), propio = ue && ue.fuente === "propio";
+    var cuandoE = ue ? (ue.f !== dia ? "del " + U.etiquetaFecha(ue.f) + " " : "") + "a las " + ue.h : "";
+    var horasP = propio && ue.horas.length
+      ? " · a las " + ue.horas.slice(0, 4).join(", ") + (ue.horas.length > 4 ? " y " + (ue.horas.length - 4) + " más" : "") : "";
     h += tarjeta("ECG · pulso sentado", ue && ue.fc ? Math.round(ue.fc) + " lpm" : null,
-      ue ? cuandoE + " · QRS " + (ue.qrs || "—") + " ms · extrasístoles según la app: " + (ue.ectopicos || 0)
-         : "sin ECG todavía: llegan solos al mandarlos por correo desde ECG Analysis",
+      ue ? cuandoE + " · QRS " + (ue.qrs ? Math.round(ue.qrs) : "—") + " ms" +
+           (propio ? " · Sensor Logger sentado" : " · extrasístoles según la app: " + (ue.ectopicos || 0))
+         : "sin ECG todavía: sale solo del Sensor Logger sentado al mandarlo por Gmail",
       "ecgFc", null, ue && ue.fc ? ue.fc : null, ue ? ue.f : null);
     h += tarjeta("ECG · QTc", ue && ue.qtc ? Math.round(ue.qtc) + " ms" : null,
-      ue ? cuandoE + " · la app lo da por normal entre 310 y 470 ms" : "del mismo ECG",
+      ue ? cuandoE + (propio ? " · QT " + Math.round(ue.qt) + " ms corregido por el pulso (Bazett). Se mira que no cambie de nivel"
+                             : " · la app lo da por normal entre 310 y 470 ms")
+         : "del mismo ECG",
       "ecgQtc", null, ue && ue.qtc ? ue.qtc : null, ue ? ue.f : null);
-    h += tarjeta("ECG · latidos cortos", ue && ue.cortos_min !== undefined ? num(ue.cortos_min) + " /min" : null,
-      ue ? cuandoE + " · " + (ue.cortos || 0) + " en el registro: uno que llega antes y otro largo detrás. " +
-           "Se está mirando con Sensor Logger si siguen la respiración"
-         : "latido que llega antes seguido de uno largo",
-      "ecgCortos", null, ue && ue.cortos_min !== undefined ? ue.cortos_min : null, ue ? ue.f : null);
+    h += tarjeta("ECG · latidos cortos", ue && ue.cortos_min != null ? num(ue.cortos_min) + " /min" : null,
+      ue ? cuandoE + " · " + (propio
+             ? ue.prematuros + (ue.prematuros === 1 ? " latido adelantado" : " latidos adelantados") +
+               " en el registro (los «ectópicos» de ECG Analysis)" + horasP +
+               (ue.forma ? " · " + ue.forma + " de forma distinta" : "")
+             : (ue.cortos || 0) + " en el registro: uno que llega antes y otro largo detrás")
+         : "latido que llega antes de tiempo",
+      "ecgCortos", null, ue && ue.cortos_min != null ? ue.cortos_min : null, ue ? ue.f : null);
 
     /* las tres de la báscula que intervals no baja y tecleas tú */
     [{ k: "musculo", n: "Músculo", u: " kg",
@@ -15317,6 +15406,7 @@
       if (v && v.classList.contains("activa")) pintarConservando();
     };
     Ecg.cargar(repintaSiDentro);
+    SensorLogger.cargar(repintaSiDentro);                     // v526: el ECG propio
     EcgUltimo.cargar(repintaSiDentro);
     RevGarmin.cargar(repintaSiDentro);
     DiarioSalud.cargar(repintaSiDentro);
