@@ -6098,6 +6098,12 @@
        sitio y se sabe de un vistazo que en DIA no hace falta nada. */
     Almacen.tiendasConocidas().forEach(function (t) { tnd(t); });
     tiendasCompra = tiendas;
+    sembrarPedido11oct(tiendas);                                   // v529, una vez
+    if (nuevosACerrados(tiendas)) {                                // pedido cerrado: lo nuevo, a Pendiente
+      moviendoAPendiente = true;
+      try { pintarCompra(); } finally { moviendoAPendiente = false; }
+      return;
+    }
 
     var primeras = ["Mercadona", "Amazon"];
     var nombres = Object.keys(tiendas).sort(function (a, b) {
@@ -6130,12 +6136,19 @@
         if (pu && l.cantidad > 0) gasto += pu.e * l.cantidad; else sinP++;
       });
       html += '<button type="button" class="tile-tienda' + (cogidos && !esOnline(nom) ? " con-cogidos" : "") + (total ? "" : " tile-vacia") +
+              (esOnline(nom) && nuevosDe(nom, g).length ? " con-nuevos" : "") +
               '" data-abrirtienda="' + esc(nom) + '">' +
               '<span class="tile-nom">' + esc(nom) + '</span>' +
               '<span class="tile-num">' + total + '</span>' +
               '<span class="tile-pie">' + (total === 1 ? "producto" : "productos") +
                 (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span>' +
               (gasto > 0 ? '<span class="tile-pie">\u2248 ' + Util.euros(gasto) + (sinP ? " \u00b7 " + sinP + " sin precio" : "") + '</span>' : '') +
+              (esOnline(nom) && pedidoDe(nom) ? (function () {
+                 var nn = nuevosDe(nom, g).length;
+                 if (pedidoDe(nom).cerrado) return '<span class="tile-pie">🔒 pedido cerrado</span>';
+                 return nn ? '<span class="tile-nuevos">' + nn + (nn === 1 ? " NUEVO" : " NUEVOS") + ' desde el pedido</span>'
+                           : '<span class="tile-pie">✓ pedido hecho</span>';
+               })() : '') +
               '</button>';
     });
     html += '</div>';
@@ -6169,10 +6182,142 @@
      tienda según se coge. */
   var TIENDAS_ONLINE = ["Mercadona", "Amazon"];
   function esOnline(nom) { return TIENDAS_ONLINE.indexOf(nom) >= 0; }
+
+  /* LO NUEVO DESDE EL PEDIDO (v529, 11-oct-2026). Carlos, al ver la lima y el
+     salmón ahumado que aparecieron tras apuntar como cenada en casa la cena del
+     sábado: «lo que hay que hacer es marcar los nuevos productos para añadirlos
+     yo a la compra de Mercadona si es posible o desmarcarlos para que pasen a
+     pendientes si ya no puedo actualizar la compra. Lo importante es que se vea
+     bien y claro que son nuevos añadidos a la lista».
+     Y a las 10:16, el flujo que quiere: «una vez que hago menú y me das lista
+     oficial, un botón de pedido hecho marca el límite. Me añades dos productos,
+     los añado y otra vez pedido hecho y marcas nuevo límite. Un botón de pedido
+     cerrado mueve esos productos directamente a pendientes, y ha llegado como
+     pedido recibido». Así que: «Pedido hecho» (las veces que haga falta),
+     «Pedido cerrado» (lo nuevo, y lo que aparezca después, a Pendiente) y
+     «Pedido recibido» (lo de siempre al llegar).
+     Primera versión (descartada por la de arriba):
+     En las tiendas a domicilio, «He hecho el pedido» guarda la foto de la lista
+     (`estado.compraPedido[tienda] = { en, ids: { id: cantidad } }`). Desde ahí,
+     lo que aparece o pide más cantidad sale como NUEVO hasta que él decide:
+     «Lo he añadido al pedido» (entra en la foto) o «A Pendiente» (el mismo
+     camino que lo que no llega). «Ha llegado la compra» borra la foto. */
+  function pedidoDe(nom) {
+    var p = (Almacen.estado.compraPedido || {})[nom];
+    return p && p.ids ? p : null;
+  }
+  function cantDeLinea(x) {
+    if (x.envases > 0) return x.envases;                  // comida: envases que se piden
+    if (x.cantidad != null) return x.cantidad;
+    return x.c || 1;                                     // casa
+  }
+  function lineasDeTienda(g) {
+    var out = [];
+    g.comida.concat(g.basicos).forEach(function (l) { out.push({ l: l, casa: false }); });
+    g.casa.forEach(function (x) { out.push({ l: x, casa: true }); });
+    return out;
+  }
+  function nuevosDe(nom, g) {
+    var p = pedidoDe(nom);
+    if (!p || !g) return [];
+    return lineasDeTienda(g).filter(function (o) {
+      var a = p.ids[o.l.id];
+      o.antes = a == null ? null : a;
+      return a == null || cantDeLinea(o.l) > a + 0.001;
+    });
+  }
+  function fotoPedido(nom, g, quitar) {
+    var ids = {};
+    lineasDeTienda(g).forEach(function (o) { if (!(quitar && quitar[o.l.id])) ids[o.l.id] = cantDeLinea(o.l); });
+    return ids;
+  }
+  function apuntarPedido(nom, g) {
+    if (!Almacen.estado.compraPedido) Almacen.estado.compraPedido = {};
+    Almacen.estado.compraPedido[nom] = { en: new Date().toISOString(), ids: fotoPedido(nom, g) };
+    Almacen.guardar("compra");
+  }
+  /* «Pedido cerrado»: ya no se puede tocar el pedido. Lo nuevo se va a Pendiente,
+     ahora y lo que aparezca hasta «Pedido recibido». */
+  function cerrarPedido(nom, g) {
+    var p = pedidoDe(nom);
+    if (!p) return 0;
+    var nv = nuevosDe(nom, g);
+    nv.forEach(function (o) { nuevoAPendiente(nom, o.l.id); });
+    p.cerrado = new Date().toISOString();
+    Almacen.guardar("compra");
+    return nv.length;
+  }
+  /* con el pedido cerrado, lo que aparezca va solo a Pendiente (al pintar la compra) */
+  var moviendoAPendiente = false;
+  function nuevosACerrados(tiendas) {
+    if (moviendoAPendiente) return 0;
+    var n = 0;
+    TIENDAS_ONLINE.forEach(function (nom) {
+      var p = pedidoDe(nom), g = tiendas && tiendas[nom];
+      if (!p || !p.cerrado || !g) return;
+      nuevosDe(nom, g).forEach(function (o) { nuevoAPendiente(nom, o.l.id); n++; });
+    });
+    return n;
+  }
+  /* El pedido de Mercadona de la semana del 11-oct se hizo antes de que hubiera
+     botón: su foto es la lista del 10-oct a las 23:28, que era la de hoy sin la
+     lima y el salmón ahumado (comprobado con su estado de esa hora). Una vez. */
+  function sembrarPedido11oct(tiendas) {
+    var cfg = Almacen.estado.config || (Almacen.estado.config = {});
+    if (cfg.semillaPedido11oct || Util.hoyISO() > "2026-10-13") return;
+    cfg.semillaPedido11oct = true;
+    var g = tiendas && tiendas.Mercadona;
+    if (g && !pedidoDe("Mercadona")) {
+      if (!Almacen.estado.compraPedido) Almacen.estado.compraPedido = {};
+      Almacen.estado.compraPedido.Mercadona = { en: "2026-10-10T21:28:00.000Z", sembrado: true,
+        ids: fotoPedido("Mercadona", g, { lima: 1, salmon_ahumado: 1 }) };
+    }
+    Almacen.guardar("compra");
+  }
+  /* «del sáb 10, 12:30»; el sembrado no tiene hora real: «de esta semana» */
+  function delPedido(p) { return p && p.sembrado ? "de esta semana" : "del " + cuandoPedido(p); }
+  function cuandoPedido(p) {
+    if (!p || !p.en) return "";
+    var d = new Date(p.en), dias = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+    return dias[d.getDay()] + " " + d.getDate() + ", " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+  function nuevoAPendiente(nom, id) {
+    var g = tiendasCompra && tiendasCompra[nom];
+    if (!g) return;
+    lineasDeTienda(g).forEach(function (o) {
+      if (o.l.id !== id) return;
+      if (o.casa) { var f = {}; f[id] = { t: nom }; Almacen.confirmarHogar([id], f); return; }
+      /* el camino de «no ha llegado»: marcado como pedido y llegan 0 */
+      Almacen.estado.compraMarcada[id] = true;
+      var fl = {}; fl[id] = 0;
+      Almacen.confirmarCompra([o.l], fl, {});
+    });
+  }
+  function bloqueNuevos(nom, g) {
+    var p = pedidoDe(nom), nv = nuevosDe(nom, g);
+    if (!p) return "";
+    if (p.cerrado) return '<p class="pedido-hecho">🔒 Pedido ' + esc(delPedido(p)) + ' cerrado: lo que aparezca a partir de ahora va directo a Pendiente.</p>';
+    if (!nv.length) return '<p class="pedido-hecho">✓ Pedido ' + esc(delPedido(p)) + ' hecho. Nada nuevo desde entonces.</p>';
+    var h = '<div class="compra-nuevos" id="lt-nuevos"><div class="cn-cab"><span class="cn-etq">NUEVO</span> ' +
+      '<b>' + nv.length + (nv.length === 1 ? " producto añadido" : " productos añadidos") + ' desde tu pedido</b> ' + esc(delPedido(p)) + '</div>' +
+      '<p class="cn-ayuda">Salen porque algo cambió después de hacer el pedido. Si aún puedes, añádelos al pedido de ' + esc(nom) +
+      ' y pulsa <b>«Pedido hecho»</b> otra vez (límite nuevo). Si ya no puedes, <b>«Pedido cerrado»</b> los manda a Pendiente.</p>';
+    nv.forEach(function (o) {
+      var l = o.l, nombre = o.casa ? l.n : (l.producto || l.nombre);
+      var cant = o.casa ? (l.c > 1 ? "×" + l.c : "") : cantCorta(l);
+      var porque = o.casa ? "" : (l.recetas && l.recetas.length ? "lo pide: " + l.recetas.join(", ") : l.porMinimo ? "bajó del mínimo en casa" : "");
+      if (o.antes != null) porque = "en el pedido iban " + o.antes + " y ahora hacen falta " + cantDeLinea(l) + (porque ? " · " + porque : "");
+      h += '<div class="cn-fila"><div class="cn-dato"><span class="cn-n">' + esc(nombre) + '</span> <span class="cn-q">' + esc(cant) + '</span>' +
+        (porque ? '<div class="cn-por">' + esc(porque) + '</div>' : "") + '</div></div>';
+    });
+    return h + "</div>";
+  }
   var listaSoloLectura = false;
+  var nuevosAbiertos = {};          // ids NUEVOS de la tienda abierta (v529)
   function filaCompacta(id, nombre, cant, cogido) {
     if (listaSoloLectura) {
-      return '<div class="fila-compacta fila-lectura"><span class="fc-n">' + esc(nombre) + '</span>' +
+      return '<div class="fila-compacta fila-lectura' + (nuevosAbiertos[id] ? " fila-nueva" : "") + '">' +
+        (nuevosAbiertos[id] ? '<span class="cn-etq">NUEVO</span> ' : "") + '<span class="fc-n">' + esc(nombre) + '</span>' +
         '<span class="fc-q">' + esc(cant) + '</span></div>';
     }
     return '<label class="fila-compacta' + (cogido ? " hecha" : "") + '" data-filacoger="' + esc(id) + '">' +
@@ -6207,8 +6352,13 @@
     var vacia = !(g.comida.length + g.casa.length + g.basicos.length);
     var h = '<header><h2>' + esc(nom) + '</h2><button class="cerrar" data-cerrar>\u00d7</button></header>';
     if (!vacia) h += '<p class="instrucciones-compra">' + (listaSoloLectura
-      ? 'Haz el pedido con esta lista. <b>Cuando llegue, pulsa \u00abHa llegado la compra\u00bb</b>: saldr\u00e1 todo marcado, desmarcas lo que no haya venido y pulsas \u00abPasar a la despensa\u00bb.'
+      ? 'Haz el pedido con esta lista y pulsa <b>\u00abPedido hecho\u00bb</b>. Si luego aparece algo NUEVO, a\u00f1\u00e1delo y otra vez \u00abPedido hecho\u00bb; si ya no se puede tocar, \u00abPedido cerrado\u00bb lo manda a Pendiente. <b>Cuando llegue, \u00abPedido recibido\u00bb</b>: saldr\u00e1 todo marcado, desmarcas lo que no haya venido y pulsas \u00abPasar a la despensa\u00bb.'
       : 'Marca cada cosa seg\u00fan la coges. <b>Al salir de la tienda, pulsa \u00abHe salido de la tienda\u00bb</b>: repasas lo marcado y pulsas \u00abPasar a la despensa\u00bb.') + '</p>';
+    nuevosAbiertos = {};
+    if (esOnline(nom) && !vacia) {
+      nuevosDe(nom, g).forEach(function (o) { nuevosAbiertos[o.l.id] = true; });
+      h += bloqueNuevos(nom, g);
+    }
     h += '<div class="lista-compacta" data-listatienda="' + esc(nom) + '">';
     if (vacia) h += '<div class="vacio">Nada que comprar aqu\u00ed para estas fechas.</div>';
     var porZona = {};
@@ -6248,8 +6398,13 @@
     h += '</div><div class="pie-compacto"><span class="nota-peque" id="lt-cuenta">' +
          (listaSoloLectura || vacia ? "" : pieListaTienda(nom)) + '</span>' +
          (vacia ? '<button class="btn" data-cerrar>Cerrar</button>'
-                : '<button class="btn principal" id="lt-comprado">' +
-                  (listaSoloLectura ? "Ha llegado la compra" : "He salido de la tienda") + '</button>') + '</div>';
+                : esOnline(nom)
+                  ? '<span class="botones-pedido">' +
+                    (!(pedidoDe(nom) && pedidoDe(nom).cerrado)
+                      ? '<button class="btn' + (pedidoDe(nom) && nuevosDe(nom, g).length ? " btn-nuevo" : "") + '" id="lt-pedido">Pedido hecho</button>' +
+                        (pedidoDe(nom) ? '<button class="btn" id="lt-cerrado">Pedido cerrado</button>' : "") : "") +
+                    '<button class="btn principal" id="lt-comprado">Pedido recibido</button></span>'
+                  : '<button class="btn principal" id="lt-comprado">He salido de la tienda</button>') + '</div>';
     abrirModal(h);
     $("#modal-caja").classList.add("modal-compacto");
     $(".lista-compacta").onchange = function (e) {
@@ -6264,6 +6419,21 @@
       if (ct) ct.textContent = pieListaTienda(nom);
     };
     if (vacia) return;
+    var bp = $("#lt-pedido");
+    if (bp) bp.addEventListener("click", function () {
+      var otra = !!pedidoDe(nom);
+      apuntarPedido(nom, g);
+      pintarCompra();
+      Util.toast(nom + (otra ? ": límite nuevo. " : ": pedido hecho. ") + "Lo que aparezca a partir de ahora saldrá como NUEVO.");
+      abrirListaTienda(nom);
+    });
+    var bc = $("#lt-cerrado");
+    if (bc) bc.addEventListener("click", function () {
+      var n = cerrarPedido(nom, g);
+      pintarCompra(); pintarDespensa();
+      Util.toast(nom + ": pedido cerrado" + (n ? " · " + n + " a Pendiente" : "") + ". Lo nuevo irá directo a Pendiente.");
+      abrirListaTienda(nom);
+    });
     $("#lt-comprado").addEventListener("click", function () {
       $("#modal-caja").classList.remove("modal-compacto");
       abrirCompradoTienda(nom);
@@ -6283,7 +6453,7 @@
        hacía; ahora dice lo que hace y debajo cuenta, mientras desmarcas, cuánto
        entra en la despensa y cuánto se va a Pendiente. Hasta pulsarlo, el
        stock no se toca. */
-    var html = '<header><h2>' + esc(nom) + ': ' + (esOnline(nom) ? 'ha llegado' : 'lo comprado') + '</h2>' +
+    var html = '<header><h2>' + esc(nom) + ': ' + (esOnline(nom) ? 'pedido recibido' : 'lo comprado') + '</h2>' +
                '<button class="cerrar" data-cerrar>\u00d7</button></header>';
     html += '<p class="instrucciones-compra">' + (algo
       ? 'Salen marcadas las que cogiste. <b>Desmarca lo que no te hayas llevado</b> y pulsa \u00abPasar a la despensa\u00bb.'
@@ -6360,6 +6530,7 @@
         faltas[l.id] = n ? Math.min(l.envases || 1, parseInt(n.value, 10) || 0) : 0;
       });
       casa.forEach(function (x) { if (!llego(x.id)) faltasHogar[x.id] = { t: nom }; });
+      if (esOnline(nom) && Almacen.estado.compraPedido) delete Almacen.estado.compraPedido[nom];   // v529: pedido cerrado
       var res = Almacen.confirmarCompra(lineas, faltas, alSuplente);
       Almacen.confirmarHogar(casa.map(function (x) { return x.id; }), faltasHogar);
       var aPend = res.recados + Object.keys(faltasHogar).length;

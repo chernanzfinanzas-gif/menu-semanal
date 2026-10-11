@@ -1602,3 +1602,25 @@ button.enlace {
 @media (max-width:700px){ .plato.dos-lineas .pl-abajo{padding-left:0} }
 .plato.dos-lineas .pl-qcol{flex:none; display:flex; flex-direction:column; align-items:stretch; gap:4px}
 .plato.dos-lineas .pl-qcol .pl-cocinar{margin:0; text-align:center}
+
+/* LO NUEVO DESDE EL PEDIDO (v529, 11-oct-2026): lo que entra en la lista de una
+   tienda a domicilio después de «He hecho el pedido», bien a la vista. */
+.tile-tienda.con-nuevos{border-color:#e07b00; box-shadow:0 0 0 2px #ffd9a8}
+.tile-nuevos{display:inline-block; margin-top:3px; padding:2px 8px; border-radius:999px;
+  background:#e07b00; color:#fff; font-size:.72rem; font-weight:700; letter-spacing:.02em}
+.compra-nuevos{border:2px solid #e07b00; background:#fff4e5; border-radius:10px; padding:10px 12px; margin:0 0 12px}
+.cn-cab{font-size:.95rem; line-height:1.35}
+.cn-etq{display:inline-block; padding:1px 6px; border-radius:4px; background:#e07b00; color:#fff;
+  font-size:.68rem; font-weight:800; letter-spacing:.05em; vertical-align:1px}
+.cn-ayuda{font-size:.8rem; color:#6b4a1f; margin:4px 0 8px}
+.cn-fila{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px;
+  padding:8px 0; border-top:1px solid #f3cf9e}
+.cn-dato{flex:1 1 220px; min-width:0}
+.cn-n{font-weight:600}
+.cn-q{color:#6b4a1f; font-size:.85rem; white-space:nowrap}
+.cn-por{font-size:.76rem; color:#6b4a1f; margin-top:2px}
+.cn-bot{display:flex; gap:6px; flex-wrap:wrap}
+.fila-compacta.fila-nueva{background:#fff4e5; border-left:3px solid #e07b00; padding-left:6px}
+.pedido-hecho{font-size:.82rem; color:#2f6b47; margin:0 0 10px}
+.botones-pedido{display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end}
+.btn.btn-nuevo{border-color:#e07b00; background:#fff4e5; color:#8a4b00; font-weight:700}
