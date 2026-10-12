@@ -838,9 +838,10 @@
       { id: "M10", nivel: "atencion", titulo: "Hueco de cuatro días", umbral: 4,
         texto: "Volver con la sesión que tocaba es lo que rompió 2025. Se retoma por la semana S —la de " +
                "supervivencia: tres sesiones de 40 minutos, sin salida— y desde ahí se sube.", requiere: "salud.json" },
-      { id: "M11", nivel: "nota", titulo: "Pulso en reposo alto", umbral: 5, dias: 3,
-        texto: "Cinco pulsaciones sobre tu base tres días seguidos: fatiga, poco sueño o algo incubándose.",
-        requiere: "salud.json", silenciado_hasta: "2026-09-28" },
+      /* M11 «Pulso en reposo alto» QUITADO el 12-oct-2026 (Carlos: «lo quitamos»).
+         Comparaba con la base de cuando estaba en forma (46,7 lpm) y saltaba con
+         tres días algo altos sin estar malo; el pulso ya lo vigila el M12 contra
+         sus 14 noches anteriores, junto con VFC, respiración y SpO2. */
       /* 9-oct-2026. Con la inmunosupresión y la neumonía de 2010 que tardó en
          verse, la señal que más vale: varias medidas de la noche torciéndose
          a la vez. Una sola no dice nada; dos durante dos noches, sí. */

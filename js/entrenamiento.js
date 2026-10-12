@@ -641,6 +641,14 @@
       /* el panel de la noche: una fila por medida, con el rótulo a la izquierda
          y todas las gráficas empezando en la misma x para que la columna valga */
       ".panel-noche{margin:0 0 4px}",
+      ".m12-panel{margin:4px 0}",
+      ".m12-fila{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:6px;border-top:1px solid #eef2f5}",
+      ".m12-fila>b{font-size:.72rem;font-weight:600;color:#3d554a;line-height:1.15}",
+      ".m12-fila>b small{display:block;font-weight:400;color:#8a9a92;font-size:.64rem}",
+      ".m12-fila.confirma>b{color:#8a9a92}",
+      ".m12-svg{display:block;width:100%;height:auto}",
+      ".m12-fechas{display:flex;justify-content:space-between;margin:2px 0 0 102px;font-size:.68rem;color:#667a70}",
+      ".ent-aviso .m12-ver{display:inline-block;margin-top:4px;font-size:.75rem;padding:3px 10px}",
       ".fila-noche{display:grid;grid-template-columns:82px 1fr;align-items:center;gap:8px;margin:0 0 2px}",
       ".fila-noche>b{font-size:.72rem;font-weight:600;color:#3d554a;text-align:right;line-height:1.15}",
       ".fila-noche>b small{display:block;font-weight:400;color:#8a9a92;font-size:.66rem}",
@@ -4499,6 +4507,69 @@
     return null;
   }
 
+  /* ---------- M12: lo que mira cada noche (v534) ----------
+     Una sola función para el aviso y para su gráfica, así no pueden decir
+     cosas distintas. `aviso:true` son las cuatro que cuentan; las otras dos
+     —estrés durmiendo y pulso mínimo— llegan con la exportación de Garmin y
+     sólo sirven para confirmar después qué pasó. */
+  var M12_MEDIDAS = [
+    { k: "fcr",    n: "Pulso en reposo",       u: "lpm", aviso: true,  sube: true,  col: "#b3402f", etq: "mediana 14 noches + 5" },
+    { k: "vfc",    n: "VFC",                   u: "ms",  aviso: true,  sube: false, col: "#2f5c8a", etq: "85 % de la mediana" },
+    { k: "resp",   n: "Respiración durmiendo", u: "rpm", aviso: true,  sube: true,  col: "#7b5ea7", etq: "mediana 14 noches + 1" },
+    { k: "spo2",   n: "SpO2 noche",            u: "%",   aviso: true,  sube: false, col: "#2f6b47", etq: "mediana 14 noches − 2" },
+    { k: "estres", n: "Estrés durmiendo",      u: "confirma, llega tarde", aviso: false, sube: true, col: "#c98a1b", etq: "mediana + 15" },
+    { k: "pmin",   n: "Pulso mínimo",          u: "confirma, llega tarde", aviso: false, sube: true, col: "#8a4f7d", etq: "mediana + 4" }
+  ];
+
+  function m12Valor(k, f) {
+    var x;
+    if (k === "fcr" || k === "vfc") { x = valorDia(k, f); return typeof x === "number" ? x : null; }
+    if (k === "resp") { x = parseFloat(medida(f, "resp_sueno")); return isNaN(x) ? null : x; }
+    if (k === "spo2") { x = parseFloat(medida(f, "spo2_noche")); return isNaN(x) ? null : x; }
+    var mano = k === "estres" ? "estres_sueno" : "pulso_min_noche", campo = k === "estres" ? "sueno_estres" : "pulso_min";
+    x = parseFloat(medida(f, mano));
+    if (!isNaN(x)) return x;
+    x = parseFloat(valorDia(campo, f));
+    return isNaN(x) ? null : x;
+  }
+
+  /* la mediana de las 14 noches ANTERIORES; con menos de 5, no hay base */
+  function m12Base(k, f) {
+    var vals = [];
+    for (var i = 1; i <= 14; i++) { var x = m12Valor(k, U.sumarDias(f, -i)); if (x !== null) vals.push(x); }
+    if (vals.length < 5) return { m: null, n: vals.length };
+    vals.sort(function (a, b) { return a - b; });
+    var h = Math.floor(vals.length / 2);
+    return { m: vals.length % 2 ? vals[h] : (vals[h - 1] + vals[h]) / 2, n: vals.length };
+  }
+
+  function m12Limite(k, base, d) {
+    if (base === null) return null;
+    if (k === "fcr") return base + d.fcr;
+    if (k === "vfc") return base * d.vfc;
+    if (k === "resp") return base + d.resp;
+    if (k === "spo2") return base - d.spo2;
+    if (k === "estres") return base + (d.estres || 15);
+    return base + (d.pmin || 4);
+  }
+
+  function m12Noche(f, d) {
+    var r = { f: f, cuenta: 0, hay: 0, textos: [], m: {} };
+    M12_MEDIDAS.forEach(function (M) {
+      var v = m12Valor(M.k, f), b = m12Base(M.k, f), lim = m12Limite(M.k, b.m, d);
+      var cruza = (v !== null && lim !== null) ? (M.sube ? v >= lim : v <= lim) : null;
+      r.m[M.k] = { v: v, base: b.m, nBase: b.n, lim: lim, cruza: cruza };
+      if (!M.aviso) return;
+      if (cruza !== null) r.hay++;
+      if (cruza) {
+        r.cuenta++;
+        r.textos.push(M.n.toLowerCase().replace("respiración durmiendo", "respiración") + " " + num(v, 0) +
+          " (suele " + num(b.m, 0) + ")");
+      }
+    });
+    return r;
+  }
+
   function avisos(dia) {
     var out = [], d;
     diaDeAvisos = dia;
@@ -4662,64 +4733,19 @@
        Callado con el corticoide, como M11: sube el pulso y baja la VFC solo. */
     d = def("M12");
     if (d && !Salud.conFarmaco(dia)) {
-      var bF = Salud.base("base_fcr"), bV = Salud.base("base_vfc");
-      var medianaAntes = function (id, f) {
-        var vals = [];
-        for (var k = 1; k <= 14; k++) {
-          var x = parseFloat(medida(U.sumarDias(f, -k), id));
-          if (!isNaN(x)) vals.push(x);
-        }
-        if (vals.length < 5) return null;           // con menos de 5 noches no hay referencia
-        vals.sort(function (a, b) { return a - b; });
-        var m = Math.floor(vals.length / 2);
-        return vals.length % 2 ? vals[m] : (vals[m - 1] + vals[m]) / 2;
-      };
-      /* el valor de una noche: lo apuntado a mano y, si no hay, el de Garmin */
-      var noche = function (idMano, campo, f) {
-        var x = parseFloat(medida(f, idMano));
-        if (!isNaN(x)) return x;
-        var g = parseFloat(valorDia(campo, f));
-        return isNaN(g) ? null : g;
-      };
-      var medianaMixta = function (idMano, campo, f) {
-        var vals = [];
-        for (var k = 1; k <= 14; k++) {
-          var x = noche(idMano, campo, U.sumarDias(f, -k));
-          if (x !== null) vals.push(x);
-        }
-        if (vals.length < 5) return null;
-        vals.sort(function (a, b) { return a - b; });
-        var m = Math.floor(vals.length / 2);
-        return vals.length % 2 ? vals[m] : (vals[m - 1] + vals[m]) / 2;
-      };
-      var senalesDe = function (f) {
-        var s = [];
-        var fc = valorDia("fcr", f), hv = valorDia("vfc", f);
-        if (bF && typeof fc === "number" && fc >= bF + d.fcr) s.push("pulso " + fc + " (base " + num(bF) + ")");
-        if (bV && typeof hv === "number" && hv <= bV * d.vfc) s.push("VFC " + hv + " ms (base " + num(bV) + ")");
-        var r = parseFloat(medida(f, "resp_sueno")), mr = medianaAntes("resp_sueno", f);
-        if (!isNaN(r) && mr !== null && r >= mr + d.resp) s.push("respiración " + num(r, 0) + " rpm (suele " + num(mr, 0) + ")");
-        var o = parseFloat(medida(f, "spo2_noche")), mo = medianaAntes("spo2_noche", f);
-        if (!isNaN(o) && mo !== null && o <= mo - d.spo2) s.push("SpO2 " + num(o, 0) + " % (suele " + num(mo, 0) + ")");
-        /* 10-oct-2026: estrés durmiendo y pulso mínimo, las dos que saltaron
-           la primera noche en la gripe de 2023 y el covid de 2024. La referencia
-           mezcla lo apuntado a mano con lo que trajo la exportación de Garmin,
-           así funciona desde el primer día sin esperar dos semanas. */
-        if (d.estres) {
-          var e = noche("estres_sueno", "sueno_estres", f), me = medianaMixta("estres_sueno", "sueno_estres", f);
-          if (e !== null && me !== null && e >= me + d.estres) s.push("estrés durmiendo " + num(e, 0) + " (suele " + num(me, 0) + ")");
-        }
-        if (d.pmin) {
-          var pm = noche("pulso_min_noche", "pulso_min", f), mpm = medianaMixta("pulso_min_noche", "pulso_min", f);
-          if (pm !== null && mpm !== null && pm >= mpm + d.pmin) s.push("pulso mínimo " + num(pm, 0) + " (suele " + num(mpm, 0) + ")");
-        }
-        return s;
-      };
+      /* v534 (Carlos, 12-oct): el pulso y la VFC se comparan con SUS 14 noches
+         anteriores, no con la base de cuando estaba en forma (46,7 lpm y 62,9
+         ms): ésa es el objetivo del plan, y contra ella el aviso saltaba casi
+         cada semana sin estar malo — medido del 15-sep al 11-oct: 11 noches
+         con la base fija, ninguna con la de 14 noches. Y el estrés durmiendo y
+         el pulso mínimo salen del aviso diario: llegan con la exportación
+         grande de Garmin, días después; se pintan en la gráfica como
+         confirmación de lo que pasó, no para avisar. Todo en m12Noche(). */
       var noches = [], fN = dia, okN = true;
       for (var iN = 0; iN < d.noches; iN++) {
-        var sN = senalesDe(fN);
-        if (sN.length < d.senales) { okN = false; break; }
-        noches.push(sN);
+        var sN = m12Noche(fN, d);
+        if (sN.cuenta < d.senales) { okN = false; break; }
+        noches.push(sN.textos);
         fN = U.sumarDias(fN, -1);
       }
       if (okN && noches.length === d.noches) {
@@ -4766,7 +4792,9 @@
     return '<div class="ent-aviso ' + a.d.nivel + '">' +
       (sinNivel ? "" : '<span class="niv">' + etqNivel(a.d.nivel) + "</span>") +
       "<b>" + a.d.id + " · " + U.esc(a.d.titulo) + "</b>" +
-      "<small>" + U.esc(a.dato) + ". " + U.esc(a.d.texto) + "</small></div>";
+      "<small>" + U.esc(a.dato) + ". " + U.esc(a.d.texto) + "</small>" +
+      (a.d.id === "M12" ? '<button type="button" class="btn m12-ver" data-m12="1">Ver lo que mira el aviso</button>' : "") +
+      "</div>";
   }
 
   /* la ventana con todos: los que están hoy y, debajo, los que vigila la app
@@ -7968,7 +7996,8 @@
      rayas y tapan la franja, que es lo que hay que mirar. Así que se hace como
      en el reloj: un botón que la enseña y la esconde, y que recuerda lo que
      elegiste. `null` significa «decide tú», que es lo de antes. */
-  var VFC_NOCHES = null;          // null = automático · true = siempre · false = nunca
+  var VFC_NOCHES = null;
+  var M12_SEM = 4;                // semanas que enseña «Lo que mira el aviso M12»          // null = automático · true = siempre · false = nunca
 
   function tocanNoches(dias) {
     if (VFC_NOCHES !== null) return VFC_NOCHES;
@@ -8114,7 +8143,12 @@
        No las había. El «+» sólo adorna el rótulo de arriba, así que sólo puede
        significar una cosa: que por arriba queda algo fuera. */
     var recortados = max < todos[todos.length - 1];
-    if (max - min < 0.5) { max += 0.5; min -= 0.5; }
+    if (max - min < 0.5) {
+      /* v534: con todo a 0 y `min:0` el eje iba de −0,5 a 0,5 («latidos
+         adelantados»). Si hay suelo puesto, se abre solo hacia arriba. */
+      if (o.min !== undefined && min - 0.5 < o.min) { min = o.min; max = Math.max(max, o.min) + 1; }
+      else { max += 0.5; min -= 0.5; }
+    }
     /* `spanMin`: el recorrido mínimo del eje, en unidades de la medida. Sin él,
        tres kilos de bajada ocupan la caja entera y cada pesada con medio kilo de
        agua parece un terremoto. Con él, la bajada se ve y el ruido no manda. */
@@ -8350,11 +8384,22 @@
 
     /* los extremos, rotulados: una gráfica sin escala no dice nada */
     if (o.escala !== false && !series2.length) {
-      s += '<text x="' + (W - 1) + '" y="' + (Y(maxD) + 1).toFixed(1) +
-        '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(maxD)) +
-        (recortados ? "+" : "") + "</text>";
-      s += '<text x="' + (W - 1) + '" y="' + (Y(minD) - 1).toFixed(1) +
-        '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(num(minD)) + "</text>";
+      /* v534 (Carlos, 12-oct): en el QTc salían «470» y «480,0» uno encima del
+         otro, y «366,0» se metía bajo el punto de hoy. De 100 para arriba el
+         decimal no dice nada y alarga el rótulo hacia el dato; y si una raya
+         rotulada cae a menos de 9 px del extremo, el extremo no se rotula: la
+         raya ya dice dónde está esa altura. */
+      var numEje = function (x) { return num(x, Math.abs(x) >= 100 ? 0 : 1); };
+      var cercaDeRaya = function (y) {
+        return (o.lineasH || []).some(function (l) { return l.etq && Math.abs(Y(l.v) - y) < 9; });
+      };
+      if (!cercaDeRaya(Y(maxD)))
+        s += '<text x="' + (W - 1) + '" y="' + (Y(maxD) + 1).toFixed(1) +
+          '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(numEje(maxD)) +
+          (recortados ? "+" : "") + "</text>";
+      if (!cercaDeRaya(Y(minD)))
+        s += '<text x="' + (W - 1) + '" y="' + (Y(minD) - 1).toFixed(1) +
+          '" text-anchor="end" font-size="7.5" fill="#9aa8a2">' + U.esc(numEje(minD)) + "</text>";
     }
     if (o.escala !== false && series2.length) {
       /* CADA ESCALA EN SU LADO, DEL COLOR DE SU LÍNEA Y SÓLO LOS DOS EXTREMOS.
@@ -8396,6 +8441,109 @@
     return '<div class="graf-caja">' + s + '</svg>' +
       '<div class="graf-guia"></div><div class="graf-tip"></div></div>' +
       (o.explica ? '<p class="graf-pie">' + U.esc(o.explica) + "</p>" : "");
+  }
+
+  /* ---------- «LO QUE MIRA EL AVISO M12» (v534, Carlos 12-oct) ----------
+     Una columna por noche que atraviesa todas las filas, con el fondo del
+     semáforo: verde sin señales; ámbar con una, o con dos o más una sola
+     noche; rojo con dos o más dos noches seguidas (el aviso, pintando las
+     dos); gris sin conclusión (corticoide, o menos de dos medidas). Cada fila
+     con su límite en raya; punto de color = esa noche cruza. Las dos de
+     abajo no cuentan para el semáforo: confirman después. */
+  function htmlM12(semanas) {
+    var d = def("M12") || { fcr: 5, vfc: 0.85, resp: 1, spo2: 2, estres: 15, pmin: 4, senales: 2, noches: 2 };
+    var hoy = U.hoyISO(), n = semanas * 7, fechas = [], i;
+    for (i = n - 1; i >= 0; i--) fechas.push(U.sumarDias(hoy, -i));
+    var N = fechas.map(function (f) { return m12Noche(f, d); });
+    var previa = m12Noche(U.sumarDias(hoy, -n), d);
+    N.forEach(function (x) {
+      x.gris = Salud.conFarmaco(x.f) || x.hay < 2;
+      x.e = x.gris ? "gris" : (x.cuenta === 0 ? "verde" : "ambar");
+    });
+    N.forEach(function (x, k) {
+      if (x.gris || x.cuenta < d.senales) return;
+      var a = k ? N[k - 1] : previa;
+      if (a && !a.gris && a.cuenta >= d.senales) { x.e = "rojo"; if (k) N[k - 1].e = "rojo"; }
+    });
+    var FONDO = { verde: "#dff0e4", ambar: "#fbeccb", rojo: "#f6d3cd", gris: "#eceff1" };
+    var W = 600, H = 56, cw = W / n;
+    var X = function (k) { return (k + 0.5) * cw; };
+    var etqN = function (x) {
+      var t = U.etiquetaFecha(x.f) + ": ";
+      t += M12_MEDIDAS.filter(function (M) { return M.aviso && x.m[M.k].v !== null; })
+        .map(function (M) { return M.n.toLowerCase() + " " + num(x.m[M.k].v, 0) + (x.m[M.k].cruza ? " (cruza)" : ""); }).join(", ");
+      return t + " → " + (x.gris ? "sin conclusión" : x.cuenta + (x.cuenta === 1 ? " señal" : " señales"));
+    };
+    var h = '<div class="evo-rangos">';
+    [2, 4, 8].forEach(function (w) {
+      h += '<button type="button" class="evo-r' + (w === semanas ? " activo" : "") + '" data-m12sem="' + w + '">' + w + " semanas</button>";
+    });
+    h += "</div>" + leyenda([
+      { n: "0 señales", color: FONDO.verde }, { n: "1, o 2+ una sola noche", color: FONDO.ambar },
+      { n: "aviso: 2+ dos noches seguidas", color: FONDO.rojo }, { n: "sin conclusión", color: FONDO.gris }
+    ]) + '<div class="m12-panel">';
+    M12_MEDIDAS.forEach(function (M) {
+      var vals = [], lims = [];
+      N.forEach(function (x) { var m = x.m[M.k]; if (m.v !== null) vals.push(m.v); if (m.lim !== null) lims.push(m.lim); });
+      var todos = vals.concat(lims), mn = Math.min.apply(null, todos), mx = Math.max.apply(null, todos);
+      if (!todos.length) { mn = 0; mx = 1; }
+      if (mx - mn < 2) { mx += 1; mn -= 1; }
+      var pad = (mx - mn) * 0.15; mn -= pad; mx += pad;
+      var Y = function (v) { return 5 + (H - 10) * (1 - (v - mn) / (mx - mn)); };
+      var svg = '<svg class="m12-svg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + U.esc(M.n) + '">';
+      N.forEach(function (x, k) {
+        svg += '<rect x="' + (k * cw + 0.4).toFixed(1) + '" y="0" width="' + (cw - 0.8).toFixed(1) + '" height="' + H +
+          '" fill="' + FONDO[x.e] + '"><title>' + U.esc(etqN(x)) + "</title></rect>";
+      });
+      var tramo = [];
+      var cierra = function () {
+        if (tramo.length > 1) svg += '<polyline points="' + tramo.join(" ") + '" fill="none" stroke="#9aa8a2" stroke-width="1.3" stroke-dasharray="5 4"/>';
+        tramo = [];
+      };
+      N.forEach(function (x, k) { var l = x.m[M.k].lim; if (l === null) cierra(); else tramo.push(X(k).toFixed(1) + "," + Y(l).toFixed(1)); });
+      cierra();
+      var pts = [];
+      N.forEach(function (x, k) { var v = x.m[M.k].v; if (v !== null) pts.push(X(k).toFixed(1) + "," + Y(v).toFixed(1)); });
+      if (pts.length > 1) svg += '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#c2cad2" stroke-width="1.3"/>';
+      N.forEach(function (x, k) {
+        var m = x.m[M.k];
+        if (m.v === null) return;
+        svg += '<circle cx="' + X(k).toFixed(1) + '" cy="' + Y(m.v).toFixed(1) + '" r="3.4" fill="' +
+          (m.cruza ? M.col : "#a9b4be") + '" stroke="#fff" stroke-width=".8"><title>' +
+          U.esc(U.etiquetaFecha(x.f) + ": " + num(m.v, M.k === "fcr" || M.k === "spo2" ? 0 : 1) + " " + M.u.split(",")[0] +
+            (m.lim !== null ? " · límite " + num(m.lim, 1) : " · sin base")) + "</title></circle>";
+      });
+      var ult = N[N.length - 1].m[M.k];
+      var sinBase = !lims.length;
+      if (!vals.length) svg += '<text x="' + W / 2 + '" y="' + (H / 2 + 4) + '" text-anchor="middle" font-size="12" fill="#667a70">' +
+        (M.aviso ? "sin datos en este tramo" : "llega con la exportación de Garmin") + "</text>";
+      else if (sinBase) svg += '<text x="' + W / 2 + '" y="' + (H / 2 + 4) + '" text-anchor="middle" font-size="12" fill="#667a70">aún sin base (' +
+        Math.min(ult.nBase, 5) + " de 5)</text>";
+      svg += "</svg>";
+      h += '<div class="m12-fila' + (M.aviso ? "" : " confirma") + '"><b>' + U.esc(M.n) + "<small>" + U.esc(M.etq) +
+        (M.aviso ? "" : " · " + U.esc(M.u)) + "</small></b>" + svg + "</div>";
+    });
+    h += '<p class="m12-fechas"><span>' + U.esc(U.etiquetaFecha(fechas[0])) + "</span><span>hoy</span></p></div>";
+    var rojas = N.filter(function (x) { return x.e === "rojo"; }).map(function (x) { return U.etiquetaFecha(x.f); });
+    h += '<p class="nota-peque">' + (rojas.length
+      ? "<b>Aviso en este tramo:</b> " + U.esc(rojas.join(", ")) + "."
+      : "Sin aviso en este tramo.") +
+      " Pulso y VFC se miden contra tus 14 noches anteriores, no contra la base de cuando estabas en forma: " +
+      "el aviso busca un cambio brusco, no la distancia al objetivo. Las dos filas de abajo no cuentan: llegan " +
+      "con la exportación grande de Garmin y sirven para comprobar después qué pasó la noche en que saltó.</p>";
+    return h;
+  }
+
+  function abrirM12() {
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!caja || !modal) return;
+    histAbierta = null;
+    caja.innerHTML = "<header><h2>Lo que mira el aviso M12</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">×</button></header>' +
+      '<p class="nota-peque" style="margin:0 0 6px">«Algo se puede estar incubando»: salta si dos o más medidas ' +
+      "de la noche se tuercen a la vez dos noches seguidas.</p>" + htmlM12(M12_SEM);
+    caja.setAttribute("data-m12-abierta", "1");
+    modal.classList.add("abierta");
   }
 
   /* leyenda de una gráfica */
@@ -9904,10 +10052,23 @@
          no comparten escala, y juntarlas obligaría a inventar una. Apiladas y
          alineadas se lee lo que él quería: la COLUMNA, o sea qué hizo cada
          medida la misma noche. */
+      var LAS_DE_LA_NOCHE_SPO2_COLOR = null;
       var LAS_DE_LA_NOCHE = [
         { c: "pt_sueno",     n: "Nota de sueño", u: "de 100",       col: AZUL },
         { c: "body_battery", n: "Body Battery",  u: "al despertar", col: "#3f8f6b" },
-        { c: "respiracion",  n: "Respiración",   u: "resp./min",    col: "#7b5ea7" },
+        /* v534 (Carlos, 12-oct): en color, la respiración DURMIENDO que apunta
+           él; en gris, la de Garmin, sin juntarlas. Medido con 14 noches (18-sep
+           a 2-oct): la línea de Garmin es «avgWakingRespirationValue», la media
+           DESPIERTO — coincide con su «despierto» las 14 noches y con su
+           «durmiendo» solo 5 de 15. Por eso no cuadraba. La de despierto tiene
+           su propia historia (resp_despierto). */
+        { c: "respiracion",  n: "Respiración durmiendo", u: "resp./min", col: "#7b5ea7",
+          series: function (v) {
+            var g = serieSalud("respiracion", v), m = serieApp("resp_sueno", v), out = [];
+            if (g.length) out.push({ pts: g, color: GRIS, ancho: 1, marcarUltimo: false, soloPuntos: g.length < 2 });
+            if (m.length) out.push({ pts: m, color: "#7b5ea7", ancho: 1.3, tip: true, soloPuntos: m.length < 2 });
+            return out;
+          } },
         { c: "sueno_veces",  n: "Despertares",   u: "veces",        col: AMBAR, barras: true },
         /* LA SATURACIÓN, EN BARRAS DE COLOR  ·  5-oct-2026. Carlos: «ponla
            como barras, de distinto color según sea un valor bueno, normal o
@@ -9919,18 +10080,38 @@
            eso va dicha en el pie del panel. */
         { c: "spo2_noche",   n: "Saturación",    u: "% de O₂", col: ROJO,
           barras: true,
-          colorDe: function (v) {
+          colorDe: LAS_DE_LA_NOCHE_SPO2_COLOR = function (v) {
             return v >= 90 ? "#2f6b47"          // 90-100: bien
                  : v >= 80 ? "#e0a93c"          // 80-89
                  : v >= 70 ? "#d9772b"          // 70-79
                  : "#b3402f";                   // por debajo de 70
           },
           vacio: "sin datos todavía — la pulsioximetría nocturna se activó el 17 de septiembre; " +
-                 "aparecerá con la próxima exportación de Garmin" }
+                 "aparecerá con la próxima exportación de Garmin",
+          /* v534 (Carlos, 12-oct): la fila se paraba en la última exportación
+             (2-oct) aunque él teclea la SpO2 desde el 9-oct. Ahora entra lo
+             tecleado, y si una noche tiene las dos manda Garmin; la tecleada,
+             más clara, es la de respaldo.
+             OJO, medido: lo que él teclea coincide con la media DEL DÍA de
+             Garmin («averageSpo2Value», campo spo2) las 15 noches del 18-sep
+             al 2-oct, y NO con la del resumen del sueño (spo2_noche), que va
+             1-2 puntos distinta. Así que el Garmin que manda aquí es ese, el
+             mismo número que él lee: si no, la fila mezclaría dos medidas. */
+          series: function (v) {
+            var g = serieSalud("spo2", v).filter(function (p) { return p.f >= "2026-09-17"; }),
+                hay = {}, m;
+            g.forEach(function (p) { hay[p.f] = true; });
+            m = serieApp("spo2_noche", v).filter(function (p) { return !hay[p.f]; });
+            var col = LAS_DE_LA_NOCHE_SPO2_COLOR, out = [];
+            if (g.length) out.push({ pts: g, color: ROJO, barras: true, colorDe: col, opacidad: 0.85, marcarUltimo: false });
+            if (m.length) out.push({ pts: m, color: ROJO, barras: true, colorDe: col, opacidad: 0.45, marcarUltimo: false });
+            return out;
+          } }
       ];
       var filasNoche = "", hayAlguna = false;
       LAS_DE_LA_NOCHE.forEach(function (m) {
-        var pts = serieSalud(m.c, v);
+        var sers = m.series ? m.series(v) : null;
+        var pts = sers ? [].concat.apply([], sers.map(function (x) { return x.pts; })) : serieSalud(m.c, v);
         filasNoche += '<div class="fila-noche"><b>' + U.esc(m.n) + "<small>" + U.esc(m.u) + "</small></b>";
         if (!pts.length) {
           filasNoche += '<p class="sin-noche">' + U.esc(m.vacio || "sin datos en este tramo") + "</p></div>";
@@ -9940,7 +10121,7 @@
         filasNoche += grafica({
           desde: v.desde, hasta: v.hasta, alto: 40, arriba: "", unidadTip: m.u,
           alt: m.n, ajustarFin: false, ajustarIni: false, fechas: false,
-          series: [{ pts: pts, color: m.col, ancho: 1.1, barras: !!m.barras,
+          series: sers || [{ pts: pts, color: m.col, ancho: 1.1, barras: !!m.barras,
                      colorDe: m.colorDe || null,
                      opacidad: 0.85, marcarUltimo: !m.barras }]
         }) + "</div>";
@@ -9953,12 +10134,16 @@
           'misma noche. En la saturación manda el COLOR, no la altura: ' +
           '<b style="color:#2f6b47">verde 90-100 %</b>, <b style="color:#e0a93c">ámbar 80-89 %</b>, ' +
           '<b style="color:#d9772b">naranja 70-79 %</b>, <b style="color:#b3402f">rojo por debajo de 70</b> ' +
-          '(las franjas de Garmin).</p><div class="panel-noche">' + filasNoche +
+          '(las franjas de Garmin); las barras claras son las que tecleas tú, y se cambian por la de ' +
+          'Garmin cuando llega la exportación. En la respiración, morado es la tuya durmiendo y gris la de ' +
+          'Garmin, que es la media <b>despierto</b>.</p><div class="panel-noche">' + filasNoche +
           '<div class="fila-noche"><b></b><p class="fechas-noche"><span>' +
           U.esc(U.etiquetaFecha(v.desde)) + "</span><span>" +
           (v.hasta === U.hoyISO() ? "hoy" : U.esc(U.etiquetaFecha(v.hasta))) +
           "</span></p></div></div>";
       }
+
+      cuerpo2 += '<h3 class="evo-sub" id="m12-graf">Lo que mira el aviso M12</h3>' + htmlM12(M12_SEM);
 
       if (bandas.length) {
         nota2 = "El tramo sombreado es el del corticoide: <b>ahí no se interpreta nada</b>, " +
@@ -10192,7 +10377,9 @@
     var aFc = serieEcgApp("fc", v), aQt = serieEcgApp("qtc", v), aEc = serieEcgApp("ectopicos", v);
     var cuerpoE;
     if (eFc.length || eQt.length || aFc.length || aQt.length) {
-      var pocos = function (s) { return s.length < 3; };
+      /* v534: con DOS puntos ya hay línea. Antes pedía tres y el 11 y el 12-oct
+         salían como dos puntos sueltos siendo días seguidos (Carlos, 12-oct). */
+      var pocos = function (s) { return s.length < 2; };
       var gris = function (pts) { return pts.length ? [{ pts: pts, color: GRIS, ancho: 1, soloPuntos: pocos(pts), marcarUltimo: false }] : []; };
       cuerpoE = '<h3 class="evo-sub">Pulso sentado</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, alto: 70, arriba: "lpm", unidadTip: "lpm", alt: "Pulso del ECG",
@@ -14802,6 +14989,9 @@
       }
       var sg = t.closest ? t.closest("[data-sesion-guia]") : null;
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
+      if (t.closest && t.closest("[data-m12]")) { e.preventDefault(); e.stopPropagation(); abrirM12(); return; }
+      var m12s = t.closest ? t.closest("[data-m12sem]") : null;
+      if (m12s) { e.preventDefault(); M12_SEM = +m12s.getAttribute("data-m12sem"); pintarConservando(); return; }
       var hb = t.closest ? t.closest("[data-historia]") : null;
       if (hb) { e.preventDefault(); abrirHistoria(hb.getAttribute("data-historia")); return; }
       var pid = t.closest ? t.closest("[data-ecg-papel-id]") : null;
@@ -15098,6 +15288,9 @@
          el manejador de la pestaña no llega hasta el modal */
       var hr = e.target.closest ? e.target.closest("[data-histrango]") : null;
       if (hr) { e.preventDefault(); abrirHistoria(histAbierta, hr.getAttribute("data-histrango")); return; }
+      if (e.target.closest && e.target.closest("[data-m12]")) { e.preventDefault(); abrirM12(); return; }
+      var m12s2 = e.target.closest ? e.target.closest("[data-m12sem]") : null;
+      if (m12s2) { e.preventDefault(); M12_SEM = +m12s2.getAttribute("data-m12sem"); abrirM12(); return; }
       var nb2 = e.target.closest ? e.target.closest("[data-noches]") : null;
       if (nb2) {
         e.preventDefault();
