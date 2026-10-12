@@ -110,6 +110,8 @@
       ".hm-tabla{width:100%;border-collapse:collapse;font-size:13px}",
       ".hm-tabla td,.hm-tabla th{padding:5px 6px;border-bottom:1px solid var(--azul-borde);text-align:left;vertical-align:top}",
       ".hm-tabla th{font-size:11px;text-transform:uppercase;color:#6b7c8d}",
+      ".cf-tabla td.sube{color:#9a2b2b;font-weight:700}",
+      ".cf-tabla td.num,.cf-tabla th.num{text-align:right;white-space:nowrap}",
       ".hm-num{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}",
       /* ---- material y movimientos ---- */
       ".mat-linea{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;" +
@@ -1412,6 +1414,117 @@
   }
 
   function tieneObs(iso, v) { return motivosDe(iso).indexOf(v) >= 0; }
+
+  /* ---------- COMER FUERA Y PESO  ·  12-oct-2026 (v533) ----------
+     Carlos: «cada vez que no respeto la dieta, comida fuera de casa con sal, el
+     peso sube mucho… una casilla de "comer fuera", así podemos poner cifras a la
+     sensación: cuando como fuera aumento más de 1 kg». La casilla ya existía:
+     la ficha «Comí distinto» de las observaciones. Y la toma marcada «fuera» en
+     el plan dice lo mismo sin tocar nada más. Cualquiera de las dos hace que el
+     día cuente como episodio.
+     Qué se mide (lo acordado en claude/comer-fuera-y-peso.md):
+       subida  = peso de la mañana siguiente − peso de la mañana de ese día
+       pico    = el máximo de los 3 días siguientes
+       vuelta  = días hasta volver a 0,3 kg o menos sobre el peso de antes
+       sal     = la del día según lo apuntado (o la estimación de fuera)
+     La regla de Carlos («más de 1 kg») se contrasta con la MEDIANA cuando haya
+     4-5 episodios: hasta entonces se enseñan las cifras sueltas. */
+  var TOMAS_NOMBRE = { desayuno: "desayuno", almuerzo: "almuerzo", comida: "comida", merienda: "merienda", cena: "cena" };
+
+  function fueraDia(iso) {
+    var d = (A.estado.plan || {})[iso];
+    var tomas = d && d.fuera ? d.fuera.slice() : [];
+    var ficha = tieneObs(iso, "comida");
+    return (tomas.length || ficha) ? { tomas: tomas, ficha: ficha } : null;
+  }
+
+  function episodioFuera(iso, hoy) {
+    var f = fueraDia(iso);
+    if (!f) return null;
+    var antes = pesoDe(iso), sig = pesoDe(U.sumarDias(iso, 1));
+    var pico = null, picoF = null, vuelta = null;
+    for (var i = 1; i <= 3; i++) {
+      var fi = U.sumarDias(iso, i);
+      if (fi > hoy) break;
+      var p = pesoDe(fi);
+      if (p != null && (pico == null || p > pico)) { pico = p; picoF = fi; }
+    }
+    if (antes != null) {
+      for (var j = 1; j <= 14; j++) {
+        var fj = U.sumarDias(iso, j);
+        if (fj > hoy) break;
+        var pj = pesoDe(fj);
+        if (pj != null && pj <= antes + 0.3) { vuelta = j; break; }
+      }
+    }
+    /* la sal solo si hay una toma «fuera»: con la ficha sola, salDia sumaría lo
+       planificado en casa y saldría una cifra baja que no es la de ese día */
+    var sal = null;
+    if (f.tomas.length) { try { sal = A.salDia ? A.salDia(iso) : null; } catch (e) { sal = null; } }
+    return {
+      f: iso, tomas: f.tomas, ficha: f.ficha, antes: antes, sig: sig,
+      subida: antes != null && sig != null ? sig - antes : null,
+      pico: pico, picoF: picoF, vuelta: vuelta, sal: sal,
+      seguido: !!fueraDia(U.sumarDias(iso, -1)),
+      nota: (obsDe(iso) || {}).nota || ""
+    };
+  }
+
+  /* todos los episodios de los últimos «dias» días, del más reciente al más viejo */
+  function episodiosFuera(hoy, dias) {
+    var out = [];
+    for (var i = 1; i <= (dias || 120); i++) {
+      var e = episodioFuera(U.sumarDias(hoy, -i), hoy);
+      if (e) out.push(e);
+    }
+    return out;
+  }
+
+  function _medianaN(v) {
+    v = v.filter(function (x) { return x != null; }).sort(function (a, b) { return a - b; });
+    if (!v.length) return null;
+    var m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+
+  function nombreTomas(e) {
+    if (e.tomas.length) return e.tomas.map(function (t) { return TOMAS_NOMBRE[t] || t; }).join(" y ");
+    return "comí distinto";
+  }
+
+  /* La tarjeta: una fila por episodio. Sale solo si hay alguno en 120 días. */
+  function htmlComerFuera(dia) {
+    var eps = episodiosFuera(dia, 120);
+    if (!eps.length) return "";
+    var subidas = eps.map(function (e) { return e.subida; }).filter(function (x) { return x != null; });
+    var med = _medianaN(subidas), masDe1 = subidas.filter(function (x) { return x > 1; }).length;
+    var h = '<div class="tarjeta"><h2>Comer fuera y peso</h2>';
+    h += '<p class="ent-nota"><small>Cuenta como episodio un día con una toma marcada «fuera» en el plan o con ' +
+      "la ficha «Comí distinto». Subida: peso del día siguiente menos el de esa mañana. Vuelta: días hasta " +
+      "quedar a 0,3 kg o menos del peso de antes.</small></p>";
+    if (subidas.length) {
+      h += "<p><b>" + subidas.length + (subidas.length === 1 ? " episodio medido" : " episodios medidos") + "</b>" +
+        (subidas.length >= 4
+          ? " · mediana de la subida " + signo(med, 2) + " kg · " + masDe1 + " de " + subidas.length + " por encima de 1 kg"
+          : " · con " + subidas.length + " todavía no hay mediana fiable: hacen falta 4 o 5") + "</p>";
+    }
+    h += '<table class="hm-tabla cf-tabla"><tr><th>Día</th><th>Toma</th><th class="num">Sal</th>' +
+      '<th class="num">Antes</th><th class="num">Subida</th><th class="num">Pico 3 d</th><th class="num">Vuelta</th></tr>';
+    eps.forEach(function (e) {
+      h += "<tr><td>" + U.esc(U.etiquetaFecha(e.f)) + (e.seguido ? " <small>(seguido)</small>" : "") + "</td>" +
+        "<td>" + U.esc(nombreTomas(e)) + (e.nota ? "<br><small>«" + U.esc(e.nota) + "»</small>" : "") + "</td>" +
+        '<td class="num">' + (e.sal != null && e.sal > 0 ? num(e.sal, 1) + " g" : "—") + "</td>" +
+        '<td class="num">' + (e.antes != null ? num(e.antes, 2) : "—") + "</td>" +
+        '<td class="num' + (e.subida != null && e.subida > 1 ? " sube" : "") + '">' +
+          (e.subida != null ? signo(e.subida, 2) : "—") + "</td>" +
+        '<td class="num">' + (e.pico != null && e.antes != null ? signo(e.pico - e.antes, 2) : "—") + "</td>" +
+        '<td class="num">' + (e.vuelta != null ? e.vuelta + (e.vuelta === 1 ? " día" : " días") :
+          (e.antes != null ? "aún no" : "—")) + "</td></tr>";
+    });
+    h += "</table></div>";
+    return h;
+  }
+
 
   function alternarObs(iso, v) {
     var e = ent();
@@ -4237,6 +4350,38 @@
       });
     } else if (a) {
       out.push({ k: "peso", t: "Peso: " + num(a.m) + " kg", d: "Una sola pesada esta semana. El dato del día oscila más de un kilo por agua y tránsito: lo que cuenta es la media." });
+    }
+
+    /* tras comer fuera (v533): si en los 3 días anteriores hay un episodio, el
+       peso de hoy se lee con él delante. No es un aviso: es agua y sal. */
+    var epF = null;
+    for (var iF = 1; iF <= 3 && !epF; iF++) epF = episodioFuera(U.sumarDias(dia, -iF), dia);
+    if (epF && epF.antes != null) {
+      var hoyKg = pesoDe(dia);
+      var dF = "El " + U.etiquetaFecha(epF.f) + " (" + nombreTomas(epF) + (epF.sal ? ", sal " + num(epF.sal, 1) + " g" : "") +
+        ") pesabas " + num(epF.antes, 2) + " kg";
+      if (epF.subida != null) dF += "; a la mañana siguiente " + num(epF.sig, 2) + " (" + signo(epF.subida, 2) + ")";
+      dF += ". ";
+      var base = epF.antes;
+      if (epF.seguido) {
+        var ini = epF.f;
+        while (fueraDia(U.sumarDias(ini, -1))) ini = U.sumarDias(ini, -1);
+        var kgIni = pesoDe(ini), ultR = pesoDe(U.sumarDias(epF.f, 1));
+        if (kgIni != null && ultR != null)
+          dF += "Van varios días seguidos fuera desde el " + U.etiquetaFecha(ini) + ": " + signo(ultR - kgIni, 2) +
+            " kg sobre el " + num(kgIni, 2) + " de antes de empezar. ";
+        if (kgIni != null) base = kgIni;
+      }
+      if (hoyKg != null) {
+        var resta = hoyKg - base;
+        dF += resta > 0.3 ? "Hoy quedan " + num(resta, 2) + " kg por bajar hasta el peso de antes. "
+                          : "Hoy ya estás en el peso de antes. ";
+      }
+      dF += "Un kilo de grasa son unas 7.700 kcal: lo que sube de un día para otro tras comer con sal es agua, y se va en unos días si se vuelve a la dieta.";
+      out.push({
+        t: "Tras comer fuera: " + (epF.subida != null ? signo(epF.subida, 2) + " kg" : "pendiente del peso del día siguiente"),
+        d: dF
+      });
     }
 
     /* la grasa por cinta tiene su tarjeta arriba, con su serie y su tendencia:
@@ -14128,6 +14273,7 @@
       h += "</div>";
     }
 
+    h += htmlComerFuera(dia);
     h += htmlMiEstado(dia, semDia);
 
 
