@@ -8120,7 +8120,10 @@
     if (!series1.length) { series1 = series; series2 = []; }
     /* con dos escalas hay números a los dos lados: el margen izquierdo deja de
        ser un pellizco de 2 px y se abre para que quepan */
-    if (series2.length) { L = 24; R = 26; }
+    /* `mismosMargenes` (v535): una fila de doble eje dentro de un panel que se
+       lee por columnas no puede mover sus bordes, o la misma fecha caería en
+       otra x que en las filas de al lado. */
+    if (series2.length && !o.mismosMargenes) { L = 24; R = 26; }
 
     var todos = [];
     series1.forEach(function (s) { s.pts.forEach(function (p) { todos.push(p.v); }); });
@@ -10062,7 +10065,14 @@
            DESPIERTO — coincide con su «despierto» las 14 noches y con su
            «durmiendo» solo 5 de 15. Por eso no cuadraba. La de despierto tiene
            su propia historia (resp_despierto). */
-        { c: "respiracion",  n: "Respiración durmiendo", u: "resp./min", col: "#7b5ea7",
+        /* v535 (Carlos, 12-oct): «¿podría ir superpuesta con saturación y darle
+           más altura? se ve bien la bajada del SpO2 y la subida de la respiración
+           si se producen juntas». Una fila el doble de alta, doble eje: la
+           respiración arriba, la saturación (barras de color) abajo, la misma
+           columna para la misma noche. La fila de Saturación de abajo se
+           dibuja aquí y ya no sale sola (`enOtra`). */
+        { c: "respiracion",  n: "Respiración y saturación", u: "rpm arriba · % O₂ abajo", col: "#7b5ea7",
+          alto: 92, junto: "spo2_noche",
           series: function (v) {
             var g = serieSalud("respiracion", v), m = serieApp("resp_sueno", v), out = [];
             if (g.length) out.push({ pts: g, color: GRIS, ancho: 1, marcarUltimo: false, soloPuntos: g.length < 2 });
@@ -10079,7 +10089,7 @@
            puntos y no tiene cero— sino por COLOR: la franja es el dato, y por
            eso va dicha en el pie del panel. */
         { c: "spo2_noche",   n: "Saturación",    u: "% de O₂", col: ROJO,
-          barras: true,
+          barras: true, enOtra: true,
           colorDe: LAS_DE_LA_NOCHE_SPO2_COLOR = function (v) {
             return v >= 90 ? "#2f6b47"          // 90-100: bien
                  : v >= 80 ? "#e0a93c"          // 80-89
@@ -10110,7 +10120,20 @@
       ];
       var filasNoche = "", hayAlguna = false;
       LAS_DE_LA_NOCHE.forEach(function (m) {
-        var sers = m.series ? m.series(v) : null;
+        if (m.enOtra) return;
+        var sers = m.series ? m.series(v) : null, extra = {};
+        if (m.junto) {
+          var otra = LAS_DE_LA_NOCHE.filter(function (x) { return x.c === m.junto; })[0];
+          var s2 = otra && otra.series ? otra.series(v) : [];
+          s2.forEach(function (x) { x.eje2 = true; });
+          var r1 = (sers || []).filter(function (x) { return x.tip; })[0] || (sers || [])[0];
+          var p2 = [].concat.apply([], s2.map(function (x) { return x.pts; }))
+            .sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+          sers = (sers || []).concat(s2);
+          extra = { mismosMargenes: true, escala: false, ejeIzq: "", ejeDer: "",
+                    par: ["respiración", "SpO2"], tipPar: [r1 ? r1.pts : [], p2] };
+          if (!r1 || !p2.length) delete extra.tipPar;
+        }
         var pts = sers ? [].concat.apply([], sers.map(function (x) { return x.pts; })) : serieSalud(m.c, v);
         filasNoche += '<div class="fila-noche"><b>' + U.esc(m.n) + "<small>" + U.esc(m.u) + "</small></b>";
         if (!pts.length) {
@@ -10118,13 +10141,15 @@
           return;
         }
         hayAlguna = true;
-        filasNoche += grafica({
-          desde: v.desde, hasta: v.hasta, alto: 40, arriba: "", unidadTip: m.u,
+        var oG = {
+          desde: v.desde, hasta: v.hasta, alto: m.alto || 40, arriba: "", unidadTip: m.u,
           alt: m.n, ajustarFin: false, ajustarIni: false, fechas: false,
           series: sers || [{ pts: pts, color: m.col, ancho: 1.1, barras: !!m.barras,
                      colorDe: m.colorDe || null,
                      opacidad: 0.85, marcarUltimo: !m.barras }]
-        }) + "</div>";
+        };
+        for (var kx in extra) oG[kx] = extra[kx];
+        filasNoche += grafica(oG) + "</div>";
       });
       if (hayAlguna) {
         cuerpo2 += '<h3 class="evo-sub">La noche, día a día</h3>' +
@@ -10135,8 +10160,9 @@
           '<b style="color:#2f6b47">verde 90-100 %</b>, <b style="color:#e0a93c">ámbar 80-89 %</b>, ' +
           '<b style="color:#d9772b">naranja 70-79 %</b>, <b style="color:#b3402f">rojo por debajo de 70</b> ' +
           '(las franjas de Garmin); las barras claras son las que tecleas tú, y se cambian por la de ' +
-          'Garmin cuando llega la exportación. En la respiración, morado es la tuya durmiendo y gris la de ' +
-          'Garmin, que es la media <b>despierto</b>.</p><div class="panel-noche">' + filasNoche +
+          'Garmin cuando llega la exportación. La fila alta junta la respiración (arriba: morado la tuya ' +
+          'durmiendo, gris la de Garmin, que es la media <b>despierto</b>) y la saturación (barras, abajo): ' +
+          'si una noche sube la una y baja la otra, se ve en la misma columna.</p><div class="panel-noche">' + filasNoche +
           '<div class="fila-noche"><b></b><p class="fechas-noche"><span>' +
           U.esc(U.etiquetaFecha(v.desde)) + "</span><span>" +
           (v.hasta === U.hoyISO() ? "hoy" : U.esc(U.etiquetaFecha(v.hasta))) +
