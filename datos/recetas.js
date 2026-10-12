@@ -483,6 +483,23 @@ window.DATOS_RECETAS = [
    verdad, y esto manda sobre lo automático. Los cuatro primeros salen de los
    combinados que había antes de separar plato y guarnición. */
 window.DATOS_CUADRES = {
+  /* ALBÓNDIGAS Y PANADERAS EN LA MISMA CESTA (12-oct-2026). Carlos las hizo
+     ese día y no sabía cuándo sacar la patata ni cuándo meter la carne: cada
+     receta traía su propia cuenta y las dos pedían la freidora. «Yo creo que
+     se podían hacer las albóndigas con las patatas al tiempo, por espacio hay
+     suficiente». Así es: la patata entra a los 8 a 180 °C, la carne a los 16
+     a su lado y se sube a 190. Las dos y la salsa acaban en el 28. */
+  "albondigas_tomate|guar_patatas_panaderas_freidora": { rev:1, min:33, nota:"Una sola cesta: la patata entra a los 8 minutos, las albóndigas a los 16 a su lado, y todo sale en el 28, cuando la salsa está lista.", pasos:[
+    {min:0, t:"Sartén con 5 ml de aceite: la cebolla de la salsa, fuego medio — 8 minutos", d:"Que quede transparente y dulce, sin quemarse. La freidora todavía no.", ap:"sarten", de:"Albóndigas"},
+    {min:8, t:"Patata a la freidora — 180 °C", d:"Extendida en una MITAD de la cesta; la otra mitad es para las albóndigas.", ap:"airfryer", de:"Patatas"},
+    {min:8, t:"Sartén FUERA del fuego: el pimentón 10 segundos y en seguida el vino — 2 minutos a fuego medio", d:"Fuera del fuego, que el pimentón se quema en cinco segundos y amarga.", ap:"sarten", de:"Albóndigas"},
+    {min:10, t:"El tomate rallado, el segundo ajo, la miel y el laurel — 18 minutos a fuego medio-bajo", d:"Está cuando la cuchara deja surco en el fondo y tarda en cerrarse.", ap:"sarten", de:"Albóndigas"},
+    {min:16, t:"Sacude la patata hacia su lado, mete las albóndigas en la otra mitad y SUBE A 190 °C — 12 minutos", d:"Las albóndigas en una capa, sin tocarse. La patata termina a 190: le viene bien para dorar los bordes.", ap:"airfryer", de:"Las dos"},
+    {min:21, t:"La cebolla de la patata por encima de la patata", d:"Siete minutos a 190 le bastan. Desde el principio se quemaría.", ap:"airfryer", de:"Patatas"},
+    {min:22, t:"Gira las albóndigas con unas pinzas", d:"Si se han pegado entre ellas, sepáralas ahora.", ap:"airfryer", de:"Albóndigas"},
+    {min:28, t:"Para la freidora. Quita el laurel, las albóndigas a la salsa y 5 minutos juntas a fuego bajo", d:"La patata y la cebolla se quedan en la cesta apagada: así no se enfrían. Si la patata está pálida, 3 minutos más a 190 mientras las albóndigas están en la salsa.", ap:"sarten", de:"Las dos"},
+    {min:33, t:"Al plato: las albóndigas con su tomate y la patata al lado", d:"Perejil o más orégano por encima.", ap:"no", de:"Las dos"}
+  ]},
   /* COMO LO HACE ÉL, CORREGIDO A LA PRIMERA (7-oct-2026). Carlos lo coció
      todo junto desde el minuto cero —patata, cebolla y solomillo— y al contarlo
      cayó él mismo: «solo 6 en la freidora? han salido un poco secas las
