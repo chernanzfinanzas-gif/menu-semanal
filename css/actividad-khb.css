@@ -830,7 +830,7 @@
   .akhb-sala-t { flex: 1 1 100%; }
   .akhb-sala-porque { max-width: none; }
   .akhb-sala-tr th:nth-child(3), .akhb-sala-tr td:nth-child(3) { display: none; }
-  .akhb-sala-det:not(.akhb-gpx) th:nth-child(5), .akhb-sala-det:not(.akhb-gpx) td:nth-child(5) { display: none; }
+  .akhb-sala-det:not(.akhb-gpx):not(.akhb-bici) th:nth-child(5), .akhb-sala-det:not(.akhb-gpx):not(.akhb-bici) td:nth-child(5) { display: none; }
 }
 /* dentro del modal, que mide menos que la pantalla */
 .modal .caja .akhb-sala-t { flex: 1 1 100%; }
@@ -852,7 +852,7 @@
 .akhb-llano .akhb-sala-tarjetas { margin-bottom: 4px; }
 @media (max-width: 620px) {
   .akhb-sala-barra { width: 38px; }
-  .akhb-sala-det:not(.akhb-gpx) th:nth-child(6), .akhb-sala-det:not(.akhb-gpx) td:nth-child(6) { display: none; }
+  .akhb-sala-det:not(.akhb-gpx):not(.akhb-bici) th:nth-child(6), .akhb-sala-det:not(.akhb-gpx):not(.akhb-bici) td:nth-child(6) { display: none; }
 }
 
 /* ===== El dibujo de la curva de ascenso (2-oct-2026) =====
@@ -932,4 +932,15 @@
   display: inline-block; min-width: 15px; padding: 0 2px; margin-right: 2px;
   border-radius: 4px; background: var(--akhb-azul, #2f5c8a); color: #fff;
   font-size: 10px; font-weight: 700; text-align: center; line-height: 15px;
+}
+
+/* el selector de cuántas se ven en «Todos los años» (13-oct-2026) */
+.akhb-tope { margin: 6px 0 10px; }
+
+/* ===== Bici en exterior (13-oct-2026) =====
+   Nueve columnas no caben en el móvil: se quedan las subidas, los vatios y lo
+   que cuesta cada metro (m/100 lat. y W por lat.); fuera W/kg y pulso. */
+@media (max-width: 620px) {
+  .akhb-bici th:nth-child(6), .akhb-bici td:nth-child(6),
+  .akhb-bici th:nth-child(7), .akhb-bici td:nth-child(7) { display: none; }
 }

@@ -1042,6 +1042,12 @@
          recordara la selección, un día abrirías la app y no entenderías por
          qué te faltan años. No se guarda en ningún sitio a propósito. */
       fam: null,
+      /* CUÁNTAS SE VEN EN «TODOS LOS AÑOS» (13-oct-2026). Carlos: «debería haber
+         un selector de 15 - 50 - 100 - 200… hasta que se vean todas. Siempre
+         vuelve por defecto y se abre con 15». `null` es lo de siempre (15 con
+         una familia, 5 por familia con varias); "todas", sin tope. No se guarda:
+         cambiar de medida, familia, año u orden lo devuelve a null. */
+      tope: null,
       /* en las medidas que no se suman: «lo típico» (la mediana del tramo) o
          «lo mejor» (el techo). Son dos preguntas distintas y la pantalla tiene
          que decir cuál se está contestando. */
@@ -2391,7 +2397,7 @@
          `curva_nombre` p. ej. «2017-2019»— y la de ahora viaja como `ref`, en
          discontinua. Carlos: comparar cada ruta con su curva de entonces y
          enseñar la de ahora como referencia. */
-      function dibujoCurva(curva, subs, ref, nombreCurva) {
+      function dibujoCurva(curva, subs, ref, nombreCurva, esBici) {
         if (!curva || !curva.length || !subs || !subs.length) return "";
         /* Mismo ancho y mismos márgenes laterales que el perfil (P_ANCHO 380,
            IZQ 36, DER 6): los dos van uno encima del otro en la ficha, y si las
@@ -2399,9 +2405,11 @@
            eje de la izquierda va en horizontal arriba, no girado, que así cabe
            en el mismo margen y se lee mejor. */
         var W = 380, H = 206, L = 36, R = 6, T = 28, B = 44;
-        var maxP = 20, maxV = 400;
+        /* En bici las subidas de Madrid van al 1-5 %: con el eje hasta el 20 %
+           se amontonaban en el borde izquierdo. (13-oct) */
+        var maxP = esBici ? 10 : 20, maxV = 400, pasoP = esBici ? 2 : 5;
         subs.forEach(function (s) {
-          if (s.pend > maxP) maxP = Math.ceil(s.pend / 5) * 5;
+          if (s.pend > maxP) maxP = Math.ceil(s.pend / pasoP) * pasoP;
           if (s.vam > maxV) maxV = Math.ceil(s.vam / 100) * 100;
         });
         curva.concat(ref || []).forEach(function (c) {
@@ -2417,7 +2425,7 @@
           o.push('<text x="' + (L - 5) + '" y="' + (Y(v) + 3.5).toFixed(1) +
             '" class="akhb-g-tick akhb-g-ty">' + v + "</text>");
         }
-        for (var p = 5; p <= maxP; p += 5) {
+        for (var p = pasoP; p <= maxP; p += pasoP) {
           /* la última se pega al borde y se corta: esa se alinea por la derecha */
           var pegada = X(p) > W - R - 12;
           o.push('<text x="' + (pegada ? (W - R) : X(p)).toFixed(1) + '" y="' + (H - 26) +
@@ -2523,7 +2531,9 @@
             '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" class="akhb-g-eje"/>' +
           "</svg>" +
           /* los ejes ya dicen qué se mide, así que el pie explica la lectura */
-          '<p class="akhb-g-pie">' + (ref && ref.length
+          '<p class="akhb-g-pie">' + (esBici
+            ? "Cada escalón es tu ritmo habitual en bici a esas pendientes (todas tus salidas de 2022-2025). "
+            : ref && ref.length
             ? "Cada escalón es el ritmo habitual de tus rutas de " + esc(nombreCurva || "esos años") +
               " a esas pendientes; la discontinua, el de ahora. Es ritmo, no forma: sin pulso no se sabe el esfuerzo. "
             : "Cada escalón es lo que das normalmente a esas pendientes. ") +
@@ -2544,6 +2554,10 @@
             '<div class="akhb-sala-d">' + (t.d || "") + "</div></div>";
         }).join("");
         var gpx = b.fuente === "gpx";     // ruta del archivo: sin pulso ni temperatura
+        /* Salida de bici en exterior (13-oct): lo que cuenta son los VATIOS, que no
+           dependen del grupo, y los latidos que cuesta cada metro. */
+        var bici = b.fuente === "bici";
+        var guion = "\u2014";
         var filas = (b.subidas || []).map(function (su, i) {
           var ancho = Math.max(0, Math.min(100, su.pct || 0));
           var dur = su.min >= 60 ? (Math.floor(su.min / 60) + " h " +
@@ -2553,14 +2567,21 @@
             "<td>" + num(su.gan) + " m</td>" +
             "<td>" + num(su.pend, 1) + " %</td>" +
             "<td>" + num(su.vam) + "</td>" +
-            (gpx ? "" :
+            (bici ?
+              "<td>" + (su.w != null ? num(su.w) : guion) + "</td>" +
+              "<td>" + (su.wkg != null ? num(su.wkg, 2) : guion) + "</td>" +
+              "<td>" + (su.fc != null ? num(su.fc) : guion) + "</td>" +
+              "<td>" + (su.m100 != null ? num(su.m100, 1) : guion) + "</td>" +
+              "<td>" + (su.wlat != null ? num(su.wlat, 2) : guion) + "</td>" :
+             gpx ? "" :
               "<td>" + num(su.fc) + "</td>" +
               "<td>" + (su.temp != null ? num(su.temp) : "\u2014") + "</td>" +
               "<td>" + (su.m100 != null ? num(su.m100, 1) +
                 (su.coste_pct != null ? ' <span class="akhb-sala-goma">' + num(su.coste_pct) + " %</span>" : "")
                 : "\u2014") + "</td>") +
+            (bici ? "" :
             '<td><span class="akhb-sala-barra"><i style="width:' + ancho + '%"></i></span>' +
-              num(su.pct) + " %</td>" +
+              num(su.pct) + " %</td>") +
             (gpx ? "<td>" + (su.pct_hoy != null ? num(su.pct_hoy) + " %" : "\u2014") + "</td>" : "") +
             "</tr>";
         }).join("");
@@ -2577,7 +2598,7 @@
             "<th>Por qué</th></tr></thead><tbody>" + rf + "</tbody></table></div>";
         }
         return '<div class="akhb-sala">' +
-          "<h5>Análisis de la ruta" + (b.ruta ? " \u00b7 " + esc(b.ruta) : "") +
+          "<h5>" + (bici ? "Las subidas de la salida" : "Análisis de la ruta") + (b.ruta ? " \u00b7 " + esc(b.ruta) : "") +
             (b.km ? " \u00b7 " + num(b.km, 1) + " km" : "") +
             (b.desnivel ? " \u00b7 " + num(b.desnivel) + " m" : "") + "</h5>" +
           (b.proposito ? '<p class="akhb-sala-pers">' + esc(b.proposito) + "</p>" : "") +
@@ -2585,9 +2606,10 @@
           (b.lectura ? '<div class="akhb-sala-lectura">' + esc(b.lectura) + "</div>" : "") +
           receta +
           (b.reglas ? '<p class="akhb-sala-reglas">' + esc(b.reglas) + "</p>" : "") +
-          (filas ? '<table class="akhb-tf akhb-sala-det' + (gpx ? " akhb-gpx" : "") + '"><thead><tr>' +
+          (filas ? '<table class="akhb-tf akhb-sala-det' + (gpx ? " akhb-gpx" : bici ? " akhb-bici" : "") + '"><thead><tr>' +
               "<th>Subida</th><th>Gana</th><th>Pendiente</th><th>m/h</th>" +
-              (gpx ? "<th>Ritmo vs entonces</th><th>vs ahora</th>"
+              (bici ? "<th>Vatios</th><th>W/kg</th><th>Pulso</th><th>m/100 lat.</th><th>W por lat.</th>"
+               : gpx ? "<th>Ritmo vs entonces</th><th>vs ahora</th>"
                    : "<th>Pulso</th><th>\u00b0C</th><th>m/100 lat.</th><th>Ritmo vs curva</th>") +
             "</tr></thead><tbody>" + filas + "</tbody></table>" : "") +
           ((b.avisos && b.avisos.length)
@@ -2723,8 +2745,8 @@
              la misma ruta y antes quedaban separados por media ficha */
           ((monteAn && x.id && monteAn[x.id] && o.monte)
             ? dibujoCurva(monteAn[x.id].curva || o.monte.curva, monteAn[x.id].subidas,
-                          monteAn[x.id].curva ? o.monte.curva : null,
-                          monteAn[x.id].curva_nombre) : "") +
+                          (monteAn[x.id].curva && monteAn[x.id].fuente !== "bici") ? o.monte.curva : null,
+                          monteAn[x.id].curva_nombre, monteAn[x.id].fuente === "bici") : "") +
           "<figcaption>" +
             (esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
              : x.ruta ? esc(x.nombre || "")
@@ -2880,14 +2902,30 @@
           if (!porFam[g]) { porFam[g] = []; gs.push(g); }
           porFam[g].push(x);
         });
-        var tope = gs.length > 1 ? TOPE_VARIAS : TOPE_UNA;
+        var base = gs.length > 1 ? TOPE_VARIAS : TOPE_UNA;
+        var mayor = 0;
+        gs.forEach(function (g) { if (porFam[g].length > mayor) mayor = porFam[g].length; });
+        var tope = estado.tope === "todas" ? Infinity : (estado.tope || base);
+        /* el selector: solo los escalones que cambian algo, y «Todas» con su número */
+        var pasos = [base].concat([15, 50, 100, 200, 500].filter(function (n) { return n > base; }))
+          .filter(function (n, i) { return i === 0 || n < mayor; });
+        var selTope = mayor > base
+          ? '<div class="akhb-orden akhb-tope">' + pasos.map(function (n) {
+              var sel = (estado.tope || base) === n && estado.tope !== "todas";
+              return '<button type="button" class="akhb-ord' + (sel ? " sel" : "") +
+                '" data-tope="' + n + '">' + n + "</button>";
+            }).join("") +
+            '<button type="button" class="akhb-ord' + (estado.tope === "todas" ? " sel" : "") +
+              '" data-tope="todas">Todas' + (gs.length > 1 ? "" : " (" + num(mayor) + ")") + "</button></div>"
+          : "";
         var h2 = cab + '<h4 class="akhb-titmes">Todos los años <span>' +
           num(suma, m.dec) + m.suf + " · " + lista.length +
           (lista.length === 1 ? " salida" : " salidas") + "</span></h4>" +
           '<p class="akhb-nada-peq">' +
-          (gs.length > 1 ? "Las " + tope + " mejores de cada familia."
-                         : "Las " + tope + " mejores.") +
-          " El resto, eligiendo un año.</p>";
+          (tope === Infinity ? (gs.length > 1 ? "Todas, por familia." : "Todas.")
+            : (gs.length > 1 ? "Las " + tope + " mejores de cada familia."
+                             : "Las " + tope + " mejores.") + " Más, con el selector.") +
+          "</p>" + selTope;
         ORDEN_FAM.forEach(function (g) {
           var l = porFam[g];
           if (!l || !l.length) return;
@@ -4231,9 +4269,20 @@
       var r = e.target.closest ? e.target.closest("[data-renombra],[data-guarda],[data-cancela]") : null;
       if (r && estado.el.contains(r)) { e.stopPropagation(); renombrar(r); return; }
       var t = e.target.closest
-        ? e.target.closest("[data-rec],[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent],[data-orden],[data-todos]") : null;
+        ? e.target.closest("[data-rec],[data-anio],[data-mes],[data-abre],[data-met],[data-fam],[data-dia],[data-modo],[data-vent],[data-orden],[data-todos],[data-tope]") : null;
       if (!t || !estado.el.contains(t)) return;
       if (t.hasAttribute("data-rec")) { irAlRecord(t.getAttribute("data-rec")); return; }
+      if (t.hasAttribute("data-tope")) {
+        var v = t.getAttribute("data-tope");
+        estado.tope = v === "todas" ? "todas" : parseInt(v, 10);
+        estado.abierta = null;
+        pintar(); return;
+      }
+      /* cualquier otro cambio de lo que se mira devuelve el selector a 15 */
+      if (t.hasAttribute("data-orden") || t.hasAttribute("data-todos") || t.hasAttribute("data-met") ||
+          t.hasAttribute("data-fam") || t.hasAttribute("data-anio") || t.hasAttribute("data-mes")) {
+        estado.tope = null;
+      }
       if (t.hasAttribute("data-orden")) {
         estado.orden = t.getAttribute("data-orden");
         if (estado.orden === "fecha") estado.todosAnios = false;
