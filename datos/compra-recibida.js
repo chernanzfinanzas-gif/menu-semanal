@@ -6,42 +6,37 @@
    ticket y guarda el precio de cada producto. Opcionales arriba: `tienda`
    (si no, Mercadona) y `extra` (envío, bolsas: lo que no es producto). */
 window.COMPRA_RECIBIDA = {
-  ref: "mercadona-941497",
-  fecha: "2026-10-01",
-  n: "Pedido Mercadona del 1-oct-2026",
+  ref: "mercadona-221425",
+  fecha: "2026-10-13",
+  n: "Pedido Mercadona del 13-oct-2026",
+  tienda: "Mercadona",
+  extra: 8.20,          /* coste de preparación. Productos 63,92 € · total 72,12 € */
   lineas: [
-    { i:"albahaca", p:1 },                    /* 20 g · Albahaca Herbetec fresca (bandeja 20 g) */
-    { i:"berenjena", p:1 },                   /* 1 ud · Berenjena (pieza 380 g) */
-    { i:"ensalada_gourmet", p:1 },            /* 100 g · Brotes tiernos Hacendado (bolsa 100 g) */
-    { i:"calabacin", p:2 },                   /* 2 ud · Calabacin verde (pieza 420 g) */
-    { i:"ternera_picada", p:1 },              /* 500 g · Carne picada de vacuno (preparado, 90 por cien */
-    { i:"cebolla_dulce", p:1 },               /* 6 ud · Cebolla dulce Tara (malla 1 kg) */
-    { i:"cerveza_sin_rubia", p:1 },           /* 2640 ml · Cerveza Mahou SIN alcohol rubia (0,0) (lata 33 */
-    { i:"cocacola_zero", p:1 },               /* 3960 ml · Coca-Cola Zero azúcar y Zero cafeína (lata 330 */
-    { i:"brotes_verdes", p:1 },               /* 100 g · Duo de canonigos y rucula Hacendado (bolsa 100 */
-    { i:"ternera_entrecot", p:2 },            /* 410 g · Entrecot de vacuno angus (paquete 205 g) */
-    { i:"fanta_lim_zero", p:2 },              /* 660 ml · Fanta Limón Zero (lata 330 ml) */
-    { i:"fanta_nar_zero", p:2 },              /* 660 ml · Fanta Naranja Zero (lata 330 ml) */
-    { i:"flan_proteinas", p:2 },              /* 8 ud · Flan +Proteínas 0 % (unidad 100 g) */
-    { i:"guacamole", p:1 },                   /* 200 g · Guacamole Hacendado 95% aguacate (tarrina 200  */
-    { i:"leche_desnatada", p:1 },             /* 6000 ml · Leche desnatada con calcio Hacendado */
-    { i:"limonada_light", p:1 },              /* 1500 ml · Limonada natural sin gas light Don Simón (bote */
-    { i:"almendras", p:1 },                  /* 200 g · Almendra tostada Hacendado 0% sal anadida */
-    { i:"avellanas", p:1 },                  /* 200 g · Avellana tostada Hacendado 0% sal anadida */
-    { i:"manzana_reineta", p:6 },            /* 6 ud · Manzana Golden + 4 rojas contadas como Golden */
-    { i:"mozzarella_fresca", p:1 },           /* 125 g · Mozzarella fresca di bufala campana DOP Hacend */
-    { i:"pan_ortiz", p:1 },                   /* 48 ud · Pan tostado classic Hacendado (rebanada 11,5 g */
-    { i:"pan_panecillo_sinsal", p:7 },        /* 7 ud · Panecillo sin sal añadida (unidad 85 g) */
-    { i:"patatas_fritas_congeladas_para", p:1 }, /* 1000 g · Patata prefrita 7x7 La Sirena (bolsa 1 kg) */
-    { i:"picada_ajo_perejil", p:1 },          /* 100 g · Picada de ajo y perejil Salses Fruits (bandeja */
-    { i:"pistachos_sinsal", p:2 },            /* 200 g · Pistacho natural Hacendado PELADO (paquete 100 */
-    { i:"platano", p:6 },                     /* 6 ud · Platano de Canarias IGP (pieza 160 g) */
-    { i:"parmesano_rallado", p:1 },           /* 100 g · Queso en polvo Grana Padano Hacendado (100 g) */
-    { i:"parmigiano_reggiano_en_cuna_ra", p:2 }, /* 200 g · Queso Grana Padano DOP Hacendado en escamas (b */
-    { i:"queso_el_caserio_rallado_espec", p:1 }, /* 200 g · Queso rallado mozzarella pizza-Roma Hacendado  */
-    { i:"tomate", p:4 },                      /* 4 ud · Tomate ensalada (pieza 260 g) */
-    { i:"tomate_triturado", p:1 },            /* 400 g · Tomate triturado Vegecampo DIA (lata 400 g) */
-    { i:"yogur_activia", p:2 },               /* 16 ud · Yogur Danone Activia desnatado edulcorado con  */
-    { i:"zumo_granini", p:1 },                /* 1200 ml · Zumo de naranja exprimido Hacendado (mini brik */
+    { i:"albahaca", p:1, e:1.55 },                      /* Albahaca */
+    { i:"perejil", p:1, e:0.95 },                       /* Perejil troceado lavado */
+    { i:"pasta", p:1, e:1.15 },                      /* Macarrón Hacendado 1 kg */
+    { i:"toallitas_refrescantes", p:1, e:1.00 },        /* Toallitas refrescantes Deliplus monodosis (casa) */
+    { i:"servilletas_de_papel", p:1, e:2.15 },          /* Servilleta papel Bosque Verde (casa) */
+    { i:"papel_de_cocina", p:1, e:2.30 },               /* Papel hogar Compacto Bosque Verde (casa) */
+    { i:"limpiamaquinas_lavavajillas", p:1, e:1.55 },   /* Limpiamáquinas lavavajillas Bosque Verde (casa) */
+    { i:"patata", p:1, e:4.65 },                        /* Patatas */
+    { i:"fanta_lim_zero", p:2, e:1.38 },                /* Fanta limón zero, 2 latas */
+    { i:"fanta_nar_zero", p:2, e:1.38 },                /* Fanta naranja zero, 2 latas */
+    { i:"pan_ortiz", p:1, e:1.70 },                     /* Pan tostado classic Hacendado */
+    { i:"cerveza", p:1, e:8.40 },                       /* Cerveza especial Mahou (pedido: 3, llegó 1) */
+    { i:"leche_proteinas", p:1, e:1.35 },               /* Leche desnatada +Proteínas */
+    { i:"pan_panecillo_sinsal", p:6, e:2.52 },          /* Panecillo sin sal añadida, 6 */
+    { i:"huevo", p:1, e:1.95 },                         /* Huevos camperas */
+    { i:"pesto_genovese", p:1, e:1.95 },                /* Salsa pesto Hacendado */
+    { i:"yogur_activia", p:3, e:11.97 },                 /* Activia, 3 packs de 8 (pedido: 2) */
+    { i:"jamon_cocido_mano", p:1, e:3.35 },             /* Jamón cocido extra cortado a mano Noel (el pedido llevaba lacón Noel) */
+    { i:"queso_cottage", p:1, e:1.35 },                 /* Cottage Hacendado */
+    { i:"berenjena", p:2, e:1.97 },                     /* Berenjena, 2 piezas, 0,896 kg */
+    { i:"ensalada_gourmet", p:1, e:1.20 },              /* Brotes tiernos */
+    { i:"limon", p:2, e:0.71 },                         /* Limón, 2 piezas, 0,272 kg */
+    { i:"tomate", p:3, e:1.43 },                        /* Tomate ensalada, 3 piezas, 0,570 kg */
+    { i:"zumo_granini", p:1, e:2.80 },                  /* Zumo pura naranja Hacendado */
+    { i:"lima", p:1, e:0.29 },                          /* Lima, 0,066 kg */
+    { i:"cerdo_secreto", p:1, e:2.92 },                 /* Filetes secreto de cerdo */
   ]
 };

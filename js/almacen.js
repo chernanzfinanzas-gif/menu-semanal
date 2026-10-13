@@ -2043,6 +2043,27 @@
         escribirEstado(e);
       }
 
+      /* LA PASTA ES LA HACENDADO DE 1 KG (13-oct-2026). Carlos: «la pasta es la de
+         1 kg de hacendado». Su ficha `pasta` decía Gallo Maccheroni 450 g desde el
+         5-oct, con su hora, así que el catálogo no la podía corregir y el ticket del
+         13-oct (Macarrón Hacendado 1 kg) entraba como 450 g. Se pone la del
+         catálogo con la hora de ahora: gana al sincronizar y la app la vuelve a
+         subir a lo tuyo. Y el lacón, si quedó en Pendiente, se quita: la receta
+         de lacón a la gallega pasa al jamón cocido Noel en lonchas gruesas. */
+      if (!e.arreglos["2026-10-13-pasta-hacendado"]) {
+        var catPasta = (global.DATOS_INGREDIENTES || []).filter(function (x) { return x.id === "pasta"; })[0];
+        if (catPasta && Array.isArray(e.ingredientes)) {
+          var nuevaP = JSON.parse(JSON.stringify(catPasta));
+          nuevaP.tocado = new Date().toISOString();
+          var hayP = false;
+          e.ingredientes = e.ingredientes.map(function (x) { if (x && x.id === "pasta") { hayP = true; return nuevaP; } return x; });
+          if (!hayP) e.ingredientes.push(nuevaP);
+        }
+        if (e.recados && e.recados.lacon_lonchas) delete e.recados.lacon_lonchas;
+        e.arreglos["2026-10-13-pasta-hacendado"] = true;
+        escribirEstado(e);
+      }
+
       /* LOS DOS CAFÉS Y EL PAN INTEGRAL, TAMBIÉN EN LOS DÍAS QUE LLEGAN DE FUERA
          (8-oct-2026). Los dos arreglos de arriba corren una sola vez y sobre lo
          que el aparato tiene EN ESE MOMENTO. Si el aparato arrancaba con el plan
@@ -6472,7 +6493,12 @@
       (lineas || []).forEach(function (l) {
         if (!l || !l.i) return;
         var g = self.ingrediente(l.i);
-        if (!g) { sinFicha.push(l.i); return; }
+        if (!g) {
+          /* lo de casa (papel, toallitas) no tiene despensa: se archiva con su
+             precio y sale marcado al recibir, pero no es «sin ficha» (13-oct-2026) */
+          if (!(self.hogarDe && self.hogarDe(l.i))) sinFicha.push(l.i);
+          return;
+        }
         var env = l.p > 0 ? l.p : 1;
         var tam = self.tamanoPieza(g) || 1;
         var piezas = g.envase > 0 ? Math.round(env * g.envase / tam * 100) / 100 : env;

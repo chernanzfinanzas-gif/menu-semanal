@@ -6218,10 +6218,28 @@
     g.casa.forEach(function (x) { out.push({ l: x, casa: true }); });
     return out;
   }
+  /* EL TICKET DE ESA TIENDA, SI HAY UNO RECIENTE SIN RECIBIR (13-oct-2026).
+     Cuando está cargado, el ticket manda: lo que trae ya está comprado (no es
+     NUEVO ni va a Pendiente aunque el pedido esté cerrado) y al recibir sale
+     marcado sólo lo que viene en él. */
+  function ticketDeTienda(nom) {
+    var ts = Almacen.estado.tickets || {}, mejor = null, desde = Util.sumarDias(Util.hoyISO(), -4);
+    Object.keys(ts).forEach(function (ref) {
+      var t = ts[ref];
+      if (!t || t.recibido || (t.donde || "Mercadona") !== nom || String(t.f) < desde) return;
+      if (!mejor || String(t.f) > String(mejor.t.f)) mejor = { ref: ref, t: t };
+    });
+    if (!mejor) return null;
+    var ids = {};
+    (mejor.t.lineas || []).forEach(function (l) { ids[l.i] = l.p || 1; });
+    return { ref: mejor.ref, t: mejor.t, ids: ids };
+  }
   function nuevosDe(nom, g) {
     var p = pedidoDe(nom);
     if (!p || !g) return [];
+    var tk = ticketDeTienda(nom);
     return lineasDeTienda(g).filter(function (o) {
+      if (tk && tk.ids[o.l.id] != null) return false;            // lo trae el ticket: ya está comprado
       var a = p.ids[o.l.id];
       o.antes = a == null ? null : a;
       return a == null || cantDeLinea(o.l) > a + 0.001;
@@ -6238,8 +6256,9 @@
     if (!p || !g) return [];
     var ahora = {};
     lineasDeTienda(g).forEach(function (o) { ahora[o.l.id] = { q: cantDeLinea(o.l), casa: o.casa }; });
-    var out = [];
+    var out = [], tk = ticketDeTienda(nom);
     Object.keys(p.ids).forEach(function (id) {
+      if (tk && tk.ids[id] != null) return;          // lo trae el ticket: su cantidad es la buena (13-oct-2026)
       var antes = p.ids[id], hoy = ahora[id] ? ahora[id].q : 0;
       if (!(hoy < antes - 0.001)) return;
       var ing = Almacen.ingrediente(id), hog = !ing && Almacen.hogarDe ? Almacen.hogarDe(id) : null;
@@ -6527,14 +6546,20 @@
                '</label>' : '') +
         '</div>';
     };
+    /* con ticket, marcado sólo lo que viene en él (13-oct-2026) */
+    var tkR = esOnline(nom) ? ticketDeTienda(nom) : null;
+    var vieneT = function (id) { return !tkR || tkR.ids[id] != null; };
+    if (tkR) html += '<p class="pedido-hecho">🧾 Con el ticket ' + esc(tkR.t.n || tkR.ref) + ': sale marcado lo que viene en \u00e9l; lo dem\u00e1s, desmarcado (va a Pendiente). Revisa y pulsa \u00abPasar a la despensa\u00bb.</p>';
     html += '<div id="ct-cuerpo" class="lista-compacta">';
     lineas.forEach(function (l) {
-      html += fila(l.id, l.producto || l.nombre, l.texto || "", l.envases || 1, algo ? !!l.marcado : true, false);
+      html += fila(l.id, l.producto || l.nombre, (l.texto || "") + (vieneT(l.id) ? "" : " \u00b7 no viene en el ticket"),
+                   l.envases || 1, algo ? !!l.marcado : vieneT(l.id), false);
     });
     if (casa.length) {
       html += '<p class="aviso-grupo">Casa</p>';
       casa.forEach(function (x) {
-        html += fila(x.id, x.n, x.c > 1 ? "×" + x.c : "", x.c, algo ? Almacen.estaPedido(x.id) : true, true);
+        html += fila(x.id, x.n, (x.c > 1 ? "×" + x.c : "") + (vieneT(x.id) ? "" : " \u00b7 no viene en el ticket"),
+                     x.c, algo ? Almacen.estaPedido(x.id) : vieneT(x.id), true);
       });
     }
     /* lo QUITADO después del pedido: si llegó igualmente, a la despensa (11-oct-2026).
@@ -6544,7 +6569,8 @@
       var cerr = !!(pedidoDe(nom) && pedidoDe(nom).cerrado);
       html += '<p class="aviso-grupo">Quitado despu\u00e9s del pedido: <b>marca lo que haya llegado igualmente</b></p>';
       qtR.forEach(function (x) {
-        html += '<label class="linea"><input type="checkbox" data-quitado-llego="' + esc(x.id) + '" data-sobra="' + x.sobra + '"' + (cerr ? " checked" : "") + '>' +
+        var marcarQ = tkR ? false : cerr;               // con ticket: si no viene en él, no llegó
+        html += '<label class="linea"><input type="checkbox" data-quitado-llego="' + esc(x.id) + '" data-sobra="' + x.sobra + '"' + (marcarQ ? " checked" : "") + '>' +
           '<div class="datos"><div class="nombre">' + esc(x.nombre) + '</div><div class="detalle">' +
           esc(x.hoy > 0 ? "sobraban " + x.sobra + " de " + x.txtAntes : x.txtAntes) + '</div></div></label>';
       });
@@ -6593,6 +6619,7 @@
       document.querySelectorAll("#ct-cuerpo [data-quitado-llego]").forEach(function (c) {
         if (c.checked && Almacen.entrarEnDespensa(c.getAttribute("data-quitado-llego"), parseFloat(c.getAttribute("data-sobra")) || 1)) entraronQ++;
       });
+      if (tkR && Almacen.estado.tickets && Almacen.estado.tickets[tkR.ref]) Almacen.estado.tickets[tkR.ref].recibido = Util.hoyISO();
       if (esOnline(nom) && Almacen.estado.compraPedido) delete Almacen.estado.compraPedido[nom];   // v529: pedido cerrado
       var res = Almacen.confirmarCompra(lineas, faltas, alSuplente);
       Almacen.confirmarHogar(casa.map(function (x) { return x.id; }), faltasHogar);
@@ -8262,7 +8289,7 @@
       Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
       Almacen.guardar("config");
       pintarCompra();
-      Util.toast(res.puestas + " productos en la lista, ya marcados. Ahora pulsa \u00abComprado\u00bb en su tienda" +
+      Util.toast(res.puestas + " productos del ticket en la lista. Ahora abre " + (c.tienda || "Mercadona") + " y pulsa \u00abPedido recibido\u00bb" +
                  (res.sinFicha.length ? " \u00b7 " + res.sinFicha.length + " sin ficha, fuera" : ""));
     });
     var bp = $("#compra-pasada");
