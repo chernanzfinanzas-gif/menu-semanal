@@ -4968,7 +4968,7 @@
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
         "<b>Sensor Logger</b> sentado, espalda apoyada, sin hablar y respirando normal: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. De esta grabación salen el pulso, el QRS, el QTc y los latidos adelantados: es el ECG del día. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
         "<b>ECG Analysis ya no hace falta</b> (desde el 11-oct). Si aún te deja grabar y quieres seguir comparando unos días, hazlo antes, mándalo por correo y ciérralo del todo (Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>) antes de abrir Sensor Logger, o se queda con la banda.",
-        "Los <b>martes</b>, primero la prueba ortostática en la cama y después, en la oficina, este Sensor Logger sentado como cualquier día: hacen falta las dos.",
+        "Los <b>miércoles</b>, primero la prueba ortostática en la cama y después, en la oficina, este Sensor Logger sentado como cualquier día: hacen falta las dos.",
         "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
       ],
       fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen latidos de forma rara que no son del corazón, y ese ECG queda marcado con ruido. " +
@@ -5092,6 +5092,32 @@
     modal.classList.add("abierta");
     var hueco = document.getElementById("ficha-act-hueco");
     if (!hueco) return false;
+    /* LOS DATOS DE LA FICHA SE TRAEN AQUÍ TAMBIÉN  ·  13-oct-2026 (v541).
+       Desde El Plan la ficha se abría sin haber pasado por Actividad, que es
+       la única que pedía rodillo.json y fuerza.json: salía sin Zwift, sin la
+       deriva y sin los ejercicios (Carlos: «no veo en la app ni el análisis de
+       la bici, ni el de la fuerza»). Ahora se piden al abrir, y la ficha se
+       vuelve a montar cuando llegan. */
+    var faltan = [Fuerza, Rodillo, Curva, Monte, Nombres, Trazos].filter(function (L) { return !L.datos; });
+    if (faltan.length) {
+      var quedan = faltan.length;
+      var remontar = function (intentos) {
+        var h = document.getElementById("ficha-act-hueco");
+        if (h !== hueco || !modal.classList.contains("abierta")) return;
+        try {
+          fichaModal = ActividadKHB.crear(opcionesArchivo());
+          hueco.innerHTML = "";
+          fichaModal.montar(hueco);
+          if (fichaModal.soloFicha) fichaModal.soloFicha(id);
+          else if (fichaModal.irASalida) fichaModal.irASalida(id);
+        } catch (e) { if (global.console) global.console.warn("ficha al recargar:", e); }
+        /* si otra pantalla ya lo estaba pidiendo, el aviso llega antes que el dato */
+        var aun = faltan.some(function (L) { return !L.datos && L.estado === "cargando"; });
+        if (aun && intentos > 0) setTimeout(function () { remontar(intentos - 1); }, 1500);
+      };
+      var alLlegar = function () { if (--quedan <= 0) remontar(6); };
+      faltan.forEach(function (L) { try { L.cargar(alLlegar); } catch (e) { alLlegar(); } });
+    }
     try {
       fichaModal = ActividadKHB.crear(opcionesArchivo());
       fichaModal.montar(hueco);
@@ -5671,10 +5697,10 @@
      `ruido` (texto si no sirve). Validado el 11-oct contra ECG Analysis con la
      misma señal. Desde ECG_PROPIO_DESDE el ECG del día es el Sensor Logger SENTADO;
      lo de antes sigue saliendo de ECG Analysis y NUNCA se mezcla en una misma serie:
-     el QRS propio sale 4-8 ms más corto. La prueba ortostática de los martes
+     el QRS propio sale 4-8 ms más corto. La prueba ortostática de los miércoles (martes hasta el 13-oct)
      cuenta como hecha, pero no entra en la serie sentado. */
   var ECG_PROPIO_DESDE = "2026-10-11";
-  var ORTO_DESDE = "2026-10-13";          // los martes: prueba ortostática Y Sensor Logger sentado (v527)
+  var ORTO_DESDE = "2026-10-14";          // los miércoles: prueba ortostática Y Sensor Logger sentado (v527; v541: de martes a miércoles, Carlos 13-oct)
   var SensorLogger = {
     CLAVE: "khb-sensor-logger-v1",
     RUTA: "datos/sensor-logger.json",
@@ -5828,7 +5854,7 @@
   function panelFuturo(dia, hoyReal) {
     var dSem = new Date(dia + "T12:00:00").getDay();
     var toca = ["Tensión", "Báscula"];
-    if (dSem === 2 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (Sensor Logger en la cama)");
+    if (dSem === 3 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (Sensor Logger en la cama)");
     if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5) toca.push("ECG (Sensor Logger sentado)");
     if (dSem === 1) toca.push("Medidas del lunes (cinta, músculo, agua y masa ósea)");
     var esManana = dia === U.sumarDias(hoyReal, 1);
@@ -5859,7 +5885,7 @@
       items = (L.items || []).slice();
     } else {
       items = [{ n: "Tensión", ok: false }, { n: "Báscula", ok: false }];
-      if (dSem === 2 && hoy >= ORTO_DESDE) items.push({ n: "Prueba ortostática", ok: false });
+      if (dSem === 3 && hoy >= ORTO_DESDE) items.push({ n: "Prueba ortostática", ok: false });
       if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
         if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger sentado)", ok: false });
         else items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
@@ -5927,11 +5953,14 @@
   /* LOS TRAZADOS DE CADA SENSOR LOGGER (v527, 11-oct-2026). La recogida v16 deja
      el de cada grabación en datos/trazos-ecg/<id>.json (unos 90 KB): se trae sólo
      cuando se abre en papel, y se guarda, porque no cambia nunca. */
-  var Trazos = {};
+  /* 13-oct-2026: se llamaba «Trazos», igual que el de los recorridos de Actividad, y
+     lo pisaba: Actividad se rompía al entrar (Trazos.cargar no existía) y las fichas
+     salían vacías, sin mapa, sin músculos y sin Zwift. */
+  var TrazosEcg = {};
   function trazoDe(id, alTerminar) {
-    var o = Trazos[id];
+    var o = TrazosEcg[id];
     if (!o) {
-      o = Trazos[id] = { CLAVE: "khb-trazo-" + id, RUTA: "datos/trazos-ecg/" + id + ".json", FRESCO_H: 24 * 365,
+      o = TrazosEcg[id] = { CLAVE: "khb-trazo-" + id, RUTA: "datos/trazos-ecg/" + id + ".json", FRESCO_H: 24 * 365,
                          datos: null, traidoEl: null, estado: "nada", deCache: Curva.deCache, cargar: Curva.cargar };
     }
     if (o.datos || o.estado === "no-hay") { if (alTerminar) alTerminar(o); return o; }
