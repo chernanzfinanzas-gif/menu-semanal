@@ -2387,7 +2387,11 @@
          cada pendiente —medido con sus 36 subidas— y los puntos azules son las
          subidas de esta ruta. Por encima de la línea, buen día.
          Sin librerías: SVG a pelo, que es lo que hay en esta app. */
-      function dibujoCurva(curva, subs) {
+      /* RUTAS DEL ARCHIVO (13-oct-2026): traen su propia curva —la de su época,
+         `curva_nombre` p. ej. «2017-2019»— y la de ahora viaja como `ref`, en
+         discontinua. Carlos: comparar cada ruta con su curva de entonces y
+         enseñar la de ahora como referencia. */
+      function dibujoCurva(curva, subs, ref, nombreCurva) {
         if (!curva || !curva.length || !subs || !subs.length) return "";
         /* Mismo ancho y mismos márgenes laterales que el perfil (P_ANCHO 380,
            IZQ 36, DER 6): los dos van uno encima del otro en la ficha, y si las
@@ -2399,6 +2403,9 @@
         subs.forEach(function (s) {
           if (s.pend > maxP) maxP = Math.ceil(s.pend / 5) * 5;
           if (s.vam > maxV) maxV = Math.ceil(s.vam / 100) * 100;
+        });
+        curva.concat(ref || []).forEach(function (c) {
+          if (c.vam > maxV) maxV = Math.ceil(c.vam / 100) * 100;
         });
         var X = function (p) { return L + (W - L - R) * Math.min(p, maxP) / maxP; };
         var Y = function (v) { return T + (H - T - B) * (1 - Math.min(v, maxV) / maxV); };
@@ -2448,8 +2455,33 @@
           antes = y;
         });
         var fin = tramos[tramos.length - 1];
-        o.push('<text x="' + (X(Math.min(fin.hasta, maxP)) - 3).toFixed(1) + '" y="' +
-          (Y(fin.vam) - 7).toFixed(1) + '" class="akhb-g-et akhb-g-etc">tu curva</text>');
+        if (ref && ref.length) {
+          var rt = ref.slice().sort(function (a, b) { return a.desde - b.desde; }), ra = null;
+          rt.forEach(function (c) {
+            var x1 = X(c.desde), x2 = X(Math.min(c.hasta, maxP)), y = Y(c.vam);
+            if (x2 - x1 < 1) return;
+            if (ra !== null) {
+              o.push('<line x1="' + x1.toFixed(1) + '" y1="' + ra.toFixed(1) + '" x2="' +
+                x1.toFixed(1) + '" y2="' + y.toFixed(1) + '" class="akhb-g-ref"/>');
+            }
+            o.push('<line x1="' + x1.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' +
+              x2.toFixed(1) + '" y2="' + y.toFixed(1) + '" class="akhb-g-ref"/>');
+            ra = y;
+          });
+          /* con dos curvas, los rótulos al final de los escalones se pisaban con
+             los puntos: van en una leyenda arriba a la derecha */
+          var lx = W - R;
+          o.push('<text x="' + lx + '" y="11" class="akhb-g-et akhb-g-etr">ahora</text>');
+          o.push('<line x1="' + (lx - 52) + '" y1="7.5" x2="' + (lx - 34) + '" y2="7.5" class="akhb-g-ref"/>');
+          var rot = "ritmo " + (nombreCurva || "de entonces");
+          var fx = lx - 60 - rot.length * 5.4 - 5;     // dónde empieza el texto, más un respiro
+          o.push('<text x="' + (lx - 60) + '" y="11" class="akhb-g-et akhb-g-etc">' + esc(rot) + "</text>");
+          o.push('<line x1="' + (fx - 18).toFixed(1) + '" y1="7.5" x2="' + fx.toFixed(1) +
+            '" y2="7.5" class="akhb-g-curva"/>');
+        } else {
+          o.push('<text x="' + (X(Math.min(fin.hasta, maxP)) - 3).toFixed(1) + '" y="' +
+            (Y(fin.vam) - 7).toFixed(1) + '" class="akhb-g-et akhb-g-etc">tu curva</text>');
+        }
         /* el hilo de cada subida hasta su escalón */
         subs.forEach(function (su) {
           var c = null;
@@ -2491,9 +2523,11 @@
             '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" class="akhb-g-eje"/>' +
           "</svg>" +
           /* los ejes ya dicen qué se mide, así que el pie explica la lectura */
-          '<p class="akhb-g-pie">Cada escalón es lo que das normalmente a esas ' +
-            "pendientes. Cada punto es una subida del perfil de arriba, con su " +
-            "mismo número.</p>" +
+          '<p class="akhb-g-pie">' + (ref && ref.length
+            ? "Cada escalón es el ritmo habitual de tus rutas de " + esc(nombreCurva || "esos años") +
+              " a esas pendientes; la discontinua, el de ahora. Es ritmo, no forma: sin pulso no se sabe el esfuerzo. "
+            : "Cada escalón es lo que das normalmente a esas pendientes. ") +
+            "Cada punto es una subida del perfil de arriba, con su mismo número.</p>" +
         "</div>";
       }
 
@@ -2509,6 +2543,7 @@
             '</div><div class="akhb-sala-n">' + esc(t.n) + '</div>' +
             '<div class="akhb-sala-d">' + (t.d || "") + "</div></div>";
         }).join("");
+        var gpx = b.fuente === "gpx";     // ruta del archivo: sin pulso ni temperatura
         var filas = (b.subidas || []).map(function (su, i) {
           var ancho = Math.max(0, Math.min(100, su.pct || 0));
           var dur = su.min >= 60 ? (Math.floor(su.min / 60) + " h " +
@@ -2518,10 +2553,16 @@
             "<td>" + num(su.gan) + " m</td>" +
             "<td>" + num(su.pend, 1) + " %</td>" +
             "<td>" + num(su.vam) + "</td>" +
-            "<td>" + num(su.fc) + "</td>" +
-            "<td>" + (su.temp != null ? num(su.temp) : "\u2014") + "</td>" +
+            (gpx ? "" :
+              "<td>" + num(su.fc) + "</td>" +
+              "<td>" + (su.temp != null ? num(su.temp) : "\u2014") + "</td>" +
+              "<td>" + (su.m100 != null ? num(su.m100, 1) +
+                (su.coste_pct != null ? ' <span class="akhb-sala-goma">' + num(su.coste_pct) + " %</span>" : "")
+                : "\u2014") + "</td>") +
             '<td><span class="akhb-sala-barra"><i style="width:' + ancho + '%"></i></span>' +
-              num(su.pct) + " %</td></tr>";
+              num(su.pct) + " %</td>" +
+            (gpx ? "<td>" + (su.pct_hoy != null ? num(su.pct_hoy) + " %" : "\u2014") + "</td>" : "") +
+            "</tr>";
         }).join("");
         var receta = "";
         if (b.receta && b.receta.length) {
@@ -2544,9 +2585,10 @@
           (b.lectura ? '<div class="akhb-sala-lectura">' + esc(b.lectura) + "</div>" : "") +
           receta +
           (b.reglas ? '<p class="akhb-sala-reglas">' + esc(b.reglas) + "</p>" : "") +
-          (filas ? '<table class="akhb-tf akhb-sala-det"><thead><tr>' +
-              "<th>Subida</th><th>Gana</th><th>Pendiente</th><th>m/h</th><th>Pulso</th>" +
-              "<th>\u00b0C</th><th>Contra tu curva</th>" +
+          (filas ? '<table class="akhb-tf akhb-sala-det' + (gpx ? " akhb-gpx" : "") + '"><thead><tr>' +
+              "<th>Subida</th><th>Gana</th><th>Pendiente</th><th>m/h</th>" +
+              (gpx ? "<th>Ritmo vs entonces</th><th>vs ahora</th>"
+                   : "<th>Pulso</th><th>\u00b0C</th><th>m/100 lat.</th><th>Ritmo vs curva</th>") +
             "</tr></thead><tbody>" + filas + "</tbody></table>" : "") +
           ((b.avisos && b.avisos.length)
             ? '<ul class="akhb-sala-avisos"><li>' +
@@ -2680,7 +2722,9 @@
           /* el gráfico de la curva, pegado al perfil: son la misma lectura de
              la misma ruta y antes quedaban separados por media ficha */
           ((monteAn && x.id && monteAn[x.id] && o.monte)
-            ? dibujoCurva(o.monte.curva, monteAn[x.id].subidas) : "") +
+            ? dibujoCurva(monteAn[x.id].curva || o.monte.curva, monteAn[x.id].subidas,
+                          monteAn[x.id].curva ? o.monte.curva : null,
+                          monteAn[x.id].curva_nombre) : "") +
           "<figcaption>" +
             (esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
              : x.ruta ? esc(x.nombre || "")

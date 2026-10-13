@@ -830,7 +830,7 @@
   .akhb-sala-t { flex: 1 1 100%; }
   .akhb-sala-porque { max-width: none; }
   .akhb-sala-tr th:nth-child(3), .akhb-sala-tr td:nth-child(3) { display: none; }
-  .akhb-sala-det th:nth-child(5), .akhb-sala-det td:nth-child(5) { display: none; }
+  .akhb-sala-det:not(.akhb-gpx) th:nth-child(5), .akhb-sala-det:not(.akhb-gpx) td:nth-child(5) { display: none; }
 }
 /* dentro del modal, que mide menos que la pantalla */
 .modal .caja .akhb-sala-t { flex: 1 1 100%; }
@@ -852,7 +852,7 @@
 .akhb-llano .akhb-sala-tarjetas { margin-bottom: 4px; }
 @media (max-width: 620px) {
   .akhb-sala-barra { width: 38px; }
-  .akhb-sala-det th:nth-child(6), .akhb-sala-det td:nth-child(6) { display: none; }
+  .akhb-sala-det:not(.akhb-gpx) th:nth-child(6), .akhb-sala-det:not(.akhb-gpx) td:nth-child(6) { display: none; }
 }
 
 /* ===== El dibujo de la curva de ascenso (2-oct-2026) =====
@@ -877,6 +877,9 @@
 .akhb-g-curva.akhb-g-aqui { stroke: #5f7183; stroke-width: 3; }
 .akhb-g-salto { stroke: #c9d2da; stroke-width: 1; }
 .akhb-g-hilo { stroke: #1565a8; stroke-width: 1; opacity: .45; }
+/* la curva de ahora, en las rutas del archivo: de referencia, discontinua (13-oct) */
+.akhb-g-ref { stroke: #c08a3e; stroke-width: 1.6; stroke-dasharray: 4 3; fill: none; }
+.akhb-g-etr { fill: #b07a2e; text-anchor: end; }
 /* ---------- los tramos de subida sobre el perfil de altura ----------
    El perfil sigue siendo lo de siempre: relleno claro y línea azul del tema.
    Lo que cambia es que las subidas que se analizan se pintan como un bloque
