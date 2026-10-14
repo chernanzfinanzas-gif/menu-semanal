@@ -1045,6 +1045,8 @@
       ".manana li.ok .marca{color:#2f7a47}.manana li.no .marca{color:#b8871d}.manana li.no b{color:#7a5a10}",
       ".manana-pie{margin:6px 0 0;font-size:.75rem;color:#8a95a1}",
       ".manana.futura{border-left-color:#9fb3c8;background:#fafcfe}.manana.futura li .marca{color:#9fb3c8}.manana.futura li b{color:#3d4b5a;font-weight:600}",
+      ".manana.futura.al-final{margin-top:12px}",
+      ".manana .marca{flex:0 0 1.1em}.manana.futura li{flex-wrap:nowrap}",   /* v545: un texto largo se parte en su sitio, sin dejar la marca sola */
       ".manana-prueba{margin-top:8px;padding:7px 9px;border-radius:8px;background:#eaf2fb;color:#1f4a78}",
       ".revision-claude p{margin:5px 0}.rev-aviso{padding:6px 8px;border-radius:8px;background:#fdf3dc;color:#5c4200}",
       /* ---- la ayuda de cada gráfica de Evolución (v270) ---- */
@@ -4968,7 +4970,7 @@
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
         "<b>Sensor Logger</b> sentado, espalda apoyada, sin hablar y respirando normal: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. De esta grabación salen el pulso, el QRS, el QTc y los latidos adelantados: es el ECG del día. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
         "<b>ECG Analysis ya no hace falta</b> (desde el 11-oct). Si aún te deja grabar y quieres seguir comparando unos días, hazlo antes, mándalo por correo y ciérralo del todo (Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>) antes de abrir Sensor Logger, o se queda con la banda.",
-        "Los <b>miércoles</b>, primero la prueba ortostática en la cama y después, en la oficina, este Sensor Logger sentado como cualquier día: hacen falta las dos.",
+        "Los <b>miércoles</b> (desde el 21-oct), primero la prueba ortostática en la cama y después, en la oficina, este Sensor Logger sentado como cualquier día: hacen falta las dos.",
         "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
       ],
       fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen latidos de forma rara que no son del corazón, y ese ECG queda marcado con ruido. " +
@@ -5700,7 +5702,7 @@
      el QRS propio sale 4-8 ms más corto. La prueba ortostática de los miércoles (martes hasta el 13-oct)
      cuenta como hecha, pero no entra en la serie sentado. */
   var ECG_PROPIO_DESDE = "2026-10-11";
-  var ORTO_DESDE = "2026-10-14";          // los miércoles: prueba ortostática Y Sensor Logger sentado (v527; v541: de martes a miércoles, Carlos 13-oct)
+  var ORTO_DESDE = "2026-10-21";          // los miércoles: prueba ortostática Y Sensor Logger sentado (v527; v541: de martes a miércoles, Carlos 13-oct; v545: empieza el 21-oct, Carlos 14-oct)
   var SensorLogger = {
     CLAVE: "khb-sensor-logger-v1",
     RUTA: "datos/sensor-logger.json",
@@ -5851,15 +5853,24 @@
   /* Días que aún no han llegado: qué tocará medir y, si es mañana, la prueba
      que dejó la revisión de hoy. Carlos, 29-sep: «los hoy toca de mañana y
      días siguientes no se ven». */
-  function panelFuturo(dia, hoyReal) {
+  function tocaDe(dia) {
     var dSem = new Date(dia + "T12:00:00").getDay();
     var toca = ["Tensión", "Báscula"];
     if (dSem === 3 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (Sensor Logger en la cama)");
     if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5) toca.push("ECG (Sensor Logger sentado)");
     if (dSem === 1) toca.push("Medidas del lunes (cinta, músculo, agua y masa ósea)");
+    return toca;
+  }
+  /* `alFinal` (v545): la misma tarjeta, al pie de la ficha de salud de HOY. Carlos,
+     14-oct: «debería salir en la ficha de salud de hoy al final el plan de mañana
+     para leerlo antes de acostarme». Lleva el día de la semana en el título. */
+  function panelFuturo(dia, hoyReal, alFinal) {
+    var toca = tocaDe(dia);
     var esManana = dia === U.sumarDias(hoyReal, 1);
-    var h = '<div class="manana futura"><div class="manana-cab"><b>' +
-      (esManana ? "Mañana" : "El " + U.esc(U.etiquetaFecha(dia))) + " toca</b>" +
+    var DIAS_SEM = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+    var h = '<div class="manana futura' + (alFinal ? " al-final" : "") + '"><div class="manana-cab"><b>' +
+      (esManana ? "Mañana" + (alFinal ? ", " + DIAS_SEM[new Date(dia + "T12:00:00").getDay()] + "," : "")
+                : "El " + U.esc(U.etiquetaFecha(dia))) + " toca</b>" +
       "<span>" + toca.length + " cosa" + (toca.length === 1 ? "" : "s") + "</span></div><ul>";
     toca.forEach(function (n) { h += '<li><span class="marca">·</span><b>' + U.esc(n) + "</b></li>"; });
     h += "</ul>";
@@ -5924,9 +5935,11 @@
       String(R.texto || "").split(/\n\s*\n/).forEach(function (par) {
         if (par.trim()) h += "<p>" + U.esc(par.trim()).replace(/\n/g, "<br>") + "</p>";
       });
-      if (R.prueba_manana) h += '<div class="manana-prueba"><b>' + (esHoy ? "Mañana" : "Para el día siguiente") + ":</b> " + U.esc(R.prueba_manana) + "</div>";
+      if (R.prueba_manana && !esHoy) h += '<div class="manana-prueba"><b>Para el día siguiente:</b> ' + U.esc(R.prueba_manana) + "</div>";
       h += "</div>";
     }
+    // v545: el plan de mañana al pie de la ficha de hoy (con la «Prueba:» de la revisión de hoy)
+    if (esHoy) h += panelFuturo(U.sumarDias(hoyReal, 1), hoyReal, true);
     return h;
   }
 
