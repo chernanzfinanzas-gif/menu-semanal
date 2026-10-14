@@ -592,6 +592,9 @@
       "elevación con disco","elevacion con disco"], {hombro:1}],
     [["encogimiento"],              {trapecio:1}],
     [["tríceps","triceps","patada de tríceps","patada de triceps"], {triceps:1}],
+    /* 14-oct-2026: el Pallof se apunta en el reloj como «Abdominales oblicuos con
+       goma elástica»; antes caía en la regla de abdominales (80 % abdomen). */
+    [["abdominales oblicuos","pallof"], {oblicuo:.7, abdomen:.3}],
     [["abdominales","crunch","plancha","elevación de piernas","elevacion de piernas"],
                                     {abdomen:.8, oblicuo:.2}],
     [["flexión lateral","flexion lateral"], {oblicuo:1}],
@@ -607,7 +610,10 @@
     /* No estaba, y entra en el catálogo de movimientos de casa: apoyando la
        espalda en el sofá es el mejor ejercicio de glúteo que se puede hacer
        sin material. Varias grafías porque no sé con cuál lo llamará Garmin. */
-    [["empuje de cadera","puente de gluteo","puente de glúteo","hip thrust"],
+    /* 14-oct-2026: Garmin lo llama «Levantamiento de barra sobre cadera, en
+       banca» y no entraba en ninguna regla: la C salía sin glúteos. */
+    [["empuje de cadera","puente de gluteo","puente de glúteo","hip thrust",
+      "sobre cadera"],
                                     {gluteo:.6, isquios:.25, lumbar:.15}]
   ];
   /* Lo que no encaja en ninguna regla —«Calentamiento», «sin identificar»— no se
