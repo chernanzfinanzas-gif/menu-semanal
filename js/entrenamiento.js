@@ -1046,6 +1046,15 @@
       ".manana-pie{margin:6px 0 0;font-size:.75rem;color:#8a95a1}",
       ".manana.futura{border-left-color:#9fb3c8;background:#fafcfe}.manana.futura li .marca{color:#9fb3c8}.manana.futura li b{color:#3d4b5a;font-weight:600}",
       ".manana.futura.al-final{margin-top:12px}",
+      /* ---- recordatorios del día (v549) ---- */
+      ".recordatorios ul{list-style:none;margin:0 0 8px;padding:0}",
+      ".recordatorios li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #eef2f6}",
+      ".recordatorios li>span{flex:1;min-width:0}.recordatorios li b{font-weight:600}.recordatorios li small{display:block;color:#6b7785;font-size:.78rem}",
+      ".recordatorios li.rec-cong b{color:#1f4a78}",
+      ".rec-tick{flex:0 0 22px;width:22px;height:22px;border:1.5px solid #9fb3c8;border-radius:6px;background:#fff;color:#2f7a47;font-weight:700;line-height:1;padding:0;cursor:pointer}",
+      ".recordatorios li.hecho b,.recordatorios li.hecho small{color:#9aa5b1;text-decoration:line-through}.recordatorios li.hecho .rec-tick{border-color:#3f9a5b;background:#eaf6ee}",
+      ".rec-quitar{flex:0 0 auto;border:0;background:none;color:#9aa5b1;font-size:1.1rem;cursor:pointer;padding:0 4px}",
+      ".rec-nuevo{display:flex;gap:6px}.rec-nuevo input{flex:1;min-width:0;padding:6px 8px;border:1px solid #c9d3dc;border-radius:8px;font:inherit;font-size:.88rem}",
       ".manana .marca{flex:0 0 1.1em}.manana.futura li{flex-wrap:nowrap}",   /* v545: un texto largo se parte en su sitio, sin dejar la marca sola */
       ".manana-prueba{margin-top:8px;padding:7px 9px;border-radius:8px;background:#eaf2fb;color:#1f4a78}",
       ".revision-claude p{margin:5px 0}.rev-aviso{padding:6px 8px;border-radius:8px;background:#fdf3dc;color:#5c4200}",
@@ -7829,11 +7838,15 @@
     raro:  { n: "Noche mejor, mañana peor", color: "#fae3b8", txt: "lo raro: algo pasó al despertar (estrés, postura, medicación)" },
     noche: { n: "Noche peor, mañana mejor", color: "#d6e2f1", txt: "mala noche puntual, el cuerpo bien" }
   };
-  function vfcRelativa(serieTodo, desde, hasta) {
+  /* `corte` (v548): desde esa fecha la normal solo cuenta días desde esa fecha. Lo
+     usa la mañana, que se reinició con el protocolo del 6-oct (como la revisión de
+     la mañana). Los días anteriores al corte se calculan como siempre. */
+  function vfcRelativa(serieTodo, desde, hasta, corte) {
     var out = [];
     serieTodo.forEach(function (p, i) {
       if (p.f < desde || p.f > hasta) return;
       var ini = U.sumarDias(p.f, -14), prev = [];
+      if (corte && p.f >= corte && ini < corte) ini = corte;
       for (var j = 0; j < i; j++) if (serieTodo[j].f >= ini && serieTodo[j].f < p.f) prev.push(serieTodo[j].v);
       if (prev.length < 4) return;
       prev.sort(function (a, b) { return a - b; });
@@ -7843,16 +7856,36 @@
     });
     return out;
   }
+  /* LA MAÑANA DE CADA DÍA (v548, 15-oct-2026). Carlos: la casilla del 15-oct salía
+     sin mañana. Hasta el 10-oct, el primer ECG Analysis antes de las 12:00. Desde el
+     11-oct (ECG_PROPIO_DESDE), el primer Sensor Logger SENTADO antes de las 12:00:
+     sin `ortostatico` (la prueba de los miércoles es tumbado y de pie), sin `ruido`
+     ni `ecg_error` y de 120 s o más (el 13-oct hubo uno de 67 s a las 07:34 que se
+     paró y se repitió a las 07:36: vale el de las 07:36). Si ese día no hay ninguno,
+     el primer ECG Analysis antes de las 12:00. Es la misma medida —variabilidad sin
+     latidos cortos, sentado— y va en la misma serie, como en la revisión. */
+  /* v551: la NOCHE también. Carlos: «quiero que la app use la misma noche que la
+     revisión». La revisión no sigue una cuenta fija (su normal de la noche fue 56,
+     54, 52, 51, 54 y 56 del 10 al 15-oct), pero contando la normal de la noche desde
+     el 6-oct salen sus mismos colores esos seis días (rojo 10, 11 y 15; ámbar 13;
+     sin casilla 12 y 14). El dato de la noche es el mismo (el hrv de intervals). */
+  var VFC_MANANA_BASE_DESDE = "2026-10-06";   // la normal de noche y mañana cuenta desde el reinicio del protocolo
   function vfcMananaEcg() {
-    var porDia = {};
-    /* v526: desde ECG_PROPIO_DESDE, la del Sensor Logger sentado (la misma
-       variabilidad sin latidos cortos, que la recogida ya calculaba) */
-    registrosEcg().filter(function (x) { return x.f < ECG_PROPIO_DESDE; })
-      .concat(registrosEcgPropio(false)).forEach(function (x) {
-      if (x.revisar || !x.h || x.h >= "12:00") return;
+    var porDia = {}, ponPrimero = function (x) {
+      if (!x.h || x.h >= "12:00") return;
       var n = parseFloat(x.rmssd_limpio);
       if (isNaN(n) || n <= 0) return;
       if (!porDia[x.f] || x.h < porDia[x.f].h) porDia[x.f] = { h: x.h, v: n };   // el primero de la mañana
+    };
+    ((SensorLogger.datos && SensorLogger.datos.registros) || []).forEach(function (x) {
+      if (x.f < ECG_PROPIO_DESDE || x.ortostatico || x.ruido || x.ecg_error || (x.dur_s || 0) < 120) return;
+      ponPrimero(x);
+    });
+    var conSL = {};
+    Object.keys(porDia).forEach(function (f) { conSL[f] = true; });
+    registrosEcg().forEach(function (x) {
+      if (x.revisar || conSL[x.f]) return;           // el Sensor Logger del día manda
+      ponPrimero(x);
     });
     return Object.keys(porDia).sort().map(function (f) { return { f: f, v: porDia[f].v }; });
   }
@@ -7866,8 +7899,8 @@
   }
   function tarjetaVfcNocheManana() {
     var v = ventanaDe("vfcnm");
-    var noche = vfcRelativa(serieSalud("vfc", { desde: U.sumarDias(v.desde, -20), hasta: v.hasta }), v.desde, v.hasta);
-    var manana = vfcRelativa(vfcMananaEcg(), v.desde, v.hasta);
+    var noche = vfcRelativa(serieSalud("vfc", { desde: U.sumarDias(v.desde, -20), hasta: v.hasta }), v.desde, v.hasta, VFC_MANANA_BASE_DESDE);
+    var manana = vfcRelativa(vfcMananaEcg(), v.desde, v.hasta, VFC_MANANA_BASE_DESDE);
     var porM = {}; manana.forEach(function (p) { porM[p.f] = p; });
     var pares = [], bandas = [], cuenta = { bien: 0, mal: 0, raro: 0, noche: 0, igual: 0 };
     noche.forEach(function (p) {
@@ -8689,15 +8722,16 @@
       titulo: "Variabilidad: noche y mañana",
       mide: ["La misma cosa —la <b>variabilidad</b> del pulso— medida en dos momentos: la <b>noche</b>, con el reloj, y la <b>mañana</b>, con la banda del ECG sentado y sin los latidos cortos.",
              "Sus números no se parecen (el reloj ronda 50; la banda puede dar 25 o 110), así que cada línea se pinta en % sobre <b>su propia normal</b>: la mediana de los 14 días anteriores. Hacen falta 4 días para empezar.",
-             "No se comparan los valores: se mira si las dos líneas <b>suben y bajan a la vez</b>."],
+             "No se comparan los valores: se mira si las dos líneas <b>suben y bajan a la vez</b>.",
+             "Desde el 11 de octubre la mañana sale del <b>Sensor Logger sentado</b> (el primero del día de 2 minutos o más, sin contar la prueba ortostática); si ese día no hay, de <b>ECG Analysis</b>. Desde el 6 de octubre, cuando empezó el protocolo actual, la normal de las dos líneas cuenta solo días desde esa fecha, igual que la revisión de la mañana."],
       vigilar: ["El <b>color de cada día</b>: verde, las dos mejor (recuperado de verdad); rojo, las dos peor (día suave); ámbar, noche mejor y mañana peor (lo raro); azul, noche peor y mañana mejor (mala noche puntual). En blanco, las dos casi igual que tu normal (±5 %).",
                 "<b>Ámbar varios días seguidos</b>: o falla la medida de la mañana (postura, latidos cortos) o algo te altera al levantarte.",
                 "Con unos 14 días con las dos medidas sale si van juntas. Si no van juntas no es malo: miden momentos distintos.",
                 "La mañana solo vale <b>sentado</b>: recostado sale muchísimo más alta (el 1 de octubre, 22 sentado frente a 163 recostado)."],
       como: function () {
         var hoy = U.hoyISO(), desde = U.sumarDias(hoy, -29);
-        var noche = vfcRelativa(serieSalud("vfc", { desde: U.sumarDias(hoy, -50), hasta: hoy }), desde, hoy);
-        var mananaTodo = vfcMananaEcg(), manana = vfcRelativa(mananaTodo, desde, hoy);
+        var noche = vfcRelativa(serieSalud("vfc", { desde: U.sumarDias(hoy, -50), hasta: hoy }), desde, hoy, VFC_MANANA_BASE_DESDE);
+        var mananaTodo = vfcMananaEcg(), manana = vfcRelativa(mananaTodo, desde, hoy, VFC_MANANA_BASE_DESDE);
         var porM = {}; manana.forEach(function (p) { porM[p.f] = p; });
         var ult = null;
         noche.forEach(function (p) { if (porM[p.f]) ult = { f: p.f, n: p.v, m: porM[p.f].v }; });
@@ -14505,6 +14539,7 @@
     }
     h += "</div>";
 
+    h += htmlRecordatorios(dia);            // v549: congelador, carne picada, agenda y notas del día
     h += htmlMedicacionDia(dia);
     h += panelManana();                     // Esta mañana y Tu revisión
     h += htmlMisMedidas(dia);
@@ -14644,6 +14679,133 @@
       f = U.sumarDias(f, 1);
     }
     return hubo ? { hecho: Math.round(hecho), extra: Math.round(extra) } : null;
+  }
+
+  /* RECORDATORIOS DEL DÍA  ·  v549, 15-oct-2026.
+     Carlos: «lo prefiero por la mañana que es cuando miro seguro la app en el
+     plan. En hoy, día que se trate, tras algo que haya afectado hoy..
+     Recordatorios, y podemos poner los ingredientes del congelador que hay que
+     sacar, las citas del calendario y otras cosas que hay que recordar ese día.
+     Si hay carne picada debería recordarlo porque puede estar en el congelador
+     o no».
+     Cuatro fuentes, en este orden:
+       1. Sacar del congelador: lo que piden los platos del menú de ESE día cuyo
+          estante es «Congelador». No cuenta lo que va directo a la sartén o al
+          horno (categoría «Congelados»: patatas prefritas, rollitos, langostinos
+          al ajillo) ni el pan (se tuesta congelado). Se saltan las tomas fuera,
+          las que no tocan ese día y los platos ya marcados como comidos.
+       2. La carne (toda la carnicería menos el chorizo; v550, antes solo la
+          picada): va a la nevera o al congelador según el día; se avisa siempre
+          que la pida el menú, para mirar dónde está.
+       3. La agenda del día (datos/agenda.json, la misma de la casilla).
+       4. Las notas que él añade a mano para ese día.
+     Cada línea se puede tachar (hecho). Las notas y las marcas se guardan como
+     objetos con clave (no listas): así viajan bien entre aparatos y un borrado
+     no vuelve (se deja `b:1`). */
+  function recEnt() {
+    var e = ent();
+    if (!e.recordatorios) e.recordatorios = {};
+    if (!e.recHechos) e.recHechos = {};
+    return e;
+  }
+  function recCorto(g) {
+    var n = String(g.n || g.id || "");
+    var i = n.indexOf(" (");
+    if (i > 0) n = n.slice(0, i);
+    /* sin la marca ni los sellos: «Lomos de merluza austral», no «… MSC Premium La Sirena» */
+    return n.replace(/\s+(MSC|ASC|Premium|La Sirena|Hacendado|Cocinas del Mundo|Listisimos)\b.*$/, "");
+  }
+  function recCantidad(g, q) {
+    if (!(q > 0)) return "";
+    if (g.u === "ud") {
+      var n = Math.round(q * 2) / 2, pz = g.pz || [];
+      return num(n, n % 1 ? 1 : 0) + " " + (pz.length ? (n > 1 ? (pz[1] || pz[0]) : pz[0]) : (n > 1 ? "piezas" : "pieza"));
+    }
+    var gr = Math.round(q / 5) * 5 || Math.round(q);
+    var txt = num(gr, 0) + " " + (g.u || "g");
+    if (g.pesoUd > 0 && g.u === "g") {
+      var pzs = Math.round(q / g.pesoUd);
+      if (pzs >= 1) txt += " (" + pzs + (pzs === 1 ? " pieza" : " piezas") + ")";
+    }
+    return txt;
+  }
+  function recordatoriosDe(dia) {
+    var out = [], plan = (A.estado.plan || {})[dia];
+    if (plan) {
+      var cong = {}, picada = {};
+      (U.TOMAS || []).forEach(function (t) {
+        var lista = plan[t.k];
+        if (!lista || !lista.length) return;
+        if (A.esFuera(dia, t.k) || !A.tomaActiva(dia, t.k)) return;
+        var gr = A.agrupar(lista, dia, t.k);
+        gr.orden.forEach(function (rid) {
+          if (A.estaComido(dia, t.k, rid)) return;
+          var r = A.receta(rid), gasto = A.gastoDePlato(dia, t.k, rid) || {};
+          if (!r) return;
+          (r.ing || []).forEach(function (l) {
+            var g = A.ingrediente(l.i);
+            if (!g) return;
+            /* v550: no solo la picada. Carlos: «aparte de la carne picada, di lo mismo con
+               cualquier carne que sea susceptible de ser congelada». Toda la carnicería
+               menos el chorizo (curado, no se congela). */
+            var esCong = A.sitioDe(g) === "congelador" && g.cat !== "Congelados" && g.cat !== "Panadería";
+            var esPicada = !esCong && g.cat === "Carnicería" && !/chorizo/.test(g.id);
+            if (!esPicada && !esCong) return;
+            var bolsa = esPicada ? picada : cong;
+            if (!bolsa[g.id]) bolsa[g.id] = { g: g, q: 0, para: [] };
+            bolsa[g.id].q += gasto[g.id] || 0;
+            var etq = t.n.toLowerCase() + ": " + (r.nombre || r.n || rid);
+            if (bolsa[g.id].para.indexOf(etq) < 0) bolsa[g.id].para.push(etq);
+          });
+        });
+      });
+      Object.keys(cong).forEach(function (id) {
+        var x = cong[id], c = recCantidad(x.g, x.q);
+        out.push({ k: "cong|" + id, tipo: "cong", t: "Sacar del congelador: " + recCorto(x.g) + (c ? ", " + c : ""),
+                   d: "para la " + x.para.join(" · ") });
+      });
+      Object.keys(picada).forEach(function (id) {
+        var x = picada[id], c = recCantidad(x.g, x.q);
+        out.push({ k: "pic|" + id, tipo: "cong", t: recCorto(x.g) + (c ? ", " + c : "") + ": si está en el congelador, a la nevera",
+                   d: "para la " + x.para.join(" · ") });
+      });
+    }
+    var ag = (Agenda.datos && Agenda.datos.dias && Agenda.datos.dias[dia]) || [];
+    ag.forEach(function (x) {
+      if (!x || !x.t) return;
+      out.push({ k: "ag|" + (x.h || "") + "|" + x.t, tipo: "agenda",
+                 t: x.c ? x.t : (x.todo ? "Todo el día · " : (x.h ? x.h + " · " : "")) + x.t + (x.d && !x.c ? " (" + x.d + ")" : "") });
+    });
+    var mias = recEnt().recordatorios[dia] || {};
+    Object.keys(mias).sort().forEach(function (id) {
+      var m = mias[id];
+      if (!m || m.b || !m.t) return;
+      out.push({ k: "mio|" + id, tipo: "mio", id: id, t: m.t });
+    });
+    return out;
+  }
+  function htmlRecordatorios(dia) {
+    var hoy = U.hoyISO();
+    if (dia < hoy) return "";
+    var l = recordatoriosDe(dia), hechos = recEnt().recHechos[dia] || {};
+    var pend = l.filter(function (x) { return hechos[x.k] !== "s"; }).length;
+    var h = '<div class="tarjeta recordatorios"><h2>Recordatorios' +
+      '<span class="ent-cuenta">' + (l.length ? (pend ? pend + " por hacer" : "todo hecho") : "nada para " + (dia === hoy ? "hoy" : "este día")) + "</span></h2>";
+    if (l.length) {
+      h += "<ul>";
+      l.forEach(function (x) {
+        var hecho = hechos[x.k] === "s";
+        h += '<li class="rec-' + x.tipo + (hecho ? " hecho" : "") + '">' +
+          '<button type="button" class="rec-tick" data-rec-tick="' + U.esc(x.k) + '" aria-label="Hecho">' + (hecho ? "✓" : "") + "</button>" +
+          "<span><b>" + U.esc(x.t) + "</b>" + (x.d ? "<small>" + U.esc(x.d) + "</small>" : "") + "</span>" +
+          (x.tipo === "mio" ? '<button type="button" class="rec-quitar" data-rec-quitar="' + U.esc(x.id) + '" aria-label="Quitar">×</button>' : "") +
+          "</li>";
+      });
+      h += "</ul>";
+    }
+    h += '<div class="rec-nuevo"><input type="text" id="rec-nuevo" maxlength="140" placeholder="Algo más que recordar este día">' +
+      '<button type="button" class="btn" data-rec-anadir="1">Añadir</button></div>';
+    return h + "</div>";
   }
 
   /* Observaciones: una fila de fichas debajo de las medidas. Multi-selección,
@@ -15127,6 +15289,28 @@
         if (pd[1] === "hoy") vd.des = 0;
         else vd.des = Math.max(0, Math.min(desTope(pd[0]), vd.des + parseInt(pd[1], 10)));
         if (vd.des > 0 && !Historico.datos) Historico.cargar(function () { pintarConservando(); });
+        pintarConservando();
+        return;
+      }
+      /* recordatorios del día (v549) */
+      var rcT = t.closest ? t.closest("[data-rec-tick],[data-rec-quitar],[data-rec-anadir]") : null;
+      if (rcT) {
+        e.preventDefault();
+        var diaR = (diaSel && semanaDe(diaSel)) ? diaSel : U.hoyISO(), eR = recEnt();
+        if (rcT.hasAttribute("data-rec-tick")) {
+          var kR = rcT.getAttribute("data-rec-tick");
+          if (!eR.recHechos[diaR]) eR.recHechos[diaR] = {};
+          eR.recHechos[diaR][kR] = eR.recHechos[diaR][kR] === "s" ? "n" : "s";
+        } else if (rcT.hasAttribute("data-rec-quitar")) {
+          var mR = (eR.recordatorios[diaR] || {})[rcT.getAttribute("data-rec-quitar")];
+          if (mR) mR.b = 1;
+        } else {
+          var inR = document.getElementById("rec-nuevo"), txR = inR ? String(inR.value).trim() : "";
+          if (!txR) { U.toast("Escribe primero qué hay que recordar"); return; }
+          if (!eR.recordatorios[diaR]) eR.recordatorios[diaR] = {};
+          eR.recordatorios[diaR][new Date().toISOString()] = { t: txR };
+        }
+        A.guardar("entreno");
         pintarConservando();
         return;
       }
