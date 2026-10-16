@@ -503,6 +503,10 @@
         celda: archivo ? (a.celda || null) : null,
         poli: a.poli || null,
         stravaId: a.strava_id || null,
+        /* 16-oct-2026: la salida que juntó unir_salidas.py (el aparato la partió
+           en dos). Lleva su propio trazo entero y NO se empareja por día con la
+           colección de Mapas, que puede tener sólo uno de los tramos. */
+        unida: (a.unida && a.unida.length) ? a.unida : null,
         id: a.id, fuente: archivo ? "archivo" : "salud"
       });
     });
@@ -873,6 +877,11 @@
          también la trae, pero no siempre: lo que venga sin ruta entra aquí
          venga del año que venga. */
       if (x.ruta) return;
+      /* UNIDAS, 16-oct-2026. El 25-jul-2023 (Madrid → Colmenar → Madrid,
+         139,9 km) se casaba con «Ciclismo en Madrid» de Mapas, que es sólo la
+         ida (94,5 km): el nombre se parece y el nombre pesa más que los km.
+         La ficha pintaba media salida. La unida dibuja su trazo de trazos.json. */
+      if (x.unida) return;
       (porDia[x.fecha] = porDia[x.fecha] || []).push(x);
     });
 
