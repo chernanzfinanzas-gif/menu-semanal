@@ -2440,6 +2440,18 @@
 
   function noHabilDe(iso) { return ent().noHabil[iso] || null; }
 
+  /* DÍA DE VIAJE  ·  v555, 19-oct-2026. Carlos: «marco los días como viaje y esa
+     mañana no se pide ni tensión, ni ECG, ni peso, ni medidas»; el tensiómetro
+     es mucho trasto para llevarlo. Vale el «no disponible» con motivo «Viaje»
+     o la ficha «Viaje» de «¿Algo que haya afectado hoy?». La recogida de la nube
+     (v20) lee lo mismo del estado y no lo pide en la lista de la mañana. */
+  function diaDeViaje(iso) {
+    var n = noHabilDe(iso);
+    if (n && n.m === "viaje") return true;
+    var o = (ent().obs || {})[iso];
+    return !!(o && (o.m || []).indexOf("viaje") >= 0);
+  }
+
   function ponerNoHabil(iso, motivo) {
     var e = ent();
     var antes = e.noHabil[iso] || null;
@@ -4263,6 +4275,7 @@
   }
 
   function tocaMedida(m, iso) {
+    if (diaDeViaje(iso)) return false;            // v555: de viaje no se pide ninguna medida
     var d = U.desdeISO(iso);
     if (m.desde && iso < m.desde) return false;
     if (m.diaDelMes) return d.getDate() === m.diaDelMes;
@@ -5917,10 +5930,12 @@
       items.push({ n: "Medidas del lunes", ok: hechas === 4,
                    detalle: hechas === 4 ? "apuntadas" : "cinta, músculo, agua y masa ósea (" + hechas + " de 4)" });
     }
+    var deViaje = diaDeViaje(hoy);                // v555: de viaje no falta nada
+    if (deViaje) items = items.filter(function (i) { return i.ok; });
     var falta = items.filter(function (i) { return !i.ok && !i.opcional; }).length;   // ECG Analysis es opcional (v526)
     var h = '<div class="manana' + (falta ? "" : " completa") + '"><div class="manana-cab"><b>' +
       (esHoy ? "Esta mañana" : "La mañana del " + U.esc(U.etiquetaFecha(hoy))) + "</b>" +
-      '<span>' + (falta ? "falta" + (falta === 1 ? " 1" : "n " + falta) : "todo recogido") + "</span></div><ul>";
+      '<span>' + (deViaje ? "día de viaje · no se pide nada" : falta ? "falta" + (falta === 1 ? " 1" : "n " + falta) : "todo recogido") + "</span></div><ul>";
     items.forEach(function (i) {
       h += '<li class="' + (i.ok ? "ok" : "no") + '"><span class="marca">' + (i.ok ? "✓" : "…") + "</span>" +
         "<b>" + U.esc(i.n) + "</b>" +
@@ -10613,7 +10628,14 @@
                     pie: "Media de la noche, de muñeca: es aproximada y vale por la tendencia. Si se queda baja semanas, es dato para la revisión de cardiología." },
       resp_sueno: { n: "Respiración durmiendo", u: "rpm", dias: 60, serie: function () { return serieApp("resp_sueno", v); },
                     pie: "Suele ser muy estable. Una subida de uno o dos puntos que se sostiene, con el pulso arriba, es la señal de que algo se incuba." },
-      resp_despierto: { n: "Respiración despierto", u: "rpm", dias: 60, serie: function () { return serieApp("resp_despierto", v); },
+      /* v554: desde el 20-oct lo que se teclea cada mañana es la media despierto
+         del día ANTERIOR, así que se pinta en ese día. Lo de antes se queda
+         donde estaba (del 9 al 19-oct era el rato recién levantado). */
+      resp_despierto: { n: "Respiración despierto (día anterior)", u: "rpm", dias: 60, serie: function () {
+                          return serieApp("resp_despierto", { desde: v.desde, hasta: U.sumarDias(v.hasta, 1) }).map(function (p) {
+                            return p.f >= "2026-10-20" ? { f: U.sumarDias(p.f, -1), v: p.v } : p;
+                          }).filter(function (p) { return p.f <= v.hasta; });
+                        },
                         pie: "Más variable que la de la noche: se mira junto a ella." },
       magra: { n: "Masa magra", u: "kg", dias: 120, serie: function () { return serieSalud("magra", v); },
                pie: "El indicador principal del plan: lo que se quiere es que baje el peso y ésta aguante." },
@@ -14261,7 +14283,8 @@
          lo único que hace falta pensar. Los motivos son etiquetas y no cambian
          ningún cálculo. */
       h += '<div class="nohab-caja puesto"><b>Día no disponible</b>' +
-        '<span class="nota-peque">Cuenta como descanso, no como incumplido. Su carga ya está repartida en los días que quedan.</span>' +
+        '<span class="nota-peque">Cuenta como descanso, no como incumplido. Su carga ya está repartida en los días que quedan.' +
+        (nh.m === "viaje" ? " De viaje no se pide nada esa mañana: ni tensión, ni ECG, ni peso, ni medidas." : "") + "</span>" +
         '<div class="nohab-bot">';
       MOTIVOS_NOHABIL.forEach(function (m) {
         h += '<button type="button" class="sal-hora' + (nh.m === m.id ? " elegido" : "") +

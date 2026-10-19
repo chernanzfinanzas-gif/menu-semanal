@@ -524,9 +524,13 @@
       { id: "resp_sueno", nombre: "Respiración durmiendo", unidad: "rpm", paso: 1, min: 5, max: 40,
         dias: [0, 1, 2, 3, 4, 5, 6], desde: "2026-10-09",
         ayuda: "Respiraciones por minuto, la media mientras dormías (Garmin Connect → Respiración). Sube unos días antes de ponerte malo." },
-      { id: "resp_despierto", nombre: "Respiración despierto", unidad: "rpm", paso: 1, min: 5, max: 40,
+      /* 19-oct-2026 (Carlos): «hay que anotar la media despierto del día
+         anterior, no del poco rato que llevamos despiertos cuando despertamos».
+         Se teclea por la mañana, pero el número es el de AYER. La historia lo
+         pinta en el día de ayer (desde lo tecleado el 20-oct). */
+      { id: "resp_despierto", nombre: "Respiración despierto (día anterior)", unidad: "rpm", paso: 1, min: 5, max: 40,
         dias: [0, 1, 2, 3, 4, 5, 6], desde: "2026-10-09",
-        ayuda: "La media despierto de la misma pantalla." },
+        ayuda: "La media despierto de AYER, día completo: en Garmin Connect → Respiración, vuelve al día anterior. La de hoy, recién levantado, es solo de un rato y no vale." },
       /* ESTRÉS DURMIENDO Y PULSO MÍNIMO  ·  10-oct-2026. Medido con su histórico:
          en la gripe A (2-mar-2023) y en el covid (17-jun-2024) fueron las dos
          señales que saltaron la primera noche, y la respiración y el oxígeno no se
