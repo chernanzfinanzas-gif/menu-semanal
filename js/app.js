@@ -6146,7 +6146,16 @@
               (esOnline(nom) && pedidoDe(nom) ? (function () {
                  var nn = nuevosDe(nom, g).length, nq = quitadosDe(nom, g).length;
                  var q = nq ? '<span class="tile-quitados">' + nq + (nq === 1 ? " QUITADO" : " QUITADOS") + ' desde el pedido</span>' : '';
-                 if (pedidoDe(nom).cerrado) return '<span class="tile-pie">🔒 pedido cerrado</span>' + q;
+                 if (pedidoDe(nom).cerrado) {
+                   /* Aviso si se olvida pulsar «Pedido recibido» (22-oct-2026): sin esto,
+                      el candado se queda puesto en silencio y todo lo nuevo se va a
+                      Pendiente sin que nadie lo note. Ámbar al día siguiente, rojo a los 3. */
+                   var dC = Math.floor((Date.now() - new Date(pedidoDe(nom).cerrado).getTime()) / 86400000);
+                   var col = dC >= 3 ? "var(--rojo)" : dC >= 1 ? "var(--ambar)" : "";
+                   return '<span class="tile-pie"' + (col ? ' style="color:' + col + ';font-weight:600"' : '') + '>🔒 pedido cerrado' +
+                          (dC >= 1 ? ' · hace ' + dC + (dC === 1 ? ' día' : ' días') : '') +
+                          (dC >= 1 ? ' — ¿ha llegado?' : '') + '</span>' + q;
+                 }
                  return (nn ? '<span class="tile-nuevos">' + nn + (nn === 1 ? " NUEVO" : " NUEVOS") + ' desde el pedido</span>'
                             : (nq ? '' : '<span class="tile-pie">✓ pedido hecho</span>')) + q;
                })() : '') +

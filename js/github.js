@@ -385,6 +385,16 @@
       var fp = ganaPed ? remoto : local;
       junto.hogar  = fp.hogar  || {};
       junto.quiero = fp.quiero || {};
+      /* AMPLIADO EL 22-oct-2026. Pendiente (`recados`) y el pedido a domicilio
+         cerrado/sembrado (`compraPedido`) tenían el mismo agujero que hogar y
+         quiero antes de este sello: los decidía el reloj GLOBAL del estado, así
+         que la tablet de la cocina —abierta sin tocarla— podía devolver encima
+         el pedido cerrado y el Pendiente lleno que Carlos acababa de vaciar en
+         el ordenador con «Empezar de cero». `guardar("compra")` ya pone este
+         sello en los dos sitios; solo faltaba que la fusión los protegiera
+         igual que hogar y quiero. */
+      junto.recados      = fp.recados      || {};
+      junto.compraPedido = fp.compraPedido || {};
       junto.pedidoSello = ganaPed ? pedR : pedL;
     }
 
