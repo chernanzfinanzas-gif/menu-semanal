@@ -6846,6 +6846,80 @@
     };
   }
 
+  /* ---------- PLATOS PENDIENTES DE COMER (22-oct-2026) ----------
+     Carlos: una lista fácil de leer, en Menú, de los platos PRINCIPALES de
+     comida y cena que todavía no se han comido. Mismo criterio de «papel»
+     que ya usa el selector de platos (bebida/postre/pan/guarnición/principal,
+     deducido de los datos), repetido aquí suelto porque allí vive dentro de
+     otra función y sólo hace falta «principal». */
+  function catsDePlato(r) {
+    var c = {};
+    (r.ing || []).forEach(function (l) {
+      var g = Almacen.ingrediente(l.i);
+      if (g) c[g.cat || "?"] = 1;
+    });
+    return Object.keys(c);
+  }
+  function todoDePlato(r, re) {
+    var c = catsDePlato(r);
+    return c.length > 0 && c.every(function (x) { return re.test(x); });
+  }
+  function esFrutaFrescaPlato(r) {
+    return (r.ing || []).length === 1 &&
+           (r.grupo === "suelto" || r.grupo === "fruta") &&
+           (r.tools || []).indexOf("sin-cocinar") >= 0 &&
+           todoDePlato(r, /^frutas y verduras$/i);
+  }
+  function papelDePlato(r) {
+    if (todoDePlato(r, /^bebidas?$/i)) return "bebida";
+    if ((r.tipo || []).indexOf("postre") >= 0 || r.grupo === "postre") return "postre";
+    if (esFrutaFrescaPlato(r)) return "postre";
+    if (todoDePlato(r, /^panader[ií]a$/i)) return "pan";
+    if ((r.tipo || []).indexOf("guarnicion") >= 0) return "guarnicion";
+    return "principal";
+  }
+  function platosPendientesComerYCenar(dias) {
+    var hoy = Util.hoyISO(), out = [];
+    for (var i = 0; i < (dias || 21); i++) {
+      var fecha = Util.sumarDias(hoy, i);
+      var dia = Almacen.estado.plan[fecha];
+      if (!dia) continue;
+      ["comida", "cena"].forEach(function (toma) {
+        if (Almacen.esFuera(fecha, toma)) return;
+        if (!Almacen.tomaActiva(fecha, toma)) return;
+        (dia[toma] || []).forEach(function (rid) {
+          var rec = Almacen.receta(rid);
+          if (!rec || papelDePlato(rec) !== "principal") return;
+          if (Almacen.estaComido(fecha, toma, rid)) return;
+          out.push({ fecha: fecha, toma: toma, nombre: rec.n });
+        });
+      });
+    }
+    return out;
+  }
+  function abrirPlatosPendientes() {
+    var lista = platosPendientesComerYCenar(21);
+    var porDia = {}, orden = [];
+    lista.forEach(function (p) {
+      if (!porDia[p.fecha]) { porDia[p.fecha] = { comida: [], cena: [] }; orden.push(p.fecha); }
+      porDia[p.fecha][p.toma].push(p.nombre);
+    });
+    var h = '<header><h2>Platos pendientes de comer</h2><button class="cerrar" data-cerrar>×</button></header>' +
+      '<p class="instrucciones-compra">Platos principales de comida y cena que aún no has marcado como comidos, de hoy en adelante.</p>' +
+      '<div class="lista-compacta">' +
+      (orden.length ? orden.map(function (f) {
+        var d = porDia[f];
+        return '<div class="fila-compacta"><span class="fc-n"><b>' + esc(etiquetaDiaLargo(f)) + '</b>' +
+               '<span class="fc-d">Comida: ' + (d.comida.length ? esc(d.comida.join(", ")) : "—") +
+               ' · Cena: ' + (d.cena.length ? esc(d.cena.join(", ")) : "—") +
+               '</span></span></div>';
+      }).join("") : '<div class="vacio">Nada pendiente.</div>') +
+      '</div><div class="pie-compacto"><span class="nota-peque">' + lista.length + ' plato' + (lista.length === 1 ? "" : "s") + '</span>' +
+      '<button class="btn" data-cerrar>Cerrar</button></div>';
+    abrirModal(h);
+    $("#modal-caja").classList.add("modal-compacto");
+  }
+
   /* ---------- los PLATOS de la compra ----------
      La lista de abajo son ingredientes, que es lo que se mete en el carro. Pero al
      volver del súper lo que uno sabe no es «tengo 180 g de lomo», es «la comida del
@@ -7547,6 +7621,7 @@
       });
     });
     $("#guardar-como-plantilla").addEventListener("click", abrirGuardarPlantilla);
+    $("#ver-platos-pendientes").addEventListener("click", abrirPlatosPendientes);
 
     $("#completar-semana").addEventListener("click", function () {
       if (!confirmarSemana("Vas a completar")) return;
