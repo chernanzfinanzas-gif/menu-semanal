@@ -6909,10 +6909,15 @@
       '<div class="lista-compacta">' +
       (orden.length ? orden.map(function (f) {
         var d = porDia[f];
-        return '<div class="fila-compacta"><span class="fc-n"><b>' + esc(etiquetaDiaLargo(f)) + '</b>' +
-               '<span class="fc-d">Comida: ' + (d.comida.length ? esc(d.comida.join(", ")) : "—") +
-               ' · Cena: ' + (d.cena.length ? esc(d.cena.join(", ")) : "—") +
-               '</span></span></div>';
+        /* NADA DE «fc-n»/«fc-d» aquí (22-oct-2026): esas clases recortan a 2
+           líneas y, con dos platos largos en Comida, se comían la Cena entera
+           sin avisar — Carlos lo vio en el miércoles 28. Cada toma en su
+           propia línea, sin recorte, para que quepa lo que haga falta. */
+        return '<div class="fila-compacta" style="cursor:default; align-items:flex-start">' +
+               '<span style="flex:1 1 auto"><b style="font-size:.88rem">' + esc(etiquetaDiaLargo(f)) + '</b>' +
+               '<div class="nota-peque" style="margin-top:2px">Comida: ' + (d.comida.length ? esc(d.comida.join(", ")) : "—") + '</div>' +
+               '<div class="nota-peque">Cena: ' + (d.cena.length ? esc(d.cena.join(", ")) : "—") + '</div>' +
+               '</span></div>';
       }).join("") : '<div class="vacio">Nada pendiente.</div>') +
       '</div><div class="pie-compacto"><span class="nota-peque">' + lista.length + ' plato' + (lista.length === 1 ? "" : "s") + '</span>' +
       '<button class="btn" data-cerrar>Cerrar</button></div>';

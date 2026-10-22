@@ -16455,7 +16455,15 @@
       if (!sem) return [];
       var tasas = tasasKcalMin();
       return sesionesDe(iso, sem, tallaDe(sem)).map(function (s) {
-        var f = famDeTexto(s.t);
+        /* 22-oct-2026: el bolsillo ya trae `fam` bueno en cada bloque («largo»
+           es bici porque lo dice `mete(fam,…)»), pero esto lo tiraba y volvía a
+           adivinarlo del TEXTO con `famDeTexto`. «Salida larga» no lleva
+           ninguna palabra de las que reconoce («bici», «rodillo», «ciclis»…),
+           así que caía en «otra» y el ciclismo real del reloj —family «bici»—
+           nunca la tapaba: las dos sumaban al objetivo del día. Usar el `fam`
+           del bloque cuando ya viene (plantillas sueltas y excepciones no lo
+           traen, y ahí sigue haciendo falta adivinarlo del texto). */
+        var f = s.fam || famDeTexto(s.t);
         var min = s.min || 0;
         return { t: s.t, min: min, fam: f, grande: !!s.grande,
                  kcal: Math.round(min * (tasas[f] || 0)) };
