@@ -6681,6 +6681,14 @@
       delete (this.estado.recados || {})[id];
       this.guardar("compra");
     },
+    /* «Empezar de cero» (22-oct-2026): vacía TODO Pendiente de golpe. Para cuando
+       Pendiente se ha llenado de ruido (el pedido se quedó atascado y todo lo
+       nuevo caía ahí solo) y lo que vale es lo que diga menos stock en vez de
+       repasar línea a línea. No entra nada en la despensa: solo se borra. */
+    vaciarPendiente: function () {
+      this.estado.recados = {};
+      this.guardar("compra");
+    },
 
     /* EL PRIMER DÍA QUE EL MENÚ LO PIDE, de hoy en adelante (v414). Es lo que
        dice Pendiente: «pera · se necesita para el jueves». Se salta lo ya

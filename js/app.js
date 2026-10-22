@@ -6295,6 +6295,19 @@
     Almacen.guardar("compra");
     return nv.length;
   }
+  /* «Reiniciar pedido» (22-oct-2026). Carlos: el pedido de Mercadona se quedó
+     cerrado 10 días sin pulsar nunca «Pedido recibido», y mientras tanto todo
+     lo nuevo del menú se iba solo a Pendiente como «no vino en Mercadona» sin
+     haber pasado nada. «Pedido recibido» no sirve para desatascarlo: mete en
+     la despensa lo que esté marcado en ese momento, como si de verdad hubiera
+     llegado. Este botón solo quita el candado — borra el pedido guardado de
+     esa tienda, sin tocar despensa ni Pendiente. Lo que ya cayó a Pendiente
+     mientras estuvo atascado se queda ahí: hay que repasarlo a mano. */
+  function reiniciarPedido(nom) {
+    if (!Almacen.estado.compraPedido || !Almacen.estado.compraPedido[nom]) return;
+    delete Almacen.estado.compraPedido[nom];
+    Almacen.guardar("compra");
+  }
   /* con el pedido cerrado, lo que aparezca va solo a Pendiente (al pintar la compra) */
   var moviendoAPendiente = false;
   function nuevosACerrados(tiendas) {
@@ -6467,7 +6480,8 @@
                   ? '<span class="botones-pedido">' +
                     (!(pedidoDe(nom) && pedidoDe(nom).cerrado)
                       ? '<button class="btn' + (pedidoDe(nom) && (nuevosDe(nom, g).length || quitadosDe(nom, g).length) ? " btn-nuevo" : "") + '" id="lt-pedido">Pedido hecho</button>' +
-                        (pedidoDe(nom) ? '<button class="btn" id="lt-cerrado">Pedido cerrado</button>' : "") : "") +
+                        (pedidoDe(nom) ? '<button class="btn" id="lt-cerrado">Pedido cerrado</button>' : "")
+                      : '<button class="btn" id="lt-reiniciar">Reiniciar pedido</button>') +
                     '<button class="btn principal" id="lt-comprado">Pedido recibido</button></span>'
                   : '<button class="btn principal" id="lt-comprado">He salido de la tienda</button>') + '</div>';
     abrirModal(h);
@@ -6497,6 +6511,14 @@
       var n = cerrarPedido(nom, g);
       pintarCompra(); pintarDespensa();
       Util.toast(nom + ": pedido cerrado" + (n ? " · " + n + " a Pendiente" : "") + ". Lo nuevo irá directo a Pendiente.");
+      abrirListaTienda(nom);
+    });
+    var br = $("#lt-reiniciar");
+    if (br) br.addEventListener("click", function () {
+      if (!confirm("¿Reiniciar el pedido de " + nom + "? Se quita el candado de «pedido cerrado». No toca la despensa ni lo que ya esté en Pendiente.")) return;
+      reiniciarPedido(nom);
+      pintarCompra();
+      Util.toast(nom + ": pedido reiniciado. Puedes volver a pulsar «Pedido hecho» cuando hagas el siguiente.");
       abrirListaTienda(nom);
     });
     $("#lt-comprado").addEventListener("click", function () {
@@ -6782,9 +6804,19 @@
       '<div class="lista-compacta" id="lp-lista">' +
       (lista.length ? lista.map(filaPendiente).join("") : '<div class="vacio">Nada pendiente.</div>') +
       '</div><div class="pie-compacto"><span class="nota-peque" id="lp-cuenta">' + lista.length + ' pendientes</span>' +
+      (lista.length ? '<button class="btn" id="lp-vaciar">Empezar de cero</button>' : '') +
       '<button class="btn" data-cerrar>Cerrar</button></div>';
     abrirModal(h);
     $("#modal-caja").classList.add("modal-compacto");
+    var bv = $("#lp-vaciar");
+    if (bv) bv.addEventListener("click", function () {
+      if (!confirm("¿Empezar de cero ahora? Se vacía TODO Pendiente (" + lista.length + " líneas) y se quita el candado de las tiendas a domicilio que estén cerradas. No entra ni sale nada de la despensa: la lista de la compra vuelve a salir solo de lo que pide el menú menos lo que ya tengas en stock.")) return;
+      TIENDAS_ONLINE.forEach(function (nom) { reiniciarPedido(nom); });
+      Almacen.vaciarPendiente();
+      pintarCompra(); pintarDespensa();
+      Util.toast("Pendiente vaciado y pedidos reiniciados. La lista sale de menú menos stock.");
+      abrirPendiente();
+    });
     $("#lp-lista").onclick = function (e) {
       var pc = e.target.closest("[data-pendcomprado]");
       var qt = e.target.closest("[data-recado]");
