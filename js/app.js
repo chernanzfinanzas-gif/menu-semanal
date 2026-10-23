@@ -88,6 +88,19 @@
     "pescado-azul": "Pescado azul", "huevos": "Huevos", "legumbre": "Legumbre",
     "pasta-arroz": "Pasta y arroz", "verdura": "Verdura", "ensalada": "Ensalada",
     "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre", "casero": "Hecho en casa",
+    /* RESTAURANTE SE QUEDÓ FUERA DE ESTE MAPA (encontrado el 23-oct-2026, aviso
+       de Carlos: «no me deja elegir la opción restaurante» al crear una receta).
+       El resto de la app ya trataba «restaurante» como un grupo de pleno derecho
+       —el selector del día lo saca arriba con `deGrupo("restaurante")`, y
+       `ARRIBA` en `abrirSelector` ya lo tenía anotado— pero el DESPLEGABLE del
+       editor de receta se construye leyendo las claves de este objeto, así que
+       la opción nunca estaba. Las fichas de ingrediente («Restaurante y bar»,
+       con ración y nutrientes por 100 g) no tenían este problema: esa sección
+       del súper ya estaba en la lista desde siempre. Lo que faltaba era poder
+       EMPAQUETAR esa ficha en una receta de un solo ingrediente para que
+       aparezca como un botón en «Restaurante», tal y como ya pasa con la
+       tarta de queso o las alitas de Burger King. */
+    "restaurante": "Restaurante",
     /* Los caprichos nacen en la pestaña Menú, al apuntar algo fuera de plan.
        Están aquí para que se puedan buscar y filtrar como cualquier otra
        receta: la mayoría se toman fuera de casa —un helado, una hamburguesa—
@@ -1593,12 +1606,19 @@
 
     var bloquePapeles = "";
     if (esPicoteo) {
+      /* RESTAURANTE TAMBIÉN EN ALMUERZO Y MERIENDA (23-oct-2026, Carlos): quiere
+         poder apuntar algo de fuera —o algo de «Restaurante y bar» que come en
+         casa, como la tarta de queso— aunque la toma sea un picoteo. Antes esta
+         sección sólo salía en comida y cena; aquí faltaba del todo. Suma
+         calorías igual que cualquier otro plato y no resta del stock, porque la
+         ficha de detrás ya lleva `pedir:"nunca"`. */
       bloquePapeles =
         seccionPapel("Bloques de 100", bloques100, true,
           "Cada uno vale unas 100 kcal. Vas sumando hasta la cuota de la toma.") +
         seccionPapel("Piezas enteras", piezas, false,
           "Lo que no se parte: una pieza vale lo que vale.") +
-        seccionPapel("Para beber", bebidas, false, null, true);
+        seccionPapel("Para beber", bebidas, false, null, true) +
+        seccion("Restaurante", deGrupo("restaurante"), false, null);
     } else {
       /* EL ORDEN LO FIJÓ CARLOS el 3-oct-2026, y es el de la mesa: lo que ya
          tienes, el plato, la guarnición, el pan, el postre, la bebida; después
