@@ -6460,9 +6460,12 @@
     /* «+ AÑADIR ALGO QUE NO ESTABA EN LA LISTA» (23-oct-2026). Carlos,
        comprando en DIA: «he comprado sepia y setas con boletus que no
        estaban en la lista… un + me permitiría añadirlos escribiendo sepia
-       y aparecer la opción». Entra directo en el stock con la cantidad que
-       se escriba: no pasa por el pedido ni por Pendiente porque el menú no
-       lo estaba pidiendo, así que no hay nada que reconciliar. */
+       y aparecer la opción». Primera versión (descartada): entraba directo
+       al stock. Carlos: «quiero que lo pase a la lista de la compra, y
+       luego cuando yo ponga que he salido de la tienda ya añada todo al
+       stock». Así que entra en la lista de ESTA tienda, ya marcado como
+       cogido, y espera a «He salido de la tienda»/«Pedido recibido» como
+       cualquier otra línea. */
     h += '<div class="buscar-extra"><input type="text" id="lt-buscar-nombre" placeholder="+ Añadir algo que no estaba en la lista…" autocomplete="off">' +
          '<div id="lt-sugerencias" class="sugerencias-extra" style="display:none; flex-wrap:wrap; gap:6px; margin-top:6px"></div></div>';
     h += '<div class="lista-compacta" data-listatienda="' + esc(nom) + '">';
@@ -6541,10 +6544,12 @@
         if (txt == null) return;
         var cant = parseFloat(String(txt).replace(",", "."));
         if (!(cant > 0)) { Util.toast("No se ha añadido: la cantidad no es válida."); return; }
-        Almacen.anadirCompradoSuelto(id, cant);
-        pintarDespensa();
-        Util.toast("Añadido al stock: " + cant + " " + ing.u + " de " + ing.n);
-        buscarExtraInput.value = ""; sugExtra.innerHTML = ""; sugExtra.style.display = "none";
+        var tam = Almacen.tamanoPieza(ing) || 1;
+        Almacen.quererEstaVez(id, true, cant / tam, nom);
+        Almacen.ponerPedido(id, true);
+        pintarCompra();
+        Util.toast("Añadido a la lista de " + nom + ": " + cant + " " + ing.u + " de " + ing.n + ". Entrará en el stock al confirmar esta tienda.");
+        abrirListaTienda(nom);
       });
     }
     $(".lista-compacta").onchange = function (e) {

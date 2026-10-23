@@ -6796,23 +6796,16 @@
       return true;
     },
 
-    /* COMPRADO SIN ESTAR EN NINGUNA LISTA (23-oct-2026). Carlos, comprando en
-       DIA: «he comprado sepia y setas con boletus que no estaban en la
-       lista». No las pide el menú ni Pendiente, así que no hay nada que
-       tachar: solo hace falta que entren en el stock con lo que de verdad
-       se ha comprado. Es el mismo movimiento que `comprarPendiente`, pero
-       sin pasar por un recado. */
-    anadirCompradoSuelto: function (id, cantidad) {
-      var g = this.ingrediente(id);
-      if (!g || !(cantidad > 0)) return false;
-      var f = this.fichaStock(id);
-      var ahora = (f && f.c > 0 ? f.c : 0) + cantidad;
-      if (!this.estado.stock) this.estado.stock = {};
-      this.estado.stock[id] = { c: Math.round(ahora * 100) / 100, f: Util.hoyISO() };
-      this._sellarStock();
-      this.guardar("stock");
-      return true;
-    },
+    /* AÑADIR ALGO QUE NO ESTABA EN LA LISTA, A LA LISTA (23-oct-2026). Carlos,
+       comprando en DIA: «he comprado sepia y setas con boletus que no
+       estaban en la lista». Primera versión (descartada): entraba directo
+       al stock. Carlos: «quiero que lo pase a la lista de la compra, y
+       luego cuando yo ponga que he salido de la tienda ya añada todo al
+       stock». Así que es el capricho de toda la vida —`quererEstaVez`,
+       antes solo accesible desde «lo quiero esta vez» en una ficha—, con
+       la tienda forzada a la que tienes abierta y ya marcado como cogido:
+       aparece en SU lista, y entra en el stock con el resto al confirmar
+       esa tienda, por el mismo camino de siempre (`confirmarCompra`). */
 
     /* ---------- registro de lo que se come de verdad ---------- */
     estaComido: function (fecha, toma, recetaId) {
