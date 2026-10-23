@@ -6097,6 +6097,13 @@
         if (x.oculta || x.cajon === "aparte") return;
         poner(x.cajon === "super" ? x.tienda : "Amazon");
       });
+      /* «MERCADONA TIENDA» (23-oct-2026). Carlos: cuando baja a la tienda en
+         persona —no el pedido online de siempre— prefiere una lista propia
+         para anotar ahí lo que compra con el «+», separada del pedido
+         online. No la pide ningún ingrediente —no es la tienda de ficha de
+         nada—, así que se añade a mano, siempre, vacía hasta que se use el
+         «+». */
+      poner("Mercadona Tienda");
       return out;
     },
 
@@ -6762,12 +6769,19 @@
       return true;
     },
 
-    comprarPendiente: function (id) {
+    /* CUÁNTO HAS COMPRADO DE VERDAD (23-oct-2026). Carlos: compró el mango
+       deshidratado en DIA —el suplente, que viene en bolsa de otro tamaño—
+       y entraron solo los 60 g que decía Pendiente, no los 270 g que
+       compró realmente. Hasta hoy «Comprado» metía SIEMPRE la cifra que
+       calculó el menú, sin dejar corregirla. `cantidadReal`, si se pasa,
+       manda sobre esa cifra. */
+    comprarPendiente: function (id, cantidadReal) {
       var r = (this.estado.recados || {})[id];
       if (!r) return false;
       if ((r.tipo || "comida") === "comida") {
         var g = this.ingrediente(id);
-        var q = r.q > 0 ? r.q : (g && g.envase ? g.envase * (r.c || 1) : 0);
+        var q = (cantidadReal != null && cantidadReal >= 0) ? cantidadReal :
+                (r.q > 0 ? r.q : (g && g.envase ? g.envase * (r.c || 1) : 0));
         if (q > 0) {
           var fch = this.fichaStock(id);
           var ahora = (fch && fch.c > 0 ? fch.c : 0) + q;
@@ -6779,6 +6793,24 @@
       delete this.estado.recados[id];
       delete this.estado.compraMarcada[id];
       this.guardar("compra");
+      return true;
+    },
+
+    /* COMPRADO SIN ESTAR EN NINGUNA LISTA (23-oct-2026). Carlos, comprando en
+       DIA: «he comprado sepia y setas con boletus que no estaban en la
+       lista». No las pide el menú ni Pendiente, así que no hay nada que
+       tachar: solo hace falta que entren en el stock con lo que de verdad
+       se ha comprado. Es el mismo movimiento que `comprarPendiente`, pero
+       sin pasar por un recado. */
+    anadirCompradoSuelto: function (id, cantidad) {
+      var g = this.ingrediente(id);
+      if (!g || !(cantidad > 0)) return false;
+      var f = this.fichaStock(id);
+      var ahora = (f && f.c > 0 ? f.c : 0) + cantidad;
+      if (!this.estado.stock) this.estado.stock = {};
+      this.estado.stock[id] = { c: Math.round(ahora * 100) / 100, f: Util.hoyISO() };
+      this._sellarStock();
+      this.guardar("stock");
       return true;
     },
 

@@ -6105,7 +6105,7 @@
       return;
     }
 
-    var primeras = ["Mercadona", "Amazon"];
+    var primeras = ["Mercadona", "Mercadona Tienda", "Amazon"];
     var nombres = Object.keys(tiendas).sort(function (a, b) {
       if (a === "Sin tienda asignada") return 1;
       if (b === "Sin tienda asignada") return -1;
@@ -6135,13 +6135,14 @@
         var pu = Almacen.precioUnidad(l.id);
         if (pu && l.cantidad > 0) gasto += pu.e * l.cantidad; else sinP++;
       });
-      html += '<button type="button" class="tile-tienda' + (cogidos && !esOnline(nom) ? " con-cogidos" : "") + (total ? "" : " tile-vacia") +
+      var esManual = nom === "Mercadona Tienda";
+      html += '<button type="button" class="tile-tienda' + (cogidos && !esOnline(nom) ? " con-cogidos" : "") + (total || esManual ? "" : " tile-vacia") +
               (esOnline(nom) && (nuevosDe(nom, g).length || quitadosDe(nom, g).length) ? " con-nuevos" : "") +
               '" data-abrirtienda="' + esc(nom) + '">' +
               '<span class="tile-nom">' + esc(nom) + '</span>' +
-              '<span class="tile-num">' + total + '</span>' +
+              (esManual ? '<span class="tile-pie">a\u00f1ade con el +</span>' : ('<span class="tile-num">' + total + '</span>' +
               '<span class="tile-pie">' + (total === 1 ? "producto" : "productos") +
-                (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span>' +
+                (esOnline(nom) ? " \u00b7 a domicilio" : (cogidos ? " \u00b7 " + cogidos + " cogidos" : "")) + '</span>')) +
               (gasto > 0 ? '<span class="tile-pie">\u2248 ' + Util.euros(gasto) + (sinP ? " \u00b7 " + sinP + " sin precio" : "") + '</span>' : '') +
               (esOnline(nom) && pedidoDe(nom) ? (function () {
                  var nn = nuevosDe(nom, g).length, nq = quitadosDe(nom, g).length;
@@ -6456,8 +6457,18 @@
       nuevosDe(nom, g).forEach(function (o) { nuevosAbiertos[o.l.id] = true; });
       h += bloqueNuevos(nom, g);
     }
+    /* «+ AÑADIR ALGO QUE NO ESTABA EN LA LISTA» (23-oct-2026). Carlos,
+       comprando en DIA: «he comprado sepia y setas con boletus que no
+       estaban en la lista… un + me permitiría añadirlos escribiendo sepia
+       y aparecer la opción». Entra directo en el stock con la cantidad que
+       se escriba: no pasa por el pedido ni por Pendiente porque el menú no
+       lo estaba pidiendo, así que no hay nada que reconciliar. */
+    h += '<div class="buscar-extra"><input type="text" id="lt-buscar-nombre" placeholder="+ Añadir algo que no estaba en la lista…" autocomplete="off">' +
+         '<div id="lt-sugerencias" class="sugerencias-extra" style="display:none; flex-wrap:wrap; gap:6px; margin-top:6px"></div></div>';
     h += '<div class="lista-compacta" data-listatienda="' + esc(nom) + '">';
-    if (vacia) h += '<div class="vacio">Nada que comprar aqu\u00ed para estas fechas.</div>';
+    if (vacia) h += '<div class="vacio">' + (nom === "Mercadona Tienda"
+      ? "Aqu\u00ed no hay lista: usa el \u00ab+\u00bb de arriba para anotar lo que compres en persona."
+      : "Nada que comprar aqu\u00ed para estas fechas.") + '</div>';
     var porZona = {};
     g.comida.forEach(function (l) {
       var zk = Almacen.zonaDeIngrediente(l.id) || "sinzona";
@@ -6505,6 +6516,37 @@
                   : '<button class="btn principal" id="lt-comprado">He salido de la tienda</button>') + '</div>';
     abrirModal(h);
     $("#modal-caja").classList.add("modal-compacto");
+    var buscarExtraInput = $("#lt-buscar-nombre"), sugExtra = $("#lt-sugerencias");
+    if (buscarExtraInput) {
+      buscarExtraInput.addEventListener("input", function () {
+        var q = Almacen._pelado(buscarExtraInput.value);
+        if (!q || q.length < 2) { sugExtra.style.display = "none"; sugExtra.innerHTML = ""; return; }
+        var cand = (Almacen.estado.ingredientes || []).filter(function (ing) {
+          return !ing.oculta && Almacen._pelado(ing.n).indexOf(q) >= 0;
+        }).slice(0, 8);
+        if (!cand.length) { sugExtra.style.display = "none"; sugExtra.innerHTML = ""; return; }
+        sugExtra.innerHTML = cand.map(function (ing) {
+          return '<button type="button" class="btn mini" data-extra-add="' + esc(ing.id) + '">' + esc(ing.n) + '</button>';
+        }).join("");
+        sugExtra.style.display = "flex";
+      });
+      sugExtra.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-extra-add]");
+        if (!b) return;
+        var id = b.getAttribute("data-extra-add");
+        var ing = Almacen.ingrediente(id);
+        if (!ing) return;
+        var def = ing.envase > 0 ? ing.envase : (ing.racion > 0 ? ing.racion : 100);
+        var txt = prompt("¿Cuántos " + ing.u + " de «" + ing.n + "» has comprado?", def);
+        if (txt == null) return;
+        var cant = parseFloat(String(txt).replace(",", "."));
+        if (!(cant > 0)) { Util.toast("No se ha añadido: la cantidad no es válida."); return; }
+        Almacen.anadirCompradoSuelto(id, cant);
+        pintarDespensa();
+        Util.toast("Añadido al stock: " + cant + " " + ing.u + " de " + ing.n);
+        buscarExtraInput.value = ""; sugExtra.innerHTML = ""; sugExtra.style.display = "none";
+      });
+    }
     $(".lista-compacta").onchange = function (e) {
       var c = e.target.closest ? e.target.closest("[data-coger]") : null;
       if (!c) return;
@@ -6818,12 +6860,22 @@
       ? '<b' + (x.cuando.f <= urge ? ' style="color:var(--ambar)"' : '') + '>' + esc(paraCuando(x.cuando.f)) + '</b>'
       : (x.tipo === "hogar" ? "de casa" : "para reponer");
     var sup = x.tipo === "comida" ? Almacen.elSuplenteDe(x.id) : null;
+    /* CUÁNTO HAS COMPRADO DE VERDAD (23-oct-2026). Carlos compró el
+       suplente del mango deshidratado en DIA, en una bolsa de otro tamaño,
+       y «Comprado» metía los 60 g que calculaba Pendiente en vez de los
+       270 g reales. El número ya sale editable, con lo calculado puesto
+       de salida; si no lo tocas, se comporta igual que siempre. */
+    var ing = x.tipo === "comida" ? Almacen.ingrediente(x.id) : null;
+    var cantInput = (ing && x.q > 0)
+      ? ' <input type="number" class="stock-cant" data-pendcant="' + esc(x.id) + '" min="0" step="any" value="' +
+        (Math.round(x.q * 100) / 100) + '" style="width:62px; text-align:right" title="Cuánto has comprado de verdad"> ' + esc(ing.u)
+      : '';
     return '<div class="fila-compacta fila-pend" data-filapend="' + esc(x.id) + '">' +
       '<input type="checkbox" data-pendcomprado="' + esc(x.id) + '" title="Comprado: entra en la despensa">' +
       '<span class="fc-n">' + esc(x.n) + (x.c > 1 ? ' <b>×' + x.c + '</b>' : '') +
         '<span class="fc-d">' + cuando + (x.t ? ' · no lo hubo en ' + esc(x.t) : '') +
         (sup ? ' · otra opción: ' + esc(sup.tipo === "mismo" ? "en " + sup.donde : sup.n + " en " + sup.donde) : '') +
-        '</span></span>' +
+        '</span></span>' + cantInput +
       '<button type="button" class="btn mini" data-recado="' + esc(x.id) + '" title="Ya no hace falta: se quita sin entrar en la despensa">Quitar</button></div>';
   }
   function abrirPendiente() {
@@ -6855,8 +6907,10 @@
         if (!confirm("¿Quitarlo de Pendiente sin comprarlo? No entra en la despensa, y si el menú lo pide volverá a la lista de su tienda.")) return;
         Almacen.quitarRecado(id);
       } else {
-        Almacen.comprarPendiente(id);
-        Util.toast("Comprado: entra en la despensa");
+        var inpCant = document.querySelector('[data-pendcant="' + id + '"]');
+        var cantReal = inpCant ? parseFloat(inpCant.value.replace(",", ".")) : null;
+        Almacen.comprarPendiente(id, (cantReal != null && cantReal >= 0) ? cantReal : null);
+        Util.toast("Comprado: entra en la despensa" + (inpCant ? " (" + (Math.round((cantReal || 0) * 100) / 100) + ")" : ""));
       }
       var f = document.querySelector('[data-filapend="' + id + '"]');
       if (f) f.remove();
