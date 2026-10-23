@@ -8751,9 +8751,19 @@
               return;
             }
             var factor = pers / (rec.raciones || 1);
+            /* 23-oct-2026: el lápiz («Otro peso») guarda el peso real por
+               ración en la foto del plato de ESE día (`fotoPlato().pesos`),
+               pero la compra seguía pidiendo los gramos de catálogo de
+               siempre. Carlos bajó el solomillo a 170 g/ración y la lista
+               le seguía pidiendo como si fueran 200: 2 piezas en vez de 1.
+               Si ese ingrediente tiene peso ajustado ese día, manda él. */
+            var fotoPlato = self.fotoPlato(fecha, rid);
+            var pesosAjustados = fotoPlato && fotoPlato.pesos;
             (rec.ing || []).forEach(function (l) {
               if (!acumulado[l.i]) acumulado[l.i] = { cantidad: 0, recetas: {} };
-              acumulado[l.i].cantidad += l.c * factor;
+              var cant = (pesosAjustados && pesosAjustados[l.i] != null)
+                ? pesosAjustados[l.i] * pers : l.c * factor;
+              acumulado[l.i].cantidad += cant;
               acumulado[l.i].recetas[rec.n] = true;
             });
           });
