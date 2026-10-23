@@ -6401,11 +6401,21 @@
   }
   var listaSoloLectura = false;
   var nuevosAbiertos = {};          // ids NUEVOS de la tienda abierta (v529)
+  /* «NO LO TIENEN» EN LA TIENDA ONLINE (23-oct-2026). Carlos, con el mango
+     deshidratado agotado en Mercadona mientras aún tenía el pedido abierto:
+     «no me deja marcarlo como ausente para pasarlo a pendiente ya». La lista
+     de Mercadona/Amazon era de solo lectura —se marca todo junto al pulsar
+     «Pedido recibido»—, y eso obligaba a esperar a que llegara el resto para
+     poder enviar ESTE producto a Pendiente. El botón ✕ de cada línea lo manda
+     a Pendiente al momento, por el mismo camino que usa «Pedido cerrado» para
+     lo que ya no se puede tocar (`nuevoAPendiente`), sin esperar a nada más. */
   function filaCompacta(id, nombre, cant, cogido) {
     if (listaSoloLectura) {
       return '<div class="fila-compacta fila-lectura' + (nuevosAbiertos[id] ? " fila-nueva" : "") + '">' +
         (nuevosAbiertos[id] ? '<span class="cn-etq">NUEVO</span> ' : "") + '<span class="fc-n">' + esc(nombre) + '</span>' +
-        '<span class="fc-q">' + esc(cant) + '</span></div>';
+        '<span class="fc-q">' + esc(cant) + '</span>' +
+        '<button type="button" class="btn-ausente" data-ausente="' + esc(id) + '" title="No lo tienen: pasar a Pendiente ahora">✕</button>' +
+        '</div>';
     }
     return '<label class="fila-compacta' + (cogido ? " hecha" : "") + '" data-filacoger="' + esc(id) + '">' +
       '<input type="checkbox" data-coger="' + esc(id) + '"' + (cogido ? " checked" : "") + '>' +
@@ -6506,6 +6516,16 @@
       var ct = $("#lt-cuenta");
       if (ct) ct.textContent = pieListaTienda(nom);
     };
+    $(".lista-compacta").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-ausente]") : null;
+      if (!b) return;
+      var id = b.getAttribute("data-ausente");
+      if (!confirm("¿No lo tienen en " + nom + "? Se manda a Pendiente ahora, sin esperar a «Pedido recibido».")) return;
+      nuevoAPendiente(nom, id);
+      pintarCompra(); pintarDespensa();
+      Util.toast("A Pendiente: lo buscas en otra tienda.");
+      abrirListaTienda(nom);
+    });
     if (vacia) return;
     var bp = $("#lt-pedido");
     if (bp) bp.addEventListener("click", function () {

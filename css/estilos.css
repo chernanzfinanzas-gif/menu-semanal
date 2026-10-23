@@ -1494,6 +1494,8 @@ button.enlace {
    la casilla de una tienda sin nada, apagada pero en su sitio. */
 .instrucciones-compra{background:var(--verde-claro); border-radius:8px; padding:8px 10px; font-size:.82rem; line-height:1.35; margin:0 0 8px}
 .fila-lectura{cursor:default; padding-left:6px}
+/* «No lo tienen» (23-oct-2026): a Pendiente al momento, sin esperar a Pedido recibido. */
+.btn-ausente{flex:0 0 auto; border:none; background:none; color:var(--rojo); font-size:1.1rem; line-height:1; padding:2px 8px; cursor:pointer}
 .tile-tienda.tile-vacia{opacity:.55; box-shadow:none}
 /* Con la instrucción arriba, la lista cede sitio: el «Comprado» del pie tiene
    que verse entero en el móvil sin hacer scroll en la ventana. */
