@@ -5634,11 +5634,34 @@
     /* LO QUE HAY DE VERDAD DISPONIBLE, ingrediente a ingrediente: el stock menos
        lo que ya está prometido a un plato del plan. Lo usan el selector manual y
        el completador, y por eso vive aquí y no dentro de ninguno de los dos. */
+    /* LO YA PEDIDO CUENTA COMO SI YA LO TUVIERAS (23-oct-2026). Carlos, sobre
+       «Recetas disponibles»: lo que ya está en un pedido ABIERTO de
+       Mercadona o Amazon —pedido hecho, todavía sin «Pedido recibido»— va a
+       llegar igual que si ya estuviera en casa. No está en el stock (sigue
+       en el súper) ni se ha restado de lo comprometido (eso mide lo que
+       hace falta, no lo que ya está en camino), así que sumarlo aquí no
+       duplica nada: es la pieza que faltaba para que «lo libre» sea de
+       verdad lo que vas a tener disponible, no solo lo que hay ahora mismo
+       en la despensa. */
+    pedidoEnCamino: function () {
+      var self = this, en = {};
+      Object.keys(this.estado.compraPedido || {}).forEach(function (nom) {
+        var p = self.estado.compraPedido[nom];
+        if (!p || !p.ids) return;
+        Object.keys(p.ids).forEach(function (id) {
+          var ing = self.ingrediente(id);
+          if (!ing) return;                     // lo de casa no entra en recetas
+          var g = ing.envase > 0 ? p.ids[id] * ing.envase : p.ids[id];
+          en[id] = (en[id] || 0) + g;
+        });
+      });
+      return en;
+    },
     libresTodo: function () {
-      var self = this, comp = this.comprometidoTodo(), libres = {};
+      var self = this, comp = this.comprometidoTodo(), enCamino = this.pedidoEnCamino(), libres = {};
       (this.estado.ingredientes || []).forEach(function (g) {
         if (g.oculta) return;
-        var c = self.stockDe(g.id) - (comp[g.id] || 0);
+        var c = self.stockDe(g.id) + (enCamino[g.id] || 0) - (comp[g.id] || 0);
         if (c > 0.0001) libres[g.id] = { c: c, sitio: self.sitioDe(g) || "", g: g };
       });
       return libres;

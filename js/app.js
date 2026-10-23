@@ -6917,6 +6917,59 @@
     }
     return out;
   }
+  /* «RECETAS DISPONIBLES» (23-oct-2026). Carlos: «conocer el stock sin
+     asignar... un botón que ayude a elaborar el menú de los primeros días
+     de la semana que viene... una lista de platos de los que se tenga todo
+     o solo falte un ingrediente secundario». Y después, viendo que esa
+     cuenta ya existe para «Añadir a cena»: «ya está en la selección de
+     platos, pero una ventana emergente ayudaría a elegir más fácilmente».
+     Así que no es una cuenta nueva: es `Almacen.loQuePuedesGastar`, la
+     misma que ya usa ese selector —el stock menos TODO lo que el plan
+     entero tiene prometido, de hoy en adelante, no solo esta semana—,
+     suelta en su propio botón para poder mirarla sin tener que abrir un
+     día. Para completar el plato con lo que falte, se elige como siempre
+     desde «Añadir» a un día. */
+  function colaRecetaDisp(id) {
+    var rec = Almacen.receta(id);
+    return rec ? Util.sal(Almacen.salReceta(rec)) + " de sal · " + (rec.min || "?") + " min" : "";
+  }
+  /* GASTAR LA NEVERA ANTES, DENTRO DE CADA GRUPO (23-oct-2026). Carlos: «es
+     para ir gastando lo que se tiene en la nevera». `loQuePuedesGastar` ya
+     mide cuánto de lo perecedero —nevera y frutero— se lleva cada receta
+     (`fresco`); aquí solo se usa para ordenar: primero la que más gasta de
+     eso, para no dejarlo para lo último. */
+  function ordenFresco(lista) {
+    return lista.slice().sort(function (a, b) { return (b.fresco || 0) - (a.fresco || 0); });
+  }
+  function abrirRecetasDisponibles() {
+    var tengo = Almacen.loQuePuedesGastar("cena");
+    var enteras = ordenFresco(tengo.enteras || []), casi = ordenFresco(tengo.casi || []);
+    var fila = function (r, nota) {
+      return '<div class="fila-compacta" style="cursor:default; align-items:flex-start">' +
+             '<span style="flex:1 1 auto"><b style="font-size:.88rem">' + esc(r.n) +
+             (r.fresco > 0.5 ? ' <span class="cn-etq" style="background:#2b7a4b">NEVERA</span>' : "") + '</b>' +
+             '<div class="nota-peque" style="margin-top:2px">' + esc(nota) + '</div></span></div>';
+    };
+    var h = '<header><h2>Recetas disponibles</h2><button class="cerrar" data-cerrar>×</button></header>' +
+      '<p class="instrucciones-compra">Con lo que te sobra del stock —lo que no está ya comprometido en ningún día planificado, incluido lo que tengas pedido en Mercadona o Amazon aunque no haya llegado—, estas son las recetas que te salen. Primero las que gastan algo de la nevera, para no dejarlo para lo último. Para hacerlas, elígelas como siempre desde «Añadir» a un día.</p>' +
+      '<div class="lista-compacta">';
+    if (enteras.length) {
+      h += '<h4 class="fc-zona">Las tienes enteras</h4>';
+      h += enteras.map(function (r) { return fila(r, "todo en casa · " + colaRecetaDisp(r.id)); }).join("");
+    }
+    if (casi.length) {
+      h += '<h4 class="fc-zona">Te falta solo lo secundario</h4>';
+      h += casi.map(function (r) {
+        return fila(r, "falta " + esc(r.faltan.join(", ")) + " · " + colaRecetaDisp(r.id));
+      }).join("");
+    }
+    if (!enteras.length && !casi.length) h += '<div class="vacio">Con lo que te sobra ahora no sale ninguna receta entera ni casi entera.</div>';
+    h += '</div><div class="pie-compacto"><span class="nota-peque">' +
+         (enteras.length + casi.length) + ' receta' + (enteras.length + casi.length === 1 ? "" : "s") + '</span>' +
+         '<button class="btn" data-cerrar>Cerrar</button></div>';
+    abrirModal(h);
+    $("#modal-caja").classList.add("modal-compacto");
+  }
   function abrirPlatosPendientes() {
     var lista = platosPendientesComerYCenar(21);
     var porDia = {}, orden = [];
@@ -7647,6 +7700,7 @@
     });
     $("#guardar-como-plantilla").addEventListener("click", abrirGuardarPlantilla);
     $("#ver-platos-pendientes").addEventListener("click", abrirPlatosPendientes);
+    $("#ver-recetas-disponibles").addEventListener("click", abrirRecetasDisponibles);
 
     $("#completar-semana").addEventListener("click", function () {
       if (!confirmarSemana("Vas a completar")) return;
