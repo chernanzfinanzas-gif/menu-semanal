@@ -7161,6 +7161,27 @@
         tapas[f] = (tapas[f] || 0) + 1;
       });
 
+      /* SENDERISMO Y CAMINAR TAPAN LA MISMA BOLSA  ·  24-oct-2026
+         El reloj nunca escribe «senderismo» en el nombre de la actividad —todo
+         lo que anda, lo grabe donde lo grabe, sale «Caminata»—, así que la
+         familia «sender» de lo real jamás se llenaba sola y una ruta de monte
+         prevista se quedaba sin su real para siempre, aunque la hubiera hecho.
+         Carlos: «la previsión se tapa por lo que se haya hecho»; si hay dos
+         caminatas el mismo día (una larga de monte y una corta de costumbre),
+         las dos cuentan — cada una tapa una previsión de su bolsa, y si no hay
+         previsión de sobra, se suman como extra, igual que siempre.
+         `tapaDe(fam)` consume primero de la bolsa exacta y, si no hay, de la
+         bolsa hermana (sender ↔ caminar) antes de dar la previsión por no
+         hecha. No toca `famDeTexto` ni las tasas de kcal/min: eso sigue
+         separado a propósito (6,9 el senderismo contra 4,9 caminar), esto es
+         solo el emparejamiento de qué tapa qué. */
+      function tapaDe(fam) {
+        if (tapas[fam] > 0) { tapas[fam]--; return true; }
+        var hermana = (fam === "sender") ? "caminar" : (fam === "caminar" ? "sender" : null);
+        if (hermana && tapas[hermana] > 0) { tapas[hermana]--; return true; }
+        return false;
+      }
+
       /* 2 · LO APUNTADO A MANO. Lo tapa una salida real de su familia, igual
          que al plan: lo escribiste porque ibas a hacerlo, y ya se midió.
 
@@ -7192,7 +7213,7 @@
         var esPlanificada = !esReloj && (x.ref === "estandar" || x.ref === "ruta") && !x.confirmada;
         var tapada = false;
         if (!esReloj) {
-          if (tapas[f] > 0) { tapas[f]--; tapada = true; }
+          tapada = tapaDe(f);
         }
         out.push({ x: x, idx: idx, n: self.nombreDeEntrada(x), min: x.min || 0,
                    kcal: Math.round(self.kcalDeEntrada(x)), fam: f,
@@ -7206,8 +7227,7 @@
       if (pu) {
         (pu.previsto(fecha) || []).forEach(function (sx) {
           if (!sx.kcal) return;
-          var tapada = false;
-          if (tapas[sx.fam] > 0) { tapas[sx.fam]--; tapada = true; }
+          var tapada = tapaDe(sx.fam);
           out.push({ n: sx.t, min: sx.min, kcal: sx.kcal, fam: sx.fam,
                      clase: "previsto", tapada: tapada,
                      caducada: !tapada && pasado });
