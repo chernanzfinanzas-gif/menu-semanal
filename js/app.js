@@ -4187,9 +4187,7 @@
       if (f.clase === "fuera" && x.cat !== "Restaurante y bar") return false;
       if (f.clase === "pendientes" && !huecosDe(x).length) return false;
       if (f.texto) {
-        var q = sinTildes(f.texto.toLowerCase());
-        if (sinTildes((x.n || "").toLowerCase()).indexOf(q) < 0 &&
-            sinTildes((x.nota || "").toLowerCase()).indexOf(q) < 0) return false;
+        if (!Almacen.coincideTexto(x.n, f.texto) && !Almacen.coincideTexto(x.nota, f.texto)) return false;
       }
       return true;
     });
@@ -4239,6 +4237,34 @@
                  : '') +
              '</div></div>';
     }).join("") || '<div class="vacio">No hay ingredientes con esos filtros.</div>';
+
+    /* OCULTOS QUE COINCIDEN CON LA B\u00daSQUEDA (26-oct-2026). Carlos: el queso
+       cottage que usa de verdad \u2014en una receta, en la compra, en la
+       despensa\u2014 no aparec\u00eda ni busc\u00e1ndolo entero. Su ficha qued\u00f3 marcada
+       `oculta` sin que \u00e9l lo pidiera, y lo oculto se descarta a prop\u00f3sito de
+       esta lista para no ofrecer duplicados retirados. Sin una puerta de
+       vuelta, la \u00fanica manera de arreglarlo era yo tocando su guardado a
+       mano. As\u00ed que, SOLO cuando hay texto de b\u00fasqueda, se muestra aparte
+       \u2014apagado, y avisando de que es rar\u00edsimo que haga falta\u2014 lo oculto que
+       coincide, con un bot\u00f3n para devolverlo. */
+    var ocultosBox = $("#ingredientes-ocultos");
+    if (ocultosBox) {
+      if (!f.texto) {
+        ocultosBox.innerHTML = "";
+      } else {
+        var ocultos = (Almacen.estado.ingredientes || []).filter(function (x) {
+          return x.oculta && Almacen.coincideTexto(x.n, f.texto);
+        });
+        ocultosBox.innerHTML = !ocultos.length ? "" :
+          '<p class="nota-peque" style="margin-top:14px">Ocultos que coinciden \u2014 normalmente es un duplicado retirado a prop\u00f3sito; si uno de estos es el que de verdad usas, recup\u00e9ralo:</p>' +
+          ocultos.map(function (x) {
+            return '<div class="fila-suelto" style="opacity:.65">' +
+              '<span>' + esc(x.n) + '</span>' +
+              '<button type="button" class="btn mini" data-recuperaring="' + esc(x.id) + '">Recuperar</button>' +
+              '</div>';
+          }).join("");
+      }
+    }
   }
 
   /* QUÉ FILA SE ESTÁ MIRANDO: recetas o ingredientes.
@@ -6542,10 +6568,10 @@
     var buscarExtraInput = $("#lt-buscar-nombre"), sugExtra = $("#lt-sugerencias");
     if (buscarExtraInput) {
       buscarExtraInput.addEventListener("input", function () {
-        var q = Almacen._pelado(buscarExtraInput.value);
-        if (!q || q.length < 2) { sugExtra.style.display = "none"; sugExtra.innerHTML = ""; return; }
+        var q = buscarExtraInput.value;
+        if (!q || Almacen._pelado(q).length < 2) { sugExtra.style.display = "none"; sugExtra.innerHTML = ""; return; }
         var cand = (Almacen.estado.ingredientes || []).filter(function (ing) {
-          return !ing.oculta && Almacen._pelado(ing.n).indexOf(q) >= 0;
+          return !ing.oculta && Almacen.coincideTexto(ing.n, q);
         }).slice(0, 8);
         if (!cand.length) { sugExtra.style.display = "none"; sugExtra.innerHTML = ""; return; }
         sugExtra.innerHTML = cand.map(function (ing) {
@@ -6923,11 +6949,11 @@
     var buscarPendInput = $("#lp-buscar-nombre"), sugPend = $("#lp-sugerencias");
     if (buscarPendInput) {
       buscarPendInput.addEventListener("input", function () {
-        var q = Almacen._pelado(buscarPendInput.value);
-        if (!q || q.length < 2) { sugPend.style.display = "none"; sugPend.innerHTML = ""; return; }
+        var q = buscarPendInput.value;
+        if (!q || Almacen._pelado(q).length < 2) { sugPend.style.display = "none"; sugPend.innerHTML = ""; return; }
         var yaPend = Almacen.recadosPendientes().map(function (x) { return x.id; });
         var cand = (Almacen.estado.ingredientes || []).filter(function (ing) {
-          return !ing.oculta && yaPend.indexOf(ing.id) < 0 && Almacen._pelado(ing.n).indexOf(q) >= 0;
+          return !ing.oculta && yaPend.indexOf(ing.id) < 0 && Almacen.coincideTexto(ing.n, q);
         }).slice(0, 8);
         if (!cand.length) { sugPend.style.display = "none"; sugPend.innerHTML = ""; return; }
         sugPend.innerHTML = cand.map(function (ing) {
@@ -8386,6 +8412,16 @@
     $("#rejilla-ingredientes").addEventListener("click", function (e) {
       var c = e.target.closest("[data-ingrediente]");
       if (c) abrirIngrediente(c.getAttribute("data-ingrediente"));
+    });
+    var ocultosBox2 = $("#ingredientes-ocultos");
+    if (ocultosBox2) ocultosBox2.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-recuperaring]");
+      if (!b) return;
+      var id = b.getAttribute("data-recuperaring");
+      var g = Almacen.ingrediente(id);
+      Almacen.recuperarIngrediente(id);
+      Util.toast((g ? g.n : "La ficha") + ": recuperada, ya sale en Ingredientes.");
+      pintarIngredientes();
     });
 
     /* --- modal --- */

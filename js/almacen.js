@@ -5701,6 +5701,21 @@
       try { return x.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
       catch (e) { return x; }
     },
+    /* BUSCAR POR PALABRAS, NO POR UNA CADENA PEGADA (26-oct-2026). Carlos
+       escribió «queso cottage» en el + de Pendiente y no salió nada: el
+       nombre real es «Queso FRESCO cottage semidesnatado…», y comparar el
+       texto escrito como UNA sola cadena no encuentra dos palabras con otra
+       de por medio. Cada buscador de la app que compara "lo que escribes"
+       contra el nombre de un ingrediente debería pasar por aquí: cada
+       palabra escrita tiene que estar en el nombre, en cualquier orden y con
+       lo que sea entre medias — así «queso cottage», «cottage queso» o
+       «fresco cottage» encuentran la misma ficha. */
+    coincideTexto: function (nombre, texto) {
+      var n = this._pelado(nombre);
+      var palabras = this._pelado(texto).trim().split(/\s+/).filter(Boolean);
+      if (!palabras.length) return true;
+      return palabras.every(function (p) { return n.indexOf(p) >= 0; });
+    },
     principalDe: function (r) {
       var lin = r.ing || [];
       for (var k = 0; k < lin.length; k++) {
@@ -6824,6 +6839,30 @@
       this.estado.recados[id] = { c: 1, q: Math.round(q * 100) / 100, f: Util.hoyISO(),
                                    tipo: "comida", n: g.n, t: "añadido a mano" };
       this.guardar("compra");
+      return true;
+    },
+
+    /* SACAR UNA FICHA DE OCULTA (26-oct-2026). Carlos: el queso cottage que
+       usa en una receta de verdad, que sale en la lista de la compra y que
+       tiene en la despensa, NO aparecía al buscarlo en Ingredientes —ni
+       poniendo el nombre entero—. La única explicación que cuadra con todo
+       eso es que su copia guardada de esa ficha quedó marcada `oculta` en
+       algún momento (un repaso de duplicados que la pilló por medio,
+       probablemente), y al llevar también `editado` el catálogo nunca se lo
+       iba a corregir solo: una ficha editada no la toca el refresco, ni
+       para esto.
+       No hay ningún botón en la app para esto porque nunca hacía falta: lo
+       oculto es siempre un duplicado retirado a propósito, no algo que haya
+       que recuperar. Aquí sí hace falta, así que se añade la puerta de
+       vuelta: quita `oculta` y marca la ficha como tocada a mano para que
+       nada vuelva a escondérsela sin que él lo pida. */
+    recuperarIngrediente: function (id) {
+      var g = this.ingrediente(id);
+      if (!g) return false;
+      g.oculta = false;
+      g.editado = true;
+      g.tocado = new Date().toISOString();
+      this.guardar("ingredientes");
       return true;
     },
 
