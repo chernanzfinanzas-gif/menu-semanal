@@ -6907,6 +6907,12 @@
     var lista = Almacen.recadosPendientes();
     var h = '<header><h2>Pendiente</h2><button class="cerrar" data-cerrar>×</button></header>' +
       '<p class="instrucciones-compra">Aqu\u00ed llega lo que no se compr\u00f3 en las otras listas. <b>C\u00f3mpralo donde sea y m\u00e1rcalo</b>: entra en la despensa.</p>' +
+      /* UNA PUERTA DE ATRÁS PARA LO QUE SE ESCAPÓ (26-oct-2026). Carlos: algo
+         no llegó, no lo vio al revisar y confirmó el pedido con la casilla
+         puesta, así que nunca se generó el recado. Aquí se añade a mano,
+         sin pasar por ninguna tienda: Pendiente ya es «cómpralo donde sea». */
+      '<div class="buscar-extra"><input type="text" id="lp-buscar-nombre" placeholder="+ A\u00f1adir algo a Pendiente\u2026" autocomplete="off">' +
+      '<div id="lp-sugerencias" class="sugerencias-extra" style="display:none; flex-wrap:wrap; gap:6px; margin-top:6px"></div></div>' +
       '<div class="lista-compacta" id="lp-lista">' +
       (lista.length ? lista.map(filaPendiente).join("") : '<div class="vacio">Nada pendiente.</div>') +
       '</div><div class="pie-compacto"><span class="nota-peque" id="lp-cuenta">' + lista.length + ' pendientes</span>' +
@@ -6914,6 +6920,38 @@
       '<button class="btn" data-cerrar>Cerrar</button></div>';
     abrirModal(h);
     $("#modal-caja").classList.add("modal-compacto");
+    var buscarPendInput = $("#lp-buscar-nombre"), sugPend = $("#lp-sugerencias");
+    if (buscarPendInput) {
+      buscarPendInput.addEventListener("input", function () {
+        var q = Almacen._pelado(buscarPendInput.value);
+        if (!q || q.length < 2) { sugPend.style.display = "none"; sugPend.innerHTML = ""; return; }
+        var yaPend = Almacen.recadosPendientes().map(function (x) { return x.id; });
+        var cand = (Almacen.estado.ingredientes || []).filter(function (ing) {
+          return !ing.oculta && yaPend.indexOf(ing.id) < 0 && Almacen._pelado(ing.n).indexOf(q) >= 0;
+        }).slice(0, 8);
+        if (!cand.length) { sugPend.style.display = "none"; sugPend.innerHTML = ""; return; }
+        sugPend.innerHTML = cand.map(function (ing) {
+          return '<button type="button" class="btn mini" data-pend-add="' + esc(ing.id) + '">' + esc(ing.n) + '</button>';
+        }).join("");
+        sugPend.style.display = "flex";
+      });
+      sugPend.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-pend-add]");
+        if (!b) return;
+        var id = b.getAttribute("data-pend-add");
+        var ing = Almacen.ingrediente(id);
+        if (!ing) return;
+        var def = ing.envase > 0 ? ing.envase : (ing.racion > 0 ? ing.racion : 100);
+        var txt = prompt("\u00bfCu\u00e1ntos " + ing.u + " de \u00ab" + ing.n + "\u00bb quieres apuntar en Pendiente?", def);
+        if (txt == null) return;
+        var cant = parseFloat(String(txt).replace(",", "."));
+        if (!(cant > 0)) { Util.toast("No se ha a\u00f1adido: la cantidad no es v\u00e1lida."); return; }
+        Almacen.anadirPendienteManual(id, cant);
+        pintarCompra();
+        Util.toast("A\u00f1adido a Pendiente: " + cant + " " + ing.u + " de " + ing.n + ".");
+        abrirPendiente();
+      });
+    }
     var bv = $("#lp-vaciar");
     if (bv) bv.addEventListener("click", function () {
       if (!confirm("¿Empezar de cero ahora? Se vacía TODO Pendiente (" + lista.length + " líneas) y se quita el candado de las tiendas a domicilio que estén cerradas. No entra ni sale nada de la despensa: la lista de la compra vuelve a salir solo de lo que pide el menú menos lo que ya tengas en stock.")) return;
