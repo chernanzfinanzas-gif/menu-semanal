@@ -13218,7 +13218,9 @@
     { id: "B", n: "Fuerza B", dia: 4, diaTxt: "jueves", min: 25, mov: [
       { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 20,
         nota: "Bisagra de cadera: el culo atr\u00e1s, la espalda recta y la mancuerna rozando la pierna" },
-      { n: "Press de hombros",    s: 2, r: "12",          kg: 20, nota: "Sin bloquear el aire",
+      /* 26-oct-2026, decidido por Carlos tras la B del 23-oct (15 y 14
+         repeticiones con el mismo máximo, 124, que con 12 y 12): tres series. */
+      { n: "Press de hombros",    s: 3, r: "12",          kg: 20, nota: "Sin bloquear el aire",
         garmin: "Press de hombros con mancuernas" },
       { n: "Jal\u00f3n",              s: 2, r: "12",          goma: "25",
         nota: "Anclaje alto de la puerta",
