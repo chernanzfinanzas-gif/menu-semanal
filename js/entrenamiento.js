@@ -13222,11 +13222,16 @@
          repeticiones con el mismo máximo, 124, que con 12 y 12): tres series. */
       { n: "Press de hombros",    s: 3, r: "12",          kg: 20, nota: "Sin bloquear el aire",
         garmin: "Press de hombros con mancuernas" },
-      { n: "Jal\u00f3n",              s: 2, r: "12",          goma: "25",
-        nota: "Anclaje alto de la puerta",
+      /* 26-oct-2026, decidido por Carlos: el jalón no progresa cambiando de
+         goma (la siguiente, la roja 27-77, no sabe si podrá usarla en las
+         anillas de la terraza) sino con repeticiones y ritmo. Y la goma que
+         usa es la 23-57, no la 25 que ponía aquí. */
+      { n: "Jal\u00f3n",              s: 2, r: "15",          goma: "23-57",
+        nota: "Anclaje alto de la puerta. Misma goma: primero hasta 15 repeticiones; despu\u00e9s, bajar en 3 segundos",
         garmin: "Jal\u00f3n lateral con goma el\u00e1stica" },
       { n: "Plancha",             s: 3, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
-      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: "25",
+      /* 26-oct-2026, decidido por Carlos: tres series, como en la A. */
+      { n: "Aperturas invertidas",s: 3, r: "15 por lado", goma: "25",
         nota: "Goma en el anclaje, de pie",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
     ]},
@@ -13287,7 +13292,7 @@
     "Curl de b\u00edceps":      "Goma plana pisada y enganchada a la mancuerna",
     "Pallof":              "Tubo verde, o separarse un paso m\u00e1s del anclaje",
     "Peso muerto rumano":  "Peso muerto a una pierna",
-    "Jal\u00f3n":              "Dominadas asistidas, cuando haya de d\u00f3nde colgarse",
+    "Jal\u00f3n":              "Con la misma goma: m\u00e1s repeticiones (hasta 15), bajar en 3 s o una tercera serie. La roja 27-77, s\u00f3lo si se puede anclar bien (por probar en las anillas de la terraza). Dominadas asistidas, cuando haya de d\u00f3nde colgarse",
     "Press de banca":      "M\u00e1s peso; y si falta, un cuarto ejercicio",
     "Press de hombros":    "M\u00e1s peso",
     "Remo":                "Tubo m\u00e1s duro, o dos acoplados"
