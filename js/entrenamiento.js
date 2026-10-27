@@ -2314,6 +2314,8 @@
        traducir lo que ya estaba guardado. */
     function idEstable(fam, texto, i, extra) {
       if (extra && extra.largo) return "largo";
+      /* la fuerza diaria repite rutina en la semana: A-1 y A-2 no pueden compartir id */
+      if (fam === "fuerza" && extra && extra.fz) return "fza-" + extra.fz;
       if (fam === "fuerza") {
         var letra = String(texto).replace(/^fuerza\s*/i, "").split(/[,\s]/)[0];
         if (letra) return "fza-" + letra.toUpperCase();
@@ -2402,9 +2404,32 @@
     mete("caminar", B.textos.caminata, cam.n, cam.min);
     /* la fuerza NO se recorta por días: comparte día con el rodillo sin problema,
        que es lo que hacen las plantillas de siempre. */
-    (B.fuerza.nombres || []).slice(0, B.fuerza.n).forEach(function (nom) {
-      mete("fuerza", nom, 1, B.fuerza.min);
+    /* LA FUERZA POR FECHA (27-oct-2026). Desde el 2-nov va de lunes a viernes,
+       pegada a la bici, y las tres rutinas se turnan sin reiniciar la semana:
+       la semana 7 abre con A, la 8 con C, la 9 con B… (5 bloques por semana
+       sobre 3 rutinas). Las semanas anteriores siguen con su A, B, C. */
+    var cfgF = {}, kF, fdF = B.fuerzaDesde || {};
+    for (kF in B.fuerza) if (B.fuerza.hasOwnProperty(kF)) cfgF[kF] = B.fuerza[kF];
+    Object.keys(fdF).sort().forEach(function (f) {
+      if (sem.desde >= f) { cfgF.desdeFecha = f; for (var k2 in fdF[f]) if (fdF[f].hasOwnProperty(k2)) cfgF[k2] = fdF[f][k2]; }
     });
+    if (cfgF.diaria && cfgF.turno && cfgF.turno.length) {
+      /* semanas de calendario desde que empezó el turno (no el número del plan, que
+         se mueve con el desfase) */
+      var semT = Math.round((new Date(sem.desde + "T12:00:00") - new Date(cfgF.desdeFecha + "T12:00:00")) / 604800000);
+      var nT = cfgF.turno.length, arranque = ((semT * cfgF.n) % nT + nT) % nT;
+      var vistas = {};
+      for (var iF = 0; iF < cfgF.n; iF++) {
+        var nomF = cfgF.turno[(arranque + iF) % nT];
+        var letraF = String(nomF).replace(/^fuerza\s*/i, "").split(/[,\s]/)[0].toUpperCase();
+        vistas[letraF] = (vistas[letraF] || 0) + 1;
+        mete("fuerza", nomF, 1, cfgF.min, { diaria: true, orden: iF, fz: letraF + "-" + vistas[letraF] });
+      }
+    } else {
+      (cfgF.nombres || []).slice(0, cfgF.n).forEach(function (nom) {
+        mete("fuerza", nom, 1, cfgF.min);
+      });
+    }
 
     cacheBolsillo[clave] = out;
     return out;
@@ -2621,6 +2646,13 @@
       if (x.dia) { huerfanos.push(x); return; }
       if (x.largo) { mapa[x.id] = dias[Math.max(0, n - 2)]; return; }
       if (x.fam === "caminar") { mapa[x.id] = dias[ordCam[iC++ % ordCam.length] % huecos]; return; }
+      /* fuerza diaria: un bloque por día, de lunes a viernes, en su orden. Se
+         salta el día del largo (n-2) para no cargar el sábado. */
+      if (x.fam === "fuerza" && x.diaria) {
+        var sitios = dias.filter(function (d, k) { return n < 3 || k !== n - 2; });
+        var dD = sitios[(x.orden || 0) % sitios.length];
+        mapa[x.id] = dD; diasFuerza[dD] = 1; return;
+      }
       if (x.fam === "fuerza") { var dF = diaParaFuerza(); iF++; mapa[x.id] = dF; diasFuerza[dF] = 1; return; }
       mapa[x.id] = dias[ordRod[iR++ % ordRod.length] % huecos];
     });
@@ -3145,8 +3177,10 @@
       out.push({ t: "Esta semana no tiene ningún día de descanso",
                  d: "Los siete días llevan algo. El descanso es lo único que no tenías en 2025, y por eso las semanas 4, 8 y 12 bajan de verdad." });
     }
-    /* 3) dos días seguidos de fuerza */
-    for (var i = 0; i < dias.length - 1; i++) {
+    /* 3) dos días seguidos de fuerza. Con la fuerza diaria (27-oct-2026) es lo
+       buscado: las rutinas se turnan y cada grupo descansa 48 h. No se avisa. */
+    var esDiaria = b.some(function (x) { return x.fam === "fuerza" && x.diaria; });
+    for (var i = 0; !esDiaria && i < dias.length - 1; i++) {
       if (fuerza[dias[i]] && fuerza[dias[i + 1]]) {
         out.push({ t: "Dos días seguidos de fuerza",
                    d: U.etiquetaFecha(dias[i]) + " y " + U.etiquetaFecha(dias[i + 1]) +
@@ -13197,68 +13231,53 @@
        kilos y las series, puestos al día con lo que ya hace (A del 30-sep, B
        del 4-oct). Desde ahora la ficha enseña lo de la última sesión, y lo de
        aquí sólo asoma como «la próxima» cuando se decide un cambio. */
-    /* 5-oct-2026, aceptado por Carlos tras la A del 5-oct (pulso 109/133 contra
-       119/140 con lo mismo, y dos horas después del rodillo): sentadilla y
-       press a 3 series, remo con la goma 23. */
-    { id: "A", n: "Fuerza A", dia: 1, diaTxt: "lunes", min: 25, mov: [
-      { n: "Sentadilla goblet",   s: 3, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
-      { n: "Press de banca",      s: 3, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
+    /* 27-oct-2026 · LA FUERZA NUEVA, decidida por Carlos. Su punto de partida:
+       «las sesiones de fuerza no me gustan y terminaré por no hacerlas». No
+       quiere dejarla, quiere otro formato: pegada a la bici, de lunes a viernes,
+       tres rutinas que se turnan (A, B, C, A, B; la semana siguiente sigue por
+       donde iba) y que entre las tres toquen todos los grupos. Cuatro
+       ejercicios, 2 series (más adelante, 3), unos 15 minutos. Sin cardio de
+       calentamiento: viene caliente de la bici, como mucho 1-2 minutos de
+       movilidad. Fuera la zancada («no me sale bien, el equilibrio me falla»),
+       los gemelos y los oblicuos. Lo que le gusta y se queda: sentadilla, peso
+       muerto rumano, elevación de cadera, pallof y plancha. La pierna se
+       trabaja además en el rodillo, con bloques de cadencia baja en ERG.
+       Kilos y gomas, los que ya hace. Lo anterior (A y B de 5 ejercicios, la C
+       de zancadas) está en «js/entrenamiento (copia v567).js». */
+    { id: "A", n: "Fuerza A", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
+      { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
+      { n: "Press de banca",      s: 2, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
         garmin: "Press de banca inclinada con mancuernas" },
+      { n: "Extensión de tríceps", s: 2, r: "12",         kg: 7.5,
+        nota: "Sentado, una mancuerna cogida con las dos manos por detrás de la cabeza; los codos quietos, apuntando arriba. Empezar con 7,5",
+        garmin: "Extensión de tríceps con mancuerna (la que tenga el reloj)" },
+      { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros. Respirando, sin bloquear el aire" }
+    ]},
+    { id: "B", n: "Fuerza B", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
+      { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 20,
+        nota: "Bisagra de cadera: el culo atrás, la espalda recta y la mancuerna rozando la pierna" },
       { n: "Remo",                s: 2, r: "12",          goma: "23-57",
         nota: "Tubo en el anclaje de la puerta",
-        garmin: "Remo con goma el\u00e1stica" },
-      { n: "Plancha",             s: 3, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
-      { n: "Aperturas invertidas",s: 3, r: "15 por lado", goma: "25",
-        nota: "Goma en el anclaje, de pie",
-        garmin: "Apertura inversa con polea a un solo brazo y de pie" }
-    ]},
-    /* 4-oct-2026, aceptado por Carlos tras la B del 4-oct (pulso 113/134 contra
-       120/143 con lo mismo, «cómoda, sin dificultad»): peso muerto y press de
-       hombros a 20, jalón con la goma 25, plancha a 3 series. */
-    { id: "B", n: "Fuerza B", dia: 4, diaTxt: "jueves", min: 25, mov: [
-      { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 20,
-        nota: "Bisagra de cadera: el culo atr\u00e1s, la espalda recta y la mancuerna rozando la pierna" },
-      /* 26-oct-2026, decidido por Carlos tras la B del 23-oct (15 y 14
-         repeticiones con el mismo máximo, 124, que con 12 y 12): tres series. */
-      { n: "Press de hombros",    s: 3, r: "12",          kg: 20, nota: "Sin bloquear el aire",
-        garmin: "Press de hombros con mancuernas" },
-      /* 26-oct-2026, decidido por Carlos: el jalón no progresa cambiando de
-         goma (la siguiente, la roja 27-77, no sabe si podrá usarla en las
-         anillas de la terraza) sino con repeticiones y ritmo. Y la goma que
-         usa es la 23-57, no la 25 que ponía aquí. */
-      { n: "Jal\u00f3n",              s: 2, r: "15",          goma: "23-57",
-        nota: "Anclaje alto de la puerta. Misma goma: primero hasta 15 repeticiones; despu\u00e9s, bajar en 3 segundos",
-        garmin: "Jal\u00f3n lateral con goma el\u00e1stica" },
-      { n: "Plancha",             s: 3, r: "30 seg",      nota: "Cadera a la altura de los hombros" },
-      /* 26-oct-2026, decidido por Carlos: tres series, como en la A. */
-      { n: "Aperturas invertidas",s: 3, r: "15 por lado", goma: "25",
-        nota: "Goma en el anclaje, de pie",
-        garmin: "Apertura inversa con polea a un solo brazo y de pie" }
-    ]},
-    /* FUERZA C (diseñada el 24-sep, montada el 25-sep-2026). Lo que A y B no
-       tocan: pierna a una pierna, cadera, gemelo y centro en ROTACIÓN (A y B
-       solo tienen plancha, que es antiextensión). Norma de Carlos: 30 minutos
-       como máximo. Ninguno invita a bloquear el aire (regla del oído).
-       Sin día fijo: va donde la ponga el tablero de la semana. */
-    /* 8-oct-2026, aceptado por Carlos tras la C del 8-oct (pulso 115/140 contra
-       122/149, «cada vez más fuerte»): empuje de cadera a 10 kg con los 90 s, y
-       gemelos de vuelta a 12. Ya cambiado por él en Garmin Connect. */
-    { id: "C", n: "Fuerza C", dia: null, diaTxt: "sin día fijo", min: 25, mov: [
-      { n: "Zancadas",            s: 2, r: "10 por pierna", kg: 15,
-        nota: "Estáticas: los pies no se mueven, se baja y se sube. APOYADO con una mano: mancuerna de 10 en la mano libre y 5 kg en la mochila (las dos tobilleras). El peso total y el volumen son los mismos que sin apoyo",
-        garmin: "Sentadilla dividida con mancuernas" },
-      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
-        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos. Descanso de 90 s: es el único donde el pulso sube hasta el final de la serie y no se recupera en 75",
-        garmin: "Levantamiento de barra sobre cadera, en banca" },
-      { n: "Elevación de gemelos",s: 2, r: "12",          kg: 15,
-        nota: "De pie, subir en 1 segundo y bajar en 3. Una mancuerna de 7,5 en cada mano. Descanso de 60 s: aquí sobran los 75. Se bajó a diez el 2-oct porque el tempo se caía un 31 %; el 8-oct la serie de doce salió controlada y con el pulso bajando, así que vuelve a doce",
-        garmin: "Elevación de gemelos de pie con mancuernas" },
+        garmin: "Remo con goma elástica" },
+      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 10, porMano: true, nota: "Una de 10 en cada mano, sin balancear. Es tu techo de peso libre por mano",
+        garmin: "Curl de bíceps alterno con mancuerna" },
       { n: "Pallof",              s: 2, r: "12 por lado", goma: "23-57",
         nota: "Goma de anilla 23-57 en el anclaje, a la altura del pecho. Puerta cerrada con llave; se tira de lado. El 23-57 es lo que marca la goma, no el peso que mueves",
         /* Garmin no tiene Pallof: se apunta con el más cercano por músculo (oblicuos) */
-        garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" },
-      { n: "Curl de bíceps",      s: 2, r: "12",          kg: 10, porMano: true, nota: "Una de 10 en cada mano, sin balancear. Es tu techo de peso libre por mano",
-        garmin: "Curl de bíceps alterno con mancuerna" }
+        garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" }
+    ]},
+    { id: "C", n: "Fuerza C", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
+      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
+        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos. Descanso de 90 s: es el único donde el pulso sube hasta el final de la serie y no se recupera en 75",
+        garmin: "Levantamiento de barra sobre cadera, en banca" },
+      { n: "Press de hombros",    s: 2, r: "12",          kg: 20, nota: "Sin bloquear el aire",
+        garmin: "Press de hombros con mancuernas" },
+      { n: "Jalón",              s: 2, r: "15",          goma: "23-57",
+        nota: "Anclaje alto de la puerta. Misma goma: primero hasta 15 repeticiones; después, bajar en 3 segundos",
+        garmin: "Jalón lateral con goma elástica" },
+      { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: "25",
+        nota: "Goma en el anclaje, de pie. Espalda alta: es la que sujeta en el manillar",
+        garmin: "Apertura inversa con polea a un solo brazo y de pie" }
     ]}
   ];
 

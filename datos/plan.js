@@ -311,6 +311,13 @@
       /* 25-sep-2026: 30 y no 45. Norma de Carlos (24-sep): «las sesiones de
          fuerza las prefiero de 25-30 minutos máximo siempre». */
       fuerza: { n: 3, min: 30, nombres: ["Fuerza A", "Fuerza B", "Fuerza C"] },
+      /* 27-oct-2026, decidido por Carlos: la fuerza va pegada a la bici, de lunes
+         a viernes, 15 minutos, y las tres rutinas se TURNAN sin reiniciar cada
+         semana (A, B, C, A, B y la siguiente sigue por C). La semana del 2-nov
+         abre con A; las demás siguen la cuenta por semanas de calendario.
+         POR FECHA, como el rodillo: las semanas ya pasadas no se rehacen. */
+      fuerzaDesde: { "2026-11-02": { n: 5, min: 15, diaria: true,
+        turno: ["Fuerza A", "Fuerza B", "Fuerza C"] } },
       textos: {
         largo: "Salida larga",
         rodillo: "Bici Z2 en rodillo",
