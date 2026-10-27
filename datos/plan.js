@@ -313,11 +313,15 @@
       fuerza: { n: 3, min: 30, nombres: ["Fuerza A", "Fuerza B", "Fuerza C"] },
       /* 27-oct-2026, decidido por Carlos: la fuerza va pegada a la bici, de lunes
          a viernes, 15 minutos, y las tres rutinas se TURNAN sin reiniciar cada
-         semana (A, B, C, A, B y la siguiente sigue por C). La semana del 2-nov
-         abre con A; las demás siguen la cuenta por semanas de calendario.
+         semana (… A, B y la siguiente sigue por C). La semana del 2-nov abre
+         con C; las demás siguen la cuenta por semanas de calendario.
          POR FECHA, como el rodillo: las semanas ya pasadas no se rehacen. */
-      fuerzaDesde: { "2026-11-02": { n: 5, min: 15, diaria: true,
-        turno: ["Fuerza A", "Fuerza B", "Fuerza C"] } },
+      /* 27-oct-2026 (Carlos): en la semana 6 la A del miércoles y la B del viernes
+         ya son las rutinas nuevas de 15'. Como la última es la B, la semana del
+         2-nov abre con la C para que el turno siga sin saltos. */
+      fuerzaDesde: { "2026-10-26": { min: 15 },
+                     "2026-11-02": { n: 5, min: 15, diaria: true,
+        turno: ["Fuerza C", "Fuerza A", "Fuerza B"] } },
       textos: {
         largo: "Salida larga",
         rodillo: "Bici Z2 en rodillo",
