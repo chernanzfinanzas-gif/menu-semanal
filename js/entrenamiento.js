@@ -4061,6 +4061,10 @@
   function umbralSesion(sesion) {
     var fam = sesion.fam || familia(sesion.t);
     if (sesion.grande || sesion.largo || !fam) return MIN_SESION;
+    /* 28-oct-2026: la fuerza nueva es de 15'. Con el suelo de 20 minutos, la A
+       del miércoles 28 (18 min medidos por el reloj) salía emparejada pero sin
+       marcar. En la fuerza manda el 60 % de lo previsto, sin ese suelo. */
+    if (fam === "fuerza") return Math.max(5, Math.round((sesion.min || 15) * 0.6));
     return Math.max(MIN_SESION, Math.round((sesion.min || 45) * 0.6));
   }
 
@@ -13250,7 +13254,7 @@
         garmin: "Press de banca inclinada con mancuernas" },
       { n: "Extensión de tríceps", s: 2, r: "12",         kg: 7.5,
         nota: "Sentado, una mancuerna cogida con las dos manos por detrás de la cabeza; los codos quietos, apuntando arriba. Empezar con 7,5",
-        garmin: "Extensión de tríceps con mancuerna (la que tenga el reloj)" },
+        garmin: "Extensión de tríceps por encima de la cabeza con mancuernas" },
       { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros. Respirando, sin bloquear el aire" }
     ]},
     { id: "B", n: "Fuerza B", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
