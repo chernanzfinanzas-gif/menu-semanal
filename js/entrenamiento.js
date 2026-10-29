@@ -1789,6 +1789,22 @@
              alta: (s / t.length) >= 135 || (d / t.length) >= 85 };   // umbral en casa (v270)
   }
 
+  /* 29-oct-2026: una tensión diaria (media de todas las tomas del día), para
+     poder calcular sobre ella una franja de referencia como la del VFC. La
+     cuenta de vfcConFranja machaca el valor si hay dos tomas el mismo día en
+     vez de promediarlas, así que hace falta esto antes de pasársela. */
+  function serieTensionDiaria(campo, v) {
+    var t = tomasTension(v.desde, v.hasta), porDia = {}, out = [];
+    t.forEach(function (x) {
+      var val = campo === "dia" ? x.dia : x.sis;
+      if (!(val > 0)) return;
+      if (!porDia[x.f]) porDia[x.f] = { s: 0, n: 0 };
+      porDia[x.f].s += val; porDia[x.f].n++;
+    });
+    for (var f in porDia) out.push({ f: f, v: porDia[f].s / porDia[f].n });
+    return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+  }
+
   /* ---------- el CSV del tensiómetro ----------
      Los exports de Omron cambian de columnas según la versión y el idioma, así
      que no se asume un formato: se busca cada dato por el nombre de su columna
@@ -8149,10 +8165,10 @@
     return dias <= 100;
   }
 
-  function botonNoches(dias) {
+  function botonNoches(dias, etq) {
     var puesto = tocanNoches(dias);
     return '<button type="button" class="evo-r noches-vfc' + (puesto ? " activo" : "") +
-      '" data-noches="1">' + (puesto ? "Ocultar" : "Ver") + " las medias nocturnas</button>";
+      '" data-noches="1">' + (puesto ? "Ocultar" : "Ver") + " " + (etq || "las medias nocturnas") + "</button>";
   }
 
   /* la mediana de los N puntos anteriores a una fecha, de una serie {f,v}:
@@ -8181,7 +8197,7 @@
      único que cambia es de dónde sale la media de 7 días —la VFC tiene la suya
      ya calculada en `vfc7` y la nota no— y hacia dónde es peor: en las dos
      bajar es peor, así que por ahora no hace falta más. */
-  function vfcConFranja(diario, desde, hasta, campoMedia7) {
+  function vfcConFranja(diario, desde, hasta, campoMedia7, peor) {
     var porFecha = {}, fechas = [];
     diario.forEach(function (p) {
       if (typeof p.v === "number" && p.v > 0) { porFecha[p.f] = p.v; fechas.push(p.f); }
@@ -8216,7 +8232,12 @@
         inf.push({ f: f, v: lo });
         sup.push({ f: f, v: hi });
         if (m7 !== null) {
-          var estado = m7 >= lo ? "verde" : (m7 >= lo * VFC_ROJO ? "naranja" : "rojo");
+          /* con «peor: sube» (tensión, respiración…) lo malo es pasarse del
+             techo de la franja, no quedarse corto del suelo: al revés que la
+             VFC, donde lo malo es quedarse corto. */
+          var estado = peor === "sube"
+            ? (m7 <= hi ? "verde" : (m7 <= hi * (2 - VFC_ROJO) ? "naranja" : "rojo"))
+            : (m7 >= lo ? "verde" : (m7 >= lo * VFC_ROJO ? "naranja" : "rojo"));
           puntos.push({ f: f, v: m7, e: estado });
         }
       } else if (m7 !== null) {
@@ -10692,8 +10713,16 @@
          el de la exportación de Garmin, que lo trae desde 2019: lo tecleado
          manda en el día que lo haya. */
       spo2_noche: { n: "SpO2 de la noche", u: "%", dias: 60, serie: function () { return serieMixta("spo2_noche", v); },
+                    conFranja: true, noches: function (w) { return serieMixta("spo2_noche", w); },
+                    peor: "baja", campoMedia7: null,
+                    leyFranja: { verde: "en tu rango", naranja: "baja", rojo: "muy baja" },
+                    etqCruda: "cada noche", etqMedia7: "media de 7 noches", etqBoton: "las noches sueltas",
                     pie: "Media de la noche, de muñeca: es aproximada y vale por la tendencia. Si se queda baja semanas, es dato para la revisión de cardiología." },
       resp_sueno: { n: "Respiración durmiendo", u: "rpm", dias: 60, serie: function () { return serieApp("resp_sueno", v); },
+                    conFranja: true, noches: function (w) { return serieApp("resp_sueno", w); },
+                    peor: "sube", campoMedia7: null,
+                    leyFranja: { verde: "en tu rango", naranja: "alta", rojo: "muy alta" },
+                    etqCruda: "cada noche", etqMedia7: "media de 7 noches", etqBoton: "las noches sueltas",
                     pie: "Suele ser muy estable. Una subida de uno o dos puntos que se sostiene, con el pulso arriba, es la señal de que algo se incuba." },
       /* v554: desde el 20-oct lo que se teclea cada mañana es la media despierto
          del día ANTERIOR, así que se pinta en ese día. Lo de antes se queda
@@ -10727,6 +10756,9 @@
                return serieSalud("vfc7", v);
              },
              conFranja: true, noches: function (w) { return serieSalud("vfc", w); },
+             peor: "baja", campoMedia7: "vfc7",
+             leyFranja: { verde: "equilibrada", naranja: "desequilibrada", rojo: "baja" },
+             etqCruda: "cada noche", etqMedia7: "media de 7 noches", etqBoton: "las medias nocturnas",
              objetivo: baseSalud("base_vfc"), etqObj: "tu base",
              pie: "La franja gris es lo normal EN TI, el rango central de tus últimas " + VFC_VENTANA +
                   " noches. Cada punto es la media de 7 noches: verde dentro de la franja, naranja " +
@@ -10795,6 +10827,13 @@
                  }, serie2: function () {
                    return tomasTension(v.desde, v.hasta).map(function (t) { return { f: t.f, v: t.dia }; });
                  }, etq2: "diastólica", par: ["alta", "baja"], techo: 135, etqTecho: "135 · umbral en casa",
+                 /* 29-oct-2026: franja de referencia, solo sobre la alta (la sistólica),
+                    como la VFC pero al revés: aquí lo malo es pasarse por arriba, no
+                    quedarse corto. La baja se sigue viendo con su línea, sin franja. */
+                 conFranja: true, noches: function (w) { return serieTensionDiaria("sis", w); },
+                 peor: "sube", campoMedia7: null,
+                 leyFranja: { verde: "en tu rango", naranja: "por encima", rojo: "alta de verdad" },
+                 etqCruda: "cada toma", etqMedia7: "media de 7 días", etqBoton: "las tomas sueltas",
                  pie: "Azul la alta, roja la baja. Lo que se mira es la media de varios días, nunca una toma." },
       pulso: { n: "Pulso del tensiómetro", u: "ppm", dias: 30, serie: function () {
                  return tomasTension(v.desde, v.hasta).filter(function (t) { return t.pul; })
@@ -10944,8 +10983,11 @@
       var opFranja = null, leyFranja = "";
       if (d.conFranja && d.noches) {
         var noches = d.noches({ desde: U.sumarDias(desde, -(VFC_VENTANA + 30)), hasta: U.hoyISO() });
-        var frH = vfcConFranja(noches, desde, U.hoyISO());
+        var cm7 = d.campoMedia7 !== undefined ? d.campoMedia7 : null;
+        var frH = vfcConFranja(noches, desde, U.hoyISO(), cm7, d.peor);
         if (frH) {
+          var ley = d.leyFranja || { verde: "en tu rango", naranja: "por fuera", rojo: "lejos de lo tuyo" };
+          var etqCr = d.etqCruda || "cada dato", etqM7 = d.etqMedia7 || "media de 7 días";
           var COLORH = { verde: VFC_VERDE, naranja: VFC_NARANJA, rojo: VFC_ROJO_C, gris: "#9aa8a2" };
           var nochesTramo = noches.filter(function (x) { return x.f >= desde; });
           var diasH = diasEntre(desde, U.hoyISO());
@@ -10962,12 +11004,12 @@
           opFranja = { sup: frH.sup, inf: frH.inf, color: "#dfe4e2", opacidad: 0.85 };
           lineas = [];              // con franja, la raya de la base sobra y ensucia
           leyFranja = leyenda([
-            { n: "equilibrada", color: VFC_VERDE },
-            { n: "desequilibrada", color: VFC_NARANJA },
-            { n: "baja", color: VFC_ROJO_C },
+            { n: ley.verde, color: VFC_VERDE },
+            { n: ley.naranja, color: VFC_NARANJA },
+            { n: ley.rojo, color: VFC_ROJO_C },
             { n: "lo normal en ti", color: "#dfe4e2" }
-          ].concat(cabenH ? [{ n: "cada noche", color: "#8d9a94", guiones: true }] : [])) +
-            '<div class="evo-rangos noches">' + botonNoches(diasH) + "</div>";
+          ].concat(cabenH ? [{ n: etqCr, color: "#8d9a94", guiones: true }] : [])) +
+            '<div class="evo-rangos noches">' + botonNoches(diasH, d.etqBoton) + "</div>";
         }
       }
 
@@ -10977,8 +11019,8 @@
         franja: opFranja,
         alt: d.n, series: series, unidadTip: d.u, par: d.par,
         explica: opFranja
-          ? "Cada punto es la media de 7 noches; la franja, lo normal en ti. " +
-            "Pasa el dedo por encima para ver cada valor con su fecha."
+          ? "Cada punto es la " + (d.etqMedia7 || "media de 7 días") +
+            "; la franja, lo normal en ti. Pasa el dedo por encima para ver cada valor con su fecha."
           : "Tu serie de " + d.n + " en el tramo elegido" +
             (d.objetivo ? ", con la línea del objetivo" : "") +
             (d.techo ? " y la del límite" : "") +
