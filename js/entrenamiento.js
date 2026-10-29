@@ -5908,17 +5908,27 @@
   }
 
   function diaDeSalud(f) { var D = DiarioSalud.datos; return (D && D.dias && D.dias[f]) || {}; }
-  var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes, miércoles y viernes
+  var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes y viernes (el miércoles lo trae la ortostática)
 
   /* Días que aún no han llegado: qué tocará medir y, si es mañana, la prueba
      que dejó la revisión de hoy. Carlos, 29-sep: «los hoy toca de mañana y
-     días siguientes no se ven». */
+     días siguientes no se ven».
+     29-oct-2026 (Carlos): semana nueva —
+       lunes:    peso (subida) · músculo/agua/hueso · ECG
+       martes:   tensión
+       miércoles: peso (recuperación) · músculo/agua/hueso · prueba ortostática (con su ECG sentado al final)
+       jueves:   tensión
+       viernes:  peso (limpio) · cintura/cuello/tobillo/muslo/brazo/gemelo · músculo/agua/hueso · ECG
+  */
   function tocaDe(dia) {
     var dSem = new Date(dia + "T12:00:00").getDay();
-    var toca = ["Tensión", "Báscula"];
-    if (dSem === 3 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (Sensor Logger en la cama)");
-    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5) toca.push("ECG (Sensor Logger sentado)");
-    if (dSem === 1) toca.push("Medidas del lunes (cinta, músculo, agua y masa ósea)");
+    var toca = [];
+    if (dSem === 2 || dSem === 4) toca.push("Tensión");
+    if (dSem === 1 || dSem === 3 || dSem === 5) toca.push("Báscula");
+    if (dSem === 3 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (tumbado + de pie + sentado; el sentado cuenta como el ECG)");
+    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 5) toca.push("ECG (Sensor Logger sentado)");
+    if (dSem === 1 || dSem === 3 || dSem === 5) toca.push("Músculo, agua y masa ósea");
+    if (dSem === 5) toca.push("Medidas del viernes (cintura, cuello, tobillo, muslo, brazo y gemelo)");
     return toca;
   }
   /* `alFinal` (v545): la misma tarjeta, al pie de la ficha de salud de HOY. Carlos,
@@ -5955,18 +5965,25 @@
     if (L && L.fecha === hoy) {
       items = (L.items || []).slice();
     } else {
-      items = [{ n: "Tensión", ok: false }, { n: "Báscula", ok: false }];
-      if (dSem === 3 && hoy >= ORTO_DESDE) items.push({ n: "Prueba ortostática", ok: false });
-      if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 3 || dSem === 5)
+      // 29-oct-2026 (Carlos): semana nueva — tensión mar/jue, báscula lun/mié/vie,
+      // ECG lun/vie (el miércoles lo trae la prueba ortostática).
+      items = [];
+      if (dSem === 2 || dSem === 4) items.push({ n: "Tensión", ok: false });
+      if (dSem === 1 || dSem === 3 || dSem === 5) items.push({ n: "Báscula", ok: false });
+      if (dSem === 3 && hoy >= ORTO_DESDE) items.push({ n: "Prueba ortostática (con el ECG al final)", ok: false });
+      if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 5)
         if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger sentado)", ok: false });
         else items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
+      if (dSem === 1 || dSem === 3 || dSem === 5) items.push({ n: "Músculo, agua y masa ósea", ok: false });
     }
-    if (dSem === 1) {
-      var hechas = ["cintura", "musculo", "agua", "hueso"].filter(function (k) {
+    if (dSem === 5) {
+      var camposV = ["cintura", "cuello", "tobillo", "muslo", "brazo", "gemelo"];
+      var hechas = camposV.filter(function (k) {
         var v = medida(hoy, k); return v != null && v !== "";
       }).length;
-      items.push({ n: "Medidas del lunes", ok: hechas === 4,
-                   detalle: hechas === 4 ? "apuntadas" : "cinta, músculo, agua y masa ósea (" + hechas + " de 4)" });
+      items.push({ n: "Medidas del viernes", ok: hechas === camposV.length,
+                   detalle: hechas === camposV.length ? "apuntadas"
+                            : "cintura, cuello, tobillo, muslo, brazo y gemelo (" + hechas + " de " + camposV.length + ")" });
     }
     var deViaje = diaDeViaje(hoy);                // v555: de viaje no falta nada
     if (deViaje) items = items.filter(function (i) { return i.ok; });
@@ -8136,6 +8153,18 @@
     var puesto = tocanNoches(dias);
     return '<button type="button" class="evo-r noches-vfc' + (puesto ? " activo" : "") +
       '" data-noches="1">' + (puesto ? "Ocultar" : "Ver") + " las medias nocturnas</button>";
+  }
+
+  /* la mediana de los N puntos anteriores a una fecha, de una serie {f,v}:
+     la misma idea que la base del M12 (29-oct-2026), pero para series que no
+     son un dato por noche, como el peso. */
+  function medianaPrevia(serie, fecha, n) {
+    var vals = serie.filter(function (p) { return p.f < fecha && typeof p.v === "number"; })
+                     .map(function (p) { return p.v; });
+    if (vals.length < Math.min(4, n)) return null;
+    vals = vals.slice(-n).sort(function (a, b) { return a - b; });
+    var h = Math.floor(vals.length / 2);
+    return vals.length % 2 ? vals[h] : (vals[h - 1] + vals[h]) / 2;
   }
 
   function percentilOrd(v, p) {
@@ -11069,7 +11098,8 @@
   var MEJOR = {
     peso: "baja", cintura: "baja", cuello: null, tobillo: null, brazo: null, muslo: null, gemelo: null,
     grasa: "baja", grasaCinta: "baja", magra: "sube", musculo: "sube", vfc: "sube", fcr: "baja", sueno: "sube",
-    pt_sueno: "sube", ctl: "sube", carga: "sube", tension: "baja", pulso: null
+    pt_sueno: "sube", ctl: "sube", carga: "sube", tension: "baja", pulso: null,
+    spo2_noche: "sube", resp_sueno: "baja"
   };
 
   function serieDe(clave, dias) {
@@ -14448,8 +14478,10 @@
     /* Las medidas van en dos grupos: las que el método pide HOY, que son las
        obligatorias, y el resto, que están ahí por si te apetece medir.
        La fecha del día abierto es la que se guarda. */
-    var tocanHoy = [], lasDemas = [];
-    P.medidas.forEach(function (m) { (tocaMedida(m, dia) ? tocanHoy : lasDemas).push(m); });
+    var tocanHoy = [];
+    // 29-oct-2026 (Carlos): fuera «Las demás» — ya no se enseñan medidas sueltas
+    // «por si apetece»; solo las que tocan hoy.
+    P.medidas.forEach(function (m) { if (tocaMedida(m, dia)) tocanHoy.push(m); });
 
     /* 29-sep-2026: verde = llega sola (correo o intervals); amarillo = a mano. */
     var LLEGAN = { peso: 1, grasa: 1, sistolica: 1, diastolica: 1, pulso: 1, ecg: 1 };
@@ -14577,12 +14609,6 @@
           '<span><u class="amano"></u>la apuntas tú</span></p>';
         h += '<div class="ent-medidas obligatorias">';
         tocanHoy.forEach(function (m) { h += pintaMedida(m); if (m.id === "peso") h += pintaImc(); });
-        h += "</div>";
-      }
-      if (lasDemas.length) {
-        h += '<h3 class="ent-subt suave">Las demás<span class="ent-cuenta">solo si te apetece</span></h3>';
-        h += '<div class="ent-medidas">';
-        lasDemas.forEach(function (m) { h += pintaMedida(m); if (m.id === "peso") h += pintaImc(); });
         h += "</div>";
       }
       h += htmlObs(dia);
@@ -15089,6 +15115,17 @@
       "de 100, de Garmin", "pt_sueno", null,
       (d.pt_sueno || d.pt_sueno === 0) ? d.pt_sueno : null);
 
+    /* 29-oct-2026: banda de referencia como la del VFC, pero con la misma
+       mediana de 14 noches que ya usa el aviso M12 — es la que de verdad
+       dice si esta noche está dentro de lo tuyo o no. */
+    var spo2D = m12Valor("spo2", fechaDato), spo2B = m12Base("spo2", fechaDato).m;
+    h += tarjeta("SpO2 de la noche", spo2D !== null ? num(spo2D) + " %" : null,
+      spo2B !== null ? "tu base: " + num(spo2B) + " %" : "", "spo2_noche", null, spo2D);
+
+    var respD = m12Valor("resp", fechaDato), respB = m12Base("resp", fechaDato).m;
+    h += tarjeta("Respiración durmiendo", respD !== null ? num(respD) + " rpm" : null,
+      respB !== null ? "tu base: " + num(respB) + " rpm" : "", "resp_sueno", null, respD);
+
     var bal = (typeof d.ctl === "number" && typeof d.atl === "number") ? d.ctl - d.atl : null;
     h += tarjeta("Forma y fatiga", (typeof d.ctl === "number") ? num(d.ctl) + " / " + num(d.atl) : null,
       bal === null ? "" : "Balance " + signo(bal) + " · el color lo manda la forma (CTL)",
@@ -15099,7 +15136,9 @@
       sem ? "objetivo de la semana: " + sem.carga : "", "carga", tendenciaCarga(sem, dia), null);
 
     var p = ultimoPeso(dia);
-    h += tarjeta("Peso", p ? num(p.kg) + " kg" : null, p ? "del " + U.etiquetaFecha(p.f) : "",
+    var baseP = p ? medianaPrevia(serieDe("peso", 180), p.f, 8) : null;
+    h += tarjeta("Peso", p ? num(p.kg) + " kg" : null,
+      p ? "del " + U.etiquetaFecha(p.f) + (baseP !== null ? " · tu base: " + num(baseP) + " kg" : "") : "",
       "peso", null, p ? p.kg : null);
 
     /* La grasa de la báscula y la masa magra se han ido arriba, al lado de la

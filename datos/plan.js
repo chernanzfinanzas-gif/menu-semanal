@@ -504,25 +504,33 @@
 
     /* ---------- lo que se teclea ---------- */
     medidas: [
+      /* 29-oct-2026 (Carlos): de sábado a viernes, con un significado por día —
+         lunes lo que ha subido el fin de semana, miércoles la recuperación y
+         viernes el «peso limpio», sin agua retenida, que es el nuevo punto de
+         partida de la semana (salvo que haya «Comí distinto» el miércoles o el
+         jueves, en cuyo caso sigue siendo el punto limpio pero con ese
+         comentario de contexto). */
       { id: "peso",    nombre: "Peso",       unidad: "kg",   paso: 0.1, min: 35, max: 250,
-        dias: [0, 1, 2, 3, 4, 5, 6], diasFijos: [1, 3, 6], ultimo: true,
+        dias: [1, 3, 5], diasFijos: [1, 3, 5], ultimo: true,
         ayuda: "Al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar. " +
-               "Los días fijos son lunes, miércoles y sábado, pero si te pesas otro día, queda anotado igual. " +
+               "Lunes, miércoles y viernes: el lunes enseña lo que ha subido el fin de semana, el miércoles la " +
+               "recuperación, y el viernes es el peso limpio, el nuevo punto de partida de la semana. " +
                "Lo que escribas aquí es para verlo mientras llega: cuando el dato baje de intervals, manda el suyo." },
       { id: "cintura", nombre: "Cintura",    unidad: "cm",   paso: 0.5, min: 50, max: 180,
-        dias: [1], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. La cinta apoyada, sin apretar. Mide dos veces y quédate con la que se repita." },
+        dias: [5], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. La cinta apoyada, sin apretar. Mide dos veces y quédate con la que se repita. Viernes, con el peso limpio." },
       { id: "cuello",  nombre: "Cuello",     unidad: "cm",   paso: 0.5, min: 25, max: 60,
-        dias: [1], ayuda: "Justo debajo de la nuez, con la cinta un poco inclinada hacia abajo por delante. Con cuello y cintura sale el porcentaje de grasa por cinta, que no se mueve con la hidratación." },
+        dias: [5], ayuda: "Justo debajo de la nuez, con la cinta un poco inclinada hacia abajo por delante. Con cuello y cintura sale el porcentaje de grasa por cinta, que no se mueve con la hidratación." },
       /* Las de arriba salen el día que tocan; cualquier otra se anota con
          «Anotar otra medida», porque la fecha manda sobre el día de la semana. */
+      /* 29-oct-2026 (Carlos): de diaria a martes y jueves. */
       { id: "sistolica",  nombre: "T. alta", unidad: "mmHg", paso: 1, min: 60, max: 260,
-        dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
+        dias: [2, 4], guia: "tension",   // martes y jueves desde el 29-oct-2026; llega sola del tensiómetro
         ayuda: "La alta es la SISTÓLICA, el número grande del tensiómetro. Los corticoides la suben." },
       { id: "diastolica", nombre: "T. baja", unidad: "mmHg", paso: 1, min: 30, max: 160,
-        dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
+        dias: [2, 4], guia: "tension",   // martes y jueves desde el 29-oct-2026; llega sola del tensiómetro
         ayuda: "La baja es la DIASTÓLICA, el segundo número." },
       { id: "pulso",   nombre: "Pulso",      unidad: "ppm",  paso: 1, min: 30, max: 200,
-        dias: [0, 1, 2, 3, 4, 5, 6], guia: "tension",   // a diario desde el 30-sep-2026: llega sola del tensiómetro
+        dias: [2, 4], guia: "tension",   // martes y jueves desde el 29-oct-2026; llega sola del tensiómetro
         ayuda: "El que marca el tensiómetro en esa misma medida. Sirve de contraste con el pulso en reposo del reloj." },
       /* LO QUE EL RELOJ MIDE DE NOCHE Y NO LLEGA SOLO  ·  9-oct-2026.
          Carlos: «lo puedo meter a mano, sin problema… se hace mientras se anotan
@@ -554,25 +562,33 @@
          miércoles y viernes. No se teclea: el programa del portátil
          (recoger-ecg.py) lo saca del correo y lo sube a datos/ecg.json, y la
          casilla se marca sola cuando llega. */
+      /* 29-oct-2026 (Carlos): el miércoles ya no pide un ECG aparte — la prueba
+         ortostática de ese día acaba con 3 minutos sentado que cuentan como el
+         ECG del día (ver recoger-ecg.py, menu-semanal-datos). Por eso el
+         miércoles sale de esta lista: solo lunes y viernes. */
       { id: "ecg", nombre: "ECG", unidad: "lpm", auto: "ecg", guia: "ecg",
-        desde: "2026-09-28", diariaHasta: "2026-10-28", diasDespues: [1, 3, 5],
-        ayuda: "Al levantarte, sentado. Se marca solo cuando lo mandas por correo desde ECG Analysis." },
+        desde: "2026-09-28", diariaHasta: "2026-10-28", diasDespues: [1, 5],
+        ayuda: "Al levantarte, sentado. Se marca solo cuando llega. El miércoles lo trae la prueba ortostática." },
       { id: "tobillo", nombre: "Tobillo",    unidad: "cm",   paso: 0.5, min: 15, max: 45,
-        diariaHasta: "2026-09-28", diasDespues: [1],
-        ayuda: "Mide retención de líquidos, no grasa. Justo por encima de los huesos del tobillo, siempre la MISMA pierna y por la mañana. Con el corticoide, a diario." },
+        diariaHasta: "2026-09-28", diasDespues: [5],
+        ayuda: "Mide retención de líquidos, no grasa. Justo por encima de los huesos del tobillo, siempre la MISMA pierna y por la mañana. Viernes, con el resto de medidas." },
+      /* 29-oct-2026 (Carlos): «lo mido cuando mido lo demás, el viernes siempre;
+         no tardo nada en medir dos cosas más ese día». De mensual (día 1) a
+         semanal, el viernes, con cintura/cuello/tobillo — sigue siendo solo
+         informativo, simplemente con más puntos en la serie. */
       { id: "brazo",   nombre: "Brazo",      unidad: "cm",   paso: 0.5, min: 15, max: 70,
-        diaDelMes: 1, informativo: true, ayuda: "Mensual y solo informativo: se mueve 2-3 mm en meses y la cinta tiene ±5 mm de error." },
+        dias: [5], informativo: true, ayuda: "Solo informativo: se mueve 2-3 mm en semanas y la cinta tiene ±5 mm de error. Viernes, con el resto de medidas." },
       { id: "muslo",   nombre: "Muslo",      unidad: "cm",   paso: 0.5, min: 30, max: 90,
-        diaDelMes: 1, informativo: true,
-        ayuda: "Mensual. Es donde vive el músculo del ciclista: si el peso baja y el muslo aguanta, vas bien; si bajan los dos, estás perdiendo músculo." },
+        dias: [5], informativo: true,
+        ayuda: "Viernes, con el resto de medidas. Es donde vive el músculo del ciclista: si el peso baja y el muslo aguanta, vas bien; si bajan los dos, estás perdiendo músculo." },
       /* EL GEMELO  ·  añadido el 24-sep-2026. Idea suya: «cosas de ciclista».
          Mensual, como muslo y brazo. Pero con un matiz que los otros dos no
          tienen y que está escrito en la ayuda: el gemelo TAMBIÉN se hincha por
          retención de líquidos, que es justo lo que mide el tobillo. Un gemelo
          que sube no es músculo por sí solo: hay que leerlo contra el tobillo. */
       { id: "gemelo",  nombre: "Gemelo",     unidad: "cm",   paso: 0.5, min: 25, max: 55,
-        diaDelMes: 1, informativo: true,
-        ayuda: "Mensual. De pie, peso en las dos piernas y músculo relajado —no de puntillas—, " +
+        dias: [5], informativo: true,
+        ayuda: "Viernes, con el resto de medidas. De pie, peso en las dos piernas y músculo relajado —no de puntillas—, " +
                "por la parte más ancha, siempre la MISMA pierna (la del tobillo) y por la mañana. " +
                "Marca con boli dónde mides la primera vez: 2 cm arriba o abajo cambian más el número " +
                "que un mes de bici. OJO: el gemelo también se hincha por líquido. Se lee con el tobillo " +
@@ -583,13 +599,15 @@
          Desde el 29-sep-2026 tocan los LUNES, con la cinta (lo decidió Carlos:
          «músculo, agua y masa ósea se miden los lunes, junto a las medidas de
          la cinta»). */
+      /* 29-oct-2026 (Carlos): con la frecuencia de las pesadas, que ahora son
+         lunes, miércoles y viernes (antes solo lunes). */
       { id: "musculo", nombre: "Músculo", unidad: "kg", paso: 0.1, min: 15, max: 80,
-        aMano: true, informativo: true, dias: [1],
+        aMano: true, informativo: true, dias: [1, 3, 5],
         ayuda: "Lo mide tu báscula pero no llega a intervals, así que este es el único sitio donde puede entrar. " +
-               "Míralo en la app de Garmin el día que te peses y anótalo aquí cuando te acuerdes. " +
-               "Con dos o tres al mes basta para ver si lo que pierdes es grasa o músculo." },
+               "Míralo en la app de Garmin el día que te peses (lunes, miércoles y viernes) y anótalo aquí. " +
+               "Con dos o tres por semana basta para ver si lo que pierdes es grasa o músculo." },
       { id: "agua", nombre: "Agua", unidad: "%", paso: 0.1, min: 25, max: 75,
-        aMano: true, informativo: true, dias: [1],
+        aMano: true, informativo: true, dias: [1, 3, 5],
         ayuda: "De la misma pantalla de Garmin que el músculo. Ojo con leerlo como un objetivo: sube cuando pierdes grasa, " +
                "pero también cuando retienes líquido, y con el corticoide te pueden estar pasando las dos cosas a la vez. " +
                "Por eso aquí no se pinta de color: es contexto para explicar el peso, no una meta." },
@@ -606,7 +624,7 @@
                "que no llegue o para corregirla. Y ojo el día que la masa ósea baile, porque " +
                "entonces el porcentaje de grasa de esa pesada tampoco vale." },
       { id: "hueso", nombre: "Masa ósea", unidad: "kg", paso: 0.1, min: 1, max: 8,
-        aMano: true, informativo: true, dias: [1],
+        aMano: true, informativo: true, dias: [1, 3, 5],
         ayuda: "Apenas se mueve en un adulto, así que vale de control de la propia báscula: si cambia mucho de un mes a otro, " +
                "lo que falla es la medición —pies mal colocados, humedad, hora distinta—, no tu esqueleto. " +
                "Y si ese día la ósea baila, el porcentaje de grasa de ese día tampoco vale." }
