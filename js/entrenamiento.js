@@ -7877,13 +7877,30 @@
                   { pts: mD, color: AZUL, ancho: 1.6 }];
     if (sisTa.length) series.push({ pts: sisTa, color: NARANJA_T, soloPuntos: true, marcarUltimo: false },
                                   { pts: diaTa, color: MORADO_T, soloPuntos: true, marcarUltimo: false });
+    /* 29-oct-2026: franja de lo normal EN TI, sobre la alta — como la del VFC
+       pero al revés (aquí lo malo es pasarse por arriba). Se calcula con cola
+       de datos previa, igual que la VFC, para que el tramo no empiece en
+       blanco. */
+    /* las dos franjas van con «subir es lo malo»: en tensión, lo que importa
+       —incluso en la baja— es que no se dispare, no que baje. */
+    var diarioExtS = serieTensionDiaria("sis", { desde: U.sumarDias(desde, -(VFC_VENTANA + 30)), hasta: hasta });
+    var diarioExtD = serieTensionDiaria("dia", { desde: U.sumarDias(desde, -(VFC_VENTANA + 30)), hasta: hasta });
+    var frTS = vfcConFranja(diarioExtS, desde, hasta, null, "sube");
+    var frTD = vfcConFranja(diarioExtD, desde, hasta, null, "sube");
+    var franjasT = [];
+    if (frTS) franjasT.push({ sup: frTS.sup, inf: frTS.inf, color: "#f1d9d3", opacidad: 0.6 });
+    if (frTD) franjasT.push({ sup: frTD.sup, inf: frTD.inf, color: "#d3e0ec", opacidad: 0.6 });
+
     var ley = [{ n: "alta, media de 7 días", color: ROJO }, { n: "baja, media de 7 días", color: AZUL }];
     if (sisTa.length) ley.push({ n: "alta de la tarde", color: NARANJA_T }, { n: "baja de la tarde", color: MORADO_T });
     ley.push({ n: "135/85, umbral en casa", color: "#eccf9a", guiones: true });
+    if (frTS) ley.push({ n: "lo normal en ti, la alta", color: "#f1d9d3" });
+    if (frTD) ley.push({ n: "lo normal en ti, la baja", color: "#d3e0ec" });
     out.html = grafica({
       desde: desde, hasta: hasta, alto: alto || 120, arriba: "mmHg", unidadTip: "mmHg", min: yMin, max: yMax,
-      alt: "Tensión alta y baja", par: ["alta", "baja"],
-      explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja. Al pasar el dedo: la media de todas las tomas de ese día.",
+      alt: "Tensión alta y baja", par: ["alta", "baja"], franja: franjasT,
+      explica: "Línea fina: la media de la mañana de cada día. Puntos: la de la tarde. Gruesa: la media de 7 días con todas las tomas. Rojo la alta, azul la baja. Al pasar el dedo: la media de todas las tomas de ese día." +
+        (franjasT.length ? " Las franjas son lo normal en ti, el rango central de tus últimas " + VFC_VENTANA + " tomas de cada una." : ""),
       lineasH: [{ v: 135, color: "#eccf9a", etq: "135" }, { v: 85, color: "#eccf9a", etq: "85" }],
       /* el globo: media de TODAS las tomas de ese día, en números enteros */
       tipPar: [sisD.map(function (x) { return { f: x.f, v: Math.round(x.v) }; }),
@@ -8307,10 +8324,10 @@
     series1.forEach(function (s) { s.pts.forEach(function (p) { todos.push(p.v); }); });
     /* La franja cuenta para la escala: si no, la banda de referencia se salía
        por arriba y se veía cortada justo donde hay que mirar. */
-    if (o.franja) {
-      (o.franja.sup || []).forEach(function (p) { todos.push(p.v); });
-      (o.franja.inf || []).forEach(function (p) { todos.push(p.v); });
-    }
+    (o.franja ? (Array.isArray(o.franja) ? o.franja : [o.franja]) : []).forEach(function (fr) {
+      (fr.sup || []).forEach(function (p) { todos.push(p.v); });
+      (fr.inf || []).forEach(function (p) { todos.push(p.v); });
+    });
     todos.sort(function (a, b) { return a - b; });
     function pct(q) { return todos[Math.min(todos.length - 1, Math.max(0, Math.round((todos.length - 1) * q)))]; }
     var min = pct(0.02), max = pct(0.98);
@@ -8461,13 +8478,14 @@
        como una raya. Es como lo enseña el reloj y como Carlos está acostumbrado
        a leerlo: no importa el número, importa si el punto cae dentro o fuera.
        Va la primera, debajo de todo, para que las líneas se vean encima. */
-    if (o.franja && (o.franja.sup || []).length > 1) {
-      var sup = o.franja.sup, inf = o.franja.inf || [];
+    (o.franja ? (Array.isArray(o.franja) ? o.franja : [o.franja]) : []).forEach(function (fr) {
+      if ((fr.sup || []).length <= 1) return;
+      var sup = fr.sup, inf = fr.inf || [];
       var arriba = sup.map(function (p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); });
       var abajo = inf.slice().reverse().map(function (p) { return X(p.f).toFixed(1) + "," + Y(p.v).toFixed(1); });
       s += '<polygon points="' + arriba.concat(abajo).join(" ") + '" fill="' +
-           (o.franja.color || "#dfe4e2") + '" opacity="' + (o.franja.opacidad || 0.75) + '"/>';
-    }
+           (fr.color || "#dfe4e2") + '" opacity="' + (fr.opacidad || 0.75) + '"/>';
+    });
 
     (o.lineasH || []).forEach(function (l) {
       var y = Y(l.v).toFixed(1);
