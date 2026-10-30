@@ -8075,6 +8075,19 @@
       d[toma] = propios.concat(fijos);
     },
 
+    /* LOS FIJOS, LA SEMANA ENTERA DE UNA VEZ (30-oct-2026). Carlos: «quiero que
+       al añadir un plato cualquier día de esa semana los recurrentes se
+       completen en los 7 días». Antes `ponerFijos` solo tocaba el día que
+       estabas editando, así que para ver el pan y el yogur en toda la semana
+       había que ir día por día poniendo algo en cada uno. `ponerFijos` ya sabe
+       no tocar el pasado ni lo que hayas vaciado o quitado a mano, así que
+       recorrer los 7 días es seguro: en los que no toca no hace nada. */
+    ponerFijosSemana: function (fecha) {
+      var lunes = Util.lunesDe(fecha), total = 0;
+      for (var i = 0; i < 7; i++) total += this.ponerFijos(Util.sumarDias(lunes, i));
+      return total;
+    },
+
     ponerFijos: function (fecha) {
       if (this.esPasado(fecha)) return 0;
       var d = this.asegurarDia(fecha);

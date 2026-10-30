@@ -1822,7 +1822,7 @@
         Almacen.olvidarQuitado(fecha, toma, id);
       });
       Almacen.marcarVaciada(fecha, toma, false);
-      Almacen.ponerFijos(fecha);
+      Almacen.ponerFijosSemana(fecha);   // 30-oct-2026: los recurrentes, en los 7 días
       Almacen.ordenarToma(fecha, toma);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
@@ -1850,7 +1850,7 @@
          Con esa marca por plato, el candado por toma sobraba: poner un plato es
          montar esa comida, así que la toma deja de estar «vaciada». */
       Almacen.marcarVaciada(fecha, toma, false);
-      Almacen.ponerFijos(fecha);
+      Almacen.ponerFijosSemana(fecha);   // 30-oct-2026: los recurrentes, en los 7 días
       Almacen.ordenarToma(fecha, toma);
       Almacen.tocarDia(fecha);
       Almacen.guardar("plato");
