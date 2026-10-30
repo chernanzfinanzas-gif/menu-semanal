@@ -1955,6 +1955,31 @@
         escribirEstado(e);
       }
 
+      /* EL CAFÉ VUELVE A SER EL NORMAL PARA LOS DOS (30-oct-2026). Carlos:
+         «desde el 2 de noviembre los dos tomamos café con leche normal, como
+         el de Susana, que salga por defecto al empezar semana todos los
+         días». Los dos cafés separados del 8-oct-2026 dejan de ser fijos
+         desde esa fecha (se quedan en el recetario, pero no se añaden solos);
+         «Leche con café», que ya era de los dos y nunca se borró, vuelve a
+         ser el fijo del desayuno desde el 2-nov-2026. Esto sólo cambia el
+         FIJO; lo ya planificado lo corrige el bloque de más abajo, el que
+         corre en cada arranque. */
+      if (!e.arreglos["2026-10-30-cafe-vuelve-a-normal"]) {
+        if (!e.config) e.config = {};
+        if (!e.config.fijos) e.config.fijos = [];
+        e.config.fijos.forEach(function (f) {
+          if (f.r === "des_cafe_leche_susana" || f.r === "des_leche_cafe_proteinas") f.hasta = "2026-11-01";
+        });
+        if (!e.config.fijos.some(function (f) { return f.r === "des_leche_cafe" && (f.tomas || []).indexOf("desayuno") >= 0; })) {
+          e.config.fijos.push({ r: "des_leche_cafe", tomas: ["desayuno"], desde: "2026-11-02" });
+        }
+        if (!e.recetaVista) e.recetaVista = {};
+        ["des_leche_cafe", "des_cafe_leche_susana", "des_leche_cafe_proteinas"]
+          .forEach(function (idCV) { e.recetaVista[idCV] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-30-cafe-vuelve-a-normal"] = true;
+        escribirEstado(e);
+      }
+
       /* EL PAN INTEGRAL PASA A SER EL DE DIARIO (8-oct-2026). Carlos: «el pan lo
          voy a cambiar por el que te he puesto, haz los cambios también para que
          sea lo que aparezca automáticamente en tostas y servicios de comida.
@@ -2080,6 +2105,7 @@
         var hoyDV = Util.hoyISO(), ahoraDV = new Date().toISOString(), tocado = false;
         Object.keys(e.plan || {}).forEach(function (f) {
           if (f < hoyDV) return;
+          if (f >= "2026-11-02") return;  /* desde esta fecha manda el cambio del 30-oct-2026, más abajo */
           var d = e.plan[f];
           if (!d) return;
           var s1 = (e.selloDia || {})[f] || "", s2 = (e.corregido || {})[f] || "";
@@ -2114,6 +2140,37 @@
           if (cambia) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraDV; tocado = true; }
         });
         if (tocado) { escribirEstado(e); }
+      })();
+
+      /* EL CAFÉ VUELVE A SER EL NORMAL PARA LOS DOS, DÍA A DÍA (30-oct-2026).
+         El arreglo de más arriba cambia el FIJO, no lo ya planificado. Esto
+         hace lo mismo que el bloque del CORTE de 8-oct pero al revés: en los
+         días que ya sean 2-nov-2026 o después, cambia los dos cafés
+         separados por «Leche con café», de los dos. Sólo toca lo que nadie
+         ha marcado como comido, y lo sella al cambiarlo, así que un día que
+         él ajuste a mano después no se vuelve a tocar. Se repite en cada
+         arranque y sincronización, como el otro bloque. */
+      (function () {
+        var DESDE_CAFE = "2026-11-02";
+        var hoyCN = Util.hoyISO(), ahoraCN = new Date().toISOString(), tocadoCN = false;
+        Object.keys(e.plan || {}).forEach(function (f) {
+          if (f < DESDE_CAFE) return;
+          var d = e.plan[f];
+          if (!d || !Array.isArray(d.desayuno)) return;
+          var comCN = (e.comido || {})[f] || {};
+          var comDes = comCN.desayuno || [];
+          var cambiaCN = false;
+          ["des_cafe_leche_susana", "des_leche_cafe_proteinas"].forEach(function (idViejo) {
+            if (comDes.indexOf(idViejo) >= 0) return;   /* ya se tomó ese, no se toca */
+            var iCN = d.desayuno.indexOf(idViejo);
+            if (iCN < 0) return;
+            d.desayuno.splice(iCN, 1);
+            cambiaCN = true;
+          });
+          if (cambiaCN && d.desayuno.indexOf("des_leche_cafe") < 0) d.desayuno.push("des_leche_cafe");
+          if (cambiaCN) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraCN; tocadoCN = true; }
+        });
+        if (tocadoCN) { escribirEstado(e); }
       })();
 
       /* LAS MARCAS CON NOMBRE DE PESTAÑA, FUERA (8-oct-2026). Desde el 6-oct cada
@@ -7952,6 +8009,12 @@
       var self = this, puestos = 0;
       (this.estado.config.fijos || []).forEach(function (f) {
         if (!self.receta(f.r)) return;
+        /* FIJOS CON FECHA (30-oct-2026): un fijo puede llevar `desde`/`hasta`
+           (AAAA-MM-DD) para dejar de aplicarse o empezar a hacerlo un día
+           concreto, sin tocar los días ya planificados. Lo estrena el cambio
+           del café del 2-nov-2026. */
+        if (f.desde && fecha < f.desde) return;
+        if (f.hasta && fecha > f.hasta) return;
         (f.tomas || []).forEach(function (toma) {
           if (self.esFuera(fecha, toma)) return;
           if (self.estaVaciada(fecha, toma)) return;   /* la vaciaste tú */
