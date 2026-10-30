@@ -791,10 +791,15 @@
                         'title="' + (fueraT ? "Se come fuera de casa: toca para volver a casa"
                                             : "Marcar como comida fuera de casa") +
                         '">\ud83c\udf7d\ufe0f <span>Fuera</span></button>') +
-                /* EL «+» SIGUE AHÍ AUNQUE LA TOMA SEA DE FUERA. Antes desaparecía, y
-                   con él la única manera de apuntar qué habías comido en el
-                   McDonald's: sólo quedaba la estimación genérica. */
-                (cerr || !activa ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
+                /* EL «+» SIGUE AHÍ AUNQUE LA TOMA SEA DE FUERA, O ESTÉ APAGADA POR NO
+                   HABER ENTRENO (30-oct-2026). Antes desaparecía, y con él la
+                   única manera de apuntar qué habías comido: sólo quedaba la
+                   estimación genérica, o nada. Carlos tomó un batido un día sin
+                   entreno y no pudo apuntarlo. Apagada sigue queriendo decir que
+                   la app no te lo plantea sola; ya no quiere decir que no puedas
+                   ponerlo tú, y lo que pongas ahora sí cuenta en la despensa y
+                   en la compra (ver `comprometidoTodo` y `generarCompra`). */
+                (cerr ? '' : '<button class="anadir" data-anadir="' + fecha + '|' + t.k + '">+</button>') +
                 '</div>';
         if (fueraT && !platos.length) {
           /* Sin nada apuntado, la estimación por toma es lo mejor que hay. En

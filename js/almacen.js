@@ -4951,7 +4951,10 @@
             if (self.estaComido(f, t, rid)) { comido[rid] = f; return; }
             if (f < hoy) return;                       // el pasado ya no espera
             if (self.esFuera(f, t)) return;            // eso no sale de tu despensa
-            if (!self.tomaActiva(f, t)) return;
+            /* 30-oct-2026: si está PUESTO, cuenta, aunque ese día la toma esté
+               apagada por no haber entreno. La regla de «solo si entrenas» es
+               para que la app no lo proponga sola, no para que lo que tú
+               apuntes a mano desaparezca de lo planificado. */
             planif[rid] = true;
           });
         });
@@ -5378,7 +5381,11 @@
         if (!dia) return;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
           if (self.esFuera(fecha, toma)) return;       // lo de fuera no sale de tu despensa
-          if (!self.tomaActiva(fecha, toma)) return;
+          /* 30-oct-2026: ya no se salta por toma apagada. Carlos: «si me lo
+             tomo tiene que borrarlo de la despensa y pedirlo». Lo que de
+             verdad está puesto compromete despensa igual, haya entreno o no;
+             la toma apagada solo deja de RELLENARSE sola (ver `completarDia`
+             y el refuerzo de calorías, que sí siguen mirando `tomaActiva`). */
           var personas = self.comensales(fecha, toma);
           var g = self.agrupar(dia[toma], fecha, toma);
           g.orden.forEach(function (rid) {
@@ -6805,8 +6812,8 @@
         var hallado = null;
         Util.TOMAS.forEach(function (t) {
           if (hallado) return;
-          if (self.esFuera(f, t.k) || !self.tomaActiva(f, t.k)) return;
-          (dia[t.k] || []).forEach(function (rid) {
+          if (self.esFuera(f, t.k)) return;             // lo de fuera no sale de tu despensa
+          (dia[t.k] || []).forEach(function (rid) {      // 30-oct-2026: puesto es puesto, haya o no entreno
             if (hallado || self.estaComido(f, t.k, rid)) return;
             var rec = self.receta(rid);
             if (!rec) return;
@@ -8873,10 +8880,10 @@
         if (this.esPasado(fecha)) continue;
         Util.TOMAS.forEach(function (t) {
           if (self.esFuera(fecha, t.k)) return;
-          /* Mismo criterio que la lista de ingredientes: si esa toma no toca ese día,
-             tampoco aparece aquí. Si no, saldría un plato que no se puede marcar
-             porque sus ingredientes no están en la lista de abajo. */
-          if (!self.tomaActiva(fecha, t.k)) return;
+          /* 30-oct-2026: ya no se salta por toma apagada. Lo contrario —un
+             plato puesto a mano cuyos ingredientes no aparecen aquí para poder
+             marcarlo— era justamente el problema que Carlos encontró: «si me
+             lo tomo tiene que borrarlo de la despensa y pedirlo». */
           (dia[t.k] || []).forEach(function (rid) {
             var rec = self.receta(rid);
             if (!rec) return;
@@ -8911,9 +8918,11 @@
            la semana en curso, metía los platos del lunes un jueves. */
         if (this.esPasado(fecha)) continue;
         ["desayuno", "almuerzo", "comida", "merienda", "cena"].forEach(function (toma) {
-          /* Lo que se come fuera no se compra, ni lo de una toma que ese día no toca. */
+          /* Lo que se come fuera no se compra. Lo de una toma apagada SÍ, si hay
+             algo puesto (30-oct-2026): «si me lo tomo tiene que borrarlo de la
+             despensa y pedirlo». Apagada solo quiere decir que la app no te lo
+             sugiere sola, no que lo que pongas tú no cuente. */
           if (self.esFuera(fecha, toma)) return;
-          if (!self.tomaActiva(fecha, toma)) return;
           /* Y se compra para los que comen ESA toma, no para los de la semana: un
              miércoles que cena solo son la mitad de raciones que un martes. */
           var personas = self.comensales(fecha, toma);
