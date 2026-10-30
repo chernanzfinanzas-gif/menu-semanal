@@ -2125,6 +2125,73 @@
         escribirEstado(e);
       }
 
+      /* EL PESCADO, IGUAL QUE LA CARNE (30-oct-2026). Carlos: «el langostino
+         vannamei cocido sigue preguntando raciones… el calamar puntilla le pasa
+         lo mismo, tengo 2 bolsas que son 8 raciones. Filetes de lubina son 2
+         paquetes con 2 raciones cada uno. En lomos de salmón se cuenta bien por
+         raciones, puedes poner lomos como con el bacalao, los lomos de merluza
+         igual. Solomillos de atún 1 paquete - 2 raciones».
+         El catálogo ya decía «bolsa» para el langostino y el calamar, pero la
+         copia guardada conservaba «ración»: el formato es suyo y el refresco no
+         lo pisa. Así que va aquí, una vez y con `tocado`. Salmón y merluza se
+         cuentan en LOMOS (un lomo, una ración), con su peso de pieza. */
+      if (!e.arreglos["2026-10-30-pescado-en-envases"]) {
+        var PESC = {
+          langostino_cocido: { formato: "bolsa" },
+          calamar_fresco:    { formato: "bolsa" },
+          lubina:            { formato: "paquete" },
+          atun_fresco:       { formato: "paquete" },
+          salmon_lomo:       { formato: "filete", pz: ["lomo", "lomos"], piezaML: 125 },
+          merluza_lomo:      { formato: "filete", pz: ["lomo", "lomos"], piezaML: 145 }
+        };
+        var ahoraPS = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          var cambio = g && PESC[g.id];
+          if (!cambio) return;
+          Object.keys(cambio).forEach(function (k) { g[k] = JSON.parse(JSON.stringify(cambio[k])); });
+          g.tocado = ahoraPS;
+        });
+        e.arreglos["2026-10-30-pescado-en-envases"] = true;
+        escribirEstado(e);
+      }
+
+      /* EL GAMBÓN, A 60 g POR RACIÓN (30-oct-2026). Carlos: «el gambón son 425
+         gramos - 7 raciones x 60 gramos». Igual que la cola de langostino. Se
+         cuenta en bolsas, como el resto del pescado en bolsa. */
+      if (!e.arreglos["2026-10-30-gambon-60"]) {
+        var ahoraGB = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || g.id !== "gambon_austral") return;
+          g.racion = 60; g.formato = "bolsa"; g.tocado = ahoraGB;
+        });
+        e.arreglos["2026-10-30-gambon-60"] = true;
+        escribirEstado(e);
+      }
+
+      /* LA DORADA, COMO LA LUBINA (30-oct-2026). Carlos: «los filetes de dorada
+         son como los filetes de lubina, un paquete 180 gramos - 2 raciones». */
+      if (!e.arreglos["2026-10-30-dorada-paquete"]) {
+        var ahoraDO = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || g.id !== "dorada_filete") return;
+          g.racion = 90; g.formato = "paquete"; g.tocado = ahoraDO;
+        });
+        e.arreglos["2026-10-30-dorada-paquete"] = true;
+        escribirEstado(e);
+      }
+
+      /* LA SEPIA, 4 RACIONES POR BOLSA (30-oct-2026). Carlos: «la sepia son
+         bolsas de 510 gramos - 4 raciones de 127,5 gramos». */
+      if (!e.arreglos["2026-10-30-sepia-4"]) {
+        var ahoraSE = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || g.id !== "sepia_limpia") return;
+          g.racion = 127.5; g.formato = "bolsa"; delete g.pz; g.tocado = ahoraSE;   /* se cuenta la bolsa, no las piezas */
+        });
+        e.arreglos["2026-10-30-sepia-4"] = true;
+        escribirEstado(e);
+      }
+
       /* EL ORDEN DE LA COMPRA PARA LO NUEVO (8-oct-2026). Carlos: «Leche proteína
          es el último, el primero que debe aparecer en la lista en despensa,
          detrás de él va el pan integral bajo en sal. El queso fresco batido va en
