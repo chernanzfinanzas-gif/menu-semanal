@@ -44,7 +44,7 @@
     /* En sábado y domingo «lo que queda de esta semana» es uno o dos días, y
        la compra grande es la de la semana que viene (Carlos, 4-oct-2026: «¿y
        Mercadona no debería venir relleno?», un domingo). */
-    cuandoCompra: ([0, 6].indexOf(new Date().getDay()) >= 0 ? "hasta14" : "resto"),
+    cuandoCompra: ([0, 6].indexOf(new Date().getDay()) >= 0 ? "todo" : "resto"),   /* 30-oct-2026: el fin de semana, todo lo planificado */
     tRuta: null,            // espera antes de repintar al teclear las horas de una ruta
     /* Días pasados que ha desbloqueado a mano para corregir algo. Vive solo en
        memoria: al recargar vuelven a estar cerrados, que es lo que se quiere. */

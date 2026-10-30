@@ -9058,7 +9058,38 @@
     RANGOS_COMPRA: {
       resto:    { n: "Lo que queda de esta semana",     desde: "hoy",   hasta: "finSemana" },
       siguiente:{ n: "La semana que viene",             desde: "lunes+7", hasta: "domingo+7" },
-      hasta14:  { n: "De hoy a fin de la semana que viene", desde: "hoy", hasta: "domingo+7" }
+      hasta14:  { n: "De hoy a fin de la semana que viene", desde: "hoy", hasta: "domingo+7" },
+      /* DE HOY A TODO LO PLANIFICADO (30-oct-2026). Carlos: «si planifico comida
+         para más de una semana, por ejemplo incluido el 9 de noviembre, ¿la lista
+         de la compra sale bien?… debería ser de hoy hasta todo lo planificado,
+         para asegurar que entra». No salía: la opción más larga acababa el
+         domingo de la semana que viene. Ésta acaba en el último día que tenga
+         algún plato puesto, y nunca antes que la de «fin de la semana que
+         viene», para que no se quede corta en una semana a medio planificar. */
+      todo:     { n: "De hoy a todo lo planificado", desde: "hoy", hasta: "ultimo" }
+    },
+
+    /* El último día, de hoy en adelante, con algún plato PUESTO POR ÉL.
+       Los fijos (cafés, yogur, pan, agua) no cuentan: Carlos, 30-oct-2026, «si
+       añado un plato el lunes me rellena todos los desayunos y demás y va a
+       pedir una cantidad ingente de leche y pan». Al poner un plato se
+       rellenan los fijos de los 7 días de esa semana; si contaran, un solo
+       plato el lunes estiraría la compra hasta el domingo con desayunos y pan
+       de días que todavía no ha planificado. */
+    ultimoPlanificado: function () {
+      var hoy = Util.hoyISO(), ult = null, plan = this.estado.plan || {};
+      var esFijo = {};
+      (this.estado.config.fijos || []).forEach(function (f) { esFijo[f.r] = true; });
+      Object.keys(plan).forEach(function (f) {
+        if (f < hoy || (ult && f <= ult)) return;
+        var d = plan[f];
+        if (!d) return;
+        var hay = Util.TOMAS.some(function (t) {
+          return (d[t.k] || []).some(function (id) { return !esFijo[id]; });
+        });
+        if (hay) ult = f;
+      });
+      return ult;
     },
 
     /* Devuelve {desde, hasta, dias, n} del rango elegido, ya recortado al futuro. */
@@ -9068,6 +9099,10 @@
       var r = this.RANGOS_COMPRA[clave] || this.RANGOS_COMPRA.resto;
       var desde = r.desde === "hoy" ? hoy : Util.sumarDias(lunes, 7);
       var hasta = r.hasta === "finSemana" ? Util.sumarDias(lunes, 6) : Util.sumarDias(lunes, 13);
+      if (r.hasta === "ultimo") {
+        var ult = this.ultimoPlanificado();
+        if (ult && ult > hasta) hasta = ult;
+      }
       if (desde > hasta) desde = hasta;                    // domingo por la tarde
       return { desde: desde, hasta: hasta, dias: Util.diasEntre(desde, hasta) + 1, n: r.n };
     },
