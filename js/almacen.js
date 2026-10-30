@@ -1980,6 +1980,32 @@
         escribirEstado(e);
       }
 
+      /* CORRECCIÓN DEL MISMO DÍA: NO ES UN CAFÉ COMPARTIDO, SON DOS (30-oct-2026,
+         por la tarde). El arreglo de arriba puso «Leche con café» como fijo único
+         de los dos. Carlos, al ver que le salía un café descafeinado y no el
+         suyo: «para los desayunos desde el día 2 tomamos 2 cafés con leche (el
+         de Susana), uno cada uno, no hay descafeinado». O sea: dos recetas, no
+         una. Flag NUEVO porque el de arriba ya corrió en su aparato y «ya pasé»
+         no es «ya hice esto» (ver nutricion-y-perfil.md, el mismo fallo con el
+         128/144). Deshace lo de arriba y deja «Café con leche (Susana)» fija
+         siempre, con «Café con leche (tuyo)» como su pareja desde el 2-nov. */
+      if (!e.arreglos["2026-10-30-cafe-dos-normales"]) {
+        if (!e.config) e.config = {};
+        if (!e.config.fijos) e.config.fijos = [];
+        e.config.fijos = e.config.fijos.filter(function (f) { return f.r !== "des_leche_cafe"; });
+        e.config.fijos.forEach(function (f) {
+          if (f.r === "des_cafe_leche_susana") delete f.hasta;   // ésta no deja de ser fija
+        });
+        if (!e.config.fijos.some(function (f) { return f.r === "des_cafe_leche_carlos" && (f.tomas || []).indexOf("desayuno") >= 0; })) {
+          e.config.fijos.push({ r: "des_cafe_leche_carlos", tomas: ["desayuno"], desde: "2026-11-02" });
+        }
+        if (!e.recetaVista) e.recetaVista = {};
+        ["des_cafe_leche_susana", "des_cafe_leche_carlos", "des_leche_cafe_proteinas", "des_leche_cafe"]
+          .forEach(function (idCV) { e.recetaVista[idCV] = { v: "ok", f: Util.hoyISO() }; });
+        e.arreglos["2026-10-30-cafe-dos-normales"] = true;
+        escribirEstado(e);
+      }
+
       /* EL PAN INTEGRAL PASA A SER EL DE DIARIO (8-oct-2026). Carlos: «el pan lo
          voy a cambiar por el que te he puesto, haz los cambios también para que
          sea lo que aparezca automáticamente en tostas y servicios de comida.
@@ -2142,14 +2168,14 @@
         if (tocado) { escribirEstado(e); }
       })();
 
-      /* EL CAFÉ VUELVE A SER EL NORMAL PARA LOS DOS, DÍA A DÍA (30-oct-2026).
-         El arreglo de más arriba cambia el FIJO, no lo ya planificado. Esto
-         hace lo mismo que el bloque del CORTE de 8-oct pero al revés: en los
-         días que ya sean 2-nov-2026 o después, cambia los dos cafés
-         separados por «Leche con café», de los dos. Sólo toca lo que nadie
-         ha marcado como comido, y lo sella al cambiarlo, así que un día que
-         él ajuste a mano después no se vuelve a tocar. Se repite en cada
-         arranque y sincronización, como el otro bloque. */
+      /* EL CAFÉ, DÍA A DÍA (30-oct-2026, versión corregida). Son DOS cafés
+         normales desde el 2-nov-2026, no uno compartido: «Café con leche
+         (Susana)» se queda donde estaba, y «Café con leche proteína (tuyo)»
+         se cambia por «Café con leche (tuyo)». Si alguna sincronización
+         anterior llegó a poner «Leche con café» sola, se quita aquí. Sólo
+         toca lo que nadie ha marcado como comido, y lo sella al cambiarlo, así
+         que un ajuste suyo a mano después no se vuelve a tocar. Se repite en
+         cada arranque y sincronización. */
       (function () {
         var DESDE_CAFE = "2026-11-02";
         var hoyCN = Util.hoyISO(), ahoraCN = new Date().toISOString(), tocadoCN = false;
@@ -2157,17 +2183,16 @@
           if (f < DESDE_CAFE) return;
           var d = e.plan[f];
           if (!d || !Array.isArray(d.desayuno)) return;
-          var comCN = (e.comido || {})[f] || {};
-          var comDes = comCN.desayuno || [];
+          var comDes = ((e.comido || {})[f] || {}).desayuno || [];
           var cambiaCN = false;
-          ["des_cafe_leche_susana", "des_leche_cafe_proteinas"].forEach(function (idViejo) {
-            if (comDes.indexOf(idViejo) >= 0) return;   /* ya se tomó ese, no se toca */
-            var iCN = d.desayuno.indexOf(idViejo);
-            if (iCN < 0) return;
-            d.desayuno.splice(iCN, 1);
-            cambiaCN = true;
-          });
-          if (cambiaCN && d.desayuno.indexOf("des_leche_cafe") < 0) d.desayuno.push("des_leche_cafe");
+          if (comDes.indexOf("des_leche_cafe") < 0) {
+            var iShared = d.desayuno.indexOf("des_leche_cafe");
+            if (iShared >= 0) { d.desayuno.splice(iShared, 1); cambiaCN = true; }
+          }
+          if (comDes.indexOf("des_leche_cafe_proteinas") < 0) {
+            var iP = d.desayuno.indexOf("des_leche_cafe_proteinas");
+            if (iP >= 0) { d.desayuno.splice(iP, 1, "des_cafe_leche_carlos"); cambiaCN = true; }
+          }
           if (cambiaCN) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraCN; tocadoCN = true; }
         });
         if (tocadoCN) { escribirEstado(e); }
