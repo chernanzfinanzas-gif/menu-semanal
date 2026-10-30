@@ -2052,6 +2052,47 @@
         escribirEstado(e);
       }
 
+      /* EL PAN VUELVE AL PANECILLO, PERO ENTERO (30-oct-2026). Carlos vació la
+         semana del 2-nov para mirar qué entra solo, y seguía saliendo «mi pan
+         integral 2 rebanadas»: «en lugar de las dos rebanadas de pan tostado
+         integral hay que poner un panecillo sin sal de 85 gramos... y solo
+         eso». Mismo sitio que las dos rebanadas —un panecillo en la comida y
+         otro en la cena—, no el medio panecillo de antes del 8-oct.
+         · El fijo de comida y cena pasa de `pan_integral_mesa` a
+           `pan_panecillo_mesa`. Las dos rebanadas se quedan en el recetario
+           para ponerlas a mano: «si no lo tomo ya lo cambiaré yo por las dos
+           tostadas».
+         · En los días de hoy en adelante, sin marcar como comidos, se cambia. */
+      if (!e.arreglos["2026-10-30-pan-panecillo-entero"]) {
+        if (!e.config) e.config = {};
+        (e.config.fijos || []).forEach(function (f) { if (f.r === "pan_integral_mesa") f.r = "pan_panecillo_mesa"; });
+        var hoyPE = Util.hoyISO(), ahoraPE = new Date().toISOString();
+        Object.keys(e.plan || {}).forEach(function (f) {
+          if (f <= hoyPE) return;      /* desde mañana: hoy aún no tiene el panecillo en casa */
+          var d = e.plan[f], cambia = false;
+          if (!d) return;
+          ["comida", "cena"].forEach(function (t) {
+            if (!Array.isArray(d[t])) return;
+            var com = ((e.comido || {})[f] || {})[t] || [];
+            if (com.indexOf("pan_integral_mesa") >= 0) return;
+            d[t] = d[t].map(function (id) {
+              if (id !== "pan_integral_mesa") return id;
+              cambia = true; return "pan_panecillo_mesa";
+            });
+          });
+          if (d.quitados) Object.keys(d.quitados).forEach(function (t) {
+            d.quitados[t] = d.quitados[t].map(function (id) { return id === "pan_integral_mesa" ? "pan_panecillo_mesa" : id; });
+          });
+          if (cambia) { if (!e.selloDia) e.selloDia = {}; e.selloDia[f] = ahoraPE; }
+        });
+        if (!e.recetaVista) e.recetaVista = {};
+        ["pan_panecillo_mesa", "pan_integral_mesa"].forEach(function (idPE) {
+          e.recetaVista[idPE] = { v: "ok", f: Util.hoyISO() };
+        });
+        e.arreglos["2026-10-30-pan-panecillo-entero"] = true;
+        escribirEstado(e);
+      }
+
       /* EL ORDEN DE LA COMPRA PARA LO NUEVO (8-oct-2026). Carlos: «Leche proteína
          es el último, el primero que debe aparecer en la lista en despensa,
          detrás de él va el pan integral bajo en sal. El queso fresco batido va en
@@ -8843,6 +8884,7 @@
        datos. Tampoco se toca el peso. */
     vaciarSemana: function (lunesISO) {
       var borrados = { dias: 0, entrenos: 0, medidas: 0, pasados: 0 };
+      var ahoraVS = new Date().toISOString();
       for (var i = 0; i < 7; i++) {
         var f = Util.sumarDias(lunesISO, i);
         /* Los días ya vividos no se vacían: ahí está lo que comiste y lo que hiciste,
@@ -8851,6 +8893,15 @@
         if (this.esPasado(f)) { borrados.pasados++; continue; }
         if (this.estado.plan[f]) { delete this.estado.plan[f]; borrados.dias++; }
         delete this.estado.comido[f];              // sin plan no hay nada que marcar
+        /* SELLO DEL BORRADO (30-oct-2026). Sin esto, el día vaciado no llevaba
+           fecha de cuándo se tocó, así que `fusionarConRemoto` (github.js) no
+           sabía que este aparato acababa de borrarlo a propósito: en cuanto
+           sincronizaba, el menú viejo volvía solo. Carlos lo vio con «Tostas de
+           aguacate» y «Bacalao al natural» resucitando después de vaciar sin
+           tocar nada más. Con el sello puesto, la fusión ya sabe que es un
+           borrado deliberado y no lo deshace. */
+        if (!this.estado.selloDia) this.estado.selloDia = {};
+        this.estado.selloDia[f] = ahoraVS;
 
         var lista = this.estado.actividad[f];
         if (lista) {

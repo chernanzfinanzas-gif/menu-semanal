@@ -666,6 +666,16 @@
       if (manda.plan && manda.plan[dia]) {
         if (!junto.plan) junto.plan = {};
         junto.plan[dia] = JSON.parse(JSON.stringify(manda.plan[dia]));
+      } else if (otro.plan && otro.plan[dia]) {
+        /* EL LADO QUE MANDA NO TIENE ESTE DÍA: lo borró (30-oct-2026). Antes
+           esta rama no existía, así que `junto.plan` se quedaba con lo que
+           hubiera puesto la fusión genérica de ahí arriba —que es aditiva y no
+           sabe de borrados— y un día vaciado con «Vaciar semana» volvía con el
+           menú viejo en cuanto sincronizaba. Es el mismo fallo que ya se
+           arregló para `comido`, `gastado`, `fotos`... y aquí se había quedado
+           fuera. Si el que manda tiene sello en ese día (está en `dias`) y no
+           tiene plan, es que lo borró él: se borra también en lo fusionado. */
+        delete junto.plan[dia];
       }
 
       var cm = (manda.comido || {})[dia], co = (otro.comido || {})[dia];
