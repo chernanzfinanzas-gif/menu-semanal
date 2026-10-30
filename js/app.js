@@ -7483,15 +7483,51 @@
     fila.replaceWith(tmp.firstChild);
   }
 
+  /* EL STOCK SE ESCRIBE EN ENVASES (30-oct-2026). Carlos tenía bolsa y media
+     de langostino y escribió 1,5 en una casilla que guardaba GRAMOS: para la
+     app tenía 1,5 g y el arroz salía con «falta». Lo que ve en el congelador
+     son bolsas, no gramos ni raciones. Así que, en todo lo que se compra en
+     envase (bolsa, paquete, tarro, caja…), la casilla va en envases y al lado
+     sale lo que suponen —«= 9 raciones · 540 g»— para ver de un vistazo si
+     algo no cuadra. Por dentro se sigue guardando igual que antes, en la
+     unidad de la ficha, así que recetas, compra y despensa no cambian.
+     Lo suelto (panecillos, fruta, huevos) sigue en unidades. */
+  function enEnvases(x) {
+    return !!(x && x.u !== "ud" && x.envase > 0 && x.formato && x.formato !== "suelto");
+  }
+  function nombreEnvase(x, n) {
+    var f = String(x.formato || "envase");
+    if (n === 1) return f;
+    return /[aeiouk]$/.test(f) ? f + "s" : f + "es";
+  }
+  function numES(v, dec) {
+    var m = Math.pow(10, dec);
+    return String(Math.round(v * m) / m).replace(".", ",");
+  }
+  function equivStock(x) {
+    if (!enEnvases(x)) return "";
+    var c = x.c || 0, partes = [];
+    if (x.racion > 0) {
+      var r = c / x.racion;
+      partes.push(numES(r, 1) + (Math.round(r * 10) / 10 === 1 ? " raci\u00f3n" : " raciones"));
+    }
+    partes.push(Util.cantidadReceta(c, x.u, x.pesoUd));
+    return "= " + partes.join(" \u00b7 ");
+  }
   function lineaStockHTML(x) {
-    var uni = x.u === "ud" ? (x.c === 1 ? "unidad" : "uds") : x.u;
+    var env = enEnvases(x);
+    var valor = env ? Math.round((x.c || 0) / x.envase * 100) / 100 : (x.c || 0);
+    var uni = env ? nombreEnvase(x, valor) : (x.u === "ud" ? (x.c === 1 ? "unidad" : "uds") : x.u);
+    var pasos = env || x.u === "ud";
     return '<div class="linea linea-stock' + (x.c > 0 ? "" : " hecha") + '" data-fila="' + esc(x.id) + '">' +
       '<div class="datos"><div class="nombre">' + esc(x.n) + '</div>' +
-      '<div class="detalle">' + detalleStock(x) + '</div></div>' +
-      (x.u === "ud" ? '<button class="btn mini paso-stock" data-menos-stock="' + esc(x.id) + '">\u2212</button>' : '') +
+      '<div class="detalle">' + detalleStock(x) + '</div>' +
+      (env ? '<div class="nota-peque equiv-stock">' + esc(equivStock(x)) + '</div>' : '') + '</div>' +
+      (pasos ? '<button class="btn mini paso-stock" data-menos-stock="' + esc(x.id) + '">\u2212</button>' : '') +
       '<input type="number" class="stock-cant" data-stock="' + esc(x.id) + '" inputmode="decimal" ' +
-        'min="0" step="' + (x.u === "ud" ? "1" : "10") + '" value="' + (x.c || 0) + '">' +
-      (x.u === "ud" ? '<button class="btn mini paso-stock" data-mas-stock="' + esc(x.id) + '">+</button>' : '') +
+        (env ? 'data-envase="' + x.envase + '" ' : '') +
+        'min="0" step="' + (env ? "any" : (x.u === "ud" ? "1" : "10")) + '" value="' + valor + '">' +
+      (pasos ? '<button class="btn mini paso-stock" data-mas-stock="' + esc(x.id) + '">+</button>' : '') +
       '<span class="uni-stock nota-peque">' + esc(uni) + '</span>' +
       '<button class="btn mini" data-cero="' + esc(x.id) + '" title="Se ha acabado o estaba caducado">0</button>' +
       '</div>';
@@ -7570,7 +7606,13 @@
     var det = fila.querySelector(".detalle");
     if (det) det.innerHTML = detalleStock(x);
     var campo = fila.querySelector("[data-stock]");
-    if (campo && document.activeElement !== campo) campo.value = x.c || 0;
+    var envR = enEnvases(x);
+    if (campo && document.activeElement !== campo)
+      campo.value = envR ? Math.round((x.c || 0) / x.envase * 100) / 100 : (x.c || 0);
+    var eq = fila.querySelector(".equiv-stock");
+    if (eq) eq.textContent = equivStock(x);
+    var un = fila.querySelector(".uni-stock");
+    if (un && envR) un.textContent = nombreEnvase(x, Math.round((x.c || 0) / x.envase * 100) / 100);
     fila.classList.toggle("hecha", !(x.c > 0));
   }
 
@@ -9314,7 +9356,10 @@
       var st = e.target.closest("[data-stock]");
       if (!st) return;
       var id = st.getAttribute("data-stock");
-      Almacen.ponerStock(id, parseFloat(String(st.value).replace(",", ".")));
+      var v = parseFloat(String(st.value).replace(",", "."));
+      var envS = parseFloat(st.getAttribute("data-envase"));
+      if (envS > 0 && !isNaN(v)) v = Math.round(v * envS * 100) / 100;   // envases → unidad de la ficha
+      Almacen.ponerStock(id, v);
       setTimeout(function () { refrescarLineaStock(id); }, 0);
     });
     /* La cifra del «queda esto» de la pasada. La emergente tiene su propio
@@ -9336,12 +9381,15 @@
       var paso = e.target.closest("[data-mas-stock]") || e.target.closest("[data-menos-stock]");
       if (paso) {
         var idp = paso.getAttribute("data-mas-stock") || paso.getAttribute("data-menos-stock");
-        var suma = paso.hasAttribute("data-mas-stock") ? 1 : -1;
+        var campo = document.querySelector('[data-stock="' + idp + '"]');
+        var envP = campo ? parseFloat(campo.getAttribute("data-envase")) : 0;
+        /* En envases, cada toque es MEDIO envase: la bolsa abierta es lo normal. */
+        var salto = envP > 0 ? envP / 2 : 1;
+        var suma = paso.hasAttribute("data-mas-stock") ? salto : -salto;
         var nueva = Almacen.stockDe(idp) + suma;
         if (nueva < 0) nueva = 0;
         Almacen.ponerStock(idp, nueva);
-        var campo = document.querySelector('[data-stock="' + idp + '"]');
-        if (campo) campo.value = nueva;
+        if (campo) campo.value = envP > 0 ? Math.round(nueva / envP * 100) / 100 : nueva;
         refrescarLineaStock(idp);
         return;
       }

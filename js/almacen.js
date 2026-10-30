@@ -5700,6 +5700,7 @@
         var c = f.c > 0 ? f.c : 0;
         if (!c && !f.pte) return;             // sin nada y ya contado: no estorba
         fuera.push({ id: g.id, n: g.n, u: g.u, pesoUd: g.pesoUd, envase: g.envase,
+                     racion: g.racion, formato: g.formato,
                      c: c, f: f.f, pte: !!f.pte,
                      comprometido: comp[g.id] || 0,
                      libre: Math.max(0, c - (comp[g.id] || 0)) });
