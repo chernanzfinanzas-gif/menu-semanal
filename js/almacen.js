@@ -2192,6 +2192,21 @@
         escribirEstado(e);
       }
 
+      /* LAS SETAS CONGELADAS, EN BOLSAS DE 2 RACIONES (30-oct-2026). Carlos:
+         «Surtido de setas con boletus silvestres 500 g - 2 raciones x 250;
+         surtido de setas troceadas Basic 450 g - 2 x 225; boletus troceados
+         Premium 300 g - 2 x 150». */
+      if (!e.arreglos["2026-10-30-setas-bolsa"]) {
+        var SETAS = { setas_boletus: 250, setas_congeladas: 225, boletus_troceados: 150 };
+        var ahoraST = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g || !SETAS[g.id]) return;
+          g.racion = SETAS[g.id]; g.formato = "bolsa"; g.tocado = ahoraST;
+        });
+        e.arreglos["2026-10-30-setas-bolsa"] = true;
+        escribirEstado(e);
+      }
+
       /* EL ORDEN DE LA COMPRA PARA LO NUEVO (8-oct-2026). Carlos: «Leche proteína
          es el último, el primero que debe aparecer en la lista en despensa,
          detrás de él va el pan integral bajo en sal. El queso fresco batido va en
