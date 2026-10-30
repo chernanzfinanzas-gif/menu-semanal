@@ -7252,6 +7252,10 @@
       }
     }
     if (l.suplente) porque += " \u00b7 si no hay: " + esc(l.suplente);
+    if (l.recorte > 0) porque += ' \u00b7 <b>pides ' + cifra(l.envases) + " de " + cifra(l.envases + l.recorte) +
+                                 ": " + cifra(l.recorte) + " a Pendiente al recibir el pedido</b>";
+    /* La cifra se puede tocar en lo que pide el menú y va por envases (30-oct-2026). */
+    var editable = l.envase > 0 && !l.porCapricho && !l.porMinimo && !basico;
     return '<div class="' + clases + '">' +
       '<input type="checkbox" data-marcar="' + esc(l.id) + '"' + (l.marcado ? " checked" : "") + ' title="Pedido">' +
       '<div class="datos"><div class="nombre">' + esc(nombre) + etiq +
@@ -7262,7 +7266,10 @@
           ' <button class="etiqueta" data-marcaring="' + esc(l.id) + '" ' +
           'title="Ponle tu marca y formato">ponle marca</button>') + '</div>' +
       '<div class="detalle">' + porque + (l.nota ? ' \u2014 ' + esc(l.nota) : '') + '</div></div>' +
-      '<span class="cant">' + esc(l.texto) + '</span>' +
+      (editable
+        ? '<button class="cant btn mini" data-cantcompra="' + esc(l.id) + '|' + l.envases + '|' + (l.recorte || 0) +
+          '" title="Cambiar cu\u00e1ntos pides">' + esc(l.texto) + ' \u270e</button>'
+        : '<span class="cant">' + esc(l.texto) + '</span>') +
       '<button class="btn mini" data-encasa="' + esc(l.id) + '" title="Ya lo tienes: no lo pidas">Lo tengo</button>' +
       '</div>';
   }
@@ -8737,6 +8744,24 @@
       if (e.target.closest("[data-abrirpendiente]")) { abrirPendiente(); return; }
       var at = e.target.closest("[data-abrirtienda]");
       if (at) { abrirListaTienda(at.getAttribute("data-abrirtienda")); return; }
+      var ccm = e.target.closest("[data-cantcompra]");
+      if (ccm) {
+        var pc = ccm.getAttribute("data-cantcompra").split("|");
+        var idC = pc[0], ahoraC = Number(pc[1]) || 0, menuC = ahoraC + (Number(pc[2]) || 0);
+        var vC = prompt("\u00bfCu\u00e1ntos pides? El men\u00fa pide " + menuC +
+                        ".\nLo que no pidas pasa a Pendiente cuando confirmes que ha llegado el pedido.", ahoraC);
+        if (vC === null) return;
+        vC = parseInt(String(vC).replace(",", "."), 10);
+        if (isNaN(vC) || vC < 0) { Util.toast("Pon un n\u00famero"); return; }
+        if (!Almacen.estado.topeCompra) Almacen.estado.topeCompra = {};
+        if (vC >= menuC) delete Almacen.estado.topeCompra[idC];
+        else Almacen.estado.topeCompra[idC] = { n: vC, t: new Date().toISOString() };
+        Almacen.guardar("compra");
+        pintarCompra();
+        Util.toast(vC >= menuC ? "Vuelve a lo que pide el men\u00fa" :
+                   "Pides " + vC + " \u00b7 " + (menuC - vC) + " a Pendiente al recibir el pedido");
+        return;
+      }
       var enc = e.target.closest("[data-encasa]");
       if (enc) {
         /* «Lo tengo» no es una casilla aparte: es decirle a la despensa que ya hay

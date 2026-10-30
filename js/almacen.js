@@ -6762,6 +6762,19 @@
             aRecados++;
           }
         }
+        /* LO QUE NO PEDISTE PORQUE NO CABÍA, A PENDIENTE (30-oct-2026). Se suma a
+           lo que ya hubiera pendiente de ese producto, y la cifra que bajaste
+           queda gastada para que no recorte la compra siguiente. */
+        if (l.recorte > 0) {
+          var gR = self.ingrediente(l.id), prevR = self.estado.recados[l.id];
+          self.estado.recados[l.id] = {
+            c: ((prevR && prevR.c) || 0) + l.recorte,
+            q: Math.round((((prevR && prevR.q) || 0) + (gR && gR.envase ? gR.envase * l.recorte : 0)) * 100) / 100,
+            t: "no se pidió entero", f: Util.hoyISO(), tipo: "comida" };
+          aRecados++;
+        }
+        if (self.estado.topeCompra && self.estado.topeCompra[l.id])
+          self.estado.topeCompra[l.id].u = new Date().toISOString();
         delete self.estado.compraMarcada[l.id];
       });
       if (entraron) this._sellarStock();   // lo comprado entra en la foto de la despensa
@@ -9297,7 +9310,20 @@
         if (!opciones.todo && falta <= 0.0001 && !self.estado.compraMarcada[id]) return;
         if (falta < 0) falta = 0;
         var envases = ing.envase > 0 ? Math.ceil(falta / ing.envase) : 0;
-        var comprar = envases > 0 ? envases * ing.envase : falta;
+        /* CUÁNTOS PIDES TÚ (30-oct-2026). Carlos: «me pide 17 panecillos, pero
+           no me entran en el congelador… puedo pedir 12… podría poner en la
+           compra 12 y que 5 pasen a pendiente». Si en la lista ha bajado la
+           cifra, se pide eso; lo que falta hasta lo del menú va a Pendiente al
+           confirmar que ha llegado el pedido (`confirmarCompra`). Sólo baja:
+           para pedir más está «lo quiero esta vez». Una vez usado en un pedido
+           deja de valer (`u` posterior a `t`), para no recortar la compra
+           siguiente. */
+        var topeC = (self.estado.topeCompra || {})[id], recorte = 0;
+        if (topeC && !(topeC.u && topeC.u >= topeC.t) && envases > 0 && topeC.n < envases) {
+          recorte = envases - topeC.n;
+          envases = topeC.n;
+        }
+        var comprar = envases > 0 ? envases * ing.envase : (recorte > 0 ? 0 : falta);
         var linea = {
           id: id,
           nombre: ing.n,
@@ -9308,6 +9334,7 @@
           hay: hay,
           envase: ing.envase || 0,
           envases: envases,
+          recorte: recorte,                              // envases que no pides ahora y van a Pendiente
           apartado: Math.round(apartado * 100) / 100,   // lo que el stock ya debe a otros platos
           cajon: (qx && qx.ticket && qx.donde) ? (qx.donde === "Amazon" ? "amazon" : "super") : self.cajonDe(ing),
           tienda: (qx && qx.ticket && qx.donde) ? qx.donde : self.tiendaDe(ing),
