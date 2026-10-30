@@ -2093,6 +2093,38 @@
         escribirEstado(e);
       }
 
+      /* LA CARNE SE CUENTA EN ENVASES, NO EN RACIONES (30-oct-2026). Carlos, en
+         «¿Lo tengo?»: «la bandeja de filetes de cabeza de lomo de cerdo Duroc
+         650, pero pregunta raciones y he puesto 4. Carne picada viene en 2
+         paquetes de 250 gramos que son 4 raciones. Debería poner el número de
+         paquetes y que la app ponga cuántas raciones equivalen. En la carne
+         pasa en general». El 25-sep se pasó la carne a raciones copiando al
+         pescado; para la carne no le sirve: lo que ve en la nevera son
+         bandejas y paquetes. La ración sigue en la ficha y es la que traduce.
+         El formato es suyo y no lo pisa el refresco del catálogo, por eso va
+         aquí, una vez, con `tocado` para que gane al sincronizar. Lo que ya
+         tenía apuntado no cambia: se guarda en gramos.
+         Y de paso: «mini rollitos 300 g, 1 caja - 2 raciones» → ración 150 g. */
+      if (!e.arreglos["2026-10-30-carne-en-envases"]) {
+        var CARNE = { cerdo_secreto: "bandeja", ternera_picada: "paquete",
+                      chorizo_sarta_en_tacos: "bandeja", ternera_entrecot: "paquete",
+                      entrecot_iberico_marinado: "bandeja", lomo_iberico_adobado: "paquete",
+                      cerdo_lomo: "bandeja", cerdo_lomo_trozo: "pieza",
+                      pollo_pechuga: "bandeja", cerdo_solomillo: "pieza" };
+        var ahoraCE = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g) return;
+          if (CARNE[g.id] && g.formato === "racion") {
+            g.formato = CARNE[g.id];
+            if (g.id === "ternera_picada") g.piezaML = 250;   /* la bandeja trae 2 paquetes de 250 g */
+            g.tocado = ahoraCE;
+          }
+          if (g.id === "rollitos_primavera" && g.racion === 100) { g.racion = 150; g.tocado = ahoraCE; }
+        });
+        e.arreglos["2026-10-30-carne-en-envases"] = true;
+        escribirEstado(e);
+      }
+
       /* EL ORDEN DE LA COMPRA PARA LO NUEVO (8-oct-2026). Carlos: «Leche proteína
          es el último, el primero que debe aparecer en la lista en despensa,
          detrás de él va el pan integral bajo en sal. El queso fresco batido va en
@@ -4615,6 +4647,8 @@
       caja:     { n: ["caja", "cajas"],        atajos: [0, 1, 2, 3, 4] },
       tableta:  { n: ["tableta", "tabletas"],  atajos: [0, 0.5, 1, 2, 3] },
       malla:    { n: ["malla", "mallas"],      atajos: [0, 0.5, 1, 2] },
+      /* La pieza entera de carne (lomo en trozo, solomillo), 30-oct-2026. */
+      pieza:    { n: ["pieza", "piezas"],      atajos: [0, 0.25, 0.5, 1, 1.5, 2] },
       rebanada: { n: ["rebanada", "rebanadas"], atajos: [0, 2, 4, 6, 8, 12] },
       filete:   { n: ["filete", "filetes"],    atajos: [0, 1, 2, 3, 4, 6] },
       barra:    { n: ["barra", "barras"],      atajos: [0, 0.5, 1, 2] },
@@ -5137,6 +5171,7 @@
           atajos: self.atajosDe(g, ff),
           piezaUd: g.u === "ud",
           racionUso: self.racionUso(g),
+          racion: g.racion || 0,
           basico: !!g.basico,
           envase: g.envase || 0,
           /* LAS DOS CIFRAS DE LA FICHA TIENEN QUE DIVIDIR POR LO MISMO
@@ -5700,7 +5735,9 @@
         var c = f.c > 0 ? f.c : 0;
         if (!c && !f.pte) return;             // sin nada y ya contado: no estorba
         fuera.push({ id: g.id, n: g.n, u: g.u, pesoUd: g.pesoUd, envase: g.envase,
-                     racion: g.racion, formato: g.formato,
+                     racion: g.racion, formato: self.formatoDe(g),
+                     pieza: self.tamanoPieza(g),
+                     piezaUno: self.nombrePieza(g, 1), piezaVarias: self.nombrePieza(g, 2),
                      c: c, f: f.f, pte: !!f.pte,
                      comprometido: comp[g.id] || 0,
                      libre: Math.max(0, c - (comp[g.id] || 0)) });

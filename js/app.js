@@ -5292,12 +5292,27 @@
         return '<button type="button" class="btn mini' + (n === v ? " activo" : "") +
           '" data-cuenta="' + esc(x.id) + "|" + v + '">' + cifra(v) + "</button>";
       }).join("") + "</div>" +
-      (x.pieza > 1 && !x.piezaUd
-        ? '<div class="quees">cada ' + esc(x.piezaUno) + " son " +
+      /* LO QUE SUPONE, EN GRANDE (30-oct-2026). Carlos: «1 bolsa - 5 platos,
+         esto está bien pero no veía lo de los platos, sale muy pequeño abajo».
+         Justo debajo de la cifra va lo que eso es AHORA —«= 9 raciones · 540
+         g»— y debajo la regla del envase. Los platos se cuentan por PIEZA, no
+         por envase: la carne picada se cuenta en paquetes de 250 g aunque la
+         bandeja traiga dos. */
+      (function () {
+        if (!(x.pieza > 1) || x.piezaUd) return "";
+        var porPieza = x.racion > 0 ? x.pieza / x.racion
+                     : (x.envase > 0 ? x.porEnvase * x.pieza / x.envase : x.porEnvase);
+        var total = n * x.pieza;
+        var rac = porPieza > 0 ? n * porPieza : 0;
+        var numE = function (v) { return String(Math.round(v * 10) / 10).replace(".", ","); };
+        var linea = "= " + (rac > 0 ? numE(rac) + (Math.round(rac * 10) / 10 === 1 ? " raci\u00f3n" : " raciones") + " \u00b7 " : "") +
+                    Util.cantidadReceta(total, x.u, x.pesoUd);
+        return '<div class="equiv-grande" style="font-size:1.15em;font-weight:600;margin:.4em 0 .2em">' + esc(linea) + "</div>" +
+          '<div class="quees">cada ' + esc(x.piezaUno) + " son " +
           esc(Util.cantidadReceta(x.pieza, x.u, x.pesoUd)) +
-          (x.porEnvase >= 2 && x.porEnvase <= 60
-            ? ", para " + Math.round(x.porEnvase) + " platos" : "") + "</div>"
-        : "") +
+          (porPieza >= 0.5 && porPieza <= 60
+            ? ", " + numE(porPieza) + (Math.round(porPieza * 10) / 10 === 1 ? " raci\u00f3n" : " raciones") : "") + "</div>";
+      })() +
       /* LO HECHO EN CASA (v382). Carlos: «si no hay, cuando haga el stock aparezca
          un botón de Renovar ingredientes». Sale cuando queda menos de lo que pide
          una receta; «Lo he preparado» sale siempre, para el día que haces el lote. */
@@ -7493,9 +7508,14 @@
      unidad de la ficha, así que recetas, compra y despensa no cambian.
      Lo suelto (panecillos, fruta, huevos) sigue en unidades. */
   function enEnvases(x) {
-    return !!(x && x.u !== "ud" && x.envase > 0 && x.formato && x.formato !== "suelto");
+    return !!(x && x.u !== "ud" && tamEnvase(x) > 0 && x.formato &&
+              x.formato !== "suelto" && x.formato !== "racion");
   }
+  /* El mismo tamaño que usa «¿Lo tengo?»: la carne picada se cuenta en
+     paquetes de 250 g aunque la bandeja traiga dos. */
+  function tamEnvase(x) { return x.pieza > 0 ? x.pieza : (x.envase || 0); }
   function nombreEnvase(x, n) {
+    if (x.piezaUno) return n === 1 ? x.piezaUno : (x.piezaVarias || x.piezaUno);
     var f = String(x.formato || "envase");
     if (n === 1) return f;
     return /[aeiouk]$/.test(f) ? f + "s" : f + "es";
@@ -7516,7 +7536,7 @@
   }
   function lineaStockHTML(x) {
     var env = enEnvases(x);
-    var valor = env ? Math.round((x.c || 0) / x.envase * 100) / 100 : (x.c || 0);
+    var valor = env ? Math.round((x.c || 0) / tamEnvase(x) * 100) / 100 : (x.c || 0);
     var uni = env ? nombreEnvase(x, valor) : (x.u === "ud" ? (x.c === 1 ? "unidad" : "uds") : x.u);
     var pasos = env || x.u === "ud";
     return '<div class="linea linea-stock' + (x.c > 0 ? "" : " hecha") + '" data-fila="' + esc(x.id) + '">' +
@@ -7525,7 +7545,7 @@
       (env ? '<div class="nota-peque equiv-stock">' + esc(equivStock(x)) + '</div>' : '') + '</div>' +
       (pasos ? '<button class="btn mini paso-stock" data-menos-stock="' + esc(x.id) + '">\u2212</button>' : '') +
       '<input type="number" class="stock-cant" data-stock="' + esc(x.id) + '" inputmode="decimal" ' +
-        (env ? 'data-envase="' + x.envase + '" ' : '') +
+        (env ? 'data-envase="' + tamEnvase(x) + '" ' : '') +
         'min="0" step="' + (env ? "any" : (x.u === "ud" ? "1" : "10")) + '" value="' + valor + '">' +
       (pasos ? '<button class="btn mini paso-stock" data-mas-stock="' + esc(x.id) + '">+</button>' : '') +
       '<span class="uni-stock nota-peque">' + esc(uni) + '</span>' +
@@ -7608,11 +7628,11 @@
     var campo = fila.querySelector("[data-stock]");
     var envR = enEnvases(x);
     if (campo && document.activeElement !== campo)
-      campo.value = envR ? Math.round((x.c || 0) / x.envase * 100) / 100 : (x.c || 0);
+      campo.value = envR ? Math.round((x.c || 0) / tamEnvase(x) * 100) / 100 : (x.c || 0);
     var eq = fila.querySelector(".equiv-stock");
     if (eq) eq.textContent = equivStock(x);
     var un = fila.querySelector(".uni-stock");
-    if (un && envR) un.textContent = nombreEnvase(x, Math.round((x.c || 0) / x.envase * 100) / 100);
+    if (un && envR) un.textContent = nombreEnvase(x, Math.round((x.c || 0) / tamEnvase(x) * 100) / 100);
     fila.classList.toggle("hecha", !(x.c > 0));
   }
 
