@@ -6476,18 +6476,45 @@
      poder enviar ESTE producto a Pendiente. El botón ✕ de cada línea lo manda
      a Pendiente al momento, por el mismo camino que usa «Pedido cerrado» para
      lo que ya no se puede tocar (`nuevoAPendiente`), sin esperar a nada más. */
-  function filaCompacta(id, nombre, cant, cogido) {
+  /* CAMBIAR CUÁNTOS PIDES (30-oct-2026). La usan la lista larga y la ventana
+     de cada tienda, que es donde Carlos hace el pedido de Mercadona. `spec` es
+     «id|envases|recorte». Devuelve true si cambió algo. */
+  function cambiarCantidadCompra(spec) {
+    var pc = String(spec).split("|");
+    var idC = pc[0], ahoraC = Number(pc[1]) || 0, menuC = ahoraC + (Number(pc[2]) || 0);
+    var vC = prompt("\u00bfCu\u00e1ntos pides? El men\u00fa pide " + menuC +
+                    ".\nLo que no pidas pasa a Pendiente cuando confirmes que ha llegado el pedido.", ahoraC);
+    if (vC === null) return false;
+    vC = parseInt(String(vC).replace(",", "."), 10);
+    if (isNaN(vC) || vC < 0) { Util.toast("Pon un n\u00famero"); return false; }
+    if (!Almacen.estado.topeCompra) Almacen.estado.topeCompra = {};
+    if (vC >= menuC) delete Almacen.estado.topeCompra[idC];
+    else Almacen.estado.topeCompra[idC] = { n: vC, t: new Date().toISOString() };
+    Almacen.guardar("compra");
+    Util.toast(vC >= menuC ? "Vuelve a lo que pide el men\u00fa" :
+               "Pides " + vC + " \u00b7 " + (menuC - vC) + " a Pendiente al recibir el pedido");
+    return true;
+  }
+  /* La cifra de la fila: un botón con ✎ en lo que pide el menú por envases. */
+  function cantFila(cant, l) {
+    if (!l || !(l.envase > 0) || l.porCapricho || l.porMinimo) return '<span class="fc-q">' + esc(cant) + '</span>';
+    return '<button type="button" class="fc-q btn mini" data-cantcompra="' + esc(l.id) + '|' + l.envases + '|' + (l.recorte || 0) +
+      '" title="Cambiar cu\u00e1ntos pides">' + esc(cant) + ' \u270e' +
+      (l.recorte > 0 ? '<br><small>de ' + cifra(l.envases + l.recorte) + ' \u00b7 ' + cifra(l.recorte) + ' a Pendiente</small>' : '') +
+      '</button>';
+  }
+  function filaCompacta(id, nombre, cant, cogido, l) {
     if (listaSoloLectura) {
       return '<div class="fila-compacta fila-lectura' + (nuevosAbiertos[id] ? " fila-nueva" : "") + '">' +
         (nuevosAbiertos[id] ? '<span class="cn-etq">NUEVO</span> ' : "") + '<span class="fc-n">' + esc(nombre) + '</span>' +
-        '<span class="fc-q">' + esc(cant) + '</span>' +
+        cantFila(cant, l) +
         '<button type="button" class="btn-ausente" data-ausente="' + esc(id) + '" title="No lo tienen: pasar a Pendiente ahora">✕</button>' +
         '</div>';
     }
     return '<label class="fila-compacta' + (cogido ? " hecha" : "") + '" data-filacoger="' + esc(id) + '">' +
       '<input type="checkbox" data-coger="' + esc(id) + '"' + (cogido ? " checked" : "") + '>' +
       '<span class="fc-n">' + esc(nombre) + '</span>' +
-      '<span class="fc-q">' + esc(cant) + '</span></label>';
+      cantFila(cant, l) + '</label>';
   }
   /* La cantidad, corta: en el móvil la de la lista larga («4 × 1 ud (95 g) ·
      4 ud (380 g) en total») aplastaba el nombre a una línea. Aquí basta con
@@ -6550,7 +6577,7 @@
       Almacen.ZONAS.forEach(function (z) { if (z.k === zk) zn = z.n; });
       lineas = Almacen.ordenarComoEnCompra(Almacen.claveCompra(nom, zk), lineas);
       h += '<h4 class="fc-zona">' + esc(zn) + '</h4>';
-      lineas.forEach(function (l) { h += filaCompacta(l.id, l.producto || l.nombre, cantCorta(l), Almacen.estaPedido(l.id)); });
+      lineas.forEach(function (l) { h += filaCompacta(l.id, l.producto || l.nombre, cantCorta(l), Almacen.estaPedido(l.id), l); });
     });
     if (g.casa.length) {
       var porAp = {};
@@ -6630,6 +6657,15 @@
       if (ct) ct.textContent = pieListaTienda(nom);
     };
     $(".lista-compacta").addEventListener("click", function (e) {
+      var bq = e.target.closest ? e.target.closest("[data-cantcompra]") : null;
+      if (bq) {
+        e.preventDefault();                 /* dentro de la fila: que no marque la casilla */
+        if (cambiarCantidadCompra(bq.getAttribute("data-cantcompra"))) {
+          pintarCompra();
+          abrirListaTienda(nom);
+        }
+        return;
+      }
       var b = e.target.closest ? e.target.closest("[data-ausente]") : null;
       if (!b) return;
       var id = b.getAttribute("data-ausente");
@@ -8746,20 +8782,7 @@
       if (at) { abrirListaTienda(at.getAttribute("data-abrirtienda")); return; }
       var ccm = e.target.closest("[data-cantcompra]");
       if (ccm) {
-        var pc = ccm.getAttribute("data-cantcompra").split("|");
-        var idC = pc[0], ahoraC = Number(pc[1]) || 0, menuC = ahoraC + (Number(pc[2]) || 0);
-        var vC = prompt("\u00bfCu\u00e1ntos pides? El men\u00fa pide " + menuC +
-                        ".\nLo que no pidas pasa a Pendiente cuando confirmes que ha llegado el pedido.", ahoraC);
-        if (vC === null) return;
-        vC = parseInt(String(vC).replace(",", "."), 10);
-        if (isNaN(vC) || vC < 0) { Util.toast("Pon un n\u00famero"); return; }
-        if (!Almacen.estado.topeCompra) Almacen.estado.topeCompra = {};
-        if (vC >= menuC) delete Almacen.estado.topeCompra[idC];
-        else Almacen.estado.topeCompra[idC] = { n: vC, t: new Date().toISOString() };
-        Almacen.guardar("compra");
-        pintarCompra();
-        Util.toast(vC >= menuC ? "Vuelve a lo que pide el men\u00fa" :
-                   "Pides " + vC + " \u00b7 " + (menuC - vC) + " a Pendiente al recibir el pedido");
+        if (cambiarCantidadCompra(ccm.getAttribute("data-cantcompra"))) pintarCompra();
         return;
       }
       var enc = e.target.closest("[data-encasa]");
