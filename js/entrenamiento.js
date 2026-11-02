@@ -8845,7 +8845,7 @@
              "Sus números no se parecen (el reloj ronda 50; la banda puede dar 25 o 110), así que cada línea se pinta en % sobre <b>su propia normal</b>: la mediana de los 14 días anteriores. Hacen falta 4 días para empezar.",
              "No se comparan los valores: se mira si las dos líneas <b>suben y bajan a la vez</b>.",
              "Desde el 11 de octubre la mañana sale del <b>Sensor Logger sentado</b> (el primero del día de 2 minutos o más, sin contar la prueba ortostática); si ese día no hay, de <b>ECG Analysis</b>. Desde el 6 de octubre, cuando empezó el protocolo actual, la normal de las dos líneas cuenta solo días desde esa fecha, igual que la revisión de la mañana."],
-      vigilar: ["El <b>color de cada día</b>: verde, las dos mejor (recuperado de verdad); rojo, las dos peor (día suave); ámbar, noche mejor y mañana peor (lo raro); azul, noche peor y mañana mejor (mala noche puntual). En blanco, las dos casi igual que tu normal (±5 %).",
+      vigilar: ["El <b>color de cada día</b>: verde, las dos mejor (recuperado de verdad); rojo, las dos peor (día suave); ámbar, noche mejor y mañana peor (lo raro); azul, noche peor y mañana mejor (mala noche puntual). En blanco, cuando AL MENOS UNA de las dos se queda dentro del ±5 % de tu normal: para que el día tenga color se tienen que mover las dos.",
                 "<b>Ámbar varios días seguidos</b>: o falla la medida de la mañana (postura, latidos cortos) o algo te altera al levantarte.",
                 "Con unos 14 días con las dos medidas sale si van juntas. Si no van juntas no es malo: miden momentos distintos.",
                 "La mañana solo vale <b>sentado</b>: recostado sale muchísimo más alta (el 1 de octubre, 22 sentado frente a 163 recostado)."],
