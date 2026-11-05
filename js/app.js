@@ -952,6 +952,11 @@ function quitarDeConfig(id, toma) {
   }
 }
 function ponerFijo(toma, quien, papel, f) {
+  /* Mismo caso que en el fijo de un dia: la tabla ofrece ingredientes sueltos y
+     un ingrediente pelado no se planifica. Se convierte en ficha al elegirlo
+     —reutilizando la que ya hubiera con esa cantidad—, que es la regla de su
+     app: la receta es lo que se planifica, el ingrediente lo que se compra. */
+  f = fichaDeFijo(f, toma);
   if (!MOTOR) {
     if (!E.fijos[toma]) E.fijos[toma] = { yo: {}, ella: {} };
     if (!E.fijos[toma][quien]) E.fijos[toma][quien] = {};
@@ -1019,7 +1024,30 @@ function fijoDelDia(fecha, toma, quien, papel) {
   if (f.desde && fecha < f.desde) return null;
   return f;
 }
+/* UN INGREDIENTE PUESTO COMO FIJO DEL DIA TIENE QUE SER FICHA (Carlos, 5-nov:
+   «en lugar del pan que tocaba he tomado otro, pan tostado bajo en sal, me deja
+   elegirlo pero no lo anota»). El selector ofrece fichas Y ingredientes sueltos,
+   y un ingrediente pelado no entra en el plan: ni cuenta calorias, ni sale de la
+   despensa, ni va a la compra. Su app ya sabe convertirlo —`crearSuelto` le hace
+   ficha, o reutiliza la que ya hubiera con esa misma cantidad—, asi que se
+   convierte aqui y lo que se guarda es la ficha. */
+function fichaDeFijo(f, toma) {
+  if (!f || f.t !== 'i' || !MOTOR) return f;
+  try {
+    var g = A.ingrediente(f.id);
+    if (!g) return f;
+    var cant = (g.racion != null ? g.racion : 1);
+    var id = A.crearSuelto(f.id, cant, [toma]);
+    if (!id) return f;
+    refrescarRecetario();
+    /* para que valga de fijo en esta toma, la ficha tiene que admitirla */
+    var r = POR_ID[id];
+    if (r && (r.tipo || []).indexOf(toma) < 0) { r.tipo = (r.tipo || []).concat([toma]); }
+    return { t: 'r', id: id, desde: f.desde || null };
+  } catch (e) { return f; }
+}
 function cambiarFijoDia(fecha, toma, quien, papel, f) {
+  f = fichaDeFijo(f, toma);
   var d = dia(fecha);
   if (!d.fijos) d.fijos = { yo: {}, ella: {} };
   if (!d.fijos[quien]) d.fijos[quien] = {};
@@ -1400,25 +1428,48 @@ function arrancarMotor() {
   return true;
 }
 /* Vuelca al motor lo que el prototipo tiene planificado para esas fechas. */
+/* Un dia esta TOCADO si el ha hecho algo en el: quitar o cambiar un fijo de ese
+   dia, vaciarlo, cerrarlo, o poner cualquier plato que no sea un fijo. */
+function diaTocado(f, d) {
+  if (!d) return false;
+  if (d.cerrado || d.sinFijos || d.quitados || d.guardadoVaciar) return true;
+  if (d.fijos && (Object.keys(d.fijos.yo || {}).length || Object.keys(d.fijos.ella || {}).length)) return true;
+  var hay = false;
+  TOMAS.forEach(function (tm) {
+    (d[tm] || []).forEach(function (id) { if (!esFijoId(id)) hay = true; });
+  });
+  return hay;
+}
 function limpiarFijos(f, d) {
   if (!MOTOR) return;
   var cfg = (A.estado.config && A.estado.config.fijos) || [];
   var ficha = null;
   try { ficha = A.fichaTipoDia(f); } catch (e) { ficha = { mochila: [] }; }
-  cfg.forEach(function (x) {
-    if (!x || !x.r) return;
-    (x.tomas || []).forEach(function (tm) {
-      var l = d[tm]; if (!l || l.indexOf(x.r) < 0) return;
-      var fuera = false;
-      if (x.desde && f < x.desde) fuera = true;
-      if (x.hasta && f > x.hasta) fuera = true;
-      if (esFueraT(f, tm)) fuera = true;
-      if (vaciadaT(f, tm)) fuera = true;
-      if ((ficha.mochila || []).indexOf(tm) >= 0) fuera = true;
-      try { if (A.esDeOtro(x.r) && A.comensales(f, tm) < 2) fuera = true; } catch (e) {}
-      try { if (A.estaQuitado(f, tm, x.r)) fuera = true; } catch (e) {}
-      if (fuera) l.splice(l.indexOf(x.r), 1);
+  /* QUE FIJOS TOCAN HOY EN CADA TOMA, con las reglas de su motor. */
+  function tocan(tm) {
+    var ok = {};
+    if (esFueraT(f, tm) || vaciadaT(f, tm)) return ok;
+    if ((ficha.mochila || []).indexOf(tm) >= 0) return ok;
+    cfg.forEach(function (x) {
+      if (!x || !x.r || (x.tomas || []).indexOf(tm) < 0) return;
+      if (x.desde && f < x.desde) return;
+      if (x.hasta && f > x.hasta) return;
+      try { if (A.estaQuitado(f, tm, x.r)) return; } catch (e) {}
+      try { if (A.esDeOtro(x.r) && A.comensales(f, tm) < 2) return; } catch (e) {}
+      ok[x.r] = 1;
     });
+    return ok;
+  }
+  /* Y FUERA LOS QUE YA NO TOCAN. Se mira al reves que antes —lo que hay en el
+     dia contra lo que deberia haber—, porque si cambias el pan en la tabla, la
+     entrada vieja deja de declarar esa toma y recorriendo la config no se la
+     encontraba nunca: el pan de antes se quedaba puesto para siempre. */
+  TOMAS.forEach(function (tm) {
+    var l = d[tm]; if (!l || !l.length) return;
+    var ok = tocan(tm);
+    for (var i = l.length - 1; i >= 0; i--) {
+      if (esFijoId(l[i]) && !ok[l[i]]) l.splice(i, 1);
+    }
   });
 }
 function sincronizar(fechas) {
@@ -1462,17 +1513,18 @@ function sincronizar(fechas) {
         });
       });
     });
-    /* LOS FIJOS SE SIEMBRAN UNA VEZ POR DIA, Y YA (Carlos, 5-nov):
-       «al iniciar la planificacion la semana en curso y la planificada deberian
-       tenerlo ya, asi que aparece en lo que no este planificado ya. Una vez
-       planificado se puede editar, pero no hay que rellenarlo automaticamente
-       con los fijos de nuevo».
-       Por eso el dia queda marcado: a partir de ahi manda lo que el haga, y
-       quitar el pan de un martes no se deshace al volver a entrar. */
-    if (!d.fijosPuestos) {
+    /* LOS FIJOS, SOLO EN LOS DIAS QUE NO HAS TOCADO (Carlos, 5-nov).
+       Son dos cosas que tienen que convivir:
+       · «una vez planificado se puede editar, pero no hay que rellenarlo
+         automaticamente con los fijos de nuevo» — un dia que el ha tocado no se
+         rehace: quitar el pan de un martes no se deshace al volver a entrar;
+       · y si cambia el pan en LA TABLA, ese cambio tiene que llegar a los dias
+         que todavia no ha tocado, o la tabla no sirve de nada.
+       Asi que no hay marca de «sembrado»: se mira si el dia esta tocado, y eso
+       se sabe por lo que el mismo ha dejado escrito en el. */
+    if (!diaTocado(f, d)) {
       limpiarFijos(f, d);
       try { A.ponerFijos(f); } catch (e) {}
-      d.fijosPuestos = 1;
     }
     if (!A.estado.actividad) A.estado.actividad = {};
     if (d.actividad && d.actividad.length) A.estado.actividad[f] = d.actividad;
@@ -2239,7 +2291,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
   pendienteComido: pendienteComido, pendienteFuera: pendienteFuera,
   vaciarPendientes: vaciarPendientes, huecoGuar: huecoGuar, ajusteGuar: ajusteGuar,
   reajuste: reajuste, fichaReceta: fichaReceta, esFueraT: esFueraT, dias: dias,
-  esBebida: esBebida, papelDe: papelDe, vivaFicha: vivaFicha, esTosta: esTosta,
+  esBebida: esBebida, papelDe: papelDe, vivaFicha: vivaFicha, esTosta: esTosta, propios: propios, ponerPropios: ponerPropios, sacarDeBandejas: sacarDeBandejas,
   vaciarDia: vaciarDia, deshacerVaciar: deshacerVaciar, sePuedeDeshacer: sePuedeDeshacer,
   cuantosDelDia: cuantosDelDia, sueltoBorrable: sueltoBorrable, borrarSuelto: borrarSuelto, E: function () { return E; }, nuevo: nuevo, cargar: cargar, arrancar: arrancar, colocar: colocar,
                  quitar: quitar, estadoDe: estadoDe, proponer: proponer, guarniciones: guarniciones,
@@ -3321,7 +3373,12 @@ function paxMini(fecha, toma) {
   return g;
 }
 function celda(fecha, toma, s) {
-  var d = P.dia(fecha)[toma] || [];
+  /* EN LA REJILLA, SOLO LOS PLATOS (Carlos, 5-nov: «el plan de la semana que
+     viene son yogur con avena y panecillos»). Desde que los fijos se guardan
+     dentro del dia, la celda los pintaba como si fueran la comida y tapaban el
+     plato de verdad. El pan y el yogur se ven en Dia a dia y cuentan en la
+     compra; aqui lo que se planifica son los principales. */
+  var d = P.propios(fecha, toma);
   var hoy = (fecha === P.HOY);
   var pasado = (fecha < P.HOY);
   var c = el('div', 'cel');
@@ -3406,6 +3463,11 @@ function celda(fecha, toma, s) {
 function agarrar(nodo, receta, origen) {
   nodo.addEventListener('mousedown', function (ev) {
     if (ev.button !== 0) return;
+    /* Carlos, 5-nov: «doy a la x roja y no se quita». El boton vive dentro de
+       la ficha que se arrastra, asi que su mousedown abria un arrastre y el
+       repintado se llevaba por delante el click. Los botones van aparte. */
+    var t = ev.target;
+    while (t && t !== nodo) { if (t.tagName === 'BUTTON') return; t = t.parentElement; }
     ev.preventDefault();
     arr = { receta: receta, origen: origen || null, x0: ev.clientX, y0: ev.clientY, movido: false, nodo: nodo, fantasma: null };
   });
@@ -3472,18 +3534,23 @@ function soltar(a, cel) {
   /* Soltar en una bandeja: el plato sale del día y se queda ahí, a la espera. */
   if (cel.classList.contains('bandeja')) {
     if (a.origen && a.origen.fecha) {
-      var d0 = P.dia(a.origen.fecha)[a.origen.toma] || [];
-      d0.splice(a.origen.ranura, 1);
+      /* la ranura cuenta platos, no fijos */
+      var l0 = P.propios(a.origen.fecha, a.origen.toma);
+      l0.splice(a.origen.ranura, 1);
+      P.ponerPropios(a.origen.fecha, a.origen.toma, l0);
     }
+    /* Un plato sin colocar esta en UNA bandeja, nunca en dos (Carlos, 5-nov:
+       «si lo muevo a otro sin colocar, el primero se borre... ahora salen dos»). */
+    P.sacarDeBandejas(a.receta);
     P.aBandeja(cel.dataset.bandeja, a.receta);
     P.guardar(); pintar();
     return;
   }
   var fecha = cel.dataset.fecha, toma = cel.dataset.toma;
   if (a.origen && a.origen.fecha) P.quitar(a.origen.fecha, a.origen.toma, a.origen.ranura);
-  var d = P.dia(fecha)[toma] || [];
+  var d = P.propios(fecha, toma);
   var esG = P.esGuar(P.POR_ID[a.receta]);
-  var ranura = ((d || []).length && esG) ? 1 : 0;
+  var ranura = (d.length && esG) ? 1 : 0;
   P.colocar(a.receta, fecha, toma, ranura);
   pintar();
 }
@@ -4164,7 +4231,7 @@ function tarjetaToma(f, tm) {
       ba.onclick = function () {
         if (P.esFueraT(f, tm)) abrirPicoteo(f, tm, 'fuera');
         else if (tm === 'almuerzo' || tm === 'merienda') abrirPicoteo(f, tm, 'bloques');
-        else if (esPrincipal) abrirCatalogo(f, tm, (d || []).length ? 1 : 0, null);
+        else if (esPrincipal) abrirCatalogo(f, tm, P.propios(f, tm).length ? 1 : 0, null);
         else abrirFijoDia(f, tm, 'yo', P.PAPELES[tm][0]);
       };
       der.appendChild(ba);
