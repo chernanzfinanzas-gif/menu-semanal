@@ -3417,6 +3417,7 @@ function celda(fecha, toma, s) {
     c.appendChild(caja);
     return c;
   }
+  if (cerrada) c.classList.add('cerrada');   /* ni se arrastra ni admite nada */
   var e0 = P.estadoDe(d[0]);
   var cab = el('div', 'celcab');
   var np = P.pax(fecha, toma);
@@ -3525,6 +3526,9 @@ document.addEventListener('mouseup', function (ev) {
 function celdaEn(x, y) {
   var n = document.elementFromPoint(x, y);
   while (n && !(n.classList && (n.classList.contains('cel') || n.classList.contains('bandeja')))) n = n.parentElement;
+  /* UNA TOMA CERRADA NO ADMITE NADA (Carlos, 5-nov: «y no modificables»). Si no,
+     se podia soltar un plato encima de una cena ya comida y cambiarla. */
+  if (n && n.classList.contains('cel') && n.classList.contains('cerrada')) return null;
   return n;
 }
 function marcarDiana(x, y) {
