@@ -1,0 +1,811 @@
+/* Menu semanal · planificador y dia a dia.
+   Todo va encerrado en #vista-menu a proposito: la app y este bloque comparten
+   nombres genericos (btn, modal, aviso, fila, tarjeta) y ocho variables de color
+   con valores DISTINTOS. Encerrarlo deja el resto de la app intacta.
+   Generado desde el prototipo; no editar a mano. */
+
+/* ============================================================
+   Menú · sistema visual
+   Una escala de tipo, una de espacio, un verde y tres colores
+   de estado. Todo lo demás es tinta, línea y fondo.
+   ============================================================ */
+#vista-menu{
+  /* tinta y superficies */
+  --tinta:#15211c; --tinta-2:#3d4f48; --tinta-3:#6b7d75; --tinta-4:#93a39c;
+  --fondo:#f2f5f3; --sup:#ffffff; --sup-2:#f8faf9;
+  --linea:#e4eae7; --linea-2:#d2dcd7;
+  /* verde de la casa */
+  --verde:#2f6b47; --verde-2:#245438; --verde-claro:#e9f2ec; --verde-borde:#c9dfd2;
+  /* estados */
+  --ambar:#8a5e0a; --ambar-fondo:#fdf4e3; --ambar-borde:#ead9b4; --ambar-punto:#c98a1b;
+  --rojo:#a33524; --rojo-fondo:#fbeeec; --rojo-borde:#edcac3;
+  --azul:#44557a; --azul-fondo:#eef1f7; --azul-borde:#d7deeb;
+  --energia:#6c3fa8; --energia-fondo:#f4eefb;
+  /* macros: paleta categorica propia, validada (6/6) — no son colores de estado */
+  --mac-p:#3c6fb5; --mac-h:#c2601f; --mac-g:#8a4fc4;
+  --mac-p-10:#eaf0f8; --mac-h-10:#fbeee7; --mac-g-10:#f3ecfa;
+  /* forma */
+  --r-s:8px; --r-m:12px; --r-l:16px; --r-full:999px;
+  --sombra-1:0 1px 2px rgba(21,33,28,.05);
+  --sombra-2:0 1px 3px rgba(21,33,28,.07), 0 8px 24px -8px rgba(21,33,28,.10);
+  --foco:0 0 0 3px rgba(47,107,71,.28);
+}
+#vista-menu{box-sizing:border-box}
+#vista-menu, #vista-menu{margin:0;padding:0}
+#vista-menu{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--tinta); background:var(--fondo); font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+#vista-menu button{font:inherit;cursor:pointer;color:inherit}
+#vista-menu input, #vista-menu select{font:inherit;color:inherit}
+#vista-menu :focus-visible{outline:none;box-shadow:var(--foco);border-radius:var(--r-s)}
+#vista-menu .num{font-variant-numeric:tabular-nums}
+
+/* ---------- barra superior ---------- */
+#vista-menu header.barra{background:var(--verde);color:#fff;min-height:52px;display:flex;align-items:center;
+  gap:16px;padding:0 20px;position:sticky;top:0;z-index:40;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+#vista-menu header.barra .t{font-weight:650;font-size:17px;letter-spacing:-.01em}
+#vista-menu header.barra .chip{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  background:rgba(255,255,255,.16);border-radius:var(--r-full);padding:4px 10px}
+#vista-menu header.barra .der{margin-left:auto;font-size:13px;opacity:.85}
+#vista-menu .pest{display:flex;gap:2px;margin-left:10px;background:rgba(0,0,0,.14);border-radius:var(--r-full);padding:3px}
+#vista-menu .pest button{border:0;background:none;color:rgba(255,255,255,.82);border-radius:var(--r-full);
+  padding:7px 18px;font-size:13.5px;font-weight:600;transition:background .12s,color .12s}
+#vista-menu .pest button:hover{color:#fff}
+#vista-menu .pest button.on{background:#fff;color:var(--verde);font-weight:650}
+
+/* ---------- aviso del prototipo ---------- */
+#vista-menu .aviso{background:var(--sup);border-bottom:1px solid var(--linea);padding:9px 20px;display:flex;
+  align-items:center;gap:14px;font-size:12.5px;color:var(--tinta-3);flex-wrap:wrap}
+#vista-menu .aviso b{color:var(--tinta-2);font-weight:650}
+#vista-menu .aviso .btn{border:1px solid var(--linea-2);background:var(--sup);color:var(--tinta-2);border-radius:var(--r-s);
+  padding:5px 11px;font-size:12px;font-weight:600}
+#vista-menu .aviso .btn:hover{border-color:var(--verde-borde);color:var(--verde)}
+
+#vista-menu main{padding:20px;max-width:1560px;margin:0 auto 80px}
+#vista-menu #vista-dia{max-width:1120px}
+
+/* ---------- piezas comunes ---------- */
+#vista-menu .tarjeta{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-l);
+  padding:16px 18px;box-shadow:var(--sombra-1)}
+#vista-menu .cabsec{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+#vista-menu .cabsec h2{margin:0;font-size:20px;font-weight:680;letter-spacing:-.015em}
+#vista-menu .cabsec .sub{font-size:13px;color:var(--tinta-3)}
+#vista-menu .cabsec .der{margin-left:auto;display:flex;align-items:center;gap:12px}
+#vista-menu .leyenda{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tinta-3)}
+#vista-menu .pt{width:8px;height:8px;border-radius:50%;flex:0 0 8px;display:inline-block;vertical-align:1px;margin-right:2px}
+#vista-menu .pt.casa{background:var(--verde)} #vista-menu .pt.falta{background:var(--ambar-punto)} #vista-menu .pt.comprar{background:var(--rojo)}
+#vista-menu .vacio{font-size:13px;color:var(--tinta-3);padding:10px 2px}
+#vista-menu .peque{font-size:12.5px;color:var(--tinta-3)}
+
+#vista-menu .btnv{border:0;border-radius:var(--r-s);background:var(--verde);color:#fff;font-size:13px;
+  font-weight:650;padding:9px 16px;transition:background .12s}
+#vista-menu .btnv:hover{background:var(--verde-2)}
+#vista-menu .btng{border:1px solid var(--linea-2);border-radius:var(--r-s);background:var(--sup);color:var(--tinta-2);
+  font-size:12.5px;font-weight:600;padding:7px 12px;transition:border-color .12s,color .12s}
+#vista-menu .btng:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .btng.uno{background:var(--ambar-fondo);border-color:var(--ambar-borde);color:var(--ambar);font-weight:650}
+#vista-menu .plegar{margin-left:auto;border:1px solid var(--linea-2);background:var(--sup);border-radius:var(--r-s);
+  font-size:12.5px;font-weight:600;color:var(--tinta-3);padding:7px 12px;display:flex;align-items:center;gap:6px}
+#vista-menu .plegar:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .plegar .chev{transition:transform .15s ease}
+#vista-menu .plegar.cerrado .chev{transform:rotate(-90deg)}
+#vista-menu .mini{width:26px;height:26px;border:1px solid var(--linea);border-radius:var(--r-s);background:var(--sup);
+  color:var(--tinta-3);display:flex;align-items:center;justify-content:center;padding:0;flex:0 0 26px;
+  transition:border-color .12s,color .12s}
+#vista-menu .mini:hover{border-color:var(--rojo-borde);color:var(--rojo)}
+
+/* ---------- resumen semanal ---------- */
+#vista-menu .semanal{margin:0 0 16px}
+/* ---------- panel de las tres semanas ---------- */
+#vista-menu .panelsem{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;margin-top:16px}
+#vista-menu .ksem{border:1px solid var(--linea);border-radius:var(--r-l);background:var(--sup);
+  padding:16px 18px 16px;display:flex;flex-direction:column;gap:15px}
+#vista-menu .ksem.foco{border-color:var(--verde-borde);box-shadow:var(--sombra-2)}
+#vista-menu .kcab{display:flex;align-items:flex-start;gap:10px}
+#vista-menu .knom{font-size:15.5px;font-weight:650;letter-spacing:-.012em;line-height:1.2}
+#vista-menu .knom small{display:block;font-size:11.5px;font-weight:500;color:var(--tinta-4);margin-top:3px}
+#vista-menu .kchip{margin-left:auto;flex:0 0 auto;font-size:9.5px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;border-radius:var(--r-full);padding:3px 9px;border:1px solid;white-space:nowrap}
+#vista-menu .kchip.curso{color:var(--verde);background:var(--verde-claro);border-color:var(--verde-borde)}
+#vista-menu .kchip.compra{color:var(--azul);background:var(--azul-fondo);border-color:var(--azul-borde)}
+#vista-menu .kchip.plan{color:var(--tinta-3);background:var(--sup-2);border-color:var(--linea-2)}
+#vista-menu .krot{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-4);
+  display:block;margin-bottom:7px}
+#vista-menu .kstat{display:flex;align-items:baseline;gap:8px}
+#vista-menu .kv{font-size:32px;font-weight:660;letter-spacing:-.025em;line-height:1}
+#vista-menu .ku{font-size:13px;color:var(--tinta-3);font-weight:500}
+#vista-menu .kdelta{margin-left:auto;font-size:12px;font-weight:650;border-radius:var(--r-full);padding:3px 10px;
+  white-space:nowrap}
+#vista-menu .kdelta.ok{color:var(--verde);background:var(--verde-claro)}
+#vista-menu .kdelta.ojo{color:var(--ambar);background:var(--ambar-fondo)}
+#vista-menu .kpista{font-size:12px;color:var(--tinta-3);margin-top:7px}
+#vista-menu .kmwrap{position:relative;margin-top:9px;padding:3px 0}
+#vista-menu .kmeter{height:8px;border-radius:var(--r-full);background:var(--verde-claro);overflow:hidden}
+#vista-menu .kmeter i{display:block;height:100%;border-radius:var(--r-full);background:var(--verde);transition:width .2s}
+#vista-menu .kmeter.ojo{background:var(--ambar-fondo)} #vista-menu .kmeter.ojo i{background:var(--ambar-punto)}
+#vista-menu .kmeter.mal{background:var(--rojo-fondo)} #vista-menu .kmeter.mal i{background:var(--rojo)}
+#vista-menu .kmarca{position:absolute;top:0;bottom:0;width:2px;background:var(--tinta-3);border-radius:1px}
+#vista-menu .kpista.objetivo{display:flex;align-items:center;gap:6px}
+#vista-menu .kpista.objetivo::before{content:'';width:2px;height:11px;background:var(--tinta-3);border-radius:1px;
+  flex:0 0 2px}
+#vista-menu .kmac{display:flex;height:28px;gap:2px}
+#vista-menu .kmac span{display:flex;align-items:center;padding:0 9px;border-radius:4px;font-size:11.5px;
+  font-weight:700;color:#fff;white-space:nowrap;min-width:0}
+#vista-menu .kmac .mp{background:var(--mac-p)} #vista-menu .kmac .mh{background:var(--mac-h)} #vista-menu .kmac .mg{background:var(--mac-g)}
+#vista-menu .kleg{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--tinta-3);margin-top:9px}
+#vista-menu .kleg span{display:flex;align-items:center;gap:6px}
+#vista-menu .kleg i{width:9px;height:9px;border-radius:2.5px;flex:0 0 9px}
+#vista-menu .kleg .lp{background:var(--mac-p)} #vista-menu .kleg .lh{background:var(--mac-h)} #vista-menu .kleg .lg{background:var(--mac-g)}
+#vista-menu .kpie{display:flex;align-items:baseline;gap:10px;border-top:1px solid var(--linea);padding-top:12px;
+  margin-top:auto;font-size:12.5px;color:var(--tinta-3)}
+#vista-menu .kpie b{font-size:14px;font-weight:650;color:var(--tinta-2)}
+#vista-menu .kpie .dcho{margin-left:auto;text-align:right}
+#vista-menu .ksin{font-size:13px;color:var(--tinta-3);padding:16px 0}
+
+#vista-menu .tablasem{display:grid;grid-template-columns:1.5fr repeat(8,1fr);gap:0 10px;margin-top:12px;align-items:center}
+#vista-menu .tablasem .th{font-size:12px;font-weight:700;letter-spacing:.02em;
+  color:var(--tinta-2);text-align:right;padding:0 0 9px;border-bottom:1px solid var(--linea-2);line-height:1.25}
+#vista-menu .tablasem .th small{display:block;font-size:10.5px;font-weight:600;color:var(--tinta-4);letter-spacing:0}
+#vista-menu .tablasem .th:first-child{text-align:left}
+#vista-menu .tablasem .rt{font-size:15px;font-weight:650;padding:12px 0;border-bottom:1px solid var(--linea)}
+#vista-menu .tablasem .rt small{display:block;font-size:11.5px;font-weight:500;color:var(--tinta-4);margin-top:1px}
+#vista-menu .tablasem .rv{font-size:14.5px;text-align:right;padding:12px 0;border-bottom:1px solid var(--linea);color:var(--tinta-2)}
+#vista-menu .tablasem .rv.ok{color:var(--verde);font-weight:650}
+#vista-menu .piesem{font-size:12px;color:var(--tinta-3);margin-top:10px;line-height:1.45}
+#vista-menu .tablasem .rv.ojo{color:var(--ambar);font-weight:650}
+
+/* ---------- fijos ---------- */
+#vista-menu .fij{display:grid;grid-template-columns:124px 1fr 1fr;gap:10px;align-items:start;margin-top:12px}
+#vista-menu .fij .cab{font-size:10.5px;font-weight:700;letter-spacing:.07em;color:var(--tinta-4);padding:0 0 2px}
+#vista-menu .fij .et{font-size:13.5px;font-weight:650;padding:10px 0 0}
+#vista-menu .fij .et small{display:block;font-size:11px;font-weight:600;color:var(--tinta-4);margin-top:2px}
+#vista-menu .fij .caja{display:flex;flex-direction:column;gap:6px;background:var(--sup-2);border:1px solid var(--linea);
+  border-radius:var(--r-m);padding:8px}
+#vista-menu .fij .caja.ella{background:#faf8fb;border-color:#eae2ec}
+#vista-menu .sel-linea{display:flex;align-items:center;gap:8px}
+#vista-menu .sel-linea .pap{width:56px;flex:0 0 56px;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--tinta-4)}
+#vista-menu .selector{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--sup);
+  border:1px solid var(--linea);border-radius:var(--r-s);padding:8px 10px;font-size:13px;text-align:left;
+  color:var(--tinta);min-height:38px;transition:border-color .12s,box-shadow .12s}
+#vista-menu .selector:hover{border-color:var(--verde-borde);box-shadow:var(--sombra-1)}
+#vista-menu .selector .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vista-menu .selector.sin .nom{color:var(--tinta-4);font-style:italic}
+#vista-menu .selector .vig{font-style:normal;font-size:10.5px;font-weight:700;color:var(--verde);
+  background:var(--verde-claro);border-radius:var(--r-full);padding:2px 8px;white-space:nowrap}
+#vista-menu .selector .chev{color:var(--tinta-4);flex:0 0 14px}
+
+/* ---------- días que come solo ---------- */
+#vista-menu .solos{margin-top:16px;padding-top:14px;border-top:1px solid var(--linea)}
+#vista-menu .solos .tit{font-size:10.5px;font-weight:700;letter-spacing:.07em;color:var(--tinta-4);margin-bottom:9px}
+#vista-menu .solos .tit span{font-weight:500;letter-spacing:0;color:var(--tinta-3);text-transform:none;font-size:12.5px;margin-left:8px}
+#vista-menu .solos-g{display:grid;grid-template-columns:124px repeat(7,44px);gap:6px;align-items:center}
+#vista-menu .solos-g .dl{font-size:11px;font-weight:700;color:var(--tinta-4);text-align:center}
+#vista-menu .solos-g .tl{font-size:13.5px;font-weight:650}
+#vista-menu .sb{min-height:34px;border:1px solid var(--linea);background:var(--sup);border-radius:var(--r-s);
+  font-size:13px;font-weight:700;color:var(--tinta-4);transition:all .12s}
+#vista-menu .sb:hover{border-color:var(--verde-borde)}
+#vista-menu .sb.on{background:var(--ambar-fondo);border-color:var(--ambar-borde);color:var(--ambar)}
+
+/* ---------- panel de fichas ---------- */
+#vista-menu .fila{display:flex;align-items:flex-start;gap:12px;margin-top:12px}
+#vista-menu .fila .et{width:112px;flex:0 0 112px;padding-top:6px;position:relative;border-radius:var(--r-s);
+  transition:background .12s}
+#vista-menu .fila .et:hover{background:var(--sup-2)}
+#vista-menu .fila .et.cerrada{width:100%;flex:1 1 100%;display:flex;align-items:baseline;gap:10px;padding:7px 8px;
+  background:var(--sup-2);border:1px solid var(--linea)}
+#vista-menu .fila .et.cerrada b{display:inline}
+#vista-menu .fila .et.cerrada b{white-space:nowrap}
+#vista-menu .fila .et.cerrada span{margin-top:0}
+#vista-menu .plegarf{position:absolute;right:2px;top:2px;width:22px;height:22px;border:0;background:none;padding:0;
+  color:var(--tinta-4);display:flex;align-items:center;justify-content:center}
+#vista-menu .plegarf:hover{color:var(--verde)}
+#vista-menu .plegarf .chev{width:14px;height:14px;transition:transform .15s ease}
+#vista-menu .plegarf.cerrado .chev{transform:rotate(-90deg)}
+#vista-menu .fila .et.cerrada .plegarf{position:static;margin-left:auto}
+#vista-menu .fila .et b{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--tinta-3);line-height:1.35}
+#vista-menu .fila .et span{display:block;font-size:12px;color:var(--tinta-4);margin-top:3px;font-weight:600}
+#vista-menu .fila .cont{flex:1;min-width:0;display:flex;gap:8px;flex-wrap:wrap}
+#vista-menu .grupo{width:184px;flex:0 0 184px;background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-m);
+  padding:9px 10px;box-shadow:var(--sombra-1)}
+#vista-menu .grupo .gt{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--verde);padding-bottom:6px}
+#vista-menu .op{display:flex;align-items:flex-start;gap:6px;padding:7px 0;border-top:1px solid var(--linea);cursor:grab;
+  border-radius:6px;transition:background .1s}
+#vista-menu .op:first-of-type{border-top:0}
+#vista-menu .op:hover{background:var(--verde-claro)}
+#vista-menu .op.sel{background:var(--verde-claro);box-shadow:inset 0 0 0 2px var(--verde)}
+#vista-menu .op .n{font-size:12.5px;line-height:1.3}
+#vista-menu .op .f, #vista-menu .suelta .f{font-size:11px;font-weight:650;margin-top:2px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+#vista-menu .suelta .f.casa, #vista-menu .op .f.casa{display:none}
+#vista-menu .op .f.falta, #vista-menu .suelta .f.falta{color:var(--ambar)} #vista-menu .op .f.comprar, #vista-menu .suelta .f.comprar{color:var(--rojo)}
+#vista-menu .gr{flex:0 0 9px;margin-top:3px}
+#vista-menu .suelta{width:184px;flex:0 0 184px;display:flex;align-items:flex-start;gap:6px;background:var(--sup);
+  border:1px solid var(--linea);border-radius:var(--r-m);padding:9px 10px;cursor:grab;box-shadow:var(--sombra-1);
+  transition:border-color .12s}
+#vista-menu .suelta:hover{border-color:var(--verde-borde)}
+#vista-menu .suelta.sel{box-shadow:inset 0 0 0 2px var(--verde)}
+#vista-menu .suelta .n{font-size:12.5px;line-height:1.3}
+#vista-menu .verm{width:120px;flex:0 0 120px;border:1px dashed var(--verde-borde);border-radius:var(--r-m);
+  background:var(--sup);color:var(--verde);font-size:12.5px;font-weight:650;padding:8px}
+#vista-menu .verm:hover{background:var(--verde-claro)}
+
+/* ---------- semanas ---------- */
+#vista-menu .sem{margin-top:16px;background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-l);
+  overflow:hidden;transition:border-color .12s}
+#vista-menu .sem:hover{border-color:var(--linea-2)}
+#vista-menu .sem.foco{border-color:var(--verde-borde);box-shadow:var(--sombra-2)}
+#vista-menu .semcab{display:flex;align-items:center;gap:11px;cursor:pointer;padding:15px 18px;
+  border-bottom:1px solid var(--linea)}
+#vista-menu .semcab.cerrada{border-bottom:0}
+#vista-menu .semcab:hover h2{color:var(--verde)}
+#vista-menu .semcab h2{margin:0;font-size:20px;font-weight:680;letter-spacing:-.015em;transition:color .12s}
+#vista-menu .semcab .f{font-size:13px;color:var(--tinta-3)}
+#vista-menu .semcab .nota{margin-left:auto;font-size:12.5px;color:var(--tinta-3)}
+#vista-menu .semcab .resumen{margin-left:auto;font-size:13px;color:var(--tinta-3);font-weight:600}
+#vista-menu .semcab .muestra{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--azul);background:var(--azul-fondo);
+  border:1px solid var(--azul-borde);border-radius:var(--r-full);padding:3px 9px}
+#vista-menu .semcab .chev{color:var(--tinta-4);transition:transform .15s ease;flex:0 0 16px}
+#vista-menu .semcab.cerrada .chev{transform:rotate(-90deg)}
+#vista-menu .semcuerpo{padding:15px 18px 18px}
+#vista-menu .rej{display:grid;grid-template-columns:58px repeat(7,minmax(0,1fr));gap:8px}
+#vista-menu .tomarot{display:flex;align-items:center;justify-content:flex-end;font-size:10px;font-weight:700;
+  letter-spacing:.09em;color:var(--tinta-4);padding-right:2px}
+#vista-menu .dcab.vacia{border:0;background:none}
+#vista-menu .dcab{font-size:12px;font-weight:700;color:var(--tinta-4);padding-bottom:4px;letter-spacing:.03em;
+  display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}
+#vista-menu .dcab .dn{white-space:nowrap}
+#vista-menu .btipos{display:inline-flex;gap:0;border:1px solid var(--linea);border-radius:var(--r-s);overflow:hidden;
+  background:var(--sup);flex:0 0 auto}
+#vista-menu .btipo{width:24px;height:21px;border:0;background:none;padding:0;display:flex;align-items:center;
+  justify-content:center;color:var(--tinta-4);transition:all .12s}
+#vista-menu .btipo + .btipo{border-left:1px solid var(--linea)}
+#vista-menu .btipo:hover{background:var(--fondo);color:var(--tinta-2)}
+#vista-menu .btipo.on{background:var(--verde);color:#fff}
+#vista-menu .btipo.bota.on{background:var(--ambar-punto);color:#fff}
+#vista-menu .btipo.on:hover{opacity:.9}
+#vista-menu .dcab.ruta{color:var(--ambar)}
+#vista-menu .dcab .dkcal{font-size:10px;font-weight:700;color:var(--ambar);background:var(--ambar-fondo);
+  border:1px solid var(--ambar-borde);border-radius:var(--r-full);padding:0 6px;line-height:16px}
+#vista-menu .tdpop{position:absolute;z-index:150;background:var(--sup);border:1px solid var(--linea);
+  border-radius:var(--r-l);box-shadow:var(--sombra-2);padding:13px;width:290px}
+#vista-menu .tdt{font-size:13px;font-weight:650;margin-bottom:9px}
+#vista-menu .tdpop .tpest{display:flex;width:100%}
+#vista-menu .tdpop .tp{flex:1;justify-content:center}
+#vista-menu .tdruta{display:flex;gap:7px;margin-top:10px}
+#vista-menu .tdruta select{flex:1;min-width:0;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:7px 9px;
+  font-size:12.5px;background:var(--sup)}
+#vista-menu .tdruta input{width:72px;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:7px 9px;
+  font-size:12.5px;background:var(--sup)}
+#vista-menu .tdruta select:focus, #vista-menu .tdruta input:focus{outline:none;border-color:var(--verde)}
+#vista-menu .tdn{font-size:11.5px;color:var(--tinta-3);line-height:1.45;margin-top:9px;background:var(--ambar-fondo);
+  border:1px solid var(--ambar-borde);border-radius:var(--r-s);padding:8px 10px}
+#vista-menu .tdn b{color:var(--ambar);font-weight:700}
+#vista-menu .tdinfo{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tinta-2);
+  background:var(--fondo);border:1px solid var(--linea);border-radius:var(--r-full);padding:6px 14px}
+#vista-menu .tdinfo.ruta{background:var(--ambar-fondo);border-color:var(--ambar-borde);color:var(--ambar)}
+#vista-menu .tdinfo b{font-weight:650}
+#vista-menu .tdcomo{font-size:11.5px;color:var(--tinta-4);font-style:italic}
+#vista-menu .dcab.hoy{color:var(--verde)}
+
+#vista-menu .cel{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-m);padding:9px;min-height:74px;
+  box-shadow:var(--sombra-1);transition:border-color .12s}
+#vista-menu .cel.hoy{border-color:var(--verde);box-shadow:0 0 0 1px var(--verde),var(--sombra-1)}
+#vista-menu .cel.pasado{opacity:.5;box-shadow:none}
+#vista-menu .cel.vacia{border-style:dashed;border-color:var(--linea-2);box-shadow:none;background:var(--sup-2);
+  display:flex;align-items:center;justify-content:center;min-height:86px}
+#vista-menu .cel.vacia:hover{border-color:var(--verde-borde);background:var(--verde-claro)}
+#vista-menu .cel.fuera{background:var(--azul-fondo);border-color:var(--azul-borde);box-shadow:none}
+#vista-menu .cel.diana{background:var(--verde-claro);border:2px dashed var(--verde)}
+#vista-menu .celcab{display:flex;align-items:center;gap:5px;margin-bottom:2px;flex-wrap:wrap}
+#vista-menu .celcab .tt{font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--tinta-4);flex:1;min-width:0}
+#vista-menu .cel.hoy .celcab .tt{color:var(--verde)}
+#vista-menu .r1{font-size:13px;line-height:1.35;margin-top:3px;cursor:grab}
+#vista-menu .r2{display:flex;align-items:flex-start;gap:5px;margin-top:6px;padding-top:6px;border-top:1px solid var(--linea)}
+#vista-menu .r2 .n{flex:1;min-width:0;font-size:11.5px;line-height:1.35;color:var(--tinta-3)}
+#vista-menu .mas{margin-top:7px;width:100%;min-height:28px;border:1px dashed var(--linea-2);border-radius:var(--r-s);
+  background:transparent;color:var(--tinta-3);font-size:11.5px;font-weight:600;transition:all .12s}
+#vista-menu .mas:hover{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .btnplus{width:34px;height:34px;border:1px solid var(--linea-2);border-radius:var(--r-s);background:var(--sup);
+  color:var(--verde);display:flex;align-items:center;justify-content:center;padding:0}
+#vista-menu .btnplus:hover{background:var(--verde);color:#fff;border-color:var(--verde)}
+#vista-menu .vacia-botones{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center}
+#vista-menu .btnfuera{width:30px;height:30px;border:1px solid var(--linea);border-radius:var(--r-s);background:var(--sup);
+  color:var(--tinta-4);display:flex;align-items:center;justify-content:center;padding:0}
+#vista-menu .btnfuera:hover{border-color:var(--azul-borde);color:var(--azul);background:var(--azul-fondo)}
+#vista-menu .paxm{display:inline-flex;align-items:center;gap:0;border:1px solid var(--linea);border-radius:var(--r-full);
+  background:var(--sup);flex:0 0 auto;height:18px}
+#vista-menu .paxm.uno{background:var(--ambar-fondo);border-color:var(--ambar-borde)}
+#vista-menu .paxm.varios{background:var(--azul-fondo);border-color:var(--azul-borde)}
+#vista-menu .paxm .pb{width:16px;height:16px;border:0;background:none;color:var(--tinta-4);font-size:12px;
+  font-weight:700;padding:0;line-height:1;border-radius:var(--r-full)}
+#vista-menu .paxm .pb:hover{color:var(--verde);background:var(--fondo)}
+#vista-menu .paxm .pn{min-width:13px;text-align:center;font-size:10.5px;font-weight:700;color:var(--tinta-3)}
+#vista-menu .paxm.uno .pn{color:var(--ambar)} #vista-menu .paxm.varios .pn{color:var(--azul)}
+#vista-menu .pax1{font-size:9.5px;font-weight:700;color:var(--ambar);background:var(--ambar-fondo);
+  border:1px solid var(--ambar-borde);border-radius:var(--r-full);padding:0 6px;line-height:15px;flex:0 0 auto}
+
+/* ---------- bandejas ---------- */
+#vista-menu .bandeja{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--verde-claro);
+  border:1px solid var(--verde-borde);border-radius:var(--r-m);padding:8px 11px;margin-bottom:8px}
+#vista-menu .bandeja.vacia{background:var(--sup-2);border-style:dashed;border-color:var(--linea-2)}
+#vista-menu .bandeja .bt{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--verde)}
+#vista-menu .bandeja.vacia .bt{color:var(--tinta-4)}
+#vista-menu .bficha{display:flex;align-items:center;gap:6px;background:var(--sup);border:1px solid var(--verde-borde);
+  border-radius:var(--r-s);padding:6px 8px;cursor:grab;max-width:280px;box-shadow:var(--sombra-1)}
+#vista-menu .bficha:hover{border-color:var(--verde)}
+#vista-menu .bficha .n{font-size:12.5px;line-height:1.3}
+#vista-menu .bandeja .pista, #vista-menu .bandeja .pista2{font-size:11.5px;color:var(--tinta-3);margin-left:auto}
+#vista-menu .bandeja .pista2{font-style:italic;color:var(--tinta-4)}
+#vista-menu .bandeja.diana{background:var(--verde-claro);border:2px dashed var(--verde)}
+
+/* ---------- arrastre ---------- */
+#vista-menu .fantasma{position:fixed;z-index:200;pointer-events:none;background:var(--sup);border:1px solid var(--verde);
+  border-radius:var(--r-s);padding:8px 10px;font-size:12.5px;max-width:220px;box-shadow:var(--sombra-2);
+  transform:rotate(-1.5deg)}
+#vista-menu .flota{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;background:var(--tinta);
+  color:#fff;font-size:13px;padding:11px 18px;border-radius:var(--r-m);box-shadow:var(--sombra-2);display:none;max-width:70vw}
+
+/* ---------- día: buscador y tira ---------- */
+#vista-menu .buscad{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sup);border:1px solid var(--linea);
+  border-radius:var(--r-m);padding:12px 14px;box-shadow:var(--sombra-1)}
+#vista-menu .buscad .lab{font-size:13px;font-weight:650;color:var(--tinta-3)}
+#vista-menu .buscad select{border:1px solid var(--linea-2);border-radius:var(--r-s);padding:8px 10px;font-size:13.5px;background:var(--sup)}
+#vista-menu .navdia{display:flex;align-items:center;gap:12px;margin:14px 0 10px}
+#vista-menu .navdia .rango{flex:1;text-align:center;font-size:12.5px;color:var(--tinta-3);letter-spacing:.02em}
+#vista-menu .tira{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px}
+#vista-menu .tdia{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-m);padding:9px 4px;display:flex;
+  flex-direction:column;align-items:center;gap:1px;transition:all .12s;box-shadow:var(--sombra-1)}
+#vista-menu .tdia:hover{border-color:var(--verde-borde);transform:translateY(-1px)}
+#vista-menu .tdia .dow{font-size:10px;font-weight:700;color:var(--tinta-4);letter-spacing:.08em}
+#vista-menu .tdia .num{font-size:22px;font-weight:600;line-height:1.15;letter-spacing:-.02em}
+#vista-menu .tdia .cnt{font-size:10.5px;color:var(--tinta-4)}
+#vista-menu .tdia.sel{background:var(--verde);border-color:var(--verde);box-shadow:0 2px 10px -2px rgba(47,107,71,.5)}
+#vista-menu .tdia.sel .dow, #vista-menu .tdia.sel .num, #vista-menu .tdia.sel .cnt{color:#fff}
+#vista-menu .tdia.sel .cnt{opacity:.85}
+#vista-menu .verweek{display:block;margin:12px auto 4px;font-size:13px;color:var(--verde);font-weight:600;
+  background:none;border:0;padding:4px 10px;border-radius:var(--r-s)}
+#vista-menu .verweek:hover{background:var(--verde-claro)}
+#vista-menu .titdia{display:flex;align-items:center;gap:12px;margin:22px 0 12px}
+#vista-menu .titdia h2{margin:0;font-size:24px;font-weight:650;letter-spacing:-.02em}
+#vista-menu .titdia .hoy{font-size:10.5px;font-weight:700;letter-spacing:.06em;background:var(--verde);color:#fff;
+  border-radius:var(--r-full);padding:4px 10px}
+#vista-menu .titdia .cerrado{font-size:10.5px;font-weight:700;letter-spacing:.06em;background:var(--azul-fondo);color:var(--azul);
+  border:1px solid var(--azul-borde);border-radius:var(--r-full);padding:3px 10px}
+#vista-menu .titdia .der-tit{margin-left:auto;display:flex;gap:8px}
+
+/* ---------- día: la media de la semana ---------- */
+#vista-menu .semana-media{background:var(--sup);border:1px solid var(--linea);border-left:4px solid var(--verde);
+  border-radius:var(--r-l);padding:15px 18px;margin-bottom:16px;box-shadow:var(--sombra-2)}
+#vista-menu .sm-cab{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#vista-menu .sm-rot{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--verde)}
+#vista-menu .sm-f{font-size:13px;color:var(--tinta-2);font-weight:600}
+#vista-menu .sm-chip{font-size:9.5px;font-weight:700;letter-spacing:.06em;background:var(--verde);color:#fff;
+  border-radius:var(--r-full);padding:2px 9px}
+#vista-menu .sm-d{margin-left:auto;font-size:12px;color:var(--tinta-4)}
+#vista-menu .sm-cifras{display:flex;align-items:center;gap:20px;margin-top:9px;flex-wrap:wrap}
+#vista-menu .sm-big{font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1.1;flex:0 0 auto}
+#vista-menu .sm-big small{display:block;font-size:11.5px;font-weight:600;color:var(--tinta-4);letter-spacing:0;
+  margin-top:1px}
+#vista-menu .semana-media .vv{flex:1;min-width:300px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+#vista-menu .semana-media .pz{font-size:11.5px;color:var(--tinta-3);display:block;
+  border-left:3px solid var(--linea-2);padding-left:9px;line-height:1.45}
+#vista-menu .semana-media .pz b{display:block;color:var(--tinta-4);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  text-transform:uppercase}
+#vista-menu .semana-media .pz .n{display:block;color:var(--tinta);font-size:13.5px;font-weight:650;margin:2px 0 1px}
+#vista-menu .semana-media .pz i{display:flex;align-items:center;gap:5px;font-style:normal;font-weight:700;font-size:11.5px}
+#vista-menu .semana-media .pz i::before{content:'';width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:currentColor}
+#vista-menu .semana-media .pz.c-verde{border-left-color:var(--verde)} #vista-menu .semana-media .pz.c-verde i{color:var(--verde)}
+#vista-menu .semana-media .pz.c-ambar{border-left-color:var(--ambar-punto)} #vista-menu .semana-media .pz.c-ambar i{color:var(--ambar)}
+#vista-menu .semana-media .pz.c-rojo{border-left-color:var(--rojo)} #vista-menu .semana-media .pz.c-rojo i{color:var(--rojo)}
+
+/* ---------- buscar día: calendario ---------- */
+#vista-menu .btncal{display:flex;align-items:center;gap:8px;border:1px solid var(--linea-2);background:var(--sup);
+  border-radius:var(--r-s);padding:8px 12px;font-size:13.5px;font-weight:600;color:var(--tinta);
+  min-height:38px;transition:border-color .12s}
+#vista-menu .btncal:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .btncal .chev{color:var(--tinta-4);width:14px;height:14px}
+#vista-menu .calpop{position:absolute;z-index:150;background:var(--sup);border:1px solid var(--linea);
+  border-radius:var(--r-l);box-shadow:var(--sombra-2);padding:12px;width:268px}
+#vista-menu .cal-cab{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+#vista-menu .cal-tit{flex:1;text-align:center;font-size:13.5px;font-weight:650}
+#vista-menu .cal-nav{width:28px;height:28px;border:1px solid var(--linea);background:var(--sup);border-radius:var(--r-s);
+  font-size:16px;line-height:1;color:var(--tinta-3);padding:0}
+#vista-menu .cal-nav:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .cal-rej{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+#vista-menu .cal-dow{font-size:10px;font-weight:700;color:var(--tinta-4);text-align:center;padding-bottom:4px}
+#vista-menu .cal-vacio{height:34px}
+#vista-menu .cal-d{height:34px;border:1px solid transparent;background:none;border-radius:var(--r-s);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;
+  font-size:13px;color:var(--tinta);line-height:1}
+#vista-menu .cal-d:hover{background:var(--verde-claro);border-color:var(--verde-borde)}
+#vista-menu .cal-d .pts{font-size:7px;color:var(--verde);line-height:1;height:7px;letter-spacing:.5px}
+#vista-menu .cal-d.sinnada .dn{color:var(--tinta-4)}
+#vista-menu .cal-d.hoy{border-color:var(--verde);font-weight:700}
+#vista-menu .cal-d.sel{background:var(--verde);border-color:var(--verde);color:#fff;font-weight:700}
+#vista-menu .cal-d.sel .pts{color:rgba(255,255,255,.75)}
+
+/* ---------- caprichos ---------- */
+#vista-menu .cap-mano p{font-size:13px;color:var(--tinta-3);line-height:1.5;margin:0 0 12px}
+#vista-menu .cm-fila{display:flex;gap:8px;align-items:center}
+#vista-menu .cm-n{flex:1;min-width:0;height:40px;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:0 12px;font-size:14px}
+#vista-menu .cm-k{width:92px;height:40px;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:0 12px;font-size:14px}
+#vista-menu .cm-n:focus, #vista-menu .cm-k:focus, #vista-menu .cm-q:focus{outline:none;border-color:var(--verde)}
+#vista-menu .cm-q{width:62px;height:32px;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:0 9px;
+  font-size:13px;text-align:right;flex:0 0 auto}
+#vista-menu .cm-u{font-size:11.5px;font-weight:700;color:var(--tinta-4);flex:0 0 auto;min-width:26px}
+
+/* ---------- en casa / outdoor ---------- */
+#vista-menu .tipodia{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+#vista-menu .tpest{display:inline-flex;gap:3px;background:var(--fondo);border:1px solid var(--linea);
+  border-radius:var(--r-full);padding:3px}
+#vista-menu .tp{display:flex;align-items:center;gap:6px;border:0;background:none;border-radius:var(--r-full);
+  padding:7px 15px;font-size:13px;font-weight:600;color:var(--tinta-3);transition:all .12s}
+#vista-menu .tp:hover:not(:disabled){color:var(--tinta)}
+#vista-menu .tp.on{background:var(--sup);color:var(--verde);font-weight:650;box-shadow:var(--sombra-1)}
+#vista-menu .tp:disabled{opacity:.55}
+#vista-menu .tipodia .sintope{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--ambar);
+  background:var(--ambar-fondo);border:1px solid var(--ambar-borde);border-radius:var(--r-full);
+  padding:3px 10px}
+#vista-menu .ruta{flex:1 1 100%;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;background:var(--sup);
+  border:1px solid var(--linea);border-radius:var(--r-m);padding:12px 14px;box-shadow:var(--sombra-1)}
+#vista-menu .rl{display:flex;flex-direction:column;gap:4px}
+#vista-menu .rl span{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--tinta-4)}
+#vista-menu .rl select{min-width:210px;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:8px 10px;
+  font-size:13.5px;background:var(--sup)}
+#vista-menu .rl input{width:88px;border:1px solid var(--linea-2);border-radius:var(--r-s);padding:8px 10px;
+  font-size:13.5px;background:var(--sup)}
+#vista-menu .rl select:focus, #vista-menu .rl input:focus{outline:none;border-color:var(--verde)}
+#vista-menu .rkcal{font-size:13.5px;color:var(--verde);font-weight:600;padding-bottom:8px}
+#vista-menu .rkcal b{font-weight:700}
+#vista-menu .rkcal.vacia{color:var(--tinta-4);font-weight:500;font-style:italic}
+#vista-menu .ruta .btng{margin-left:auto}
+#vista-menu .rnota{flex:1 1 100%;font-size:12.5px;color:var(--tinta-3);line-height:1.5;background:var(--ambar-fondo);
+  border:1px solid var(--ambar-borde);border-radius:var(--r-m);padding:10px 13px}
+#vista-menu .rnota b{color:var(--ambar);font-weight:700}
+#vista-menu .mochila{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ambar);
+  background:var(--ambar-fondo);border:1px solid var(--ambar-borde);border-radius:var(--r-full);
+  padding:2px 8px}
+#vista-menu .mc.libre{background:var(--ambar-fondo);border-color:var(--ambar-borde);color:var(--ambar)}
+#vista-menu .mc.libre i{color:var(--ambar);font-weight:700}
+
+/* ---------- día: el banner de datos, dos filas de dos ---------- */
+#vista-menu .panel2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--linea);
+  border:1px solid var(--linea);border-radius:var(--r-l);overflow:hidden;box-shadow:var(--sombra-1)}
+#vista-menu .p2{background:var(--sup);padding:13px 16px;display:flex;flex-direction:column;gap:1px;min-width:0}
+#vista-menu .p2 .rot{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-4)}
+#vista-menu .p2 .big{font-size:30px;font-weight:660;letter-spacing:-.025em;line-height:1.15;margin-top:5px}
+#vista-menu .p2 .big small{font-size:13px;font-weight:600;color:var(--tinta-3);letter-spacing:0;margin-left:5px}
+#vista-menu .p2 .sub{font-size:12.5px;color:var(--tinta-3);line-height:1.4}
+#vista-menu .p2 .sub b{color:var(--tinta-2);font-weight:650}
+#vista-menu .p2 .est{font-weight:650}
+#vista-menu .p2.cuadra .est{color:var(--verde)} #vista-menu .p2.falta .est{color:var(--ambar)} #vista-menu .p2.sobra .est{color:var(--rojo)}
+#vista-menu .p2.nada .est{color:var(--tinta-4);font-weight:500;font-style:italic}
+#vista-menu .p2.macros{justify-content:flex-start}
+#vista-menu .mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;margin-top:11px}
+#vista-menu .mmed .et{display:flex;align-items:baseline;gap:4px;font-size:13px;color:var(--tinta-2);
+  margin-bottom:6px;white-space:nowrap}
+#vista-menu .mmed .et b{font-weight:700;color:var(--tinta);margin-right:3px}
+#vista-menu .mmed .et small{color:var(--tinta-4);font-size:11.5px}
+#vista-menu .mmed .et i{font-style:normal;margin-left:auto;font-weight:700;font-size:12.5px;padding-left:6px}
+#vista-menu .mmed .et i.bien{color:var(--verde)} #vista-menu .mmed .et i.corto{color:var(--ambar)} #vista-menu .mmed .et i.pasa{color:var(--rojo)}
+#vista-menu .mmed.libre .et i{color:var(--ambar);font-weight:650;font-size:11.5px}
+#vista-menu .ment{font-size:12.5px;font-weight:650;color:var(--verde);background:var(--verde-claro);
+  border:1px solid var(--verde-borde);border-radius:var(--r-full);padding:3px 10px;margin-top:11px;
+  display:inline-block}
+#vista-menu .mrow{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px}
+#vista-menu .mc{font-size:13px;color:var(--tinta-2);background:var(--sup-2);border:1px solid var(--linea);
+  border-radius:var(--r-s);padding:4px 8px;white-space:nowrap}
+#vista-menu .mc b{font-weight:700;color:var(--tinta);margin-right:3px}
+#vista-menu .mc small{color:var(--tinta-4);font-size:11.5px}
+#vista-menu .mc i{font-style:normal;font-weight:700;margin-left:6px}
+#vista-menu .mc i.bien{color:var(--verde)} #vista-menu .mc i.corto{color:var(--ambar)} #vista-menu .mc i.pasa{color:var(--rojo)}
+#vista-menu .mc.ent{color:var(--verde);background:var(--verde-claro);border-color:var(--verde-borde);font-weight:650}
+#vista-menu .barra2{grid-column:1/3;height:7px;background:var(--sup);display:flex;border-top:1px solid var(--linea)}
+#vista-menu .barra2 i{display:block;height:100%}
+#vista-menu .barra2 i.plan{background:var(--verde-borde)}
+#vista-menu .barra2 i.comido{background:var(--verde)}
+#vista-menu .barra2.sobra i.plan{background:#eac6bf} #vista-menu .barra2.sobra i.comido{background:var(--rojo)}
+
+#vista-menu .rec .tirar{width:30px;height:30px;flex:0 0 30px;border:1px solid var(--linea);background:#fff;
+  border-radius:var(--r-s);color:var(--tinta-4);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;margin-left:6px}
+#vista-menu .rec .tirar:hover{border-color:var(--rojo-borde);color:var(--rojo);background:var(--rojo-fondo)}
+
+#vista-menu .avhueco{font-size:13.5px;line-height:1.45;background:var(--verde-claro);border:1px solid var(--verde-borde);
+  color:var(--verde);border-radius:var(--r-m);padding:10px 13px;margin-bottom:10px}
+#vista-menu .avhueco.corto{background:var(--ambar-fondo);border-color:var(--ambar-borde);color:var(--ambar)}
+#vista-menu .rec .m .gaj{color:var(--verde);font-weight:700}
+#vista-menu .rec .m .gpasa{color:var(--ambar);font-weight:700}
+
+#vista-menu .tarjeta.pend{border-color:var(--ambar-borde);background:var(--ambar-fondo)}
+#vista-menu .tarjeta.pend .cabsec h2{color:var(--ambar)}
+#vista-menu .pendl{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+#vista-menu .pendf{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;
+  border:1px solid var(--ambar-borde);border-radius:var(--r-m);padding:9px 13px}
+#vista-menu .pendf .n{flex:1;min-width:200px;font-size:14.5px;font-weight:650;line-height:1.3}
+#vista-menu .pendf .n small{display:block;font-size:12px;font-weight:500;color:var(--tinta-3);margin-top:2px}
+#vista-menu .pendf .der{display:flex;gap:6px;flex-wrap:wrap}
+#vista-menu .pendf .btn{background:#fff;border-radius:var(--r-full);min-height:28px;font-size:12px;padding:0 12px}
+#vista-menu .pendpie{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#vista-menu .pendpie .btn{background:none;border:0;color:var(--ambar);font-size:12.5px;font-weight:650;
+  text-decoration:underline;text-underline-offset:3px;padding:0;min-height:0}
+#vista-menu .pendpie .btn:hover{color:var(--rojo)}
+
+#vista-menu .modal.ficha{max-width:720px}
+#vista-menu .fetiq{display:flex;gap:9px;flex-wrap:wrap;padding:13px 18px 0}
+#vista-menu .fe{font-size:15px;font-weight:660;color:var(--tinta);background:var(--sup-2);border:1px solid var(--linea);
+  border-radius:var(--r-m);padding:7px 12px;line-height:1.2}
+#vista-menu .fe small{display:block;font-size:10.5px;font-weight:600;color:var(--tinta-4);letter-spacing:.03em;
+  text-transform:uppercase;margin-top:2px}
+#vista-menu .fe.cosas{font-size:12.5px;font-weight:600;color:var(--tinta-2);align-self:center}
+#vista-menu .fcuerpo{padding:4px 18px 18px;overflow:auto;max-height:62vh}
+#vista-menu .fsec{margin-top:18px}
+#vista-menu .fsec h3{margin:0 0 9px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tinta-4)}
+#vista-menu .fing{border:1px solid var(--linea);border-radius:var(--r-m);overflow:hidden}
+#vista-menu .fl{display:flex;align-items:baseline;gap:12px;padding:9px 13px;border-top:1px solid var(--linea);font-size:14px}
+#vista-menu .fl:first-child{border-top:0}
+#vista-menu .fl:nth-child(odd){background:var(--sup-2)}
+#vista-menu .fl span:first-child{flex:1;min-width:0}
+#vista-menu .fl .c{font-weight:650;white-space:nowrap;color:var(--tinta)}
+#vista-menu .fl em{font-style:normal;color:var(--tinta-4);font-size:12px;font-weight:500}
+#vista-menu .fpasos{margin:0;padding-left:22px}
+#vista-menu .fpasos li{font-size:14.5px;line-height:1.55;margin-bottom:9px}
+#vista-menu .ftrucos{margin:0;padding-left:20px}
+#vista-menu .ftrucos li{font-size:13.5px;line-height:1.5;color:var(--tinta-2);margin-bottom:6px}
+#vista-menu .fnota{font-size:13.5px;line-height:1.5;color:var(--tinta-2)}
+#vista-menu .plato .n .nomr{border:0;background:none;padding:0;margin:0;font:inherit;color:inherit;
+  text-align:left;cursor:pointer;border-bottom:1px solid transparent}
+#vista-menu .plato .n .nomr:hover{color:var(--verde);border-bottom-color:var(--verde-borde)}
+#vista-menu .plato.comido .n .nomr{text-decoration:inherit}
+#vista-menu .cocinar{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:650;
+  color:var(--tinta-2);background:#fff;border:1px solid var(--linea-2);border-radius:var(--r-full);
+  padding:3px 10px;cursor:pointer;white-space:nowrap}
+#vista-menu .cocinar:hover{border-color:var(--verde-borde);color:var(--verde)}
+
+#vista-menu .nota-dia{display:flex;align-items:center;gap:14px;margin-top:12px;border-radius:var(--r-m);
+  padding:12px 16px;background:var(--sup-2);border:1px solid var(--linea)}
+#vista-menu .nota-dia .s{font-size:20px;font-weight:700;line-height:1;flex:0 0 auto}
+#vista-menu .nota-dia .p{font-size:24px;font-weight:650;letter-spacing:-.02em;flex:0 0 auto}
+#vista-menu .nota-dia .pq{font-size:12.5px;color:var(--tinta-3);line-height:1.4}
+#vista-menu .nota-dia .pq b{display:block;font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--tinta-4);
+  margin-bottom:1px}
+#vista-menu .nota-dia.mal{background:var(--rojo-fondo);border-color:var(--rojo-borde);color:var(--rojo)}
+#vista-menu .nota-dia.bien{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .nota-dia.mal .pq, #vista-menu .nota-dia.bien .pq{color:inherit;opacity:.85}
+#vista-menu .cadena{font-size:12.5px;color:var(--tinta-3);background:var(--sup-2);border:1px solid var(--linea);
+  border-radius:var(--r-m);padding:10px 12px;margin-top:10px;line-height:1.5}
+#vista-menu .cadena.aviso{background:var(--ambar-fondo);border-color:var(--ambar-borde);color:var(--ambar)}
+
+/* ---------- tomas del día ---------- */
+#vista-menu .toma{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-l);padding:14px 16px;
+  margin-bottom:12px;box-shadow:var(--sombra-1)}
+#vista-menu .toma .cabt{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:10px;
+  border-bottom:1px solid var(--linea)}
+#vista-menu .toma .cabt b{font-size:12.5px;font-weight:700;letter-spacing:.07em;color:var(--tinta)}
+#vista-menu .toma .cabt .ktoma{font-size:13px;font-weight:650;color:var(--energia);background:var(--energia-fondo);
+  border-radius:var(--r-full);padding:2px 9px}
+#vista-menu .toma .cabt .stoma{font-size:13px;font-weight:650;color:var(--ambar);background:var(--ambar-fondo);
+  border-radius:var(--r-full);padding:2px 9px}
+#vista-menu .toma .cabt .der{margin-left:auto;display:flex;gap:7px;align-items:center}
+#vista-menu .paxg{display:flex;align-items:center;gap:2px;border:1px solid var(--linea-2);border-radius:var(--r-full);padding:2px 4px}
+#vista-menu .paxg.uno{background:var(--ambar-fondo);border-color:var(--ambar-borde)}
+#vista-menu .paxg.varios{background:var(--azul-fondo);border-color:var(--azul-borde)}
+#vista-menu .paxg.quieto{padding:2px 10px;border-style:dashed}
+#vista-menu .paxg .pb{width:26px;height:26px;border:0;background:none;color:var(--tinta-3);font-size:16px;font-weight:600;padding:0;
+  border-radius:var(--r-full)}
+#vista-menu .paxg .pb:hover{background:var(--fondo);color:var(--verde)}
+#vista-menu .paxg .pn{min-width:22px;text-align:center;font-size:13px;font-weight:700}
+#vista-menu .plato{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-top:1px solid var(--linea)}
+#vista-menu .plato:first-of-type{border-top:0}
+#vista-menu .pl-izq{flex:1;min-width:0}
+#vista-menu .plato .n{font-size:15px;line-height:1.4;font-weight:650}
+#vista-menu .pl-pie{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:3px}
+#vista-menu .pl-pie .nutri{font-size:12px;color:var(--tinta-4);white-space:nowrap}
+#vista-menu .pl-pie .f{font-size:12px;font-weight:650;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vista-menu .pl-pie .f.falta{color:var(--ambar)} #vista-menu .pl-pie .f.comprar{color:var(--rojo)} #vista-menu .pl-pie .f.casa{display:none}
+#vista-menu .veces{font-size:11px;font-weight:700;color:var(--energia);background:var(--energia-fondo);
+  border-radius:var(--r-full);padding:1px 8px;margin-left:7px;position:relative;top:-1px}
+#vista-menu .esfijo{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--tinta-4);background:var(--fondo);
+  border:1px solid var(--linea);border-radius:var(--r-full);padding:1px 7px;margin-left:7px;
+  position:relative;top:-1px;cursor:help}
+#vista-menu .pl-kcal{flex:0 0 auto;min-width:76px;text-align:right;font-size:14px;font-weight:650;
+  color:var(--energia);padding-top:1px}
+#vista-menu .pl-kcal.ajena{color:var(--tinta-4);font-weight:500;font-style:italic;font-size:12.5px;cursor:help}
+#vista-menu .plato.comido .n{text-decoration:line-through;text-decoration-color:var(--tinta-4);opacity:.6}
+#vista-menu .plato.ajeno .n{color:var(--tinta-3)}
+#vista-menu select.pl-quien{flex:0 0 auto;width:124px;border:1px solid var(--linea-2);border-radius:var(--r-full);
+  background:var(--sup);font-size:11.5px;font-weight:650;color:var(--tinta-2);padding:4px 8px;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7d75' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:22px}
+#vista-menu select.pl-quien:hover{border-color:var(--verde-borde)}
+#vista-menu select.pl-quien.q-carlos{background-color:#f3eefb;border-color:#ded0f0;color:var(--energia)}
+#vista-menu select.pl-quien.q-susana{background-color:#faf3f6;border-color:#eddbe4;color:#8a4a69}
+#vista-menu .pl-quien.fijo{flex:0 0 auto;width:124px;text-align:center;font-size:11px;font-weight:650;
+  border-radius:var(--r-full);padding:4px 8px;border:1px solid var(--linea)}
+#vista-menu .pl-quien.fijo.q-carlos{background:#f3eefb;border-color:#ded0f0;color:var(--energia)}
+#vista-menu .pl-quien.fijo.q-susana{background:#faf3f6;border-color:#eddbe4;color:#8a4a69}
+#vista-menu .tic{width:24px;height:24px;flex:0 0 24px;border:2px solid var(--linea-2);border-radius:var(--r-s);
+  background:var(--sup);color:var(--linea-2);display:flex;align-items:center;justify-content:center;
+  padding:0;margin-top:3px;transition:all .12s}
+#vista-menu .tic:hover{border-color:var(--verde);color:var(--verde-borde)}
+#vista-menu .tic.on{background:var(--verde);border-color:var(--verde);color:#fff}
+#vista-menu .tic.hueco{border:0;background:none;color:transparent}
+#vista-menu .fuera-nota{font-size:13px;color:var(--azul);background:var(--azul-fondo);border:1px solid var(--azul-borde);
+  border-radius:var(--r-m);padding:10px 13px;margin-top:10px;line-height:1.5}
+#vista-menu .fuera-nota b{font-weight:650}
+#vista-menu .quitados{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px;padding-top:9px;
+  border-top:1px dashed var(--linea-2)}
+#vista-menu .quitados .qt{font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--tinta-4)}
+#vista-menu .quitados .qp{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--tinta-4);
+  text-decoration:line-through;text-decoration-color:var(--linea-2)}
+#vista-menu .quitados .qp i{font-style:normal;font-size:11.5px}
+#vista-menu .quitados .qv{text-decoration:none;border:1px solid var(--linea-2);background:var(--sup);
+  border-radius:var(--r-s);font-size:11.5px;font-weight:600;color:var(--tinta-3);padding:3px 9px}
+#vista-menu .quitados .qv:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .quitados .qc{font-size:11.5px;color:var(--ambar);margin-left:auto}
+#vista-menu .sinficha{font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--rojo);
+  background:var(--rojo-fondo);border:1px solid var(--rojo-borde);border-radius:var(--r-full);
+  padding:1px 7px;white-space:nowrap;cursor:help}
+#vista-menu .ss-nada{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--tinta-4);font-style:italic;
+  background:var(--sup-2);border:1px solid var(--linea);border-radius:var(--r-m);padding:9px 12px;margin-top:10px}
+#vista-menu .ss-nada button.cam{width:auto;flex:0 0 auto;padding:4px 10px;font-size:12px;font-weight:600;font-style:normal;
+  border:1px solid var(--linea-2);background:var(--sup);border-radius:var(--r-s);color:var(--tinta-3);margin-left:auto}
+#vista-menu .ss-nada button.cam:hover{border-color:var(--verde-borde);color:var(--verde)}
+
+/* lo que sale solo: tabla por rol */
+#vista-menu .salesolo{margin-top:12px;padding-top:12px;border-top:1px dashed var(--linea-2)}
+#vista-menu .salesolo.suelto{margin-top:10px;padding-top:0;border-top:0}
+#vista-menu .salesolo .tit{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--tinta-4);margin-bottom:8px}
+#vista-menu .ss-tabla{display:grid;grid-template-columns:62px 1fr 1fr;gap:0 10px;align-items:stretch}
+#vista-menu .ss-tabla.sin-rol{grid-template-columns:1fr 1fr}
+#vista-menu .ss-tabla.sin-rol .ss-h:first-child{padding-left:10px}
+#vista-menu .ss-h{font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--tinta-4);padding:0 0 6px 10px}
+#vista-menu .ss-h:first-child{padding-left:0}
+#vista-menu .ss-rol{font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--tinta-4);display:flex;
+  align-items:center;border-top:1px solid var(--linea);min-height:38px}
+#vista-menu .ss-cel{display:flex;align-items:center;gap:7px;min-width:0;padding:6px 10px;border-top:1px solid var(--linea);
+  background:var(--sup-2);min-height:38px}
+#vista-menu .ss-cel.ella{background:#faf8fb}
+#vista-menu .ss-cel .v{flex:1;min-width:0;font-size:13.5px;line-height:1.35}
+#vista-menu .ss-cel .v.no{color:var(--tinta-4);font-style:italic}
+#vista-menu .ss-cel.comido .v{text-decoration:line-through;text-decoration-color:var(--tinta-4);opacity:.55}
+#vista-menu .ss-cel .sinficha{font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--rojo);
+  background:var(--rojo-fondo);border:1px solid var(--rojo-borde);border-radius:var(--r-full);
+  padding:1px 7px;white-space:nowrap;cursor:help}
+#vista-menu .ss-cel .losdos{font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--tinta-4);
+  background:var(--fondo);border:1px solid var(--linea);border-radius:var(--r-full);padding:1px 7px;white-space:nowrap}
+#vista-menu .ss-cel .solohoy{font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--ambar);
+  background:var(--ambar-fondo);border:1px solid var(--ambar-borde);border-radius:var(--r-full);
+  padding:1px 7px;white-space:nowrap}
+#vista-menu .ss-tabla .ss-rol:nth-child(4), #vista-menu .ss-tabla .ss-cel:nth-child(5), #vista-menu .ss-tabla .ss-cel:nth-child(6){border-top:0}
+#vista-menu button.cam{width:26px;height:26px;flex:0 0 26px;border:1px solid transparent;background:none;border-radius:var(--r-s);
+  color:var(--tinta-4);display:flex;align-items:center;justify-content:center;padding:0;transition:all .12s}
+#vista-menu .ss-cel:hover button.cam{border-color:var(--linea-2);color:var(--tinta-3)}
+#vista-menu button.cam:hover{border-color:var(--verde-borde)!important;color:var(--verde)!important;background:var(--sup)}
+#vista-menu .ss-nada{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--tinta-4);font-style:italic;
+  background:var(--sup-2);border:1px solid var(--linea);border-radius:var(--r-m);padding:9px 12px}
+#vista-menu .ss-nada button.cam{width:auto;flex:0 0 auto;padding:4px 10px;font-size:12px;font-weight:600;font-style:normal;
+  border-color:var(--linea-2);color:var(--tinta-3);margin-left:auto}
+
+/* ¿cuánto comiste? */
+#vista-menu .cant{display:inline-flex;align-items:center;gap:4px}
+#vista-menu .cpreg{border:1px dashed var(--linea-2);background:none;border-radius:var(--r-s);font-size:11.5px;
+  font-weight:600;color:var(--tinta-4);padding:3px 9px;transition:all .12s}
+#vista-menu .cpreg:hover{border-style:solid;border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .cpreg.si{border-style:solid;border-color:var(--verde-borde);background:var(--verde-claro);
+  color:var(--verde);font-weight:650}
+#vista-menu .cinput{width:78px;height:26px;border:2px solid var(--verde);border-radius:var(--r-s);padding:0 8px;font-size:13px}
+#vista-menu .cu{height:26px;border:1px solid var(--linea);background:var(--sup);border-radius:var(--r-s);font-size:11px;
+  font-weight:700;color:var(--tinta-3);padding:0 8px}
+#vista-menu .cu.on{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .cok{height:26px;border:0;background:var(--verde);color:#fff;border-radius:var(--r-s);font-size:11.5px;
+  font-weight:650;padding:0 11px}
+
+/* entreno */
+#vista-menu .toma.ejer{background:linear-gradient(180deg,#fbfdfc,#ffffff);border-color:var(--verde-borde);margin-top:14px}
+#vista-menu .act2{display:grid;grid-template-columns:1fr auto;gap:3px 8px;padding:10px 0;border-top:1px solid var(--linea);
+  align-items:center}
+#vista-menu .act2 .arr{grid-column:1/3;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#vista-menu .act2 .nom{font-size:14.5px;font-weight:600;line-height:1.3}
+#vista-menu .act2 .abj{grid-column:1;font-size:12.5px;color:var(--tinta-3)}
+#vista-menu .act2 .abj b{color:var(--tinta);font-size:14px;font-weight:650}
+#vista-menu .act2 .acc{grid-column:2;display:flex;gap:6px;align-items:center}
+#vista-menu .act2 .eti{font-size:10.5px;font-weight:650;color:var(--tinta-3);background:var(--fondo);
+  border:1px solid var(--linea);border-radius:var(--r-full);padding:2px 10px}
+#vista-menu .act2 .eti.ok{background:var(--verde-claro);border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .act2.no-cuenta{opacity:.5}
+#vista-menu .act2.no-cuenta .abj{text-decoration:line-through}
+#vista-menu .ejer-pie{margin-top:12px;padding-top:11px;border-top:1px dashed var(--linea-2);font-size:12.5px;color:var(--tinta-3);
+  line-height:1.5}
+#vista-menu .ejer-pie b{color:var(--tinta);font-weight:650}
+
+/* ---------- modales ---------- */
+#vista-menu .capa{position:fixed;inset:0;background:rgba(21,33,28,.42);backdrop-filter:blur(2px);z-index:100;display:flex;
+  align-items:center;justify-content:center;padding:24px}
+#vista-menu .modal{background:var(--sup);border-radius:var(--r-l);width:min(860px,100%);max-height:88vh;display:flex;
+  flex-direction:column;overflow:hidden;box-shadow:0 24px 60px -12px rgba(21,33,28,.35)}
+#vista-menu .modcab{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--linea)}
+#vista-menu .modcab .t{font-weight:650;font-size:18px;letter-spacing:-.01em}
+#vista-menu .modcab .s{font-size:13px;color:var(--tinta-3);margin-top:2px}
+#vista-menu .modfil{padding:14px 18px;border-bottom:1px solid var(--linea);display:flex;flex-direction:column;gap:11px;
+  background:var(--sup-2)}
+#vista-menu .busca{flex:1;display:flex;align-items:center;gap:9px;border:1px solid var(--linea-2);border-radius:var(--r-s);
+  padding:0 12px;min-height:42px;background:var(--sup)}
+#vista-menu .busca input{flex:1;min-width:0;border:0;outline:0;font-size:14px;background:none}
+#vista-menu .chips{display:flex;gap:7px;flex-wrap:wrap}
+#vista-menu .chip{font-size:12.5px;font-weight:600;color:var(--tinta-2);background:var(--sup);border:1px solid var(--linea-2);
+  border-radius:var(--r-full);padding:7px 13px;transition:all .12s}
+#vista-menu .chip:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .chip.on{background:var(--verde);border-color:var(--verde);color:#fff;font-weight:650}
+#vista-menu .modlista{flex:1;min-height:0;overflow:auto;padding:14px 18px}
+#vista-menu .gtit{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+#vista-menu .gtit:first-child{margin-top:0}
+#vista-menu .gtit span{font-size:10.5px;font-weight:700;letter-spacing:.08em}
+#vista-menu .gtit i{flex:1;height:1px;background:var(--linea)}
+#vista-menu .rec{display:flex;align-items:center;gap:12px;border:1px solid var(--linea);border-radius:var(--r-m);
+  padding:10px 12px;margin-bottom:7px;transition:all .12s}
+#vista-menu .rec:hover{border-color:var(--verde-borde);background:var(--sup-2)}
+#vista-menu .rec.puesto{border-color:var(--verde);background:var(--verde-claro)}
+#vista-menu .rec .n{font-size:14.5px;line-height:1.35}
+#vista-menu .rec .m{font-size:12.5px;color:var(--tinta-3);margin-top:2px}
+#vista-menu .rec .m b{font-weight:650}
+#vista-menu .rec .m b.falta{color:var(--ambar)}
+#vista-menu .rec .m b.comprar{color:var(--rojo)}
+#vista-menu .rec .m b.casa{color:var(--verde)}
+#vista-menu .modpie{padding:12px 18px;border-top:1px solid var(--linea);background:var(--sup-2);display:flex;
+  align-items:center;gap:12px;font-size:12.5px;color:var(--tinta-3)}
+
+/* ---- el aviso de día pasado ---- */
+#vista-menu .notapasado{border:1px solid var(--ambar-borde);background:var(--ambar-fondo);color:var(--ambar);
+  border-left:3px solid var(--ambar-punto);border-radius:var(--r-m);padding:11px 14px;font-size:13px;
+  line-height:1.55;margin:0 0 14px}
+#vista-menu .notapasado.editando{border-color:var(--azul-borde);background:var(--azul-fondo);color:var(--azul);
+  border-left-color:var(--azul)}
+#vista-menu .notapasado b{font-weight:700}
+
+/* ---- herramientas de semana ---- */
+#vista-menu .herr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 0;padding:12px 14px;
+  background:var(--sup);border:1px solid var(--linea);border-radius:var(--r-m)}
+#vista-menu .herr .ht{font-size:12.5px;color:var(--tinta-3)}
+#vista-menu .herr .btn{background:#fff;border:1px solid var(--linea-2);border-radius:999px;padding:6px 15px;
+  font-size:12.5px;font-weight:600;color:var(--tinta-2);min-height:30px}
+#vista-menu .herr .btn:hover:not(:disabled){border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .semherr{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+#vista-menu .semherr .btn{background:#fff;border-radius:var(--r-full);padding:0 14px}
+#vista-menu .semherr .btn{min-height:30px;font-size:12.5px;padding:0 11px}
+#vista-menu .plfila{display:flex;align-items:center;gap:10px;border:1px solid var(--linea);border-radius:var(--r-m);
+  padding:10px 12px;margin-bottom:7px}
+#vista-menu .plfila .n{flex:1;min-width:0;font-size:14.5px;line-height:1.35}
+#vista-menu .plfila .n small{display:block;color:var(--tinta-3);font-size:12.5px;margin-top:2px}
+#vista-menu .plfila .btn{flex:0 0 auto}
+#vista-menu .btn.peq{min-height:30px;font-size:12.5px;padding:0 10px}
+#vista-menu .modcab.conx>div:first-child{padding-right:44px}
+#vista-menu .pendia{border:1px solid var(--linea);border-radius:var(--r-m);padding:10px 12px;margin-bottom:7px}
+#vista-menu .pendia b{font-size:14.5px}
+#vista-menu .pendia .l{font-size:12.5px;color:var(--tinta-3);margin-top:2px}
+#vista-menu .nueva-pla{display:flex;gap:8px;align-items:center;margin-top:4px}
+#vista-menu .nueva-pla input{flex:1;min-width:0;border:1px solid var(--linea-2);border-radius:var(--r-s);
+  min-height:38px;padding:0 12px;font-size:14px;background:var(--sup);outline:0}
+#vista-menu .nueva-pla input:focus{border-color:var(--verde-borde)}
+
+@media (max-width:1240px){
+  #vista-menu .dia-cols{flex-direction:column}
+  #vista-menu .dia-der{width:100%;flex:none;position:static}
+}
+@media (max-width:980px){
+  #vista-menu .semana-media .vv{grid-template-columns:repeat(2,1fr)}
+  #vista-menu .panel2{grid-template-columns:1fr}
+  #vista-menu .barra2{grid-column:1/2}
+}
+@media (max-width:1100px){
+  #vista-menu .rej{grid-template-columns:46px repeat(7,minmax(104px,1fr));overflow-x:auto}
+  #vista-menu .fij{grid-template-columns:1fr}
+  #vista-menu .ss-cols{grid-template-columns:1fr}
+}

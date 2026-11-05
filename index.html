@@ -8,9 +8,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="iconos/icono.svg">
-<link rel="stylesheet" href="css/estilos.css?v=593">
-<link rel="stylesheet" href="css/actividad-khb.css?v=593">
-<link rel="stylesheet" href="css/avances-khb.css?v=593">
+<link rel="stylesheet" href="css/estilos.css?v=594">
+<link rel="stylesheet" href="css/actividad-khb.css?v=594">
+<link rel="stylesheet" href="css/avances-khb.css?v=594">
+<link rel="stylesheet" href="css/menu.css?v=594">
 </head>
 <body>
 
@@ -62,29 +63,26 @@
   <section class="vista activa" id="vista-menu">
     <div class="cabecera-vista">
       <img src="iconos/khb/2-frutas-tenedor.webp" alt="" width="52" height="52">
-      <div><h2>Menú semanal</h2><span class="nota-peque">Las cinco tomas de cada día, con su sal y sus calorías</span></div>
+      <div><h2>Menú semanal</h2><span class="nota-peque">Planifica la semana por normas y mira el día a día</span></div>
     </div>
-    <div class="cabecera-semana">
-      <div><span class="rango" id="rango-semana"></span>
-        <div class="nota-peque" id="coste-semana"></div></div>
-      <div class="fila">
-        <button class="btn icono" id="semana-anterior" title="Semana anterior">‹</button>
-        <button class="btn mini" id="ir-hoy">Hoy</button>
-        <button class="btn icono" id="semana-siguiente" title="Semana siguiente">›</button>
-      </div>
+    <!-- Las dos mitades del Menú: planificar la semana y vivir el día.
+         Montado el 5-nov-2026 desde el prototipo de _pruebas. -->
+    <nav class="pest"><button id="t-plan" class="on">Planificar</button><button id="t-dia">Día a día</button></nav>
+
+    <div id="vista-plan">
+      <div id="semanal"></div>
+      <section class="tarjeta" id="fijos"></section>
+      <div id="semanas-arriba"></div>
+      <section class="tarjeta" id="panel"></section>
+      <div id="semanas-abajo"></div>
+      <div class="herr" id="herr-plan"></div>
     </div>
-    <div class="fila" style="margin-bottom:12px">
-      <button class="btn principal mini solo-edicion" id="completar-semana" title="Elige platos para que cada día cuadre con sus calorías">Completar la semana</button>
-      <button class="btn mini solo-edicion" id="rellenar-semana" title="Elige una de tus plantillas y la copia en los huecos de la semana">Copiar plantilla</button>
-      <button class="btn mini solo-edicion" id="vaciar-semana">Vaciar semana</button>
-      <button class="btn mini solo-edicion" id="guardar-como-plantilla">Guardar como plantilla</button>
-      <button class="btn mini" id="ver-platos-pendientes" title="Platos principales de comida y cena que aún no has marcado como comidos">Platos pendientes</button>
-      <button class="btn mini" id="ver-recetas-disponibles" title="Recetas que te salen con el stock que te sobra, incluido lo que tengas pedido">Recetas disponibles</button>
-    </div>
-    <div class="aviso pendientes" id="pendientes-despensa" style="display:none"></div>
-    <div class="aviso" id="resumen-semana" style="display:none"></div>
-    <div class="selector-dias" id="selector-dias"></div>
-    <div class="rejilla-dias" id="rejilla-dias"></div>
+
+    <div id="vista-dia" style="display:none"></div>
+
+    <!-- La capa de los cuadros del Menú va DENTRO de la vista: ahí es donde
+         valen sus colores y sus estilos, que están encerrados en #vista-menu. -->
+    <div id="capa"></div>
   </section>
 
   <!-- ===================== RECETAS ===================== -->
@@ -560,20 +558,20 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="datos/ingredientes.js?v=593"></script>
-<script src="datos/recetas.js?v=593"></script>
-<script src="datos/nuevos.js?v=593"></script>
-<script src="datos/hogar.js?v=593"></script>
-<script src="datos/plantillas.js?v=593"></script>
-<script src="datos/actividades.js?v=593"></script>
-<script src="datos/plan.js?v=593"></script>
-<script src="datos/compra-recibida.js?v=593"></script>
-<script src="js/util.js?v=593"></script>
-<script src="js/almacen.js?v=593"></script>
-<script src="js/github.js?v=593"></script>
-<script src="js/app.js?v=593"></script>
-<script src="js/actividad-khb.js?v=593"></script>
-<script src="js/avances-khb.js?v=593"></script>
-<script src="js/entrenamiento.js?v=593"></script>
+<script src="datos/ingredientes.js?v=594"></script>
+<script src="datos/recetas.js?v=594"></script>
+<script src="datos/nuevos.js?v=594"></script>
+<script src="datos/hogar.js?v=594"></script>
+<script src="datos/plantillas.js?v=594"></script>
+<script src="datos/actividades.js?v=594"></script>
+<script src="datos/plan.js?v=594"></script>
+<script src="datos/compra-recibida.js?v=594"></script>
+<script src="js/util.js?v=594"></script>
+<script src="js/almacen.js?v=594"></script>
+<script src="js/github.js?v=594"></script>
+<script src="js/app.js?v=594"></script>
+<script src="js/actividad-khb.js?v=594"></script>
+<script src="js/avances-khb.js?v=594"></script>
+<script src="js/entrenamiento.js?v=594"></script>
 </body>
 </html>
