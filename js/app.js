@@ -3381,10 +3381,15 @@ function celda(fecha, toma, s) {
   var d = P.propios(fecha, toma);
   var hoy = (fecha === P.HOY);
   var pasado = (fecha < P.HOY);
+  /* UNA TOMA DE HOY YA COMIDA SE CIERRA (Carlos, 5-nov: «los platos de hoy que
+     ya estan comidos deberian aparecer como los dias pasados en clarito... y no
+     modificables»). Lo comido no se cambia: se ve y se deja en paz. */
+  var yaComido = !pasado && d.length && P.estaComido(fecha, toma, d[0]);
+  var cerrada = (pasado || yaComido) && s.compacta;
   var c = el('div', 'cel');
   c.dataset.fecha = fecha; c.dataset.toma = toma;
-  if (hoy) c.classList.add('hoy');
-  if (pasado && s.compacta) c.classList.add('pasado');
+  if (hoy && !cerrada) c.classList.add('hoy');
+  if (cerrada) c.classList.add('pasado');
 
   if (P.esFueraT(fecha, toma)) {
     c.classList.add('fuera');
@@ -3415,10 +3420,10 @@ function celda(fecha, toma, s) {
   var e0 = P.estadoDe(d[0]);
   var cab = el('div', 'celcab');
   var np = P.pax(fecha, toma);
-  cab.innerHTML = GRIP + '<span class="tt">' + toma.toUpperCase() + (pasado && s.compacta ? ' · comido' : '') +
+  cab.innerHTML = GRIP + '<span class="tt">' + toma.toUpperCase() + (cerrada ? ' · comido' : '') +
     '</span><span class="pt ' + e0.cl + '"></span>';
-  if (!(pasado && s.compacta)) cab.appendChild(paxMini(fecha, toma));
-  if (!(pasado && s.compacta)) {
+  if (!cerrada) cab.appendChild(paxMini(fecha, toma));
+  if (!cerrada) {
     var x = el('button', 'mini', EQUIS);
     x.setAttribute('aria-label', 'Quitar el plato y devolver sus opciones al panel');
     x.onclick = function (ev) { ev.stopPropagation(); P.quitar(fecha, toma, 0); pintar(); };
@@ -3430,7 +3435,7 @@ function celda(fecha, toma, s) {
   }
   c.appendChild(cab);
   var r1 = el('div', 'r1', P.nombre(d[0]));
-  agarrar(r1, d[0], { fecha: fecha, toma: toma, ranura: 0 });
+  if (!cerrada) agarrar(r1, d[0], { fecha: fecha, toma: toma, ranura: 0 });
   c.appendChild(r1);
 
   if (d[1]) {
@@ -3438,7 +3443,7 @@ function celda(fecha, toma, s) {
     var guar = P.esGuar(P.POR_ID[d[1]]);
     r2.innerHTML = '<span class="n" style="' + (guar ? '' : 'font-size:11px;color:var(--tinta)') + '">' +
       (guar ? '+ ' : '') + P.nombre(d[1]) + '</span>';
-    if (!(pasado && s.compacta)) {
+    if (!cerrada) {
       var cb = el('button', 'mini', CAMBIO);
       cb.style.cssText = 'width:16px;height:16px;flex:0 0 16px;border:0;color:var(--verde)';
       cb.setAttribute('aria-label', 'Cambiar lo añadido');
