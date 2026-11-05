@@ -310,6 +310,10 @@
       ".sem-razon .q{display:block;font-size:.6rem;letter-spacing:.04em;text-transform:uppercase;",
       "  color:var(--gris);font-weight:700;line-height:1.25;margin-bottom:4px;min-height:2.5em}",
       ".sem-razon .n{display:block;font-size:1.02rem;font-weight:700;color:var(--tinta);line-height:1}",
+      /* TU NORMAL, debajo del balance. Sin esto el número de arriba no se puede
+         leer: −15 no dice nada si no se sabe que tu normal es −13,5. */
+      ".sem-razon .s{display:block;font-size:.62rem;font-weight:600;color:var(--gris);",
+      "  line-height:1;margin-top:4px}",
       /* las alternativas, botones y no texto: si hay que apuntarlo a mano, no se
          apunta. Tocando uno, la sesión del día queda cambiada. */
       ".sem-ofrece{background:var(--blanco);border:1px solid var(--borde);",
@@ -4183,9 +4187,35 @@
      «Sin calibrar»: es lo correcto, porque los umbrales se fijan el 15-oct con
      tres semanas sin corticoide y sacarlos antes sería calibrarlo sobre un
      cuerpo que no es el suyo del resto del año. */
+  /* EL BALANCE DE UN DÍA, y TU NORMAL  ·  5-nov-2026, v593
+     El balance de hoy se lee con la forma y la fatiga de AYER, que es el último
+     día cerrado. Y «tu normal» es la mediana de los últimos 28 de esos mismos
+     balances: la referencia que hace que el semáforo no haya que recalibrarlo
+     cada vez que sube la forma. Mediana y no media, para que una semana de
+     locos no arrastre la referencia. */
+  function balanceDia(iso) {
+    var ay = U.sumarDias(iso, -1);
+    var ctl = valorDia("ctl", ay), atl = valorDia("atl", ay);
+    return (ctl == null || atl == null) ? null : Math.round(ctl - atl);
+  }
+  function baseBalance(iso) {
+    var cfg = (P.semaforo && P.semaforo.base) || {};
+    var vent = cfg.ventana || 28, min = cfg.minimo || 21, v = [];
+    for (var k = 1; k <= vent; k++) {
+      var b = balanceDia(U.sumarDias(iso, -k));
+      if (b != null) v.push(b);
+    }
+    /* sin días suficientes NO se inventa una referencia: el semáforo se calla.
+       Pasa al estrenar el reloj o tras un hueco largo sin sincronizar. */
+    if (v.length < min) return null;
+    v.sort(function (a, b) { return a - b; });
+    var m = v.length >> 1;
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+
   function razonesSemaforo(iso) {
     var ayer = U.sumarDias(iso, -1), antes = U.sumarDias(iso, -2);
-    var ctl = valorDia("ctl", ayer), atl = valorDia("atl", ayer);
+    var bal = balanceDia(iso), ref = baseBalance(iso);
     var n1 = valorDia("sueno_min", iso), n2 = valorDia("sueno_min", ayer);
     var noches = [];
     if (n1 != null) noches.push(n1);
@@ -4196,7 +4226,10 @@
        —como lo tuve un rato— dejaba el mismo número significando lo contrario en
        dos sitios de la misma pantalla. */
     return {
-      balance: (ctl == null || atl == null) ? null : Math.round(ctl - atl),
+      balance: bal,
+      base: ref,
+      /* lo que de verdad decide el color: a cuánto estás de tu propia costumbre */
+      desvio: (bal == null || ref == null) ? null : Math.round((bal - ref) * 10) / 10,
       noches: noches.length ? (noches.reduce(function (a, b) { return a + b; }, 0) /
                                noches.length / 60) : null,
       _antes: antes
@@ -4213,9 +4246,17 @@
       if (v == null) txt = "—";
       else if (d.id === "noches") txt = v.toFixed(1).replace(".", ",") + " h";
       else txt = (v > 0 ? "+" : "") + v;   // el signo se ve: +8 y −8 no son lo mismo
+      /* debajo del balance, la referencia con la que se compara: sin ella el
+         número de arriba no se puede interpretar (Carlos, 5-nov). */
+      var sub = "";
+      if (d.id === "balance" && r.base != null) {
+        var b = Math.round(r.base * 10) / 10;
+        sub = '<span class="s">tu normal ' +
+              U.esc((b > 0 ? "+" : "") + String(b).replace(".", ",")) + "</span>";
+      }
       h += '<div title="' + U.esc(d.ayuda || "") + '">' +
            '<span class="q">' + U.esc(d.et) + "</span>" +
-           '<span class="n">' + U.esc(txt) + "</span></div>";
+           '<span class="n">' + U.esc(txt) + "</span>" + sub + "</div>";
     });
     return h + "</div>";
   }
@@ -4271,7 +4312,10 @@
     var cfg = P.semaforo || {};
     if (!cfg.activo || !cfg.umbrales) return null;      // sin calibrar: no opina
     var r = razonesSemaforo(iso);
-    if (r.balance == null) return null;                 // sin datos no se inventa
+    /* RELATIVO desde v593: los cortes se leen sobre el DESVÍO contra tu normal,
+       no sobre el balance pelado. `modo: "absoluto"` vuelve al anterior. */
+    var ref = (cfg.modo === "relativo") ? r.desvio : r.balance;
+    if (ref == null) return null;                       // sin datos no se inventa
     /* Los umbrales se leen de PEOR A MEJOR y se para en el primero que cabe.
        Como el balance es forma menos fatiga, lo malo es lo NEGATIVO: el primero
        de la lista es el rojo, con el `hasta` más bajo, y el último lleva
@@ -4279,7 +4323,7 @@
        la calibración que respete ese orden. */
     var id = null, u = cfg.umbrales;
     for (var i = 0; i < u.length; i++) {
-      if (u[i].hasta == null || r.balance <= u[i].hasta) { id = u[i].estado; break; }
+      if (u[i].hasta == null || ref <= u[i].hasta) { id = u[i].estado; break; }
     }
     if (!id) return null;
     /* el sueño solo puede EMPEORARLO, nunca mejorarlo: dos noches cortas no
@@ -4287,10 +4331,33 @@
     if (r.noches != null && cfg.sueno_corto && r.noches < cfg.sueno_corto) {
       if (id === "verde") id = "ambar"; else if (id === "ambar") id = "rojo";
     }
+    /* EL AZUL SE CALLA EN DESCARGA. Es el único estado que añade, y en una
+       semana de descarga venir fresco es el efecto buscado, no margen que sobre.
+       El 18-oct el desvío era +7 en plena descarga y habría pedido un 12 % más. */
+    if (id === "azul" && cfg.azul_no_en_descarga) {
+      var semDesc = semanaDe(iso);
+      if (semDesc && (tallaDe(semDesc) === "B" || /DESCARGA/i.test(semDesc.nota || ""))) id = "verde";
+    }
     var e = (cfg.estados || {})[id];
     if (!e) return null;
     return { id: id, nombre: e.nombre, dice: e.dice, ofrece: e.ofrece || [],
              nota: e.nota || "", razones: r };
+  }
+
+  /* SIN CALIBRAR TIENE QUE EXPLICARSE  ·  5-nov-2026
+     Carlos, mirando la tarjeta el 5 de noviembre: «¿por qué el semáforo sigue
+     sin calibrar? si hay alguna razón debería explicarlo». Y lo que leía era
+     «Se activa el 15 octubre» — una fecha ya pasada anunciada como futuro,
+     porque el texto se montaba con `desde` sin mirar nunca el calendario.
+     Ahora distingue los dos casos: si la fecha no ha llegado dice cuándo; si ya
+     pasó y los umbrales siguen vacíos lo dice, y no promete nada. */
+  function textoSemaforoApagado(cfg) {
+    var desde = (cfg && cfg.desde) || "2026-10-15";
+    if (U.hoyISO() < desde) {
+      return "Se activa el " + U.etiquetaFecha(desde) + ", con tres semanas sin corticoide.";
+    }
+    return "Pendiente de calibrar: la ventana se abrió el " + U.etiquetaFecha(desde) +
+           " y los umbrales siguen sin fijarse.";
   }
 
   function diaCumplido(iso, sem, talla) {
@@ -14008,7 +14075,7 @@
       "<small>" + (estSem ? U.esc(estSem.dice)
         : (hayConsulta
           ? "Hoy suave: hay un aviso de consulta sin resolver."
-          : "Se activa el " + U.etiquetaFecha(sem0.desde || "2026-10-15") + ", con tres semanas sin corticoide.")) +
+          : textoSemaforoApagado(sem0))) +
       "</small>";
     if (estSem) h += htmlRazones(estSem.razones);
     /* DEBAJO DEL TEXTO, NO EN LA ESQUINA. Primero lo puse arriba a la derecha

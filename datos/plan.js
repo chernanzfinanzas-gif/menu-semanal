@@ -793,9 +793,9 @@
        Autoriza o modifica la sesión, y cuando la rebaja ofrece la alternativa.
        Se calibra a mediados de octubre, con tres semanas limpias sin corticoide. */
     semaforo: {
-      activo: false,
-      desde: "2026-10-15",
-      pendiente: "Sin calibrar. Se decide sobre fatiga frente a forma, las dos últimas noches y el tamaño de la sesión — no sobre la VFC.",
+      activo: true,
+      desde: "2026-11-05",
+      pendiente: "Relativo desde el 5-nov-2026: compara el balance de hoy con tu normal de 28 días, y las dos últimas noches. No usa la VFC.",
       estados: {
         verde:  { nombre: "Normal",   dice: "Adelante con lo de hoy" },
         ambar:  { nombre: "Suave",    dice: "Hoy no toca apretar",
@@ -823,25 +823,68 @@
          en las tres franjas por igual). Sirve para confirmar con ventana larga,
          no para decidir un día. */
       razones: [
-        { id: "balance", et: "Balance", ayuda: "Forma menos fatiga, igual que en Mi Estado. Positivo: vienes descansado. Negativo: llevas más carga encima de la que tu forma sostiene." },
-        { id: "noches",  et: "Dos noches",      ayuda: "Media de sueño de las dos últimas noches.", unidad: "h" }
+        { id: "balance", et: "Balance", ayuda: "Forma menos fatiga, igual que en Mi Estado. Debajo va TU NORMAL: la mediana de los últimos 28 días. El color lo decide la distancia entre los dos, no el número suelto." },
+        { id: "noches",  et: "Dos noches",      ayuda: "Media de sueño de las dos últimas noches. Solo puede empeorar el color, nunca mejorarlo.", unidad: "h" }
       ],
 
-      /* LOS UMBRALES NO ESTÁN, Y ESO ES A PROPÓSITO.
-         Aquí irían los cortes que deciden verde, ámbar, rojo y azul. Se fijan el
-         15-oct-2026, con tres semanas seguidas sin corticoide: antes de eso los
-         datos están contaminados —el corticoide sube la tensión, quita el sueño y
-         tiene la VFC en el mínimo del año— y unos cortes sacados de ahí valdrían
-         para un cuerpo que no es el suyo del resto del año.
-         Mientras `umbrales` sea null, `estadoSemaforo` devuelve null y la ficha
-         sigue diciendo «Sin calibrar». Todo lo demás —los colores, las dos cifras,
-         los botones— ya está montado y se enciende solo el día que esto se rellene. */
-      /* De peor a mejor, y se para en el primero que cabe. El balance es forma
-         menos fatiga, así que lo malo es lo negativo: el rojo va primero con el
-         `hasta` más bajo, y el último lleva `hasta: null` para recoger el resto.
-         Forma tendrá: [{hasta:-15,estado:"rojo"},{hasta:-5,estado:"ambar"},
-                        {hasta:10,estado:"verde"},{hasta:null,estado:"azul"}] */
-      umbrales: null,
+      /* RELATIVO, NO ABSOLUTO  ·  5-nov-2026, v593.
+         Primero se calibró con cortes fijos sacados de 32 días limpios. Duró una
+         hora: el propio fichero ya avisaba de que caducaban, porque un balance de
+         −15 con la forma en 20 es una paliza y con la forma en 60 no es nada. Si
+         los cortes son fijos, hay que volver a tocarlos cada pocas semanas, y
+         eso es justo lo que se muere.
+
+         AHORA EL SEMÁFORO NO MIRA EL BALANCE: mira LA DISTANCIA entre el balance
+         de hoy y TU NORMAL, que es la mediana de los últimos 28 días. Se mueve
+         solo. Cuando la forma suba, la mediana sube con ella y los cortes siguen
+         valiendo sin tocar nada.
+
+         POR QUÉ 28 DÍAS Y NO 42. Medido con los dos: a 42 la referencia todavía
+         arrastraba el septiembre sin entrenar y daba desvíos de −20 en días
+         normales. A 28 la referencia se había puesto al día a mediados de
+         octubre. Más corta aún se pegaría demasiado a la semana en curso y una
+         semana dura se volvería «lo normal» en cuatro días.
+
+         LOS CORTES, sobre el desvío. Salen del reparto de su propio último año
+         (340 días con dato): rojo 14 %, ámbar 14 %, verde 51 %, azul 21 % — el
+         azul sale alto porque incluye los meses parados, y ahí decir «estás por
+         debajo de tu forma» es exactamente lo que pasaba.
+
+         LA PRUEBA, sobre el mes limpio (5-oct → 5-nov): los cinco rojos caen el
+         6, 7, 8, 9 y 10 de octubre, las cinco bicis seguidas que la revisión de
+         la semana 3 señaló como pasada de rosca; el 5 y el 11 salen ámbar, a los
+         lados; el resto verde, y dos azules el 19 y el 20, justo al salir de la
+         descarga. Reparto del mes: 5 rojos, 2 ámbar, 23 verdes, 2 azules.
+
+         LO QUE ESTO NO VE, y hay que saberlo: si el cansancio se instala despacio
+         durante meses, la mediana baja con él y el semáforo lo da por normal.
+         Eso no es trabajo del semáforo —que contesta «¿hoy puedo apretar?»— sino
+         del pase del domingo y de los avisos M9 y M10, que miran la carga contra
+         el objetivo y no contra la costumbre.
+
+         De peor a mejor, y se para en el primero que cabe. */
+      modo: "relativo",
+      base: { ventana: 28, minimo: 21 },
+      umbrales: [
+        { hasta: -13,  estado: "rojo"  },
+        { hasta: -7,   estado: "ambar" },
+        { hasta: 6,    estado: "verde" },
+        { hasta: null, estado: "azul"  }
+      ],
+
+      /* LAS DOS NOCHES SOLO PUEDEN EMPEORARLO, nunca mejorarlo: si la media de
+         las dos últimas baja de aquí, el semáforo cae un escalón. 5,0 h es noche
+         corta de verdad para él — en el mes limpio la mediana fue 6,0 h y solo
+         dos noches bajaron de 5. Si se queda corto, este es el número que mover. */
+      sueno_corto: 5.0,
+
+      /* EL AZUL SE CALLA EN LAS SEMANAS DE DESCARGA. El azul es el único estado
+         que AÑADE, y el apartado 8.1 del plan dice que el semáforo nunca añade.
+         Medido: el 18-oct, en plena descarga, el desvío era +7 y habría pedido un
+         12 % más de tiempo en la semana que el propio plan marca como «DESCARGA,
+         no se negocia». Descansar no es una señal de que sobre margen: es el
+         efecto buscado. En descarga, el azul se queda en verde. */
+      azul_no_en_descarga: true,
       regla_consulta: "Un aviso de nivel Consulta baja el semáforo a ámbar y lo dice con esas palabras. Es la única conexión entre avisos y entrenamiento."
     },
 
