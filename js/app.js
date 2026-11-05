@@ -525,14 +525,49 @@ function cortoIng(n) {
   if (p.length > 4) p = p.slice(0, 4);
   return p.join(' ').toLowerCase();
 }
+/* LO QUE YA ESTA PEDIDO (Carlos, 6-nov): «ficha propuesta pechuga de pollo a la
+   plancha como que hay todo cuando se va a comer manana. como va a quedar algo
+   para la semana del 16?». El semaforo miraba el stock a pelo, sin descontar lo
+   que ya tienen reservado los dias que vienen. Aqui se descuenta: de hoy en
+   adelante, todo plato colocado y aun no comido aparta sus ingredientes.
+   A un plato ya colocado no se le cuenta lo suyo propio, o se denunciaria a si
+   mismo por falta de lo que el mismo gasta. */
+var COMP = null, MIO = null;
+function apartado() {
+  if (COMP) return;
+  COMP = {}; MIO = {};
+  var dd = dias();
+  Object.keys(dd).forEach(function (f) {
+    if (f < HOY) return;                       /* lo pasado ya salio de la despensa */
+    var d = dd[f]; if (!d) return;
+    TOMAS.forEach(function (tm) {
+      if (esFueraT(f, tm)) return;
+      var np = pax(f, tm) || 2;
+      (d[tm] || []).forEach(function (id) {
+        if (estaComido(f, tm, id)) return;     /* comido: ya descontado */
+        var r = POR_ID[id]; if (!r) return;
+        var rac = r.raciones || 1;
+        if (!MIO[id]) MIO[id] = {};
+        (r.ing || []).forEach(function (x) {
+          var q = (x.c || 0) / rac * np;
+          COMP[x.i] = (COMP[x.i] || 0) + q;
+          MIO[id][x.i] = (MIO[id][x.i] || 0) + q;
+        });
+      });
+    });
+  });
+}
 function faltanDe(r, comensales) {
   comensales = comensales || 2;
+  apartado();
+  var mio = (r && MIO[r.id]) || {};
   var out = [], rac = r.raciones || 1;
   (r.ing || []).forEach(function (x) {
     var i = null; try { i = A.ingrediente(x.i); } catch (e) {}
     if (!i || i.basico) return;
     var pide = (x.c || 0) / rac * comensales;
     var hay = ((A.estado.stock || {})[x.i] || {}).c || 0;
+    hay = hay - ((COMP[x.i] || 0) - (mio[x.i] || 0));
     if (hay < pide * 0.6) out.push(i.n || x.i);
   });
   return out;
@@ -683,6 +718,7 @@ function PL() {
 /* Lo que es DATO lo guarda la app con su `Almacen.guardar`; lo que es pantalla
    —que paneles tienes abiertos, que dia miras— se queda en este navegador. */
 function guardar() {
+  CACHE = {}; COMP = null; MIO = null;   /* cambia el plan, cambia lo apartado */
   try { localStorage.setItem(CLAVE, JSON.stringify(pantalla())); } catch (e) {}
   try { sincronizar(fechasProto()); } catch (e) {}
   A.guardar('menu');
@@ -1475,6 +1511,13 @@ function limpiarFijos(f, d) {
 function sincronizar(fechas) {
   if (!MOTOR) return;
   fechas.forEach(function (f) {
+    /* UN DIA PASADO SE LEE, NO SE ESCRIBE (Carlos, 6-nov). Esta funcion
+       reescribia tambien el pasado: rehacia `quitados` quitando los fijos y
+       fijaba comensales en almuerzo y merienda. Resultado medido contra su
+       estado real: los fijos que el habia quitado a mano el 31-oct, el 1, el 2
+       y el 4 de noviembre desaparecieron del registro, y en el 28, 29 y 30 de
+       octubre quedaron a uno. Eran decisiones suyas de semanas. */
+    if (f < HOY) return;
     var d = A.asegurarDia(f);
     if (!d.tipo || !tiposDia()[d.tipo]) d.tipo = 'casa';
     if (d.tipo !== 'ruta') delete d.ruta;
@@ -1522,10 +1565,20 @@ function sincronizar(fechas) {
          que todavia no ha tocado, o la tabla no sirve de nada.
        Asi que no hay marca de «sembrado»: se mira si el dia esta tocado, y eso
        se sabe por lo que el mismo ha dejado escrito en el. */
-    if (!diaTocado(f, d)) {
-      limpiarFijos(f, d);
-      try { A.ponerFijos(f); } catch (e) {}
-    }
+    /* EL FIJO APARECE SOLO DONDE HAY PRINCIPAL (Carlos, 6-nov: «quiero pasar los
+       fijos determinados en el cuadro que disenamos a todos los dias, han de
+       aparecer en el dia solo cuando tiene principales definidos»). La tabla de
+       fijos rige para los 21 dias; lo que decide si se ven es que esa toma tenga
+       comida. Una cena sin plato no lleva pan ni yogur: esta vacia.
+       Los pone el motor de Carlos, que ya respeta lo vaciado, lo quitado a mano,
+       los dias de mochila y el plato de Susana cuando come uno solo. */
+    try { A.ponerFijos(f); } catch (e) {}
+    limpiarFijos(f, d);
+    TOMAS.forEach(function (tm) {
+      if (propios(f, tm).length) return;
+      var l = d[tm]; if (!l || !l.length) return;
+      for (var i = l.length - 1; i >= 0; i--) if (esFijoId(l[i])) l.splice(i, 1);
+    });
     if (!A.estado.actividad) A.estado.actividad = {};
     if (d.actividad && d.actividad.length) A.estado.actividad[f] = d.actividad;
     else delete A.estado.actividad[f];
@@ -3586,6 +3639,12 @@ function seleccionar(a) {
 }
 document.addEventListener('click', function (ev) {
   if (!sel) return;
+  /* Un clic en un boton es ese boton y nada mas (Carlos, 6-nov: «aparecia en
+     sin colocar y quise borrarla con la x» — y acabo en la cena del miercoles).
+     El clic en la x dejaba el plato «cogido» y el siguiente clic en una celda
+     lo soltaba alli. */
+  var t = ev.target;
+  while (t) { if (t.tagName === 'BUTTON') return; t = t.parentElement; }
   var n = ev.target;
   while (n && !(n.classList && (n.classList.contains('cel') || n.classList.contains('bandeja')))) n = n.parentElement;
   if (!n) return;
