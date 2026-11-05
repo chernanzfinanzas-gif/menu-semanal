@@ -699,6 +699,9 @@
 #vista-menu .cpreg{border:1px dashed var(--linea-2);background:none;border-radius:var(--r-s);font-size:11.5px;
   font-weight:600;color:var(--tinta-4);padding:3px 9px;transition:all .12s}
 #vista-menu .cpreg:hover{border-style:solid;border-color:var(--verde-borde);color:var(--verde)}
+/* la racion base: se ve, pero no grita. En cuanto la cambias pasa a `.si`. */
+#vista-menu .cpreg.base{color:var(--tinta-4);font-weight:600}
+#vista-menu .cpreg.base:hover{color:var(--verde)}
 #vista-menu .cpreg.si{border-style:solid;border-color:var(--verde-borde);background:var(--verde-claro);
   color:var(--verde);font-weight:650}
 #vista-menu .cinput{width:78px;height:26px;border:2px solid var(--verde);border-radius:var(--r-s);padding:0 8px;font-size:13px}

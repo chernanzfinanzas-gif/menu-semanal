@@ -427,7 +427,9 @@ var RECETAS = [], POR_ID = {};
 function refrescarRecetario() {
   refrescarIngredientes();
   RECETAS.length = 0;
-  POR_ID = {};
+  /* en el sitio, no reasignando: `POR_ID` se exporta por referencia y quien la
+     tuviera cogida se quedaba con el indice vacio. */
+  Object.keys(POR_ID).forEach(function (k) { delete POR_ID[k]; });
   /* `RECETAS` es lo que se puede PROPONER: sin ocultas. `POR_ID` las indexa
      TODAS, ocultas incluidas: un plato de un dia pasado se sigue viendo aunque
      la receta ya no este a la venta, que es la regla de su app. */
@@ -444,6 +446,40 @@ function valeCC(r) { return vivaFicha(r) && (r.tipo || []).some(function (t) { r
 /* Una tosta de verdad empieza por «Tostas» o «Dos tostas»: así no entran
    «Pan tostado · 3 rebanadas» ni «Pan de mesa», que son acompañamientos. */
 function esTosta(r) { return /^(dos\s+)?tostas?\b/i.test(r.corto || r.n); }
+/* EL PAPEL DE CADA FICHA EN LA MESA, con SU regla (la de su selector viejo,
+   3-oct-2026): se deduce de las categorias de los ingredientes, no de listas
+   escritas a mano. Todo bebida -> bebida; postre o fruta fresca -> postre; todo
+   panaderia -> pan; tipo guarnicion -> guarnicion; lo demas, principal. */
+function catsDe(r) {
+  var c = {};
+  (r.ing || []).forEach(function (l) {
+    var g = null; try { g = A.ingrediente(l.i); } catch (e) {}
+    if (g) c[g.cat || '?'] = 1;
+  });
+  return Object.keys(c);
+}
+function todoDe(r, re) {
+  var c = catsDe(r);
+  return c.length > 0 && c.every(function (x) { return re.test(x); });
+}
+/* La fruta fresca es postre: una sola cosa, de frutas y verduras, sin cocinar. */
+function esFrutaFresca(r) {
+  return (r.ing || []).length === 1 &&
+         (r.grupo === 'suelto' || r.grupo === 'fruta') &&
+         (r.tools || []).indexOf('sin-cocinar') >= 0 &&
+         todoDe(r, /^frutas y verduras$/i);
+}
+function papelDe(r) {
+  if (!r) return 'principal';
+  if (todoDe(r, /^bebidas?$/i)) return 'bebida';
+  if ((r.tipo || []).indexOf('postre') >= 0 || r.grupo === 'postre') return 'postre';
+  if (esFrutaFresca(r)) return 'postre';
+  if (todoDe(r, /^panader[ií]a$/i)) return 'pan';
+  if ((r.tipo || []).indexOf('guarnicion') >= 0) return 'guarnicion';
+  return 'principal';
+}
+function esBebida(r) { return vivaFicha(r) && papelDe(r) === 'bebida'; }
+
 /* Una ficha retirada, oculta o borrada no se propone ni sale en el catálogo.
    Su app lo filtra en `almacen.js` («r.borrada || r.grupo === "retirado"»); aquí
    faltaba, y una ensalada y unos huevos retirados sí cuadraban con las normas. */
@@ -1283,6 +1319,10 @@ function pautaSolo(toma, idx) {
 /* ---- Comido y cuánto, como en la app ----
    comido[toma] = [ids] · real[toma][id] = {c, u} con u = 'rac' para una receta y
    la unidad del ingrediente (g, ml, ud) para los sueltos. */
+/* La cantidad base. Para una receta es UNA RACION y punto: deducirla del
+   ingrediente miente en cuanto la ficha es un concentrado —sus refrescos de
+   SodaStream son 33 ml de sirope para una botella de 750, y diria «33 ml»—.
+   Para un ingrediente solo sale su racion con su unidad: 30 g, 1 ud. */
 function racionDe(f) {
   if (f.t === 'i') { var i = ING[f.id]; return { c: (i && i.racion) || 1, u: (i && i.u) || 'ud' }; }
   return { c: 1, u: 'rac' };
@@ -2199,6 +2239,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
   pendienteComido: pendienteComido, pendienteFuera: pendienteFuera,
   vaciarPendientes: vaciarPendientes, huecoGuar: huecoGuar, ajusteGuar: ajusteGuar,
   reajuste: reajuste, fichaReceta: fichaReceta, esFueraT: esFueraT, dias: dias,
+  esBebida: esBebida, papelDe: papelDe, vivaFicha: vivaFicha, esTosta: esTosta,
   vaciarDia: vaciarDia, deshacerVaciar: deshacerVaciar, sePuedeDeshacer: sePuedeDeshacer,
   cuantosDelDia: cuantosDelDia, sueltoBorrable: sueltoBorrable, borrarSuelto: borrarSuelto, E: function () { return E; }, nuevo: nuevo, cargar: cargar, arrancar: arrancar, colocar: colocar,
                  quitar: quitar, estadoDe: estadoDe, proponer: proponer, guarniciones: guarniciones,
@@ -2641,11 +2682,15 @@ function resumenDia(f) {
   /* 1A · lo que gastas */
   var cad = P.cadenaObjetivo(f);
   var a = el('div', 'p2');
+  /* La formula tiene que cuadrar con el numero que hay encima (Carlos, 5-nov).
+     Lo que GASTAS es base + entreno; el deficit no se resta aqui, se resta para
+     llegar a lo que te toca COMER, y por eso su formula va en el cuadro de al
+     lado. Antes esta linea decia «− 550 de deficit» y el numero de arriba no lo
+     restaba: 2.214 + 714 = 2.928, no 2.378. */
   a.innerHTML = '<span class="rot">LO QUE GASTAS</span>' +
     (cad ? '<span class="big">' + mil(cad.gasto) + '<small>kcal</small></span>' +
            '<span class="sub">' + mil(cad.base) + ' de base' +
-           (cad.entreno ? ' + <b>' + mil(cad.entreno) + '</b> de entreno' : '') +
-           ' − ' + cad.deficit + ' de déficit</span>'
+           (cad.entreno ? ' + <b>' + mil(cad.entreno) + '</b> de entreno' : '') + '</span>'
          : '<span class="big">—</span><span class="sub">falta tu perfil</span>');
   g.appendChild(a);
 
@@ -2653,6 +2698,8 @@ function resumenDia(f) {
   var bq = el('div', 'p2 ' + cl);
   bq.innerHTML = '<span class="rot">A COMER / PLANIFICADO</span>' +
     '<span class="big">' + mil(obj) + '<small>/ ' + mil(hay) + ' kcal</small></span>' +
+    (cad ? '<span class="sub">' + mil(cad.gasto) + ' − ' + mil(cad.deficit) +
+           ' de déficit</span>' : '') +
     '<span class="sub est">' + (cl === 'cuadra' ? 'el día cuadra'
       : cl === 'falta' ? 'faltan ' + mil(Math.abs(dif)) + ' kcal por poner'
       : 'sobran ' + mil(Math.abs(dif)) + ' kcal') + '</span>';
@@ -2662,10 +2709,14 @@ function resumenDia(f) {
   var cc = el('div', 'p2 ' + clC);
   cc.innerHTML = '<span class="rot">' + (pasado ? 'YA COMIDO' : 'COMIDO HASTA AHORA') + '</span>' +
     '<span class="big">' + mil(com) + '<small>kcal</small></span>' +
+    /* El dia abierto todavia se puede comer: lo que hay es lo que FALTA. Solo
+       cuando esta cerrado tiene sentido decir que te quedaste corto. */
     '<span class="sub est">' + (!com ? 'sin marcar todavía'
       : clC === 'cuadra' ? 'cuadra con el objetivo'
-      : clC === 'falta' ? 'te quedaste ' + mil(Math.abs(difC)) + ' kcal corto'
-      : 'te pasaste ' + mil(Math.abs(difC)) + ' kcal') + '</span>';
+      : clC === 'falta' ? (pasado ? 'te quedaste ' + mil(Math.abs(difC)) + ' kcal corto'
+                                  : 'faltan ' + mil(Math.abs(difC)) + ' kcal hoy')
+      : (pasado ? 'te pasaste ' + mil(Math.abs(difC)) + ' kcal'
+                : 'te has pasado ' + mil(Math.abs(difC)) + ' kcal')) + '</span>';
   g.appendChild(cc);
 
   /* 2B · nutrientes y sal, con % y semáforo */
@@ -3565,6 +3616,10 @@ function listaCatalogo() {
   var f = cat.filtro, q = cat.busca.trim().toLowerCase();
   var l = P.RECETAS.filter(function (r) {
     if (f === 'guarnicion') return P.esGuar(r);
+    if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
+    if (f === 'desayuno' || f === 'restaurante') return P.vivaFicha(r) && r.grupo === f;
+    if (f === 'suelto') return P.vivaFicha(r) && r.grupo === 'suelto' &&
+      ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r);
     if (f === 'todas') return P.valeCC(r) || P.esGuar(r);
     return P.valeCC(r) && P.TIPOS[f] && P.TIPOS[f](r);
   });
@@ -3579,6 +3634,10 @@ function listaCatalogo() {
 function cuenta(f) {
   return P.RECETAS.filter(function (r) {
     if (f === 'guarnicion') return P.esGuar(r);
+    if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
+    if (f === 'desayuno' || f === 'restaurante') return P.vivaFicha(r) && r.grupo === f;
+    if (f === 'suelto') return P.vivaFicha(r) && r.grupo === 'suelto' &&
+      ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r);
     if (f === 'todas') return P.valeCC(r) || P.esGuar(r);
     return P.valeCC(r) && P.TIPOS[f] && P.TIPOS[f](r);
   }).length;
@@ -3606,9 +3665,22 @@ function pintarCatalogo() {
   var filaB = el('div', '', ''); filaB.style.cssText = 'display:flex;gap:8px'; filaB.appendChild(b);
   fil.appendChild(filaB);
   var chips = el('div', 'chips');
-  var orden = ['todas','pescado','carne','arroz','pasta','tosta','verdura','ensalada','huevos','legumbre','guarnicion'];
+  /* «Antes se podia elegir entre todos los grupos, ordenados de mas
+     convenientes a menos para la toma» (Carlos, 5-nov). Primero el tipo que
+     pide la norma para ese hueco, despues el resto de tipos, y luego el orden
+     de la mesa que el mismo fijo el 3-oct: guarnicion, pan, postre, bebida, y
+     al final los cajones de otro momento y los ingredientes solos. */
+  var tipos = ['pescado','carne','arroz','pasta','tosta','verdura','ensalada','huevos','legumbre'];
+  if (cat.filtro && tipos.indexOf(cat.filtro) > 0) {
+    tipos = [cat.filtro].concat(tipos.filter(function (x) { return x !== cat.filtro; }));
+  }
+  var orden = ['todas'].concat(tipos,
+    ['guarnicion','pan','postre','bebida','desayuno','restaurante','suelto']);
   orden.forEach(function (f) {
-    var nom = f === 'todas' ? 'Todas' : f === 'guarnicion' ? 'Guarniciones' : (P.ETIQ[f] || f);
+    var NOM = { todas: 'Todas', guarnicion: 'Guarniciones', pan: 'Panes',
+                postre: 'Postres', bebida: 'Bebidas', desayuno: 'Desayuno',
+                restaurante: 'Restaurante', suelto: 'Ingredientes solos' };
+    var nom = NOM[f] || P.ETIQ[f] || f;
     var c = el('button', 'chip' + (cat.filtro === f ? ' on' : ''), nom.charAt(0) + nom.slice(1).toLowerCase() + ' ' + cuenta(f));
     c.onclick = function () { cat.filtro = f; pintarCatalogo(); };
     chips.appendChild(c);
@@ -4264,7 +4336,13 @@ function filaPlato(f, tm, it, cerrado) {
     (it.fijo ? '<span class="esfijo" title="Sale solo todos los días. Se cambia en la tabla de fijos del planificador.">fijo</span>' : '');
   if (!it.suelto) {
     var bn = nn.querySelector('.nomr');
-    if (bn) bn.onclick = function (ev) { ev.stopPropagation(); abrirFichaReceta(it.id, f, tm, false); };
+    /* SU ficha, no la mia (Carlos, 5-nov): «las recetas has cambiado la
+       presentacion que antes era casi perfecta, ordenada por tiempos y los
+       utensilios de cocina usados». La de la app trae eso y mucho mas —pesar un
+       ingrediente, el lapiz de las cantidades, estrellas, coste—; aqui se abria
+       una version recortada que hice para el prototipo, donde la de verdad no
+       existia. */
+    if (bn) bn.onclick = function (ev) { ev.stopPropagation(); abrirFicha(it.id, f, tm); };
   }
   izq.appendChild(nn);
 
@@ -4289,7 +4367,7 @@ function filaPlato(f, tm, it, cerrado) {
       '<path d="M4 14h16"/><path d="M5 14a7 7 0 0 1 14 0"/><path d="M3 18h18"/><path d="M9 7V4"/>' +
       '<path d="M12 7V3"/><path d="M15 7V4"/></svg> Cocinar');
     bc.title = 'Abrir la receta por la elaboración';
-    bc.onclick = function (ev) { ev.stopPropagation(); abrirFichaReceta(it.id, f, tm, true); };
+    bc.onclick = function (ev) { ev.stopPropagation(); abrirFicha(it.id, f, tm); };
     pie.appendChild(bc);
     pie.appendChild(preguntaComido(f, tm, { t: 'r', id: it.id }));
   }
@@ -4364,10 +4442,17 @@ function preguntaComido(f, tm, item) {
     inp.onkeydown = function (ev) { if (ev.key === 'Enter') ok.click(); if (ev.key === 'Escape') { editando = null; pintarDia(); } };
     return c;
   }
+  /* LA CANTIDAD, PUESTA DESDE EL PRINCIPIO (Carlos, 5-nov): «al poner comido me
+     pones los gramos o raciones base de ese alimento… si no hay modificado se
+     anota eso. Pero esta la opcion de modificar esa cantidad». Antes el boton
+     decia «cuanto comiste?» y no ensenaba nada hasta tocarlo, asi que no se veia
+     lo que se estaba dando por comido. Ahora la racion base sale siempre, en
+     gris; si la cambias, se marca. */
   var tocado = P.hayReal && P.hayReal(f, tm, item);
-  var b = el('button', 'cpreg' + (tocado ? ' si' : ''),
-    tocado ? P.unidadTexto(r.c, r.u) : '¿cuánto comiste?');
-  b.title = tocado ? 'Comiste ' + P.unidadTexto(r.c, r.u) + ' — tócalo para cambiarlo' : '¿Cuánto comiste de verdad?';
+  var txt = P.unidadTexto(r.c, r.u);
+  var b = el('button', 'cpreg' + (tocado ? ' si' : ' base'), txt);
+  b.title = tocado ? 'Comiste ' + txt + ' — tócalo para cambiarlo'
+                   : 'Es lo que se anota si no lo cambias. Tócalo para poner otra cantidad.';
   b.onclick = function () { editando = clave; pintarDia(); };
   c.appendChild(b);
   return c;
