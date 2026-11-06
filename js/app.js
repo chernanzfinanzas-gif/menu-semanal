@@ -2357,6 +2357,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
   vaciarPendientes: vaciarPendientes, huecoGuar: huecoGuar, ajusteGuar: ajusteGuar,
   reajuste: reajuste, fichaReceta: fichaReceta, esFueraT: esFueraT, dias: dias,
   esBebida: esBebida, papelDe: papelDe, vivaFicha: vivaFicha, esTosta: esTosta, propios: propios, ponerPropios: ponerPropios, sacarDeBandejas: sacarDeBandejas,
+  olvidarCuentas: function () { CACHE = {}; COMP = null; MIO = null; },
   vaciarDia: vaciarDia, deshacerVaciar: deshacerVaciar, sePuedeDeshacer: sePuedeDeshacer,
   cuantosDelDia: cuantosDelDia, sueltoBorrable: sueltoBorrable, borrarSuelto: borrarSuelto, E: function () { return E; }, nuevo: nuevo, cargar: cargar, arrancar: arrancar, colocar: colocar,
                  quitar: quitar, estadoDe: estadoDe, proponer: proponer, guarniciones: guarniciones,
@@ -4873,6 +4874,11 @@ function pintarHerramientas() {
 }
 
 function pintar() {
+  /* EL SEMAFORO SE RECALCULA EN CADA PINTADA (Carlos, 6-nov: «ya lo he metido y
+     sigue igual»). Metia las latas de atun en la despensa, volvia al menu y la
+     ficha seguia diciendo que faltaba: el estado de cada receta se calculaba
+     una vez y se guardaba, y los cambios de la despensa no lo borraban. */
+  if (P.olvidarCuentas) P.olvidarCuentas();
   var cs = document.getElementById('semanal');
   if (cs) { cs.innerHTML = ''; if (P.hayMotor()) cs.appendChild(resumenSemanal()); }
   pintarHerramientas(); pintarFijos(); pintarPanel(); pintarSemanas();
