@@ -8728,7 +8728,53 @@ function pintarTodo() {
     Almacen.guardar("compra");
   }
 
+  /* PARA QUE DIA HACE FALTA (Carlos, 6-nov-2026: «en la lista de las tiendas
+     poner la fecha en la que hace falta el producto seria de gran utilidad»).
+     El primer dia del rango de la compra en que un plato puesto lo gasta. Sirve
+     para saber que corre prisa y que puede esperar a la compra siguiente. No se
+     cuentan los dias pasados, ni las tomas de comer fuera, ni lo ya comido:
+     los mismos filtros que usa `generarCompra` para pedirlo. */
+  var CACHE_DIA = null;
+  function olvidarDiasCompra() { CACHE_DIA = null; }
+  function diaQueHaceFalta(ingId) {
+    if (!CACHE_DIA) {
+      CACHE_DIA = {};
+      var r = Almacen.rangoCompra(UI.cuandoCompra);
+      var tomas = ["desayuno", "almuerzo", "comida", "merienda", "cena"];
+      for (var i = 0; i < r.dias; i++) {
+        var f = Util.sumarDias(r.desde, i);
+        var d = Almacen.estado.plan[f];
+        if (!d || Almacen.esPasado(f)) continue;
+        for (var t = 0; t < tomas.length; t++) {
+          var tm = tomas[t];
+          if (Almacen.esFuera(f, tm)) continue;
+          var l = d[tm] || [];
+          for (var k = 0; k < l.length; k++) {
+            var rec = Almacen.receta(l[k]);
+            if (!rec) continue;
+            if (Almacen.estaComido(f, tm, l[k])) continue;
+            var ings = rec.ing || [];
+            for (var m = 0; m < ings.length; m++) {
+              if (CACHE_DIA[ings[m].i] === undefined) CACHE_DIA[ings[m].i] = f;
+            }
+          }
+        }
+      }
+    }
+    return CACHE_DIA[ingId] || null;
+  }
+  var DOWC = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  function etiquetaDia(f) {
+    if (!f) return "";
+    var hoy = Util.hoyISO();
+    if (f === hoy) return "hoy";
+    if (f === Util.sumarDias(hoy, 1)) return "mañana";
+    var d = new Date(f + "T12:00:00");
+    return DOWC[d.getDay()] + " " + d.getDate();
+  }
+
   function pintarCompra() {
+    olvidarDiasCompra();          /* cambia el rango o el plan, cambian las fechas */
     /* La compra tiene SU PROPIO rango, no el de la pestaña Menú. */
     var r = Almacen.rangoCompra(UI.cuandoCompra);
     var datos = Almacen.generarCompra(r.desde, r.dias, { saltarComido: true });
@@ -9216,15 +9262,26 @@ function pintarTodo() {
   function filaCompacta(id, nombre, cant, cogido, l) {
     if (listaSoloLectura) {
       return '<div class="fila-compacta fila-lectura' + (nuevosAbiertos[id] ? " fila-nueva" : "") + '">' +
-        (nuevosAbiertos[id] ? '<span class="cn-etq">NUEVO</span> ' : "") + '<span class="fc-n">' + esc(nombre) + '</span>' +
+        (nuevosAbiertos[id] ? '<span class="cn-etq">NUEVO</span> ' : "") + '<span class="fc-n">' + esc(nombre) +
+        marcaDia(id) + '</span>' +
         cantFila(cant, l) +
         '<button type="button" class="btn-ausente" data-ausente="' + esc(id) + '" title="No lo tienen: pasar a Pendiente ahora">✕</button>' +
         '</div>';
     }
     return '<label class="fila-compacta' + (cogido ? " hecha" : "") + '" data-filacoger="' + esc(id) + '">' +
       '<input type="checkbox" data-coger="' + esc(id) + '"' + (cogido ? " checked" : "") + '>' +
-      '<span class="fc-n">' + esc(nombre) + '</span>' +
+      '<span class="fc-n">' + esc(nombre) + marcaDia(id) + '</span>' +
       cantFila(cant, l) + '</label>';
+  }
+  /* La fecha va pegada al nombre y en pequeño: lo que se lee primero es el
+     producto. En rojo si es para hoy o mañana. Lo de casa no lleva fecha:
+     el detergente no tiene dia en el menu. */
+  function marcaDia(id) {
+    var f = diaQueHaceFalta(id); if (!f) return "";
+    var e = etiquetaDia(f), urge = (e === "hoy" || e === "mañana");
+    return '<small class="fc-dia" style="margin-left:7px;font-size:11px;font-weight:600;opacity:.85;' +
+      (urge ? 'color:var(--rojo,#b3261e)' : 'color:var(--tinta-3,#6b7280)') + '" title="Primer día que lo gasta el menú">· ' +
+      esc(e) + '</small>';
   }
   /* La cantidad, corta: en el móvil la de la lista larga («4 × 1 ud (95 g) ·
      4 ud (380 g) en total») aplastaba el nombre a una línea. Aquí basta con
