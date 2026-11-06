@@ -730,7 +730,10 @@ function pantalla() {
 function cargar() {
   try {
     var x = JSON.parse(localStorage.getItem(CLAVE) || 'null');
-    if (x && x.lunes && x.dias) return x;
+    /* `pantalla()` nunca guarda `dias`, asi que exigirlo aqui hacia que no se
+       recuperase NADA de la pantalla: ni la semana abierta ni el dia que
+       estabas mirando (Carlos, 6-nov). */
+    if (x && x.lunes) return x;
   } catch (e) {}
   return null;
 }
@@ -1192,10 +1195,19 @@ function platosDe(f, tm) {
       visto[id] = out.length;
     });
   }
-  if (fijosAqui(f, tm)) PAPELES[tm].forEach(function (pa) {
+  /* LA FICHA DEL DIA ENSENA LO QUE EL DIA TIENE (Carlos, 6-nov). Esta lista
+     anadia los fijos SACANDOLOS DE LA TABLA, sin mirar el dia ni lo que el
+     habia quitado. En la comida del 4 de noviembre aparecian el pan tostado de
+     Susana, el agua con gas y el yogur: justo los tres que el habia quitado a
+     mano. Comida que no comio, pintada en su ficha.
+     · Un dia pasado se lee: solo lo que tiene.
+     · En hoy y los que vienen, un fijo de la tabla se ofrece unicamente si esa
+       toma tiene principal y el no lo ha quitado. */
+  if (f >= HOY && propios(f, tm).length && fijosAqui(f, tm)) PAPELES[tm].forEach(function (pa) {
     ['yo', 'ella'].forEach(function (q) {
       var fj = fijoDelDia(f, tm, q, pa);
       if (!fj) return;
+      if (MOTOR) { try { if (A.estaQuitado(f, tm, fj.id)) return; } catch (e) {} }
       if (fj.t !== 'r') { out.push({ id: fj.id, fijo: true, papel: pa, suelto: true, quien: q === 'yo' ? 'carlos' : 'susana' }); return; }
       if (visto[fj.id]) return; 
       out.push({ id: fj.id, fijo: true, veces: 1, papel: pa, quien: quienDe(f, tm, fj.id) });
