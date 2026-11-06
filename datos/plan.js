@@ -511,10 +511,13 @@
          jueves, en cuyo caso sigue siendo el punto limpio pero con ese
          comentario de contexto). */
       { id: "peso",    nombre: "Peso",       unidad: "kg",   paso: 0.1, min: 35, max: 250,
-        dias: [1, 3, 5], diasFijos: [1, 3, 5], ultimo: true,
-        ayuda: "Al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar. " +
-               "Lunes, miércoles y viernes: el lunes enseña lo que ha subido el fin de semana, el miércoles la " +
-               "recuperación, y el viernes es el peso limpio, el nuevo punto de partida de la semana. " +
+        /* 6-nov-2026 (Carlos): «voy a medir el peso cada mañana al levantarme,
+           pero solo peso e IMC». De lunes-miércoles-viernes a todos los días;
+           el viernes sigue siendo el peso limpio de referencia. */
+        dias: [0, 1, 2, 3, 4, 5, 6], diasFijos: [0, 1, 2, 3, 4, 5, 6], ultimo: true,
+        ayuda: "Cada mañana al despertar, tras orinar, antes de beber o comer, desnudo. Nunca después de entrenar. " +
+               "Se lee con la media de 7 días, no día a día: el lunes suele salir lo que ha subido el fin de semana, " +
+               "y el viernes es el peso limpio, el nuevo punto de partida de la semana. " +
                "Lo que escribas aquí es para verlo mientras llega: cuando el dato baje de intervals, manda el suyo." },
       { id: "cintura", nombre: "Cintura",    unidad: "cm",   paso: 0.5, min: 50, max: 180,
         dias: [5], ayuda: "De pie, en ayunas, al final de una espiración normal, a la altura del ombligo. La cinta apoyada, sin apretar. Mide dos veces y quédate con la que se repita. Viernes, con el peso limpio." },
@@ -601,13 +604,17 @@
          la cinta»). */
       /* 29-oct-2026 (Carlos): con la frecuencia de las pesadas, que ahora son
          lunes, miércoles y viernes (antes solo lunes). */
+      /* 6-nov-2026 (Carlos): «no voy a actualizar masa muscular, ósea ni agua».
+         Músculo, agua y masa ósea pierden su día: ya no salen en «Hoy toca
+         medir» ni cuentan como pendientes. Siguen en «Las demás» por si algún
+         día quiere anotarlos, y la historia que hay se conserva. */
       { id: "musculo", nombre: "Músculo", unidad: "kg", paso: 0.1, min: 15, max: 80,
-        aMano: true, informativo: true, dias: [1, 3, 5],
+        aMano: true, informativo: true,
         ayuda: "Lo mide tu báscula pero no llega a intervals, así que este es el único sitio donde puede entrar. " +
-               "Míralo en la app de Garmin el día que te peses (lunes, miércoles y viernes) y anótalo aquí. " +
+               "Sin día fijo: si algún día quieres anotarlo, míralo en la app de Garmin después de pesarte. " +
                "Con dos o tres por semana basta para ver si lo que pierdes es grasa o músculo." },
       { id: "agua", nombre: "Agua", unidad: "%", paso: 0.1, min: 25, max: 75,
-        aMano: true, informativo: true, dias: [1, 3, 5],
+        aMano: true, informativo: true,
         ayuda: "De la misma pantalla de Garmin que el músculo. Ojo con leerlo como un objetivo: sube cuando pierdes grasa, " +
                "pero también cuando retienes líquido, y con el corticoide te pueden estar pasando las dos cosas a la vez. " +
                "Por eso aquí no se pinta de color: es contexto para explicar el peso, no una meta." },
@@ -624,7 +631,7 @@
                "que no llegue o para corregirla. Y ojo el día que la masa ósea baile, porque " +
                "entonces el porcentaje de grasa de esa pesada tampoco vale." },
       { id: "hueso", nombre: "Masa ósea", unidad: "kg", paso: 0.1, min: 1, max: 8,
-        aMano: true, informativo: true, dias: [1, 3, 5],
+        aMano: true, informativo: true,
         ayuda: "Apenas se mueve en un adulto, así que vale de control de la propia báscula: si cambia mucho de un mes a otro, " +
                "lo que falla es la medición —pies mal colocados, humedad, hora distinta—, no tu esqueleto. " +
                "Y si ese día la ósea baila, el porcentaje de grasa de ese día tampoco vale." }
