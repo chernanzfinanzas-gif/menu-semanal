@@ -627,14 +627,36 @@ function estadoDe(id) {
   CACHE[id] = fichaEstado(faltanDe(r));
   return CACHE[id];
 }
+/* LO QUE QUEDA DE UN BLOQUE DE 100 (Carlos, 6-nov: «cuando se elige un elemento
+   de bloques de 100 se podria ver lo que queda en stock?»). Son fichas de un
+   solo ingrediente, asi que «lo que queda» ES su ingrediente: lo que sobra de la
+   despensa cuando ya ha pasado todo el plan —la misma cuenta del semaforo, no
+   una nueva—. Y en la unidad que de verdad se mide al merendar: cuantas veces
+   mas puedes repetirlo. Devuelve null si la ficha tiene mas de un ingrediente. */
+function restoDe(id) {
+  var r = POR_ID[id]; if (!r || !MOTOR) return null;
+  var utiles = (r.ing || []).filter(function (x) {
+    var i = null; try { i = A.ingrediente(x.i); } catch (e) {}
+    return i && !i.basico;
+  });
+  if (utiles.length !== 1) return null;
+  apartado();
+  var x = utiles[0], i = null; try { i = A.ingrediente(x.i); } catch (e) {}
+  var porVez = (x.c || 0) / (r.raciones || 1);
+  var queda = RESTO[x.i] || 0;
+  return { queda: queda, u: (i && i.u) || '', porVez: porVez,
+           veces: porVez > 0 ? Math.floor(queda / porVez) : null };
+}
 /* Plato YA COLOCADO (rejilla, ficha del dia): lo que aparto EL en su turno.
    SIN SEMAFORO EN LO PASADO (Carlos, 6-nov: «el semaforo en los dias pasados no
    tiene sentido ya, y no se si significa que esta contando para el stock»). No
-   cuenta: `apartado` se salta todo dia anterior a hoy y toda toma ya comida,
-   porque eso ya salio de la despensa. Lo que se veia era el color de la FICHA
+   cuenta: `apartado` se salta todo dia anterior a hoy, toda toma ya comida y
+   toda toma marcada FUERA, porque eso no sale de la despensa. Si no aparta, no
+   lleva semaforo: es la misma regla para los tres casos. Lo que se veia era el color de la FICHA
    —lo que sobraria si lo quisieras cocinar otra vez—, que ahi no dice nada. */
 function estadoEn(f, tm, id) {
   if (f < HOY) return { falta: [], cl: '', txt: '' };
+  try { if (esFueraT(f, tm)) return { falta: [], cl: '', txt: '' }; } catch (e) {}
   try { if (estaComido(f, tm, id)) return { falta: [], cl: '', txt: '' }; } catch (e) {}
   apartado();
   var k = f + '|' + tm + '|' + id;
@@ -2456,7 +2478,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
   olvidarCuentas: function () { CACHE = {}; COMP = null; RESTO = null; },
   vaciarDia: vaciarDia, deshacerVaciar: deshacerVaciar, sePuedeDeshacer: sePuedeDeshacer,
   cuantosDelDia: cuantosDelDia, sueltoBorrable: sueltoBorrable, borrarSuelto: borrarSuelto, E: function () { return E; }, nuevo: nuevo, cargar: cargar, arrancar: arrancar, colocar: colocar,
-                 quitar: quitar, estadoDe: estadoDe, estadoEn: estadoEn, proponer: proponer, guarniciones: guarniciones,
+                 quitar: quitar, estadoDe: estadoDe, estadoEn: estadoEn, restoDe: restoDe, proponer: proponer, guarniciones: guarniciones,
                  semanas: semanas, fechasDe: fechasDe, nombre: nombre, dia: dia, guardar: guardar,
                  marcarFuera: marcarFuera, bandeja: bandeja, aBandeja: aBandeja,
                  TOMAS: TOMAS, PAPELES: PAPELES, ETIQ_PAPEL: ETIQ_PAPEL, nombreDe: nombreDe, ponerFijo: ponerFijo,
@@ -4000,8 +4022,16 @@ function pintarLista() {
       if (aj && aj.noCabe) nota = '<b class="gpasa">entera te pasas ' + mil(aj.noCabe) + ' kcal</b> · ';
       else if (aj) nota = '<b class="gaj">cabe al ' + Math.round(aj.f * 100) + ' % (' + mil(aj.kcal) + ' kcal' +
         (aj.principal ? ', ' + esc(aj.nombre) + ' ' + aj.principal + ' g' : '') + ')</b> · ';
+      var rs = P.restoDe(id), sobra = '';
+      if (rs) {
+        var cant = (rs.u === 'ud' ? (Math.round(rs.queda * 10) / 10) + ' ud' : Math.round(rs.queda) + ' ' + rs.u);
+        sobra = rs.veces > 0
+          ? '<b class="resta' + (rs.veces <= 2 ? ' pocas' : '') + '">quedan ' + cant +
+            ' · ' + rs.veces + (rs.veces === 1 ? ' vez más' : ' veces más') + '</b> · '
+          : '<b class="resta nada">no queda en casa</b> · ';
+      }
       f.innerHTML = '<div style="flex:1;min-width:0"><div class="n">' + P.nombre(id) + '</div>' +
-        '<div class="m">' + nota + (e.txt ? '<b class="' + e.cl + '">' + e.txt + '</b> · ' : '') +
+        '<div class="m">' + nota + sobra + (e.txt ? '<b class="' + e.cl + '">' + e.txt + '</b> · ' : '') +
         (r.grupo || '') + (r.min ? ' · ' + r.min + ' min' : '') + '</div></div>';
       var b = el('button', e.cl === 'casa' ? 'btnv' : 'btng', 'Añadir');
       b.onclick = function () {
@@ -4288,6 +4318,29 @@ function pintarDia() {
   var vw = el('button', 'verweek', 'Ver la semana entera en el planificador');
   vw.onclick = function () { irA('plan'); };
   v.appendChild(vw);
+
+  /* PASAR DE DIA SIN SUBIR A BUSCAR EL BOTON (Carlos, 6-nov: «para agilizar el
+     paso de dia a dia los botones de ir al dia siguiente o volver deberian ser
+     flotantes y verse siempre»). La tira de nueve dias y el «Anterior /
+     Siguiente» de arriba se quedan donde estan; esto es un atajo que no se va
+     con el scroll. En medio, el dia que estas viendo: tocarlo te devuelve a
+     hoy. Cuelga de la vista del dia, asi que al cambiar de vista desaparece
+     solo. */
+  var fl = el('div', 'navflota');
+  var fa = el('button', 'nf', '\u2039');
+  fa.setAttribute('aria-label', 'Dia anterior');
+  fa.title = 'Dia anterior: ' + P.fechaCorta(P.masDias(f, -1));
+  fa.onclick = function () { E.diaVisto = P.masDias(f, -1); P.guardar(); pintarDia(); };
+  var fh = el('button', 'nfh', P.diaNum(f) + ' ' + P.mesDe(f).slice(0, 3));
+  fh.title = f === P.HOY ? 'Estas en hoy' : 'Volver a hoy';
+  if (f === P.HOY) fh.classList.add('eshoy');
+  fh.onclick = function () { E.diaVisto = P.HOY; P.guardar(); pintarDia(); };
+  var fs = el('button', 'nf', '\u203a');
+  fs.setAttribute('aria-label', 'Dia siguiente');
+  fs.title = 'Dia siguiente: ' + P.fechaCorta(P.masDias(f, 1));
+  fs.onclick = function () { E.diaVisto = P.masDias(f, 1); P.guardar(); pintarDia(); };
+  fl.appendChild(fa); fl.appendChild(fh); fl.appendChild(fs);
+  v.appendChild(fl);
 
   /* título */
   var tit = el('div', 'titdia');

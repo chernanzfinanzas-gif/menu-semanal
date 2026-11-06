@@ -829,3 +829,24 @@
   #vista-menu .fij{grid-template-columns:1fr}
   #vista-menu .ss-cols{grid-template-columns:1fr}
 }
+
+/* ---------- pasar de dia, flotante (Carlos, 6-nov) ----------
+   Va fuera del flujo, asi que se escribe tambien sin el encierro de
+   #vista-menu por si algun dia cuelga del body, como el calendario. */
+#vista-menu .navflota, .navflota{position:fixed;right:18px;bottom:22px;z-index:90;display:flex;align-items:center;gap:2px;
+  background:var(--sup);border:1px solid var(--linea-2);border-radius:999px;padding:4px;box-shadow:var(--sombra-2)}
+#vista-menu .navflota .nf, .navflota .nf{width:40px;height:40px;border:0;background:transparent;border-radius:999px;
+  font-size:21px;line-height:1;color:var(--tinta);cursor:pointer;display:flex;align-items:center;justify-content:center}
+#vista-menu .navflota .nf:hover, .navflota .nf:hover{background:var(--verde-suave,rgba(0,0,0,.06))}
+#vista-menu .navflota .nfh, .navflota .nfh{border:0;background:transparent;border-radius:999px;padding:0 12px;height:40px;
+  font-size:13px;font-weight:650;color:var(--tinta-3);cursor:pointer;white-space:nowrap}
+#vista-menu .navflota .nfh:hover, .navflota .nfh:hover{background:var(--verde-suave,rgba(0,0,0,.06))}
+#vista-menu .navflota .nfh.eshoy, .navflota .nfh.eshoy{color:var(--verde);cursor:default}
+@media (max-width:620px){
+  #vista-menu .navflota, .navflota{right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+}
+
+/* lo que queda de un bloque de 100, en su ficha del selector (6-nov) */
+#vista-menu .rec .m .resta{color:var(--verde);font-weight:650}
+#vista-menu .rec .m .resta.pocas{color:var(--ambar)}
+#vista-menu .rec .m .resta.nada{color:var(--tinta-3);font-weight:600}
