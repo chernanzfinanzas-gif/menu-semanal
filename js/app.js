@@ -3522,7 +3522,11 @@ function celda(fecha, toma, s) {
       r2.appendChild(x2);
     }
     c.appendChild(r2);
-  } else if (!s.compacta) {
+  } else if (!cerrada) {
+    /* EL «+ ANADIR» FALTABA EN LAS SEMANAS COMPACTAS (Carlos, 6-nov: «y las
+       guarniciones, no puedo anadirla de ningun modo»). Solo se pintaba en la
+       semana a planificar, asi que en la semana en curso y en la comprada no
+       habia forma de poner una guarnicion. En una toma ya comida no se pone. */
     var m = el('button', 'mas', '+ añadir');
     m.onclick = function () { abrirCatalogo(fecha, toma, 1, null); };
     c.appendChild(m);
