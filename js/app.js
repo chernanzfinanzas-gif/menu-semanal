@@ -8898,6 +8898,36 @@ function pintarTodo() {
       Util.euros(gm.e) + '</b> \u00b7 ' + gm.tickets + (gm.tickets === 1 ? ' ticket' : ' tickets') + '</p>';
     $("#lista-compra").innerHTML = html;
     $("#compra-ocultar").textContent = UI.ocultarComprados ? "Ver todo" : "Ocultar lo cogido";
+    /* QUITAR LAS MARCAS DE «COGIDO» DE UNA VEZ (Carlos, 6-nov-2026). Le habian
+       quedado 17 productos marcados de una compra que nunca se cerro con «Pasar
+       a la despensa», que es lo unico que las borra. Y como tu motor ensena una
+       linea aunque no falte nada SI esta marcada, la lista salia con siete
+       productos a cero —el yogur griego con 6 en casa entre ellos—.
+       Quitarlas no toca la despensa ni el menu: solo borra las marcas. Cerrar
+       la compra con «Pedido recibido» NO vale para esto, porque mete en la
+       despensa todo lo que la lista pide. */
+    (function () {
+      var oc = $("#compra-ocultar"); if (!oc || !oc.parentNode) return;
+      var n = Object.keys(Almacen.estado.compraMarcada || {}).length;
+      var bd = document.getElementById("compra-desmarcar");
+      if (!n) { if (bd && bd.parentNode) bd.parentNode.removeChild(bd); return; }
+      if (!bd) {
+        bd = document.createElement("button");
+        bd.className = "btn mini"; bd.id = "compra-desmarcar";
+        bd.title = "Borra las marcas de «cogido». No toca la despensa ni el menú.";
+        bd.onclick = function () {
+          var ids = Object.keys(Almacen.estado.compraMarcada || {});
+          if (!ids.length) return;
+          if (!confirm("¿Quitar la marca de «cogido» a " + ids.length +
+                       (ids.length === 1 ? " producto" : " productos") + "?\n\n" +
+                       "No toca la despensa ni el menú: sólo borra las marcas.")) return;
+          ids.forEach(function (id) { Almacen.ponerPedido(id, false); });
+          pintarCompra();
+        };
+        oc.parentNode.insertBefore(bd, oc.nextSibling);
+      }
+      bd.textContent = "Desmarcar lo cogido (" + n + ")";
+    })();
     refrescarBotonRecibida();
   }
 
