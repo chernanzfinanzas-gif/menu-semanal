@@ -351,10 +351,15 @@
 #vista-menu .bandeja.diana{background:var(--verde-claro);border:2px dashed var(--verde)}
 
 /* ---------- arrastre ---------- */
-#vista-menu .fantasma{position:fixed;z-index:200;pointer-events:none;background:var(--sup);border:1px solid var(--verde);
+/* EL CALENDARIO, EL FANTASMA DEL ARRASTRE Y EL AVISO FLOTANTE CUELGAN DEL
+   BODY, no de #vista-menu, asi que las reglas con ese ambito no les
+   llegaban: el calendario salia sin posicion y aparecia 2.800 px mas abajo
+   (Carlos, 6-nov: «buscar dia no funciona, no abre el calendario»).
+   Cada regla lleva ahora tambien el selector sin ambito. */
+#vista-menu .fantasma, .fantasma{position:fixed;z-index:200;pointer-events:none;background:var(--sup);border:1px solid var(--verde);
   border-radius:var(--r-s);padding:8px 10px;font-size:12.5px;max-width:220px;box-shadow:var(--sombra-2);
   transform:rotate(-1.5deg)}
-#vista-menu .flota{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;background:var(--tinta);
+#vista-menu .flota, .flota{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;background:var(--tinta);
   color:#fff;font-size:13px;padding:11px 18px;border-radius:var(--r-m);box-shadow:var(--sombra-2);display:none;max-width:70vw}
 
 /* ---------- día: buscador y tira ---------- */
@@ -416,25 +421,25 @@
   min-height:38px;transition:border-color .12s}
 #vista-menu .btncal:hover{border-color:var(--verde-borde);color:var(--verde)}
 #vista-menu .btncal .chev{color:var(--tinta-4);width:14px;height:14px}
-#vista-menu .calpop{position:absolute;z-index:150;background:var(--sup);border:1px solid var(--linea);
+#vista-menu .calpop, .calpop{position:absolute;z-index:150;background:var(--sup);border:1px solid var(--linea);
   border-radius:var(--r-l);box-shadow:var(--sombra-2);padding:12px;width:268px}
-#vista-menu .cal-cab{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-#vista-menu .cal-tit{flex:1;text-align:center;font-size:13.5px;font-weight:650}
-#vista-menu .cal-nav{width:28px;height:28px;border:1px solid var(--linea);background:var(--sup);border-radius:var(--r-s);
+#vista-menu .cal-cab, .cal-cab{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+#vista-menu .cal-tit, .cal-tit{flex:1;text-align:center;font-size:13.5px;font-weight:650}
+#vista-menu .cal-nav, .cal-nav{width:28px;height:28px;border:1px solid var(--linea);background:var(--sup);border-radius:var(--r-s);
   font-size:16px;line-height:1;color:var(--tinta-3);padding:0}
-#vista-menu .cal-nav:hover{border-color:var(--verde-borde);color:var(--verde)}
-#vista-menu .cal-rej{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-#vista-menu .cal-dow{font-size:10px;font-weight:700;color:var(--tinta-4);text-align:center;padding-bottom:4px}
-#vista-menu .cal-vacio{height:34px}
-#vista-menu .cal-d{height:34px;border:1px solid transparent;background:none;border-radius:var(--r-s);
+#vista-menu .cal-nav:hover, .cal-nav:hover{border-color:var(--verde-borde);color:var(--verde)}
+#vista-menu .cal-rej, .cal-rej{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+#vista-menu .cal-dow, .cal-dow{font-size:10px;font-weight:700;color:var(--tinta-4);text-align:center;padding-bottom:4px}
+#vista-menu .cal-vacio, .cal-vacio{height:34px}
+#vista-menu .cal-d, .cal-d{height:34px;border:1px solid transparent;background:none;border-radius:var(--r-s);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;
   font-size:13px;color:var(--tinta);line-height:1}
-#vista-menu .cal-d:hover{background:var(--verde-claro);border-color:var(--verde-borde)}
-#vista-menu .cal-d .pts{font-size:7px;color:var(--verde);line-height:1;height:7px;letter-spacing:.5px}
-#vista-menu .cal-d.sinnada .dn{color:var(--tinta-4)}
-#vista-menu .cal-d.hoy{border-color:var(--verde);font-weight:700}
-#vista-menu .cal-d.sel{background:var(--verde);border-color:var(--verde);color:#fff;font-weight:700}
-#vista-menu .cal-d.sel .pts{color:rgba(255,255,255,.75)}
+#vista-menu .cal-d:hover, .cal-d:hover{background:var(--verde-claro);border-color:var(--verde-borde)}
+#vista-menu .cal-d .pts, .cal-d .pts{font-size:7px;color:var(--verde);line-height:1;height:7px;letter-spacing:.5px}
+#vista-menu .cal-d.sinnada .dn, .cal-d.sinnada .dn{color:var(--tinta-4)}
+#vista-menu .cal-d.hoy, .cal-d.hoy{border-color:var(--verde);font-weight:700}
+#vista-menu .cal-d.sel, .cal-d.sel{background:var(--verde);border-color:var(--verde);color:#fff;font-weight:700}
+#vista-menu .cal-d.sel .pts, .cal-d.sel .pts{color:rgba(255,255,255,.75)}
 
 /* ---------- caprichos ---------- */
 #vista-menu .cap-mano p{font-size:13px;color:var(--tinta-3);line-height:1.5;margin:0 0 12px}

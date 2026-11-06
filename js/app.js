@@ -1644,7 +1644,7 @@ function sincronizar(fechas) {
     TOMAS.forEach(function (tm) { if (propios(f, tm).length) conPlato = true; });
     TOMAS.forEach(function (tm) {
       var vale = tm === 'desayuno' ? conPlato
-               : tm === 'almuerzo' ? true
+               : tm === 'almuerzo' ? !!(MOTOR && A.hayEntreno && A.hayEntreno(f))
                : tm === 'merienda' ? false
                : propios(f, tm).length > 0;
       if (vale) return;
