@@ -1742,6 +1742,15 @@ function numerosSemana(lunes) {
   sincronizar(fechas);
   var t = { objetivo: 0, plan: 0, comido: 0, sal: 0, prot: 0, hid: 0, gra: 0, dias: 0, pasa: 0 };
   fechas.forEach(function (f) {
+    /* LA MEDIA ES DE LOS DIAS PUESTOS, NO DE SIETE (Carlos, 6-nov-2026: «la media
+       de la semana a planificar sale 960 kcal/dia porque divide entre 7. La media
+       deberia ser de los dias planificados»). Un dia vacio sumaba su objetivo y
+       cero calorias, asi que hundia las dos cuentas: con seis dias puestos de
+       6.722 kcal salia 960 en vez de 1.120. Un dia sin un solo plato no entra en
+       ninguna suma. Es la misma regla que ya usa `mediaSemana`. */
+    var dd = A.estado.plan[f], algo = false;
+    if (dd) TOMAS.forEach(function (tm) { if ((dd[tm] || []).length) algo = true; });
+    if (!algo) return;
     try {
       var o = A.objetivoDelDia(f) || 0, np = A.nutrDia(f, false), s = A.salDia(f);
       t.objetivo += o; t.plan += np.k || 0; t.prot += np.p || 0;
@@ -2310,6 +2319,15 @@ function arrancar() {
   var x = cargar();
   if (x) {
     E = x;
+    /* LAS TRES SEMANAS SE CORREN SOLAS (Carlos, 6-nov-2026: «segun avance el
+       tiempo la semana planificada y comprada sera la semana en curso... y
+       aparecera la nueva semana a planificar?»). Pues no: el lunes del panel se
+       guardaba con la pantalla y se quedaba clavado donde estuviera. El lunes
+       que viene seguirias viendo «semana en curso» en la del 2 de noviembre y
+       las tres columnas corridas una semana. El panel siempre empieza en la
+       semana de hoy; lo que cambia de semana es el calendario, no una
+       preferencia tuya que haya que recordar. */
+    E.lunes = lunesDe(new Date());
     delete E.grupos; delete E.bandejas; delete E.origen;   /* ahora viven en el estado */
     if (!E.fijos) E.fijos = fijosNuevos();
     /* una sola vez: la tabla de fijos pasa a salir de tu config, no de la lista
