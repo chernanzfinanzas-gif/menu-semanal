@@ -525,50 +525,68 @@ function cortoIng(n) {
   if (p.length > 4) p = p.slice(0, 4);
   return p.join(' ').toLowerCase();
 }
-/* LO QUE YA ESTA PEDIDO (Carlos, 6-nov): «ficha propuesta pechuga de pollo a la
-   plancha como que hay todo cuando se va a comer manana. como va a quedar algo
-   para la semana del 16?». El semaforo miraba el stock a pelo, sin descontar lo
-   que ya tienen reservado los dias que vienen. Aqui se descuenta: de hoy en
-   adelante, todo plato colocado y aun no comido aparta sus ingredientes.
-   A un plato ya colocado no se le cuenta lo suyo propio, o se denunciaria a si
-   mismo por falta de lo que el mismo gasta. */
-var COMP = null, MIO = null;
+/* EL REPARTO DE LA DESPENSA, EN ORDEN (Carlos, 6-nov): «he puesto cosas en
+   verde pero al anadir cosas se queda en naranja, el sistema deberia bloquear
+   el ingrediente al usarlo y seguir verde ese dia, si otros platos piden ese
+   ingrediente ya aparece en naranja».
+   Antes cada plato se miraba contra «lo que hay menos lo que piden los demas»,
+   asi que dos platos que se peleaban por los mismos huevos salian LOS DOS en
+   ambar y ninguno se quedaba con ellos. Ahora la despensa se reparte UNA VEZ,
+   recorriendo el plan por fechas y por tomas: el primero que pide un
+   ingrediente lo APARTA y se queda verde; el que llega despues encuentra el
+   hueco vacio y sale en ambar. Lo que sobra al final del recorrido es lo que
+   ven las fichas del panel, que son platos aun sin colocar.
+   Lo pasado no entra: ya salio de la despensa. */
+var COMP = null;    /* lo que le falto a cada plato COLOCADO, clave fecha|toma|id */
+var RESTO = null;   /* lo que queda en la despensa cuando ya ha pasado todo el plan */
 function apartado() {
   if (COMP) return;
-  COMP = {}; MIO = {};
+  COMP = {}; RESTO = {};
+  var st = (MOTOR ? (A.estado.stock || {}) : {});
+  Object.keys(st).forEach(function (k) { RESTO[k] = (st[k] || {}).c || 0; });
   var dd = dias();
-  Object.keys(dd).forEach(function (f) {
-    if (f < HOY) return;                       /* lo pasado ya salio de la despensa */
+  Object.keys(dd).sort().forEach(function (f) {
+    if (f < HOY) return;
     var d = dd[f]; if (!d) return;
     TOMAS.forEach(function (tm) {
       if (esFueraT(f, tm)) return;
-      var np = pax(f, tm) || 2;
+      var base = pax(f, tm) || 2;
+      var veces = {}, orden = [];
       (d[tm] || []).forEach(function (id) {
         if (estaComido(f, tm, id)) return;     /* comido: ya descontado */
-        var r = POR_ID[id]; if (!r) return;
-        var rac = r.raciones || 1;
-        if (!MIO[id]) MIO[id] = {};
+        if (!POR_ID[id]) return;
+        if (!veces[id]) { veces[id] = 0; orden.push(id); }
+        veces[id]++;
+      });
+      orden.forEach(function (id) {
+        var r = POR_ID[id], rac = r.raciones || 1, n = veces[id], falta = [];
+        /* CUANTOS COMEN DE ESE PLATO, no cuantos comen ese dia: el panecillo
+           «(tuyo)» es de uno aunque en la mesa haya dos. Lo decide su motor con
+           `comensalesDePlato`, la misma cuenta que usa para gastar la despensa. */
+        var np = base;
+        try { if (MOTOR && A.comensalesDePlato) np = A.comensalesDePlato(r, base, f, tm) || base; } catch (e) {}
         (r.ing || []).forEach(function (x) {
-          var q = (x.c || 0) / rac * np;
-          COMP[x.i] = (COMP[x.i] || 0) + q;
-          MIO[id][x.i] = (MIO[id][x.i] || 0) + q;
+          var i = null; try { i = A.ingrediente(x.i); } catch (e) {}
+          var pide = (x.c || 0) / rac * np * n;
+          var hay = RESTO[x.i] || 0;
+          if (i && !i.basico && hay < pide * 0.6) falta.push(i.n || x.i);
+          RESTO[x.i] = Math.max(0, hay - pide);   /* APARTADO: ya no esta para nadie mas */
         });
+        COMP[f + '|' + tm + '|' + id] = falta;
       });
     });
   });
 }
 function faltanDe(r, comensales) {
   comensales = comensales || 2;
+  try { if (MOTOR && A.comensalesDePlato) comensales = A.comensalesDePlato(r, comensales) || comensales; } catch (e) {}
   apartado();
-  var mio = (r && MIO[r.id]) || {};
   var out = [], rac = r.raciones || 1;
   (r.ing || []).forEach(function (x) {
     var i = null; try { i = A.ingrediente(x.i); } catch (e) {}
     if (!i || i.basico) return;
     var pide = (x.c || 0) / rac * comensales;
-    var hay = ((A.estado.stock || {})[x.i] || {}).c || 0;
-    hay = hay - ((COMP[x.i] || 0) - (mio[x.i] || 0));
-    if (hay < pide * 0.6) out.push(i.n || x.i);
+    if ((RESTO[x.i] || 0) < pide * 0.6) out.push(i.n || x.i);
   });
   return out;
 }
@@ -597,14 +615,30 @@ function huecoDia(f) {
   try { puesto = Math.round((A.nutrDia(f) || {}).k || 0); } catch (e) { return null; }
   return { objetivo: Math.round(c.objetivo), puesto: puesto, falta: Math.round(c.objetivo - puesto) };
 }
+function fichaEstado(f) {
+  var cl = f.length === 0 ? 'casa' : (f.length <= 2 ? 'falta' : 'comprar');
+  var txt = f.length === 0 ? '' : (f.length === 1 ? 'falta ' + cortoIng(f[0]) : f.length + ' por comprar');
+  return { falta: f, cl: cl, txt: txt };
+}
+/* Plato AUN SIN COLOCAR (panel, bandeja, catalogo): lo que sobra del plan. */
 function estadoDe(id) {
   if (CACHE[id]) return CACHE[id];
   var r = POR_ID[id]; if (!r) return { falta: [], cl: 'casa', txt: '' };
-  var f = faltanDe(r);
-  var cl = f.length === 0 ? 'casa' : (f.length <= 2 ? 'falta' : 'comprar');
-  var txt = f.length === 0 ? '' : (f.length === 1 ? 'falta ' + cortoIng(f[0]) : f.length + ' por comprar');
-  CACHE[id] = { falta: f, cl: cl, txt: txt };
+  CACHE[id] = fichaEstado(faltanDe(r));
   return CACHE[id];
+}
+/* Plato YA COLOCADO (rejilla, ficha del dia): lo que aparto EL en su turno.
+   SIN SEMAFORO EN LO PASADO (Carlos, 6-nov: «el semaforo en los dias pasados no
+   tiene sentido ya, y no se si significa que esta contando para el stock»). No
+   cuenta: `apartado` se salta todo dia anterior a hoy y toda toma ya comida,
+   porque eso ya salio de la despensa. Lo que se veia era el color de la FICHA
+   —lo que sobraria si lo quisieras cocinar otra vez—, que ahi no dice nada. */
+function estadoEn(f, tm, id) {
+  if (f < HOY) return { falta: [], cl: '', txt: '' };
+  try { if (estaComido(f, tm, id)) return { falta: [], cl: '', txt: '' }; } catch (e) {}
+  apartado();
+  var k = f + '|' + tm + '|' + id;
+  return COMP[k] ? fichaEstado(COMP[k]) : estadoDe(id);
 }
 function rangoStock(id) { var c = estadoDe(id).cl; return c === 'casa' ? 0 : (c === 'falta' ? 1 : 2); }
 function cmpStock(a, b) {
@@ -743,7 +777,7 @@ function PL() {
 /* Lo que es DATO lo guarda la app con su `Almacen.guardar`; lo que es pantalla
    —que paneles tienes abiertos, que dia miras— se queda en este navegador. */
 function guardar() {
-  CACHE = {}; COMP = null; MIO = null;   /* cambia el plan, cambia lo apartado */
+  CACHE = {}; COMP = null; RESTO = null;   /* cambia el plan, cambia lo apartado */
   try { localStorage.setItem(CLAVE, JSON.stringify(pantalla())); } catch (e) {}
   try { sincronizar(fechasProto()); } catch (e) {}
   A.guardar('menu');
@@ -2419,10 +2453,10 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
   esBebida: esBebida, papelDe: papelDe, vivaFicha: vivaFicha, esTosta: esTosta, propios: propios, ponerPropios: ponerPropios, sacarDeBandejas: sacarDeBandejas,
   esBloque100: esBloque100, esPieza: esPieza, kcalDe: kcalDe, huecoDia: huecoDia,
   nombreLargo: nombreLargo,
-  olvidarCuentas: function () { CACHE = {}; COMP = null; MIO = null; },
+  olvidarCuentas: function () { CACHE = {}; COMP = null; RESTO = null; },
   vaciarDia: vaciarDia, deshacerVaciar: deshacerVaciar, sePuedeDeshacer: sePuedeDeshacer,
   cuantosDelDia: cuantosDelDia, sueltoBorrable: sueltoBorrable, borrarSuelto: borrarSuelto, E: function () { return E; }, nuevo: nuevo, cargar: cargar, arrancar: arrancar, colocar: colocar,
-                 quitar: quitar, estadoDe: estadoDe, proponer: proponer, guarniciones: guarniciones,
+                 quitar: quitar, estadoDe: estadoDe, estadoEn: estadoEn, proponer: proponer, guarniciones: guarniciones,
                  semanas: semanas, fechasDe: fechasDe, nombre: nombre, dia: dia, guardar: guardar,
                  marcarFuera: marcarFuera, bandeja: bandeja, aBandeja: aBandeja,
                  TOMAS: TOMAS, PAPELES: PAPELES, ETIQ_PAPEL: ETIQ_PAPEL, nombreDe: nombreDe, ponerFijo: ponerFijo,
@@ -3550,11 +3584,11 @@ function celda(fecha, toma, s) {
     return c;
   }
   if (cerrada) c.classList.add('cerrada');   /* ni se arrastra ni admite nada */
-  var e0 = P.estadoDe(d[0]);
+  var e0 = P.estadoEn(fecha, toma, d[0]);
   var cab = el('div', 'celcab');
   var np = P.pax(fecha, toma);
   cab.innerHTML = GRIP + '<span class="tt">' + toma.toUpperCase() + (cerrada ? ' · comido' : '') +
-    '</span><span class="pt ' + e0.cl + '"></span>';
+    '</span>' + (e0.cl ? '<span class="pt ' + e0.cl + '"></span>' : '');
   if (!cerrada) cab.appendChild(paxMini(fecha, toma));
   if (!cerrada) {
     var x = el('button', 'mini', EQUIS);
@@ -4566,9 +4600,9 @@ function filaPlato(f, tm, it, cerrado) {
   else pl.appendChild(marcaComido(f, tm, it.id));
 
   var izq = el('div', 'pl-izq');
-  var e = it.suelto ? null : P.estadoDe(it.id);
+  var e = it.suelto ? null : P.estadoEn(f, tm, it.id);
   var nn = el('div', 'n');
-  nn.innerHTML = (e ? '<span class="pt ' + e.cl + '"></span>' : '') +
+  nn.innerHTML = (e && e.cl ? '<span class="pt ' + e.cl + '"></span>' : '') +
     (it.suelto ? P.nombreDe({ t: 'i', id: it.id })
                : '<button class="nomr" title="Ver la receta con las cantidades de este día">' +
                  P.nombreDe({ t: 'r', id: it.id }) + '</button>') +

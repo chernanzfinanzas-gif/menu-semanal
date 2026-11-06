@@ -486,7 +486,52 @@ window.DATOS_RECETAS = [
      —tocas las calorías y ese día no te cuentan—. La lata entra en la compra y
      sale de la despensa igual. */
   { id:"beb_cerveza_lata", n:"Cerveza Mahou rubia · 1 lata (330 ml)", rev:1, tipo:["comida","cena"], grupo:"suelto", raciones:1, min:1, tools:["sin-cocinar"], ing:[{i:"cerveza",c:330}], pasos:["Una lata, fría."], trucos:["162 kcal y 0 g de sal la lata.","Si la bebe Susana, toca las calorías en la fila del plato y ese día no te cuentan."] },
-  { id:"beb_cerveza_sin_lata", n:"Cerveza Mahou SIN alcohol · 1 lata (330 ml)", rev:1, tipo:["comida","cena"], grupo:"suelto", raciones:1, min:1, tools:["sin-cocinar"], ing:[{i:"cerveza_sin_rubia",c:330}], pasos:["Una lata, fría."], trucos:["73 kcal y 0 g de sal: menos de la mitad que la con alcohol."] }
+  { id:"beb_cerveza_sin_lata", n:"Cerveza Mahou SIN alcohol · 1 lata (330 ml)", rev:1, tipo:["comida","cena"], grupo:"suelto", raciones:1, min:1, tools:["sin-cocinar"], ing:[{i:"cerveza_sin_rubia",c:330}], pasos:["Una lata, fría."], trucos:["73 kcal y 0 g de sal: menos de la mitad que la con alcohol."] },
+
+  /* ============ 6-NOV-2026: DARLE SALIDA AL COTTAGE ============
+     Carlos: «la idea es hacer mas tostas para gastar el queso crema cottage que
+     no lo usa ninguna receta creo». Tenia razon: la tarrina de 200 g de crema
+     estilo Cottage solo aparecia en las tostas de salmon ahumado con los dos
+     quesos, pidiendo 15 g, y esa receta no se puede hacer —sin salmon ahumado,
+     sin queso de Burgos y sin aceite de trufa—. Y de los 400 g de cottage
+     semidesnatado, el unico destino alcanzable era el suelto de 110 g de
+     merienda. 600 gramos y una merienda.
+
+     Ademas resuelve el atasco de la mozzarella: con 125 g en casa, las tostas
+     de pesto pedian 120 para los dos y el caprese del martes 125, asi que uno
+     de los dos se quedaba sin. Ahora el pesto va con cottage y la bufala entera
+     para el caprese. ============================================== */
+  { id:"tosta_pesto_cottage_cherry", n:"Tostas de pesto con cottage y cherry", rev:1, tipo:["cena"], grupo:"verdura", raciones:1, min:6, tools:["sin-cocinar"],
+    ing:[{i:"pesto_genovese",c:12},{i:"queso_crema",c:60},{i:"tomate_cherry",c:60},{i:"aove",c:3},{i:"albahaca",c:2}],
+    pasos:[
+      "Una capa fina de pesto sobre el pan, extendida hasta los bordes.",
+      "El cottage encima A CUCHARADAS, sin alisarlo. Los grumos agarran el pesto igual que lo hacia la mozzarella rota con las manos; extendido como una crema, el pan se moja y pierde el contraste.",
+      "Los cherry partidos por la mitad, el aceite y la albahaca en hoja entera."
+    ],
+    trucos:[
+      "158 kcal, 8,5 g de proteina y 0,73 g de sal. LA MISMA SAL QUE CON MOZZARELLA Y 95 KCAL MENOS: la de bufala sale a 253 kcal y 22,3 g de grasa; esta, a 12,1. El cambio no cuesta sal, solo quita grasa.",
+      "DOCE GRAMOS DE PESTO Y SESENTA DE COTTAGE PONEN LA MISMA SAL: 0,36 cada uno, las dos terceras partes del plato cada mitad. Igual que pasaba con la mozzarella. El pesto es concentrado: con una capa fina sabe a pesto, y con el doble solo sabe a sal.",
+      "ES LA MISMA TOSTA QUE LA DE MOZZARELLA, con el queso cambiado. El cottage tiene menos grasa y mas proteina, y deja la bufala libre para el caprese.",
+      "El cottage NO se escurre como la mozzarella: viene ya en su suero justo. Si la tarrina tiene liquido suelto por encima, se vuelca y se tira, nada mas.",
+      "Los cherry crudos y partidos, no asados: aqui interesa el contraste de acido y frio contra la grasa del queso."
+    ],
+    nota:"Fria, seis minutos. El pan va aparte. La version de la de mozzarella para cuando no hay bufala, o cuando la bufala hace falta en otro plato." },
+  { id:"guar_cottage_cebolla", n:"Cottage con cebolla roja picada", corto:"Cottage con cebolla", rev:1, tipo:["guarnicion"], grupo:"suelto", raciones:2, min:4, tools:["sin-cocinar"],
+    ing:[{i:"queso_cottage",c:200},{i:"cebolla_morada",c:0.25},{i:"aove",c:5},{i:"pimienta",c:0.5}],
+    pasos:[
+      "Cuarto de cebolla roja en picado FINO, de 2 o 3 mm. En trozo grande la cebolla cruda domina el plato entero; picada fina se reparte y solo pica al fondo.",
+      "Mezclada con el cottage en un bol, el aceite y la pimienta recien molida. Sin sal: el cottage ya trae la suya.",
+      "Diez minutos en la nevera antes de servir, si hay tiempo. La cebolla suelta su jugo en el queso y deja de morder."
+    ],
+    trucos:[
+      "120 kcal y 13,2 g de proteina por racion: la mejor relacion proteina/caloria de todas las guarniciones del recetario.",
+      "OJO CON LA SAL: 0,82 g por racion, porque el cottage semidesnatado va a 0,82 g por 100 g y media tarrina son 100 g. Son el 17 % de tu tope del dia en una guarnicion. Si ese dia la cena ya viene cargada, 50 g por cabeza en vez de 100 la dejan en 0,41.",
+      "LA TARRINA ENTERA DE UNA VEZ, 200 g para los dos. Es la razon de ser de la ficha: el cottage abierto aguanta tres dias y en medias tarrinas se queda en la nevera hasta que se tira.",
+      "Cebolla ROJA y no dulce: la dulce cruda se queda sosa al lado de un queso fresco, y la roja aporta el picante justo.",
+      "De guarnicion al lado de una ensalada o de una carne fria, no de plato. Sube la proteina de la cena sin tocar la cuenta de sal."
+    ],
+    nota:"Sin cocinar, cuatro minutos. Un cuarto de cebolla roja por tarrina de 200 g." },
+
 ];
 
 /* ---- CUADRES A MANO DE PLATO + GUARNICIÓN (v369, 3-oct-2026) ----
