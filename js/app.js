@@ -8714,6 +8714,20 @@ function pintarTodo() {
   /* ==================== VISTA: COMPRA ==================== */
   var compraActual = null;
 
+    /* UN BORRADO NO VIAJA A GITHUB (Carlos, 6-nov-2026: «lo desmarco, se quita y
+     vuelve a aparecer tras visitar un par de menus»). `ponerPedido(id,false)`
+     BORRA la clave, y la fusion de tu github.js une claves: lo que el
+     repositorio todavia tiene vuelve a entrar en la siguiente sincronizacion.
+     Por eso las 17 reaparecian. Dejandola en `false` —que no es «vacia» para
+     la fusion— manda la copia mas nueva, que es la tuya, y el «no» sube al
+     repositorio en vez de desaparecer. `estaPedido` lee `!!`, asi que para la
+     app es exactamente lo mismo que no estar. */
+  function desmarcarCogido(ids) {
+    var cm = Almacen.estado.compraMarcada || (Almacen.estado.compraMarcada = {});
+    ids.forEach(function (id) { cm[id] = false; });
+    Almacen.guardar("compra");
+  }
+
   function pintarCompra() {
     /* La compra tiene SU PROPIO rango, no el de la pestaña Menú. */
     var r = Almacen.rangoCompra(UI.cuandoCompra);
@@ -8908,7 +8922,9 @@ function pintarTodo() {
        despensa todo lo que la lista pide. */
     (function () {
       var oc = $("#compra-ocultar"); if (!oc || !oc.parentNode) return;
-      var n = Object.keys(Almacen.estado.compraMarcada || {}).length;
+      /* solo las que estan en «si»: las que quedan en «no» ya no cuentan */
+      var cmM = Almacen.estado.compraMarcada || {};
+      var n = Object.keys(cmM).filter(function (k) { return cmM[k]; }).length;
       var bd = document.getElementById("compra-desmarcar");
       if (!n) { if (bd && bd.parentNode) bd.parentNode.removeChild(bd); return; }
       if (!bd) {
@@ -8916,12 +8932,13 @@ function pintarTodo() {
         bd.className = "btn mini"; bd.id = "compra-desmarcar";
         bd.title = "Borra las marcas de «cogido». No toca la despensa ni el menú.";
         bd.onclick = function () {
-          var ids = Object.keys(Almacen.estado.compraMarcada || {});
+          var cm2 = Almacen.estado.compraMarcada || {};
+          var ids = Object.keys(cm2).filter(function (k) { return cm2[k]; });
           if (!ids.length) return;
           if (!confirm("¿Quitar la marca de «cogido» a " + ids.length +
                        (ids.length === 1 ? " producto" : " productos") + "?\n\n" +
                        "No toca la despensa ni el menú: sólo borra las marcas.")) return;
-          ids.forEach(function (id) { Almacen.ponerPedido(id, false); });
+          desmarcarCogido(ids);
           pintarCompra();
         };
         oc.parentNode.insertBefore(bd, oc.nextSibling);
@@ -9342,7 +9359,8 @@ function pintarTodo() {
       var c = e.target.closest ? e.target.closest("[data-coger]") : null;
       if (!c) return;
       var id = c.getAttribute("data-coger");
-      Almacen.ponerPedido(id, c.checked);
+      /* mismo motivo que arriba: desmarcar borrando no sobrevive a la sincronizacion */
+      if (c.checked) Almacen.ponerPedido(id, true); else desmarcarCogido([id]);
       var fila = c.closest(".fila-compacta");
       if (fila) fila.classList.toggle("hecha", c.checked);
       pintarCompra();                                  /* la casilla de fondo cuenta lo cogido */
