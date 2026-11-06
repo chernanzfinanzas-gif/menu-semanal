@@ -1704,7 +1704,13 @@ function sincronizar(fechas) {
     TOMAS.forEach(function (tm) { if (propios(f, tm).length) conPlato = true; });
     TOMAS.forEach(function (tm) {
       var vale = tm === 'desayuno' ? conPlato
-               : tm === 'almuerzo' ? !!(MOTOR && A.hayEntreno && A.hayEntreno(f))
+               /* ENTRENO Y ADEMAS PLATO PUESTO (Carlos, 6-nov-2026: «la condicion
+                  es que haya ejercicio y haya comida principal elegida en
+                  Planificar»). Con solo el entreno, los dias 19, 20 y 21 —sin
+                  nada planificado todavia— se llevaban el batido ellos solos y
+                  parecian dias con menu. Un dia en el que no has puesto nada no
+                  tiene almuerzo, aunque toque entrenar. */
+               : tm === 'almuerzo' ? (conPlato && !!(MOTOR && A.hayEntreno && A.hayEntreno(f)))
                : tm === 'merienda' ? false
                : propios(f, tm).length > 0;
       if (vale) return;
@@ -1742,14 +1748,20 @@ function numerosSemana(lunes) {
   sincronizar(fechas);
   var t = { objetivo: 0, plan: 0, comido: 0, sal: 0, prot: 0, hid: 0, gra: 0, dias: 0, pasa: 0 };
   fechas.forEach(function (f) {
-    /* LA MEDIA ES DE LOS DIAS PUESTOS, NO DE SIETE (Carlos, 6-nov-2026: «la media
-       de la semana a planificar sale 960 kcal/dia porque divide entre 7. La media
-       deberia ser de los dias planificados»). Un dia vacio sumaba su objetivo y
-       cero calorias, asi que hundia las dos cuentas: con seis dias puestos de
-       6.722 kcal salia 960 en vez de 1.120. Un dia sin un solo plato no entra en
-       ninguna suma. Es la misma regla que ya usa `mediaSemana`. */
-    var dd = A.estado.plan[f], algo = false;
-    if (dd) TOMAS.forEach(function (tm) { if ((dd[tm] || []).length) algo = true; });
+    /* LA MEDIA ES DE LOS DIAS PLANIFICADOS (Carlos, 6-nov-2026: «la media de la
+       semana a planificar sale 960 kcal/dia porque divide entre 7» y, despues,
+       «pero es que 1120 no es la media»). Las dos veces tenia razon y la segunda
+       senalaba lo de fondo: un dia PLANIFICADO es un dia en el que has puesto un
+       plato. Los dias 19, 20 y 21 solo llevan el batido del almuerzo, que lo pone
+       la app sola en cuanto hay entreno; contarlos como dias planificados metia
+       tres dias de 284 kcal en la media. De 6.722 kcal repartidas:
+         entre 7                        → 960   (lo de antes)
+         entre los 6 con algo puesto    → 1.120 (mi primer arreglo, tambien mal)
+         entre los 3 con un plato tuyo  → 1.957 (esto)
+       Asi que cuenta `propios`, que es lo que has colocado tu, no lo que sale
+       solo. Un dia con fijos y nada mas no es un dia planificado. */
+    var algo = false;
+    TOMAS.forEach(function (tm) { if (propios(f, tm).length) algo = true; });
     if (!algo) return;
     try {
       var o = A.objetivoDelDia(f) || 0, np = A.nutrDia(f, false), s = A.salDia(f);
