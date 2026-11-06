@@ -732,7 +732,12 @@
 /* ---------- modales ---------- */
 #vista-menu .capa{position:fixed;inset:0;background:rgba(21,33,28,.42);backdrop-filter:blur(2px);z-index:100;display:flex;
   align-items:center;justify-content:center;padding:24px}
-#vista-menu .modal{background:var(--sup);border-radius:var(--r-l);width:min(860px,100%);max-height:88vh;display:flex;
+/* La app de Carlos tiene su propia clase .modal, sin encerrar, que fija el
+   cuadro arriba a la izquierda (position:fixed; inset:0). Como aqui no se
+   declaraban esas dos cosas, ganaba la suya y el selector salia en la
+   esquina (Carlos, 6-nov). Se declaran, y asi el cuadro lo centra .capa. */
+#vista-menu .capa > .modal, #vista-menu .modal{position:relative;inset:auto;margin:0;
+  background:var(--sup);border-radius:var(--r-l);width:min(860px,100%);max-height:88vh;display:flex;
   flex-direction:column;overflow:hidden;box-shadow:0 24px 60px -12px rgba(21,33,28,.35)}
 #vista-menu .modcab{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--linea)}
 #vista-menu .modcab .t{font-weight:650;font-size:18px;letter-spacing:-.01em}
