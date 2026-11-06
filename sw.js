@@ -2,10 +2,10 @@
 /* M13 · 10-oct-2026: UNA sola versión para todo. La lista llevaba ?v=426 cuando
    la app cargaba la 519: lo guardado no casaba con lo que pide index.html y sin
    cobertura no servía. Al subir de versión sólo se toca la línea de V. */
-var V = "595";
+var V = "596";
 var CACHE = "menu-semanal-v" + V;
 var FICHEROS = [
-  "./", "./index.html", "./css/estilos.css?v=" + V,
+  "./", "./index.html", "./css/estilos.css?v=" + V, "./css/menu.css?v=" + V,
   "./js/util.js?v=" + V, "./js/almacen.js?v=" + V, "./js/github.js?v=" + V, "./js/app.js?v=" + V,
   "./datos/ingredientes.js?v=" + V, "./datos/recetas.js?v=" + V, "./datos/nuevos.js?v=" + V, "./datos/hogar.js?v=" + V, "./datos/plantillas.js?v=" + V, "./datos/actividades.js?v=" + V, "./datos/plan.js?v=" + V, "./datos/compra-recibida.js?v=" + V, "./datos/mi-cocina.json", "./datos/mis-gustos.json", "./js/entrenamiento.js?v=" + V, "./js/actividad-khb.js?v=" + V, "./css/actividad-khb.css?v=" + V, "./js/avances-khb.js?v=" + V, "./css/avances-khb.css?v=" + V,
   "./iconos/khb/1-arbol-pulso.webp", "./iconos/khb/2-frutas-tenedor.webp", "./iconos/khb/3-pesas-corredor.webp", "./iconos/khb/4-agua.webp", "./iconos/khb/5-sueno.webp", "./iconos/khb/6-zapatillas.webp", "./iconos/khb/7-yoga.webp", "./iconos/khb/8-recetario.webp", "./iconos/khb/9-podio.webp", "./iconos/khb/10-bici.webp", "./iconos/khb/11-montana.webp", "./media/cartel-h.webp", "./media/cartel-v.webp", "./manifest.webmanifest", "./iconos/icono.svg", "./iconos/animo/en-su-sitio.webp?v=" + V, "./iconos/animo/en-su-sitio-comic.webp?v=" + V, "./iconos/animo/pasado.webp?v=" + V, "./iconos/animo/pasado-comic.webp?v=" + V, "./iconos/animo/corto.webp?v=" + V, "./iconos/animo/corto-comic.webp?v=" + V, "./iconos/animo/fuerza.webp?v=" + V, "./iconos/animo/fuerza-comic.webp?v=" + V, "./iconos/animo/descanso.webp?v=" + V, "./iconos/animo/descanso-comic.webp?v=" + V, "./iconos/animo/en-marcha.webp?v=" + V, "./iconos/animo/en-marcha-comic.webp?v=" + V, "./iconos/animo/sem-espera.webp?v=" + V, "./iconos/animo/sem-azul.webp?v=" + V, "./iconos/animo/sem-verde.webp?v=" + V, "./iconos/animo/sem-ambar.webp?v=" + V, "./iconos/animo/sem-rojo.webp?v=" + V
