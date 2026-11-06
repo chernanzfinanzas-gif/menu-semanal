@@ -573,6 +573,30 @@ function faltanDe(r, comensales) {
   return out;
 }
 var CACHE = {};
+/* LOS BLOQUES DE 100 (Carlos, 6-nov: «la merienda se rellenara a diario con el
+   contenido de los bloques de 100, que se anadiran hasta completar la demanda
+   calorica del dia, de igual forma se puede anadir algo a almuerzo»). No es una
+   lista de alimentos: es una banda de calorias. Su app lo hacia asi desde el
+   principio —«que ofrezca los ingredientes en cantidades que tengan 100
+   calorias (margen de 90 a 120)... y voy eligiendo yo hasta alcanzar lo que
+   toque»— y lo que no cabe en la banda y no se parte es una PIEZA. */
+function kcalDe(r) {
+  if (!r || !MOTOR) return 0;
+  try { return Math.round(A.nutrReceta(r).k || 0); } catch (e) { return 0; }
+}
+function unaCosa(r) {
+  return vivaFicha(r) && r.grupo === 'suelto' && (r.ing || []).length === 1 &&
+         papelDe(r) !== 'bebida';
+}
+function esBloque100(r) { if (!unaCosa(r)) return false; var k = kcalDe(r); return k >= 88 && k <= 122; }
+function esPieza(r)     { if (!unaCosa(r)) return false; var k = kcalDe(r); return k > 122 || (k >= 25 && k < 88); }
+function huecoDia(f) {
+  if (!MOTOR) return null;
+  var c = cadenaObjetivo(f); if (!c) return null;
+  var puesto = 0;
+  try { puesto = Math.round((A.nutrDia(f) || {}).k || 0); } catch (e) { return null; }
+  return { objetivo: Math.round(c.objetivo), puesto: puesto, falta: Math.round(c.objetivo - puesto) };
+}
 function estadoDe(id) {
   if (CACHE[id]) return CACHE[id];
   var r = POR_ID[id]; if (!r) return { falta: [], cl: 'casa', txt: '' };
@@ -589,6 +613,7 @@ function cmpStock(a, b) {
   return (POR_ID[a].min || 0) - (POR_ID[b].min || 0);
 }
 function nombre(id) { var r = POR_ID[id]; return r ? (r.corto || r.n) : id; }
+function nombreLargo(id) { var r = POR_ID[id]; return r ? (r.n || r.corto || id) : id; }
 
 /* ====================== FECHAS ====================== */
 function iso(d) {
@@ -750,7 +775,13 @@ function cualSemana(f) {
 }
 function bandeja(lunes) { if (!PL().bandejas[lunes]) PL().bandejas[lunes] = []; return PL().bandejas[lunes]; }
 function aBandeja(fecha, id) {
-  var b = bandeja(lunesSemana(fecha));
+  /* LO QUE SALE DE LA SEMANA EN CURSO VA A LA SIGUIENTE (Carlos, 6-nov: «en la
+     semana en curso no pongas el cuadro de sin colocar, lo que quite de la
+     semana en curso ira a la semana planificada y comprada»). Un plato que ya
+     no cabe en esta semana no se recoloca en ella: se come la que viene. */
+  var l = lunesSemana(fecha);
+  if (l === E.lunes) l = masDias(E.lunes, 7);
+  var b = bandeja(l);
   if (b.indexOf(id) < 0) b.push(id);
 }
 function sacarDeBandejas(id) {
@@ -1020,7 +1051,13 @@ function ponerFijo(toma, quien, papel, f) {
     var ya = null;
     cfg.forEach(function (x) { if (x && x.r === f.id && (x.papel || papel) === papel) ya = x; });
     if (ya) { if ((ya.tomas || []).indexOf(toma) < 0) ya.tomas.push(toma); if (f.desde) ya.desde = f.desde; }
-    else cfg.push({ r: f.id, tomas: [toma], papel: papel, desde: f.desde || undefined });
+    else {
+      var nuevo = { r: f.id, tomas: [toma], papel: papel, desde: f.desde || undefined };
+      /* El almuerzo solo entra los dias con ejercicio (Carlos, 6-nov). El motor
+         ya salta los fijos con esta marca cuando el dia no tiene entreno. */
+      if (toma === 'almuerzo') nuevo.soloSiEntreno = true;
+      cfg.push(nuevo);
+    }
   }
   E.fijos = fijosDeConfig() || E.fijos;
   guardar();
@@ -1586,8 +1623,31 @@ function sincronizar(fechas) {
        los dias de mochila y el plato de Susana cuando come uno solo. */
     try { A.ponerFijos(f); } catch (e) {}
     limpiarFijos(f, d);
+    /* La bandeja de la semana en curso ya no se ve: lo que tuviera dentro pasa
+       a la de la semana siguiente, para que no quede nadie encerrado. */
+    (function () {
+      var vieja = bandeja(E.lunes), nueva = bandeja(masDias(E.lunes, 7));
+      while (vieja.length) { var id = vieja.shift(); if (nueva.indexOf(id) < 0) nueva.push(id); }
+    })();
+    /* Un fijo del almuerzo puesto antes de esta regla no llevaba la marca, y
+       saldria todos los dias. Se le pone aqui, una vez. */
+    ((A.estado.config && A.estado.config.fijos) || []).forEach(function (x) {
+      if (x && (x.tomas || []).indexOf('almuerzo') >= 0 && !x.soloSiEntreno) x.soloSiEntreno = true;
+    });
+    /* CUANDO ENTRA CADA FIJO (Carlos, 6-nov):
+       · desayuno — con el primer plato del dia, al tiempo que los de la comida
+       · almuerzo — solo si ese dia hay ejercicio: eso lo decide el motor, que
+         salta los fijos marcados «solo si entreno»
+       · merienda — nunca sola, se rellena a mano
+       · comida y cena — cuando esa toma tiene principal */
+    var conPlato = false;
+    TOMAS.forEach(function (tm) { if (propios(f, tm).length) conPlato = true; });
     TOMAS.forEach(function (tm) {
-      if (propios(f, tm).length) return;
+      var vale = tm === 'desayuno' ? conPlato
+               : tm === 'almuerzo' ? true
+               : tm === 'merienda' ? false
+               : propios(f, tm).length > 0;
+      if (vale) return;
       var l = d[tm]; if (!l || !l.length) return;
       for (var i = l.length - 1; i >= 0; i--) if (esFijoId(l[i])) l.splice(i, 1);
     });
@@ -2357,6 +2417,8 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
   vaciarPendientes: vaciarPendientes, huecoGuar: huecoGuar, ajusteGuar: ajusteGuar,
   reajuste: reajuste, fichaReceta: fichaReceta, esFueraT: esFueraT, dias: dias,
   esBebida: esBebida, papelDe: papelDe, vivaFicha: vivaFicha, esTosta: esTosta, propios: propios, ponerPropios: ponerPropios, sacarDeBandejas: sacarDeBandejas,
+  esBloque100: esBloque100, esPieza: esPieza, kcalDe: kcalDe, huecoDia: huecoDia,
+  nombreLargo: nombreLargo,
   olvidarCuentas: function () { CACHE = {}; COMP = null; MIO = null; },
   vaciarDia: vaciarDia, deshacerVaciar: deshacerVaciar, sePuedeDeshacer: sePuedeDeshacer,
   cuantosDelDia: cuantosDelDia, sueltoBorrable: sueltoBorrable, borrarSuelto: borrarSuelto, E: function () { return E; }, nuevo: nuevo, cargar: cargar, arrancar: arrancar, colocar: colocar,
@@ -2496,6 +2558,9 @@ function cajaGrupo(g) {
   g.op.forEach(function (id) {
     var e = P.estadoDe(id);
     var o = el('div', 'op');
+    /* El nombre corto es el suyo y la ficha va recortada: el largo, al pasar
+       el raton (Carlos, 6-nov: «en caprese has reducido el nombre»). */
+    o.title = P.nombreLargo(id);
     o.innerHTML = GRIP + '<div style="flex:1;min-width:0"><div class="n">' + P.nombre(id) + '</div>' +
       (e.txt ? '<div class="f ' + e.cl + '" title="' + e.txt + '">' + e.txt + '</div>' : '') +
       '</div><span class="pt ' + e.cl + '" style="margin-top:4px"></span>';
@@ -3111,7 +3176,8 @@ function pintarFijos() {
   g.appendChild(el('div', 'cab', 'CARLOS'));
   g.appendChild(el('div', 'cab', 'SUSANA'));
   P.TOMAS.forEach(function (tm) {
-    var extra = (tm === 'almuerzo' || tm === 'merienda') ? '<small>solo si entrenas</small>' : '';
+    var extra = tm === 'almuerzo' ? '<small>solo los d\u00edas que entrenas</small>'
+              : tm === 'merienda' ? '<small>a mano, no se pone sola</small>' : '';
     g.appendChild(el('div', 'et', tm.charAt(0).toUpperCase() + tm.slice(1) + extra));
     ['yo', 'ella'].forEach(function (q) {
       var caja = el('div', 'caja' + (q === 'ella' ? ' ella' : ''));
@@ -3267,7 +3333,7 @@ function pintarSemanas() {
     });
     cue.appendChild(hb);
     var b = P.bandeja(s.f);
-    {
+    if (s.f !== P.E().lunes) {          /* la semana en curso no lleva bandeja */
       var bd = el('div', 'bandeja' + (b.length ? '' : ' vacia'));
       bd.dataset.bandeja = s.f;
       bd.appendChild(el('span', 'bt', 'Sin colocar' + (b.length ? ' · ' + b.length : '')));
@@ -3502,6 +3568,7 @@ function celda(fecha, toma, s) {
   }
   c.appendChild(cab);
   var r1 = el('div', 'r1', P.nombre(d[0]));
+  r1.title = P.nombreLargo(d[0]);
   if (!cerrada) agarrar(r1, d[0], { fecha: fecha, toma: toma, ranura: 0 });
   c.appendChild(r1);
 
@@ -3770,6 +3837,8 @@ function listaCatalogo() {
     if (f === 'guarnicion') return P.esGuar(r);
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
     if (f === 'desayuno' || f === 'restaurante') return P.vivaFicha(r) && r.grupo === f;
+    if (f === 'b100') return P.esBloque100(r);
+    if (f === 'pieza') return P.esPieza(r);
     if (f === 'suelto') return P.vivaFicha(r) && r.grupo === 'suelto' &&
       ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r);
     if (f === 'todas') return P.valeCC(r) || P.esGuar(r);
@@ -3788,6 +3857,8 @@ function cuenta(f) {
     if (f === 'guarnicion') return P.esGuar(r);
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
     if (f === 'desayuno' || f === 'restaurante') return P.vivaFicha(r) && r.grupo === f;
+    if (f === 'b100') return P.esBloque100(r);
+    if (f === 'pieza') return P.esPieza(r);
     if (f === 'suelto') return P.vivaFicha(r) && r.grupo === 'suelto' &&
       ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r);
     if (f === 'todas') return P.valeCC(r) || P.esGuar(r);
@@ -3826,12 +3897,14 @@ function pintarCatalogo() {
   if (cat.filtro && tipos.indexOf(cat.filtro) > 0) {
     tipos = [cat.filtro].concat(tipos.filter(function (x) { return x !== cat.filtro; }));
   }
-  var orden = ['todas'].concat(tipos,
-    ['guarnicion','pan','postre','bebida','desayuno','restaurante','suelto']);
+  var orden = (cat.toma === 'almuerzo' || cat.toma === 'merienda')
+    ? ['b100', 'pieza', 'suelto', 'bebida', 'postre', 'todas'].concat(tipos, ['guarnicion','pan','desayuno','restaurante'])
+    : ['todas'].concat(tipos, ['guarnicion','pan','postre','bebida','desayuno','restaurante','suelto']);
   orden.forEach(function (f) {
     var NOM = { todas: 'Todas', guarnicion: 'Guarniciones', pan: 'Panes',
                 postre: 'Postres', bebida: 'Bebidas', desayuno: 'Desayuno',
-                restaurante: 'Restaurante', suelto: 'Ingredientes solos' };
+                restaurante: 'Restaurante', suelto: 'Ingredientes solos',
+                b100: 'Bloques de 100', pieza: 'Piezas' };
     var nom = NOM[f] || P.ETIQ[f] || f;
     var c = el('button', 'chip' + (cat.filtro === f ? ' on' : ''), nom.charAt(0) + nom.slice(1).toLowerCase() + ' ' + cuenta(f));
     c.onclick = function () { cat.filtro = f; pintarCatalogo(); };
@@ -3853,6 +3926,21 @@ function pintarLista() {
      `huecoGuarnicion` y `ajusteGuarnicion`; aqui se ENSENA. Aplicar la racion
      recortada necesita el conjunto (principal + guarnicion fundidos en una
      ficha), que el prototipo todavia no monta. */
+  /* En almuerzo y merienda lo que manda no es el hueco de la toma, sino lo que
+     le falta al DIA: se van anadiendo bloques hasta llegar. */
+  if (cat.fecha && (cat.toma === 'almuerzo' || cat.toma === 'merienda')) {
+    var hd = P.huecoDia(cat.fecha);
+    if (hd) {
+      var ad = el('div', 'avhueco' + (hd.falta > 60 ? '' : ' corto'));
+      ad.innerHTML = hd.falta > 60
+        ? 'Hoy te faltan <b>' + mil(hd.falta) + ' kcal</b> para llegar a las ' + mil(hd.objetivo) +
+          ' que te tocan: unos <b>' + Math.round(hd.falta / 100) + ' bloques</b>.'
+        : (hd.falta >= 0
+            ? 'Ya casi llegas: te faltan ' + mil(hd.falta) + ' kcal de las ' + mil(hd.objetivo) + ' del día.'
+            : 'Hoy ya te pasas ' + mil(-hd.falta) + ' kcal: mejor no añadir nada.');
+      cont.appendChild(ad);
+    }
+  }
   var hg = null;
   if (cat.fecha && cat.filtro === 'guarnicion') hg = P.huecoGuar(cat.fecha, cat.toma);
   if (hg) {
