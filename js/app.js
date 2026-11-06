@@ -41,10 +41,14 @@
     verPlatosCompra: null,   // bloque de platos de Compra: null = aún no ha elegido él
     /* Rango de la lista de la compra. Independiente de la semana que se esté viendo
        en Menú, que es lo que confundía. */
-    /* En sábado y domingo «lo que queda de esta semana» es uno o dos días, y
-       la compra grande es la de la semana que viene (Carlos, 4-oct-2026: «¿y
-       Mercadona no debería venir relleno?», un domingo). */
-    cuandoCompra: ([0, 6].indexOf(new Date().getDay()) >= 0 ? "todo" : "resto"),   /* 30-oct-2026: el fin de semana, todo lo planificado */
+    /* SIEMPRE «DE HOY A TODO LO PLANIFICADO» (Carlos, 6-nov-2026: «En La compra
+       salen 3 opciones, que por defecto salga la de hoy a todo lo planificado»).
+       Antes dependia del dia de la semana —en sabado y domingo «todo», el resto
+       «lo que queda de esta semana»—, una regla del 4-oct que venia de cuando la
+       compra era semanal. Ahora el pedido llega el miercoles y lo que hay en
+       casa tiene que durar hasta el siguiente, asi que el rango util es siempre
+       el largo. Las otras tres opciones siguen en el desplegable. */
+    cuandoCompra: "todo",
     tRuta: null,            // espera antes de repintar al teclear las horas de una ruta
     /* Días pasados que ha desbloqueado a mano para corregir algo. Vive solo en
        memoria: al recargar vuelven a estar cerrados, que es lo que se quiere. */
