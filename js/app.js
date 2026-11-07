@@ -5638,6 +5638,8 @@ function pintarTodo() {
                           : ". Puede necesitar más de " + mins + uMin + ": compruébalo antes de sacarlo.");
       }
     });
+    if (r.nota) html += '<div class="aviso antes' + (r.sinCuadrar ? ' pendiente-cuadre' : '') + '">' + esc(r.nota) + '</div>';
+
     var enGuion = false, apPrevio = null;
     (r.pasos || []).forEach(function (p, iPaso) {
       var conReloj = p && typeof p === "object" && typeof p.min === "number";
@@ -5667,7 +5669,11 @@ function pintarTodo() {
       html += '</ul>';
     }
 
-    if (r.nota) html += '<div class="aviso' + (r.sinCuadrar ? ' pendiente-cuadre' : '') + '">' + esc(r.nota) + '</div>';
+    /* LA NOTA YA NO VA AQUÍ: subió delante de los pasos (7-nov-2026). Carlos:
+       «hay veces que las notas vienen al final de la receta y cualquier
+       aclaración debe estar antes de describir el proceso de cocinado». Tenía
+       razón: en las tostas la nota dice «el pan va aparte, como siempre», que es
+       justo lo que hay que saber ANTES de montar el plato, y se leía después. */
 
     /* Un plato + guarnición no se edita: se rehace solo de sus dos recetas.
        Lo que haya que cambiar, se cambia en ellas. */
