@@ -50,8 +50,12 @@
 #vista-menu header.barra .chip{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
   background:rgba(255,255,255,.16);border-radius:var(--r-full);padding:4px 10px}
 #vista-menu header.barra .der{margin-left:auto;font-size:13px;opacity:.85}
-#vista-menu .pest{display:flex;gap:2px;margin-left:10px;background:rgba(0,0,0,.14);border-radius:var(--r-full);padding:3px}
-#vista-menu .pest button{border:0;background:none;color:rgba(255,255,255,.82);border-radius:var(--r-full);
+/* LA BARRA, DEL COLOR DEL BANNER (Carlos, 7-nov-2026: «ponle el color del
+   banner principal de la app, con letra blanca cuando esta sin seleccionar la
+   opcion y el color de ahora para la opcion seleccionada»). Era un gris
+   translucido que no era de ningun sitio. */
+#vista-menu .pest{display:flex;gap:2px;margin-left:10px;background:var(--verde);border-radius:var(--r-full);padding:3px}
+#vista-menu .pest button{border:0;background:none;color:#fff;border-radius:var(--r-full);
   padding:7px 18px;font-size:13.5px;font-weight:600;transition:background .12s,color .12s}
 #vista-menu .pest button:hover{color:#fff}
 #vista-menu .pest button.on{background:#fff;color:var(--verde);font-weight:650}
@@ -828,6 +832,26 @@
   #vista-menu .rej{grid-template-columns:46px repeat(7,minmax(104px,1fr));overflow-x:auto}
   #vista-menu .fij{grid-template-columns:1fr}
   #vista-menu .ss-cols{grid-template-columns:1fr}
+}
+
+/* ---------- LA PALETA, PARA LO QUE CUELGA DEL BODY (Carlos, 7-nov-2026:
+   «el calendario sale con fondo transparente») ----------
+   Los colores y las formas del menu se definen arriba sobre #vista-menu. El
+   calendario, el fantasma del arrastre y los avisos flotantes se cuelgan de
+   <body>, fuera de ese encierro, asi que ayer saque sus reglas del encierro
+   pero las variables se quedaron dentro: `background:var(--sup)` no resolvia a
+   nada y el calendario salia sin fondo, con el texto de la pagina detras.
+   No se pueden poner en :root porque estilos.css ya define ahi --verde y
+   --tinta con sus propios valores. Se le dan a estos cuatro y a nadie mas. */
+#calpop, .fantasma, .flota, .navflota{
+  --tinta:#15211c; --tinta-2:#3d4f48; --tinta-3:#6b7d75; --tinta-4:#93a39c;
+  --fondo:#f2f5f3; --sup:#ffffff; --sup-2:#f8faf9;
+  --linea:#e4eae7; --linea-2:#d2dcd7;
+  --verde:#2f6b47; --verde-2:#245438; --verde-claro:#e9f2ec; --verde-borde:#c9dfd2;
+  --ambar:#8a5e0a; --rojo:#a33524; --azul:#44557a;
+  --r-s:8px; --r-m:12px; --r-l:16px; --r-full:999px;
+  --sombra-1:0 1px 2px rgba(21,33,28,.05);
+  --sombra-2:0 1px 3px rgba(21,33,28,.07), 0 8px 24px -8px rgba(21,33,28,.10);
 }
 
 /* ---------- pasar de dia, flotante (Carlos, 6-nov) ----------

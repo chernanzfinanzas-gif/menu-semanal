@@ -2530,6 +2530,8 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
                  platosDe: platosDe, quitadosDe: quitadosDe, anadirA: anadirA,
                  bloquesDe: bloquesDe, fichasRestaurante: fichasRestaurante,
                  estimacionFuera: estimacionFuera, kcalFicha: kcalFicha, quitarPlato: quitarPlato, cuotaToma: cuotaToma,
+                 fueraComido: function (f, tm) { try { return !!A.fueraComido(f, tm); } catch (e) { return false; } },
+                 marcarFueraComido: function (f, tm, si) { try { return A.marcarFueraComido(f, tm, si); } catch (e) { return false; } },
                  objetivosMacros: objetivosMacros, nutrPlato: nutrPlato, mediaSemana: mediaSemana,
                  lunesDeISO: function (f) { return lunesDe(new Date(f + 'T12:00:00')); },
                  pax: pax, ponerPax: ponerPax, pautaSolo: pautaSolo, diaSemana: diaSemana, abiertoNuevo: abiertoNuevo,
@@ -4545,6 +4547,27 @@ function tarjetaToma(f, tm) {
         (est ? ': <b>' + mil(est.k) + ' kcal</b> y ' + coma(est.sal) + ' g de sal' : '') +
         '. Apunta los platos con el + para afinarlo.');
     c.appendChild(av);
+    /* SU CASILLA DE COMIDO (Carlos, 7-nov-2026: «la comida fuera debe tener
+       casilla de verificación de comido como el resto de comidas y contar
+       cuando se marque»). Solo cuando no hay platos apuntados: si los hay,
+       cada uno lleva la suya. Marcar «fuera» dice dónde vas a comer; esta
+       casilla dice que ya has comido, que es otra cosa —puedes planear comer
+       fuera y al final no comer—. */
+    if (!platos.length) {
+      var ya = P.fueraComido(f, tm);
+      var fl = el('div', 'plato fuera-comido' + (ya ? ' comido' : ''));
+      var tic = el('button', 'tic' + (ya ? ' on' : ''));
+      tic.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+      tic.setAttribute('aria-label', ya ? 'Marcar como no comido' : 'Marcar como comido');
+      tic.title = ya ? 'comido' : 'marcar comido';
+      tic.onclick = function () { P.marcarFueraComido(f, tm, !ya); pintarDia(); avisaReajuste(); };
+      fl.appendChild(tic);
+      var iz = el('div', 'pl-izq');
+      iz.appendChild(el('div', 'n', ya ? 'Comido fuera' : 'Marcar cuando hayas comido'));
+      if (est) iz.appendChild(el('div', 'pl-sub', mil(est.k) + ' kcal · ' + coma(est.sal) + ' g de sal, estimados'));
+      fl.appendChild(iz);
+      c.appendChild(fl);
+    }
     platos.forEach(function (it) { c.appendChild(filaPlato(f, tm, it, cerrado)); });
     c.appendChild(lineaQuitados(f, tm, cerrado));
     return c;

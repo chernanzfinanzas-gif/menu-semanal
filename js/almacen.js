@@ -3611,12 +3611,22 @@
            boda—, no para tapar lo que sí puedes apuntar. Carlos, 22-sep-2026:
            una cena en el McDonald's se marca fuera Y se apunta el menú, y lo
            que tiene que contar es el menú.
-           Lo de fuera cuenta siempre, también en «sólo lo comido»: si has
-           marcado que comes fuera es que has comido, no hay nada que tachar. */
+           MARCAR «FUERA» DICE DONDE, NO QUE YA HAYAS COMIDO (Carlos,
+           7-nov-2026: «imagina que hoy no como, que planeo comer fuera pero por
+           algo no como... se quedaria marcado»). Hasta hoy lo de fuera contaba
+           siempre en «solo lo comido», tambien en dias que no habian llegado, y
+           las casillas de una cena de fuera no servian para nada: medido con su
+           cena del 6, marcadas o desmarcadas daban las mismas 524 kcal. Ahora
+           se comporta como una comida de casa: cuenta lo que esta marcado.
+           Si hay platos apuntados mandan ellos y cada uno lleva su marca; si no
+           hay ninguno, la estimacion de Ajustes cuenta cuando se marca la toma
+           entera, con `marcarFueraComido`. En la vista de plan —sin
+           `soloComido`— no cambia nada: sigue contando todo. */
         var puestos = dia[toma] || [];
         if (puestos.length) {
           var gf = self.agrupar(puestos, fecha, toma);
           gf.orden.forEach(function (id) {
+            if (soloComido && !self.estaComido(fecha, toma, id)) return;
             if (self.noMeCuenta(fecha, toma, id)) return;   /* tampoco fuera de casa */
             var nn = self.nutrEn(fecha, id);
             var f = self.factorPlato(fecha, toma, id, gf.veces[id]);
@@ -3624,6 +3634,7 @@
           });
           return t;
         }
+        if (soloComido && !self.fueraComido(fecha, toma)) return t;
         var e = self.estimacionFuera(toma);
         if (e) { t.k += e.k; t.p += e.p; t.g += e.g; t.h += e.h; }
         return t;
@@ -7298,6 +7309,30 @@
       this.sellarDia(fecha);
       this.guardar("comido");
       return respetados;
+    },
+
+    /* LA TOMA DE FUERA SIN PLATOS, MARCADA ENTERA (7-nov-2026).
+       Una comida fuera de la que no apuntas nada no tiene ningun plato que
+       tachar, asi que la marca va sobre la toma. Se guarda en la misma lista
+       de `comido` con una senal que ningun plato puede llevar, para que viaje
+       a GitHub y se desmarque igual que lo demas. No pasa por `marcarComido`
+       a proposito: ese congela el plato y descuenta despensa, y aqui no hay
+       plato ni despensa que tocar —lo de fuera nunca sale de tu nevera. */
+    SENAL_FUERA: "__fuera__",
+    fueraComido: function (fecha, toma) {
+      var d = this.estado.comido[fecha];
+      return !!(d && d[toma] && d[toma].indexOf(this.SENAL_FUERA) >= 0);
+    },
+    marcarFueraComido: function (fecha, toma, si) {
+      if (!this.estado.comido[fecha]) this.estado.comido[fecha] = {};
+      var d = this.estado.comido[fecha];
+      if (!d[toma]) d[toma] = [];
+      var i = d[toma].indexOf(this.SENAL_FUERA);
+      if (si && i < 0) d[toma].push(this.SENAL_FUERA);
+      if (!si && i >= 0) d[toma].splice(i, 1);
+      this.tocarDia(fecha);
+      this.guardar("comido");
+      return this.fueraComido(fecha, toma);
     },
 
     /* ¿queda algo del día sin marcar? */
