@@ -663,14 +663,14 @@ window.DATOS_RECETAS = [
     ],
     trucos:["99 kcal, 0,66 g de sal y 6,8 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "TODA LA SAL ES DEL SALMON. El yogur griego apenas pone.", "SI SE DERRAMA, HAS PUESTO MÁS ZUMO DEL QUE DICE. Con el yogur frio y removido a cuchara aguanta de pie sobre el pan."],
     nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Fría, cuatro minutos, y la crema se hace en el mismo bol. Dia de salmón ahumado: mira la sal del resto del dia." },
-  { id:"tosta_pesto_mozzarella", n:"Tosta de pesto con mozzarella y cherry", rev:1, tipo:["comida","cena"], grupo:"tosta", raciones:1, min:4, tools:["sin-cocinar"],
-    ing:[{i:"pesto_genovese",c:6},{i:"mozzarella_fresca",c:30},{i:"tomate_cherry",c:30},{i:"aove",c:1.5},{i:"albahaca",c:2}],
+  { id:"tosta_pesto_mozzarella", n:"Tosta de pesto con mozzarella y cherry", rev:2, tipo:["comida","cena"], grupo:"tosta", raciones:1, min:4, tools:["sin-cocinar"],
+    ing:[{i:"pesto_casero",c:6},{i:"mozzarella_fresca",c:30},{i:"tomate_cherry",c:30},{i:"aove",c:1.5},{i:"albahaca",c:2}],
     pasos:[
       "Una capa FINA de pesto sobre el pan, extendida hasta los bordes. Fina: el pesto es intenso y en capa gruesa tapa la mozzarella.",
       "La mozzarella bien escurrida y ROTA CON LAS MANOS encima, no cortada: los bordes irregulares agarran el pesto.",
       "Los cherry partidos por la mitad, el hilo de aceite y la albahaca en hoja entera."
     ],
-    trucos:["126 kcal, 0,36 g de sal y 4,9 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "LA SAL SE REPARTE entre la mozzarella y el pesto.", "LA VERSIÓN DE COTTAGE sale por bastantes menos calorías con la misma sal, y es la que hay que hacer cuando la bufala hace falta en otro plato."],
+    trucos:["120 kcal, 0,19 g de sal y 5,1 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "LA SAL LA PONE LA MOZZARELLA, 0,18 de los 0,19 g. Con el pesto casero en lugar del de tarro esta tosta bajó de 0,36 a 0,19 g de sal y de 126 a 120 kcal.", "LA VERSIÓN DE COTTAGE sale por 47 kcal menos con la misma sal, y es la que hay que hacer cuando la búfala hace falta en otro plato."],
     nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Fría, cuatro minutos. La más italiana y la más grasa de las frías." },
   { id:"tosta_gambon_rosa", n:"Tosta de gambón a la plancha con salsa rosa suave", rev:1, tipo:["comida","cena"], grupo:"tosta", raciones:1, min:10, tools:["airfryer"],
     ing:[{i:"gambon_austral",c:30},{i:"aove",c:1},{i:"ajo_polvo",c:0.15},{i:"aguacate_dados",c:20},{i:"queso_batido_0",c:7.5},{i:"mayonesa",c:2},{i:"ketchup_bajo_sal",c:4},{i:"limon_exprimido",c:2.5},{i:"pimienta",c:0.15}],
@@ -685,15 +685,34 @@ window.DATOS_RECETAS = [
     ],
     trucos:["90 kcal, 0,33 g de sal y 7,0 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "LA SAL VIENE DEL GAMBÓN Y DE LA SALSA, en ese orden.", "LA SALSA, CON QUESO BATIDO Y NO SOLO MAYONESA: así sale suave y cuesta la mitad de calorías."],
     nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Diez minutos con la freidora. EL GAMBÓN SE DESCONGELA LA NOCHE ANTES en la nevera y sobre rejilla: esto no se puede improvisar el mismo dia." },
-  { id:"tosta_pesto_cottage", n:"Tosta de pesto con cottage y cherry", rev:1, tipo:["comida","cena"], grupo:"tosta", raciones:1, min:4, tools:["sin-cocinar"],
-    ing:[{i:"pesto_genovese",c:6},{i:"queso_crema",c:30},{i:"tomate_cherry",c:30},{i:"aove",c:1.5},{i:"albahaca",c:2}],
+  { id:"tosta_pesto_cottage", n:"Tosta de pesto con cottage y cherry", rev:2, tipo:["comida","cena"], grupo:"tosta", raciones:1, min:4, tools:["sin-cocinar"],
+    ing:[{i:"pesto_casero",c:6},{i:"queso_crema",c:30},{i:"tomate_cherry",c:30},{i:"aove",c:1.5},{i:"albahaca",c:2}],
     pasos:[
       "Una capa FINA de pesto sobre el pan, extendida hasta los bordes.",
       "El cottage encima A CUCHARADAS, sin alisarlo. Los grumos agarran el pesto igual que lo hacia la mozzarella rota con las manos; extendido como una crema, el pesto se queda debajo y no se nota.",
       "Los cherry partidos por la mitad, el hilo de aceite y la albahaca en hoja entera."
     ],
-    trucos:["79 kcal, 0,36 g de sal y 4,3 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "LA MISMA SAL QUE CON MOZZARELLA Y BASTANTES MENOS CALORIAS: por eso es la de diario y la de bufala, la de capricho.", "LA SAL LA PONEN EL PESTO Y EL QUESO."],
-    nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Fría, cuatro minutos. Es la versión de la de mozzarella para cuando no hay bufala, o cuando la bufala hace falta en otro plato." },
+    trucos:["73 kcal, 0,19 g de sal y 4,5 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "LA MISMA SAL QUE CON MOZZARELLA Y 47 KCAL MENOS: por eso es la de diario y la de búfala, la de capricho.", "LA SAL LA PONE EL QUESO, 0,18 de los 0,19 g. Con el pesto casero en lugar del de tarro esta tosta bajó de 0,36 a 0,19 g de sal y de 79 a 73 kcal."],
+    nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Fría, cuatro minutos. Es la versión de la de mozzarella para cuando no hay bufala, o cuando la bufala hace falta en otro plato." },,
+  { id:"pesto_casero", n:"Pesto casero de albahaca y piñones (lote para congelar)", rev:2, tipo:["guarnicion"], grupo:"suelto", raciones:12, min:14, tools:["sarten"],
+    ing:[{i:"albahaca",c:20},{i:"pinones",c:15},{i:"ajo",c:0.5},{i:"aove",c:21},{i:"limon_exprimido",c:5},{i:"parmesano_rallado",c:10},{i:"pimienta",c:0.3}],
+    pasos:[
+      "TODO FRÍO Y SECO, que es de lo que depende esta receta. La albahaca se oxida con el calor de las cuchillas de la picadora y es lo que la pone oscura y amarga; el agua del lavado corta la emulsión. Saca la bolsa zip mediana y tenla a mano antes de empezar.",
+      "Separa las hojas de albahaca de los tallos gruesos: el tallo da amargor y fibra, no sabor. Lávalas y SÉCALAS DEL TODO con papel de cocina.",
+      {min:0, t:"Los piñones a la sartén SIN ACEITE, a fuego medio, moviéndolos sin parar — 2 minutos", d:"Tostados sueltan su propia grasa, que es la que liga el pesto. En cuanto huelan, fuera: pasan de dorados a quemados en diez segundos."},
+      {min:2, t:"Déjalos enfriar del todo sobre un plato, no en la sartén — 3 minutos", d:"Si entran templados a la picadora, calientan la albahaca y arruinan el color. Este es el paso que casi todo el mundo se salta."},
+      "Al ajo le quitas el GERMEN del centro, el hilo verde. Es lo que repite y lo que amarga al día siguiente. Medio diente basta: el ajo crudo gana fuerza con los días en el congelador.",
+      {min:5, t:"A la picadora los piñones, el ajo y el aceite, y la albahaca al final encima. GOLPES CORTOS de dos o tres segundos — 1 minuto", d:"Parando a bajar con una cuchara lo que se sube a las paredes. Seguido no: las cuchillas calientan y ahí se pierde el verde."},
+      {min:6, t:"El Grana y el limón, y dos golpes más, solo para integrar — 1 minuto", d:"El limón al final fija el verde. Al principio se bate con todo y pierde ese efecto."},
+      {min:7, t:"A la bolsa zip, extendido con la mano en una capa fina de unos 12 × 16 cm, y el aire fuera apretando desde el fondo — 2 minutos", d:"El aire es lo que oxida la superficie. Plana al congelador."},
+      {min:9, t:"A los 20-30 minutos, cuando esté firme por fuera pero aún ceda: marca una REJILLA DE 3 × 4, doce cuadros, apretando hasta que las dos caras de la bolsa se toquen", d:"Blando no se marca: la línea se vuelve a cerrar. Cada cuadro es un cubito de 6 g, una tosta. Vuelve al congelador con la fecha escrita por fuera."}],
+    trucos:["EL LOTE DA 72 G, DOCE CUBITOS DE 6 G, y cada uno es una tosta.",
+      "CADA CUBITO: 27 kcal y 0,011 g de sal. El tarro de Hacendado, para el mismo bocado: 34 kcal y 0,180 g. Quince veces menos sal.",
+      "La sal la pone casi entera el Grana Padano. Sin queso bajaría a nada, pero sería una salsa de albahaca y no un pesto: 10 g es la cantidad justa para que sepa a lo que tiene que saber.",
+      "CON NUECES EN VEZ DE PIÑONES sale prácticamente igual de calorías y de sal, y las tienes más a mano. Los piñones son los clásicos y saben más fino.",
+      "NO en papel de aluminio: el limón y el Grana atacan el aluminio y le pasan sabor metálico. En el congelador aguanta meses; en la nevera, tapado con una película de aceite por encima, cinco días.",
+      "Si se te pasa la media hora y ya está duro, no has perdido nada: la lámina se parte contra el canto de la encimera o con el filo de un cuchillo. Salen trozos desiguales y para una tosta da igual."],
+    nota:"Escrita el 7-nov-2026. Sustituye a la salsa pesto Hacendado en las dos tostas de pesto. Mismo montaje que la salsa de miel y mostaza casera: el ingrediente y la receta comparten id, y el ingrediente va en cajón aparte para que no entre en la lista de la compra. Lo que se compra es la bandeja de albahaca y los piñones." }
 ];
 
 /* ---- CUADRES A MANO DE PLATO + GUARNICIÓN (v369, 3-oct-2026) ----
