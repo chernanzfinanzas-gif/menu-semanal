@@ -90,7 +90,15 @@
   var NOMBRE_GRUPO = {
     "carne-roja": "Carne roja", "carne-blanca": "Carne blanca", "pescado-blanco": "Pescado blanco",
     "pescado-azul": "Pescado azul", "huevos": "Huevos", "legumbre": "Legumbre",
-    "pasta-arroz": "Pasta y arroz", "verdura": "Verdura", "ensalada": "Ensalada",
+    /* PASTA, ARROZ y TOSTA, cada uno su grupo (7-nov-2026). Antes había un solo
+       «pasta-arroz» y las tostas vivían repartidas por pescado, verdura y huevos.
+       Entrar aquí no es decorativo: el DESPLEGABLE del editor de receta se
+       construye leyendo las claves de este objeto —fue lo que falló el 23-oct con
+       restaurante, «no me deja elegir la opción restaurante»— y la etiqueta de la
+       ficha también sale de aquí. Sin esto, una tosta saldría sin nombre de grupo
+       y no se podría elegir al crear una receta. */
+    "pasta": "Pasta", "arroz": "Arroz", "tosta": "Tosta",
+    "verdura": "Verdura", "ensalada": "Ensalada",
     "desayuno": "Desayuno", "fruta": "Fruta", "postre": "Postre", "casero": "Hecho en casa",
     /* RESTAURANTE SE QUEDÓ FUERA DE ESTE MAPA (encontrado el 23-oct-2026, aviso
        de Carlos: «no me deja elegir la opción restaurante» al crear una receta).
@@ -6005,7 +6013,8 @@ function pintarTodo() {
      envejece con él. */
   function ejemploParaPrompt() {
     var principales = { "carne-roja":1, "carne-blanca":1, "pescado-blanco":1,
-                        "pescado-azul":1, "legumbre":1, "pasta-arroz":1, "huevos":1 };
+                        "pescado-azul":1, "legumbre":1, "pasta":1, "arroz":1,
+                        "tosta":1, "huevos":1 };
     var buenas = Almacen.visibles().filter(function (r) {
       return (r.ing || []).length >= 4 && (r.pasos || []).length >= 3 &&
              (r.trucos || []).length >= 1 && principales[r.grupo] &&
