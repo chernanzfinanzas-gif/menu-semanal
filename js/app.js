@@ -488,23 +488,41 @@ function esBebida(r) { return vivaFicha(r) && papelDe(r) === 'bebida'; }
    Su app lo filtra en `almacen.js` («r.borrada || r.grupo === "retirado"»); aquí
    faltaba, y una ensalada y unos huevos retirados sí cuadraban con las normas. */
 function vivaFicha(r) { return !!r && !r.borrada && !r.oculta && r.grupo !== 'retirado'; }
+/* RESTAURANTE SE DEDUCE, NO SE ARCHIVA (Carlos, 7-nov-2026).
+   Las 14 fichas de bar las creó su app con `crearSuelto`, así que viven en su
+   móvil y NO en el catálogo: no se les puede poner `grupo` desde aquí. Y no hace
+   falta, porque la categoría del ingrediente ya lo dice —«Restaurante y bar», 27
+   ingredientes—. Es la misma regla que el papel de la mesa, que él fijó el 3-oct:
+   se deduce de las categorías de los ingredientes, no de listas escritas a mano.
+   Así la ficha que cree mañana de una pizza carbonara se clasifica sola, sin que
+   nadie tenga que acordarse de ponerle el grupo. */
+function esRestaurante(r) {
+  return vivaFicha(r) && (r.grupo === 'restaurante' || todoDe(r, /^restaurante y bar$/i));
+}
 /* Los grupos que nunca son un plato principal de comida o cena. */
 function esPlato(r) {
   if (!vivaFicha(r)) return false;
   if (esGuar(r)) return false;
-  if (r.grupo === 'restaurante' || r.grupo === 'postre' || r.grupo === 'fruta' || r.grupo === 'desayuno') return false;
+  if (esRestaurante(r)) return false;
+  if (r.grupo === 'postre' || r.grupo === 'fruta' || r.grupo === 'desayuno') return false;
   if (r.grupo === 'suelto' && !esTosta(r)) return false;
   return true;
 }
 var TIPOS = {
   pescado:  function (r) { return esPlato(r) && (r.grupo === 'pescado-blanco' || r.grupo === 'pescado-azul') && !esTosta(r); },
   carne:    function (r) { return esPlato(r) && (r.grupo === 'carne-blanca' || r.grupo === 'carne-roja') && !esTosta(r); },
-  arroz:    function (r) { return esPlato(r) && r.grupo === 'pasta-arroz' && /arroz|risotto/i.test(r.n); },
-  pasta:    function (r) { return esPlato(r) && r.grupo === 'pasta-arroz' && !/arroz|risotto/i.test(r.n); },
-  tosta:    function (r) { return esPlato(r) && esTosta(r); },
-  verdura:  function (r) { return esPlato(r) && r.grupo === 'verdura'; },
-  ensalada: function (r) { return esPlato(r) && r.grupo === 'ensalada'; },
-  huevos:   function (r) { return esPlato(r) && r.grupo === 'huevos'; },
+  /* ARROZ, PASTA y TOSTA son grupo propio desde el 7-nov-2026 (Carlos: «tosta
+     como grupo propio»). Antes se adivinaban por el nombre dentro de
+     `pasta-arroz` y de donde cayese la tosta. Se deja el nombre como red por si
+     una ficha vieja del móvil no ha recibido el grupo nuevo del catálogo. */
+  arroz:    function (r) { return esPlato(r) && (r.grupo === 'arroz' || (r.grupo === 'pasta-arroz' && /arroz|risotto/i.test(r.n))); },
+  pasta:    function (r) { return esPlato(r) && (r.grupo === 'pasta' || (r.grupo === 'pasta-arroz' && !/arroz|risotto/i.test(r.n))); },
+  tosta:    function (r) { return esPlato(r) && (r.grupo === 'tosta' || esTosta(r)); },
+  /* Y las tres que SÍ contaban doble: una tosta en `verdura` rellenaba hueco de
+     verdura y de tosta a la vez. Pescado y carne ya la descartaban. */
+  verdura:  function (r) { return esPlato(r) && r.grupo === 'verdura' && !esTosta(r); },
+  ensalada: function (r) { return esPlato(r) && r.grupo === 'ensalada' && !esTosta(r); },
+  huevos:   function (r) { return esPlato(r) && r.grupo === 'huevos' && !esTosta(r); },
   legumbre: function (r) { return esPlato(r) && r.grupo === 'legumbre'; }
 };
 var ETIQ = { pescado:'PESCADO', carne:'CARNE', arroz:'ARROZ', pasta:'PASTA', tosta:'TOSTA',
@@ -608,7 +626,7 @@ function kcalDe(r) {
 }
 function unaCosa(r) {
   return vivaFicha(r) && r.grupo === 'suelto' && (r.ing || []).length === 1 &&
-         papelDe(r) !== 'bebida';
+         papelDe(r) !== 'bebida' && !esRestaurante(r);
 }
 function esBloque100(r) { if (!unaCosa(r)) return false; var k = kcalDe(r); return k >= 88 && k <= 122; }
 function esPieza(r)     { if (!unaCosa(r)) return false; var k = kcalDe(r); return k > 122 || (k >= 25 && k < 88); }
@@ -1386,6 +1404,9 @@ function bloquesDe(tm, busca) {
     var k = kcalFicha(r);
     var it = { id: r.id, n: r.corto || r.n, k: k, llevable: !!r.llevable };
     if (esBebidaFicha(r)) { out.bebidas.push(it); return; }
+    /* Lo de bar no sale aquí: va a la lista de «fuera». Carlos veía un Whopper de
+       642 kcal entre los frutos secos al buscar algo de 100 para merendar. */
+    if (esRestaurante(r)) return;
     var unaCosa = (r.grupo === 'suelto' && (r.ing || []).length === 1);
     if (unaCosa && k >= 88 && k <= 122) out.bloques.push(it);
     else if (unaCosa && (k > 122 || (k >= 25 && k < 88))) out.piezas.push(it);
@@ -1401,7 +1422,7 @@ function fichasRestaurante(busca) {
   if (!MOTOR) return [];
   var q = (busca || '').trim().toLowerCase(), out = [];
   (A.estado.recetas || []).forEach(function (r) {
-    if (!vivaFicha(r) || r.grupo !== 'restaurante') return;
+    if (!esRestaurante(r)) return;
     if (q && ((r.corto || '') + ' ' + r.n).toLowerCase().indexOf(q) < 0) return;
     out.push({ id: r.id, n: r.corto || r.n, k: kcalFicha(r) });
   });
@@ -2522,6 +2543,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
                  tipoDia: tipoDia, ponerTipoDia: ponerTipoDia, tiposDia: tiposDia,
                  deportesRuta: deportesRuta, planearRuta: planearRuta, quitarRuta: quitarRuta,
                  fichaRuta: fichaRuta, hayTopeSal: hayTopeSal, deMochila: deMochila,
+                 esRestaurante: esRestaurante,
                  caprichosDe: caprichosDe, anadirCapricho: anadirCapricho, quitarCapricho: quitarCapricho,
                  caprichosDespensa: caprichosDespensa, caprichoDeDespensa: caprichoDeDespensa,
                  caprichoAMano: caprichoAMano, caprichosVistos: caprichosVistos, nombreVivo: nombreVivo,
@@ -3928,11 +3950,13 @@ function listaCatalogo() {
   var l = P.RECETAS.filter(function (r) {
     if (f === 'guarnicion') return P.esGuar(r);
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
-    if (f === 'desayuno' || f === 'restaurante') return P.vivaFicha(r) && r.grupo === f;
+    if (f === 'restaurante') return P.esRestaurante(r);
+    if (f === 'desayuno') return P.vivaFicha(r) && r.grupo === f;
     if (f === 'b100') return P.esBloque100(r);
     if (f === 'pieza') return P.esPieza(r);
     if (f === 'suelto') return P.vivaFicha(r) && r.grupo === 'suelto' &&
-      ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r);
+      ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r) &&
+      !P.esRestaurante(r);
     if (f === 'todas') return P.valeCC(r) || P.esGuar(r);
     return P.valeCC(r) && P.TIPOS[f] && P.TIPOS[f](r);
   });
@@ -3948,11 +3972,13 @@ function cuenta(f) {
   return P.RECETAS.filter(function (r) {
     if (f === 'guarnicion') return P.esGuar(r);
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
-    if (f === 'desayuno' || f === 'restaurante') return P.vivaFicha(r) && r.grupo === f;
+    if (f === 'restaurante') return P.esRestaurante(r);
+    if (f === 'desayuno') return P.vivaFicha(r) && r.grupo === f;
     if (f === 'b100') return P.esBloque100(r);
     if (f === 'pieza') return P.esPieza(r);
     if (f === 'suelto') return P.vivaFicha(r) && r.grupo === 'suelto' &&
-      ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r);
+      ['bebida','postre','pan'].indexOf(P.papelDe(r)) < 0 && !P.esTosta(r) &&
+      !P.esRestaurante(r);
     if (f === 'todas') return P.valeCC(r) || P.esGuar(r);
     return P.valeCC(r) && P.TIPOS[f] && P.TIPOS[f](r);
   }).length;
@@ -3991,7 +4017,11 @@ function pintarCatalogo() {
   }
   var orden = (cat.toma === 'almuerzo' || cat.toma === 'merienda')
     ? ['b100', 'pieza', 'suelto', 'bebida', 'postre', 'todas'].concat(tipos, ['guarnicion','pan','desayuno','restaurante'])
-    : ['todas'].concat(tipos, ['guarnicion','pan','postre','bebida','desayuno','restaurante','suelto']);
+    /* «Ingredientes solos» era el chip 17 de 17 en comida y cena, y Carlos no
+       llegaba a él: 7-nov-2026, «la opción es poder meter ingredientes sueltos en
+       cada toma… como grupo, Solo un Ingrediente, creo que ya existía». Existía.
+       Sube al segundo puesto; el orden de la mesa que él fijó el 3-oct no se toca. */
+    : ['todas','suelto'].concat(tipos, ['guarnicion','pan','postre','bebida','desayuno','restaurante']);
   orden.forEach(function (f) {
     var NOM = { todas: 'Todas', guarnicion: 'Guarniciones', pan: 'Panes',
                 postre: 'Postres', bebida: 'Bebidas', desayuno: 'Desayuno',
