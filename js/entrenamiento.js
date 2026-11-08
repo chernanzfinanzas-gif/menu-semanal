@@ -691,6 +691,11 @@
       ".evo-ley{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:.72rem;color:var(--gris)}",
       ".evo-ley span{display:inline-flex;align-items:center;gap:5px}",
       ".evo-ley i{width:12px;height:3px;border-radius:2px;display:inline-block}",
+      /* CUADRADOS PARA LAS TIRAS (Carlos, 8-nov-2026: «deberia ser un cuadrado
+         como el del semaforo y el sueno»). La rayita de 12x3 es la muestra de
+         una LINEA; la tira son cuadrados, y la leyenda tiene que enseñar la
+         misma forma que hay en el dibujo o no se reconoce. */
+      ".evo-ley.cuadros i{width:11px;height:11px;border-radius:2.5px}",
       ".evo-nota{margin:10px 0 0;font-size:.82rem;line-height:1.45;color:var(--tinta)}",
       ".evo-vacio{border:1px dashed var(--azul-borde);background:var(--azul-claro);border-radius:11px;",
       "  padding:16px 14px;text-align:center}",
@@ -8813,8 +8818,8 @@
   }
 
   /* leyenda de una gráfica */
-  function leyenda(items) {
-    var h = '<div class="evo-ley">';
+  function leyenda(items, cl) {
+    var h = '<div class="evo-ley' + (cl ? " " + cl : "") + '">';
     items.forEach(function (i) {
       h += '<span><i style="background:' + i.color + (i.guiones ? ";opacity:.55" : "") + '"></i>' +
         U.esc(i.n) + "</span>";
@@ -12708,14 +12713,37 @@
   /* La vista de la curva al entrar: «Lo que llevo» — de la semana 1 a seis
      semanas por delante de hoy. Con la rampa entera, lo hecho es una rayita al
      principio y no se ve cómo vas (Carlos, 29-sep-2026: «lo que llevo»). */
-  var rampaVista = "cerca";
+  /* LOS TRAMOS DE LA RAMPA (Carlos, 8-nov-2026: «la grafica deberia tener un
+     selector de visualizacion», con la captura de su app de Economia Domestica).
+     No hay que replicar nada de fuera: las tarjetas de Evolucion ya llevan esa
+     fila de pastillas, con estas mismas etiquetas y el mismo boton `evo-r`. Lo
+     que se trae es ESO, para que no haya dos lenguajes dentro de la app.
+     La diferencia con Evolucion es que la rampa mira tambien hacia DELANTE, asi
+     que el tramo va A LOS DOS LADOS de hoy: «3m» son tres meses atras y tres
+     adelante. Medido el 8-nov-2026, con la rampa arrancada el 18 de septiembre:
+     recortando solo el pasado, 3m, 6m y 1a daban los tres EXACTAMENTE el mismo
+     dibujo, porque no hay pasado que ensenar mas alla del arranque. A los dos
+     lados se separan desde el primer dia, porque plan hacia delante hay hasta
+     julio de 2027. «Todo» ensena la rampa entera. */
+  var RAMPA_TRAMOS = [{ id: "1m", c: "1m", d: 31 }, { id: "3m", c: "3m", d: 92 },
+                      { id: "6m", c: "6m", d: 183 }, { id: "1a", c: "1a", d: 365 },
+                      { id: "todo", c: "Todo", d: 0 }];
+  var rampaVista = "3m";
+  function tramoRampa() {
+    for (var i = 0; i < RAMPA_TRAMOS.length; i++) {
+      if (RAMPA_TRAMOS[i].id === rampaVista) return RAMPA_TRAMOS[i];
+    }
+    return RAMPA_TRAMOS[1];
+  }
 
   function svgCurva(todo) {
     if (!todo.length) return "";
     var iHoy = -1;
     todo.forEach(function (x, k) { if (x.medido) iHoy = k; });
-    var fin = rampaVista === "cerca" ? Math.min(todo.length - 1, Math.max(iHoy, 0) + 42) : todo.length - 1;
-    var ser = todo.slice(0, fin + 1), n = ser.length;
+    var dT = tramoRampa().d, h0 = Math.max(iHoy, 0);
+    var fin = dT ? Math.min(todo.length - 1, h0 + dT) : todo.length - 1;
+    var ini = dT ? Math.max(0, h0 - dT) : 0;
+    var ser = todo.slice(ini, fin + 1), n = ser.length;
     if (n < 2) return "";
     var W = Math.max(320, Math.min(1000, anchoCaja())), H = 190, x0 = 30, x1 = W - 8;
     function X(i) { return x0 + i * (x1 - x0) / (n - 1); }
@@ -12748,7 +12776,7 @@
       for (var i = Math.max(0, a); i <= Math.min(n - 1, b); i++) p += X(i).toFixed(1) + "," + Y(ser[i][k]).toFixed(1) + " ";
       return p;
     }
-    var hI = Math.min(iHoy, n - 1);
+    var hI = Math.min(iHoy - ini, n - 1);
     s += '<polyline points="' + linea("pa", 0, n - 1) + '" fill="none" stroke="#b7a9dd" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>';
     if (hI >= 0) s += '<polyline points="' + linea("atl", 0, hI) + '" fill="none" stroke="#7b61c2" stroke-width="1.5"/>';
     s += '<polyline points="' + linea("atl", Math.max(hI, 0), n - 1) + '" fill="none" stroke="#c4b6ea" stroke-width="1.2"/>';
@@ -12852,9 +12880,10 @@
         zz.h + '">' + zz.n + "</span>";
     };
     var CUR = 'style="touch-action:pan-y;cursor:crosshair"';
-    return '<div class="rangos-graf">' +
-        '<button type="button" class="evo-r' + (rampaVista === "cerca" ? " activo" : "") + '" data-ramp-vista="cerca">Lo que llevo</button>' +
-        '<button type="button" class="evo-r' + (rampaVista === "entera" ? " activo" : "") + '" data-ramp-vista="entera">La rampa entera</button></div>' +
+    return '<div class="rangos-graf">' + RAMPA_TRAMOS.map(function (q) {
+        return '<button type="button" class="evo-r' + (q.id === rampaVista ? " activo" : "") +
+          '" data-ramp-vista="' + q.id + '">' + q.c + "</button>";
+      }).join("") + "</div>" +
       '<div id="curva-marco" style="position:relative">' +
       '<svg class="ramp-svg" data-curva="1" ' + CUR + ' viewBox="0 0 ' + W + " " + (H + 18) + '" preserveAspectRatio="xMidYMid meet">' + s + "</svg>" +
       leyenda([{ n: "forma prevista (guiones)", color: "#8fa3b5" }, { n: "forma conseguida", color: "#2f95cc" },
@@ -12863,9 +12892,9 @@
       (hayT ? '<svg class="ramp-svg" data-curva="1" ' + CUR + ' viewBox="0 0 ' + W + ' 50" preserveAspectRatio="xMidYMid meet">' +
         tiras + "</svg>" +
         leyenda([{ n: "Descansa", color: "#b3402f" }, { n: "Suave", color: "#c98a1b" },
-                 { n: "Normal", color: "#2f6b47" }, { n: "Sube", color: "#2f5c8a" },
-                 { n: "dos noches cortas", color: "#c96a56" }, { n: "justas", color: "#e0b25c" },
-                 { n: "bien", color: "#4e8f6d" }]) : "") +
+                 { n: "Normal", color: "#2f6b47" }, { n: "Sube", color: "#2f5c8a" }], "cuadros") +
+        leyenda([{ n: "dos noches cortas", color: "#c96a56" }, { n: "justas", color: "#e0b25c" },
+                 { n: "bien dormido", color: "#4e8f6d" }], "cuadros") : "") +
       '<p class="ramp-sub">Balance <small>— lo medido en color, lo que viene más claro. ' +
         'Los puntos son los días que el semáforo frenó, ámbar o rojo; con aro oscuro, ' +
         'los que entrenaste igual. Pasa el ratón o el dedo para ver por qué.</small></p>' +
@@ -15391,7 +15420,7 @@
     cont.addEventListener("click", function (e) {
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
-      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; matVista = null; rampaVista = "cerca"; pintar(); return; }
+      if (volver) { bloque = "portada"; diaSel = null; matEditando = null; matVista = null; rampaVista = "3m"; pintar(); return; }
 
       /* Rampa de Entreno: «Lo que llevo» o «La rampa entera» */
       var rv = t.closest ? t.closest("[data-ramp-vista]") : null;
