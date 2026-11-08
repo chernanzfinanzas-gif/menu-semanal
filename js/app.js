@@ -4259,6 +4259,72 @@ function pintarLista() {
       cont.appendChild(f);
     });
   });
+  /* AÑADIR UN INGREDIENTE SUELTO QUE TODAVIA NO ES FICHA (Carlos, 8-nov-2026:
+     «en la receta de macarrones he añadido 75 gramos de boletus por racion...
+     yo lo pondria en el plan de hoy en la comida... añadir un ingrediente solo:
+     boletus», y no se lo ofrecia nadie).
+     El cajon de «ingredientes solos» ya existia, pero solo enseñaba las fichas
+     que YA estaban hechas —la Fanta, el flan, el requeson de 60 g—, asi que un
+     ingrediente que nunca habia ido solo no salia por ninguna parte. Aqui se
+     ofrece la despensa entera: se elige la cantidad y `crearSuelto` hace la
+     ficha, o reutiliza la que ya hubiera con esa misma cantidad, que es lo que
+     hace su motor desde siempre.
+     NO HAY QUE INVENTAR NADA MAS: desde ese momento es un plato normal, asi que
+     cuenta kcal, macros y sal, sale de la despensa, va a la compra y viaja con
+     el dia en la sincronizacion. Meterlo como «extra» pegado a los macarrones
+     habria sido un sitio nuevo que mantener, y uno mas donde los tres aparatos
+     pueden discrepar.
+     VA AL FINAL DE LA TOMA, con ranura nula: 75 g de setas no ocupan el hueco
+     del principal. */
+  if (cat.filtro === 'suelto' && cat.fecha && MOTOR) {
+    var qi = cat.busca.trim().toLowerCase();
+    cont.appendChild(el('div', 'gtit',
+      '<span style="color:#6b7a88">De tu despensa</span><i></i>'));
+    if (qi.length < 2) {
+      cont.appendChild(el('div', 'vacio',
+        'Escribe arriba el nombre —boletus, nueces, miel— y elige cuánto echaste.'));
+    } else {
+      var hallados = Object.keys(ING).filter(function (k) {
+        return (ING[k].n || '').toLowerCase().indexOf(qi) >= 0;
+      }).sort(function (a, c) {
+        return (ING[a].n || '').localeCompare(ING[c].n || '');
+      }).slice(0, 12);
+      if (!hallados.length) {
+        cont.appendChild(el('div', 'vacio', 'Ningún ingrediente se llama así.'));
+      }
+      hallados.forEach(function (k) {
+        var g = ING[k], u = g.u || 'g', fi = el('div', 'rec'), hay = 0;
+        try { var st = A.estado.stock && A.estado.stock[k]; hay = (st && st.c > 0) ? st.c : 0; } catch (e) {}
+        fi.innerHTML = '<div style="flex:1;min-width:0"><div class="n">' + esc(g.n) + '</div>' +
+          '<div class="m">' + (hay
+            ? '<b class="resta">en casa ' + (Math.round(hay * 10) / 10) + ' ' + u + '</b> · '
+            : '<b class="resta nada">no queda en casa</b> · ') + esc(g.cat || 'suelto') + '</div></div>';
+        var ci = el('input');
+        ci.type = 'number'; ci.min = '0'; ci.step = (u === 'ud' ? '0.5' : '5');
+        ci.value = String(g.racion != null ? g.racion : (u === 'ud' ? 1 : 100));
+        ci.setAttribute('aria-label', 'Cuánto, en ' + u);
+        ci.style.cssText = 'width:70px;text-align:right;margin-right:5px';
+        fi.appendChild(ci);
+        var un = el('span', 'm', u); un.style.cssText = 'margin-right:8px';
+        fi.appendChild(un);
+        var ba = el('button', 'btnv', 'Añadir');
+        ba.onclick = function () {
+          var c = Number(ci.value);
+          if (!(c > 0)) { aviso('Pon una cantidad'); return; }
+          var nid = null;
+          try { nid = A.crearSuelto(k, c, [cat.toma]); } catch (e) {}
+          if (!nid) { aviso('No se ha podido crear la ficha'); return; }
+          try { refrescarRecetario(); } catch (e) {}
+          P.colocar(nid, cat.fecha, cat.toma, null);
+          var nom = (g.n || '').split(' (')[0];
+          cat = null; pintarCatalogo(); pintar(); try { pintarDia(); } catch (e) {}
+          aviso(nom + ' · ' + c + ' ' + u);
+        };
+        fi.appendChild(ba);
+        cont.appendChild(fi);
+      });
+    }
+  }
   if (!ids.length) cont.appendChild(el('div', 'vacio', 'Ninguna receta cuadra con eso.'));
 }
 
