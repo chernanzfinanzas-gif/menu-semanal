@@ -1689,13 +1689,38 @@ function paso(f, u) {
   var b = racionDe(f);
   return (b.c || 1) / 2;
 }
+/* LOS ✓ DE UN DIA VIEJO SE LEEN DEL MOTOR (Carlos, 8-nov-2026: «el 16 de
+   octubre pone comido 899 pero me salen 1700 o mas, no esta marcado como comido
+   nada»). La vista de dia lee las casillas de una copia que vive DENTRO del dia,
+   y esa copia solo se escribia al cerrar el dia desde esta pantalla. Todo lo
+   anterior al 5 de noviembre se cerro con la pantalla original, asi que no la
+   tiene: las kcal salian bien —las calcula el motor— y las casillas salian todas
+   vacias. Medido en su estado: 14-oct 13 platos marcados en el motor y copia
+   vacia; 15-oct 16; 16-oct 4; 17-oct 1. Del 5-nov en adelante, correcta.
+   Se lee del motor SOLO cuando no hay copia. Si la hay, manda ella: una toma con
+   la lista vacia significa «aqui no comi nada» y no se puede resucitar.
+   Y se LEE, no se escribe: rellenar la copia de un dia pasado lo marcaria como
+   tocado y este aparato ganaria ese dia al sincronizar, que es exactamente lo
+   que borro el dia 7 el sabado. */
+function comidoDelMotor(fecha) {
+  if (!MOTOR) return null;
+  try { return (A.estado.comido || {})[fecha] || null; } catch (e) { return null; }
+}
 function estaComido(fecha, toma, id) {
   var d = dias()[fecha];
-  return !!(d && d.comido && d.comido[toma] && d.comido[toma].indexOf(id) >= 0);
+  if (d && d.comido) return !!(d.comido[toma] && d.comido[toma].indexOf(id) >= 0);
+  var c = comidoDelMotor(fecha);
+  return !!(c && c[toma] && c[toma].indexOf(id) >= 0);
 }
 function marcarComido(fecha, toma, id) {
   var d = dia(fecha);
-  if (!d.comido) d.comido = {};
+  /* Y AL TOCAR UNO, LA COPIA NACE CON LO QUE YA HABIA. Sin esto, marcar un plato
+     en un dia viejo creaba una copia vacia con solo ese plato dentro, y los
+     demas ✓ —que estan en el motor— desaparecian de la pantalla de golpe. */
+  if (!d.comido) {
+    var c0 = comidoDelMotor(fecha);
+    d.comido = c0 ? JSON.parse(JSON.stringify(c0)) : {};
+  }
   if (!d.comido[toma]) d.comido[toma] = [];
   var i = d.comido[toma].indexOf(id);
   var ahora = (i < 0);                 /* el estado al que pasa el ✓ */
