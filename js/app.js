@@ -1397,7 +1397,18 @@ function quitarPlato(f, tm, id) {
   PAPELES[tm].forEach(function (pa) {
     ['yo', 'ella'].forEach(function (q) {
       var fj = fijoDelDia(f, tm, q, pa);
-      if (fj && fj.id === id) { cambiarFijoDia(f, tm, q, pa, null); marcado = true; }
+      if (fj && fj.id === id) { cambiarFijoDia(f, tm, q, pa, null); marcado = true; return; }
+      if (fj) return;
+      /* YA ESTABA EN «HOY NO» Y SEGUIA EN LA LISTA (Carlos, 8-nov-2026: «el agua
+         con gas de limon sigue sin salir al pulsar la X»). El arreglo de ayer
+         sacaba el plato del dia solo cuando la ✕ era la que acababa de poner el
+         «hoy no». Si el «hoy no» ya venia de antes, `fijoDelDia` devuelve null,
+         la condicion de arriba no se cumple y la ✕ no hacia NADA: ni la primera
+         vez ni ninguna. De un papel apagado hay que preguntarle a la tabla a
+         quien apagaba, porque el dia solo guarda el null. */
+      if (!tocadoHoy(f, tm, q, pa)) return;
+      var base = verFijo(tm, q, pa);
+      if (base && base.id === id) marcado = true;
     });
   });
   /* Y SE SACA DEL DIA (Carlos, 8-nov-2026: «no me deja borrar el agua con gas»).
