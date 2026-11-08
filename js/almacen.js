@@ -3405,15 +3405,26 @@
       return n;
     },
 
+    /* CERO ES UN PESO, NO UN BORRADO (Carlos, 8-nov-2026: «se olvidó poner las
+       nueces en la receta»). `ponerPesoReal` nació para pesar la carne y usa el
+       cero como «olvida mi corrección y vuelve a contar por el catálogo» — eso
+       es lo que hacen sus botones «Reiniciar» y «Volver a la receta», y no se
+       toca. Para decir «hoy ESTE ingrediente no lo puse» hace falta guardar un
+       cero de verdad, y eso es lo que hace `ponerPesoDia`: `cant` null borra la
+       corrección, cualquier número —el 0 incluido— la guarda. */
     ponerPesoReal: function (fecha, id, ingId, gramos) {
+      var g = Math.round(gramos || 0);
+      return this.ponerPesoDia(fecha, id, ingId, g > 0 ? g : null);
+    },
+    ponerPesoDia: function (fecha, id, ingId, cant) {
       var r = this.receta(id);
       if (!r) return false;
       var pesos = {}, vieja = this.fotoPlato(fecha, id);
       if (vieja && vieja.pesos) {
         Object.keys(vieja.pesos).forEach(function (k) { pesos[k] = vieja.pesos[k]; });
       }
-      var g = Math.round(gramos || 0);
-      if (g > 0) pesos[ingId] = g; else delete pesos[ingId];
+      if (cant === null || cant === undefined) delete pesos[ingId];
+      else pesos[ingId] = Math.max(0, Math.round(Number(cant) || 0));
       this.congelarPlato(fecha, id, true, Object.keys(pesos).length ? pesos : null);
       this.sellarDia(fecha);
       this.guardar("peso");
@@ -5670,8 +5681,26 @@
       var veces = this.vecesEnToma(fecha, toma, recetaId);
       var factor = this.racionesDeCasa(fecha, toma, recetaId, veces) / (rec.raciones || 1);
       if (!(factor > 0)) return null;
-      var out = {};
-      (rec.ing || []).forEach(function (l) { out[l.i] = (out[l.i] || 0) + l.c * factor; });
+      var out = {}, self = this;
+      /* Y LO QUE SALE DE LA DESPENSA ES LO QUE PUSISTE, NO LO QUE PIDE LA FICHA
+         (Carlos, 8-nov-2026). Hasta hoy esto contaba siempre `l.c`, asi que un
+         peso corregido del dia cambiaba las calorias y la sal del plato pero no
+         lo que se descontaba: pesabas 220 g de salmon en vez de 150 y la
+         despensa seguia quitando 150. Con un ingrediente que NO pusiste la
+         diferencia es entera.
+         Se escala cada linea por la razon entre lo pesado y lo que pide la
+         receta, y asi se respeta la unidad de la linea: las peras siguen
+         contandose en peras y no en gramos. Sin peso, la razon es 1 y aqui no
+         cambia nada. */
+      var pesos = this.pesosDe(fecha, recetaId);
+      (rec.ing || []).forEach(function (l) {
+        var q = l.c * factor;
+        if (pesos && typeof pesos[l.i] === "number") {
+          var g0 = self.gramosDeLinea(l);
+          q = (g0 > 0) ? q * (self.gramosLineaCon(l, pesos, rec) / g0) : 0;
+        }
+        if (q > 0) out[l.i] = (out[l.i] || 0) + q;
+      });
       return out;
     },
 

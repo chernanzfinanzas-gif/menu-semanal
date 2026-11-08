@@ -4067,6 +4067,113 @@ function pintarFicha() {
 
 /* ---------- catálogo ---------- */
 var cat = null;
+/* ---- «HOY ESTO NO LO PUSE» ----------------------------------------------
+   Carlos, 8-nov-2026: «se olvidó poner las nueces en la receta... un botón de
+   quitar y que te deje marcar lo que no comiste para devolverlo al stock y
+   restar las calorías», y al preguntarle de dónde salen las opciones: «que
+   ponga como opción lo que hay en las recetas de la toma».
+   Eso resuelve el problema de fondo: una resta suelta en la toma no sabe de qué
+   plato es, y la despensa no puede saber si llegó a cobrarse. Aquí cada línea
+   de la lista VIENE de un plato concreto, así que la corrección se guarda
+   pegada a él y es un hecho —«este plato, este día, llevó 0 g de nueces»—, no
+   una resta que pueda descuadrarse. */
+var quitIng = null;
+function abrirQuitar(f, tm) { quitIng = { f: f, tm: tm, busca: '' }; pintarQuitar(); }
+function corregirPeso(f, tm, idPlato, idIng, cant) {
+  if (!MOTOR) return;
+  try { A.ponerPesoDia(f, idPlato, idIng, cant); } catch (e) { return; }
+  /* y la despensa detrás: `ponerPesoDia` guarda el peso, pero quien devuelve lo
+     que ya no se gasta es el mismo reajuste que esta mañana devolvió la lata de
+     Fanta. Si el plato aún no está marcado como comido no hay nada apuntado y
+     no hace nada, que es lo correcto. */
+  try { A.ultimoReajuste = A.reajustarGasto(f, tm, idPlato); } catch (e) {}
+  guardar();
+  pintarQuitar(); pintar(); try { pintarDia(); } catch (e) {}
+  avisaReajuste();
+}
+function pintarQuitar() {
+  var capa = $('#capa');
+  if (!quitIng) { capa.innerHTML = ''; capa.className = ''; return; }
+  var f = quitIng.f, tm = quitIng.tm;
+  capa.className = 'capa'; capa.innerHTML = '';
+  var m = el('div', 'modal');
+  var cab = el('div', 'modcab', '<div style="flex:1"><div class="t">Quitar algo de la ' + tm +
+    ' del ' + P.diaNum(f) + ' de ' + P.mesDe(f) + '</div>' +
+    '<div class="s">Lo que la receta pide y tú no pusiste. Resta sus calorías y lo devuelve a la despensa</div></div>');
+  var cerrar = el('button', 'mini', EQUIS);
+  cerrar.style.cssText = 'width:34px;height:34px;border-radius:9px';
+  cerrar.setAttribute('aria-label', 'Cerrar');
+  cerrar.onclick = function () { quitIng = null; pintarQuitar(); };
+  cab.appendChild(cerrar); m.appendChild(cab);
+
+  var fil = el('div', 'modfil');
+  var bus = el('div', 'busca', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f6159" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>');
+  var inp = el('input'); inp.type = 'text'; inp.placeholder = 'nueces, pera, aceite…'; inp.value = quitIng.busca;
+  inp.oninput = function () { quitIng.busca = inp.value; pintarQuitar(); inp.focus(); };
+  bus.appendChild(inp);
+  var filaB = el('div'); filaB.style.cssText = 'display:flex;gap:8px'; filaB.appendChild(bus);
+  fil.appendChild(filaB); m.appendChild(fil);
+
+  var lista = el('div', 'modlista'); m.appendChild(lista);
+  var q = quitIng.busca.trim().toLowerCase(), hay = 0;
+  (P.dia(f)[tm] || []).filter(function (id, i, l) { return l.indexOf(id) === i; }).forEach(function (idPlato) {
+    var r = P.POR_ID[idPlato];
+    if (!r || !(r.ing || []).length) return;
+    var pesos = null;
+    try { pesos = A.pesosDe(f, idPlato); } catch (e) {}
+    var filas = (r.ing || []).filter(function (l) {
+      var g = ING[l.i];
+      return !q || ((g && g.n) || l.i).toLowerCase().indexOf(q) >= 0;
+    });
+    if (!filas.length) return;
+    lista.appendChild(el('div', 'gtit', '<span>' + esc(P.nombre(idPlato)) + '</span><i></i>'));
+    filas.forEach(function (l) {
+      hay++;
+      var g = ING[l.i] || { n: l.i };
+      var puesto = (pesos && typeof pesos[l.i] === 'number') ? pesos[l.i] : null;
+      var deReceta = Math.round(A.gramosDeLinea(l) / (r.raciones || 1));
+      var fi = el('div', 'rec');
+      fi.innerHTML = '<div style="flex:1;min-width:0"><div class="n">' + esc(g.n) + '</div>' +
+        '<div class="m">' + (puesto === null
+          ? 'la receta pide <b>' + deReceta + ' g</b> por ración'
+          : (puesto === 0
+              ? '<b class="resta nada">hoy no lo pusiste</b> · la receta pide ' + deReceta + ' g'
+              : '<b class="resta">hoy ' + puesto + ' g</b> · la receta pide ' + deReceta + ' g')) +
+        '</div></div>';
+      if (puesto === null || puesto > 0) {
+        var bn = el('button', 'btng', 'No lo puse');
+        bn.onclick = function () { corregirPeso(f, tm, idPlato, l.i, 0); };
+        fi.appendChild(bn);
+      }
+      var ci = el('input');
+      ci.type = 'number'; ci.min = '0'; ci.step = '5';
+      ci.value = String(puesto === null ? deReceta : puesto);
+      ci.setAttribute('aria-label', 'Gramos por ración que pusiste de ' + g.n);
+      ci.style.cssText = 'width:66px;text-align:right;margin:0 5px';
+      fi.appendChild(ci);
+      var bg = el('button', 'btnv', 'Guardar');
+      bg.onclick = function () {
+        var c = Number(ci.value);
+        if (!(c >= 0)) { aviso('Pon una cantidad'); return; }
+        corregirPeso(f, tm, idPlato, l.i, c);
+      };
+      fi.appendChild(bg);
+      if (puesto !== null) {
+        var bv = el('button', 'tirar', '\u21ba');
+        bv.title = 'Volver a lo que dice la receta';
+        bv.setAttribute('aria-label', 'Volver a la receta');
+        bv.onclick = function () { corregirPeso(f, tm, idPlato, l.i, null); };
+        fi.appendChild(bv);
+      }
+      lista.appendChild(fi);
+    });
+  });
+  if (!hay) lista.appendChild(el('div', 'vacio', q
+    ? 'Ningún ingrediente de esta toma se llama así.'
+    : 'Esta toma no tiene platos con ingredientes.'));
+  capa.appendChild(m);
+  capa.onclick = function (ev) { if (ev.target === capa) { quitIng = null; pintarQuitar(); } };
+}
 function abrirCatalogo(fecha, toma, ranura, forzarTipo) {
   var tipoNorma = null;
   if (fecha && ranura === 0) {
@@ -4775,6 +4882,16 @@ function tarjetaToma(f, tm) {
         else abrirFijoDia(f, tm, 'yo', P.PAPELES[tm][0]);
       };
       der.appendChild(ba);
+    }
+    /* El «−», al lado del «+» (Carlos, 8-nov-2026). Solo si hay algo que quitar. */
+    if ((P.dia(f)[tm] || []).some(function (id) {
+          var r = P.POR_ID[id]; return !!(r && (r.ing || []).length);
+        })) {
+      var bq = el('button', 'btng', '\u2212');
+      bq.setAttribute('aria-label', 'Quitar un ingrediente que no pusiste');
+      bq.title = 'Algo que la receta pide y hoy no pusiste';
+      bq.onclick = function () { abrirQuitar(f, tm); };
+      der.appendChild(bq);
     }
   } else {
     der.appendChild(el('span', 'paxg quieto', '<span class="pn">' + P.pax(f, tm) + '</span>'));
