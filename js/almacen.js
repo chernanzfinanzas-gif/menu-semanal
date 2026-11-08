@@ -3445,16 +3445,21 @@
        apuntas hoy, lo de hoy es lo que comiste—, lo que se ha quitado suelta su
        foto, y si el día ya había pasado queda la marca de «corregido a mano».
        Se llama DESPUÉS de cambiar el plan y ANTES de guardar. */
+    /* EL SELLO, SOLO SI HA CAMBIADO ALGO (8-nov-2026). Sellaba el día cada vez
+       que se entraba aquí, cambiara o no. Un sello nuevo con contenido viejo es
+       exactamente lo que hace perder un día al juntar dos aparatos. Lo que sí
+       cambie de verdad se sigue sellando: al guardar, `_sellarLoCambiado` mira
+       las siete cosas que viven por día y sella las que se hayan movido. */
     tocarDia: function (fecha) {
       var dia = this.estado.plan[fecha];
       if (!dia) return;
-      var self = this, dentro = {};
+      var self = this, dentro = {}, cambio = false;
       this.TOMAS_Y_CAPRICHO.forEach(function (t) {
-        (dia[t] || []).forEach(function (id) { dentro[id] = 1; self.congelarPlato(fecha, id); });
+        (dia[t] || []).forEach(function (id) { dentro[id] = 1; if (self.congelarPlato(fecha, id)) cambio = true; });
       });
       var d = this.estado.fotos && this.estado.fotos[fecha];
       if (d) {
-        Object.keys(d).forEach(function (id) { if (!dentro[id]) delete d[id]; });
+        Object.keys(d).forEach(function (id) { if (!dentro[id]) { delete d[id]; cambio = true; } });
         if (!Object.keys(d).length) delete this.estado.fotos[fecha];
       }
       if (this.esPasado(fecha)) {
@@ -3464,8 +3469,9 @@
            cabecera sigue leyendo bien: coge los caracteres 8-9 y 5-6, que en
            "2026-09-23T12:31:07.000Z" siguen siendo el día y el mes. */
         this.estado.corregido[fecha] = new Date().toISOString();
+        cambio = true;                 /* «corregido» no lo vigila el guardado */
       }
-      this.sellarDia(fecha);
+      if (cambio) this.sellarDia(fecha);
     },
 
     corregidoEl: function (fecha) { return (this.estado.corregido || {})[fecha] || null; },
@@ -7323,7 +7329,17 @@
       var d = this.estado.comido[fecha];
       return !!(d && d[toma] && d[toma].indexOf(this.SENAL_FUERA) >= 0);
     },
+    /* SI NO CAMBIA NADA, NO SE TOCA EL DÍA (8-nov-2026, tras el borrado del 7).
+       Esta función sellaba el día SIEMPRE, aunque la casilla ya estuviera como
+       se pedía. Y el sello es lo que decide qué aparato se queda con el día
+       entero al sincronizar: bastaba rozar la casilla en un aparato con el plan
+       viejo para que ese plan pasara a ser «el más reciente» y se impusiera. La
+       noche del 7 se perdieron así la comida y la merienda enteras. Además
+       creaba una entrada vacía en `comido` que tampoco hacía falta. */
     marcarFueraComido: function (fecha, toma, si) {
+      var e0 = this.estado.comido[fecha];
+      var tenia = !!(e0 && e0[toma] && e0[toma].indexOf(this.SENAL_FUERA) >= 0);
+      if (!!si === tenia) return tenia;            /* nada que hacer */
       if (!this.estado.comido[fecha]) this.estado.comido[fecha] = {};
       var d = this.estado.comido[fecha];
       if (!d[toma]) d[toma] = [];
