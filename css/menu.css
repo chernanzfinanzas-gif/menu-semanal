@@ -633,23 +633,6 @@
 #vista-menu .paxg .pb:hover{background:var(--fondo);color:var(--verde)}
 #vista-menu .paxg .pn{min-width:22px;text-align:center;font-size:13px;font-weight:700}
 #vista-menu .plato{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-top:1px solid var(--linea)}
-/* EL NOMBRE DEL PLATO, A TODO LO ANCHO EN EL MOVIL (Carlos, 8-nov-2026:
-   «deberíamos aprovechar más el ancho para presentar el plato»). Medido en su
-   pantalla de 429 px: entre la casilla (24), las kcal (76), el selector de
-   quién (124), la ✕ y los cuatro huecos de 11 se van unos 300, así que al
-   nombre le quedaban cien píxeles y «Yogur con copos de avena» salía en cinco
-   líneas, una palabra por línea. Y lo mismo arrastraba al pie: «Cocinar» y la
-   ración también bajaban en vertical.
-   Ahora la fila da la vuelta en pantalla estrecha: arriba la casilla y el
-   nombre con TODO el ancho, y debajo las kcal, el quién y la ✕, sangrados para
-   que caigan bajo el nombre. Ni se quita nada ni se abrevia nada. */
-@media (max-width:620px){
-  #vista-menu .plato{flex-wrap:wrap;row-gap:6px}
-  #vista-menu .pl-izq{flex:1 1 calc(100% - 35px)}
-  #vista-menu .pl-kcal{order:3;min-width:0;text-align:left;margin-left:35px;padding-top:0}
-  #vista-menu select.pl-quien,#vista-menu .pl-quien.fijo{order:4;width:auto;min-width:0}
-  #vista-menu .plato > .mini{order:5;margin-left:auto}
-}
 #vista-menu .plato:first-of-type{border-top:0}
 #vista-menu .pl-izq{flex:1;min-width:0}
 #vista-menu .plato .n{font-size:15px;line-height:1.4;font-weight:650}
@@ -679,6 +662,29 @@
   border-radius:var(--r-full);padding:4px 8px;border:1px solid var(--linea)}
 #vista-menu .pl-quien.fijo.q-carlos{background:#f3eefb;border-color:#ded0f0;color:var(--energia)}
 #vista-menu .pl-quien.fijo.q-susana{background:#faf3f6;border-color:#eddbe4;color:#8a4a69}
+/* EL NOMBRE DEL PLATO, A TODO LO ANCHO EN EL MOVIL (Carlos, 8-nov-2026:
+   «deberíamos aprovechar más el ancho para presentar el plato»). Medido en su
+   pantalla de 429 px: entre la casilla (24), las kcal (76), el selector de
+   quién (124), la ✕ y los cuatro huecos de 11 se van unos 300, así que al
+   nombre le quedaban cien píxeles y «Yogur con copos de avena» salía en cinco
+   líneas, una palabra por línea. Y lo mismo arrastraba al pie: «Cocinar» y la
+   ración también bajaban en vertical.
+   Ahora la fila da la vuelta en pantalla estrecha: arriba la casilla y el
+   nombre con TODO el ancho, y debajo las kcal, el quién y la ✕, sangrados para
+   que caigan bajo el nombre. Ni se quita nada ni se abrevia nada.
+   VA DESPUES DE LAS REGLAS QUE PISA, y no antes: la primera vez lo puse
+   encima de `.pl-izq{flex:1}` y, con la misma especificidad, ganaba la de
+   abajo. Se publico y no hizo nada (Carlos, 8-nov-2026: «todavia no se ve lo
+   de los nombres de las comidas»). El ancho lleva 40 y no 35 a proposito: a
+   35 la primera linea sumaba el 100 % EXACTO y cualquier redondeo del
+   navegador la parte en dos. */
+@media (max-width:620px){
+  #vista-menu .plato{flex-wrap:wrap;row-gap:6px}
+  #vista-menu .pl-izq{flex:1 1 calc(100% - 40px)}
+  #vista-menu .pl-kcal{order:3;min-width:0;text-align:left;margin-left:35px;padding-top:0}
+  #vista-menu select.pl-quien,#vista-menu .pl-quien.fijo{order:4;width:auto;min-width:0}
+  #vista-menu .plato > .mini{order:5;margin-left:auto}
+}
 #vista-menu .tic{width:24px;height:24px;flex:0 0 24px;border:2px solid var(--linea-2);border-radius:var(--r-s);
   background:var(--sup);color:var(--linea-2);display:flex;align-items:center;justify-content:center;
   padding:0;margin-top:3px;transition:all .12s}
