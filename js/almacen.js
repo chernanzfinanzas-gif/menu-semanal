@@ -119,6 +119,7 @@
       this.reparar();
       this._griegoCena8oct();
       this._despensaSinCobrar8nov();
+      this._devolver5nov();
       /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
@@ -166,6 +167,42 @@
           });
         });
         this.estado.reparadoDespensa8nov = new Date().toISOString();
+        escribirEstado(this.estado);
+        return n;
+      } catch (e2) { return 0; }
+    },
+
+    /* Y LO DEL DIA 5 VUELVE  ·  una sola vez, 8-nov-2026.
+       La reparacion de arriba cobro desde el 5 de noviembre, y eso estuvo mal:
+       el DIA 6 Carlos conto a mano la despensa entera —172 ingredientes con
+       `contado` y fecha 2026-11-06—, asi que ese recuento YA era posterior a lo
+       que se comio el dia 5. Cobrarlo encima es cobrarlo dos veces.
+       Lo canto el propio Carlos: «huevos quedan 4». La reparacion se habia
+       llevado los 4 de la tortilla del dia 5 y los habia dejado en 0.
+       Los dias 6, 7 y 8 no tienen este problema: no hay ningun ingrediente con
+       la despensa contada despues de esos dias.
+       Se devuelven las cantidades exactas que cobro el dia 5, y solo esas. Las
+       NOTAS de gasto se quedan: comer, se comio, y la nota es lo que impide que
+       se vuelva a cobrar. */
+    _devolver5nov: function () {
+      try {
+        if (this.estado.devuelto5nov) return 0;
+        var DEV = {
+          ajo: 1, aove: 23, berenjena: 1, cebolla_dulce: 1, comino: 2,
+          copos_avena: 20, huevo: 4, miel: 8, pan_ortiz: 3, pan_ortiz_bajosal: 2,
+          perejil: 3, setas: 250, sodastream_limon: 66, yogur_activia: 2
+        };
+        var self = this, n = 0;
+        Object.keys(DEV).forEach(function (k) {
+          var f = self.fichaStock(k);
+          var habia = (f && f.c > 0) ? f.c : 0;
+          self.estado.stock[k] = { c: Math.round((habia + DEV[k]) * 100) / 100,
+                                   f: (f && f.f) || null,
+                                   pte: (f && f.pte === "corto") ? false : ((f && f.pte) || false) };
+          n++;
+        });
+        if (n) this._sellarStock();
+        this.estado.devuelto5nov = new Date().toISOString();
         escribirEstado(this.estado);
         return n;
       } catch (e2) { return 0; }
@@ -2814,6 +2851,7 @@
       this.reparar();
       this._griegoCena8oct();
       this._despensaSinCobrar8nov();
+      this._devolver5nov();
       this._reiniciarFotoDias();
       escribirEstado(this.estado);
       this.avisar("recarga");
