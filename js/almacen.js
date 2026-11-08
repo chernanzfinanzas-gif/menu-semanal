@@ -118,6 +118,7 @@
       this.estado = guardado && guardado.v ? guardado : this.estadoInicial();
       this.reparar();
       this._griegoCena8oct();
+      this._despensaSinCobrar8nov();
       /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
@@ -135,6 +136,41 @@
        sigue con dos descontados y es solo suya, devuelve uno; al hacerlo la
        nota queda en uno y ya no vuelve a actuar. Se mira al arrancar y después
        de cada sincronización. */
+    /* EL ✓ QUE NO DESCONTABA  ·  una sola vez, 8-nov-2026.
+       Del 6 de noviembre en adelante el ✓ de la vista de dia escribia la marca
+       y no llamaba a `marcarComido` del motor, asi que no hacia la foto del
+       plato ni tocaba la despensa. Medido en las copias diarias del repo: del
+       29-oct al 4-nov el gasto seguia al ✓ casi plato por plato; el 6 de
+       noviembre, 12 platos marcados y CERO descuentos; el 7 y el 8 igual. No se
+       perdio por el camino: no llego a hacerse.
+       Esto cobra lo que quedo sin cobrar entre el 5 y el 8 de noviembre.
+       `gastarDespensa` no descuenta dos veces —mira si ya hay nota de gasto de
+       ese plato—, asi que pasar por encima de lo que si se cobro no hace nada.
+       Probado en seco contra su estado del 8-nov a las 19:36: 31 platos, 34
+       ingredientes, y las nueces bajando solo los 10 g de la tosta del dia 7
+       porque la correccion de «hoy no las puse» de los macarrones se respeta.
+       Los huevos se quedan en 0 y marcados «corto»: comio mas de los que habia
+       apuntados, y eso es lo que de verdad paso. */
+    _despensaSinCobrar8nov: function () {
+      try {
+        if (this.estado.reparadoDespensa8nov) return 0;
+        var self = this, n = 0;
+        Object.keys(this.estado.comido || {}).forEach(function (F) {
+          if (F < "2026-11-05" || F > "2026-11-08") return;
+          self.TOMAS_Y_CAPRICHO.forEach(function (T) {
+            ((self.estado.comido[F] || {})[T] || []).forEach(function (R) {
+              if (self.gastoApuntado(F, T, R)) return;
+              try { self.gastarDespensa(F, T, R); } catch (e) {}
+              if (self.gastoApuntado(F, T, R)) n++;
+            });
+          });
+        });
+        this.estado.reparadoDespensa8nov = new Date().toISOString();
+        escribirEstado(this.estado);
+        return n;
+      } catch (e2) { return 0; }
+    },
+
     _griegoCena8oct: function () {
       try {
         var F = "2026-10-08", T = "cena", R = "solo_yogur_griego_hacendado_1";
@@ -2777,6 +2813,7 @@
       }
       this.reparar();
       this._griegoCena8oct();
+      this._despensaSinCobrar8nov();
       this._reiniciarFotoDias();
       escribirEstado(this.estado);
       this.avisar("recarga");

@@ -1686,7 +1686,17 @@ function marcarComido(fecha, toma, id) {
   if (!d.comido) d.comido = {};
   if (!d.comido[toma]) d.comido[toma] = [];
   var i = d.comido[toma].indexOf(id);
+  var ahora = (i < 0);                 /* el estado al que pasa el ✓ */
   if (i >= 0) d.comido[toma].splice(i, 1); else d.comido[toma].push(id);
+  /* Y EL MOTOR, QUE ES QUIEN TOCA LA DESPENSA (Carlos, 8-nov-2026: «no se si ha
+     cambiado el stock»). Esta funcion la escribi yo para el prototipo y solo
+     ponia el ✓ en la lista: nunca llamaba a `A.marcarComido`, que es quien hace
+     la foto del plato, descuenta al marcar y devuelve al desmarcar. Medido en
+     sus copias diarias: del 29-oct al 4-nov el gasto seguia al ✓ casi plato por
+     plato; el 6 de noviembre, el dia que entro el prototipo, 12 platos marcados
+     y CERO descuentos, y de ahi en adelante igual. No se perdio nada por el
+     camino: no llego a hacerse. */
+  if (MOTOR) { try { A.marcarComido(fecha, toma, id, ahora); } catch (e) {} }
   guardar();
 }
 /* ---- Puente con el motor de la app ----
