@@ -1265,6 +1265,18 @@ function pax(fecha, toma) {
   return (E.solo && E.solo[toma] && E.solo[toma][diaSemana(fecha)]) ? 1 : (CFG.personas || 2);
 }
 function ponerPax(fecha, toma, n) {
+  /* POR EL MOTOR, QUE ADEMAS RECOLOCA LA DESPENSA (8-nov-2026, del repaso de la
+     vista de dia). `ponerComensales` no solo apunta cuantos se sientan: llama a
+     `reajustarToma`, que recalcula lo que cada plato ya descontado gasta ahora y
+     devuelve o quita SOLO la diferencia. Esta funcion la escribi yo para el
+     prototipo y se quedaba en apuntar el numero, asi que bajar una cena de dos a
+     uno dejaba la despensa cobrando por dos. Mismo fallo que el ✓ y que «Solo
+     Carlos», y la misma causa: reimplementar en vez de llamar. */
+  if (MOTOR && n !== null) {
+    try { A.ponerComensales(fecha, toma, Math.max(1, Math.min(12, n))); } catch (e) {}
+    guardar();
+    return;
+  }
   var d = dia(fecha)[toma];
   if (n === null) { if (d.comensales) { delete d.comensales[toma]; if (!Object.keys(d.comensales).length) delete d.comensales; } }
   else setPax(fecha, toma, Math.max(1, Math.min(12, n)));
@@ -2401,6 +2413,23 @@ function milP(n) { var k = Math.round(n || 0); return String(k).replace(/\B(?=(\
 function coma(n) { return String(Math.round((n || 0) * 100) / 100).replace('.', ','); }
 function estaCerrado(fecha) { var d = dias()[fecha]; return !!(d && d.cerrado); }
 function abrirDia(fecha) {
+  /* Y CON SELLO (8-nov-2026, del repaso de la vista de dia). Reabrir un dia es
+     una decision deliberada y tiene que dejar rastro con hora, porque el sello
+     es lo que decide quien manda al sincronizar. Mi version solo borraba la
+     marca de cerrado y escribia `corregido` DENTRO del dia — y el puente de
+     `guardar` espeja al motor lo comido, lo real y la actividad, pero no eso,
+     asi que no llegaba nunca a donde la fusion lo mira. Un dia reabierto aqui
+     podia perder contra la copia vieja de otro aparato. Misma familia que lo
+     que borro el dia 7 el sabado. */
+  if (MOTOR) {
+    try {
+      A.abrirDia(fecha);                       /* borra el cerrado y sella */
+      if (fecha < HOY) {
+        if (!A.estado.corregido) A.estado.corregido = {};
+        A.estado.corregido[fecha] = new Date().toISOString();
+      }
+    } catch (e) {}
+  }
   var d = dia(fecha);
   delete d.cerrado;
   /* LA MARCA DE CORREGIDO A MANO, como en su app. No es un adorno: si un día
