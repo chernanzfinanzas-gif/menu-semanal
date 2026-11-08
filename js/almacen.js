@@ -120,6 +120,7 @@
       this._griegoCena8oct();
       this._despensaSinCobrar8nov();
       this._devolver5nov();
+      this._devolver5nov();
       /* Si el arranque ha congelado días, se escribe ya: si no, a la próxima
          recarga se volvería a congelar contra unas recetas que quizá hayan
          cambiado entretanto, que es justo lo que esto viene a evitar. */
@@ -203,6 +204,47 @@
         });
         if (n) this._sellarStock();
         this.estado.devuelto5nov = new Date().toISOString();
+        escribirEstado(this.estado);
+        return n;
+      } catch (e2) { return 0; }
+    },
+
+    /* Y LO DEL DIA 5 VUELVE  ·  8-nov-2026, y a prueba de manos.
+       La reparacion de arriba cobro desde el 5 de noviembre, y eso estuvo mal:
+       el DIA 6 Carlos conto a mano la despensa entera —172 ingredientes con
+       `contado` y fecha 2026-11-06—, asi que ese recuento YA era posterior a lo
+       que se comio el dia 5, y cobrarlo encima es cobrarlo dos veces. Lo canto
+       el: «huevos quedan 4», cuando la reparacion los habia dejado en 0.
+       Los dias 6, 7 y 8 no tienen este problema: ningun ingrediente tiene la
+       despensa contada despues de esos dias.
+       NO SUMA: PONE EL VALOR BUENO, y solo si el ingrediente sigue exactamente
+       como lo dejo el cobro de mas. Si ya esta en su sitio —porque Carlos lo
+       contara a mano mientras tanto, que es justo lo que hizo con los huevos—
+       no lo toca. Asi da igual el orden en que pasen las cosas.
+       Las NOTAS de gasto se quedan: comer, se comio, y la nota es lo que impide
+       que se vuelva a cobrar. */
+    _devolver5nov: function () {
+      try {
+        if (this.estado.devuelto5novB) return 0;
+        var DEV = [
+          ["ajo", 24, 25], ["aove", 311.6, 334.6], ["berenjena", 1, 2],
+          ["cebolla_dulce", 8.24, 9.24], ["comino", 56, 58], ["copos_avena", 320, 340],
+          ["huevo", 0, 4], ["miel", 487, 495], ["pan_ortiz", 69.12, 72.12],
+          ["pan_ortiz_bajosal", 10, 12], ["perejil", 2, 5], ["setas", 0, 250],
+          ["sodastream_limon", 1562, 1628], ["yogur_activia", 17, 19]
+        ];
+        var self = this, n = 0;
+        DEV.forEach(function (x) {
+          var k = x[0], malo = x[1], bueno = x[2];
+          var f = self.fichaStock(k);
+          var hay = (f && typeof f.c === "number") ? f.c : null;
+          if (hay === null || Math.abs(hay - malo) > 0.02) return;   /* ya está bien, o lo tocó él */
+          self.estado.stock[k] = { c: bueno, f: (f && f.f) || null,
+                                   pte: (f && f.pte === "corto") ? false : ((f && f.pte) || false) };
+          n++;
+        });
+        if (n) this._sellarStock();
+        this.estado.devuelto5novB = new Date().toISOString();
         escribirEstado(this.estado);
         return n;
       } catch (e2) { return 0; }
@@ -2851,6 +2893,7 @@
       this.reparar();
       this._griegoCena8oct();
       this._despensaSinCobrar8nov();
+      this._devolver5nov();
       this._devolver5nov();
       this._reiniciarFotoDias();
       escribirEstado(this.estado);
