@@ -932,6 +932,19 @@ function colocar(id, fecha, toma, ranura) {
   ponerFueraT(fecha, toma, false);
   marcarVaciadaT(fecha, toma, false);
   var l = propios(fecha, toma);
+  /* AÑADIR ES AÑADIR (Carlos, 8-nov-2026: «y solo hay una tosta ahora que me doy
+     cuenta, eran dos tostas»). En el planificador eliges entre DOS ranuras y lo
+     nuevo echa a lo que hubiera: ahí tiene sentido. En la vista del día no: puso
+     una Fanta en la cena y se le llevó por delante la segunda tosta, sin decir
+     nada. Con `ranura` sin fijar, el plato se añade al final y no saca a nadie. */
+  if (ranura == null) {
+    l.push(id);
+    ponerPropios(fecha, toma, l);
+    sacarDeBandejas(id);
+    quitarGrupoDe(id);
+    guardar();
+    return;
+  }
   var r = (ranura === 1) ? 1 : 0;
   if (l[r] === id) return;
   if (l[r]) sacar(l[r], fecha, toma);
@@ -1362,7 +1375,7 @@ function quitadosDe(f, tm) {
       if (!tocadoHoy(f, tm, q, pa)) return;
       if (fijoDelDia(f, tm, q, pa)) return;          /* cambiado por otro, no quitado */
       var base = verFijo(tm, q, pa);
-      out.push({ quien: q, papel: pa,
+      out.push({ quien: q, papel: pa, id: base ? base.id : null,
                  nombre: base ? nombreDe(base) : ETIQ_PAPEL[pa].toLowerCase() });
     });
   });
@@ -1380,12 +1393,34 @@ function quitarPlato(f, tm, id) {
       return;
     }
   }
+  var marcado = false;
   PAPELES[tm].forEach(function (pa) {
     ['yo', 'ella'].forEach(function (q) {
       var fj = fijoDelDia(f, tm, q, pa);
-      if (fj && fj.id === id) cambiarFijoDia(f, tm, q, pa, null);
+      if (fj && fj.id === id) { cambiarFijoDia(f, tm, q, pa, null); marcado = true; }
     });
   });
+  /* Y SE SACA DEL DIA (Carlos, 8-nov-2026: «no me deja borrar el agua con gas»).
+     Marcar «hoy no» guarda la excepcion en el dia, pero el plato sigue dentro de
+     la lista de la toma: el unico que los saca es `limpiarFijos`, y ese mira otra
+     lista distinta —la de `quitados` del motor— y ademas solo pasa por los dias
+     del planificador, no por uno ya pasado. Resultado: salia el aviso de HOY NO
+     y el plato seguia ahi, contando sus calorias y su sal. */
+  if (marcado) {
+    var dd = dias()[f], j;
+    if (dd && dd[tm]) { while ((j = dd[tm].indexOf(id)) >= 0) dd[tm].splice(j, 1); }
+  }
+  guardar();
+}
+/* El reverso de lo anterior: «volver a ponerlo» lo devuelve a la lista del dia.
+   En un dia futuro ya lo repone el motor, pero en uno pasado `ponerFijos` no
+   entra, y sin esto el boton quitaba el aviso y no devolvia el plato. */
+function reponerFijo(f, tm, id) {
+  if (!id) return;
+  var dd = dias()[f];
+  if (!dd) return;
+  if (!dd[tm]) dd[tm] = [];
+  if (dd[tm].indexOf(id) < 0) dd[tm].push(id);
   guardar();
 }
 /* ---- BLOQUES DE 100 Y PIEZAS, para el almuerzo y la merienda ----
@@ -1535,23 +1570,69 @@ function unidadTexto(c, u) {
   if (u === 'rac') return txt + (n === 1 ? ' ración' : ' raciones');
   return txt + ' ' + u;
 }
+/* DONDE LA LEE EL MOTOR (Carlos, 8-nov-2026: «pongo dos raciones pero las
+   calorías son las mismas con una ración que con dos»). El prototipo guardaba lo
+   comido de verdad dentro del día, en `plan[fecha].real`, y su motor lo lee de
+   `estado.real`. Así que la casilla enseñaba «2 raciones» y las cuentas seguían
+   con una: nadie miraba donde yo escribía. Se lee de los dos sitios para no
+   perder lo ya apuntado, y se escribe solo en el del motor. */
+function realMotor(fecha, toma, id) {
+  if (!MOTOR) return null;
+  try { var R = A.estado.real; return (R && R[fecha] && R[fecha][toma] && R[fecha][toma][id]) || null; }
+  catch (e) { return null; }
+}
 function realDe(fecha, toma, f) {
-  var d = dias()[fecha];
-  var r = d && d.real && d.real[toma] && d.real[toma][f.id];
+  var r = realMotor(fecha, toma, f.id);
+  if (!r) { var d = dias()[fecha]; r = d && d.real && d.real[toma] && d.real[toma][f.id]; }
   return r ? { c: r.c, u: r.u } : racionDe(f);
 }
 /* ¿hay una cantidad apuntada a mano, o sale la de la ficha? */
 function hayReal(fecha, toma, f) {
+  if (realMotor(fecha, toma, f.id)) return true;
   var d = dias()[fecha];
   return !!(d && d.real && d.real[toma] && d.real[toma][f.id]);
 }
 function ponerReal(fecha, toma, f, c, u) {
-  var d = dia(fecha);
-  if (!d.real) d.real = {};
-  if (!d.real[toma]) d.real[toma] = {};
   var base = racionDe(f);
-  if (c <= 0) delete d.real[toma][f.id];
-  else d.real[toma][f.id] = { c: Math.round(c * 100) / 100, u: u || base.u };
+  var uu = u || base.u;
+  /* RACIONES TRADUCIDAS A LO QUE LA FICHA MIDE. Su motor descarta la corrección
+     si las dos no hablan la misma lengua —guarda puesta el 1-oct después de que
+     la app enseñara 64.000 kcal— y una ficha de un solo ingrediente se mide en
+     gramos, no en raciones. Así que «2 raciones» de un flan se guardan como los
+     gramos de dos flanes, y entonces sí multiplica. */
+  if (MOTOR && uu === 'rac' && f.t !== 'i') {
+    try {
+      var rec = POR_ID[f.id], uni = rec ? A.unidadReal(rec) : 'rac';
+      if (uni !== 'rac') {
+        var prev = A.cantidadPrevista(rec) || 0;
+        if (prev > 0) { c = c * prev; uu = uni; }
+      }
+    } catch (e) {}
+  }
+  if (MOTOR) {
+    try {
+      if (!A.estado.real) A.estado.real = {};
+      var R = A.estado.real;
+      if (!(c > 0)) {
+        if (R[fecha] && R[fecha][toma]) {
+          delete R[fecha][toma][f.id];
+          if (!Object.keys(R[fecha][toma]).length) delete R[fecha][toma];
+          if (R[fecha] && !Object.keys(R[fecha]).length) delete R[fecha];
+        }
+      } else {
+        if (!R[fecha]) R[fecha] = {};
+        if (!R[fecha][toma]) R[fecha][toma] = {};
+        R[fecha][toma][f.id] = { c: Math.round(c * 100) / 100, u: uu };
+      }
+    } catch (e) {}
+  }
+  /* y se limpia el sitio viejo, para que no queden dos verdades */
+  var d = dias()[fecha];
+  if (d && d.real && d.real[toma] && d.real[toma][f.id] !== undefined) {
+    delete d.real[toma][f.id];
+    if (!Object.keys(d.real[toma]).length) delete d.real[toma];
+    if (!Object.keys(d.real).length) delete d.real;
+  }
   guardar();
 }
 /* Las unidades en las que se puede apuntar cada cosa. El pan va contado por
@@ -2547,6 +2628,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
                  TOMAS: TOMAS, PAPELES: PAPELES, ETIQ_PAPEL: ETIQ_PAPEL, nombreDe: nombreDe, ponerFijo: ponerFijo,
                  verFijo: verFijo, candidatos: candidatos, fechaCorta: fechaCorta, ING: ING,
                  fijoDelDia: fijoDelDia, cambiarFijoDia: cambiarFijoDia, soltarFijoDia: soltarFijoDia,
+                 reponerFijo: reponerFijo,
                  tocadoHoy: tocadoHoy, cuantosPlatos: cuantosPlatos, masDias: masDias, MESES: MESES,
                  tipoDia: tipoDia, ponerTipoDia: ponerTipoDia, tiposDia: tiposDia,
                  deportesRuta: deportesRuta, planearRuta: planearRuta, quitarRuta: quitarRuta,
@@ -4110,7 +4192,10 @@ function pintarLista() {
       var b = el('button', e.cl === 'casa' ? 'btnv' : 'btng', 'Añadir');
       b.onclick = function () {
         if (cat.fecha) { P.colocar(id, cat.fecha, cat.toma, cat.ranura); }
-        cat = null; pintarCatalogo(); pintar();
+        /* Y EL DIA (Carlos, 8-nov-2026: «no la pinta a la primera, hay que salir
+           de la pestana y volver»). `pintar` refresca el planificador, no la
+           vista del dia, que es desde donde se anade casi siempre. */
+        cat = null; pintarCatalogo(); pintar(); try { pintarDia(); } catch (e) {}
       };
       f.appendChild(b);
       /* La × solo en lo que NO está usado en ningún día ni es fijo: borrar algo
@@ -4565,7 +4650,10 @@ function tarjetaToma(f, tm) {
       ba.onclick = function () {
         if (P.esFueraT(f, tm)) abrirPicoteo(f, tm, 'fuera');
         else if (tm === 'almuerzo' || tm === 'merienda') abrirPicoteo(f, tm, 'bloques');
-        else if (esPrincipal) abrirCatalogo(f, tm, P.propios(f, tm).length ? 1 : 0, null);
+        else if (esPrincipal) {
+          var np = P.propios(f, tm).length;
+          abrirCatalogo(f, tm, np >= 2 ? null : (np ? 1 : 0), null);
+        }
         else abrirFijoDia(f, tm, 'yo', P.PAPELES[tm][0]);
       };
       der.appendChild(ba);
@@ -4644,7 +4732,7 @@ function lineaQuitados(f, tm, cerrado) {
     p.innerHTML = x.nombre + ' <i>(' + (x.quien === 'yo' ? 'tuyo' : 'de Susana') + ')</i>';
     if (!cerrado) {
       var b = el('button', 'qv', 'volver a ponerlo');
-      b.onclick = function () { P.soltarFijoDia(f, tm, x.quien, x.papel); pintarDia(); };
+      b.onclick = function () { P.soltarFijoDia(f, tm, x.quien, x.papel); P.reponerFijo(f, tm, x.id); pintarDia(); };
       p.appendChild(b);
     }
     c.appendChild(p);
