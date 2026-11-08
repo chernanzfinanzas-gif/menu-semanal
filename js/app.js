@@ -1303,6 +1303,16 @@ function ponerQuien(f, tm, id, q) {
     if (!Object.keys(d.quien[tm]).length) delete d.quien[tm];
     if (!Object.keys(d.quien).length) delete d.quien;
   } else d.quien[tm][id] = q;
+  /* Y SE LE DEVUELVE A LA DESPENSA LO QUE YA NO SE COME (Carlos, 8-nov-2026: la
+     Fanta seguia gastando 660 ml —dos latas— despues de marcarla «Solo Carlos»,
+     y cerrar el dia otra vez no la recalculaba).
+     Su motor ya sabia hacerlo: `reajustarGasto` se escribio el 8-oct para su
+     caso del yogur griego («solo lo tomé yo, y no ha devuelto uno»), recalcula
+     lo que el plato pide ahora y devuelve SOLO la diferencia. Lo que faltaba es
+     que alguien se lo pidiera: este boton de la vista de dia escribia quien se
+     lo come y guardaba, y ahi se acababa. Cambiar los comensales si lo llamaba;
+     cambiar la persona, no. */
+  if (MOTOR) { try { A.ultimoReajuste = A.reajustarGasto(f, tm, id); } catch (e) {} }
   guardar();
 }
 var QUIEN = ['dos', 'carlos', 'susana'];
@@ -1939,6 +1949,29 @@ function kcalToma(f, toma) {
   if (!MOTOR) return 0;
   sincronizar([f]);
   try { var n = A.nutrToma(f, toma); return Math.round((n && n.k) || 0); } catch (e) { return 0; }
+}
+/* PROTEINA, HIDRATOS Y GRASA DE LA TOMA, Y QUE PARTE DEL DIA CUBREN (Carlos,
+   8-nov-2026: «ademas de eso los gramos de proteina, hidratos y grasa de cada
+   toma y que porcentaje de la necesidad diaria hacen esos gramos»).
+   Los objetivos NO se calculan aqui: los da `objetivosMacros`, que los saca del
+   objetivo de calorias de ESE dia, asi que un dia de salida sube el suyo solo y
+   los porcentajes se ajustan sin tocar nada.
+   Se miden los platos PUESTOS en la toma, igual que las kcal que ya salen al
+   lado, para que las dos cifras hablen siempre de lo mismo. */
+function macrosToma(f, toma) {
+  if (!MOTOR) return null;
+  sincronizar([f]);
+  try {
+    var n = A.nutrToma(f, toma);
+    if (!n) return null;
+    var p = Math.round(n.p || 0), h = Math.round(n.h || 0), g = Math.round(n.g || 0);
+    if (!p && !h && !g) return null;
+    var o = A.objetivosMacros(f) || {};
+    function pct(v, ob) { return ob ? Math.round(v / ob * 100) : null; }
+    return { p: p, h: h, g: g,
+             pctp: pct(n.p || 0, o.p), pcth: pct(n.h || 0, o.h), pctg: pct(n.g || 0, o.g),
+             objp: o.p || null, objh: o.h || null, objg: o.g || null };
+  } catch (e) { return null; }
 }
 /* La sal de una toma: la suma de la sal de sus platos, con la misma función de
    la app (salReceta), que ya respeta los pesos corregidos a mano. */
@@ -2662,7 +2695,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
                  numerosDia: numerosDia, numerosSemana: numerosSemana, hayMotor: function () { return MOTOR; },
                  ejercicioDia: ejercicioDia, catalogoActividades: catalogoActividades, ponerActividad: ponerActividad,
                  cadenaObjetivo: cadenaObjetivo, entrenoDelDia: entrenoDelDia, confirmarActividad: confirmarActividad,
-                 comensales: comensales, kcalToma: kcalToma, salToma: salToma,
+                 comensales: comensales, kcalToma: kcalToma, salToma: salToma, macrosToma: macrosToma,
                  quitarActividad: quitarActividad, entrenoEstandar: entrenoEstandar, sinMarcar: sinMarcar,
                  cerrarDia: cerrarDia, estaCerrado: estaCerrado, abrirDia: abrirDia,
                  estaComido: estaComido, marcarComido: marcarComido, unidades: unidades, paso: paso, cualSemana: cualSemana, tirar: tirar, POR_ID: POR_ID, RECETAS: RECETAS, esGuar: esGuar,
@@ -4628,12 +4661,20 @@ function tarjetaToma(f, tm) {
   var cerrado = P.estaCerrado(f);
   var platos = P.platosDe(f, tm);
   var cuota = P.cuotaToma(f, tm), kt = P.kcalToma(f, tm), st = P.salToma(f, tm);
+  var mt = P.macrosToma(f, tm);
 
   /* ---- cabecera: nombre, cuota / puesto, sal, comensales, fuera, añadir ---- */
   var cab = el('div', 'cabt');
   cab.innerHTML = '<b>' + tm.toUpperCase() + '</b>' +
     (cuota || kt ? '<span class="ktoma"><b>' + mil(cuota) + '</b> / ' + mil(kt) + ' kcal</span>' : '') +
     (st ? '<span class="stoma">' + String(st).replace('.', ',') + ' g de sal</span>' : '') +
+    (mt ? '<span class="mtoma">' + MACROS.map(function (m) {
+        var gr = mt[m.k], pc = mt['pct' + m.k], ob = mt['obj' + m.k];
+        var et = (m.k === 'p' ? 'P' : m.k === 'h' ? 'HC' : 'G');
+        return '<span class="m1 ' + m.cl + '" title="' + m.n + ': ' + gr + ' g' +
+               (pc == null ? '' : ', el ' + pc + ' % de los ' + ob + ' g que necesitas hoy') + '">' +
+               et + ' <b>' + gr + ' g</b>' + (pc == null ? '' : ' \u00b7 ' + pc + ' %') + '</span>';
+      }).join('') + '</span>' : '') +
     (P.deMochila(f, tm) ? '<span class="mochila" title="Día de salida: esta toma va en la mochila">de mochila</span>' : '') +
     ((tm === 'almuerzo' || tm === 'merienda') ? '<span class="peque">solo si entrenas</span>' : '');
   var der = el('div', 'der');

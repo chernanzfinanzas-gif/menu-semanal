@@ -12504,6 +12504,16 @@
           qc += (cp - qc) / 42; qa += (cp - qa) / 7; x.c = cp;
         }
         x.ctl = qc; x.atl = qa; x.fo = qc - qa;
+        /* EL SEMAFORO DE ESE DIA, GUARDADO EN LA SERIE (Carlos, 8-nov-2026:
+           «me gustaria guardar un historico de esas decisiones... y asi veo si
+           entrene a pesar de que el semaforo lo recomendaba»).
+           NO hace falta haberlo ido apuntando dia a dia: `estadoSemaforo` acepta
+           cualquier fecha y sale de datos que ya estaban guardados. Y desde el
+           5-nov los cortes son RELATIVOS a la mediana de 28 dias, asi que no
+           caducan cuando suba la forma y el historico de atras sigue valiendo.
+           Solo en los dias MEDIDOS: en los que vienen no hay noches dormidas que
+           mirar, y un semaforo inventado para el futuro no dice nada. */
+        if (x.medido) { try { x.sem = estadoSemaforo(iso) || null; } catch (e) { x.sem = null; } }
         ser.push(x);
       }
     });
@@ -12515,6 +12525,31 @@
   /* El recuadro al pasar el ratón o el dedo por la curva: la semana, su
      carga, la forma y la fatiga de ese día. */
   var curvaSer = null, curvaGeo = null;
+  /* EL PORQUE DEL COLOR, EN EL GLOBO DE LA CURVA (Carlos, 8-nov-2026: «al poner
+     el raton sobre ella diga porque salio naranja o rojo»). Las dos cifras son
+     las que el propio plan nombra y las unicas que deciden: la distancia entre
+     el balance de ese dia y tu normal de 28 dias, y las dos ultimas noches.
+     Y detras, lo que hiciste, que es la pregunta de verdad. */
+  function textoSemaforoCurva(x) {
+    var s = x && x.sem;
+    if (!s) return "";
+    var col = s.id === "rojo" ? "#b3402f" : s.id === "ambar" ? "#c98a1b"
+            : s.id === "azul" ? "#2f5c8a" : "#2f6b47";
+    var r = s.razones || {}, det = [];
+    if (r.desvio != null) det.push("balance " + (x.fo >= 0 ? "+" : "") + num(x.fo, 0) + ", " +
+                                   (r.desvio >= 0 ? "+" : "") + num(r.desvio, 0) + " frente a tu normal");
+    if (r.noches != null) det.push("dos noches " + num(r.noches, 1) + " h");
+    var hizo = "";
+    if (s.id === "rojo" || s.id === "ambar") {
+      if (!x.c) hizo = "descansaste";
+      else if (x.cp > 0 && x.c >= x.cp * 0.9) hizo = "<b>entrenaste igual</b>";
+      else hizo = "lo bajaste";
+    }
+    return '<br><span style="display:inline-block;padding:0 7px;border-radius:999px;color:#fff;' +
+      'font-size:11px;font-weight:700;background:' + col + '">' + U.esc(s.nombre) + "</span>" +
+      (det.length ? ' <small style="color:#6b7a88">' + det.join(" \u00b7 ") + "</small>" : "") +
+      (hizo ? ' <small style="color:#6b7a88">\u2014 ' + hizo + "</small>" : "");
+  }
   function datoCurva(ev) {
     var svg = ev.target.closest ? ev.target.closest("svg[data-curva]") : null;
     if (!svg || !curvaSer || !curvaGeo) return false;
@@ -12523,7 +12558,7 @@
     var i = Math.round((sx - g.x0) / g.ancho * (g.n - 1));
     i = Math.max(0, Math.min(g.n - 1, i));
     var x = curvaSer[i], cx = g.x0 + i * g.ancho / (g.n - 1);
-    ["curva-cursor", "curva-cursor2"].forEach(function (id) {
+    ["curva-cursor", "curva-cursor2", "curva-cursor3"].forEach(function (id) {
       var cur = document.getElementById(id);
       if (cur) { cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.style.display = ""; }
     });
@@ -12538,7 +12573,8 @@
         (x.fo >= 0 ? "+" : "") + num(x.fo, 0) + '</b> <span style="display:inline-block;padding:0 7px;border-radius:999px;' +
         'color:#fff;font-size:11px;font-weight:700;background:' + z.h + '">' + z.n + "</span><br>" +
         "Carga del día <b>" + num(x.c, 0) + "</b>" +
-        (x.medido ? ' <small style="color:#6b7a88">(prevista ' + num(x.cp, 0) + ")</small>" : "");
+        (x.medido ? ' <small style="color:#6b7a88">(prevista ' + num(x.cp, 0) + ")</small>" : "") +
+        textoSemaforoCurva(x);
       caja.style.display = "";
       var mr = marco.getBoundingClientRect();
       var px = (cx / g.W) * mr.width, w = caja.offsetWidth;
@@ -12547,7 +12583,7 @@
     return true;
   }
   function quitarDatoCurva() {
-    ["curva-cursor", "curva-cursor2", "curva-dato"].forEach(function (id) {
+    ["curva-cursor", "curva-cursor2", "curva-cursor3", "curva-dato"].forEach(function (id) {
       var e = document.getElementById(id);
       if (e) e.style.display = "none";
     });
@@ -12757,12 +12793,54 @@
         Yb(ser[i].fo).toFixed(1) + '" stroke="' + z.h + '" stroke-width="' + (fut ? 1.6 : 2.4) + '" opacity="' + (fut ? 0.4 : 1) +
         '" stroke-linecap="round"/>';
     }
+    /* LOS DIAS QUE EL SEMAFORO FRENO, SOBRE LA PROPIA LINEA. Solo ambar y rojo:
+       el verde y el azul no son decisiones, son el dia normal, y marcar
+       trescientos taparia la linea justo donde hay que mirarla. El relleno es el
+       color del semaforo; el ARO OSCURO dice que ese dia entrenaste igual o mas
+       de lo que pedia el plan, que es lo que Carlos queria poder ver. */
+    ser.forEach(function (x, i) {
+      if (!x.sem || (x.sem.id !== "rojo" && x.sem.id !== "ambar")) return;
+      var hizo = x.c > 0 && x.cp > 0 && x.c >= x.cp * 0.9;
+      t += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Yb(x.fo).toFixed(1) + '" r="' + (hizo ? 4 : 3.2) +
+        '" fill="' + (x.sem.id === "rojo" ? "#b3402f" : "#c98a1b") + '" stroke="' + (hizo ? "#1f3b57" : "#fff") +
+        '" stroke-width="' + (hizo ? 1.6 : 1) + '"/>';
+    });
     if (hI >= 0) {
       t += '<line x1="' + X(hI).toFixed(1) + '" x2="' + X(hI).toFixed(1) + '" y1="4" y2="' + yB + '" stroke="#1f3b57" opacity=".5"/>' +
         '<circle cx="' + X(hI).toFixed(1) + '" cy="' + Yb(ser[hI].fo).toFixed(1) + '" r="4" fill="' + zonaBal(ser[hI].fo).h + '" stroke="#fff" stroke-width="1.5"/>';
     }
     t += '<line id="curva-cursor2" x1="0" y1="4" x2="0" y2="' + yB + '" stroke="#1f3b57" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
     curvaSer = ser; curvaGeo = { W: W, n: n, x0: x0, ancho: x1 - x0 };
+
+    /* LAS DOS TIRAS, ENTRE LAS DOS GRAFICAS (Carlos, 8-nov-2026: «lo pondrias en
+       balance, no mejor en la grafica de carga y fatiga?»). Ni una ni otra: en
+       MEDIO. Las dos graficas se dibujan de esta misma serie y con esta misma
+       `X(i)`, asi que un dia cae en la misma columna arriba y abajo. Puesta en
+       medio, la tira se lee contra la barra verde de arriba —lo que entrenaste—
+       y contra el balance de abajo —lo que costo—, que es la cadena entera.
+       La de sueno es la media de las DOS ultimas noches, no la de esa noche:
+       es la cifra que el semaforo usa de verdad para bajar un escalon, asi que
+       es la unica que explica su color. */
+    var SUE_CORTO = (P.semaforo && P.semaforo.sueno_corto) || 5;
+    var tiras = "", bwT = Math.max(1.5, (x1 - x0) / n - 1), hayT = false;
+    ser.forEach(function (x, i) {
+      if (!x.sem) return;
+      hayT = true;
+      var cs = x.sem.id === "rojo" ? "#b3402f" : x.sem.id === "ambar" ? "#c98a1b"
+             : x.sem.id === "azul" ? "#2f5c8a" : "#2f6b47";
+      tiras += '<rect x="' + (X(i) - bwT / 2).toFixed(1) + '" y="14" width="' + bwT.toFixed(1) +
+               '" height="12" rx="2" fill="' + cs + '"/>';
+      var h = x.sem.razones && x.sem.razones.noches;
+      if (h == null) return;
+      tiras += '<rect x="' + (X(i) - bwT / 2).toFixed(1) + '" y="30" width="' + bwT.toFixed(1) +
+               '" height="12" rx="2" fill="' +
+               (h < SUE_CORTO ? "#c96a56" : h < 6 ? "#e0b25c" : "#4e8f6d") + '"/>';
+    });
+    if (hayT) {
+      tiras = '<text x="' + (x0 - 5) + '" y="23" font-size="9.5" fill="#8a97a3" text-anchor="end">semáforo</text>' +
+              '<text x="' + (x0 - 5) + '" y="39" font-size="9.5" fill="#8a97a3" text-anchor="end">sueño</text>' + tiras +
+              '<line id="curva-cursor3" x1="0" y1="10" x2="0" y2="46" stroke="#1f3b57" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+    }
 
     /* los días que VIENEN en el tramo, contados por zona */
     var vienen = ser.slice(hI + 1), cnt = {};
@@ -12782,7 +12860,15 @@
       leyenda([{ n: "forma prevista (guiones)", color: "#8fa3b5" }, { n: "forma conseguida", color: "#2f95cc" },
                { n: "proyección desde hoy", color: "#9fd3ef" }, { n: "fatiga", color: "#7b61c2" },
                { n: "carga hecha", color: "#6cc08b" }, { n: "carga prevista", color: "#cfdcea" }]) +
-      '<p class="ramp-sub">Balance <small>— lo medido en color, lo que viene más claro</small></p>' +
+      (hayT ? '<svg class="ramp-svg" data-curva="1" ' + CUR + ' viewBox="0 0 ' + W + ' 50" preserveAspectRatio="xMidYMid meet">' +
+        tiras + "</svg>" +
+        leyenda([{ n: "Descansa", color: "#b3402f" }, { n: "Suave", color: "#c98a1b" },
+                 { n: "Normal", color: "#2f6b47" }, { n: "Sube", color: "#2f5c8a" },
+                 { n: "dos noches cortas", color: "#c96a56" }, { n: "justas", color: "#e0b25c" },
+                 { n: "bien", color: "#4e8f6d" }]) : "") +
+      '<p class="ramp-sub">Balance <small>— lo medido en color, lo que viene más claro. ' +
+        'Los puntos son los días que el semáforo frenó, ámbar o rojo; con aro oscuro, ' +
+        'los que entrenaste igual. Pasa el ratón o el dedo para ver por qué.</small></p>' +
       '<svg class="ramp-svg" data-curva="1" ' + CUR + ' viewBox="0 0 ' + W + " " + H2 + '" preserveAspectRatio="xMidYMid meet">' + t + "</svg>" +
       '<div id="curva-dato" style="display:none;position:absolute;top:4px;pointer-events:none;z-index:3;' +
         'background:#fff;border:1px solid #d6dde4;border-radius:8px;padding:6px 9px;font-size:12px;' +

@@ -608,6 +608,21 @@
   border-radius:var(--r-full);padding:2px 9px}
 #vista-menu .toma .cabt .stoma{font-size:13px;font-weight:650;color:var(--ambar);background:var(--ambar-fondo);
   border-radius:var(--r-full);padding:2px 9px}
+/* PROTEINA, HIDRATOS Y GRASA DE LA TOMA (Carlos, 8-nov-2026). Van DENTRO de la
+   cabecera, que ya es flex con salto de linea, y las tres juntas en un solo
+   hueco: asi en el ordenador caben al lado de las kcal y en movil y tablet bajan
+   solas a la linea de abajo sin partirse una de otra.
+   Los colores son los suyos, los mismos de la barra de macros del dia. */
+#vista-menu .toma .cabt .mtoma{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+#vista-menu .toma .cabt .mtoma .m1{font-size:12px;font-weight:600;border-radius:var(--r-full);
+  padding:2px 8px;white-space:nowrap;letter-spacing:0}
+#vista-menu .toma .cabt .mtoma .m1 b{font-size:12px;font-weight:700;letter-spacing:0}
+#vista-menu .toma .cabt .mtoma .mp{color:var(--mac-p);background:var(--mac-p-10)}
+#vista-menu .toma .cabt .mtoma .mh{color:var(--mac-h);background:var(--mac-h-10)}
+#vista-menu .toma .cabt .mtoma .mg{color:var(--mac-g);background:var(--mac-g-10)}
+#vista-menu .toma .cabt .mtoma .mp b{color:var(--mac-p)}
+#vista-menu .toma .cabt .mtoma .mh b{color:var(--mac-h)}
+#vista-menu .toma .cabt .mtoma .mg b{color:var(--mac-g)}
 #vista-menu .toma .cabt .der{margin-left:auto;display:flex;gap:7px;align-items:center}
 #vista-menu .paxg{display:flex;align-items:center;gap:2px;border:1px solid var(--linea-2);border-radius:var(--r-full);padding:2px 4px}
 #vista-menu .paxg.uno{background:var(--ambar-fondo);border-color:var(--ambar-borde)}
@@ -868,6 +883,14 @@
 #vista-menu .navflota .nfh.eshoy, .navflota .nfh.eshoy{color:var(--verde);cursor:default}
 @media (max-width:620px){
   #vista-menu .navflota, .navflota{right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+}
+/* LAS FLECHAS, MAS ARRIBA EN PANTALLA TACTIL (Carlos, 8-nov-2026: «en la tablet
+   todavia tapa la barra de herramientas»). La regla de arriba las sube solo por
+   debajo de 620 px de ancho: eso coge el movil y NO la tablet, que es mas ancha,
+   asi que alli seguian a 22 px del borde, justo donde el navegador pone su barra.
+   Lo que distingue a esos dos aparatos no es el ancho, es que no hay raton. */
+@media (hover:none){
+  #vista-menu .navflota, .navflota{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 }
 
 /* lo que queda de un bloque de 100, en su ficha del selector (6-nov) */
