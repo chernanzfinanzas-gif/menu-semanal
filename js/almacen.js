@@ -3648,7 +3648,18 @@
     },
 
     /* sal total de un día del plan (por persona), con lo comido fuera estimado */
-    salDia: function (fecha) {
+    /* `soloComido` (9-nov-2026). Carlos, el 17 de octubre: el día ponía 899 kcal
+       —lo que tenía marcado— y al lado 8,32 g de sal, el 238 % del techo, que
+       era la comida y la cena ENTERAS sin comer. La sal era la única suma del
+       motor que no sabía distinguir lo planificado de lo comido: `nutrToma` y
+       `nutrDia` tienen el interruptor desde siempre y aquí no estaba, porque la
+       sal del día no pasa por ahí, tiene su propia suma (ver el comentario del
+       pan de Susana, más abajo). Mismo agujero, mismo sitio.
+       OJO AL USARLO: el planificador TIENE que seguir pidiendo el día entero.
+       Si contase solo lo comido, por la mañana creería que queda margen y te
+       metería un plato salado. Solo se pone a `true` donde se está juzgando lo
+       que has comido: la nota del día y el panel del día. */
+    salDia: function (fecha, soloComido) {
       var dia = this.estado.plan[fecha];
       if (!dia) return 0;
       var total = 0, self = this;
@@ -3659,11 +3670,13 @@
           if (puestos.length) {
             var gf = self.agrupar(puestos, fecha, toma);
             gf.orden.forEach(function (id) {
+              if (soloComido && !self.estaComido(fecha, toma, id)) return;
               if (self.noMeCuenta(fecha, toma, id)) return;   /* tampoco fuera de casa */
               total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, gf.veces[id]);
             });
             return;
           }
+          if (soloComido && !self.fueraComido(fecha, toma)) return;
           var e = self.estimacionFuera(toma);
           if (e) total += e.sal;
           return;                                   // fuera no se cocina: nada más que sumar
@@ -3676,10 +3689,14 @@
              le metían 1,24 g de sal al día, el 62 % de su umbral ámbar, de pan
              que no se come él. El comentario de `duenoDe` decía que `nutrToma`
              era «por donde pasan todas las sumas del día»; no era verdad. */
+          if (soloComido && !self.estaComido(fecha, toma, id)) return;
           if (self.noMeCuenta(fecha, toma, id)) return;
           total += self.salEn(fecha, id) * self.factorPlato(fecha, toma, id, g.veces[id]);
         });
       });
+      /* Los caprichos cuentan SIEMPRE, igual que en las calorías: un capricho se
+         apunta después de comerlo, así que pedirle además el visto sería pedir
+         dos veces lo mismo. */
       (dia.capricho || []).forEach(function (id) { total += self.salEn(fecha, id); });
       return total;
     },
@@ -4042,7 +4059,7 @@
       }
 
       // ---- sal: sólo por encima del techo ----
-      var sal = this.salDia(fecha);
+      var sal = this.salDia(fecha, true);   /* lo comido, igual que las kcal de arriba */
       var techo = c.limiteSal || 4;
       if (this.fichaTipoDia(fecha).topeSal && sal > techo) {
         var castigoS = Math.min(15, (sal - techo) * 8);
@@ -5476,9 +5493,31 @@
        y es justo el error que la pasada existe para evitar—. Lo que se pierde
        al reiniciar no es el dato, es la CONFIANZA en el dato: la ficha dirá
        «apuntado hace 12 días» hasta que vuelvas a mirarla. */
+    /* ---------- EL CORTE DE LA DESPENSA (9-nov-2026) ----------
+       Carlos: «el miércoles después de la compra hago un stock completo y
+       tomamos ese punto de corte».
+       Viene del lío de los huevos: él contó a mano y dijo «huevos quedan 4»,
+       y la app decía que no había. Lo que descuadra un recuento es que DESPUÉS
+       un día anterior vuelva a tocar la despensa: marcas un ✓ que se te había
+       olvidado del lunes, o corriges un día viejo, y eso descuenta otra vez
+       sobre lo que acabas de contar con las manos.
+       Un recuento es la verdad en ese momento. Así que desde el día en que
+       empiezas una ronda, los días ANTERIORES dejan de mover el stock: ni un ✓
+       descuenta, ni una ✕ devuelve. Las calorías, los macros y la sal de esos
+       días se siguen contando igual; lo único que se congela es la despensa.
+       El día del corte sí funciona normal, porque es el día en el que cuentas:
+       lo que comas después del recuento tiene que descontarse. */
+    corteDespensa: function () { return this.estado.corteDespensa || null; },
+    antesDelCorte: function (fecha) {
+      var c = this.estado.corteDespensa;
+      return !!(c && String(fecha) < String(c));
+    },
+
     iniciarRonda: function () {
       this.estado.stockSitios = {};
       this.estado.rondaStock = Util.hoyISO();
+      /* El recuento que empieza hoy fija el corte: lo de antes ya no se toca. */
+      this.estado.corteDespensa = Util.hoyISO();
       this._sellarStock();
       this.guardar("stock");
       return true;
@@ -5874,6 +5913,7 @@
        aplica aunque la línea esté contada a mano: el cambio es tuyo y es
        posterior, y dice que comiste otra cosa de la que se apuntó. */
     reajustarGasto: function (fecha, toma, recetaId) {
+      if (this.antesDelCorte(fecha)) return null;  /* ver «el corte de la despensa» */
       var antes = this.gastoApuntado(fecha, toma, recetaId);
       if (!antes) return null;
       var nuevo = this.esFuera(fecha, toma) ? {} : (this.gastoDePlato(fecha, toma, recetaId) || {});
@@ -5918,6 +5958,7 @@
     },
 
     gastarDespensa: function (fecha, toma, recetaId) {
+      if (this.antesDelCorte(fecha)) return;      /* ver «el corte de la despensa» */
       if (this.esFuera(fecha, toma)) return;
       if (this.gastoApuntado(fecha, toma, recetaId)) return;   // ya estaba descontado
       var gasto = this.gastoDePlato(fecha, toma, recetaId);
@@ -5975,6 +6016,7 @@
        `t`, y `gastar` y `devolver` escriben la línea sin ella: si la línea
        TRAE `t`, lo último que la tocó fuiste tú contando, y no se devuelve. */
     devolverDespensa: function (fecha, toma, recetaId) {
+      if (this.antesDelCorte(fecha)) return null;  /* ver «el corte de la despensa» */
       var hecho = this.gastoApuntado(fecha, toma, recetaId);
       if (!hecho) return null;
       var self = this, respetados = [];

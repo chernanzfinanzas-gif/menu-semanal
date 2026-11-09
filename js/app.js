@@ -1921,6 +1921,7 @@ function numerosDia(f) {
              plan: A.nutrDia(f, false),
              comido: A.nutrDia(f, true),
              sal: A.salDia(f),
+             salComido: A.salDia(f, true),
              nota: A.notaDia(f),
              semaforo: A.semaforoKcal(A.nutrDia(f, false).k, obj) };
   } catch (e) { return null; }
@@ -3222,6 +3223,7 @@ function resumenDia(f) {
   /* 2B · nutrientes y sal, con % y semáforo */
   var om = P.objetivosMacros(f) || { p: 144, g: 55, h: 147, sal: 3.5 };
   var base = pasado && com ? n.comido : n.plan;
+  var salBase = (pasado && com && n.salComido != null) ? n.salComido : n.sal;
   var m = el('div', 'p2 macros');
   /* Medidores, no píldoras: aquí el trabajo del dato es «cuánto llevo de mi
      objetivo», y eso se lee en una barra, no en un número suelto. El color es
@@ -3250,9 +3252,13 @@ function resumenDia(f) {
       mac('P', 'Proteína', base.p, om.p, 'corto') +
       mac('G', 'Grasas', base.g, om.g, 'ambos') +
       mac('H', 'Hidratos', base.h, om.h, 'ambos') +
+      /* LA SAL VA CON EL RESTO DEL PANEL (9-nov-2026). La cabecera dice «LO
+         COMIDO» en un día pasado y las tres barras de arriba usan `base`, pero
+         la sal leía siempre el plan entero: el 17 de octubre salían 899 kcal
+         comidas y 8,32 g de sal del día completo, en la misma tarjeta. */
       (P.hayTopeSal(f)
-        ? mac('Sal', 'Sal', n.sal, om.sal, 'ambos', true)
-        : '<div class="mmed libre"><div class="et"><b>Sal</b>' + coma(n.sal) +
+        ? mac('Sal', 'Sal', salBase, om.sal, 'ambos', true)
+        : '<div class="mmed libre"><div class="et"><b>Sal</b>' + coma(salBase) +
           ' g<i>sin tope hoy</i></div></div>') +
     '</div>' +
     (cad && cad.entreno ? '<div class="ment">+' + mil(cad.entreno) + ' kcal del entreno</div>' : '');
@@ -9581,6 +9587,11 @@ function pintarTodo() {
     var tk = ticketDeTienda(nom);
     return lineasDeTienda(g).filter(function (o) {
       if (tk && tk.ids[o.l.id] != null) return false;            // lo trae el ticket: ya está comprado
+      /* NADA QUE COMPRAR NO ES UNA NOVEDAD (9-nov-2026). Las líneas que salen
+         con «0 g» —avellanas, nueces, almendras: lo que ya está cubierto en
+         casa— no estaban en la foto del pedido, así que `a == null` las daba
+         por nuevas y engordaban el aviso con productos que no hay que pedir. */
+      if (!(cantDeLinea(o.l) > 0)) return false;
       var a = p.ids[o.l.id];
       o.antes = a == null ? null : a;
       return a == null || cantDeLinea(o.l) > a + 0.001;

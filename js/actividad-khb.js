@@ -470,7 +470,7 @@
         km: a.km != null ? a.km : null,
         desnivel: a.desnivel != null ? a.desnivel : null,
         min: a.min_mov != null ? Math.round(a.min_mov) : null,
-        carga: a.esfuerzo != null ? a.esfuerzo : null,
+        carga: a.esfuerzo != null ? a.esfuerzo : null,   /* TSS de intervals, con SU FTP */
         pot: a.pot_norm != null ? a.pot_norm : null,
         ftp: a.ftp_est != null ? a.ftp_est : null,
         wkg: a.w_kg != null ? a.w_kg : null,
@@ -2169,7 +2169,16 @@
         ["Cadencia habitual", a.rpm != null ? a.rpm + " rpm" : null,
          (p && p.cad) ? (a.rpm >= p.cad - 0.5 ? "objetivo de la semana: " + p.cad + " ✔" : "objetivo de la semana: " + p.cad)
            : a.rpm != null && a.rpm < 85 ? "por debajo de las 85-95 cómodas en zona 2" : "", ""],
-        ["Carga", a.carga != null ? num(a.carga) : null, "calculada con FTP " + a.ftp, ""]
+        /* CON QUÉ FTP ESTÁ CALCULADA CADA UNA (9-nov-2026). Carlos: «carga 23,
+           carga 50… no recuerdo que en Zwift saliera un valor mucho mayor de
+           30». Las dos son TSS; lo que cambia es la FTP y el tramo. La ficha de
+           la actividad enseña el `esfuerzo` de intervals, calculado con la FTP
+           que intervals tenga guardada (155 hoy) y sobre la salida ENTERA; el
+           análisis calcula la suya con la FTP del test (182) y solo sobre el
+           bloque analizado. El pie decía «calculada con FTP 182» debajo del
+           número de intervals, que no sale de ningún FTP de aquí: era falso. */
+        ["Carga", a.carga != null ? num(a.carga) : null,
+         a.ftp ? "TSS con FTP " + a.ftp + ", del bloque analizado" : "", ""]
       ].filter(function (c) { return c[1] != null; }).map(function (c) {
         return '<div class="akhb-an-cifra"><span class="akhb-an-et">' + c[0] + "</span>" +
           '<span class="akhb-an-v">' + c[1] + "</span>" +
@@ -2280,7 +2289,11 @@
           ? dato("Altura", num(x.altMin) + " – " + num(x.altMax), " m") : "") +
         (x.pendMax != null ? dato("Pendiente máxima", num(x.pendMax, 1), " %") : "") +
         (x.pendMedia != null ? dato("Pendiente media", num(x.pendMedia, 1), " %") : "") +
-        (x.carga != null ? dato("Carga", x.carga) : "") +
+        /* «Carga» a secas confundía: este número es el TSS que calcula intervals
+           con la FTP que ÉL tenga guardada, y es la escala con la que está hecha
+           toda la rampa del plan. El del análisis, más abajo, va con la FTP del
+           test y solo con el bloque. Dos TSS distintos en la misma ficha. */
+        (x.carga != null ? dato("Carga (TSS de intervals)", x.carga) : "") +
         /* lo de abajo solo si existe: una caminata no tiene vatios y poner
            «Potencia —» es ruido, no información */
         (x.pulso != null ? dato("Pulso medio", x.pulso, " ppm") : "") +
