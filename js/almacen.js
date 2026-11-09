@@ -2814,6 +2814,7 @@
       }
       this._sellarActividad(this._fotoActividad || {}, iso);
       this._sellarStockPorFicha(iso);
+      this._sellarConfigPorClave(iso);
       this._fotoDias = ahora;
       this._fotoActividad = JSON.parse(JSON.stringify(this.estado.actividad || {}));
     },
@@ -2837,6 +2838,33 @@
       var e = this.estado, id;
       for (id in ahora) if (ahora[id] !== antes[id]) { (e.stockHora = e.stockHora || {})[id] = iso; }
       for (id in antes) if (!(id in ahora)) { (e.stockHora = e.stockHora || {})[id] = iso; }
+    },
+
+    /* M13 · 9-nov-2026 — LA CONFIGURACIÓN, CLAVE A CLAVE.
+       Carlos, 9-nov: «el móvil sigue pisando datos en lugar de actualizarlos».
+       El objetivo de proteína pasó de 144 a 90 y vuelta varias veces en una
+       mañana. La configuración no tenía sello propio: la decidía ENTERA el
+       reloj global del estado, así que un aparato con los Ajustes viejos que
+       guardase cualquier otra cosa después se llevaba por delante la
+       configuración buena. Es el mismo agujero que ya se tapó para los días
+       (23-sep), las fichas (4-oct) y las pesadas (8-oct); la configuración se
+       había quedado fuera. Ahora cada clave que cambia deja su hora en
+       `configHora` y al juntar gana, clave a clave, quien la tocó más tarde.
+       `github` y `catalogo` se quedan fuera a propósito: son de ESTE aparato
+       (su clave, su pausa) y se vuelven a poner en cada descarga. */
+    _CONFIG_SIN_SELLO: { github: 1, catalogo: 1 },
+    _retratarConfig: function () {
+      var f = {}, c = this.estado.config || {}, fuera = this._CONFIG_SIN_SELLO;
+      Object.keys(c).forEach(function (k) { if (!fuera[k]) f[k] = JSON.stringify(c[k]); });
+      return f;
+    },
+    _sellarConfigPorClave: function (iso) {
+      var ahora = this._retratarConfig(), antes = this._fotoConfig;
+      this._fotoConfig = ahora;
+      if (!antes) return;
+      var e = this.estado, k;
+      for (k in ahora) if (ahora[k] !== antes[k]) { (e.configHora = e.configHora || {})[k] = iso; }
+      for (k in antes) if (!(k in ahora)) { (e.configHora = e.configHora || {})[k] = iso; }
     },
 
     /* LO PEDIDO A MANO TAMBIÉN ES UNA FOTO (25-sep-2026).
@@ -2865,6 +2893,7 @@
       this._fotoDias = this._retratarDias();
       this._fotoActividad = JSON.parse(JSON.stringify(this.estado.actividad || {}));
       this._fotoStock = this._retratarStock();
+      this._fotoConfig = this._retratarConfig();
     },
 
     reemplazar: function (nuevo) {

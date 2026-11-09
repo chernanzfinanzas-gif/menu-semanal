@@ -206,6 +206,58 @@
     junto.actualizado = (local.actualizado || "") > (remoto.actualizado || "")
       ? local.actualizado : remoto.actualizado;
 
+    /* ── LA CONFIGURACIÓN, CLAVE A CLAVE POR SU HORA (9-nov-2026) ───────
+       Carlos, 9-nov: «el móvil sigue pisando datos en lugar de actualizarlos»
+       y «esto estaba totalmente resuelto antes». Lo estaba para los días, las
+       fichas y las pesadas; la configuración no. La resolvía `fusionar` con el
+       reloj GLOBAL, así que el aparato que guardaba lo último mandaba sobre
+       TODOS los ajustes, los hubiera tocado o no: el objetivo de proteína
+       estuvo yendo y viniendo de 144 a 90 toda la mañana.
+       Ahora cada clave que se toca deja su hora (`configHora`, ver
+       `_sellarConfigPorClave` en almacen.js) y gana, clave a clave, quien la
+       tocó más tarde. UNA CLAVE SIN HORA EN NINGÚN LADO NO SE TOCA AQUÍ: se
+       queda exactamente como la dejó la fusión de arriba, que es lo que se
+       hacía hasta hoy. Así lo viejo no cambia de comportamiento.
+       `github` y `catalogo` no entran: son de este aparato y se reponen abajo. */
+    (function () {
+      var FUERA = { github: 1, catalogo: 1 };
+      var cL = local.config || {}, cR = remoto.config || {};
+      var hL = local.configHora || {}, hR = remoto.configHora || {};
+      var cJ = junto.config || {}, hJ = {}, k;
+      for (k in hL) if (!FUERA[k] && Object.prototype.hasOwnProperty.call(hL, k)) hJ[k] = hL[k];
+      for (k in hR) if (!FUERA[k] && Object.prototype.hasOwnProperty.call(hR, k)) {
+        if (!hJ[k] || String(hR[k]) > String(hJ[k])) hJ[k] = hR[k];
+      }
+      Object.keys(hJ).forEach(function (c) {
+        var a = String(hL[c] || ""), b = String(hR[c] || "");
+        var ganaR = b > a;
+        var src = ganaR ? cR : cL, otro = ganaR ? cL : cR;
+        var conSello = ganaR ? !!hR[c] : !!hL[c];
+        if (Object.prototype.hasOwnProperty.call(src, c)) cJ[c] = JSON.parse(JSON.stringify(src[c]));
+        else if (!conSello && Object.prototype.hasOwnProperty.call(otro, c)) cJ[c] = JSON.parse(JSON.stringify(otro[c]));
+        else delete cJ[c];              /* lo borró el que manda, y con su hora */
+      });
+      junto.config = cJ;
+      if (Object.keys(hJ).length) junto.configHora = hJ;
+    })();
+
+    /* ── LOS DÍAS CORREGIDOS, SIEMPRE LA HORA MÁS NUEVA (9-nov-2026) ─────
+       `selloDia` y `corregido` son las dos horas con las que se decide de quién
+       es cada día (`selloDe` las compara más abajo). `selloDia` ya se juntaba
+       cogiendo la más nueva; `corregido` se había quedado con la fusión
+       genérica, que resuelve un número suelto con el reloj GLOBAL. O sea que un
+       aparato con la hora vieja de un día corregido podía REBAJARLA, y a la
+       vuelta siguiente ese día lo perdía quien sí lo había tocado. Una hora no
+       va hacia atrás: de cada día, la más nueva de las dos. */
+    (function () {
+      var A = local.corregido || {}, B = remoto.corregido || {}, J = {}, d;
+      for (d in A) if (Object.prototype.hasOwnProperty.call(A, d)) J[d] = A[d];
+      for (d in B) if (Object.prototype.hasOwnProperty.call(B, d)) {
+        if (!J[d] || String(B[d]) > String(J[d])) J[d] = B[d];
+      }
+      if (Object.keys(J).length) junto.corregido = J;
+    })();
+
     /* ── LAS PLANTILLAS, UNA A UNA POR SU HORA (10-oct-2026) ─────────────
        De cada plantilla manda la que se tocó más tarde (`t`); una borrada
        (`plantillasBorradas`) no vuelve salvo que alguien la guarde después. */
