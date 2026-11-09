@@ -3770,7 +3770,11 @@
     if (!R || iso < R.desde) return true;          // la regla vieja decide
     if (emparejada) return true;                    // desde la semana 3 solo empareja con la salida larga
     if (a.pulso && a.pulso >= R.pulsoMin) return true;
-    if (a.min > 0 && (a.desn || 0) / (a.min / 60) >= R.desnivelHora) return true;
+    /* el desnivel por hora va POR FECHA (8-nov-2026): las semanas cerradas
+       conservan el umbral con el que se juzgaron. */
+    var dh = R.desnivelHora, dhd = R.desnivelHoraDesde || {};
+    Object.keys(dhd).sort().forEach(function (fch) { if (iso >= fch) dh = dhd[fch]; });
+    if (a.min > 0 && (a.desn || 0) / (a.min / 60) >= dh) return true;
     return false;
   }
 

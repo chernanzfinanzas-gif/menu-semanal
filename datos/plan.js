@@ -160,7 +160,16 @@
        contado 3 de 10 (102 de 208 puntos); en la semana 2, ninguno.
        El 110 es razonado, NO medido contra su recuperación: revisar el 2-nov,
        ya sin cortisona por medio. */
-    caminataCuenta: { desde: "2026-10-05", pulsoMin: 110, desnivelHora: 200, revisar: "2026-11-02" },
+    /* 8-nov-2026 (Carlos, revisión de la semana 7): el desnivel por hora baja de
+       200 a 175. La caminata de Riofrío de Riaza del 4-nov salió a 192 m/h con
+       pulso 101 y quedó fuera por ocho metros, y no se pudo declarar como la
+       salida larga porque la ruta la descubrieron al llegar. Sus paseos del
+       barrio van entre 24 y 57 m/h, así que a 175 no entra ninguno de más.
+       POR FECHA, como el rodillo y la fuerza: las semanas ya cerradas no se
+       rehacen, así que Riaza se queda como extra en la semana 7. */
+    caminataCuenta: { desde: "2026-10-05", pulsoMin: 110, desnivelHora: 200,
+                      desnivelHoraDesde: { "2026-11-09": 175 },
+                      revisar: "2026-12-14" },
 
     crucero: {
       paso: 24,          // 4-oct-2026: era 28; ×0,85 al sacar los paseos de la carga
