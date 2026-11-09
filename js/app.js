@@ -712,6 +712,11 @@ var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','
 function diaNum(f) { return Number(f.slice(8, 10)); }
 function mesDe(f) { return MESES[Number(f.slice(5, 7)) - 1]; }
 var HOY = iso(new Date());
+/* `HOY` se fija al cargar la app. En el móvil la app no se cierra: se queda
+   abierta de un día para otro y entonces «hoy» seguiría siendo el de ayer —el
+   rótulo HOY, el botón flotante y el calendario marcarían el día equivocado.
+   Esto lo vuelve a calcular; lo llama la entrada en «Día a día» (9-nov-2026). */
+function refrescarHoy() { HOY = iso(new Date()); try { API.HOY = HOY; } catch (e) {} return HOY; }
 
 /* ====================== ESTADO ====================== */
 var CLAVE = 'menu-pantalla-v1';
@@ -2763,7 +2768,7 @@ var API = { grupos: function () { return PL().grupos; }, topeSal: topeSal, topeF
                  quitarActividad: quitarActividad, entrenoEstandar: entrenoEstandar, sinMarcar: sinMarcar,
                  cerrarDia: cerrarDia, estaCerrado: estaCerrado, abrirDia: abrirDia,
                  estaComido: estaComido, marcarComido: marcarComido, unidades: unidades, paso: paso, cualSemana: cualSemana, tirar: tirar, POR_ID: POR_ID, RECETAS: RECETAS, esGuar: esGuar,
-                 valeCC: valeCC, TIPOS: TIPOS, ETIQ: ETIQ, HOY: HOY, DIAS: DIAS, diaNum: diaNum,
+                 valeCC: valeCC, TIPOS: TIPOS, ETIQ: ETIQ, HOY: HOY, refrescarHoy: refrescarHoy, DIAS: DIAS, diaNum: diaNum,
                  mesDe: mesDe,
                  corregidoEl: corregidoEl, vaciarSemana: vaciarSemana, plantillas: plantillas, platosDePlantilla: platosDePlantilla,
                  guardarPlantilla: guardarPlantilla, aplicarPlantilla: aplicarPlantilla,
@@ -5323,7 +5328,15 @@ function listaFijoDia() {
 }
 
 function irA(v) {
-  var E = P.E(); E.vista = v; P.guardar();
+  var E = P.E();
+  /* AL ABRIR «Día a día» SE EMPIEZA EN HOY (Carlos, 9-nov-2026: «se guarda
+     donde se quedó, lo suyo es que al abrir la pestaña se vaya al día de
+     hoy»). Dentro de la vista te puedes mover a otro día y ahí se queda
+     mientras estés; al salir y volver a entrar, vuelve a hoy. Pasa por
+     `refrescarHoy` porque `P.HOY` se fija al cargar la app y se queda viejo
+     si la dejas abierta de un día para otro. */
+  if (v === 'dia') { try { E.diaVisto = P.refrescarHoy(); } catch (e) {} }
+  E.vista = v; P.guardar();
   document.getElementById('vista-plan').style.display = (v === 'plan') ? '' : 'none';
   document.getElementById('vista-dia').style.display = (v === 'dia') ? '' : 'none';
   document.getElementById('t-plan').className = (v === 'plan') ? 'on' : '';
@@ -5562,6 +5575,17 @@ function pintarTodo() {
     return {
       pintar: pintarTodo,
       pintarDia: pintarDia,
+      /* Volver a la pestaña Menú desde Recetas, La compra o Despensa con
+         «Día a día» abierto cuenta también como abrirla: hoy otra vez.
+         Lo llama `mostrar` SOLO cuando cambias de pestaña, no en los
+         repintados de dentro (vaciar un día, marcar comido), que si no te
+         sacarían del día que estás editando. */
+      alAbrir: function () {
+        var E = null;
+        try { E = P.E(); } catch (e) { return; }
+        if (!E || E.vista !== 'dia') return;
+        try { E.diaVisto = P.refrescarHoy(); P.guardar(); } catch (e) {}
+      },
       abrirSelector: function (f, tm) { abrirCatalogo(f, tm, 0, null); },
       abrirSelectorActividad: function (f) { abrirTipoDia(f, null); },
       abrirSelectorCapricho: function (f) { abrirCaprichos(f); },
@@ -11113,10 +11137,11 @@ function pintarTodo() {
 
   /* ==================== NAVEGACIÓN ==================== */
   function mostrar(vista) {
+    var cambioDePestana = UI.vista !== vista;
     UI.vista = vista;
     $$(".vista").forEach(function (v) { v.classList.toggle("activa", v.id === "vista-" + vista); });
     $$("#pestanas button").forEach(function (b) { b.classList.toggle("activa", b.getAttribute("data-vista") === vista); });
-    if (vista === "menu") pintarMenu();
+    if (vista === "menu") { if (cambioDePestana && MENU.alAbrir) MENU.alAbrir(); pintarMenu(); }
     if (vista === "recetas") pintarRecetas();
     if (vista === "compra") pintarCompra();
     /* LA DESPENSA ENTRA POR SU PESTAÑA, NO POR LA PANTALLA VIEJA. Al abrir la
