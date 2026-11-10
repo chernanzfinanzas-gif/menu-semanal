@@ -4261,9 +4261,20 @@ function abrirCatalogo(fecha, toma, ranura, forzarTipo) {
   cat = { fecha: fecha, toma: toma, ranura: ranura, filtro: forzarTipo || tipoNorma || 'todas', busca: '' };
   pintarCatalogo();
 }
+/* FAVORITAS EN EL CATÁLOGO (v636, 10-nov-2026). El motor sabe calcularlas desde
+   el v370 y la ventana de la nota lo promete por escrito —«las de 4 y 5 salen en
+   Favoritas al elegir plato»—, pero el chip nunca se montó. Se usa `estrellasPlato`
+   y no `estrellas` para que cuente también lo que puntuaste como plato + guarnición,
+   que es lo mismo que mira el completador. La lista sigue ordenándose por lo que
+   tienes en casa, así que salen primero las favoritas que puedes hacer hoy. */
+function esFavorita(r) {
+  try { return Almacen.estrellasPlato(r.id) >= 4 && (P.valeCC(r) || P.esGuar(r)); }
+  catch (e) { return false; }
+}
 function listaCatalogo() {
   var f = cat.filtro, q = cat.busca.trim().toLowerCase();
   var l = P.RECETAS.filter(function (r) {
+    if (f === 'favoritas') return esFavorita(r);
     if (f === 'guarnicion') return P.esGuar(r);
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
     if (f === 'restaurante') return P.esRestaurante(r);
@@ -4286,6 +4297,7 @@ function listaCatalogo() {
 }
 function cuenta(f) {
   return P.RECETAS.filter(function (r) {
+    if (f === 'favoritas') return esFavorita(r);
     if (f === 'guarnicion') return P.esGuar(r);
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
     if (f === 'restaurante') return P.esRestaurante(r);
@@ -4332,17 +4344,20 @@ function pintarCatalogo() {
     tipos = [cat.filtro].concat(tipos.filter(function (x) { return x !== cat.filtro; }));
   }
   var orden = (cat.toma === 'almuerzo' || cat.toma === 'merienda')
-    ? ['b100', 'pieza', 'suelto', 'bebida', 'postre', 'todas'].concat(tipos, ['guarnicion','pan','desayuno','restaurante'])
+    ? ['b100', 'pieza', 'suelto', 'bebida', 'postre', 'todas', 'favoritas'].concat(tipos, ['guarnicion','pan','desayuno','restaurante'])
     /* «Ingredientes solos» era el chip 17 de 17 en comida y cena, y Carlos no
        llegaba a él: 7-nov-2026, «la opción es poder meter ingredientes sueltos en
        cada toma… como grupo, Solo un Ingrediente, creo que ya existía». Existía.
        Sube al segundo puesto; el orden de la mesa que él fijó el 3-oct no se toca. */
-    : ['todas','suelto'].concat(tipos, ['guarnicion','pan','postre','bebida','desayuno','restaurante']);
+    : ['todas','favoritas','suelto'].concat(tipos, ['guarnicion','pan','postre','bebida','desayuno','restaurante']);
   orden.forEach(function (f) {
     var NOM = { todas: 'Todas', guarnicion: 'Guarniciones', pan: 'Panes',
                 postre: 'Postres', bebida: 'Bebidas', desayuno: 'Desayuno',
                 restaurante: 'Restaurante', suelto: 'Ingredientes solos',
-                b100: 'Bloques de 100', pieza: 'Piezas' };
+                b100: 'Bloques de 100', pieza: 'Piezas', favoritas: 'Favoritas' };
+    /* Un chip de Favoritas vacío no sirve de nada: si todavía no has puntuado
+       con 4 o 5, no se pinta. */
+    if (f === 'favoritas' && !cuenta('favoritas')) return;
     var nom = NOM[f] || P.ETIQ[f] || f;
     var c = el('button', 'chip' + (cat.filtro === f ? ' on' : ''), nom.charAt(0) + nom.slice(1).toLowerCase() + ' ' + cuenta(f));
     c.onclick = function () { cat.filtro = f; pintarCatalogo(); };
@@ -4511,6 +4526,16 @@ function pintarLista() {
 }
 
 /* ---------- vista de día: un día por pantalla ---------- */
+/* La nota se pide UNA vez por plato; después se cambia en su ficha. Si no hay
+   motor, o el plato no es valorable (un ingrediente solo, un restaurante), no
+   se pregunta nada. */
+function preguntaNota(id) {
+  try {
+    var r = Almacen.receta(id) || POR_ID[id];
+    if (!r || !Almacen.valorable(r) || Almacen.estrellas(id)) return;
+    preguntarEstrellas(r);
+  } catch (e) {}
+}
 /* control: ✓ comido + cuánto se comió */
 function marcaComido(f, tm, id) {
   var on = P.estaComido(f, tm, id);
@@ -4518,7 +4543,15 @@ function marcaComido(f, tm, id) {
   b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
   b.setAttribute('aria-label', on ? 'Marcar como no comido' : 'Marcar como comido');
   b.title = on ? 'comido' : 'marcar comido';
-  b.onclick = function () { P.marcarComido(f, tm, id); pintarDia(); avisaReajuste(); };
+  b.onclick = function () {
+    P.marcarComido(f, tm, id); pintarDia(); avisaReajuste();
+    /* «¿QUÉ TAL ESTABA?» VUELVE (v636, 10-nov-2026). La pregunta existe desde el
+       v370 y se quedó sin quien la llamara el 5-nov, al rehacer la vista Menú
+       desde el prototipo: el ✓ nuevo no la invocaba y la función quedó huérfana.
+       Sólo al marcar —no al desmarcar—, sólo la primera vez y sólo en platos
+       valorables. */
+    if (!on) preguntaNota(id);
+  };
   return b;
 }
 var editando = null;
@@ -5926,8 +5959,11 @@ function pintarTodo() {
           esc(Almacen.notaReceta(r.id)) + '" placeholder="el chorizo son 50 g, no 10" maxlength="160"></div>';
       }
     })();
-    /* Su nota, si ya la tiene: tocar otra estrella la cambia, la misma la quita. */
-    if (Almacen.estrellas(r.id)) html += filaEstrellas(r.id, Almacen.estrellas(r.id), "ficha");
+    /* LAS ESTRELLAS, SIEMPRE (v636, 10-nov-2026). Antes la fila sólo se pintaba
+       si la receta YA tenía nota, así que una sin puntuar no se podía puntuar
+       desde ningún sitio: 28 valoradas de 353. Ahora se pinta vacía y se puede
+       tocar. Tocar la misma estrella que ya tenía la quita. */
+    if (Almacen.valorable(r)) html += filaEstrellas(r.id, Almacen.estrellas(r.id), "ficha");
 
     html += '<div class="nutri-ficha">' +
             '<div><b>' + Math.round(n.p) + ' g</b><span>proteína</span></div>' +
