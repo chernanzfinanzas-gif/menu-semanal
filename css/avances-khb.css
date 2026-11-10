@@ -162,3 +162,9 @@ details.rev > summary.rev-cab { cursor: pointer; list-style: revert; }
 .rev-plegable[open] > summary::after { transform: rotate(180deg); }
 .rev-plegable > summary .av-sub { margin-bottom: 0; }
 .rev-plegable[open] > summary .av-sub { margin-bottom: 8px; }
+
+/* 10-nov-2026 · Mis avances: lo agrupado lleva otro color.
+   Verde = mes entero (carga) o semana entera (objetivos); azul = semana o sesión sueltas. */
+.av-hecha.av-mes, .av-bok.av-agr { fill: #3a8a6e; }
+.av-l-mes, .av-l-agr { background: #3a8a6e; }
+.av-subgraf { margin: 8px 0 -4px; font-weight: 600; }

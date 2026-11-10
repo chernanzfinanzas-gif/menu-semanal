@@ -13569,8 +13569,8 @@
       { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
       { n: "Press de banca",      s: 2, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
         garmin: "Press de banca inclinada con mancuernas" },
-      { n: "Extensión de tríceps", s: 2, r: "12",         kg: 7.5,
-        nota: "Sentado, una mancuerna cogida con las dos manos por detrás de la cabeza; los codos quietos, apuntando arriba. Empezar con 7,5",
+      { n: "Extensión de tríceps", s: 2, r: "12",         kg: 10,     // 10-nov-2026: de 7,5 a 10 kg (Carlos: «sube la rutina a 10 kg en tríceps»)
+        nota: "Sentado, una mancuerna cogida con las dos manos por detrás de la cabeza; los codos quietos, apuntando arriba",
         garmin: "Extensión de tríceps por encima de la cabeza con mancuernas" },
       { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros. Respirando, sin bloquear el aire" }
     ]},

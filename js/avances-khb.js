@@ -432,7 +432,13 @@
     var dom = [x0, x1];
     var semVis = sem.filter(function (w) { return msDe(w.desde) <= x1; });
 
-    var prim = ses[0], ult = ses[ses.length - 1];
+    /* 10-nov-2026, Carlos: «la deriva de la sesión de ftp también se va mucho y
+       lo mismo hay que sacar el test». El test no es un rodillo de base: su
+       deriva, sus vatios y su pulso no se comparan con los demás. Queda en el
+       recuento, en las horas y en la FTP; fuera de deriva, W/ppm, potencia,
+       pulso y cadencia. */
+    var sesZ = ses.filter(function (s) { return !(s.a.plantilla === "test" || s.a.ftp_test != null); });
+    var prim = sesZ[0], ult = sesZ[sesZ.length - 1];
     var horas = ses.reduce(function (t, s) { return t + (s.min || 0); }, 0) / 60;
     var ftpD = ftpDeclarada(plan, inicio);
     var tests = ses.filter(function (s) { return s.a.ftp_test; });
@@ -459,7 +465,7 @@
       "</div>";
 
     var P = function (campo, fmtMal) {
-      return ses.filter(function (s) { return s.a[campo] != null; }).map(function (s) {
+      return sesZ.filter(function (s) { return s.a[campo] != null; }).map(function (s) {
         return { x: s.t, y: s.a[campo], f: s.f, et: s.nombre, mal: fmtMal ? fmtMal(s) : false };
       });
     };
@@ -480,27 +486,35 @@
       grafico({ titulo: "Deriva", puntos: P("deriva", function (s) { return s.a.deriva >= 5; }), dom: dom,
                 umbral: { y: 5, et: "5 %" }, semanas: semFondo, fmt: function (v) { return num(v, 1); }, suf: " %", rangoMin: 4, minY: 0 }) +
       tabla(["Sesión", "Deriva", "Pulso 1.ª mitad", "2.ª mitad"],
-            ses.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.deriva, 1) + " %", num(s.a.ppm_1, 0), num(s.a.ppm_2, 0)]; })),
-      "Por debajo del 5 % es base aeróbica sólida para esa potencia. Las sesiones libres se miden igual, sin calentamiento ni vuelta a la calma.");
+            sesZ.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.deriva, 1) + " %", num(s.a.ppm_1, 0), num(s.a.ppm_2, 0)]; })),
+      "Por debajo del 5 % es base aeróbica sólida para esa potencia. Las sesiones libres se miden igual, sin calentamiento ni vuelta a la calma. " +
+      "El test de FTP no sale aquí: no es un rodillo de base y su deriva no se compara. Los minutos de rampa tampoco cuentan.");
 
     var gEf = tarjeta("Vatios por pulsación",
       "Potencia media dividida por el pulso medio del bloque principal: cuánto trabajo saca el corazón de cada latido. Subir es mejorar.",
       grafico({ titulo: "Vatios por pulsación", puntos: P("w_ppm"), dom: dom, semanas: semFondo,
                 ref: ref ? { y: ref.wppm, et: ref.et } : null, fmt: function (v) { return num(v, 2); }, rangoMin: 0.2 }) +
       tabla(["Sesión", "W/ppm", "W", "ppm"],
-            ses.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.w_ppm, 2), num(s.a.w, 0), num(s.a.ppm, 0)]; })),
+            sesZ.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.w_ppm, 2), num(s.a.w, 0), num(s.a.ppm, 0)]; })),
       ref ? "La línea gris es tu mejor mes de rodillo antes del plan (" + ref.et + ", " + ref.n +
         " sesiones, " + num(ref.w, 0) + " W a " + num(ref.ppm, 0) + " ppm). Está medida sobre la sesión entera, así que es una referencia aproximada." : "");
 
-    var gPot = tarjeta("Potencia del bloque principal",
-      "Los vatios que se sostuvieron, sin calentamiento ni vuelta a la calma. Sube a medida que la rampa pide más.",
+    /* 10-nov-2026, Carlos: «en el pulso medio del bloque principal deberían
+       verse los vatios de ese bloque, porque así se ve que bajan las
+       pulsaciones o se mantienen para mover más o menos vatios». Las dos
+       gráficas van juntas, una encima de otra y con las mismas fechas. */
+    var gPulso = tarjeta("Pulso y vatios del bloque principal",
+      "Arriba los vatios que se sostuvieron, abajo el pulso con que se sostuvieron, sesión a sesión y con las mismas fechas. " +
+      "Mejora es el pulso quieto o bajando con los vatios quietos o subiendo.",
+      '<p class="av-sub av-subgraf">Vatios</p>' +
       grafico({ titulo: "Potencia", puntos: P("w"), dom: dom, semanas: semFondo,
-                ref: ref ? { y: ref.w, et: ref.et } : null, fmt: function (v) { return num(v, 0); }, suf: " W", rangoMin: 20 }), "");
-
-    var gPulso = tarjeta("Pulso medio del bloque principal",
-      "El otro lado de la misma cuenta. Leer junto a la potencia: el mismo pulso con más vatios es mejora.",
+                ref: ref ? { y: ref.w, et: ref.et } : null, fmt: function (v) { return num(v, 0); }, suf: " W", rangoMin: 20 }) +
+      '<p class="av-sub av-subgraf">Pulso</p>' +
       grafico({ titulo: "Pulso", puntos: P("ppm"), dom: dom, semanas: semFondo,
-                fmt: function (v) { return num(v, 0); }, suf: " ppm", rangoMin: 15 }), "");
+                fmt: function (v) { return num(v, 0); }, suf: " ppm", rangoMin: 15 }) +
+      tabla(["Sesión", "W", "ppm", "W/ppm"],
+            sesZ.map(function (s) { return [diaCorto(s.f) + " · " + esc(s.nombre), num(s.a.w, 0), num(s.a.ppm, 0), num(s.a.w_ppm, 2)]; })),
+      "Sin calentamiento ni vuelta a la calma, sin los minutos de rampa y sin el test.");
 
     /* 5-oct-2026: Carlos quiere recuperar la cadencia y hacerla costumbre (86
        en feb-mar 2022 y en nov-2023; 66 en 2026). Objetivo de cada semana,
@@ -517,25 +531,53 @@
                 meta: metaCad, metaEt: "objetivo", fmt: function (v) { return num(v, 0); }, suf: " rpm", rangoMin: 20 }), "");
 
     /* objetivos cumplidos: una barra por sesión con ficha prevista */
+    /* 10-nov-2026, Carlos: «no tiene sentido ver todas como tablas. Se podría
+       agrupar por semanas las semanas pasadas». Las semanas acabadas van en UNA
+       barra cada una (suma de lo cumplido de todas sus sesiones), en otro color;
+       la semana en curso sigue sesión a sesión. */
     var conObj = ses.filter(function (s) { return s.tot; });
-    var barras = conObj.length ? (function () {
-      var bw = 26, gap = 14, w = Math.max(320, conObj.length * (bw + gap) + 40), h = 120, base = 92;
-      var svg = conObj.map(function (s, i) {
-        var x = 20 + i * (bw + gap), hOk = s.ok / s.tot * 70, hNo = 70 - hOk;
+    var gruposObj = (function () {
+      var out = [], porSem = {};
+      conObj.forEach(function (s) {
+        var w = sem.filter(function (x) { return s.f >= x.desde && s.f <= x.hasta; })[0];
+        if (w && !w.curso && !w.futura) {
+          var g = porSem[w.n];
+          if (!g) { g = porSem[w.n] = { sem: w, ok: 0, tot: 0, n: 0, fallos: {} }; out.push(g); }
+          g.ok += s.ok; g.tot += s.tot; g.n++;
+          (s.a.objetivos || []).forEach(function (x) { if (!x.ok) g.fallos[x.que] = (g.fallos[x.que] || 0) + 1; });
+        } else out.push({ s: s, ok: s.ok, tot: s.tot });
+      });
+      return out;
+    })();
+    var barras = gruposObj.length ? (function () {
+      var bw = 26, gap = 14, w = Math.max(320, gruposObj.length * (bw + gap) + 40), h = 120, base = 92;
+      var svg = gruposObj.map(function (g, i) {
+        var x = 20 + i * (bw + gap), hOk = g.ok / g.tot * 70, hNo = 70 - hOk;
+        var et = g.sem ? "S" + g.sem.n : diaCorto(g.s.f);
+        var tit = g.sem ? "Semana " + g.sem.n + " (" + g.n + (g.n === 1 ? " sesión" : " sesiones") + "): " + g.ok + " de " + g.tot + " objetivos"
+                        : diaCorto(g.s.f) + " · " + g.s.nombre + ": " + g.ok + " de " + g.tot + " objetivos";
         return '<g><rect class="av-bno" x="' + x + '" y="' + (base - 70) + '" width="' + bw + '" height="' + Math.max(0, hNo - 1) + '" rx="3"/>' +
-          '<rect class="av-bok" x="' + x + '" y="' + (base - hOk) + '" width="' + bw + '" height="' + hOk + '" rx="3"/>' +
-          '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - 74) + '" text-anchor="middle">' + s.ok + "/" + s.tot + "</text>" +
-          '<text class="av-eje" x="' + (x + bw / 2) + '" y="' + (base + 14) + '" text-anchor="middle">' + diaCorto(s.f) + "</text>" +
-          "<title>" + esc(diaCorto(s.f) + " · " + s.nombre + ": " + s.ok + " de " + s.tot + " objetivos") + "</title></g>";
+          '<rect class="av-bok' + (g.sem ? " av-agr" : "") + '" x="' + x + '" y="' + (base - hOk) + '" width="' + bw + '" height="' + hOk + '" rx="3"/>' +
+          '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - 74) + '" text-anchor="middle">' +
+            (g.sem ? Math.round(g.ok / g.tot * 100) + "%" : g.ok + "/" + g.tot) + "</text>" +
+          '<text class="av-eje" x="' + (x + bw / 2) + '" y="' + (base + 14) + '" text-anchor="middle">' + et + "</text>" +
+          "<title>" + esc(tit) + "</title></g>";
       }).join("");
       return '<svg class="av-svg-bar" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Objetivos cumplidos">' + svg + "</svg>";
     })() : '<p class="av-sub">Todavía no hay sesiones con ficha prevista.</p>';
-    var gObj = tarjeta("Objetivos cumplidos por sesión",
-      "Potencia, techo de pulso, deriva, cadencia de la semana, minutos a 100 rpm y carga: cuántos se cumplieron de los que ponía la sesión.",
-      barras + (conObj.length ? tabla(["Sesión"].concat(["Objetivos"]),
-        conObj.map(function (s) {
-          return [diaCorto(s.f) + " · " + esc(s.nombre), (s.a.objetivos || []).map(function (x) {
-            return (x.ok ? "✔ " : "✘ ") + esc(x.que); }).join(" · ")];
+    var gObj = tarjeta("Objetivos cumplidos",
+      "Potencia, techo de pulso, deriva, cadencia de la semana, minutos a 100 rpm y carga: cuántos se cumplieron de los que ponía cada sesión. " +
+      "Las semanas acabadas van juntas en una barra; la semana en curso, sesión a sesión.",
+      (gruposObj.some(function (g) { return g.sem; }) ? '<div class="av-leyenda"><span><i class="av-l-agr"></i>Semana entera</span><span><i class="av-l-hecha"></i>Sesión de esta semana</span></div>' : "") +
+      barras + (gruposObj.length ? tabla(["Semana o sesión", "Cumplidos", "Lo que falló"],
+        gruposObj.map(function (g) {
+          if (g.sem) {
+            var f = Object.keys(g.fallos).map(function (k) { return esc(k) + (g.fallos[k] > 1 ? " (" + g.fallos[k] + ")" : ""); });
+            return ["S" + g.sem.n + " · " + diaCorto(g.sem.desde) + " · " + g.n + (g.n === 1 ? " sesión" : " sesiones"),
+                    g.ok + " de " + g.tot, f.length ? "✘ " + f.join(" · ") : "✔ todo"];
+          }
+          var mal = (g.s.a.objetivos || []).filter(function (x) { return !x.ok; }).map(function (x) { return esc(x.que); });
+          return [diaCorto(g.s.f) + " · " + esc(g.s.nombre), g.ok + " de " + g.tot, mal.length ? "✘ " + mal.join(" · ") : "✔ todo"];
         })) : ""), "");
 
     /* CARGA SEMANAL · dos métricas (4-oct-2026). Carlos: «una carga de
@@ -554,8 +596,35 @@
       w.fuerza = c && c.fuerza != null ? c.fuerza : null;
     });
     var semHasta = sem.filter(function (w) { return !w.futura; });
+    /* 10-nov-2026, Carlos: «la carga de cada semana igual se podría agrupar por
+       el mes a mes vencido y cambiar el color para indicar que mide semanas o
+       meses». Cada mes ya acabado va en UNA barra, de otro color; la semana va
+       al mes en que empieza. Para que la barra de un mes se pueda poner al lado
+       de las semanas, su altura es la MEDIA por semana de ese mes; el % es el
+       del mes entero (todo lo hecho contra todo lo previsto). Las semanas del
+       mes en curso y las dos siguientes siguen una a una. */
+    var MESL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    var mesHoy = hoy.slice(0, 7);
+    var meses = [], porMes = {};
+    semHasta.forEach(function (w) {
+      var m = w.desde.slice(0, 7);
+      if (m >= mesHoy) return;
+      var g = porMes[m];
+      if (!g) { g = porMes[m] = { mes: m, sem: [], prevista: 0, entreno: 0, total: 0, paseos: 0, fuerza: 0 }; meses.push(g); }
+      g.sem.push(w); g.prevista += w.prevista || 0; g.entreno += w.entreno || 0; g.total += w.total || 0;
+      g.paseos += w.paseos || 0; g.fuerza += w.fuerza || 0;
+    });
+    meses.forEach(function (g) {
+      var k = g.sem.length;
+      g.esMes = true; g.n = k; g.nom = MESL[+g.mes.slice(5, 7) - 1];
+      g.medPrev = g.prevista / k; g.medEnt = g.entreno / k; g.medTot = g.total / k;
+    });
+    var semSueltas = sem.filter(function (w) { return w.desde.slice(0, 7) >= mesHoy; });
     var cargaSvg = (function () {
-      var lista = sem.slice(0, Math.max(semHasta.length + 2, 4));
+      var sueltas = semSueltas.slice(0, Math.max(semSueltas.filter(function (w) { return !w.futura; }).length + 2, 2));
+      var lista = meses.map(function (g) {
+        return { esMes: true, g: g, prevista: g.medPrev, entreno: g.medEnt, total: g.medTot, n: g.nom.slice(0, 3) };
+      }).concat(sueltas);
       var max = Math.max.apply(null, lista.map(function (w) { return Math.max(w.prevista || 0, w.entreno || 0, w.total || 0); })) || 1;
       var bw = 34, gap = 18, w = lista.length * (bw + gap) + 30, h = 164, base = 118, alto = 92;
       return '<svg class="av-svg-bar" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Carga semanal">' +
@@ -563,6 +632,18 @@
           var i = lista.indexOf(s), x = 15 + i * (bw + gap);
           var hp = s.prevista / max * alto, he = s.entreno / max * alto, ht = s.total / max * alto;
           var pct = s.prevista ? Math.round(s.entreno / s.prevista * 100) : null;
+          if (s.esMes) {
+            var g = s.g;
+            return "<g>" +
+              '<rect class="av-total" x="' + x + '" y="' + (base - ht) + '" width="' + bw + '" height="' + ht + '" rx="3"/>' +
+              '<rect class="av-prev" x="' + x + '" y="' + (base - hp) + '" width="' + bw + '" height="' + hp + '" rx="3"/>' +
+              '<rect class="av-hecha av-mes" x="' + (x + 7) + '" y="' + (base - he) + '" width="' + (bw - 14) + '" height="' + he + '" rx="3"/>' +
+              '<text class="av-et-pt" x="' + (x + bw / 2) + '" y="' + (base - Math.max(hp, he, ht) - 5) + '" text-anchor="middle">' + pct + " %</text>" +
+              '<text class="av-eje" x="' + (x + bw / 2) + '" y="' + (base + 14) + '" text-anchor="middle">' + s.n + "</text>" +
+              '<text class="av-eje av-eje2" x="' + (x + bw / 2) + '" y="' + (base + 25) + '" text-anchor="middle">' + g.n + " sem.</text>" +
+              "<title>" + esc(g.nom.charAt(0).toUpperCase() + g.nom.slice(1) + " (S" + g.sem[0].n + "–S" + g.sem[g.sem.length - 1].n + "): entrenamiento " +
+                num(g.entreno) + " de " + Math.round(g.prevista) + " · total " + num(g.total) + " · por semana " + num(g.medEnt) + " de " + num(g.medPrev)) + "</title></g>";
+          }
           var top = Math.max(hp, he, s.futura ? 0 : ht);
           return "<g>" +
             (s.futura ? "" : '<rect class="av-total" x="' + x + '" y="' + (base - ht) + '" width="' + bw + '" height="' + ht + '" rx="3"/>') +
@@ -582,14 +663,21 @@
     })();
     var gCarga = tarjeta("Carga de cada semana",
       "Dos medidas. La de <b>entrenamiento</b> es la que cuenta contra la rampa, igual que El Plan: bici, correr y las caminatas de entreno. " +
-      "La <b>total</b> es todo lo que marcó el reloj, con la fuerza y los paseos de relax.",
-      '<div class="av-leyenda"><span><i class="av-l-hecha"></i>Entrenamiento</span><span><i class="av-l-total"></i>Total</span><span><i class="av-l-prev"></i>Prevista</span></div>' +
-      cargaSvg + tabla(["Semana", "Prevista", "Entrenamiento", "%", "Total", "Paseos", "Fuerza"],
-        semHasta.map(function (s) {
+      "La <b>total</b> es todo lo que marcó el reloj, con la fuerza y los paseos de relax. Los meses ya acabados van en una barra cada uno, en verde: " +
+      "su altura es la media por semana de ese mes, para poder compararla con las semanas de ahora.",
+      '<div class="av-leyenda">' + (meses.length ? '<span><i class="av-l-mes"></i>Mes (media por semana)</span>' : "") +
+      '<span><i class="av-l-hecha"></i>Semana</span><span><i class="av-l-total"></i>Total</span><span><i class="av-l-prev"></i>Prevista</span></div>' +
+      cargaSvg + tabla(["Mes o semana", "Prevista", "Entrenamiento", "%", "Total", "Paseos", "Fuerza"],
+        meses.map(function (g) {
+          return ["<b>" + g.nom.charAt(0).toUpperCase() + g.nom.slice(1) + "</b> · S" + g.sem[0].n + "–S" + g.sem[g.sem.length - 1].n + " (" + g.n + " sem.)",
+                  Math.round(g.prevista), num(g.entreno), g.prevista ? Math.round(g.entreno / g.prevista * 100) + " %" : "—", num(g.total),
+                  g.sem.some(function (w) { return w.paseos != null; }) ? num(g.paseos) : "—",
+                  g.sem.some(function (w) { return w.fuerza != null; }) ? num(g.fuerza) : "—"];
+        }).concat(semSueltas.filter(function (w) { return !w.futura; }).map(function (s) {
           return ["S" + s.n + " · " + diaCorto(s.desde) + (s.curso ? " (en curso)" : ""), s.prevista, num(s.entreno),
                   s.prevista ? Math.round(s.entreno / s.prevista * 100) + " %" : "—", num(s.total),
                   s.paseos != null ? num(s.paseos) : "—", s.fuerza != null ? num(s.fuerza) : "—"];
-        })),
+        }))),
       "El % es el de entrenamiento, el mismo que da El Plan. Entrenamiento + paseos + fuerza = total. La semana en curso se va llenando; las de descarga piden menos a propósito.");
 
     /* FTP: escalones (declarada, luego cada test) y el objetivo */
@@ -615,7 +703,7 @@
 
     var gFant = htmlFantasma(o, inicio, hoy);
     var gRev = htmlRevisiones(o.revisiones, o.revisionesEstado);
-    return '<div class="av">' + cab + aviso + gRev + gFant + gDeriva + gEf + gPot + gPulso + gCad + gObj + gCarga + gFtp + "</div>";
+    return '<div class="av">' + cab + aviso + gRev + gFant + gDeriva + gEf + gPulso + gCad + gObj + gCarga + gFtp + "</div>";
   }
 
   /* ==================== MIS REVISIONES  ·  4-oct-2026 ====================
