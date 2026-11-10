@@ -258,6 +258,22 @@
       if (Object.keys(J).length) junto.corregido = J;
     })();
 
+    /* ── LAS CORRECCIONES DE SUEÑO, UNA A UNA (10-nov-2026) ─────────────
+       Lo que Carlos corrige a mano sobre una noche es un dato SUYO y pisa al
+       del reloj: no puede perderlo un guardado de otra cosa hecho en otro
+       aparato. Cada noche lleva su hora (`t`) y gana la corregida más tarde;
+       si se borra una corrección en un aparato, el borrado se propaga porque
+       la hora de la que queda es la que manda. */
+    (function () {
+      var A2 = local.suenoCorregido || {}, B2 = remoto.suenoCorregido || {}, J2 = {}, f2;
+      for (f2 in A2) if (Object.prototype.hasOwnProperty.call(A2, f2)) J2[f2] = A2[f2];
+      for (f2 in B2) if (Object.prototype.hasOwnProperty.call(B2, f2)) {
+        var a2 = J2[f2], b2 = B2[f2];
+        if (!a2 || String(b2 && b2.t || "") > String(a2.t || "")) J2[f2] = b2;
+      }
+      if (Object.keys(J2).length) junto.suenoCorregido = J2;
+    })();
+
     /* ── LAS PLANTILLAS, UNA A UNA POR SU HORA (10-oct-2026) ─────────────
        De cada plantilla manda la que se tocó más tarde (`t`); una borrada
        (`plantillasBorradas`) no vuelve salvo que alguien la guarde después. */

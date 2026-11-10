@@ -2327,6 +2327,21 @@
          detrás de él va el pan integral bajo en sal. El queso fresco batido va en
          nevera en primer lugar por ahora. El panecillo sin sal se queda». Lo
          demás de cada sección no se mueve. Sellado, para que gane al sincronizar. */
+      /* LA NOCHE DEL 10-NOV, CORREGIDA A MANO. Garmin dio las 3:56 como hora
+         de dormirse; Carlos durmió de 1:00 a 8:42, que son 462 minutos. Se deja
+         puesta aquí para que no tenga que teclearla él, y porque es el día en
+         que el semáforo decidía con el dato malo. Solo esa noche, y solo si
+         nadie la ha corregido ya. */
+      if (!e.arreglos["2026-11-10-sueno"]) {
+        if (!e.suenoCorregido) e.suenoCorregido = {};
+        if (!e.suenoCorregido["2026-11-10"]) {
+          e.suenoCorregido["2026-11-10"] = { min: 462, t: new Date().toISOString(),
+            nota: "De 1:00 a 8:42, dicho por Carlos. El reloj puso el inicio a las 3:56" };
+        }
+        e.arreglos["2026-11-10-sueno"] = true;
+        escribirEstado(e);
+      }
+
       if (!e.arreglos["2026-10-08-orden-pan-leche-queso"]) {
         if (!e.ordenCompra) e.ordenCompra = {};
         var delanteOC = { "Mercadona|despensa": ["leche_proteinas", "pan_ortiz_bajosal"],

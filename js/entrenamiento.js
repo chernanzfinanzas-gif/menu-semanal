@@ -7868,6 +7868,14 @@
         vistos[f] = val;                         // gana la última fuente de la lista
       }
     });
+    if (campo === "sueno_min") {                 /* ver «correcciones de sueño» */
+      var cs = {};
+      try { cs = A.estado.suenoCorregido || {}; } catch (e) {}
+      for (var fc in cs) {
+        if (fc < v.desde || fc > v.hasta) continue;
+        if (cs[fc] && cs[fc].min > 0) vistos[fc] = cs[fc].min;
+      }
+    }
     for (var f2 in vistos) out.push({ f: f2, v: vistos[f2] });
     return out.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
   }
@@ -9235,7 +9243,40 @@
   /* El valor de un campo en UN día, con la regla de arriba. Se usa desde las
      tarjetas del día y desde las medias, para que la ficha no diga un número y
      la gráfica otro en la misma fecha. */
+  /* ── CORRECCIONES DE SUEÑO  ·  10-nov-2026 ──────────────────────────
+     Carlos: «garmin ha medido mal el sueño hoy, dice que me dormía a las 3:56
+     y no es cierto, a la 1 ya estaba dormido seguro». Durmió de 1:00 a 8:42
+     —7 h 42— y el reloj apuntó tres horas. No es un detalle de pantalla: el
+     semáforo BAJA UN ESCALÓN cuando la media de las dos últimas noches no
+     llega a 5 h, así que una lectura mala del reloj le quita el entrenamiento
+     del día. El 10-nov la media habría salido 3,9 con el dato malo y 6,3 con
+     el bueno — justo a los dos lados del corte.
+     En Garmin no hay arreglo fiable: lo editable a mano son las siestas, y las
+     correcciones del sueño nocturno se deshacen al volver a sincronizar el
+     reloj. Así que la corrección vive AQUÍ, como las de las sesiones de
+     rodillo: `estado.suenoCorregido[fecha] = { min, t, nota }`.
+     Se aplica en los DOS sitios por donde entra el dato —`valorDia` y
+     `serieSalud`—, así que con tocar eso queda arreglado a la vez el semáforo,
+     las medias, las gráficas y la revisión de la semana. Y sirve también para
+     una noche que el reloj no tenga: la corrección AÑADE el día, no solo lo
+     sustituye. */
+  function suenoCorregido(iso) {
+    try {
+      var c = (A.estado.suenoCorregido || {})[iso];
+      return (c && c.min > 0) ? c.min : null;
+    } catch (e) { return null; }
+  }
+  function ponerSuenoCorregido(iso, min, nota) {
+    if (!A.estado.suenoCorregido) A.estado.suenoCorregido = {};
+    if (min == null) delete A.estado.suenoCorregido[iso];
+    else A.estado.suenoCorregido[iso] = { min: Math.round(min),
+                                          t: new Date().toISOString(),
+                                          nota: nota || "" };
+    A.guardar("sueno");
+  }
+
   function valorDia(campo, iso) {
+    if (campo === "sueno_min") { var sc = suenoCorregido(iso); if (sc != null) return sc; }
     if (DESDE_CUANDO[campo] && iso < DESDE_CUANDO[campo]) return null;
     var pri = MANDA_GARMIN[campo] ? Historico.datos : Salud.datos;
     var seg = MANDA_GARMIN[campo] ? Salud.datos : Historico.datos;
@@ -15349,10 +15390,21 @@
     h += tarjeta("FC en reposo", fcrDia ? fcrDia + " lpm" : null,
       baseFcr ? "tu base: " + num(baseFcr) + " lpm" : "", "fcr", null, fcrDia || null);
 
-    var n1 = Salud.dia(fechaDato) || {}, n2 = Salud.dia(U.sumarDias(fechaDato, -1)) || {};
-    var s1 = hhmm(n1.sueno_min), s2 = hhmm(n2.sueno_min);
-    h += tarjeta("Sueño, dos últimas noches", (s1 || "—") + (s2 ? " · " + s2 : ""),
-      "tu media: 6h24", "sueno", null, n1.sueno_min ? n1.sueno_min / 60 : null);
+    /* POR `valorDia` Y NO POR `Salud.dia` (10-nov-2026): si no, la tarjeta
+       enseñaría lo que dijo el reloj y el semáforo decidiría con la corrección,
+       dos números distintos en la misma pantalla. */
+    var ayerDato = U.sumarDias(fechaDato, -1);
+    var m1 = valorDia("sueno_min", fechaDato), m2 = valorDia("sueno_min", ayerDato);
+    var s1 = hhmm(m1), s2 = hhmm(m2);
+    var corr1 = suenoCorregido(fechaDato) != null, corr2 = suenoCorregido(ayerDato) != null;
+    h += tarjeta("Sueño, dos últimas noches",
+      (s1 || "—") + (corr1 ? "*" : "") + (s2 ? " · " + s2 + (corr2 ? "*" : "") : ""),
+      (corr1 || corr2) ? "* corregido a mano · tu media: 6h24" : "tu media: 6h24",
+      "sueno", null, m1 ? m1 / 60 : null);
+    h += '<p class="nota-peque"><button type="button" class="mini" data-sueno-corr="' + fechaDato + '">' +
+         (corr1 ? "Cambiar la corrección de anoche" : "Corregir el sueño de anoche") + "</button>" +
+         (corr1 ? ' <button type="button" class="mini" data-sueno-quitar="' + fechaDato + '">Volver al dato del reloj</button>' : "") +
+         "</p>";
 
     /* Body Battery no baja de Garmin a intervals —no está entre los campos que
        la integración descarga—, así que solo sale los días que lo tienen del
@@ -15425,6 +15477,31 @@
       var t = e.target;
       var volver = t.closest ? t.closest("[data-volver]") : null;
       if (volver) { bloque = "portada"; diaSel = null; matEditando = null; matVista = null; rampaVista = "3m"; pintar(); return; }
+
+      /* Corregir a mano el sueño de una noche (ver «correcciones de sueño») */
+      var scorr = t.closest ? t.closest("[data-sueno-corr]") : null;
+      if (scorr) {
+        var fS = scorr.getAttribute("data-sueno-corr");
+        var hoyS = suenoCorregido(fS), sugiere = hoyS ? hhmm(hoyS) : (hhmm(valorDia("sueno_min", fS)) || "");
+        var txt = global.prompt("¿Cuánto dormiste de verdad esa noche?\n\nEn horas y minutos, por ejemplo 7:42", sugiere);
+        if (txt != null) {
+          txt = String(txt).trim().replace(",", ".");
+          var mm = null;
+          var pm = txt.match(/^(\d{1,2})\s*[:hH]\s*(\d{1,2})$/);
+          if (pm) mm = parseInt(pm[1], 10) * 60 + parseInt(pm[2], 10);
+          else if (/^\d{1,2}(\.\d+)?$/.test(txt)) mm = Math.round(parseFloat(txt) * 60);
+          else if (/^\d{3,4}$/.test(txt)) mm = parseInt(txt, 10);        /* minutos pelados */
+          if (mm != null && mm > 0 && mm <= 16 * 60) {
+            ponerSuenoCorregido(fS, mm, "Corregido a mano: el reloj midió " + (hhmm(valorDia("sueno_min", fS)) || "nada"));
+            pintar();
+          } else if (txt !== "") {
+            global.alert("No he entendido «" + txt + "». Escríbelo como 7:42, o 7.7, o 462 minutos.");
+          }
+        }
+        return;
+      }
+      var squit = t.closest ? t.closest("[data-sueno-quitar]") : null;
+      if (squit) { ponerSuenoCorregido(squit.getAttribute("data-sueno-quitar"), null); pintar(); return; }
 
       /* Rampa de Entreno: «Lo que llevo» o «La rampa entera» */
       var rv = t.closest ? t.closest("[data-ramp-vista]") : null;
