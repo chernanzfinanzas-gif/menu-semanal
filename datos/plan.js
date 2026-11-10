@@ -409,27 +409,7 @@
       "2026-09-24": [{ t: "Fuerza B, media carga", min: 30 }, { t: "Caminar", min: 30 }],
       "2026-09-25": [{ t: "Caminar a buen paso", min: 55 }],
       "2026-09-26": [{ t: "Caminar", min: 65 }],
-      "2026-09-27": [{ t: "Descanso, o paseo corto", min: 30 }],
-
-      /* ---- SEMANA 8, LA DEL APRETÓN (excepción, 10-nov-2026) ----
-         La revisión extraordinaria del techo de pulso (9-nov) rehízo los
-         rodillos de la semana: el apretón entra en el plan y la parte lisa baja
-         para hacerle hueco, así que el rodillo pasa de 45' lisos a 35' —8' de
-         calentamiento, 18' lisos a 104 W, el apretón y 4' de enfriamiento— y el
-         largo se recorta de 90' a 75' para que la descarga cuadre después de los
-         51 puntos del lunes. Cuesta lo mismo que antes: 32 puntos el rodillo.
-         VA COMO EXCEPCIÓN Y NO EN LA PLANTILLA, decisión suya del 10-nov: la
-         talla B dice «sin intensidad» y la intensidad estaba programada para la
-         semana 11. Si el domingo decide que el apretón se queda, entonces toca
-         reescribir la plantilla y mover la nota de la semana 11; hasta entonces
-         esto afecta solo a estos tres días.
-         Los dos rodillos son intercambiables: son dos FORMAS del mismo apretón
-         —uno con una rampa final de 5' y otro con dos, de 2' y 3'— y se prueban
-         para comparar cuál le sienta mejor. El lunes 9 no se toca: ya está hecho
-         y un día pasado se juzga por lo que se hizo, no por lo que ponía. */
-      "2026-11-10": [{ t: "Rodillo con apretón, 35' (lisos a 104 W y rampa al final)", min: 35 }],
-      "2026-11-13": [{ t: "Rodillo con apretón, 35' (lisos a 104 W y rampa al final)", min: 35 }],
-      "2026-11-14": [{ t: "Rodillo largo liso, 75' a 95 W", min: 75 }]
+      "2026-09-27": [{ t: "Descanso, o paseo corto", min: 30 }]
     },
 
     /* LA SALIDA LARGA DEL FIN DE SEMANA NO SE PROGRAMA.
