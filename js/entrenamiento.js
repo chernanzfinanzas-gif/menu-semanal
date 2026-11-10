@@ -14878,7 +14878,35 @@
         '<span class="t"><b>Ayuda: cómo se mide cada cosa</b>' +
         "<small>Cintura, cuello, tensión, ECG, tobillo, peso… y cómo funciona esta pantalla</small></span>" +
         '<span class="v">›</span></button>';
-      if (tocanHoy.length) {
+      /* EL SUEÑO, ARRIBA Y CORREGIBLE  ·  10-nov-2026
+         Carlos: «no debería estar arriba, en hoy toca medir, que aparezcan las
+         horas que marca el reloj y yo ahí pueda corregirlo». Tenía razón: el
+         botón estaba abajo, en «Lo que estoy midiendo», que es la tarjeta de lo
+         que mide ÉL. El sueño llega solo y lo que hace falta es repasarlo donde
+         se repasa el día, junto al peso, la tensión y el ECG.
+         Va siempre, haya medidas que tocan o no: se duerme todos los días. */
+      function pintaSueno() {
+        var sc = suenoCorregido(dia), v = valorDia("sueno_min", dia);
+        var txt = hhmm(v) || "";
+        var pie = sc != null
+          ? "corregido a mano" + (sc !== v ? "" : "") +
+            ((A.estado.suenoCorregido[dia] || {}).nota ? " · " + U.esc((A.estado.suenoCorregido[dia] || {}).nota) : "")
+          : (v != null ? "del reloj, por intervals" : "todavía no ha llegado");
+        return '<label class="ent-medida llega' + (v != null ? " puesta" : "") + '">' +
+          "<span>Sueño de anoche" +
+            '<button type="button" class="ent-ver" tabindex="-1" data-sueno-corr="' + dia +
+              '" title="Corregir a mano" aria-label="Corregir el sueño a mano">\u270E</button>' +
+            (sc != null ? '<button type="button" class="ent-ver" tabindex="-1" data-sueno-quitar="' + dia +
+              '" title="Volver al dato del reloj" aria-label="Volver al dato del reloj">\u21BA</button>' : "") +
+            "</span>" +
+          '<input type="text" readonly tabindex="-1" value="' + U.esc(txt) + '"' +
+            ' placeholder="' + (v != null ? "—" : "llega solo") + '">' +
+          "<small>" + pie + "</small>" +
+          "</label>";
+      }
+      var filaSueno = pintaSueno();
+
+      if (tocanHoy.length || filaSueno) {
         var faltan = 0;
         tocanHoy.forEach(function (m) {
           if (m.auto === "ecg") { if (!ecgDelDia(dia)) faltan++; return; }
@@ -14895,6 +14923,7 @@
         h += '<p class="ent-origen"><span><u class="llega"></u>llega sola, por correo o de la báscula</span>' +
           '<span><u class="amano"></u>la apuntas tú</span></p>';
         h += '<div class="ent-medidas obligatorias">';
+        h += filaSueno;
         tocanHoy.forEach(function (m) { h += pintaMedida(m); if (m.id === "peso") h += pintaImc(); });
         h += "</div>";
       }
@@ -15401,10 +15430,9 @@
       (s1 || "—") + (corr1 ? "*" : "") + (s2 ? " · " + s2 + (corr2 ? "*" : "") : ""),
       (corr1 || corr2) ? "* corregido a mano · tu media: 6h24" : "tu media: 6h24",
       "sueno", null, m1 ? m1 / 60 : null);
-    h += '<p class="nota-peque"><button type="button" class="mini" data-sueno-corr="' + fechaDato + '">' +
-         (corr1 ? "Cambiar la corrección de anoche" : "Corregir el sueño de anoche") + "</button>" +
-         (corr1 ? ' <button type="button" class="mini" data-sueno-quitar="' + fechaDato + '">Volver al dato del reloj</button>' : "") +
-         "</p>";
+    /* Los botones de corregir viven ARRIBA, en «Hoy toca medir» (10-nov-2026).
+       Aquí solo se ve el resultado, con el asterisco si está corregido: tener la
+       misma acción en dos sitios de la misma pantalla sobra. */
 
     /* Body Battery no baja de Garmin a intervals —no está entre los campos que
        la integración descarga—, así que solo sale los días que lo tienen del
