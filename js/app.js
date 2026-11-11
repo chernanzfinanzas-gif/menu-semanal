@@ -4593,8 +4593,24 @@ function cerrarMontaje() {
     Util.toast('Montado · ya es una opción más de esa familia');
     return;
   }
-  if (f && tm) { colocar(id, f, tm, rn); pintarDia(); }
-  Util.toast('Montado: ' + nombreMont(id).slice(0, 48));
+  /* QUE EL FALLO SE VEA  ·  11-nov-2026
+     Carlos: «lo de montar un plato no funciona, desde la ficha del día he añadido
+     dos veces un plato de solomillo con patatas panaderas y salsa de queso azul y
+     no sale». El conjunto se creaba bien —comprobado— pero si por lo que fuera no
+     llegaba al día, el aviso decía «Montado» igual y no había forma de saber dónde
+     se había perdido. Ahora se comprueba que ha entrado y se dice la verdad. */
+  if (!f || !tm) {
+    Util.toast('Montado, pero sin día al que ponerlo: ábrelo desde un hueco del menú.');
+    return;
+  }
+  colocar(id, f, tm, rn);
+  try { pintarDia(); } catch (e) {}
+  try { pintar(); } catch (e) {}
+  var dentro = false;
+  try { dentro = (P.propios(f, tm) || []).indexOf(id) >= 0; } catch (e) {}
+  Util.toast(dentro
+    ? 'Montado y puesto en la ' + tm + ' del ' + P.diaNum(f)
+    : 'Montado, pero NO ha entrado en la ' + tm + ' del ' + P.diaNum(f) + '. Dímelo.');
 }
 
 /* Los botones del montador. */
