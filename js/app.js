@@ -4330,6 +4330,9 @@ function listaCatalogo() {
   var l = P.RECETAS.filter(function (r) {
     if (f === 'favoritas') return esFavorita(r);
     if (f === 'guarnicion') return P.esGuar(r);
+    /* SALSAS (11-nov-2026): al dejar de ser «guarnicion» para que el montador las
+       meta en los aderezos, se quedaban sin chip y desaparecian del catalogo. */
+    if (f === 'salsa') return P.vivaFicha(r) && (r.tipo || []).indexOf('salsa') >= 0;
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
     if (f === 'restaurante') return P.esRestaurante(r);
     if (f === 'desayuno') return P.vivaFicha(r) && r.grupo === f;
@@ -4353,6 +4356,9 @@ function cuenta(f) {
   return P.RECETAS.filter(function (r) {
     if (f === 'favoritas') return esFavorita(r);
     if (f === 'guarnicion') return P.esGuar(r);
+    /* SALSAS (11-nov-2026): al dejar de ser «guarnicion» para que el montador las
+       meta en los aderezos, se quedaban sin chip y desaparecian del catalogo. */
+    if (f === 'salsa') return P.vivaFicha(r) && (r.tipo || []).indexOf('salsa') >= 0;
     if (f === 'bebida' || f === 'pan' || f === 'postre') return P.vivaFicha(r) && P.papelDe(r) === f;
     if (f === 'restaurante') return P.esRestaurante(r);
     if (f === 'desayuno') return P.vivaFicha(r) && r.grupo === f;
@@ -4611,9 +4617,9 @@ function pintarCatalogo() {
        llegaba a él: 7-nov-2026, «la opción es poder meter ingredientes sueltos en
        cada toma… como grupo, Solo un Ingrediente, creo que ya existía». Existía.
        Sube al segundo puesto; el orden de la mesa que él fijó el 3-oct no se toca. */
-    : ['todas','favoritas','suelto'].concat(tipos, ['guarnicion','pan','postre','bebida','desayuno','restaurante']);
+    : ['todas','favoritas','suelto'].concat(tipos, ['guarnicion','salsa','pan','postre','bebida','desayuno','restaurante']);
   orden.forEach(function (f) {
-    var NOM = { todas: 'Todas', guarnicion: 'Guarniciones', pan: 'Panes',
+    var NOM = { todas: 'Todas', guarnicion: 'Guarniciones', salsa: 'Salsas', pan: 'Panes',
                 postre: 'Postres', bebida: 'Bebidas', desayuno: 'Desayuno',
                 restaurante: 'Restaurante', suelto: 'Ingredientes solos',
                 b100: 'Bloques de 100', pieza: 'Piezas', favoritas: 'Favoritas' };
