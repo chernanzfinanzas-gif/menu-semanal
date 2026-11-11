@@ -2816,6 +2816,7 @@
       if (!e.fotos) e.fotos = {};
       if (!e.corregido) e.corregido = {};
       if (!e.compraMarcada) e.compraMarcada = {};
+      if (!e.sugerido) e.sugerido = {};
       if (!e.recados) e.recados = {};
       if (!e.favoritos) e.favoritos = [];
       if (!e.valoraciones) e.valoraciones = {};
@@ -6732,6 +6733,23 @@
     /* ---------- ESTADOS DE UNA LÍNEA DE LA COMPRA ----------
        por pedir → pedido → comprado, y «falta» como excepción.
        Tachar es PEDIR, no recibir: lo que entra en casa entra al confirmar. */
+    /* LA RESPUESTA A «¿QUIERES COMPRARLO ESTA VEZ?» (11-nov-2026).
+       `n > 0` es que sí, con esa cantidad en piezas; `0` o nada es que no.
+       Las dos duran hasta la siguiente compra: `confirmarCompra` las borra. */
+    responderSugerido: function (id, n) {
+      if (!this.estado.sugerido) this.estado.sugerido = {};
+      n = Number(n);
+      if (n > 0) this.estado.sugerido[id] = { n: n, t: new Date().toISOString() };
+      else this.estado.sugerido[id] = { no: true, t: new Date().toISOString() };
+      this.guardar("compra");
+      return true;
+    },
+    /* Volver a dejarlo sin contestar: la pregunta reaparece. */
+    olvidarSugerido: function (id) {
+      if (this.estado.sugerido) delete this.estado.sugerido[id];
+      this.guardar("compra");
+      return true;
+    },
     estaPedido: function (id) { return !!this.estado.compraMarcada[id]; },
     ponerPedido: function (id, si) {
       if (si) this.estado.compraMarcada[id] = true;
@@ -7113,6 +7131,10 @@
           self.estado.topeCompra[l.id].u = new Date().toISOString();
         delete self.estado.compraMarcada[l.id];
       });
+      /* COMPRA CERRADA, PREGUNTAS OLVIDADAS (11-nov-2026). El «no» del mínimo
+         valía para esta compra, no para siempre: en la siguiente se vuelve a
+         preguntar. */
+      this.estado.sugerido = {};
       if (entraron) this._sellarStock();   // lo comprado entra en la foto de la despensa
       this.guardar("compra");
       return { entraron: entraron, recados: aRecados, suplentes: suplentes };
@@ -9624,7 +9646,7 @@
          la cena de esta semana va antes que la compra de la que viene. */
       var compTodo = this.comprometidoTodo(Util.sumarDias(lunesISO, dias - 1));
 
-      var secciones = {}, basicos = [];
+      var secciones = {}, basicos = [], sugeridos = [];
       /* LO PENDIENTE TIENE SU PROPIA LISTA (v414, 4-oct-2026). Lo que no llegó
          ya está en «Pendiente» con el día que lo pide el menú; si saliera
          también aquí, se compraría dos veces. Hasta la v413 salía doble. */
@@ -9853,6 +9875,16 @@
         var lotes = Math.ceil((ing.minimo - hayP) / lote);
         if (lotes < 1) lotes = 1;
         var piezas = lotes * lote;
+        /* ¿QUIERES COMPRARLO ESTA VEZ? (11-nov-2026). Carlos: «el zumo y la
+           cerveza podrían tener sentido, pero debe aparecer de otra forma. Al
+           principio un ¿quieres comprar esta vez? y enumerar… Se calla hasta la
+           siguiente compra».
+           Así que lo del mínimo ya no entra solo en la lista: se propone, y él
+           dice que sí (con la cantidad que quiera) o que no. El «no» dura hasta
+           la siguiente compra, porque `confirmarCompra` vacía las respuestas. */
+        var sug = (self.estado.sugerido || {})[ing.id];
+        if (sug && sug.no) return;                  // dijo que no: callado hasta la próxima compra
+        if (sug && sug.n > 0) piezas = sug.n;       // dijo que sí, con su cantidad
         var ff = self.FORMATOS[self.formatoDe(ing)];
         var linea2 = {
           id: ing.id, nombre: ing.n, producto: ing.producto || "", suplente: ing.suplente || "",
@@ -9871,6 +9903,7 @@
           tienesPiezas: hayP, piezaNombre: self.nombrePieza(ing, hayP),
           nota: ing.nota || ""
         };
+        if (!sug) { sugeridos.push(linea2); return; }   // sin contestar: va a la pregunta
         if (ing.basico) { basicos.push(linea2); return; }
         if (!secciones[ing.cat]) secciones[ing.cat] = [];
         secciones[ing.cat].push(linea2);
@@ -9892,7 +9925,8 @@
       Object.keys(secciones).forEach(function (cat) { salida.push({ nombre: cat, lineas: secciones[cat] }); });
       basicos.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
 
-      return { secciones: salida, basicos: basicos };
+      sugeridos.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
+      return { secciones: salida, basicos: basicos, sugeridos: sugeridos };
     },
 
     /* ================= LA PASADA PREVIA (24-sep-2026) =================

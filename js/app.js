@@ -397,6 +397,25 @@
       'autom\u00e1tico las propone algo m\u00e1s. Las de 1 y 2 deja de proponerlas.</p>' +
       '<div class="fila"><button class="btn" data-cerrar>Ahora no</button></div>');
   }
+  /* Sí con la cantidad que haya en la casilla, o no. Las dos respuestas duran
+     hasta la siguiente compra. */
+  document.addEventListener("click", function (e) {
+    var bs = e.target.closest && e.target.closest("[data-sugsi]");
+    var bn = e.target.closest && e.target.closest("[data-sugno]");
+    if (!bs && !bn) return;
+    var idS = (bs || bn).getAttribute(bs ? "data-sugsi" : "data-sugno");
+    if (bn) {
+      Almacen.responderSugerido(idS, 0);
+      Util.toast("Esta vez no. Vuelvo a preguntarlo en la siguiente compra.");
+    } else {
+      var caja = document.querySelector('[data-sugn="' + idS + '"]');
+      var v = parseFloat(String((caja && caja.value) || "").replace(",", "."));
+      if (!(v > 0)) { Util.toast("Pon cu\u00e1ntos quieres"); return; }
+      Almacen.responderSugerido(idS, v);
+      Util.toast("A la lista: " + v);
+    }
+    pintarCompra();
+  });
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-estrella]");
     if (!b) return;
@@ -10201,6 +10220,37 @@ function pintarTodo() {
          la compra se borra. La semana que viene no vuelve solo.
      Por eso los doritos NO llevan mínimo: si esta semana los quieres, los pides
      a propósito, y ese pequeño gesto es justo la fricción que no había. */
+  /* ¿QUIERES COMPRARLO ESTA VEZ? (11-nov-2026). Lo del mínimo en casa —la
+     cerveza, el zumo— ya no se cuela entre la comida: se pregunta aquí arriba,
+     con la cantidad sugerida editable y una ✕ para decir que no. Carlos: «con su
+     sugerencia y que pueda yo borrar o editar la cantidad sugerida. Se calla
+     hasta la siguiente compra». */
+  function htmlSugeridos() {
+    var l = (compraActual && compraActual.sugeridos) || [];
+    if (!l.length) return "";
+    return '<div class="tarjeta quiero-bloque" style="margin-bottom:10px">' +
+      '<div><strong>\u00bfQuieres comprarlo esta vez?</strong>' +
+        '<div class="nota-peque">Esto no lo pide ning\u00fan plato: lo pides t\u00fa cuando baja ' +
+        'de lo que quieres tener en casa. Cambia la cantidad si quieres, o dile que no. ' +
+        'Un no vale para esta compra: en la siguiente se vuelve a preguntar.</div></div>' +
+      l.map(function (x) {
+        return '<div class="linea">' +
+          '<div class="datos"><div class="nombre">' + esc(x.producto || x.nombre) + '</div>' +
+          '<div class="detalle">quieres tener ' + cifra(x.minimo) + ' ' + esc(x.piezaNombre) +
+            ' \u00b7 tienes ' + cifra(x.tienesPiezas) +
+            (x.lote > 1 ? ' \u00b7 se compra de ' + cifra(x.lote) + ' en ' + cifra(x.lote) : '') +
+          '</div></div>' +
+          '<input type="text" class="cinput" data-sugn="' + esc(x.id) + '" value="' +
+            esc(String(x.piezas).replace(".", ",")) + '" ' +
+            'aria-label="Cu\u00e1ntos pides" style="width:56px;text-align:center">' +
+          '<span class="nota-peque" style="margin:0 6px">' + esc(x.piezaNombre) + '</span>' +
+          '<button type="button" class="btn mini" data-sugsi="' + esc(x.id) + '">Ponlo</button>' +
+          '<button type="button" class="btn mini" data-sugno="' + esc(x.id) +
+            '" title="Esta vez no">\u2715</button>' +
+          '</div>';
+      }).join("") +
+      '</div>';
+  }
   function pintarQuiero() {
     var cont = $("#bloque-quiero");
     if (!cont) return;
@@ -10221,7 +10271,7 @@ function pintarTodo() {
         : '<span class="nota-peque">Nada con ese nombre.</span>';
     }
 
-    cont.innerHTML =
+    cont.innerHTML = htmlSugeridos() +
       '<div class="tarjeta quiero-bloque">' +
         '<div class="fila entre">' +
           "<div><strong>Lo que quiero esta vez</strong>" +
