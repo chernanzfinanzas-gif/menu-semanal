@@ -2396,6 +2396,31 @@
         }
       }
 
+      /* LOS MÍNIMOS DE CASA, AL DÍA (11-nov-2026). Carlos, al ver la cerveza y
+         el zumo en una lista recién contada: «la leche no hace falta, ya sale
+         planificada… Ahora con Mercadona el lote de cerveza rubia son 12 latas
+         y de zumo son 6 briks».
+         `minimo` y `lote` son SUYOS: el refresco por `rev` los rescata junto a
+         `pedir`, `sitio` y `formato`, así que cambiarlos en el catálogo no le
+         llega. Tiene que venir por aquí.
+         La leche se queda sin mínimo y vuelve a pedirse por menú, que es como
+         debe ser cuando el plan ya la lleva. */
+      if (!e.arreglos["2026-11-11-minimos"]) {
+        var ahoraMI = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g) return;
+          if (g.id === "cerveza") { g.lote = 12; g.tocado = ahoraMI; }
+          else if (g.id === "zumo_granini") { g.lote = 6; g.tocado = ahoraMI; }
+          else if (g.id === "leche_desnatada") {
+            delete g.minimo; delete g.lote;
+            if (g.pedir === "minimo") delete g.pedir;
+            g.tocado = ahoraMI;
+          }
+        });
+        e.arreglos["2026-11-11-minimos"] = true;
+        escribirEstado(e);
+      }
+
       if (!e.arreglos["2026-10-08-orden-pan-leche-queso"]) {
         if (!e.ordenCompra) e.ordenCompra = {};
         var delanteOC = { "Mercadona|despensa": ["leche_proteinas", "pan_ortiz_bajosal"],
