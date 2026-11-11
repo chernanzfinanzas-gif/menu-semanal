@@ -3310,24 +3310,39 @@
                (S ? " + «" + S.n + "»" : "") + ". Cuadrado a mano y guardado." +
                (cu.nota ? " " + cu.nota : "");
       } else {
-        var E = Math.max(a.fin, b.fin, c ? c.fin : 0);
-        var offA = E - a.fin, offB = E - b.fin, offC = c ? E - c.fin : 0;
+        /* UNA PIEZA FRÍA NO HACE COLA (11-nov-2026). Carlos montó contramuslo +
+           gajos + crema de hierbas y le salió un reloj de 42 minutos con el pollo
+           reposando en el minuto 35 y cuatro minutos más de salsa después, con la
+           carne enfriándose encima de la encimera: «no veo bien el cronómetro, mete
+           la salsa al final pero dice que tiene que reposar».
+           El motivo era que el plato y la guarnición chocaban en la freidora, y al
+           ponerlos uno detrás de otro se ponía DETRÁS también el aderezo — que no
+           usa ningún aparato y por tanto no puede chocar con nada.
+           Una pieza cuyos pasos no encienden nada se hace EN PARALELO Y DESDE EL
+           MINUTO CERO. Y además es lo que conviene: las once salsas piden media
+           hora de nevera, así que la primera de la lista tiene que ser la salsa. */
+        var cFrio = !!(c && (c.reloj || []).length &&
+                       (c.reloj || []).every(function (q) { return !q.ap || q.ap === "no"; }));
+        var E = Math.max(a.fin, b.fin, (c && !cFrio) ? c.fin : 0);
+        var offA = E - a.fin, offB = E - b.fin, offC = c ? (cFrio ? 0 : E - c.fin) : 0;
         var ap = choca(ocupa(a, offA), ocupa(b, offB));
-        if (!ap && c) ap = choca(ocupa(a, offA), ocupa(c, offC)) || choca(ocupa(b, offB), ocupa(c, offC));
+        if (!ap && c && !cFrio) ap = choca(ocupa(a, offA), ocupa(c, offC)) || choca(ocupa(b, offB), ocupa(c, offC));
         if (ap) {
           /* Uno detrás de otro: la guarnición primero, que aguanta mejor
              tapada que una carne o un pescado recién hechos. */
           sinCuadrar = true;
           offB = 0; offA = b.fin; E = b.fin + a.fin;
-          if (c) { offC = E; E += c.fin; }
+          if (c) { if (cFrio) { offC = 0; } else { offC = E; E += c.fin; } }
           nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "»" + (S ? " y «" + S.n + "»" : "") +
                  " usan " + (NOMBRE[ap] || ap) +
                  " a la vez y la app no sabe si caben juntos. De momento van uno detrás de otro (" +
-                 Math.round(E) + " min). Cuando se cuadre, quedará guardado así.";
+                 Math.round(E) + " min)." + (cFrio ? " El aderezo no cuenta en ese tiempo: se hace al principio, en paralelo." : "") +
+                 " Cuando se cuadre, quedará guardado así.";
         } else {
           nota = "Plato" + (S ? ", guarnición y aderezo" : " y guarnición") + ": «" + P.n + "» + «" + G.n + "»" +
                  (S ? " + «" + S.n + "»" : "") + ". Los tiempos los ha cuadrado la app: " +
-                 "empieza el que tarda más y " + (S ? "los tres acaban" : "los dos acaban") + " a la vez.";
+                 "empieza el que tarda más y " + ((S && !cFrio) ? "los tres acaban" : "los dos acaban") + " a la vez." +
+                 (cFrio ? " El aderezo va el primero, en paralelo, porque no ocupa aparato." : "");
         }
         var desplaza = function (pt, off) {
           return pt.reloj.map(function (q) {
@@ -3341,7 +3356,10 @@
           ult.d = (ult.d ? ult.d + " " : "") + "Resérvalo tapado mientras se hace «" + P.n + "».";
         }
         var relC = c ? desplaza(c, offC) : [];
-        if (sinCuadrar && relC.length) {
+        if (relC.length && cFrio) {
+          var ultF = relC[relC.length - 1];
+          ultF.d = (ultF.d ? ultF.d + " " : "") + "A la nevera tapada hasta servir: va primero porque no ocupa ningún aparato y porque reposada sabe mejor.";
+        } else if (sinCuadrar && relC.length) {
           var ultC = relC[relC.length - 1];
           ultC.d = (ultC.d ? ultC.d + " " : "") + "Resérvalo tapado hasta el final.";
         }
