@@ -2368,6 +2368,34 @@
         escribirEstado(e);
       }
 
+      /* LAS MARCAS DE UNA COMPRA QUE NO SE CERRÓ (11-nov-2026). Después de
+         contar la despensa entera, la lista de Mercadona le salía con doce
+         líneas y once de ellas a «0 g». Carlos: «no se porque sale todo esto».
+         El motivo: `generarCompra` esconde lo que no falta SALVO que esté
+         tachado, y habían quedado 23 ingredientes tachados de una compra que no
+         llegó a cerrarse. Tachar es PEDIR, no recibir, así que esas marcas se
+         borran al confirmar… pero `confirmarCompra` sólo limpia las líneas que
+         tiene delante, y las de otras tiendas se quedaron.
+         Aquí se borran todas, y SOLO las marcas: el stock no se toca, que es lo
+         que importa — acababa de contarlo a mano y «Pedido recibido» le habría
+         sumado encima lo de esa compra vieja.
+         Se sella el pedido para que el borrado gane al sincronizar: sin sello,
+         la copia remota devuelve las marcas, igual que pasaba con la despensa
+         el 25-sep. Sólo si no hay ningún pedido abierto. */
+      if (!e.arreglos["2026-11-11-marcas-huerfanas"]) {
+        var abiertoMH = Object.keys(e.compraPedido || {}).length > 0;
+        if (!abiertoMH) {
+          var nMH = Object.keys(e.compraMarcada || {}).length;
+          if (nMH) {
+            e.compraMarcada = {};
+            e.pedidoSello = new Date().toISOString();
+            if (global.console) console.log("Marcas de compra sin cerrar borradas: " + nMH);
+          }
+          e.arreglos["2026-11-11-marcas-huerfanas"] = true;
+          escribirEstado(e);
+        }
+      }
+
       if (!e.arreglos["2026-10-08-orden-pan-leche-queso"]) {
         if (!e.ordenCompra) e.ordenCompra = {};
         var delanteOC = { "Mercadona|despensa": ["leche_proteinas", "pan_ortiz_bajosal"],
@@ -9664,12 +9692,20 @@
              las calorías salen de ahí.
              A partir de dos envases se dice también el total. Con uno solo no,
              que sería repetir el mismo número dos veces. */
-          texto: envases > 1
-            ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd) +
-               " \u00b7 " + Util.cantidadReceta(envases * ing.envase, ing.u, ing.pesoUd) + " en total")
-            : (envases > 0
-                ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd))
-                : Util.formatearCantidad(comprar, ing.u)),
+          /* «YA LO TIENES» EN VEZ DE «0 g» (11-nov-2026). Una línea sólo llega
+             aquí con `falta` a cero si está TACHADA: la regla de arriba esconde
+             lo que no falta salvo que esté marcada. Y entonces ponía «0 g», que
+             en la lista compacta de una tienda se lee como una cantidad que
+             comprar. Carlos, al ver once líneas así después de contar la
+             despensa: «no se porque sale todo esto». */
+          texto: falta <= 0.0001
+            ? "ya lo tienes"
+            : (envases > 1
+              ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd) +
+                 " \u00b7 " + Util.cantidadReceta(envases * ing.envase, ing.u, ing.pesoUd) + " en total")
+              : (envases > 0
+                  ? (envases + " \u00d7 " + Util.cantidadReceta(ing.envase, ing.u, ing.pesoUd))
+                  : Util.formatearCantidad(comprar, ing.u))),
           pesoUd: ing.pesoUd || 0,
           /* Lo que pide el menú se enseña SIN redondear: `formatearCantidad` redondea
              a decenas porque está pensado para lo que se compra, y con ella dos gramos
