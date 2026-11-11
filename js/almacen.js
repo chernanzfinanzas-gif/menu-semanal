@@ -2342,6 +2342,32 @@
         escribirEstado(e);
       }
 
+      /* CEBOLLAS POR UNIDADES Y AJOS POR CABEZAS (11-nov-2026). Antes de la
+         pasada para regularizar la despensa, Carlos: «prefiero contar cebollas
+         pero el ajo por dientes, no… será por ajos mejor».
+         Las tres iban en formato `malla`, así que el control pedía MALLAS: una
+         de cebolla roja son 4 cebollas, una de dulce 6, y una de ajos 50
+         dientes. De ahí venían los 5,22 que él decía que no eran suyos («no
+         tengo 5 cebollas rojas»): el número era de cebollas y los botones
+         hablaban de mallas.
+         El formato de cada ficha lo decide él en la app y el refresco por `rev`
+         lo rescata a propósito (25-sep-2026), así que subirlo en el catálogo no
+         bastaba: tiene que venir por aquí. El diente sigue siendo la unidad de
+         las recetas; lo único que cambia es en qué se cuenta. */
+      if (!e.arreglos["2026-11-11-cebollas-ajo"]) {
+        var ahoraCA = new Date().toISOString();
+        (e.ingredientes || []).forEach(function (g) {
+          if (!g) return;
+          if (g.id === "cebolla_morada" || g.id === "cebolla_dulce") {
+            g.formato = "suelto"; g.tocado = ahoraCA;
+          } else if (g.id === "ajo") {
+            g.formato = "cabeza"; g.piezaML = 12; g.tocado = ahoraCA;
+          }
+        });
+        e.arreglos["2026-11-11-cebollas-ajo"] = true;
+        escribirEstado(e);
+      }
+
       if (!e.arreglos["2026-10-08-orden-pan-leche-queso"]) {
         if (!e.ordenCompra) e.ordenCompra = {};
         var delanteOC = { "Mercadona|despensa": ["leche_proteinas", "pan_ortiz_bajosal"],
@@ -4936,6 +4962,13 @@
       caja:     { n: ["caja", "cajas"],        atajos: [0, 1, 2, 3, 4] },
       tableta:  { n: ["tableta", "tabletas"],  atajos: [0, 0.5, 1, 2, 3] },
       malla:    { n: ["malla", "mallas"],      atajos: [0, 0.5, 1, 2] },
+      /* LA CABEZA DE AJO (11-nov-2026). Carlos, antes de la pasada de stock:
+         «el ajo por dientes, no… será por ajos mejor, no crees?». Tenía razón:
+         la malla de 250 g son 50 dientes, así que contar dientes obligaba a
+         escribir 0,46 mallas para los 23 que tenía. Se cuentan cabezas, y la
+         ficha dice con `piezaML` cuántos dientes trae una. El diente sigue
+         siendo la unidad de las recetas: eso no se toca. */
+      cabeza:   { n: ["cabeza", "cabezas"],    atajos: [0, 1, 2, 3, 4, 6] },
       /* La pieza entera de carne (lomo en trozo, solomillo), 30-oct-2026. */
       pieza:    { n: ["pieza", "piezas"],      atajos: [0, 0.25, 0.5, 1, 1.5, 2] },
       rebanada: { n: ["rebanada", "rebanadas"], atajos: [0, 2, 4, 6, 8, 12] },
