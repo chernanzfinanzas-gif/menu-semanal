@@ -9652,7 +9652,17 @@
         /* `todo: true` lo usa la PASADA PREVIA: necesita también lo que ya está
            cubierto, porque lo que repasas antes de comprar es todo lo que el
            menú va a gastar, no sólo lo que falta. */
-        if (!opciones.todo && falta <= 0.0001 && !self.estado.compraMarcada[id]) return;
+        /* LO QUE NO FALTA NO SALE, AUNQUE ESTÉ TACHADO (11-nov-2026). Carlos,
+           viendo media lista con «ya lo tienes»: «vale que salga… ya lo tienes…
+           pero por qué ha de salir en la lista de la compra?». No hay motivo.
+           La excepción de lo tachado estaba para que, comprando, una línea
+           recién marcada no desapareciera bajo el dedo — pero tachar no toca el
+           stock, así que `falta` no se mueve por marcarla y la línea no se iba a
+           ir de todos modos. Lo único que conseguía era resucitar lo de compras
+           viejas sin cerrar. Y cuando algo deja de hacer falta DE VERDAD estando
+           ya pedido, el aviso es «QUITADO desde el pedido» (v532), que para eso
+           se hizo. */
+        if (!opciones.todo && falta <= 0.0001) return;
         if (falta < 0) falta = 0;
         var envases = ing.envase > 0 ? Math.ceil(falta / ing.envase) : 0;
         /* CUÁNTOS PIDES TÚ (30-oct-2026). Carlos: «me pide 17 panecillos, pero
