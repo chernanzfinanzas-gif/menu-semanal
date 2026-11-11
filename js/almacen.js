@@ -3321,6 +3321,14 @@
            Una pieza cuyos pasos no encienden nada se hace EN PARALELO Y DESDE EL
            MINUTO CERO. Y además es lo que conviene: las once salsas piden media
            hora de nevera, así que la primera de la lista tiene que ser la salsa. */
+        /* EL TIEMPO MUERTO (11-nov-2026). Carlos: «está bien esa salsa, dice de
+           montarla al final y dejarla reposar, no me cuadra bien el tiempo». Tenía
+           razón por partida doble: una salsa en frío no son solo sus 5 minutos de
+           bol, son esos 5 MÁS la media hora de nevera que pide para saber a algo.
+           Eso no estaba en ningún sitio, así que el reloj daba un total que no se
+           podía cumplir. Ahora la ficha lo dice en `espera` y, si no cabe dentro
+           del plato, se avisa ANTES de encender nada. */
+        var espS = (S && S.espera) ? Number(S.espera) : 0;
         var cFrio = !!(c && (c.reloj || []).length &&
                        (c.reloj || []).every(function (q) { return !q.ap || q.ap === "no"; }));
         var E = Math.max(a.fin, b.fin, (c && !cFrio) ? c.fin : 0);
@@ -3333,7 +3341,10 @@
           sinCuadrar = true;
           offB = 0; offA = b.fin; E = b.fin + a.fin;
           if (c) { if (cFrio) { offC = 0; } else { offC = E; E += c.fin; } }
-          nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "»" + (S ? " y «" + S.n + "»" : "") +
+          /* El aviso nombra SOLO lo que choca de verdad. Antes nombraba también el
+             aderezo —«usan la freidora a la vez»— aunque fuese una salsa en frío que
+             no enciende nada (Carlos, 11-nov, viendo su contramuslo con piña). */
+          nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "»" + ((S && !cFrio) ? " y «" + S.n + "»" : "") +
                  " usan " + (NOMBRE[ap] || ap) +
                  " a la vez y la app no sabe si caben juntos. De momento van uno detrás de otro (" +
                  Math.round(E) + " min)." + (cFrio ? " El aderezo no cuenta en ese tiempo: se hace al principio, en paralelo." : "") +
@@ -3365,6 +3376,12 @@
         }
         reloj = desplaza(a, offA).concat(relB, relC);
         reloj.sort(function (x, y) { return x.min - y.min; });   /* estable: a igual minuto, el principal primero */
+        /* Con cinco minutos de margen: avisar porque falta uno es ruido. */
+        if (cFrio && espS > 0 && (c.fin + espS) > E + 5) {
+          preparacion.unshift("ANTES DE EMPEZAR · «" + S.n + "» pide " + espS +
+            " minutos de nevera y este plato se hace en " + Math.round(E) +
+            ". Hazla con antelación —aguanta días— o acepta que repose menos y sepa menos.");
+        }
         /* EL ADEREZO SE ECHA AL FINAL, SIEMPRE. Una salsa se hace aparte y se
            pone encima: es el enganche más simple de los cuatro que hay que
            montar, y el único que necesita el aderezo. */
