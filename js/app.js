@@ -4408,6 +4408,13 @@ function acompFam(l, fam) {
     return fam !== 'tosta';
   });
 }
+/* Los aderezos van al revés que los acompañamientos: el que no dice nada vale
+   para todo, y el que lo dice —los untables de tosta— vale solo para lo suyo.
+   Un requesón para untar no se le pone a un entrecot. */
+function aderFam(l, fam) {
+  if (!fam) return l;
+  return l.filter(function (x) { return (x.va && x.va.length) ? x.va.indexOf(fam) >= 0 : true; });
+}
 function basesFam(l) {
   if (!mont || !mont.fam || !P.TIPOS || !P.TIPOS[mont.fam]) return l;
   return l.filter(function (x) {
@@ -4542,8 +4549,9 @@ function pintarMontador() {
   } else {
     h += '<button type="button" class="fila-compacta mont-fila" data-mont="ader|"><span class="fc-n">' +
          '<b>Sin aderezo</b><small class="nota-peque" style="display:block">Así está bien</small></span></button>';
-    h += pz.aderezos.length ? listaMont(pz.aderezos, 'ader')
-         : '<div class="vacio">Todavía no hay salsas escritas como pieza.</div>';
+    var ad = aderFam(pz.aderezos, famDeGrupo(mont.baseGrupo) || mont.fam || null);
+    h += ad.length ? listaMont(ad, 'ader')
+         : '<div class="vacio">Todavía no hay salsas escritas que le peguen a esta base.</div>';
   }
   lista.innerHTML = h;
   m.appendChild(lista);
