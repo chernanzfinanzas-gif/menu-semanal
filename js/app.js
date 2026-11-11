@@ -622,7 +622,7 @@ function apartado() {
           var i = null; try { i = A.ingrediente(x.i); } catch (e) {}
           var pide = (x.c || 0) / rac * np * n;
           var hay = RESTO[x.i] || 0;
-          if (i && !i.basico && hay < pide * 0.6) falta.push(i.n || x.i);
+          if (i && !i.basico && !x.op && hay < pide * 0.6) falta.push(i.n || x.i);
           RESTO[x.i] = Math.max(0, hay - pide);   /* APARTADO: ya no esta para nadie mas */
         });
         COMP[f + '|' + tm + '|' + id] = falta;
@@ -638,6 +638,7 @@ function faltanDe(r, comensales) {
   (r.ing || []).forEach(function (x) {
     var i = null; try { i = A.ingrediente(x.i); } catch (e) {}
     if (!i || i.basico) return;
+    if (x.op) return;                /* un adorno no deja al plato en ambar (11-nov-2026) */
     var pide = (x.c || 0) / rac * comensales;
     if ((RESTO[x.i] || 0) < pide * 0.6) out.push(i.n || x.i);
   });
@@ -6055,6 +6056,7 @@ function pintarTodo() {
       html += '<li' + (clasesLi.trim() ? ' class="' + clasesLi.trim() + '"' : '') + '><span>' +
               esc(ing ? ing.n : l.i) +
               (pReal !== null ? ' <em class="nota-peque">\u00b7 ajustado</em>' : '') +
+              (l.op ? ' <em class="nota-peque">\u00b7 si tienes</em>' : '') +
               (rallar ? ' <em class="nota-peque">\u00b7 para rallar</em>' : '') + '</span><span>' +
               celda + '</span></li>';
       var tarr = rallar ? Almacen.ingrediente("tomate_rallado") : null;

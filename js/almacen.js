@@ -6397,6 +6397,11 @@
       var faltan = [], faltanMayores = [], fresco = 0, mayoresEnCasa = 0, mayores = 0;
       lineas.forEach(function (l) {
         var g = self.ingrediente(l.i);
+        /* UN OPCIONAL NUNCA FALTA (11-nov-2026). Carlos, con el risotto pidiendo
+           salsa de trufa: «me gustaría que fuera más flexible el sistema». Un
+           ingrediente marcado `op` es un adorno: si lo tienes se lo echas, y si
+           no, el plato se hace igual y no bloquea nada. */
+        if (l.op) { return; }
         var esMenor = self.menorEnPlato(l, princ, r, totalG);
         if (!esMenor) mayores++;
         if (!self.tengoLinea(l, libres)) {
@@ -9634,6 +9639,10 @@
             var fotoPlato = self.fotoPlato(fecha, rid);
             var pesosAjustados = fotoPlato && fotoPlato.pesos;
             (rec.ing || []).forEach(function (l) {
+              /* NI SE PIDE EN LA COMPRA (11-nov-2026): un adorno que no tienes no
+                 se compra por él solo. Si lo tienes, se gasta como todo lo demás;
+                 eso lo lleva la despensa, no la lista. */
+              if (l.op) return;
               if (!acumulado[l.i]) acumulado[l.i] = { cantidad: 0, recetas: {} };
               var cant = (pesosAjustados && pesosAjustados[l.i] != null)
                 ? pesosAjustados[l.i] * pers : l.c * factor;
