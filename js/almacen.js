@@ -3392,6 +3392,13 @@
         fin = E;
       }
       r.n = P.n + " + " + G.n + (S ? " + " + S.n : "");
+      /* NOMBRE CORTO PARA LA TARJETA  ·  11-nov-2026. En el planificador el plato
+         montado ocupaba cuatro líneas, porque el conjunto se quedaba con el nombre
+         largo de cada pieza: «Cerdo · solomillo a la freidora + Patatas fritas de
+         patata fresca en airfryer + Crema de queso azul con queso batido». Cada
+         pieza ya tiene su nombre corto, así que la tarjeta usa esos y el largo
+         sigue estando al pasar por encima. */
+      r.corto = cP + " + " + cG + (S ? " + " + cS : "");
       r.tipo = (P.tipo || []).slice();
       r.grupo = P.grupo;
       r.raciones = 1;
