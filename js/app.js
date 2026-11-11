@@ -959,6 +959,25 @@ function ponerPropios(f, tm, lista) {
 function colocar(id, fecha, toma, ranura) {
   ponerFueraT(fecha, toma, false);
   marcarVaciadaT(fecha, toma, false);
+  /* UN FIJO NO SE AÑADE COMO PLATO: SE VUELVE A ENCENDER (11-nov-2026).
+     Carlos, con el yogur con copos delante en el catálogo: «pulso añadir pero no
+     aparece». Y no aparecía. `propios` filtra los fijos, así que el yogur entraba
+     en la lista del día y la pantalla lo ignoraba: un fijo se pinta por la vía de
+     los fijos, y ahí seguía apagado por la ✕ que lo había quitado.
+     Quitar un fijo es «hoy no» —está escrito así en `quitarPlato`—, luego volver
+     a ponerlo tiene que ser deshacer ese «hoy no», no empujarlo a una ranura. */
+  if (esFijoId(id)) {
+    var cfF = ((MOTOR && A.estado.config && A.estado.config.fijos) || [])
+      .filter(function (x) { return x && x.r === id; })[0];
+    var papelF = (cfF && cfF.papel) || 'postre';
+    ['yo', 'ella'].forEach(function (q) {
+      if (tocadoHoy(fecha, toma, q, papelF) && !fijoDelDia(fecha, toma, q, papelF)) {
+        soltarFijoDia(fecha, toma, q, papelF);
+      }
+    });
+    guardar();
+    return;
+  }
   var l = propios(fecha, toma);
   /* AÑADIR ES AÑADIR (Carlos, 8-nov-2026: «y solo hay una tosta ahora que me doy
      cuenta, eran dos tostas»). En el planificador eliges entre DOS ranuras y lo
