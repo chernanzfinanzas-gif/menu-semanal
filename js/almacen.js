@@ -3336,19 +3336,25 @@
         var ap = choca(ocupa(a, offA), ocupa(b, offB));
         if (!ap && c && !cFrio) ap = choca(ocupa(a, offA), ocupa(c, offC)) || choca(ocupa(b, offB), ocupa(c, offC));
         if (ap) {
-          /* Uno detrás de otro: la guarnición primero, que aguanta mejor
-             tapada que una carne o un pescado recién hechos. */
+          /* TODO A LA VEZ, AUNQUE CHOQUE  ·  11-nov-2026
+             Antes, si dos piezas querían el mismo aparato, se ponían una detrás de
+             otra por prudencia, con la guarnición esperando tapada. Carlos lo probó y
+             no vale: «haces las patatas y luego el solomillo, 20 minutos después de
+             salir las patatas están frías. Mejor que hagas las recetas todo a la vez,
+             si hay problemas ya lo veré al cocinar».
+             Tiene razón y el criterio anterior era mío, no suyo: una guarnición que
+             espera veinte minutos tapada ya no es una guarnición, y quien ve la cesta
+             es él, no la app. Así que los tiempos se cuadran igual que si no chocaran
+             —todos acabando a la vez— y el choque se queda en un AVISO que se lee
+             antes de empezar. Los offsets de arriba ya son los buenos: no se tocan.
+             El aviso nombra SOLO lo que choca de verdad: una salsa en frío no
+             enciende nada (Carlos, 11-nov, viendo su contramuslo con piña). */
           sinCuadrar = true;
-          offB = 0; offA = b.fin; E = b.fin + a.fin;
-          if (c) { if (cFrio) { offC = 0; } else { offC = E; E += c.fin; } }
-          /* El aviso nombra SOLO lo que choca de verdad. Antes nombraba también el
-             aderezo —«usan la freidora a la vez»— aunque fuese una salsa en frío que
-             no enciende nada (Carlos, 11-nov, viendo su contramuslo con piña). */
-          nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "»" + ((S && !cFrio) ? " y «" + S.n + "»" : "") +
-                 " usan " + (NOMBRE[ap] || ap) +
-                 " a la vez y la app no sabe si caben juntos. De momento van uno detrás de otro (" +
-                 Math.round(E) + " min)." + (cFrio ? " El aderezo no cuenta en ese tiempo: se hace al principio, en paralelo." : "") +
-                 " Cuando se cuadre, quedará guardado así.";
+          nota = "OJO AL COCINAR: «" + P.n + "» y «" + G.n + "»" + ((S && !cFrio) ? " y «" + S.n + "»" : "") +
+                 " quieren " + (NOMBRE[ap] || ap) +
+                 " a la vez. Van en paralelo para que todo salga caliente y junto (" +
+                 Math.round(E) + " min). Si no caben, saca primero lo que mejor aguante tapado y dímelo: lo dejo cuadrado y deja de avisar." +
+                 (cFrio ? " El aderezo no ocupa aparato: se hace al principio." : "");
         } else {
           nota = "Plato" + (S ? ", guarnición y aderezo" : " y guarnición") + ": «" + P.n + "» + «" + G.n + "»" +
                  (S ? " + «" + S.n + "»" : "") + ". Los tiempos los ha cuadrado la app: " +
@@ -3362,10 +3368,6 @@
           });
         };
         var relB = desplaza(b, offB);
-        if (sinCuadrar && relB.length) {
-          var ult = relB[relB.length - 1];
-          ult.d = (ult.d ? ult.d + " " : "") + "Resérvalo tapado mientras se hace «" + P.n + "».";
-        }
         var relC = c ? desplaza(c, offC) : [];
         if (relC.length && cFrio) {
           var ultF = relC[relC.length - 1];
