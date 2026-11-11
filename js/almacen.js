@@ -3145,19 +3145,26 @@
            proteína con su método, y eso hay que decirlo en la ficha, no adivinarlo.
            «guarnición» con tilde se acepta también: la salsa de tomate casera estaba
            escrita así y se caía de las tres cestas. */
-        var cesta = tipos.indexOf("salsa") >= 0 ? "aderezos"
-                  : (tipos.indexOf("base") >= 0) ? "bases"
-                  : (tipos.indexOf("guarnicion") >= 0 || tipos.indexOf("guarnición") >= 0 ||
-                     tipos.indexOf("relleno") >= 0) ? "acompana"
-                  : null;
-        if (!cesta) return;
+        /* UNA PIEZA PUEDE ESTAR EN DOS CESTAS (11-nov-2026). La carne picada es el
+           ejemplo: con una guarnición al lado es el plato, y dentro de una pasta o de
+           una berenjena es el relleno. Antes cada ficha caía en una sola cesta y había
+           que elegir, que es una elección falsa. */
+        var cestas = [];
+        if (tipos.indexOf("salsa") >= 0) cestas.push("aderezos");
+        if (tipos.indexOf("base") >= 0) cestas.push("bases");
+        if (tipos.indexOf("guarnicion") >= 0 || tipos.indexOf("guarnición") >= 0 ||
+            tipos.indexOf("relleno") >= 0) cestas.push("acompana");
+        if (!cestas.length) return;
         /* Si la base dice para qué toma vale, se respeta; si no dice nada —una pasta
-           cocida, un arroz suelto— vale para las dos, que para eso es una pieza. */
-        if (cesta === "bases" && toma &&
-            (tipos.indexOf("comida") >= 0 || tipos.indexOf("cena") >= 0) &&
-            tipos.indexOf(toma) < 0) return;
+           cocida, un arroz suelto— vale para las dos, que para eso es una pieza. El
+           filtro es solo de la cesta de bases: de relleno vale igual a cualquier hora. */
+        if (toma && (tipos.indexOf("comida") >= 0 || tipos.indexOf("cena") >= 0) &&
+            tipos.indexOf(toma) < 0) {
+          cestas = cestas.filter(function (k) { return k !== "bases"; });
+          if (!cestas.length) return;
+        }
         var f = self.faltaParaHacer(r, libres);
-        out[cesta].push({
+        var pieza = {
           id: r.id, n: r.n, corto: self.cortoDe(r), grupo: r.grupo, min: r.min || 0,
           k: Math.round(self.nutrReceta(r).k || 0),
           sal: Math.round(self.salReceta(r) * 1000) / 1000,
@@ -3166,11 +3173,17 @@
           listo: !f.faltanMayores.length,
           /* ¿vale ella sola para esta toma? es la opción «solo, de cena» */
           solo: !!(toma && tipos.indexOf(toma) >= 0),
+          /* A QUÉ FAMILIAS LE VALE ESTE ACOMPAÑAMIENTO (11-nov-2026, Carlos: «los
+             cachelos no pueden ir en una tosta»). Si la ficha no lo dice, vale para
+             todo MENOS para las tostas, que son el caso raro: casi ninguna guarnición
+             se sube a un pan, y los rellenos de tosta no bajan a un plato. */
+          va: (r.va && r.va.length) ? r.va.slice() : null,
           /* ¿esta base pide aderezo? Es del MÉTODO, no del alimento: un risotto y un
              arroz meloso traen su crema y su fondo; un arroz al vapor sale blanco.
              Las fichas que no lo dicen se tratan como que sí, que es lo prudente. */
           pide: (r.pideAderezo === false) ? false : true
-        });
+        };
+        cestas.forEach(function (k) { out[k].push(pieza); });
       });
       ["bases", "acompana", "aderezos"].forEach(function (k) {
         out[k].sort(function (a, b) {

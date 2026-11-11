@@ -4393,6 +4393,21 @@ function abrirMontador(fecha, toma, ranura, grupo) {
 /* Si el montador viene de un hueco del panel, ese hueco pide una familia: las
    bases se filtran por ella con la misma prueba que usa el proponedor. Los
    acompanamientos no se tocan, que la familia es del plato. */
+/* La familia a la que pertenece un grupo de ficha, para casar base y relleno. */
+function famDeGrupo(g) {
+  if (g === 'carne-blanca' || g === 'carne-roja') return 'carne';
+  if (g === 'pescado-blanco' || g === 'pescado-azul') return 'pescado';
+  return g || null;
+}
+/* Qué acompañamientos valen para la base que se está montando (11-nov-2026).
+   Antes el cajón era uno solo y en una tosta te ofrecía cachelos al vapor. */
+function acompFam(l, fam) {
+  if (!fam) return l;
+  return l.filter(function (x) {
+    if (x.va && x.va.length) return x.va.indexOf(fam) >= 0;
+    return fam !== 'tosta';
+  });
+}
 function basesFam(l) {
   if (!mont || !mont.fam || !P.TIPOS || !P.TIPOS[mont.fam]) return l;
   return l.filter(function (x) {
@@ -4487,7 +4502,7 @@ function pintarMontador() {
   }
 
   if (mont.paso === 1) {
-    var bs = basesFam(pz.bases), ac = pz.acompana;
+    var bs = basesFam(pz.bases), ac = acompFam(pz.acompana, mont.fam || null);
     h += '<p class="instrucciones-compra">Arriba lo que más gasta de lo que corre prisa en la nevera. ' +
          'Si lo que caduca es la carne o el pescado, empieza por ahí; si lo que tienes es un relleno, ' +
          'empieza por el relleno y luego eliges arroz, pasta o nada.</p>';
@@ -4509,8 +4524,9 @@ function pintarMontador() {
       h += '<button type="button" class="fila-compacta mont-fila" data-mont="acomp|"><span class="fc-n">' +
            '<b>Sin acompañamiento</b><small class="nota-peque" style="display:block">' +
            'El plato va solo</small></span></button>';
-      h += pz.acompana.length ? listaMont(pz.acompana, 'acomp')
-           : '<div class="vacio">No hay acompañamientos escritos.</div>';
+      var ac3 = acompFam(pz.acompana, famDeGrupo(mont.baseGrupo) || mont.fam || null);
+      h += ac3.length ? listaMont(ac3, 'acomp')
+           : '<div class="vacio">No hay nada escrito que le pegue a esta base.</div>';
     } else {
       var elegido = null;
       pz.acompana.forEach(function (x) { if (x.id === mont.acomp) elegido = x; });
@@ -4580,7 +4596,12 @@ document.addEventListener('click', function (e) {
   if (b) {
     var p = b.getAttribute('data-mont').split('|');
     var k = p[0], id = p[1] || null;
-    if (k === 'base') { mont.base = id; mont.pide = pideAderezo(id); mont.paso = mont.acomp ? 3 : 2; }
+    if (k === 'base') {
+      mont.base = id; mont.pide = pideAderezo(id);
+      var pzb = piezasMont();
+      pzb.bases.forEach(function (x) { if (x.id === id) mont.baseGrupo = x.grupo; });
+      mont.paso = mont.acomp ? 3 : 2;
+    }
     else if (k === 'acomp') {
       mont.acomp = id;
       /* Si la base no pide aderezo, aquí se acaba: no hay paso 3 que enseñar. */
@@ -4594,7 +4615,7 @@ document.addEventListener('click', function (e) {
   if (e.target.closest('[data-monttodo]')) { mont.verTodo = !mont.verTodo; pintarMontador(); return; }
   if (e.target.closest('[data-montatras]')) {
     if (mont.paso === 3) { mont.ader = null; mont.paso = 2; }
-    else { mont.base = null; mont.acomp = null; mont.soloEso = false; mont.paso = 1; }
+    else { mont.base = null; mont.baseGrupo = null; mont.pide = true; mont.acomp = null; mont.soloEso = false; mont.paso = 1; }
     pintarMontador(); return;
   }
   if (e.target.closest('[data-montfin]')) {
