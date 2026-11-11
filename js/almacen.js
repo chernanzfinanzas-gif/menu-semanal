@@ -3111,14 +3111,23 @@
         return (self.estrellas(b.id) - self.estrellas(a.id)) || a.n.localeCompare(b.n);
       });
     },
-    idConjunto: function (pId, gId) { return "conj_" + pId + "__" + gId; },
-    crearConjunto: function (pId, gId) {
+    /* EL TERCER HUECO: EL ADEREZO (11-nov-2026). Carlos: «las recetas se
+       dividen en tres cosas… base, el relleno o guarnición, y la salsa o
+       aderezo», y «la salsa es opcional, se puede poner la opción sin salsa».
+       El id de los pares de antes no cambia, así que los conjuntos que ya
+       existen siguen valiendo tal cual. */
+    idConjunto: function (pId, gId, sId) {
+      return "conj_" + pId + "__" + gId + (sId ? "__" + sId : "");
+    },
+    crearConjunto: function (pId, gId, sId) {
       if (!this.receta(pId) || !this.receta(gId)) return null;
-      var id = this.idConjunto(pId, gId);
+      if (sId && !this.receta(sId)) return null;
+      var id = this.idConjunto(pId, gId, sId);
       var r = null;
       for (var i = 0; i < this.estado.recetas.length; i++) if (this.estado.recetas[i].id === id) r = this.estado.recetas[i];
       if (!r) {
-        r = { id: id, conj: { p: pId, g: gId }, oculta: true, editado: true,
+        r = { id: id, conj: sId ? { p: pId, g: gId, s: sId } : { p: pId, g: gId },
+              oculta: true, editado: true,
               n: "", tipo: [], grupo: "", raciones: 1, min: 0, tools: [], ing: [], pasos: [] };
         this.estado.recetas.push(r);
       }
@@ -3129,28 +3138,33 @@
     cortoDe: function (r) { return r.corto || String(r.n || "").split(" ")[0]; },
     armarConjunto: function (r, forzar) {
       if (this._armando) return;
-      var P = null, G = null, i;
+      var P = null, G = null, S = null, i;
       for (i = 0; i < this.estado.recetas.length; i++) {
         var x = this.estado.recetas[i];
         if (x.id === r.conj.p) P = x;
         if (x.id === r.conj.g) G = x;
+        if (r.conj.s && x.id === r.conj.s) S = x;
       }
       if (!P || !G) return;
-      var cu = (global.DATOS_CUADRES || {})[r.conj.p + "|" + r.conj.g] || null;
-      var firma = JSON.stringify([2, P.n, P.raciones, P.ing, P.pasos, P.trucos, P.tipo, P.grupo, P.tools,
-                                  G.n, G.raciones, G.ing, G.pasos, G.trucos, G.tools, cu]);
+      if (r.conj.s && !S) return;
+      var clave = r.conj.p + "|" + r.conj.g + (r.conj.s ? "|" + r.conj.s : "");
+      var cu = (global.DATOS_CUADRES || {})[clave] || null;
+      var deS = S ? [S.n, S.raciones, S.ing, S.pasos, S.trucos, S.tools] : null;
+      var firma = JSON.stringify([3, P.n, P.raciones, P.ing, P.pasos, P.trucos, P.tipo, P.grupo, P.tools,
+                                  G.n, G.raciones, G.ing, G.pasos, G.trucos, G.tools, deS, cu]);
       if (!forzar && r._firma === firma) return;
       this._armando = true;
-      try { this._armar(r, P, G, cu); } finally { this._armando = false; }
+      try { this._armar(r, P, G, S, cu); } finally { this._armando = false; }
       r._firma = firma;
     },
-    _armar: function (r, P, G, cu) {
+    _armar: function (r, P, G, S, cu) {
       var self = this;
-      var cP = this.cortoDe(P), cG = this.cortoDe(G);
+      var PIEZAS = S ? [P, G, S] : [P, G];
+      var cP = this.cortoDe(P), cG = this.cortoDe(G), cS = S ? this.cortoDe(S) : "";
       /* INGREDIENTES: por ración de cada una, sumados. El conjunto es de 1 ración
          y la ficha lo escala a los comensales como cualquier plato. */
       var ing = [], pos = {};
-      [P, G].forEach(function (C) {
+      PIEZAS.forEach(function (C) {
         var rc = C.raciones || 1;
         (C.ing || []).forEach(function (l) {
           var k = l.i + "|" + (l.uso || "");
@@ -3187,7 +3201,7 @@
         });
         return { antes: antes, reloj: reloj, despues: despues, fin: Math.round(fin * 10) / 10 };
       };
-      var a = partes(P, cP), b = partes(G, cG);
+      var a = partes(P, cP), b = partes(G, cG), c = S ? partes(S, cS) : null;
       var ocupa = function (pt, off) {          /* {aparato: [[desde, hasta]]} */
         var o = {};
         pt.reloj.forEach(function (q, k) {
@@ -3209,27 +3223,32 @@
       };
       var NOMBRE = { airfryer: "la freidora", micro: "el microondas", sarten: "la sartén", horno: "el horno", cazuela: "la cazuela" };
       var reloj, fin, nota, sinCuadrar = false;
-      var preparacion = a.antes.concat(b.antes);
+      var preparacion = a.antes.concat(b.antes, c ? c.antes : []);
       if (cu) {
         reloj = cu.pasos;
         fin = cu.min || 0;
-        nota = "Plato y guarnición: «" + P.n + "» + «" + G.n + "». Cuadrado a mano y guardado." +
+        nota = "Plato" + (S ? ", guarnición y aderezo" : " y guarnición") + ": «" + P.n + "» + «" + G.n + "»" +
+               (S ? " + «" + S.n + "»" : "") + ". Cuadrado a mano y guardado." +
                (cu.nota ? " " + cu.nota : "");
       } else {
-        var E = Math.max(a.fin, b.fin);
-        var offA = E - a.fin, offB = E - b.fin;
+        var E = Math.max(a.fin, b.fin, c ? c.fin : 0);
+        var offA = E - a.fin, offB = E - b.fin, offC = c ? E - c.fin : 0;
         var ap = choca(ocupa(a, offA), ocupa(b, offB));
+        if (!ap && c) ap = choca(ocupa(a, offA), ocupa(c, offC)) || choca(ocupa(b, offB), ocupa(c, offC));
         if (ap) {
           /* Uno detrás de otro: la guarnición primero, que aguanta mejor
              tapada que una carne o un pescado recién hechos. */
           sinCuadrar = true;
           offB = 0; offA = b.fin; E = b.fin + a.fin;
-          nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "» usan " + (NOMBRE[ap] || ap) +
+          if (c) { offC = E; E += c.fin; }
+          nota = "PENDIENTE DE CUADRAR: «" + P.n + "» y «" + G.n + "»" + (S ? " y «" + S.n + "»" : "") +
+                 " usan " + (NOMBRE[ap] || ap) +
                  " a la vez y la app no sabe si caben juntos. De momento van uno detrás de otro (" +
                  Math.round(E) + " min). Cuando se cuadre, quedará guardado así.";
         } else {
-          nota = "Plato y guarnición: «" + P.n + "» + «" + G.n + "». Los tiempos los ha cuadrado la app: " +
-                 "empieza el que tarda más y los dos acaban a la vez.";
+          nota = "Plato" + (S ? ", guarnición y aderezo" : " y guarnición") + ": «" + P.n + "» + «" + G.n + "»" +
+                 (S ? " + «" + S.n + "»" : "") + ". Los tiempos los ha cuadrado la app: " +
+                 "empieza el que tarda más y " + (S ? "los tres acaban" : "los dos acaban") + " a la vez.";
         }
         var desplaza = function (pt, off) {
           return pt.reloj.map(function (q) {
@@ -3242,21 +3261,32 @@
           var ult = relB[relB.length - 1];
           ult.d = (ult.d ? ult.d + " " : "") + "Resérvalo tapado mientras se hace «" + P.n + "».";
         }
-        reloj = desplaza(a, offA).concat(relB);
+        var relC = c ? desplaza(c, offC) : [];
+        if (sinCuadrar && relC.length) {
+          var ultC = relC[relC.length - 1];
+          ultC.d = (ultC.d ? ultC.d + " " : "") + "Resérvalo tapado hasta el final.";
+        }
+        reloj = desplaza(a, offA).concat(relB, relC);
         reloj.sort(function (x, y) { return x.min - y.min; });   /* estable: a igual minuto, el principal primero */
+        /* EL ADEREZO SE ECHA AL FINAL, SIEMPRE. Una salsa se hace aparte y se
+           pone encima: es el enganche más simple de los cuatro que hay que
+           montar, y el único que necesita el aderezo. */
+        if (S) reloj.push({ min: Math.round(E * 10) / 10, t: "«" + S.n + "» por encima, al servir",
+                            d: "El aderezo va al final y en crudo: calentado pierde.", ap: "no", de: cS });
         fin = E;
       }
-      r.n = P.n + " + " + G.n;
+      r.n = P.n + " + " + G.n + (S ? " + " + S.n : "");
       r.tipo = (P.tipo || []).slice();
       r.grupo = P.grupo;
       r.raciones = 1;
-      r.min = Math.round(fin) || Math.max(P.min || 0, G.min || 0);
-      r.tools = union(P.tools, G.tools);
-      r.cesta = union(P.cesta, G.cesta);
+      r.min = Math.round(fin) || Math.max(P.min || 0, G.min || 0, S ? (S.min || 0) : 0);
+      r.tools = S ? union(union(P.tools, G.tools), S.tools) : union(P.tools, G.tools);
+      r.cesta = S ? union(union(P.cesta, G.cesta), S.cesta) : union(P.cesta, G.cesta);
       r.ing = ing;
-      r.pasos = preparacion.concat(reloj, a.despues, b.despues);
+      r.pasos = preparacion.concat(reloj, a.despues, b.despues, c ? c.despues : []);
       r.trucos = (P.trucos || []).map(function (t) { return cP + " · " + t; })
-                 .concat((G.trucos || []).map(function (t) { return cG + " · " + t; }));
+                 .concat((G.trucos || []).map(function (t) { return cG + " · " + t; }),
+                         S ? (S.trucos || []).map(function (t) { return cS + " · " + t; }) : []);
       r.nota = nota;
       r.sinCuadrar = sinCuadrar;
       r.oculta = true;
