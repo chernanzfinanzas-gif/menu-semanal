@@ -14768,7 +14768,19 @@
     var tocanHoy = [];
     // 29-oct-2026 (Carlos): fuera «Las demás» — ya no se enseñan medidas sueltas
     // «por si apetece»; solo las que tocan hoy.
-    P.medidas.forEach(function (m) { if (tocaMedida(m, dia)) tocanHoy.push(m); });
+    P.medidas.forEach(function (m) {
+      if (tocaMedida(m, dia)) { tocanHoy.push(m); return; }
+      /* EL ECG QUE LLEGÓ SIN QUE TOCARA  ·  11-nov-2026
+         Carlos: «el pulso del ECG debería estar como en los ECG sentado». El 29 de
+         octubre él mismo sacó el miércoles de la lista, porque la prueba ortostática
+         de ese día acaba con tres minutos sentado que YA cuentan como el ECG del día.
+         Pero al sacarlo de la lista se fue también la casilla, así que ese pulso
+         existía y no se veía en ningún sitio.
+         Ahora la casilla sale cualquier día en que HAYA un ECG, toque o no. Los días
+         que no toca y no hay, no aparece: no se vuelve a pedir lo que él quitó, solo
+         se enseña lo que ya está medido. */
+      if (m.auto === "ecg" && ecgDelDia(dia)) tocanHoy.push(m);
+    });
 
     /* 29-sep-2026: verde = llega sola (correo o intervals); amarillo = a mano. */
     var LLEGAN = { peso: 1, grasa: 1, sistolica: 1, diastolica: 1, pulso: 1, ecg: 1 };
