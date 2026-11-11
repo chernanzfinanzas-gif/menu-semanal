@@ -3138,11 +3138,24 @@
         if (!(r.ing || []).length) return;
         if (self.vistaReceta(r.id) === "no") return;        /* un «no me vale» no se monta */
         var tipos = r.tipo || [];
+        /* UNA BASE ES LO QUE ESTÁ MARCADO COMO BASE (11-nov-2026). Antes era «todo
+           lo que no sea guarnición, relleno ni salsa», y por eso el montador le
+           ofrecía a Carlos un arroz con calamar YA RELLENO y encima le pedía otro
+           relleno: «esto no está bien». Una base no es un plato, es el hidrato o la
+           proteína con su método, y eso hay que decirlo en la ficha, no adivinarlo.
+           «guarnición» con tilde se acepta también: la salsa de tomate casera estaba
+           escrita así y se caía de las tres cestas. */
         var cesta = tipos.indexOf("salsa") >= 0 ? "aderezos"
-                  : (tipos.indexOf("guarnicion") >= 0 || tipos.indexOf("relleno") >= 0) ? "acompana"
-                  : "bases";
-        /* una base tiene que valer para la toma que se está montando */
-        if (cesta === "bases" && toma && tipos.indexOf(toma) < 0) return;
+                  : (tipos.indexOf("base") >= 0) ? "bases"
+                  : (tipos.indexOf("guarnicion") >= 0 || tipos.indexOf("guarnición") >= 0 ||
+                     tipos.indexOf("relleno") >= 0) ? "acompana"
+                  : null;
+        if (!cesta) return;
+        /* Si la base dice para qué toma vale, se respeta; si no dice nada —una pasta
+           cocida, un arroz suelto— vale para las dos, que para eso es una pieza. */
+        if (cesta === "bases" && toma &&
+            (tipos.indexOf("comida") >= 0 || tipos.indexOf("cena") >= 0) &&
+            tipos.indexOf(toma) < 0) return;
         var f = self.faltaParaHacer(r, libres);
         out[cesta].push({
           id: r.id, n: r.n, corto: self.cortoDe(r), grupo: r.grupo, min: r.min || 0,
@@ -3152,7 +3165,11 @@
           fresco: Math.round(f.fresco),
           listo: !f.faltanMayores.length,
           /* ¿vale ella sola para esta toma? es la opción «solo, de cena» */
-          solo: !!(toma && tipos.indexOf(toma) >= 0)
+          solo: !!(toma && tipos.indexOf(toma) >= 0),
+          /* ¿esta base pide aderezo? Es del MÉTODO, no del alimento: un risotto y un
+             arroz meloso traen su crema y su fondo; un arroz al vapor sale blanco.
+             Las fichas que no lo dicen se tratan como que sí, que es lo prudente. */
+          pide: (r.pideAderezo === false) ? false : true
         });
       });
       ["bases", "acompana", "aderezos"].forEach(function (k) {

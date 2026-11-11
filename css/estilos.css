@@ -1647,3 +1647,12 @@ button.enlace {
 .mont-fila .fc-n{-webkit-line-clamp:3}
 .mont-fila.mont-falta{opacity:.72}
 .mont-resumen{background:var(--suave,#f3f6f4); border-radius:9px; padding:7px 10px; margin-bottom:8px}
+
+/* El corte entre lo que puedes hacer y lo que te falta, dentro del montador
+   (Carlos, 11-nov-2026: «primero presentas las bases que tienes en stock y luego
+   otras... así planificas lo que te sobra»). */
+.mont-corte{
+  margin:14px 0 6px; padding-top:9px; border-top:1px dashed var(--borde);
+  color:var(--tinta-3,#6b7a73); font-weight:600; text-transform:uppercase;
+  letter-spacing:.04em; font-size:.72rem;
+}

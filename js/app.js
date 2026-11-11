@@ -4403,6 +4403,31 @@ function basesFam(l) {
 }
 function cerrarMontador() { mont = null; pintarCatalogo(); }
 
+/* ¿La base elegida pide aderezo? (11-nov-2026, Carlos: «necesita aderezo — en el
+   caso de los risottos no, pero en los arroces en vaporera igual sí»). Lo dice la
+   ficha de la base; si no dice nada, se asume que sí. */
+function pideAderezo(id) {
+  if (!id) return true;
+  var pz = piezasMont(), out = true;
+  pz.bases.forEach(function (x) { if (x.id === id) out = (x.pide !== false); });
+  return out;
+}
+/* Primero lo que puedes hacer, detrás lo demás (Carlos, 11-nov: «primero presentas
+   las bases que tienes en stock y luego otras… así planificas lo que te sobra»).
+   Antes se escondía lo que faltaba y había que pedirlo con un botón. */
+function listaMont(l, clave) {
+  var si = l.filter(function (x) { return x.listo; });
+  var no = l.filter(function (x) { return !x.listo; });
+  var h = si.map(function (x) { return filaMont(x, clave); }).join('');
+  if (!si.length) h += '<div class="vacio">Nada de esto puedes hacer entero ahora mismo.</div>';
+  if (no.length && mont.verTodo) {
+    h += '<div class="mont-corte nota-peque">Te falta algo &middot; ' + no.length + '</div>';
+    h += no.map(function (x) { return filaMont(x, clave); }).join('');
+  } else if (no.length) {
+    h += '<div class="mont-corte nota-peque">y ' + no.length + ' más a las que les falta algo</div>';
+  }
+  return h;
+}
 function piezasMont() {
   if (!MOTOR) return { bases: [], acompana: [], aderezos: [] };
   try { return Almacen.montables(mont.toma) || { bases: [], acompana: [], aderezos: [] }; }
@@ -4437,10 +4462,13 @@ function pintarMontador() {
     : 'Montar un plato';
   var pz = piezasMont();
   var sub = mont.paso === 1 ? 'Primero lo que caduca: elige por dónde empiezas'
-          : mont.paso === 2 ? (mont.base ? 'Y ahora el acompañamiento' : 'Y ahora, ¿con qué lo montas?')
+          : mont.paso === 2 ? (mont.base ? (mont.pide === false ? 'Y el relleno, que esta base no pide aderezo'
+                                                                : 'Y ahora el acompañamiento')
+                                         : 'Y ahora, ¿con qué lo montas?')
           : 'Por último, el aderezo';
+  var depasos = (mont.base && mont.pide === false) ? 2 : 3;
   var cab = el('div', 'modcab', '<div style="flex:1"><div class="t">' + esc(destino) +
-             '</div><div class="s">Paso ' + mont.paso + ' de 3 · ' + esc(sub) + '</div></div>');
+             '</div><div class="s">Paso ' + mont.paso + ' de ' + depasos + ' · ' + esc(sub) + '</div></div>');
   var cerrar = el('button', 'mini', EQUIS);
   cerrar.style.cssText = 'width:34px;height:34px;border-radius:9px';
   cerrar.setAttribute('aria-label', 'Cerrar el montador');
@@ -4459,28 +4487,30 @@ function pintarMontador() {
   }
 
   if (mont.paso === 1) {
-    var frescas = function (l) { return mont.verTodo ? l : l.filter(function (x) { return x.listo; }); };
-    var bs = basesFam(frescas(pz.bases)), ac = frescas(pz.acompana);
+    var bs = basesFam(pz.bases), ac = pz.acompana;
     h += '<p class="instrucciones-compra">Arriba lo que más gasta de lo que corre prisa en la nevera. ' +
          'Si lo que caduca es la carne o el pescado, empieza por ahí; si lo que tienes es un relleno, ' +
          'empieza por el relleno y luego eliges arroz, pasta o nada.</p>';
     h += '<h4 class="fc-zona">' +
          (mont.fam ? esc(String(P.ETIQ[mont.fam] || mont.fam)) : 'Carne, pescado y demás platos') +
          ' · ' + bs.length + '</h4>';
-    h += bs.length ? bs.slice(0, 40).map(function (x) { return filaMont(x, 'base'); }).join('')
-                   : '<div class="vacio">Nada entero con lo que tienes' +
+    h += bs.length ? listaMont(bs, 'base')
+                   : '<div class="vacio">No hay ninguna base escrita' +
                      (mont.fam ? ' de esta familia' : '') + '.</div>';
     h += '<h4 class="fc-zona">Rellenos y guarniciones · ' + ac.length + '</h4>';
-    h += ac.length ? ac.slice(0, 40).map(function (x) { return filaMont(x, 'acomp'); }).join('')
-                   : '<div class="vacio">Nada entero con lo que tienes.</div>';
+    h += ac.length ? listaMont(ac, 'acomp')
+                   : '<div class="vacio">No hay rellenos ni guarniciones escritos.</div>';
   } else if (mont.paso === 2) {
     if (mont.base) {
+      if (mont.pide === false) {
+        h += '<p class="instrucciones-compra">Esta base no pide aderezo: trae su propio fondo. ' +
+             'Elige el relleno y ya está el plato.</p>';
+      }
       h += '<button type="button" class="fila-compacta mont-fila" data-mont="acomp|"><span class="fc-n">' +
            '<b>Sin acompañamiento</b><small class="nota-peque" style="display:block">' +
            'El plato va solo</small></span></button>';
-      var ac2 = mont.verTodo ? pz.acompana : pz.acompana.filter(function (x) { return x.listo; });
-      h += ac2.map(function (x) { return filaMont(x, 'acomp'); }).join('') ||
-           '<div class="vacio">No hay acompañamientos enteros con lo que tienes.</div>';
+      h += pz.acompana.length ? listaMont(pz.acompana, 'acomp')
+           : '<div class="vacio">No hay acompañamientos escritos.</div>';
     } else {
       var elegido = null;
       pz.acompana.forEach(function (x) { if (x.id === mont.acomp) elegido = x; });
@@ -4489,16 +4519,15 @@ function pintarMontador() {
              '<b>Solo eso</b><small class="nota-peque" style="display:block">' +
              'Sin base: vale de ' + esc(mont.toma) + ' tal cual</small></span></button>';
       }
-      var bs2 = basesFam(mont.verTodo ? pz.bases : pz.bases.filter(function (x) { return x.listo; }));
-      h += bs2.map(function (x) { return filaMont(x, 'base'); }).join('') ||
-           '<div class="vacio">No hay bases enteras con lo que tienes.</div>';
+      var bs2 = basesFam(pz.bases);
+      h += bs2.length ? listaMont(bs2, 'base')
+           : '<div class="vacio">No hay bases escritas.</div>';
     }
   } else {
     h += '<button type="button" class="fila-compacta mont-fila" data-mont="ader|"><span class="fc-n">' +
          '<b>Sin aderezo</b><small class="nota-peque" style="display:block">Así está bien</small></span></button>';
-    var ad = mont.verTodo ? pz.aderezos : pz.aderezos.filter(function (x) { return x.listo; });
-    h += ad.map(function (x) { return filaMont(x, 'ader'); }).join('');
-    if (!pz.aderezos.length) h += '<div class="vacio">Todavía no hay salsas escritas como pieza.</div>';
+    h += pz.aderezos.length ? listaMont(pz.aderezos, 'ader')
+         : '<div class="vacio">Todavía no hay salsas escritas como pieza.</div>';
   }
   lista.innerHTML = h;
   m.appendChild(lista);
@@ -4506,12 +4535,12 @@ function pintarMontador() {
   var pie = el('div', 'pie-compacto');
   pie.innerHTML = '<span class="nota-peque">' +
       '<button type="button" class="btn peq" data-monttodo="1">' +
-      (mont.verTodo ? 'Solo lo que puedo hacer' : 'Ver también lo que falta') + '</button></span>' +
+      (mont.verTodo ? 'Esconder lo que me falta' : 'Ver lo que me falta') + '</button></span>' +
       '<span class="botones-pedido">' +
       (mont.paso > 1 ? '<button type="button" class="btn" data-montatras="1">Atrás</button>' : '') +
       '<button type="button" class="btn principal" data-montfin="1"' +
       ((mont.base || mont.acomp) ? '' : ' disabled') + '>' +
-      (mont.paso === 3 ? 'Montar el plato' : 'Saltar') + '</button></span>';
+      (mont.paso === depasos ? 'Montar el plato' : 'Saltar') + '</button></span>';
   m.appendChild(pie);
   capa.appendChild(m);
   capa.onclick = function (ev) { if (ev.target === capa) cerrarMontador(); };
@@ -4551,8 +4580,13 @@ document.addEventListener('click', function (e) {
   if (b) {
     var p = b.getAttribute('data-mont').split('|');
     var k = p[0], id = p[1] || null;
-    if (k === 'base') { mont.base = id; mont.paso = mont.acomp ? 3 : 2; }
-    else if (k === 'acomp') { mont.acomp = id; mont.paso = mont.base ? 3 : 2; }
+    if (k === 'base') { mont.base = id; mont.pide = pideAderezo(id); mont.paso = mont.acomp ? 3 : 2; }
+    else if (k === 'acomp') {
+      mont.acomp = id;
+      /* Si la base no pide aderezo, aquí se acaba: no hay paso 3 que enseñar. */
+      if (mont.base && mont.pide === false) { cerrarMontaje(); return; }
+      mont.paso = mont.base ? 3 : 2;
+    }
     else if (k === 'solo') { mont.soloEso = true; mont.paso = 3; }
     else if (k === 'ader') { mont.ader = id; cerrarMontaje(); return; }
     pintarMontador(); return;
@@ -4564,7 +4598,8 @@ document.addEventListener('click', function (e) {
     pintarMontador(); return;
   }
   if (e.target.closest('[data-montfin]')) {
-    if (mont.paso < 3) { mont.paso = 3; pintarMontador(); return; }
+    var tope = (mont.base && mont.pide === false) ? 2 : 3;
+    if (mont.paso < tope) { mont.paso = tope; pintarMontador(); return; }
     cerrarMontaje(); return;
   }
 });
