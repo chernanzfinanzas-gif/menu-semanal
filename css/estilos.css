@@ -1637,3 +1637,13 @@ button.enlace {
 .compra-quitados .cn-q,.compra-quitados .cn-por{color:#7a2a22}
 .cq-n{text-decoration:line-through; text-decoration-color:#b23a30}
 .tile-quitados{display:block; margin-top:4px; font-size:.72rem; font-weight:700; color:#b23a30}
+
+/* ---- MONTAR UN PLATO (11-nov-2026) ----
+   Las filas del montador son botones, no etiquetas con casilla: se elige
+   tocando la pieza entera. El resto hereda de `.fila-compacta`, que ya es la
+   fila de las listas de tienda. */
+.mont-fila{width:100%; background:none; border:0; border-bottom:1px solid var(--borde); text-align:left; font:inherit; color:inherit}
+.mont-fila:hover{background:var(--suave,#f3f6f4)}
+.mont-fila .fc-n{-webkit-line-clamp:3}
+.mont-fila.mont-falta{opacity:.72}
+.mont-resumen{background:var(--suave,#f3f6f4); border-radius:9px; padding:7px 10px; margin-bottom:8px}

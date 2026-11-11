@@ -4354,8 +4354,176 @@ function cuenta(f) {
     return P.valeCC(r) && P.TIPOS[f] && P.TIPOS[f](r);
   }).length;
 }
+/* ==================== MONTAR UN PLATO (11-nov-2026) ====================
+   Carlos: «tengo arroz, tengo pasta, tengo lentejas, tengo pan… lo suyo es que
+   se gaste primero lo que hay». Y la regla del orden, con sus palabras: «eso
+   que dices que es primero el relleno es en el caso de pasta, arroz, cous cous,
+   huevos… pero en el caso de pescado o carne estos son el primer paso porque
+   caducan». O sea, una sola regla: SE EMPIEZA POR LO QUE CADUCA. Si lo que
+   caduca es la base —una carne, un pescado— se elige primero y después el
+   acompañamiento; si la base está en el armario y no caduca, lo primero es el
+   relleno y la base se elige después, o no se elige («o solo, en una cena»).
+   El plato montado se guarda como conjunto escondido, igual que el plato +
+   guarnición de octubre: para todo lo demás es una receta normal. */
+var mont = null;
+
+function abrirMontador(fecha, toma, ranura) {
+  mont = { fecha: fecha, toma: toma, ranura: ranura, paso: 1,
+           base: null, acomp: null, ader: null, soloEso: false, verTodo: false };
+  pintarMontador();
+}
+function cerrarMontador() { mont = null; pintarCatalogo(); }
+
+function piezasMont() {
+  if (!MOTOR) return { bases: [], acompana: [], aderezos: [] };
+  try { return Almacen.montables(mont.toma) || { bases: [], acompana: [], aderezos: [] }; }
+  catch (e) { return { bases: [], acompana: [], aderezos: [] }; }
+}
+function nombreMont(id) {
+  var r = POR_ID[id] || (MOTOR && Almacen.receta(id));
+  return r ? r.n : id;
+}
+/* Una fila de pieza: nombre, por qué está arriba, y lo que le falta si falta. */
+function filaMont(x, clave) {
+  return '<button type="button" class="fila-compacta mont-fila' + (x.listo ? '' : ' mont-falta') +
+    '" data-mont="' + esc(clave) + '|' + esc(x.id) + '">' +
+    '<span class="fc-n"><b>' + esc(x.n) + '</b>' +
+      '<small class="nota-peque" style="display:block">' +
+        x.k + ' kcal · ' + Util.sal(x.sal) + ' de sal · ' + (x.min || '?') + ' min' +
+        (x.fresco > 0 ? ' · <b style="color:var(--verde,#2b7a4b)">gasta ' + x.fresco + ' g de nevera</b>' : '') +
+        (x.listo ? '' : ' · <b style="color:var(--ambar,#b06a00)">falta ' +
+            esc(x.faltaMayor.map(function (s) { return String(s).split(' (')[0].toLowerCase(); }).join(', ')) + '</b>') +
+      '</small></span></button>';
+}
+function pintarMontador() {
+  var capa = $('#capa');
+  if (!mont) { capa.innerHTML = ''; capa.className = ''; return; }
+  capa.className = 'capa'; capa.innerHTML = '';
+  var m = el('div', 'modal');
+  var destino = mont.fecha
+    ? ('Montar un plato para la ' + mont.toma + ' del ' + P.diaNum(mont.fecha) + ' de ' + P.mesDe(mont.fecha))
+    : 'Montar un plato';
+  var pz = piezasMont();
+  var sub = mont.paso === 1 ? 'Primero lo que caduca: elige por dónde empiezas'
+          : mont.paso === 2 ? (mont.base ? 'Y ahora el acompañamiento' : 'Y ahora, ¿con qué lo montas?')
+          : 'Por último, el aderezo';
+  var cab = el('div', 'modcab', '<div style="flex:1"><div class="t">' + esc(destino) +
+             '</div><div class="s">Paso ' + mont.paso + ' de 3 · ' + esc(sub) + '</div></div>');
+  var cerrar = el('button', 'mini', EQUIS);
+  cerrar.style.cssText = 'width:34px;height:34px;border-radius:9px';
+  cerrar.setAttribute('aria-label', 'Cerrar el montador');
+  cerrar.onclick = cerrarMontador;
+  cab.appendChild(cerrar); m.appendChild(cab);
+
+  var lista = el('div', 'modlista');
+  var h = '';
+  /* lo elegido hasta ahora, siempre visible */
+  if (mont.base || mont.acomp || mont.ader) {
+    h += '<div class="mont-resumen nota-peque">' +
+      (mont.base ? '<b>' + esc(nombreMont(mont.base)) + '</b>' : '') +
+      (mont.acomp ? (mont.base ? ' + ' : '') + '<b>' + esc(nombreMont(mont.acomp)) + '</b>' : '') +
+      (mont.soloEso ? ' · solo eso' : '') +
+      (mont.ader ? ' + <b>' + esc(nombreMont(mont.ader)) + '</b>' : '') + '</div>';
+  }
+
+  if (mont.paso === 1) {
+    var frescas = function (l) { return mont.verTodo ? l : l.filter(function (x) { return x.listo; }); };
+    var bs = frescas(pz.bases), ac = frescas(pz.acompana);
+    h += '<p class="instrucciones-compra">Arriba lo que más gasta de lo que corre prisa en la nevera. ' +
+         'Si lo que caduca es la carne o el pescado, empieza por ahí; si lo que tienes es un relleno, ' +
+         'empieza por el relleno y luego eliges arroz, pasta o nada.</p>';
+    h += '<h4 class="fc-zona">Carne, pescado y demás platos · ' + bs.length + '</h4>';
+    h += bs.length ? bs.slice(0, 40).map(function (x) { return filaMont(x, 'base'); }).join('')
+                   : '<div class="vacio">Nada entero con lo que tienes.</div>';
+    h += '<h4 class="fc-zona">Rellenos y guarniciones · ' + ac.length + '</h4>';
+    h += ac.length ? ac.slice(0, 40).map(function (x) { return filaMont(x, 'acomp'); }).join('')
+                   : '<div class="vacio">Nada entero con lo que tienes.</div>';
+  } else if (mont.paso === 2) {
+    if (mont.base) {
+      h += '<button type="button" class="fila-compacta mont-fila" data-mont="acomp|"><span class="fc-n">' +
+           '<b>Sin acompañamiento</b><small class="nota-peque" style="display:block">' +
+           'El plato va solo</small></span></button>';
+      var ac2 = mont.verTodo ? pz.acompana : pz.acompana.filter(function (x) { return x.listo; });
+      h += ac2.map(function (x) { return filaMont(x, 'acomp'); }).join('') ||
+           '<div class="vacio">No hay acompañamientos enteros con lo que tienes.</div>';
+    } else {
+      var elegido = null;
+      pz.acompana.forEach(function (x) { if (x.id === mont.acomp) elegido = x; });
+      if (elegido && elegido.solo) {
+        h += '<button type="button" class="fila-compacta mont-fila" data-mont="solo|"><span class="fc-n">' +
+             '<b>Solo eso</b><small class="nota-peque" style="display:block">' +
+             'Sin base: vale de ' + esc(mont.toma) + ' tal cual</small></span></button>';
+      }
+      var bs2 = mont.verTodo ? pz.bases : pz.bases.filter(function (x) { return x.listo; });
+      h += bs2.map(function (x) { return filaMont(x, 'base'); }).join('') ||
+           '<div class="vacio">No hay bases enteras con lo que tienes.</div>';
+    }
+  } else {
+    h += '<button type="button" class="fila-compacta mont-fila" data-mont="ader|"><span class="fc-n">' +
+         '<b>Sin aderezo</b><small class="nota-peque" style="display:block">Así está bien</small></span></button>';
+    var ad = mont.verTodo ? pz.aderezos : pz.aderezos.filter(function (x) { return x.listo; });
+    h += ad.map(function (x) { return filaMont(x, 'ader'); }).join('');
+    if (!pz.aderezos.length) h += '<div class="vacio">Todavía no hay salsas escritas como pieza.</div>';
+  }
+  lista.innerHTML = h;
+  m.appendChild(lista);
+
+  var pie = el('div', 'pie-compacto');
+  pie.innerHTML = '<span class="nota-peque">' +
+      '<button type="button" class="btn mini" data-monttodo="1">' +
+      (mont.verTodo ? 'Solo lo que puedo hacer' : 'Ver también lo que falta') + '</button></span>' +
+      '<span class="botones-pedido">' +
+      (mont.paso > 1 ? '<button type="button" class="btn" data-montatras="1">Atrás</button>' : '') +
+      '<button type="button" class="btn principal" data-montfin="1"' +
+      ((mont.base || mont.acomp) ? '' : ' disabled') + '>' +
+      (mont.paso === 3 ? 'Montar el plato' : 'Saltar') + '</button></span>';
+  m.appendChild(pie);
+  capa.appendChild(m);
+  capa.onclick = function (ev) { if (ev.target === capa) cerrarMontador(); };
+}
+/* Cerrar el montador: con lo elegido, o una receta sola o un conjunto. */
+function cerrarMontaje() {
+  var id = null;
+  if (mont.base && mont.acomp) {
+    try { id = Almacen.crearConjunto(mont.base, mont.acomp, mont.ader || null); } catch (e) { id = null; }
+  } else {
+    id = mont.base || mont.acomp;
+  }
+  if (!id) { Util.toast('No se ha podido montar'); return; }
+  var f = mont.fecha, tm = mont.toma, rn = mont.ranura;
+  mont = null; cat = null; pintarCatalogo();
+  if (f && tm) { colocar(id, f, tm, rn); pintarDia(); }
+  Util.toast('Montado: ' + nombreMont(id).slice(0, 48));
+}
+
+/* Los botones del montador. */
+document.addEventListener('click', function (e) {
+  if (!mont || !e.target.closest) return;
+  var b = e.target.closest('[data-mont]');
+  if (b) {
+    var p = b.getAttribute('data-mont').split('|');
+    var k = p[0], id = p[1] || null;
+    if (k === 'base') { mont.base = id; mont.paso = mont.acomp ? 3 : 2; }
+    else if (k === 'acomp') { mont.acomp = id; mont.paso = mont.base ? 3 : 2; }
+    else if (k === 'solo') { mont.soloEso = true; mont.paso = 3; }
+    else if (k === 'ader') { mont.ader = id; cerrarMontaje(); return; }
+    pintarMontador(); return;
+  }
+  if (e.target.closest('[data-monttodo]')) { mont.verTodo = !mont.verTodo; pintarMontador(); return; }
+  if (e.target.closest('[data-montatras]')) {
+    if (mont.paso === 3) { mont.ader = null; mont.paso = 2; }
+    else { mont.base = null; mont.acomp = null; mont.soloEso = false; mont.paso = 1; }
+    pintarMontador(); return;
+  }
+  if (e.target.closest('[data-montfin]')) {
+    if (mont.paso < 3) { mont.paso = 3; pintarMontador(); return; }
+    cerrarMontaje(); return;
+  }
+});
+
 function pintarCatalogo() {
   var capa = $('#capa');
+  if (mont) { pintarMontador(); return; }
   if (!cat) { capa.innerHTML = ''; capa.className = ''; return; }
   capa.className = 'capa';
   capa.innerHTML = '';
@@ -4375,6 +4543,12 @@ function pintarCatalogo() {
   inp.oninput = function () { cat.busca = inp.value; pintarLista(); };
   b.appendChild(inp);
   var filaB = el('div', '', ''); filaB.style.cssText = 'display:flex;gap:8px'; filaB.appendChild(b);
+  /* MONTAR UN PLATO (11-nov-2026): la otra puerta para llegar a un plato. Las
+     recetas escritas siguen valiendo; esto es para componer uno con lo que hay. */
+  var bMont = el('button', 'btn mini', 'Montar un plato');
+  bMont.style.cssText = 'white-space:nowrap';
+  bMont.onclick = function () { abrirMontador(cat.fecha, cat.toma, cat.ranura); };
+  filaB.appendChild(bMont);
   fil.appendChild(filaB);
   var chips = el('div', 'chips');
   /* «Antes se podia elegir entre todos los grupos, ordenados de mas

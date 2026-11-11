@@ -3116,6 +3116,55 @@
        aderezo», y «la salsa es opcional, se puede poner la opción sin salsa».
        El id de los pares de antes no cambia, así que los conjuntos que ya
        existen siguen valiendo tal cual. */
+    /* ============ LAS PIEZAS PARA MONTAR UN PLATO (11-nov-2026) ============
+       Carlos, montando el modelo: «se empieza por lo que caduca». Y la regla es
+       una sola aunque se vea de dos maneras: en carne y pescado lo que caduca es
+       la propia BASE, así que se elige primero; en pasta, arroz, cous cous y
+       huevos la base está en el armario y no caduca nunca, así que lo primero es
+       el RELLENO. «Tengo arroz, tengo pasta, tengo lentejas, tengo pan… lo suyo
+       es que se gaste primero lo que hay».
+       Esto devuelve las tres cestas con lo que haría falta para decidir: qué le
+       falta a cada pieza, cuánto fresco salvaría haciéndola, y si vale ella sola
+       para esa toma —que es la opción «solo, de cena» que él pidió—.
+       El orden lo deja hecho: delante lo que se puede hacer entero, y dentro de
+       eso, lo que más gasta de lo que corre prisa. */
+    montables: function (toma) {
+      var self = this, libres = this.libresTodo();
+      var out = { bases: [], acompana: [], aderezos: [] };
+      var FUERA = { retirado: 1, suelto: 1, restaurante: 1 };
+      (this.estado.recetas || []).forEach(function (r) {
+        if (!r || r.borrada || r.oculta || r.conj) return;
+        if (FUERA[r.grupo]) return;
+        if (!(r.ing || []).length) return;
+        if (self.vistaReceta(r.id) === "no") return;        /* un «no me vale» no se monta */
+        var tipos = r.tipo || [];
+        var cesta = tipos.indexOf("salsa") >= 0 ? "aderezos"
+                  : (tipos.indexOf("guarnicion") >= 0 || tipos.indexOf("relleno") >= 0) ? "acompana"
+                  : "bases";
+        /* una base tiene que valer para la toma que se está montando */
+        if (cesta === "bases" && toma && tipos.indexOf(toma) < 0) return;
+        var f = self.faltaParaHacer(r, libres);
+        out[cesta].push({
+          id: r.id, n: r.n, corto: self.cortoDe(r), grupo: r.grupo, min: r.min || 0,
+          k: Math.round(self.nutrReceta(r).k || 0),
+          sal: Math.round(self.salReceta(r) * 1000) / 1000,
+          falta: f.faltan, faltaMayor: f.faltanMayores,
+          fresco: Math.round(f.fresco),
+          listo: !f.faltanMayores.length,
+          /* ¿vale ella sola para esta toma? es la opción «solo, de cena» */
+          solo: !!(toma && tipos.indexOf(toma) >= 0)
+        });
+      });
+      ["bases", "acompana", "aderezos"].forEach(function (k) {
+        out[k].sort(function (a, b) {
+          if (a.listo !== b.listo) return a.listo ? -1 : 1;
+          if (b.fresco !== a.fresco) return b.fresco - a.fresco;
+          return String(a.n).localeCompare(String(b.n));
+        });
+      });
+      return out;
+    },
+
     idConjunto: function (pId, gId, sId) {
       return "conj_" + pId + "__" + gId + (sId ? "__" + sId : "");
     },
