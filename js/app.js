@@ -2929,6 +2929,17 @@ function cajaGrupo(g) {
     agarrar(o, id);
     d.appendChild(o);
   });
+  /* MONTAR EN LA FAMILIA (Carlos, 11-nov-2026): «si no me gusta ninguna de las
+     propuestas o no hay ninguna con todos los ingredientes puedo crear uno alli
+     que se convertira en una opcion nueva de esa familia». El montador abre ya
+     sabiendo la familia del hueco y la toma, y lo montado vuelve aqui como una
+     opcion mas: se baja a la semana igual que las tres propuestas. */
+  var bm = el('button', 'btn peq', 'Montar uno');
+  bm.style.cssText = 'width:100%;margin-top:7px';
+  bm.title = 'Componer un plato de ' + String(P.ETIQ[g.tipo] || g.tipo).toLowerCase() +
+             ' con lo que tienes en casa';
+  bm.onclick = function (ev) { ev.stopPropagation(); abrirMontador(null, g.fila, null, g); };
+  d.appendChild(bm);
   return d;
 }
 function filaGuarniciones() {
@@ -4367,10 +4378,22 @@ function cuenta(f) {
    guarnición de octubre: para todo lo demás es una receta normal. */
 var mont = null;
 
-function abrirMontador(fecha, toma, ranura) {
+function abrirMontador(fecha, toma, ranura, grupo) {
   mont = { fecha: fecha, toma: toma, ranura: ranura, paso: 1,
+           grupo: (grupo && grupo.id) || null, fam: (grupo && grupo.tipo) || null,
            base: null, acomp: null, ader: null, soloEso: false, verTodo: false };
   pintarMontador();
+}
+/* Si el montador viene de un hueco del panel, ese hueco pide una familia: las
+   bases se filtran por ella con la misma prueba que usa el proponedor. Los
+   acompanamientos no se tocan, que la familia es del plato. */
+function basesFam(l) {
+  if (!mont || !mont.fam || !P.TIPOS || !P.TIPOS[mont.fam]) return l;
+  return l.filter(function (x) {
+    var r = POR_ID[x.id];
+    if (!r) return false;
+    try { return !!P.TIPOS[mont.fam](r); } catch (e) { return false; }
+  });
 }
 function cerrarMontador() { mont = null; pintarCatalogo(); }
 
@@ -4400,7 +4423,10 @@ function pintarMontador() {
   if (!mont) { capa.innerHTML = ''; capa.className = ''; return; }
   capa.className = 'capa'; capa.innerHTML = '';
   var m = el('div', 'modal');
-  var destino = mont.fecha
+  var destino = mont.fam
+    ? ('Montar un plato de ' + String(P.ETIQ[mont.fam] || mont.fam).toLowerCase() +
+       ' para las ' + mont.toma + 's')
+    : mont.fecha
     ? ('Montar un plato para la ' + mont.toma + ' del ' + P.diaNum(mont.fecha) + ' de ' + P.mesDe(mont.fecha))
     : 'Montar un plato';
   var pz = piezasMont();
@@ -4428,13 +4454,16 @@ function pintarMontador() {
 
   if (mont.paso === 1) {
     var frescas = function (l) { return mont.verTodo ? l : l.filter(function (x) { return x.listo; }); };
-    var bs = frescas(pz.bases), ac = frescas(pz.acompana);
+    var bs = basesFam(frescas(pz.bases)), ac = frescas(pz.acompana);
     h += '<p class="instrucciones-compra">Arriba lo que más gasta de lo que corre prisa en la nevera. ' +
          'Si lo que caduca es la carne o el pescado, empieza por ahí; si lo que tienes es un relleno, ' +
          'empieza por el relleno y luego eliges arroz, pasta o nada.</p>';
-    h += '<h4 class="fc-zona">Carne, pescado y demás platos · ' + bs.length + '</h4>';
+    h += '<h4 class="fc-zona">' +
+         (mont.fam ? esc(String(P.ETIQ[mont.fam] || mont.fam)) : 'Carne, pescado y demás platos') +
+         ' · ' + bs.length + '</h4>';
     h += bs.length ? bs.slice(0, 40).map(function (x) { return filaMont(x, 'base'); }).join('')
-                   : '<div class="vacio">Nada entero con lo que tienes.</div>';
+                   : '<div class="vacio">Nada entero con lo que tienes' +
+                     (mont.fam ? ' de esta familia' : '') + '.</div>';
     h += '<h4 class="fc-zona">Rellenos y guarniciones · ' + ac.length + '</h4>';
     h += ac.length ? ac.slice(0, 40).map(function (x) { return filaMont(x, 'acomp'); }).join('')
                    : '<div class="vacio">Nada entero con lo que tienes.</div>';
@@ -4454,7 +4483,7 @@ function pintarMontador() {
              '<b>Solo eso</b><small class="nota-peque" style="display:block">' +
              'Sin base: vale de ' + esc(mont.toma) + ' tal cual</small></span></button>';
       }
-      var bs2 = mont.verTodo ? pz.bases : pz.bases.filter(function (x) { return x.listo; });
+      var bs2 = basesFam(mont.verTodo ? pz.bases : pz.bases.filter(function (x) { return x.listo; }));
       h += bs2.map(function (x) { return filaMont(x, 'base'); }).join('') ||
            '<div class="vacio">No hay bases enteras con lo que tienes.</div>';
     }
@@ -4470,7 +4499,7 @@ function pintarMontador() {
 
   var pie = el('div', 'pie-compacto');
   pie.innerHTML = '<span class="nota-peque">' +
-      '<button type="button" class="btn mini" data-monttodo="1">' +
+      '<button type="button" class="btn peq" data-monttodo="1">' +
       (mont.verTodo ? 'Solo lo que puedo hacer' : 'Ver también lo que falta') + '</button></span>' +
       '<span class="botones-pedido">' +
       (mont.paso > 1 ? '<button type="button" class="btn" data-montatras="1">Atrás</button>' : '') +
@@ -4490,8 +4519,21 @@ function cerrarMontaje() {
     id = mont.base || mont.acomp;
   }
   if (!id) { Util.toast('No se ha podido montar'); return; }
-  var f = mont.fecha, tm = mont.toma, rn = mont.ranura;
+  /* La ficha acaba de nacer en el motor: hasta que no entra en el indice, el
+     panel la pintaria con el identificador en crudo y sin semaforo. */
+  try { refrescarRecetario(); } catch (e) {}
+  if (P.olvidarCuentas) P.olvidarCuentas();
+  var f = mont.fecha, tm = mont.toma, rn = mont.ranura, gid = mont.grupo;
   mont = null; cat = null; pintarCatalogo();
+  if (gid) {
+    var puesto = false;
+    (P.grupos() || []).forEach(function (g) {
+      if (g.id === gid && (g.op || []).indexOf(id) < 0) { g.op.push(id); puesto = true; }
+    });
+    if (puesto) { P.guardar(); pintar(); }
+    Util.toast('Montado · ya es una opción más de esa familia');
+    return;
+  }
   if (f && tm) { colocar(id, f, tm, rn); pintarDia(); }
   Util.toast('Montado: ' + nombreMont(id).slice(0, 48));
 }
@@ -4542,14 +4584,17 @@ function pintarCatalogo() {
   var inp = el('input'); inp.type = 'text'; inp.placeholder = 'bacalao, setas, 20 minutos…'; inp.value = cat.busca;
   inp.oninput = function () { cat.busca = inp.value; pintarLista(); };
   b.appendChild(inp);
-  var filaB = el('div', '', ''); filaB.style.cssText = 'display:flex;gap:8px'; filaB.appendChild(b);
+  fil.appendChild(b);
   /* MONTAR UN PLATO (11-nov-2026): la otra puerta para llegar a un plato. Las
-     recetas escritas siguen valiendo; esto es para componer uno con lo que hay. */
-  var bMont = el('button', 'btn mini', 'Montar un plato');
-  bMont.style.cssText = 'white-space:nowrap';
+     recetas escritas siguen valiendo; esto es para componer uno con lo que hay.
+     Va en su propia linea y a todo el ancho. Al lado de la lupa no valia: le
+     puse la clase «mini», que dentro del menu es el boton-icono de 26 px de
+     ancho fijo, asi que el texto se salia de la caja y del modal (Carlos,
+     11-nov: «se ve mal… por eso no lo veia»). */
+  var bMont = el('button', 'btn', 'Montar un plato con lo que tengo');
+  bMont.style.cssText = 'width:100%;white-space:nowrap';
   bMont.onclick = function () { abrirMontador(cat.fecha, cat.toma, cat.ranura); };
-  filaB.appendChild(bMont);
-  fil.appendChild(filaB);
+  fil.appendChild(bMont);
   var chips = el('div', 'chips');
   /* «Antes se podia elegir entre todos los grupos, ordenados de mas
      convenientes a menos para la toma» (Carlos, 5-nov). Primero el tipo que
