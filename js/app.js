@@ -415,6 +415,10 @@
       Util.toast("A la lista: " + v);
     }
     pintarCompra();
+    /* Si la pregunta estaba dentro de la ventana de una tienda, hay que
+       repintar la ventana: el fondo solo no se ve. */
+    var abierta = document.querySelector("[data-tiendaabierta]");
+    if (abierta) abrirListaTienda(abierta.getAttribute("data-tiendaabierta"));
   });
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-estrella]");
@@ -9892,6 +9896,7 @@ function pintarTodo() {
       nuevosDe(nom, g).forEach(function (o) { nuevosAbiertos[o.l.id] = true; });
       h += bloqueNuevos(nom, g);
     }
+    h += htmlSugeridos(nom);
     /* «+ AÑADIR ALGO QUE NO ESTABA EN LA LISTA» (23-oct-2026). Carlos,
        comprando en DIA: «he comprado sepia y setas con boletus que no
        estaban en la lista… un + me permitiría añadirlos escribiendo sepia
@@ -9941,6 +9946,9 @@ function pintarTodo() {
       h += '<h4 class="fc-zona">Revisa la despensa (básicos)</h4>';
       g.basicos.forEach(function (l) { h += filaCompacta(l.id, l.producto || l.nombre, cantCorta(l), Almacen.estaPedido(l.id)); });
     }
+    /* Marca qué tienda está abierta, para poder repintar su ventana al
+       contestar la pregunta del mínimo (11-nov-2026). */
+    h += '<span hidden data-tiendaabierta="' + esc(nom) + '"></span>';
     h += '</div><div class="pie-compacto"><span class="nota-peque" id="lt-cuenta">' +
          (listaSoloLectura || vacia ? "" : pieListaTienda(nom)) + '</span>' +
          (vacia ? '<button class="btn" data-cerrar>Cerrar</button>'
@@ -10225,8 +10233,12 @@ function pintarTodo() {
      con la cantidad sugerida editable y una ✕ para decir que no. Carlos: «con su
      sugerencia y que pueda yo borrar o editar la cantidad sugerida. Se calla
      hasta la siguiente compra». */
-  function htmlSugeridos() {
+  function htmlSugeridos(tienda) {
     var l = (compraActual && compraActual.sugeridos) || [];
+    /* Dentro de la ventana de una tienda, solo lo suyo: la pregunta se hace
+       donde se va a hacer el pedido (11-nov-2026, Carlos: «no sale lo de
+       ¿quieres algo de esto esta vez?», mirando la ventana de Mercadona). */
+    if (tienda) l = l.filter(function (x) { return (x.tienda || "") === tienda; });
     if (!l.length) return "";
     return '<div class="tarjeta quiero-bloque" style="margin-bottom:10px">' +
       '<div><strong>\u00bfQuieres comprarlo esta vez?</strong>' +
