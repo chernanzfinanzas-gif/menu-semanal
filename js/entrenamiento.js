@@ -13588,7 +13588,7 @@
         garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" }
     ]},
     { id: "C", n: "Fuerza C", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
-      { n: "Empuje de cadera",    s: 2, r: "12",          kg: 10,
+      { n: "Empuje de cadera",    s: 2, r: "15",          kg: 10,     // 12-nov-2026: de 12 a 15 repeticiones (Carlos); con 12 el pulso ya no subía (94 y 89)
         nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos. Descanso de 90 s: es el único donde el pulso sube hasta el final de la serie y no se recupera en 75",
         garmin: "Levantamiento de barra sobre cadera, en banca" },
       { n: "Press de hombros",    s: 2, r: "12",          kg: 20, nota: "Sin bloquear el aire",

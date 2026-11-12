@@ -666,12 +666,17 @@
      No se compara con el histórico a propósito —así ninguna ficha sale en
      blanco—, y los kilos se reparten entre los músculos de cada ejercicio, que
      un press de banca no es sólo pecho: lleva tríceps y hombro delante. */
+  /* 12-nov-2026, Carlos: «con jalón y aperturas no puede ser que no aparezca
+     trabajada la espalda… es porque no hay kg al hacerlos con goma». Con goma no
+     hay kilos que sumar, así que los muñecos y su leyenda cuentan SERIES: cada
+     serie se reparte entre los músculos del ejercicio, pese lo que pese. Los
+     kilos por año y mes de Actividad siguen en kilos: miden otra cosa. */
   function zonasSesion(series) {
     var zonas = {}, k, i, z, max = 0, hay = 0;
     for (i = 0; i < (series || []).length; i++) {
       z = zonasDe(series[i].que);
       if (!z) continue;
-      for (k in z) zonas[k] = (zonas[k] || 0) + (series[i].kg_total || 0) * z[k];
+      for (k in z) zonas[k] = (zonas[k] || 0) + (series[i].series || 0) * z[k];
     }
     for (k in zonas) { hay = 1; if (zonas[k] > max) max = zonas[k]; }
     return hay && max ? { zonas: zonas, max: max } : null;
@@ -710,7 +715,7 @@
     orden.sort(function (a, b) { return b[1] - a[1]; });
     return '<ul class="akhb-c-ley">' + orden.map(function (o) {
       return '<li><i style="background:' + colorZona(o[1] / r.max) + '"></i>' +
-        (ZONA_ES[o[0]] || o[0]) + " <b>" + num(Math.round(o[1])) + " kg</b></li>";
+        (ZONA_ES[o[0]] || o[0]) + " <b>" + num(o[1], 1) + (Math.abs(o[1] - 1) < 0.05 ? " serie" : " series") + "</b></li>";
     }).join("") + "</ul>";
   }
 
