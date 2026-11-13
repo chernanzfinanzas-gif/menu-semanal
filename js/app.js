@@ -10995,8 +10995,15 @@ function pintarTodo() {
     } else {
       porque = "el men\u00fa pide " + esc(l.pidePlan);
       if (l.hay > 0) porque += " \u00b7 tienes " + esc(Util.cantidadReceta(l.hay, l.unidad, l.pesoUd));
+      /* QUIÉN PIDE ESTA LÍNEA, ENTERO  ·  13-nov-2026
+         Carlos: «¿por qué en la lista de la compra hay espinacas baby dos bolsas y
+         setas 3 paquetes? no lo veo en el menú». La lista YA sabía de qué platos
+         salía cada línea, pero enseñaba solo los dos primeros y los demás los
+         resumía en unos puntos suspensivos — justo los que hacían falta para
+         encontrarlo. Ahora salen todos, hasta seis, y el resto se cuentan. */
       if (l.recetas && l.recetas.length) {
-        porque += " \u00b7 " + esc(l.recetas.slice(0, 2).join(", ")) + (l.recetas.length > 2 ? "\u2026" : "");
+        porque += " \u00b7 lo piden: " + esc(l.recetas.slice(0, 6).join(" \u00b7 ")) +
+                  (l.recetas.length > 6 ? " y " + (l.recetas.length - 6) + " m\u00e1s" : "");
       }
     }
     if (l.suplente) porque += " \u00b7 si no hay: " + esc(l.suplente);
