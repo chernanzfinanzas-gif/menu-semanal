@@ -5987,6 +5987,20 @@ function pintarTodo() {
   })();
 
   function pintarMenu() { MENU.pintar(); }
+
+  /* LA ACTIVIDAD DE HOY LLEGA TARDE, Y EL DÍA A DÍA TIENE QUE ENTERARSE
+     14-nov-2026. Las calorías que suma el ejercicio salen de lo que midió el
+     reloj, y eso llega con salud.json uno o dos segundos después de arrancar.
+     El menú ya estaba pintado para entonces, así que un paseo de esta tarde no
+     aparecía en el día ni en sus calorías hasta el siguiente arranque de la
+     app. Ahora entrenamiento.js avisa y, si la pestaña del menú está abierta,
+     se repinta:  cubre el plan y el día a día. */
+  window.addEventListener("khb-salud-al-dia", function () {
+    try {
+      var vm = document.getElementById("vista-menu");
+      if (vm && vm.classList.contains("activa")) MENU.pintar();
+    } catch (e) {}
+  });
   function avisoReajuste() { return MENU.avisoReajuste(); }
   function tocarYGuardarToma(f, tm, quitado) { MENU.tocarYGuardarToma(f, tm, quitado); }
   function abrirSelector(f, tm) { MENU.abrirSelector(f, tm); }

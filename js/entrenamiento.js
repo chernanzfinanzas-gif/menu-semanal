@@ -1311,6 +1311,16 @@
           self.traidoEl = new Date().toISOString();
           self.estado = "ok";
           self.aCache();
+          /* EL MENÚ TAMBIÉN ESPERA ESTO · 14-nov-2026
+             Carlos: «hoy he caminado una hora por la tarde y no cuenta las
+             calorías en el día a día». Las calorías del ejercicio se calculan
+             en vivo desde lo que midió el reloj, y eso entra aquí, con
+             salud.json, uno o dos segundos DESPUÉS de que el menú se haya
+             pintado. Nadie avisaba al otro lado de la app: la vista se quedaba
+             con la copia guardada —la de antes del paseo— y no se repintaba
+             hasta el siguiente arranque. Con el aviso, el día a día se repinta
+             en cuanto llega la actividad de hoy. */
+          try { global.dispatchEvent(new Event("khb-salud-al-dia")); } catch (eAv) {}
           if (alTerminar) alTerminar(true);
         })
         .catch(function () {
