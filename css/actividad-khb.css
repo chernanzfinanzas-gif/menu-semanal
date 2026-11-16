@@ -944,3 +944,15 @@
   .akhb-bici th:nth-child(6), .akhb-bici td:nth-child(6),
   .akhb-bici th:nth-child(7), .akhb-bici td:nth-child(7) { display: none; }
 }
+
+/* ---------- el perfil de la sesión, dibujado · 16-nov-2026 ----------
+   Petición de Carlos: ver el entreno como lo dibuja Zwift, y después
+   comparar el perfil con lo hecho de verdad con el pulso encima. */
+.akhb-an-graf { margin: 2px 0 4px; }
+.akhb-an-graf .gses {
+  display: block; width: 100%; height: 132px;
+  background: #fbfcfd; border: 1px solid #e3e7ea; border-radius: 6px;
+}
+.akhb-an-leyenda {
+  margin-top: 3px; font-size: .72rem; color: #8b9299; text-align: right;
+}

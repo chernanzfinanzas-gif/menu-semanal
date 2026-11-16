@@ -792,6 +792,8 @@
         "border:1px solid var(--azul-borde);font-size:.82rem}",
       ".av-linea b{display:block;color:var(--azul-hondo)}",
       ".av-linea span{color:#6b7c8d}",
+      ".prev-graf{margin:8px 0 4px}",
+      ".prev-graf .gses{display:block;width:100%;height:132px;background:#fbfcfd;border:1px solid #e3e7ea;border-radius:6px}",
       ".dia-bl.quitado{text-decoration:line-through;opacity:.55}",
       ".ent-dia{position:relative}",
       /* la agenda: letra pequeña, alineada a la izquierda, debajo de los bloques */
@@ -2413,30 +2415,58 @@
        595 puntos de bici de la semana 27, así que quedan 458 para los rodillos y
        la semana se va a más de veinte horas. Se le puso delante con los números
        y eligió repartirlo todo. */
-    var L = largoDe(sem);
-    var ptsLargo = 0;
-    /* SI NO HAY SALIDA NI RODILLO LARGO no se mete bloque: el presupuesto entero
-       se reparte entre los rodillos de diario. */
-    if (L && L.modo.fam) {
-      ptsLargo = L.pts;
-      var minLargo = Math.max(15, Math.round(L.horas * 60 / 5) * 5);
-      /* `pts` es su precio propio, que costeSesion respeta. Conserva la familia
-         «bici» para el color y el reparto, y la marca `largo` para que al buscarle
-         actividad medida le valga igual una ruta de monte que un rodillo. */
-      mete("bici", L.modo.fam === "rodillo" ? "Rodillo largo" : B.textos.largo,
-           1, minLargo, { largo: true, pts: ptsLargo, modo: L.modo.id });
-    }
+    /* ===== LAS SESIONES QUE DE VERDAD ESTAN EN ZWIFT  ·  16-nov-2026 =====
+       Carlos, mirando El Plan y Zwift a la vez: «si miras el plan hay bloques
+       de 45 minutos, en zwift son de 55 minutos, 35 minutos».
 
-    /* el largo, si lo hay, ya ocupa un día: a los rodillos les quedan nHab-1 */
-    var topeRod = Math.max(1, nHab - (ptsLargo > 0 ? 1 : 0));
-    /* el mínimo del rodillo va por fecha (4-oct-2026): las semanas pasadas no se rehacen */
-    var cfgRod = {}, kR, mdR = B.rodillo.minDesde || {};
-    for (kR in B.rodillo) if (B.rodillo.hasOwnProperty(kR)) cfgRod[kR] = B.rodillo[kR];
-    Object.keys(mdR).sort().forEach(function (f) { if (sem.desde >= f) cfgRod.min = mdR[f]; });
-    var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, cfgRod, topeRod);
-    mete("bici", B.textos.rodillo, rod.n, rod.min);
-    var cam = trocear(ptsCam, vCam, B.caminata, nHab);
-    mete("caminar", B.textos.caminata, cam.n, cam.min);
+       Habia DOS planes a la vez. La formula de aqui abajo repartia el
+       presupuesto de la rampa en bloques iguales (5 rodillos de 45'), y la
+       revision del domingo escribia en los .zwo otra cosa (3 de 55', uno de
+       35' y el largo). Los totales cuadraban —240 contra 237— pero ni los
+       minutos ni el numero de sesiones, asi que cada dia salia «por encima»
+       aunque hubiera hecho exactamente lo que tocaba.
+
+       Ahora `zwift/generar_zwift.py` escribe `datos/semana-zwift.js` cada vez
+       que monta los KHB, y si ese fichero es de ESTA semana, manda el. Si no
+       lo hay, o es de otra semana, se calcula como siempre: la formula sigue
+       siendo la red de seguridad.
+
+       Los ids son los mismos que da `idEstable` (`largo`, `rod-1`…), asi que
+       el reparto de dias que Carlos ya tenia hecho no se mueve. La fuerza NO
+       entra aqui: la sigue poniendo la plantilla, mas abajo. */
+    var SZ = global.SEMANA_ZWIFT;
+    if (SZ && SZ.desde === sem.desde && SZ.sesiones && SZ.sesiones.length) {
+      SZ.sesiones.forEach(function (x) {
+        out.push({ id: x.id, idv: "b" + num, t: x.t, min: x.min,
+                   fam: x.fam || "bici", pts: x.pts, largo: !!x.largo, zwift: true });
+        num++;
+      });
+    } else {
+      var L = largoDe(sem);
+      var ptsLargo = 0;
+      /* SI NO HAY SALIDA NI RODILLO LARGO no se mete bloque: el presupuesto entero
+         se reparte entre los rodillos de diario. */
+      if (L && L.modo.fam) {
+        ptsLargo = L.pts;
+        var minLargo = Math.max(15, Math.round(L.horas * 60 / 5) * 5);
+        /* `pts` es su precio propio, que costeSesion respeta. Conserva la familia
+           «bici» para el color y el reparto, y la marca `largo` para que al buscarle
+           actividad medida le valga igual una ruta de monte que un rodillo. */
+        mete("bici", L.modo.fam === "rodillo" ? "Rodillo largo" : B.textos.largo,
+             1, minLargo, { largo: true, pts: ptsLargo, modo: L.modo.id });
+      }
+
+      /* el largo, si lo hay, ya ocupa un día: a los rodillos les quedan nHab-1 */
+      var topeRod = Math.max(1, nHab - (ptsLargo > 0 ? 1 : 0));
+      /* el mínimo del rodillo va por fecha (4-oct-2026): las semanas pasadas no se rehacen */
+      var cfgRod = {}, kR, mdR = B.rodillo.minDesde || {};
+      for (kR in B.rodillo) if (B.rodillo.hasOwnProperty(kR)) cfgRod[kR] = B.rodillo[kR];
+      Object.keys(mdR).sort().forEach(function (f) { if (sem.desde >= f) cfgRod.min = mdR[f]; });
+      var rod = trocear(Math.max(0, ptsBici - ptsLargo), vBici, cfgRod, topeRod);
+      mete("bici", B.textos.rodillo, rod.n, rod.min);
+      var cam = trocear(ptsCam, vCam, B.caminata, nHab);
+      mete("caminar", B.textos.caminata, cam.n, cam.min);
+    }
     /* la fuerza NO se recorta por días: comparte día con el rodillo sin problema,
        que es lo que hacen las plantillas de siempre. */
     /* LA FUERZA POR FECHA (27-oct-2026). Desde el 2-nov va de lunes a viernes,
@@ -11271,6 +11301,42 @@
     modal.classList.add("abierta");
   }
 
+  /* ---------- LA FICHA DE UNA SESIÓN ANTES DE HACERLA · 16-nov-2026 ----------
+     Carlos quería ver el perfil del entreno como lo enseña Zwift, no sólo
+     después. El perfil viaja en datos/semana-zwift.js, que escribe el mismo
+     script que monta los .zwo: lo que se dibuja es exactamente el fichero que
+     va a pedalear. Sólo vale para la semana en curso. */
+  function zwiftDeSesion(s, dia) {
+    var SZ = global.SEMANA_ZWIFT;
+    if (!SZ || !SZ.sesiones || !s) return null;
+    if (dia && SZ.desde && (dia < SZ.desde || (SZ.hasta && dia > SZ.hasta))) return null;
+    for (var i = 0; i < SZ.sesiones.length; i++) {
+      var z = SZ.sesiones[i];
+      if (!z.perfil || !z.perfil.length) continue;
+      if ((s.bid && s.bid === z.id) || (s.id && s.id === z.id) || (s.t && s.t === z.t)) return z.id;
+    }
+    return null;
+  }
+
+  function abrirFichaPrevista(sid) {
+    var SZ = global.SEMANA_ZWIFT, z = null, i;
+    if (SZ && SZ.sesiones) for (i = 0; i < SZ.sesiones.length; i++) if (SZ.sesiones[i].id === sid) z = SZ.sesiones[i];
+    var caja = document.getElementById("modal-caja"), modal = document.getElementById("modal");
+    if (!z || !caja || !modal) return;
+    var gs = global.GraficoSesion;
+    var h = "<header><h2>" + U.esc(z.t) + "</h2>" +
+      '<button class="cerrar" type="button" data-cerrar-guia="1" aria-label="Cerrar">\u00d7</button></header>';
+    h += '<div class="sal-cuenta"><b>' + z.min + " min</b> \u00b7 " + z.pts + " puntos" +
+      (z.w ? " \u00b7 " + z.w + " W (" + z.pct + " % de " + z.ftp + ")" : "") + "</div>";
+    if (gs) h += '<div class="prev-graf">' + gs.svg({ perfil: z.perfil, ftp: z.ftp, titulo: z.t }) + "</div>";
+    if (z.persigue) h += '<p class="nota-peque">' + U.esc(z.persigue) + "</p>";
+    if (z.pulso) h += '<div class="ses-reglas"><b>El pulso</b> ' + U.esc(z.pulso) + "</div>";
+    if (z.nota) h += '<div class="ent-fallos">' + U.esc(z.nota) + "</div>";
+    h += '<button class="btn principal" type="button" data-cerrar-guia="1" style="width:100%;margin-top:14px">Entendido</button>';
+    caja.innerHTML = h;
+    modal.classList.add("abierta");
+  }
+
   /* ==================== TENDENCIA Y CHISPA ====================
      Cada métrica sabe hacia dónde es «mejor», así que de su serie sale una
      tendencia con color: verde si va hacia donde debe, rojo si va al revés,
@@ -14706,7 +14772,12 @@
         /* Si la sesión del plan es una de las dos de fuerza, la fila lleva
            enlace a su ficha: qué ejercicios, con qué peso y el vídeo. Es el
            salto que faltaba entre «hoy toca Fuerza A» y saber qué hacer. */
-        rutina: rutinaDeTexto(s.t)
+        rutina: rutinaDeTexto(s.t),
+        /* 16-nov-2026, Carlos: «la pastilla luego aparece en el plan del día,
+           ese es el sitio… puede haber un botón de ver la ficha, igual que
+           aparece después de hecho». La sesión de Zwift que le toca, para
+           poder enseñar su perfil ANTES de pedalearla. */
+        prev: zwiftDeSesion(s, dia)
       });
     });
     tareasDelDia(dia).forEach(function (t) {
@@ -14728,6 +14799,8 @@
             (f.rutina ? '<button type="button" class="ent-comose" data-ver-rutina="' + f.rutina +
               '">ver la rutina</button>' : "") +
             (f.actId && f.hecho ? '<button type="button" class="ent-comose" data-ver-actividad="' + U.esc(f.actId) +
+              '">ver la ficha</button>' : "") +
+            (f.prev && !f.hecho ? '<button type="button" class="ent-comose" data-ver-previsto="' + U.esc(f.prev) +
               '">ver la ficha</button>' : "") +
           "</b>" + (f.ayuda ? "<small>" + U.esc(f.ayuda) +
             (f.borrable ? ' <button type="button" class="ent-soltar" data-soltar="' + f.borrable +
@@ -15684,6 +15757,8 @@
       }
       var sg = t.closest ? t.closest("[data-sesion-guia]") : null;
       if (sg) { e.preventDefault(); abrirGuiaSesion(sg.getAttribute("data-sesion-guia")); return; }
+      var sp = t.closest ? t.closest("[data-ver-previsto]") : null;
+      if (sp) { e.preventDefault(); abrirFichaPrevista(sp.getAttribute("data-ver-previsto")); return; }
       if (t.closest && t.closest("[data-m12]")) { e.preventDefault(); e.stopPropagation(); abrirM12(); return; }
       var m12s = t.closest ? t.closest("[data-m12sem]") : null;
       if (m12s) { e.preventDefault(); M12_SEM = +m12s.getAttribute("data-m12sem"); pintarConservando(); return; }

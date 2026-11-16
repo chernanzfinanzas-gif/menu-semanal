@@ -2266,7 +2266,19 @@
          : '<span class="akhb-an-dur">Sin nota todavía: se añade al comentar la sesión con Claude.</span>') +
         "</div>";
 
-      return '<div class="akhb-analisis">' + cab + tablaObj +
+      /* EL PERFIL DIBUJADO (16-nov-2026). Previsto en gris, lo hecho en
+         barras de color y el pulso en una línea encima. El previsto sólo
+         existe para la semana en curso; sin él se dibuja lo hecho y ya. */
+      var gs = window.GraficoSesion, graf = "";
+      if (gs && (a.bloques || []).length > 1) {
+        var pz = gs.perfilDe(a.sesion);
+        graf = '<div class="akhb-an-graf">' +
+          gs.svg({ perfil: pz ? pz.perfil : null, bloques: a.bloques,
+                   ftp: a.ftp || (pz && pz.ftp) || 182, pulsoTecho: techo, titulo: a.sesion }) +
+          '<div class="akhb-an-leyenda">' + (pz ? "Gris, lo previsto · " : "") +
+          "Barras, lo que hiciste · Línea, el pulso</div></div>";
+      }
+      return '<div class="akhb-analisis">' + cab + graf + tablaObj +
         (cifras ? '<div class="akhb-an-cifras">' + cifras + "</div>" : "") +
         lectura + recom + tablaBl + nota + "</div>";
     }
