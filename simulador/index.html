@@ -19,6 +19,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </script>
 <script src="recursos/rutas.js"></script>
 <script src="recursos/dispositivos.js"></script>
+<script src="recursos/strava-indice.js"></script>
 <style>
   :root { --bg:#111418; --card:#1c2128; --txt:#e8eaed; --sub:#9aa4b1; --ok:#3fb950; --mal:#f85149; --aviso:#d29922; --acento:#58a6ff; }
   * { box-sizing:border-box; }
@@ -115,7 +116,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #filaInicio .disp button { width:100%; }
   #filaInicio .datosUsu { display:grid; grid-template-columns:auto auto auto; gap:6px 12px; margin-top:10px; align-items:center; font-size:14px; }
   #filaInicio .datosUsu input { width:70px; font-size:15px; padding:4px 6px; border-radius:6px; background:#0d1117; color:#e8eaed; border:1px solid #30363d; }
-  #filaInicio .datosUsu #pesoOrigen { grid-column:1 / -1; font-size:12px; }
+  #filaInicio .datosUsu label { white-space:nowrap; } #filaInicio .datosUsu label.conNota { position:relative; }
+  #filaInicio .datosUsu #pesoOrigen { display:block; font-size:11px; margin:1px 0 0 34px; }
   #filaInicio > .bloque:first-child { flex:0 0 470px; width:470px; }
   #filaInicio .datosUsu { justify-content:start; }
   #panelMarchas > div { gap:8px !important; } #panelMarchas label { flex:1 1 180px; } #panelMarchas label input, #panelMarchas label select { width:100% !important; max-width:none !important; box-sizing:border-box; }
@@ -157,6 +159,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #pantallaRutas .tarjRuta b { font-size:17px; } #pantallaRutas .tarjRuta .datos { color:#8b949e; font-size:14px; }
   #pantallaRutas .tarjRuta .sentidos { display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; }
   #pantallaRutas .tarjRuta .sentidos button { flex:1 1 auto; }
+  #pantallaRutas .filtroStrava { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; } #pantallaRutas .filtroStrava input { flex:1 1 220px; padding:8px 10px; border-radius:8px; border:1px solid #30363d; background:#0d1117; color:#e6edf3; font-size:15px; } #pantallaRutas .filtroStrava select { padding:8px; border-radius:8px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; }
   #pantallaRutas .perfilMini { width:100%; height:46px; display:block; }
   #cajaRivales { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:4px 14px 12px; margin-bottom:6px; }
   #cajaRivales h3 { margin-top:10px !important; }
@@ -193,6 +196,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   .tr .otro { font-size:13px; color:#c9d1d9; border-top:1px solid #30363d; margin-top:4px; padding-top:4px; display:flex; justify-content:space-between; gap:10px; }
   .tramoVivo { margin-top:4px; padding-top:4px; border-top:1px solid #30363d; font-size:14px; } .tramoVivo b { color:#f2cc60; }
   #mediasFila { display:none; background:#0d1117; border-radius:10px; padding:6px 12px; margin-bottom:8px; }
+  button[data-tecla]::after { content:attr(data-tecla); display:inline-block; margin-left:8px; min-width:18px; height:18px; line-height:16px; border:1px solid currentColor; border-radius:5px; font-size:12px; font-weight:800; text-align:center; opacity:.85; box-sizing:border-box; padding:0 2px; vertical-align:1px; }
+  button.mant[data-tecla]::after { border:3px double currentColor; line-height:12px; height:20px; min-width:20px; }
   #pantallaDemo { position:fixed; inset:0; z-index:7000; background:rgba(5,8,12,.92); display:flex; align-items:center; justify-content:center; padding:12px; }
   #pantallaDemo[hidden] { display:none; }
   #pantallaDemo .cajaDemo { width:min(960px, 100%); background:#0d1117; border:1px solid #30363d; border-radius:14px; padding:12px 14px; }
@@ -252,7 +257,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v93 · versión única (la de la app) · techo de pulso</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v98 · torso intermedio y barbilla</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -262,12 +267,11 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
       <select id="usuario" style="display:none"><option value="carlos">Carlos</option><option value="susana">Susana</option></select>
       <label id="cajaFtp">FTP <input type="number" id="ftp" value="182" min="50" max="450"> W</label>
       <label>Altura <input type="number" id="altura" min="120" max="215" step="1"> cm</label>
-      <label>Peso <input type="number" id="pesoUsu" min="35" max="160" step="0.1"> kg</label>
+      <label class="conNota">Peso <input type="number" id="pesoUsu" min="35" max="160" step="0.1"> kg<span class="sub" id="pesoOrigen"></span></label>
       <label title="En ruta: si el pulso pasa de aquí, baja la dificultad para mantenerlo. Vacío = sin techo.">Techo pulso <input type="number" id="techoPulso" min="90" max="200" step="1" placeholder="—"> ppm</label>
-      <span class="sub" id="pesoOrigen"></span>
     </div>
     <details id="panelMarchas" style="margin-top:8px">
-    <summary style="cursor:pointer;font-size:13px">Marchas de la bici: <b id="perfilNombre">–</b> <span class="sub" id="perfilResumen"></span></summary>
+    <summary style="cursor:pointer;font-size:13px">Desarrollo: <b id="perfilNombre">–</b> <span class="sub" id="perfilResumen"></span></summary>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:10px">
       <label class="sub">Perfil<br><select id="perfilSel" style="font-size:15px;padding:6px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"></select></label>
       <label class="sub">Nombre<br><input id="perfilNom" style="width:100%;max-width:200px;font-size:15px;padding:6px;border-radius:7px;border:1px solid #30363d;background:#0d1117;color:#e8eaed"></label>
@@ -305,12 +309,12 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 
 
 <div class="barra">
-  <button id="bEmpezar" disabled>▶ Empezar</button>
-  <button id="bPausa" class="sec" disabled>⏸ Pausa</button>
-  <button id="bMenos" class="sec" disabled>− intensidad</button>
-  <button id="bMas" class="sec" disabled>+ intensidad</button>
-  <button id="bSaltar" class="sec" disabled>Saltar bloque ⏭</button>
-  <button id="bTerminar" class="peligro" disabled>Terminar y guardar</button>
+  <button id="bEmpezar" disabled data-tecla="A">▶ Empezar</button>
+  <button id="bPausa" class="sec" disabled data-tecla="A">⏸ Pausa</button>
+  <button id="bMenos" class="sec" disabled data-tecla="C">− intensidad</button>
+  <button id="bMas" class="sec" disabled data-tecla="C">+ intensidad</button>
+  <button id="bSaltar" class="sec mant" disabled data-tecla="B" title="Botón B del manillar, mantenido 2 s">Saltar bloque ⏭</button>
+  <button id="bTerminar" class="peligro mant" disabled data-tecla="A" title="Botón A del manillar, mantenido 3 s">Terminar y guardar</button>
   <button id="bRecorrer" class="sec" disabled title="Recorre la ruta solo, sin bici, en la vista 3D">▶ Recorrer la ruta (sin bici)</button>
   <span class="estado" id="eSesion">esperando</span>
 </div>
@@ -414,13 +418,13 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <div class="sub" id="leyenda">Barras: lo que manda la sesión. Línea blanca: tus vatios. Línea roja: tu pulso.</div></div>
 </div>
 
-<div class="panel">
-  <div class="fila"><b>Mandos</b><span class="sub">la bici manda en la bici y la salida; los Play, en la pantalla</span></div>
-  <div class="tarjetasMandos"><div class="tarjetaMando"><div class="tituloBloque">Play izquierdo · solo en ruta</div><img data-foto="mI" alt=""><ul><li><span class="nb">1</span><div><b>Arriba</b><div class="fx">Mapa: ruta entera o siguiéndote</div></div></li><li><span class="nb">2</span><div><b>Abajo</b><div class="fx">3D a pantalla completa / con datos</div></div></li><li><span class="nb">3</span><div><b>Izquierda</b><div class="fx">Cámara anterior</div></div></li><li><span class="nb">4</span><div><b>Derecha</b><div class="fx">Cámara siguiente</div></div></li><li><span class="nb">5</span><div><b>Paleta lateral</b><div class="fx">Cambiar de ciclista</div></div></li></ul></div><div class="tarjetaMando"><div class="tituloBloque">Play derecho · solo en ruta</div><img data-foto="mD" alt=""><ul><li><span class="nb">6</span><div><b>A</b><div class="fx">Grabar / parar el vídeo</div></div></li><li><span class="nb">7</span><div><b>B</b><div class="fx">Recorrer sin bici (50 · 200 · 600 km/h · parado)</div></div></li><li><span class="nb">8</span><div><b>Y</b><div class="fx">Calidad: alta · media · baja</div></div></li><li><span class="nb">9</span><div><b>Z</b><div class="fx">Escenario siguiente</div></div></li></ul></div><div class="tarjetaMando"><div class="tituloBloque">Bici (manetas)</div><div class="dosFotos"><img data-foto="mB" alt=""><img data-foto="mM" alt=""></div><ul><li><span class="nb l">A</span><div><b>Arriba izquierda, corto</b><div class="fx"><span class="ru">Ruta</span><span class="en"> / Entreno</span> Empezar · pausa · seguir</div></div></li><li><span class="nb l">A</span><div><b>El mismo, 3 s</b><div class="fx"><span class="ru">Ruta</span><span class="en"> / Entreno</span> Terminar y guardar</div></div></li><li><span class="nb l">B</span><div><b>Arriba derecha, 2 s</b><div class="fx"><span class="ru">Ruta</span> <span class="vacio">—</span></div><div class="fx"><span class="en">Entreno</span> Saltar al bloque siguiente</div></div></li><li><span class="nb l">C</span><div><b>Botones internos (por confirmar)</b><div class="fx"><span class="ru">Ruta</span> Dificultad ±10 %</div><div class="fx"><span class="en">Entreno</span> Intensidad ±2 %</div></div></li><li><span class="nb l">D</span><div><b>Levas de cambio</b><div class="fx"><span class="ru">Ruta</span> Cambio de marcha</div><div class="fx"><span class="en">Entreno</span> Intensidad ±2 %</div></div></li><li><span class="nb l">E</span><div><b>Freno, medio segundo</b><div class="fx"><span class="ru">Ruta</span> Enseñar · quitar este recordatorio de mandos</div><div class="fx"><span class="en">Entreno</span> <span class="vacio">—</span></div></div></li></ul></div></div>
+<div class="panel" id="panelMandos" hidden>
+  <div class="fila"><b>Mandos</b><span class="sub">freno 2 segundos para quitarlo · la bici manda en la bici y la salida; los Play, en la pantalla</span></div>
+  <div class="tarjetasMandos"><div class="tarjetaMando"><div class="tituloBloque">Play izquierdo · solo en ruta</div><img data-foto="mI" alt=""><ul><li><span class="nb">1</span><div><b>Arriba</b><div class="fx">Mapa: ruta entera o siguiéndote</div></div></li><li><span class="nb">2</span><div><b>Abajo</b><div class="fx">3D a pantalla completa / con datos</div></div></li><li><span class="nb">3</span><div><b>Izquierda</b><div class="fx">Cámara anterior</div></div></li><li><span class="nb">4</span><div><b>Derecha</b><div class="fx">Cámara siguiente</div></div></li><li><span class="nb">5</span><div><b>Paleta lateral</b><div class="fx">Cambiar de ciclista</div></div></li></ul></div><div class="tarjetaMando"><div class="tituloBloque">Play derecho · solo en ruta</div><img data-foto="mD" alt=""><ul><li><span class="nb">6</span><div><b>A</b><div class="fx">Grabar / parar el vídeo</div></div></li><li><span class="nb">7</span><div><b>B</b><div class="fx">Recorrer sin bici (50 · 200 · 600 km/h · parado)</div></div></li><li><span class="nb">8</span><div><b>Y</b><div class="fx">Calidad: alta · media · baja</div></div></li><li><span class="nb">9</span><div><b>Z</b><div class="fx">Escenario siguiente</div></div></li></ul></div><div class="tarjetaMando"><div class="tituloBloque">Bici (manetas)</div><div class="dosFotos"><img data-foto="mB" alt=""><img data-foto="mM" alt=""></div><ul><li><span class="nb l">A</span><div><b>Arriba izquierda, corto</b><div class="fx"><span class="ru">Ruta</span><span class="en"> / Entreno</span> Empezar · pausa · seguir</div></div></li><li><span class="nb l">A</span><div><b>El mismo, 3 s</b><div class="fx"><span class="ru">Ruta</span><span class="en"> / Entreno</span> Terminar y guardar</div></div></li><li><span class="nb l">B</span><div><b>Arriba derecha, 2 s</b><div class="fx"><span class="ru">Ruta</span> <span class="vacio">—</span></div><div class="fx"><span class="en">Entreno</span> Saltar al bloque siguiente</div></div></li><li><span class="nb l">C</span><div><b>Botones internos (por confirmar)</b><div class="fx"><span class="ru">Ruta</span> Dificultad ±10 %</div><div class="fx"><span class="en">Entreno</span> Intensidad ±2 %</div></div></li><li><span class="nb l">D</span><div><b>Levas de cambio</b><div class="fx"><span class="ru">Ruta</span> Cambio de marcha</div><div class="fx"><span class="en">Entreno</span> Intensidad ±2 %</div></div></li><li><span class="nb l">E</span><div><b>Freno, 2 segundos</b><div class="fx"><span class="ru">Ruta</span><span class="en"> / Entreno</span> Enseñar · quitar esta asignación de botones</div></div></li></ul></div></div>
   <div class="sub" style="margin-top:6px">En entrenamiento no hay vista 3D, por eso los Play no tienen función. La paleta lateral derecha no tiene función. Teclado: R = recorrer sin bici.</div>
 </div>
 
-<div class="panel"><b style="font-size:13px">Registro técnico</b><pre id="log"></pre></div>
+<div class="panel" id="panelRegistro"><div class="fila"><b style="font-size:13px">Registro técnico</b><button class="sec" id="bVerMandos" style="font-size:13px;padding:5px 10px">🎮 Pulsa freno 2 segundos para ver asignación de botones</button></div><pre id="log"></pre></div>
 
 <script>
 // ===================== utilidades =====================
@@ -449,15 +453,15 @@ const FTP = () => Math.max(50, +$('ftp').value || U.ftp);
   $('altura').value = alt || (appA && appA.altura) || (U.alturaM ? Math.round(U.alturaM * 100) : '');
   const zwift = USUARIO === 'carlos', aMano = peso && amano === '1';
   $('pesoUsu').value = aMano ? peso : (zwift ? '' : (peso || U.pesoKg || ''));
-  $('pesoOrigen').textContent = aMano ? 'peso escrito a mano' + (zwift ? ' · clic para volver al de Zwift' : '') : zwift ? 'peso de Zwift: se lee de la bici al conectarla' : 'escribe el peso a mano';
+  $('pesoOrigen').textContent = aMano ? '(a mano' + (zwift ? ' · clic: de Zwift' : '') + ')' : zwift ? '(de Zwift)' : '(a mano)';
   $('pesoUsu').placeholder = zwift ? 'Zwift' : '';
   $('altura').onchange = () => { try { localStorage.setItem(CLAVE('simulador-altura'), $('altura').value); } catch(e) {} };
   try { $('techoPulso').value = localStorage.getItem(CLAVE('simulador-techo-pulso')) || ''; } catch(e) {}
   $('techoPulso').onchange = () => { try { localStorage.setItem(CLAVE('simulador-techo-pulso'), $('techoPulso').value); } catch(e) {} };
   $('pesoUsu').onchange = () => { try { localStorage.setItem(CLAVE('simulador-peso'), $('pesoUsu').value); localStorage.setItem(CLAVE('simulador-peso-amano'), '1'); } catch(e) {}
-    $('pesoOrigen').textContent = 'peso escrito a mano' + (zwift ? ' · clic para volver al de Zwift' : ''); if (pesoChar) mandarPeso(); };
+    $('pesoOrigen').textContent = '(a mano' + (zwift ? ' · clic: de Zwift' : '') + ')'; if (pesoChar) mandarPeso(); };
   if (zwift) { $('pesoOrigen').style.cursor = 'pointer';
-    $('pesoOrigen').onclick = () => { try { localStorage.removeItem(CLAVE('simulador-peso-amano')); localStorage.removeItem(CLAVE('simulador-peso')); } catch(e) {} $('pesoUsu').value = pesoBiciKg ? pesoBiciKg.toFixed(1) : ''; $('pesoOrigen').textContent = 'peso de Zwift' + (pesoBiciKg ? ', leído de la bici' : ': se lee de la bici al conectarla'); if (pesoChar) mandarPeso(); }; } }
+    $('pesoOrigen').onclick = () => { try { localStorage.removeItem(CLAVE('simulador-peso-amano')); localStorage.removeItem(CLAVE('simulador-peso')); } catch(e) {} $('pesoUsu').value = pesoBiciKg ? pesoBiciKg.toFixed(1) : ''; $('pesoOrigen').textContent = '(de Zwift)'; if (pesoChar) mandarPeso(); }; } }
 $('usuario').value = USUARIO;
 document.querySelectorAll('.bUsu').forEach(b => { b.classList.toggle('activo', b.dataset.u === USUARIO);
   b.onclick = () => { if (b.dataset.u === USUARIO) return; $('usuario').value = b.dataset.u; $('usuario').onchange(); }; });
@@ -494,7 +498,7 @@ const leePeso = async () => { const v = await pesoChar.readValue(); return v.get
 async function mandarPeso(){
   if (!pesoChar) { $('estadoPeso').textContent = 'La bici no deja leer su peso: se calcula con 80 kg.'; return; }
   try { pesoBiciKg = await leePeso(); $('pesoBici').textContent = pesoBiciKg.toFixed(1).replace('.', ',') + ' kg';
-    if (USUARIO === 'carlos' && !pesoUsuario()) { $('pesoUsu').value = pesoBiciKg.toFixed(1); $('pesoOrigen').textContent = 'peso de Zwift, leído de la bici'; }
+    if (USUARIO === 'carlos' && !pesoUsuario()) { $('pesoUsu').value = pesoBiciKg.toFixed(1); $('pesoOrigen').textContent = '(de Zwift)'; }
     $('estadoPeso').textContent = pesoUsuario() ? 'La bici tiene guardados ' + pesoBiciKg.toFixed(1).replace('.', ',') + ' kg (los de Zwift). Las pendientes se ajustan a ' + U.nombre + ': ' + (pesoUsuario() + 9).toFixed(1).replace('.', ',') + ' kg con bici. No se toca nada de la bici.' : 'La bici calcula las subidas con ' + pesoBiciKg.toFixed(1).replace('.', ',') + ' kg, el peso que tiene para Zwift. Para cambiarlo, cámbialo en Zwift.'; }
   catch(e) { $('estadoPeso').textContent = 'No se pudo leer el peso de la bici: se calcula con 80 kg.'; log('Peso: ' + e.message); }
 }
@@ -580,13 +584,16 @@ const pulsadoDesde = {};
 // Freno (19-nov): en ruta, mantenerlo medio segundo enseña o esconde la barra de botones.
 // Para que no se dispare al cambiar (la leva va en la misma maneta), no cuenta si hay un cambio de marcha cerca.
 const FRENOS = { '0100':1, '4000':1 }; let tLeva = 0, tFreno = 0;
+// fuera del 3D: el cuadro de mandos de la página sustituye al registro técnico, y al revés
+function alternarMandosPagina(){ const M = $('panelMandos'), R = $('panelRegistro'), ver = M.hidden; M.hidden = !ver; R.hidden = ver;
+  if (ver) M.scrollIntoView({ behavior:'smooth', block:'nearest' }); avisar(ver ? 'Asignación de botones · freno 2 s para quitarla' : 'Registro técnico'); }
 // Recordatorio de mandos: copia de las tarjetas de mandos, solo con lo que hacen en ruta, abajo sobre el 3D
 function alternarBotones(){
   let R = $('recordatorioMandos');
   if (R) { R.remove(); return; }
   const T = document.querySelector('.tarjetasMandos'); if (!T) return;
   R = document.createElement('div'); R.id = 'recordatorioMandos'; R.title = 'Freno o clic para cerrar';
-  R.innerHTML = '<div class="cabRec">Mandos en ruta <small>· freno otra vez para quitarlo</small></div>';
+  R.innerHTML = '<div class="cabRec">Mandos en ruta <small>· freno 2 s para quitarlo</small></div>';
   const c = T.cloneNode(true); c.removeAttribute('id');
   c.querySelectorAll('.fx').forEach(f => { const s = f.querySelector('span'); if (s && s.classList.contains('en')) f.remove(); });   // fuera lo de entreno
   c.querySelectorAll('span.en').forEach(s => s.remove());
@@ -603,7 +610,7 @@ function botonBici(dv){
   if (FRENOS[pref]) { const p = (b[2] & 0x80) !== 0, ahora = Date.now();
     if (p) { tFreno = ahora; return; }
     const dura = ahora - tFreno; tFreno = 0;
-    if (ruta.activa && dura >= 400 && dura < 5000 && ahora - tLeva > dura + 300) { log('Botón bici → freno (' + dura + ' ms): recordatorio de mandos'); alternarBotones(); }
+    if (dura >= 1800 && dura < 8000 && ahora - tLeva > dura + 300) { log('Botón bici → freno (' + dura + ' ms): asignación de botones'); if (typeof v3 !== 'undefined' && v3.activo) alternarBotones(); else alternarMandosPagina(); }
     return; }
   const accion = BICI[pref]; if (!accion) return;
   const pulsado = (b[2] & 0x80) !== 0;
@@ -1108,7 +1115,9 @@ setInterval(mantenerPantalla, 15000);
 
 // ===================== modo ligero (móvil y tablet) =====================
 function mostrarDemo(){ const P = $('pantallaDemo'); if (P.parentElement !== document.body) document.body.appendChild(P); P.hidden = false; const v = $('videoDemo'); try { v.currentTime = 0; v.play().catch(() => {}); } catch(e) {} }
+$('bVerMandos').onclick = alternarMandosPagina; $('panelMandos').querySelector('.fila').onclick = alternarMandosPagina;
 $('bCerrarDemo').onclick = () => { $('pantallaDemo').hidden = true; try { $('videoDemo').pause(); } catch(e) {} };
+if (!window.LIGERO && $('bRecorrer')) $('bRecorrer').style.display = 'none';   // en el ordenador, Recorrer está en la barra del 3D
 if (window.LIGERO) {
   const o = $('vistaRuta').querySelector('option[value="carretera"]'); if (o) o.textContent = 'Vista: carretera 3D (ver demostración)';
   if ($('vistaRuta').value === 'carretera') $('vistaRuta').value = 'dos';
@@ -1168,13 +1177,40 @@ function abrirPantallaRutas(){
         + '<div class="sentidos">' + Object.keys(r.gpx).map(k => '<button data-s="' + k + '">▶ ' + (NOMBRE_SENTIDO[k] || k) + '</button>').join('') + '</div>'
         + '<button class="sec bTramos" data-tr="' + r.id + '">📈 Tramos y progreso</button></div>'; }
     html += '</div>'; }
+  if (window.RUTAS_STRAVA && RUTAS_STRAVA.length) html += '<h3>Tus salidas de Strava (' + RUTAS_STRAVA.length + ')</h3><div class="filtroStrava"><input id="buscaStrava" placeholder="Buscar por nombre…"><select id="ordenStrava"><option value="fecha">Más recientes</option><option value="km">Más largas</option><option value="sube">Más desnivel</option></select><select id="zonaStrava"><option value="">Todas las zonas</option><option>Comunidad de Madrid</option><option>Fuera de Madrid</option></select></div><div class="rejilla" id="listaStrava"></div>';
   html += '<h3>Tu ruta</h3><div class="rejilla"><div class="tarjRuta"><b>Cargar un .gpx</b><div class="datos">Una salida tuya de Strava o Garmin, o cualquier ruta con altitudes.</div><div class="sentidos"><button id="bGpxPropio" class="sec">Elegir fichero .gpx…</button></div></div></div>';
   L.innerHTML = html;
   L.querySelectorAll('canvas.perfilMini').forEach(cv => { const r = RUTAS_SIM.rutas.find(x => x.id === cv.dataset.k); dibujarPerfilMini(cv, desnivelGpx(r.gpx[Object.keys(r.gpx)[0]]).perfil); });
   L.querySelectorAll('.tarjRuta[data-id] .sentidos button').forEach(b => b.onclick = () => elegirRuta(b.closest('.tarjRuta').dataset.id, b.dataset.s));
   L.querySelectorAll('.bTramos').forEach(b => b.onclick = () => verTramosRuta(b.dataset.tr));
   $('bGpxPropio').onclick = () => { $('fichero').accept = '.gpx'; $('fichero').click(); };
+  if ($('listaStrava')) { ['buscaStrava', 'ordenStrava', 'zonaStrava'].forEach(i => $(i).oninput = pintarStrava); pintarStrava(); }
 }
+// ===================== rutas de Strava (exportación del 19-nov) =====================
+// recursos/strava-indice.js trae la lista (sin el punto de salida); cada recorrido está en recursos/strava/<id>.js y se carga al elegirlo.
+const MESES_STRAVA = { ene:0, feb:1, mar:2, abr:3, may:4, jun:5, jul:6, ago:7, sept:8, sep:8, oct:9, nov:10, dic:11 };
+const fechaStrava = s => { const m = /(\d+)\s+(\w+)\.?\s+(\d{4})/.exec(s || ''); return m ? new Date(+m[3], MESES_STRAVA[m[2].toLowerCase().slice(0, 4).replace('.', '')] ?? MESES_STRAVA[m[2].toLowerCase().slice(0, 3)] ?? 0, +m[1]) : new Date(0); };
+function pintarStrava(){
+  const L = $('listaStrava'); if (!L) return;
+  const q = ($('buscaStrava').value || '').toLowerCase(), o = $('ordenStrava').value, z = $('zonaStrava').value;
+  const lista = RUTAS_STRAVA.filter(r => (!q || r.nombre.toLowerCase().includes(q)) && (!z || r.zona === z))
+    .sort((a, b) => o === 'km' ? b.km - a.km : o === 'sube' ? b.sube - a.sube : fechaStrava(b.fecha) - fechaStrava(a.fecha));
+  L.innerHTML = lista.slice(0, 60).map(r => '<div class="tarjRuta" data-strava="' + r.id + '"><b>' + r.nombre.replace(/</g, '') + '</b><div class="datos">' + fechaStrava(r.fecha).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) + ' · ' + String(r.km).replace('.', ',') + ' km · +' + r.sube + ' m</div><canvas class="perfilMini"></canvas>'
+    + '<div class="sentidos"><button data-s="ida">▶ como la hiciste</button><button class="sec" data-s="vuelta">↺ al revés</button></div></div>').join('')
+    + (lista.length > 60 ? '<p class="sub">Y ' + (lista.length - 60) + ' más: usa el buscador o el orden.</p>' : '') + (lista.length ? '' : '<p class="sub">Ninguna salida con ese nombre.</p>');
+  L.querySelectorAll('.tarjRuta').forEach(c => { const r = RUTAS_STRAVA.find(x => x.id === c.dataset.strava); dibujarPerfilMini(c.querySelector('canvas'), r.perfil);
+    c.querySelectorAll('button').forEach(b => b.onclick = () => elegirStrava(r.id, b.dataset.s === 'vuelta')); }); }
+function cargarScript(src){ return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => mal(new Error('no está ' + src)); document.head.appendChild(s); }); }
+async function elegirStrava(id, alReves){
+  const r = RUTAS_STRAVA.find(x => x.id === id); if (!r) return;
+  try { if (!(window.RUTAS_STRAVA_CARGADAS && RUTAS_STRAVA_CARGADAS[id])) await cargarScript('recursos/strava/' + id + '.js'); }
+  catch(e) { avisar('No encuentro el recorrido de esta salida en recursos/strava/.'); return; }
+  let gpx = RUTAS_STRAVA_CARGADAS[id];
+  if (alReves) { const pts = gpx.match(/<trkpt[^>]*>.*?<\/trkpt>/g) || []; gpx = gpx.replace(/<trkseg>.*<\/trkseg>/, '<trkseg>' + pts.reverse().join('') + '</trkseg>'); }
+  gpx = gpx.replace(/<name>.*?<\/name>/, '<name>' + r.nombre.replace(/[<&]/g, '') + ' · ' + fechaStrava(r.fecha).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) + (alReves ? ' (al revés)' : '') + '</name>');
+  $('rutaIncluida').value = ''; copiarSentido(); cerrarPantallaRutas(); cargarRuta(gpx);
+  $('vistaRuta').value = vistaElegida(); ponerVista();
+  setTimeout(() => $('zonaRuta').scrollIntoView({ behavior:'smooth', block:'start' }), 100); }
 function cerrarPantallaRutas(){ $('pantallaRutas').hidden = true; document.body.style.overflow = ''; }
 function vistaElegida(){ const b = document.querySelector('#pantallaRutas .vistaElegir button.activo'); const v = b ? b.dataset.v : (window.LIGERO ? 'dos' : 'carretera'); if (window.LIGERO && v === 'carretera') { setTimeout(mostrarDemo, 300); return 'dos'; } return v; }
 function elegirRuta(id, sentido){
@@ -1298,7 +1334,7 @@ function aplicarPerfil(){
   const el = id => document.getElementById(id);
   if (el('perfilNombre')) {
     el('perfilNombre').textContent = p.nombre;
-    el('perfilResumen').textContent = '· platos ' + [...p.platos].sort((a,b)=>b-a).join('/') + ' · ' + PINONES.length + ' piñones ' + PINONES[0] + '-' + PINONES[PINONES.length-1];
+    el('perfilResumen').textContent = '· platos ' + [...p.platos].sort((a,b)=>b-a).join('/') + ' · ' + PINONES.length + ' piñ ' + PINONES[0] + '-' + PINONES[PINONES.length-1];
     el('perfilSel').innerHTML = ''; perfiles.forEach((q, i) => { const o = document.createElement('option'); o.value = i; o.textContent = q.nombre; if (i === perfilActivo) o.selected = true; el('perfilSel').appendChild(o); });
     el('perfilNom').value = p.nombre; el('perfilPla').value = [...p.platos].sort((a,b)=>b-a).join(', '); el('perfilPin').value = PINONES.join(', ');
   }
@@ -1767,7 +1803,7 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   const plato = pieza(new THREE.CylinderGeometry(0.105, 0.105, 0.012, 24), gris); plato.rotation.z = Math.PI / 2; plato.position.copy(P.bb).add(V(0.06, 0, 0));
   const nBici = g.children.length;   // lo añadido hasta aquí es la bici dibujada
   // cuerpo: postura agachada de carretera
-  const cadera = V(0, 0.99, -0.22), hombro = V(0, 1.30, 0.32);
+  const cadera = V(0, 0.99, -0.22), hombro = V(0, 1.29, 0.29);   // 19-nov: tronco algo más corto
   // tronco con forma: espalda curva (redondeada arriba, como en la postura real), cintura estrecha y poco profunda, pecho ancho y más hondo
   const ejeT = new THREE.Vector3().subVectors(hombro, cadera).normalize(), qT = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), ejeT);
   const ini = cadera.clone().addScaledVector(ejeT, 0.05), lt = ini.distanceTo(hombro), R_ALTO = 0.158, R_BAJO = 0.118;
@@ -1775,7 +1811,7 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   const enRecta = (t, sube) => ini.clone().lerp(hombro, t).addScaledVector(arribaT, sube);
   const ESPALDA = new THREE.CatmullRomCurve3([ini.clone(), enRecta(0.3, 0.022), enRecta(0.65, 0.052), enRecta(0.88, 0.038), hombro.clone()]);
   const radioEn = t => R_BAJO + (R_ALTO - R_BAJO) * Math.pow(Math.max(0, t), 0.7);               // t: 0 en la cintura, 1 en los hombros
-  const PLANO = 0.8, hondo = t => 0.64 + 0.2 * Math.pow(Math.max(0, Math.min(1, t)), 1.3);                   // profundidad relativa (pecho-espalda)
+  const PLANO = 0.8, hondo = t => 0.58 + 0.18 * Math.pow(Math.max(0, Math.min(1, t)), 1.3);                   // profundidad relativa (pecho-espalda)
   const dchaT = V(-1, 0, 0);
   const marco = t => { const tt = Math.max(0, Math.min(1, t)), c = ESPALDA.getPointAt(tt), tg = ESPALDA.getTangentAt(tt);
     if (t < 0) c.addScaledVector(tg, t * lt);
@@ -1789,13 +1825,13 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   const torso = tubo(0, 1, 0, maillot);
   { const fin = marco(1), hombros = pieza(new THREE.SphereGeometry(R_ALTO, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), maillot);
     hombros.scale.set(1, 0.75, hondo(1)); hombros.quaternion.setFromUnitVectors(V(0, 1, 0), fin.tg); hombros.position.copy(fin.c); }
-  const banda = tubo(0.6, 0.68, 0.004, franja);
+  const banda = tubo(0.36, 0.43, 0.004, franja);   // 19-nov: franja y culote más bajos
   // parte baja negra (de la franja a la cintura) y culote: recogido sobre el sillín, sin sobresalir como una bola
-  const negroM = M(0x15171a, 0.4); tubo(-0.04, 0.6, 0.003, negroM);
+  const negroM = M(0x15171a, 0.4); tubo(-0.04, 0.36, 0.003, negroM);
   { // caderas: pieza de culote de lado a lado que une tronco, glúteos y arranque de los muslos (sin la muesca de la cadera)
-    const cd = new THREE.SphereGeometry(1, 36, 24); cd.scale(0.18, 0.075, 0.085);
-    const cad2 = pieza(cd, culotte); cad2.position.copy(cadera).add(V(0, 0.0, 0.05)); cad2.rotation.x = -0.35; }
-  const culo = pieza(new THREE.SphereGeometry(0.12, 24, 14), negroM); culo.scale.set(1.0, 0.68, 0.76); culo.position.copy(cadera).add(V(0, 0.01, 0.045));
+    const cd = new THREE.SphereGeometry(1, 36, 24); cd.scale(0.15, 0.08, 0.1);   // una sola forma que envuelve el arranque de los dos muslos
+    const cad2 = pieza(cd, culotte); cad2.position.copy(cadera).add(V(0, -0.01, 0.06)); cad2.rotation.x = -0.3; }
+  const culo = pieza(new THREE.SphereGeometry(0.12, 24, 14), negroM); culo.scale.set(0.9, 0.6, 0.66); culo.position.copy(cadera).add(V(0, 0.015, 0.05));
   // espalda del maillot: firma «KhB» encima de la franja y dorsal «22» debajo
   { const rotulo = (texto, fuente, ancho, alto, donde) => {
       const c = document.createElement('canvas'); c.width = 512; c.height = Math.round(512 * alto / ancho); const x = c.getContext('2d');
@@ -1807,13 +1843,13 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
       m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(dchaT, tg, fuera));
       m.position.copy(cc).addScaledVector(fuera, radioEn(donde) * hondo(donde) + 0.007); g.add(m); };
     if (op.firma) rotulo(op.firma, 'italic bold 170px "Segoe Script", "Brush Script MT", cursive', 0.2, 0.09, 0.82);
-    if (op.dorsal) rotulo(op.dorsal, 'bold 230px "Arial Black", Arial, sans-serif', 0.18, 0.11, 0.36); }
+    if (op.dorsal) rotulo(op.dorsal, 'bold 230px "Arial Black", Arial, sans-serif', 0.18, 0.11, 0.56); }
   const cuello = esf(0.055, piel, hombro.clone().add(V(0, 0.08, 0.065)));
   // cabeza con forma: algo más alta que ancha, nuca con volumen, mandíbula que se estrecha y barbilla
   const RCAB = 0.105;
   const jawEn = dy => dy < -0.15 ? Math.pow(Math.min(1, (-dy - 0.15) / 0.85), 1.4) : 0;
-  const formaCab = (dx, dy, dz, k = 1) => { const j = jawEn(dy), sx = 0.9 * (1 - 0.24 * j), sz = dz < 0 ? 1.1 : 0.97 - 0.05 * j;
-    const barb = dz > 0 && dy < -0.55 ? 0.012 * Math.min(1, (-dy - 0.55) / 0.3) * dz : 0;
+  const formaCab = (dx, dy, dz, k = 1) => { const j = jawEn(dy), sx = 0.9 * (1 - 0.24 * j), sz = dz < 0 ? 1.1 : 0.97 - 0.01 * j;   // 19-nov: mandíbula menos metida
+    const barb = dz > 0 && dy < -0.45 ? 0.032 * Math.min(1, (-dy - 0.45) / 0.3) * dz : 0;   // 19-nov: barbilla más hacia fuera
     return V(dx * RCAB * sx * k, dy * RCAB * 1.1 * k, (dz * RCAB * sz + barb) * k); };
   const deformarCab = (geo, k = 1) => { const pos = geo.attributes.position, d = new THREE.Vector3();
     for (let i = 0; i < pos.count; i++) { d.fromBufferAttribute(pos, i).normalize(); const q = formaCab(d.x, d.y, d.z, k); pos.setXYZ(i, q.x, q.y, q.z); }
@@ -1943,7 +1979,7 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
     const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); gg.setIndex(idx);
     const m = pieza(gg, mat); m.frustumCulled = false; m.userData.barrido = { N, S }; return m; };
   // piernas (se mueven en posarPiernas)
-  const piernas = [-1, 1].map(lado => ({ lado, x: 0.1 * lado, muslo: perfil([[0, 0.093], [0.2, 0.097], [0.5, 0.086], [0.74, 0.073], [0.8, 0.068]], culotte),
+  const piernas = [-1, 1].map(lado => ({ lado, x: 0.088 * lado, muslo: perfil([[0, 0.05], [0.12, 0.074], [0.3, 0.081], [0.5, 0.076], [0.74, 0.068], [0.8, 0.065]], culotte),   // 19-nov: muslos más finos y más juntos (desde detrás salían dos bultos)
     musloPiel: perfil([[0.76, 0.066], [0.84, 0.061]], piel), rodilla: rodillaPiel(piel),
     tibia: perfil([[0.12, 0.0545], [0.22, 0.058], [0.36, 0.054], [0.55, 0.043], [0.75, 0.031], [0.9, 0.025], [1, 0.025]], piel, t => 0.022 * Math.exp(-Math.pow((t - 0.27) / 0.14, 2))),
     calcetin: cil(0.028, blanco, 0.029), pie: zapatilla(), biela: pieza(new THREE.BoxGeometry(0.02, 1, 0.03), gris) }));
