@@ -999,18 +999,28 @@
           fecha: d.getFullYear() + "-" + dosD(d.getMonth() + 1) + "-" + dosD(d.getDate()),
           min: d.getHours() * 60 + d.getMinutes() });
       });
-      todas.forEach(function (x) {
+      /* 18-nov-2026: cada sesión de rodillo va a la actividad cuya hora coincide
+         MEJOR, no a la primera que encaje. Antes se iba actividad a actividad
+         en orden, y una subida corta del simulador a las 11:25 se quedaba el
+         análisis del Zwift de las 11:43 (18 min, dentro de los 20): cuando
+         llegaba el Zwift, ya no quedaba nada para él. */
+      var parejas = [];
+      todas.forEach(function (x, ix) {
         if (x.dep !== "rod" || !x.hora || !x.fecha) return;   // solo el rodillo, no la fuerza
         var hm = String(x.hora).split(":"), mx = (+hm[0]) * 60 + (+hm[1]);
-        var f = String(x.fecha).slice(0, 10), mejor = null, dMin = 21;
-        sesRod.forEach(function (r) {
-          if (r.usada || r.fecha !== f) return;
+        var f = String(x.fecha).slice(0, 10);
+        sesRod.forEach(function (r, ir) {
+          if (r.fecha !== f) return;
           var dd = Math.abs(r.min - mx);
-          if (dd < dMin) { dMin = dd; mejor = r; }
+          if (dd < 21) parejas.push({ ix: ix, ir: ir, dd: dd });
         });
-        if (!mejor) return;
-        mejor.usada = true;
-        var s = mejor.s;
+      });
+      parejas.sort(function (a, b) { return a.dd - b.dd; });
+      var casada = {};
+      parejas.forEach(function (pq) {
+        if (casada[pq.ix] || sesRod[pq.ir].usada) return;
+        casada[pq.ix] = true; sesRod[pq.ir].usada = true;
+        var x = todas[pq.ix], s = sesRod[pq.ir].s;
         x.kmReloj = x.km; x.desnivelReloj = x.desnivel;
         if (s.km != null) x.km = s.km;
         if (s.desnivel != null) x.desnivel = s.desnivel;

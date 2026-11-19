@@ -2,7 +2,7 @@
 /* M13 · 10-oct-2026: UNA sola versión para todo. La lista llevaba ?v=426 cuando
    la app cargaba la 519: lo guardado no casaba con lo que pide index.html y sin
    cobertura no servía. Al subir de versión sólo se toca la línea de V. */
-var V = "679";
+var V = "681";
 var CACHE = "menu-semanal-v" + V;
 var FICHEROS = [
   "./", "./index.html", "./css/estilos.css?v=" + V, "./css/menu.css?v=" + V,
@@ -66,6 +66,7 @@ self.addEventListener("activate", function (e) {
 self.addEventListener("fetch", function (e) {
   var url = e.request.url;
   if (url.indexOf("api.github.com") >= 0 || e.request.method !== "GET") return;   // la sincronización siempre en directo
+  if (url.indexOf("/simulador/") >= 0) return;   // 19-nov (v681): el simulador va siempre en directo; pesa ~66 MB y no debe guardarse en la caché de la app
   function guardado() {
     return caches.match(e.request).then(function (r) {
       return r || caches.match(e.request, { ignoreSearch: true });

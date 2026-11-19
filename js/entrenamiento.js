@@ -64,8 +64,19 @@
        diaria en el plan». Los datos NO van en el código (el repositorio del
        código es público): viven en datos/historial-medico.json del privado. */
     { id: "historial", nombre: "Historial médico", img: "iconos/khb/14-historial.webp",
-      pie: "Patologías, tratamientos con sus fechas, recomendaciones, pruebas y citas.", listo: true }
+      pie: "Patologías, tratamientos con sus fechas, recomendaciones, pruebas y citas.", listo: true },
+    /* SIMULADOR DE RODILLO  ·  19-nov-2026 (v681). Carlos: va en el menú de
+       Entrenamiento y solo en el ORDENADOR («no hay mapas ni datos, es para
+       entrenar con la bici desde el ordenador»). No pinta nada aquí: abre
+       simulador/ en una pestaña propia, porque el Bluetooth de la bici, el
+       pulsómetro y los Zwift Play necesitan la página entera para él. */
+    { id: "simulador", nombre: "Simulador de rodillo", img: "iconos/khb/11-montana.webp", soloPC: true, abre: "simulador/",
+      pie: "Puertos y rutas en 3D con la Kickr: rivales, tramos cronometrados y resumen de cada salida.", listo: true }
   ];
+  /* «solo en el ordenador»: ratón y pantalla ancha. En el móvil la tarjeta no sale. */
+  function enOrdenador() {
+    try { return window.matchMedia("(pointer: fine) and (min-width: 1000px)").matches; } catch (e) { return false; }
+  }
 
   /* ==================== ESTILOS ==================== */
 
@@ -8175,6 +8186,23 @@
       mandoEvo("vfcnm") + tramoEvo("vfcnm") + cuerpo, nota);
   }
 
+  /* LA LÍNEA FINA Y LA GRUESA · 18-nov-2026
+     Carlos: «en la gráfica de estrés podemos poner la media como hacemos en
+     peso… de hecho se podía hacer en todas las gráficas que tengan picos».
+     En el peso ya se hacía: gris lo que marcó la báscula cada día y azul grueso
+     su media de 7. Las demás enseñaban O una O la otra según el tramo, así que
+     en corto se veía el diente de sierra sin la tendencia, y en largo la
+     tendencia sin los picos, que es donde está el aviso.
+     `conMedia` devuelve las dos series para una sola: la cruda en su color
+     clarito y la media de 7 días gruesa encima. Con menos de 10 puntos no hay
+     media que valga y devuelve sólo la cruda. */
+  function conMedia(pts, colorCrudo, color, dias) {
+    if (!pts || !pts.length) return [];
+    if (pts.length < 10) return [{ pts: pts, color: color, ancho: 1.3 }];
+    return [{ pts: pts, color: colorCrudo, ancho: 0.8, marcarUltimo: false },
+            { pts: mediaMovilDias(pts, dias || 7), color: color, ancho: 1.6 }];
+  }
+
   function mediaMovilDias(serie, n) {
     var out = [];
     for (var i = 0; i < serie.length; i++) {
@@ -10266,14 +10294,13 @@
       var pmin = serieSalud("pulso_min", v);
       if (fcr.length || pmin.length) {
         var serPulso = [];
-        if (fcr.length) serPulso.push({ pts: tramoLargo ? mediaMovilDias(fcr, 7) : fcr,
-                                        color: AMBAR, ancho: 1.2 });
-        if (pmin.length) serPulso.push({ pts: tramoLargo ? mediaMovilDias(pmin, 7) : pmin,
-                                         color: "#7b2fbf", ancho: 1.2 });
+        serPulso = serPulso.concat(conMedia(fcr, "#e8cf9a", AMBAR))
+                            .concat(conMedia(pmin, "#c9a9e6", "#7b2fbf"));
         cuerpo2 += '<h3 class="evo-sub">Pulso en reposo y pulso mínimo</h3>' + grafica({
           desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 96, arriba: "lpm", unidadTip: "lpm",
           alt: "Pulso en reposo y pulso mínimo del día",
-          explica: "Ámbar, el pulso en reposo de cada noche; morado, el latido más bajo de todo el día, " +
+          explica: "De cada color hay dos líneas: la fina es el dato de ese día y la gruesa su media " +
+            "de 7 días. Ámbar, el pulso en reposo de cada noche; morado, el latido más bajo de todo el día, " +
             "que suele ir cuatro o cinco latidos por debajo. Aquí bajar es mejorar, al revés que arriba. " +
             "Lo que dice algo no es cada línea por su lado sino la distancia entre las dos: cuando se " +
             "abren o se juntan, ahí ha pasado algo.",
@@ -10294,9 +10321,13 @@
           explica: "Horas dormidas cada noche, con la referencia de 7 h. Las dos últimas son las que pesan en el día de hoy.",
           lineasH: [{ v: 7, color: "#cfdcea", etq: "7 h" }],
           series: [{ pts: tramoLargo ? mediaMovilDias(sue, 7) : sue, color: "#7fa8cd",
-                     barras: !tramoLargo, ancho: 1.2, opacidad: 0.85 }]
+                     barras: !tramoLargo, ancho: 1.2, opacidad: 0.85 }].concat(
+                   (!tramoLargo && sue.length >= 10)
+                     ? [{ pts: mediaMovilDias(sue, 7), color: "#2f5c8a", ancho: 1.6,
+                          marcarUltimo: false }] : [])
         }) + '<p class="nota-peque" style="margin:4px 0 0">' +
-          (tramoLargo ? "En tramos largos, la media móvil de siete noches." : "Una barra por noche.") + "</p>";
+          (tramoLargo ? "En tramos largos, la media móvil de siete noches."
+                      : "Una barra por noche; la línea azul, la media de 7.") + "</p>";
       }
       /* ========== LAS TRES TARJETAS DEL SUEÑO (22-sep-2026) ==========
          Vienen de una pregunta suya: «¿qué fase fijamos como la buena?». La
@@ -10612,14 +10643,13 @@
           desde: v.desde, hasta: v.hasta, bandas: bandas, alto: 88, arriba: "estrés",
           unidadTip: "",
           alt: "Estrés medio del día y de la noche",
-          explica: "El de la noche es el que vale: el del día sube con el entreno sin que pase " +
+          explica: "De cada color hay dos líneas: la fina es cada día y la gruesa su media de 7. " +
+            "El de la noche es el que vale: el del día sube con el entreno sin que pase " +
             "nada malo. En el covid de junio de 2024 el del día saltó de 37 a 62 antes de que " +
             "se moviera ninguna otra cosa.",
-          series: (est.length ? [{ pts: largoB ? mediaMovilDias(est, 7) : est,
-                                   color: "#c3d3e2", ancho: 1 }] : [])
-            .concat(estN.length ? [{ pts: largoB ? mediaMovilDias(estN, 7) : estN,
-                                     color: ROJO, ancho: 1.3 }] : [])
-        }) + leyenda((est.length ? [{ n: "todo el día", color: "#c3d3e2" }] : [])
+          series: conMedia(est, "#dde7f0", "#8fadc7")
+            .concat(conMedia(estN, "#e3b3ab", ROJO))
+        }) + leyenda((est.length ? [{ n: "todo el día", color: "#8fadc7" }] : [])
           .concat(estN.length ? [{ n: "durmiendo", color: ROJO }] : []));
       }
       cuerpoB += avisoFrescura(bbMin.length ? "body_battery_min" : "estres");
@@ -12505,6 +12535,7 @@
       '<div class="ent-bloques">';
 
     BLOQUES.forEach(function (b) {
+      if (b.soloPC && !enOrdenador()) return;
       h += '<button type="button" class="ent-bloque' + (b.listo ? "" : " pendiente") + '"' +
         (b.listo ? ' data-bloque="' + b.id + '"' : " disabled") + ">" +
         '<img src="' + b.img + '" alt="" onerror="this.style.display=\'none\'">' +
@@ -15993,6 +16024,8 @@
       }
       var b = t.closest ? t.closest("[data-bloque]") : null;
       if (b) {
+        var bq = BLOQUES.filter(function (x) { return x.id === b.getAttribute("data-bloque"); })[0];
+        if (bq && bq.abre) { window.open(bq.abre, "simulador-khb"); return; }   // el simulador va en su pestaña; aquí no cambia nada
         bloque = b.getAttribute("data-bloque");
         if (bloque === "actividad") prepararArchivo();   // pide sus ficheros al entrar
         if (bloque === "avances") prepararAvances();
