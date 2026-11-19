@@ -13676,7 +13676,7 @@
        trabaja además en el rodillo, con bloques de cadencia baja en ERG.
        Kilos y gomas, los que ya hace. Lo anterior (A y B de 5 ejercicios, la C
        de zancadas) está en «js/entrenamiento (copia v567).js». */
-    { id: "A", n: "Fuerza A", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
+    { id: "A", n: "Fuerza A", dia: null, diaTxt: "en turno, tras la bici", min: 15, hasta: "2026-11-22", mov: [
       { n: "Sentadilla goblet",   s: 2, r: "12",          kg: 10, nota: "Bajar en 3 segundos" },
       { n: "Press de banca",      s: 2, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
         garmin: "Press de banca inclinada con mancuernas" },
@@ -13685,7 +13685,7 @@
         garmin: "Extensión de tríceps por encima de la cabeza con mancuernas" },
       { n: "Plancha",             s: 2, r: "30 seg",      nota: "Cadera a la altura de los hombros. Respirando, sin bloquear el aire" }
     ]},
-    { id: "B", n: "Fuerza B", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
+    { id: "B", n: "Fuerza B", dia: null, diaTxt: "en turno, tras la bici", min: 15, hasta: "2026-11-22", mov: [
       { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 20,
         nota: "Bisagra de cadera: el culo atrás, la espalda recta y la mancuerna rozando la pierna" },
       { n: "Remo",                s: 2, r: "12",          goma: "23-57",
@@ -13698,7 +13698,7 @@
         /* Garmin no tiene Pallof: se apunta con el más cercano por músculo (oblicuos) */
         garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" }
     ]},
-    { id: "C", n: "Fuerza C", dia: null, diaTxt: "en turno, tras la bici", min: 15, mov: [
+    { id: "C", n: "Fuerza C", dia: null, diaTxt: "en turno, tras la bici", min: 15, hasta: "2026-11-22", mov: [
       { n: "Empuje de cadera",    s: 2, r: "15",          kg: 10,     // 12-nov-2026: de 12 a 15 repeticiones (Carlos); con 12 el pulso ya no subía (94 y 89)
         nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna entra y sale apoyada en los muslos. Descanso de 90 s: es el único donde el pulso sube hasta el final de la serie y no se recupera en 75",
         garmin: "Levantamiento de barra sobre cadera, en banca" },
@@ -13710,6 +13710,57 @@
       { n: "Aperturas invertidas",s: 2, r: "15 por lado", goma: "25",
         nota: "Goma en el anclaje, de pie. Espalda alta: es la que sujeta en el manillar",
         garmin: "Apertura inversa con polea a un solo brazo y de pie" }
+    ]},
+    /* 19-nov-2026 · LA FUERZA POR GRUPOS, decidida por Carlos. «No me convence
+       el entrenamiento de fuerza… 2 series de cada grupo no lo estimulan
+       bastante.» Cada día UN grupo con dos ejercicios de 3 series, más uno de
+       pierna o core de 2-3 series: 8-9 series, «8/10 series como mucho al día».
+       SIN DÍAS FIJOS: el turno de la semana es sólo el orden sugerido; él elige
+       cada día qué bloque hace (el dorsal, en la terraza, el día que se pueda).
+       La app da por hecha la fuerza del día sea cual sea el bloque. Kilos de
+       partida: los que ya movía en A, B y C; los nuevos, a ajustar el primer día.
+       Las A, B y C se quedan arriba para las semanas anteriores al 23-nov. */
+    { id: "PE", n: "Fuerza Pecho", dia: null, diaTxt: "sin día fijo, tras la bici", min: 20, mov: [
+      { n: "Flexiones",           s: 3, r: "hasta 1-3 de reserva",
+        nota: "Si salen más de 15, más lentas o con los pies en alto. Cuerpo en bloque, sin hundir la cadera" },
+      { n: "Press de banca",      s: 3, r: "12",          kg: 20, nota: "Sentado en el suelo, espalda contra la silla",
+        garmin: "Press de banca inclinada con mancuernas" },
+      { n: "Sentadilla goblet",   s: 2, r: "15",          kg: 10, nota: "Bajar en 3 segundos" }
+    ]},
+    { id: "DO", n: "Fuerza Dorsal", dia: null, diaTxt: "sin día fijo · en la terraza", min: 20, mov: [
+      { n: "Remo invertido",      s: 3, r: "12",
+        nota: "En las anillas. Cuerpo recto de talones a hombros; pecho a las manos y bajar despacio. Más difícil: los pies más adelante" },
+      { n: "Jalón",               s: 3, r: "15",          goma: "23-57",
+        nota: "Misma goma: primero hasta 15 repeticiones; después, bajar en 3 segundos",
+        garmin: "Jalón lateral con goma elástica" },
+      { n: "Plancha",             s: 3, r: "35 seg",      nota: "2 o 3, según vayas. Cadera a la altura de los hombros, respirando" }
+    ]},
+    { id: "HO", n: "Fuerza Hombro", dia: null, diaTxt: "sin día fijo, tras la bici", min: 20, mov: [
+      { n: "Press de hombros",    s: 3, r: "12",          kg: 20, nota: "Sin bloquear el aire",
+        garmin: "Press de hombros con mancuernas" },
+      { n: "Elevación lateral",   s: 3, r: "15",          kg: 3,  porMano: true,
+        nota: "Una de 3 en cada mano. Subir hasta la altura del hombro, sin balancear" },
+      { n: "Peso muerto rumano",  s: 2, r: "12",          kg: 20,
+        nota: "Bisagra de cadera: el culo atrás, la espalda recta y la mancuerna rozando la pierna" }
+    ]},
+    { id: "BI", n: "Fuerza Bíceps", dia: null, diaTxt: "sin día fijo, tras la bici", min: 20, mov: [
+      { n: "Curl de bíceps",      s: 3, r: "12",          kg: 10, porMano: true, nota: "Alterno. Una de 10 en cada mano, sin balancear",
+        garmin: "Curl de bíceps alterno con mancuerna" },
+      { n: "Curl martillo",       s: 3, r: "12",          kg: 7.5, porMano: true,
+        nota: "Una de 7,5 en cada mano, palmas mirándose. Bajar despacio" },
+      { n: "Pallof",              s: 2, r: "12 por lado", goma: "23-57",
+        nota: "Goma de anilla 23-57 en el anclaje, a la altura del pecho; se tira de lado",
+        garmin: "Abdominales oblicuos con goma elástica (no hay Pallof en el reloj)" }
+    ]},
+    { id: "TR", n: "Fuerza Tríceps", dia: null, diaTxt: "sin día fijo, tras la bici", min: 20, mov: [
+      { n: "Extensión de tríceps", s: 3, r: "12",         kg: 10,
+        nota: "Sentado, una mancuerna cogida con las dos manos por detrás de la cabeza; los codos quietos, apuntando arriba",
+        garmin: "Extensión de tríceps por encima de la cabeza con mancuernas" },
+      { n: "Press francés",       s: 3, r: "12",          kg: 7.5, porMano: true,
+        nota: "Tumbado en el suelo, una de 7,5 en cada mano; sólo se mueve el codo, que baja la mancuerna junto a la cabeza" },
+      { n: "Empuje de cadera",    s: 2, r: "15",          kg: 10,
+        nota: "Espalda contra la silla bloqueada hacia atrás; la mancuerna apoyada en los muslos. Descanso de 90 s",
+        garmin: "Levantamiento de barra sobre cadera, en banca" }
     ]}
   ];
 
@@ -13800,12 +13851,28 @@
     modal.classList.add("abierta");
   }
 
-  function rutinaDeTexto(t) {
-    var x = String(t || "").toLowerCase();
+  /* 19-nov-2026: con los bloques por grupo, «Fuerza Bíceps» empieza igual que
+     «Fuerza B» y se la llevaba la B. Ahora vale el nombre que encaja ENTERO
+     (que detrás no siga una letra) y, si encajan varios, el más largo. */
+  function sesionDeTexto(t) {
+    var x = String(t || "").toLowerCase(), mejor = null;
     for (var i = 0; i < SESIONES.length; i++) {
-      if (x.indexOf(SESIONES[i].n.toLowerCase()) >= 0) return SESIONES[i].id;
+      var n = SESIONES[i].n.toLowerCase(), k = x.indexOf(n);
+      while (k >= 0) {
+        var sig = x.charAt(k + n.length);
+        if (!sig || !/[a-z\u00e0-\u00ff]/.test(sig)) {
+          if (!mejor || n.length > mejor.n.length) mejor = SESIONES[i];
+          break;
+        }
+        k = x.indexOf(n, k + 1);
+      }
     }
-    return null;
+    return mejor;
+  }
+
+  function rutinaDeTexto(t) {
+    var s = sesionDeTexto(t);
+    return s ? s.id : null;
   }
 
   function movPorNombre(n) {
@@ -13960,7 +14027,11 @@
       "es que falta pasar a Connect un cambio ya decidido.");
 
     h += '<div class="tarjeta">';
+    /* 19-nov-2026: las rutinas retiradas («hasta») dejan de salir en la lista
+       al pasar su fecha; siguen ahí para las fichas de las semanas en que valían. */
+    var hoyIso = U.hoyISO ? U.hoyISO() : new Date().toISOString().slice(0, 10);
     SESIONES.forEach(function (ses) {
+      if (ses.hasta && hoyIso > ses.hasta) return;
       var faltan = 0;
       ses.mov.forEach(function (m) {
         var mv = movPorNombre(m.n);
@@ -16988,17 +17059,12 @@
        nada: no se adivina por el día de la semana, porque una sesión movida de
        día daría la rutina equivocada con toda la seguridad del mundo. */
     rutinaPrevista: function (nombre) {
-      var t = String(nombre || "").toLowerCase();
-      for (var i = 0; i < SESIONES.length; i++) {
-        if (t.indexOf(SESIONES[i].n.toLowerCase()) >= 0) {
-          var s = SESIONES[i];
-          return { n: s.n, min: s.min, mov: s.mov.map(function (m) {
-            return { n: m.n, s: m.s, r: m.r, kg: m.kg || null, goma: m.goma || null,
-                     nota: m.nota || "" };
-          }) };
-        }
-      }
-      return null;
+      var s = sesionDeTexto(nombre);
+      if (!s) return null;
+      return { n: s.n, min: s.min, mov: s.mov.map(function (m) {
+        return { n: m.n, s: m.s, r: m.r, kg: m.kg || null, goma: m.goma || null,
+                 nota: m.nota || "" };
+      }) };
     },
 
     /* Qué toca hoy según el plan, con lo que costaría. Los días fuera del plan

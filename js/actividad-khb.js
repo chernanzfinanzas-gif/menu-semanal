@@ -595,7 +595,8 @@
     [["elevación lateral","elevacion lateral","elevación frontal","elevacion frontal",
       "elevación con disco","elevacion con disco"], {hombro:1}],
     [["encogimiento"],              {trapecio:1}],
-    [["tríceps","triceps","patada de tríceps","patada de triceps"], {triceps:1}],
+    [["tríceps","triceps","patada de tríceps","patada de triceps",
+      "press francés","press frances","rompecráneos","rompecraneos"], {triceps:1}],
     /* 14-oct-2026: el Pallof se apunta en el reloj como «Abdominales oblicuos con
        goma elástica»; antes caía en la regla de abdominales (80 % abdomen). */
     [["abdominales oblicuos","pallof"], {oblicuo:.7, abdomen:.3}],

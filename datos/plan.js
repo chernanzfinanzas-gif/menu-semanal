@@ -330,7 +330,13 @@
          2-nov abre con la C para que el turno siga sin saltos. */
       fuerzaDesde: { "2026-10-26": { min: 15 },
                      "2026-11-02": { n: 5, min: 15, diaria: true,
-        turno: ["Fuerza C", "Fuerza A", "Fuerza B"] } },
+        turno: ["Fuerza C", "Fuerza A", "Fuerza B"] },
+                     /* 19-nov-2026, Carlos: un grupo por día con 6 series y 2-3 de
+                        pierna o core, SIN DÍAS FIJOS (el orden es sólo sugerencia;
+                        cualquier bloque da por hecha la fuerza del día). Tríceps
+                        el último, para no llegar con el brazo cansado a pecho u hombro. */
+                     "2026-11-23": { n: 5, min: 20, diaria: true,
+        turno: ["Fuerza Pecho", "Fuerza Dorsal", "Fuerza Hombro", "Fuerza Bíceps", "Fuerza Tríceps"] } },
       textos: {
         largo: "Salida larga",
         rodillo: "Bici Z2 en rodillo",

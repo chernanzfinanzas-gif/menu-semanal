@@ -257,7 +257,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v98 · torso intermedio y barbilla</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v99 · paisaje según el mapa en Strava</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -771,7 +771,7 @@ try { if (localStorage.getItem(CLAVE('simulador-liebres-serie')) !== '2') { for 
 const guardarLiebres = () => { try { localStorage.setItem(CLAVE('simulador-liebres'), JSON.stringify(liebres)); } catch(e) {} };
 const fantasmaActivo = () => { try { return localStorage.getItem(CLAVE('simulador-fantasma-activo')) !== '0'; } catch(e) { return true; } };
 const claveRutaDe = (id, sentido) => 'simulador-fantasma-' + id + '|' + sentido;
-const claveRuta = () => ruta.tramos && ruta.tramos.ruta ? claveRutaDe(ruta.tramos.ruta.id, ruta.tramos.sentido) : 'simulador-fantasma-gpx|' + (ruta.nombre || '') + '|' + Math.round(ruta.total || 0);
+const claveRuta = () => ruta.tramos && ruta.tramos.ruta && !ruta.tramos.ruta.strava ? claveRutaDe(ruta.tramos.ruta.id, ruta.tramos.sentido) : 'simulador-fantasma-gpx|' + (ruta.nombre || '') + '|' + Math.round(ruta.total || 0);
 const leerFantasma = clave => { try { return JSON.parse(localStorage.getItem(CLAVE(clave)) || 'null'); } catch(e) { return null; } };
 const hms = s => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(ss).padStart(2, '0'); };
 const pesoCiclista = () => pesoUsuario() || pesoBiciKg || U.pesoKg || 75;
@@ -1209,6 +1209,11 @@ async function elegirStrava(id, alReves){
   if (alReves) { const pts = gpx.match(/<trkpt[^>]*>.*?<\/trkpt>/g) || []; gpx = gpx.replace(/<trkseg>.*<\/trkseg>/, '<trkseg>' + pts.reverse().join('') + '</trkseg>'); }
   gpx = gpx.replace(/<name>.*?<\/name>/, '<name>' + r.nombre.replace(/[<&]/g, '') + ' · ' + fechaStrava(r.fecha).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) + (alReves ? ' (al revés)' : '') + '</name>');
   $('rutaIncluida').value = ''; copiarSentido(); cerrarPantallaRutas(); cargarRuta(gpx);
+  // paisaje según el mapa (19-nov): clasificación cada 10 m sacada de OpenStreetMap, como en las rutas incluidas
+  const MAPA = window.RUTAS_STRAVA_MAPA && RUTAS_STRAVA_MAPA[id];
+  if (MAPA && window.RUTAS_SIM) {
+    ruta.tramos = { ruta: { id: 'strava-' + id, strava: true, nombre: r.nombre, estilo: MAPA.estilo, inverso: 'al revés', tramos: { largo: MAPA.largo, runs: MAPA.runs }, calles: MAPA.calles || [] }, sentido: alReves ? 'al revés' : 'normal' };
+    if ($('escenario3d').querySelector('option[value="real"]')) { $('escenario3d').value = 'real'; try { localStorage.setItem('simulador-escenario', 'real'); } catch(e) {} } }
   $('vistaRuta').value = vistaElegida(); ponerVista();
   setTimeout(() => $('zonaRuta').scrollIntoView({ behavior:'smooth', block:'start' }), 100); }
 function cerrarPantallaRutas(){ $('pantallaRutas').hidden = true; document.body.style.overflow = ''; }
@@ -2347,6 +2352,21 @@ async function decorarReal(esc, D){
       barrio:   [['chalé', 0.75, 8]],
       campo:    [['granja', 0.04, 25], ['chalé', 0.05, 12]],
       descampado: [], otro: [['chalé', 0.03, 12]], roca: [] });
+    const STRAVA = !!(ruta.tramos && ruta.tramos.ruta.strava), DENS = STRAVA ? 0.45 : 1;   // Strava: pocos edificios del catálogo
+    // calles que salen de la ruta (Strava): un trozo de asfalto con el ángulo real y sin edificios encima
+    if (STRAVA && ruta.tramos.ruta.calles.length) {
+      const T = ruta.tramos, L = T.ruta.tramos.largo, rev = T.sentido === T.ruta.inverso, matC = new THREE.MeshLambertMaterial({ color: 0x4b4d50 }), pos = [], idx = [];
+      for (const [dO, ladoO, ang] of T.ruta.calles) {
+        const d = (rev ? L - dO : dO) - (ruta.recorteIni || 0); if (d < 30 || d > via[via.length - 1].d - 30) continue;
+        let lo = 0, hi = via.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (via[m].d < d) lo = m + 1; else hi = m; }
+        const v = via[lo], { tx, tz } = lado(lo), t0x = rev ? -tx : tx, t0z = rev ? -tz : tz, a = ang * Math.PI / 180;
+        const ux = Math.cos(a) * t0x + Math.sin(a) * t0z, uz = Math.cos(a) * t0z - Math.sin(a) * t0x, px = -uz, pz = ux, W = 3.2;
+        const ini = ({ 'carril bici': 1.6, 'paseo': 1.6, 'tierra': 2.0, 'carretera': 3.0, 'puente': 3.0, 'paso inferior': 2.0 }[(tramoEn(d) || {}).sup] || 1.6) - 0.2, base = pos.length / 3;
+        for (let k = 0; k <= 16; k++) { const o = ini + k * 3; for (const s of [-1, 1]) { const x = v.x + ux * o + px * W * s, z = v.z + uz * o + pz * W * s; pos.push(x, hT(x, z) + 0.06, z); }
+          libre(v.x + ux * (o + 2), v.z + uz * (o + 2), 8, 8, 0, true);
+          if (k) { const b = base + (k - 1) * 2; idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3); } } }
+      if (idx.length) { const gc = new THREE.BufferGeometry(); gc.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gc.setIndex(idx); gc.computeVertexNormals();
+        const mc = new THREE.Mesh(gc, matC); mc.material.side = THREE.DoubleSide; mc.receiveShadow = true; esc.add(mc); log('3D: ' + (idx.length / 96 | 0) + ' calles.'); } }
     const cursor = { '-1': 0, '1': 0 };
     for (let i = 0; i < via.length; i += 2) {
       const v = via[i], { tx, tz } = lado(i);
@@ -2355,18 +2375,18 @@ async function decorarReal(esc, D){
         const nx = tz * s, nz = -tx * s;                 // s=1: izquierda en el sentido de la marcha
         const amb = ambienteEn(v.x + nx * 40, v.z + nz * 40), menu = MENU[amb]; if (!menu) { cursor[s] = v.d + 20; continue; }
         let r = Math.random(), op = null; for (const o of menu) { if (r < o[1]) { op = o; break; } r -= o[1]; }
-        if (!op || !porTipo[op[0]] || Math.random() > calidad().edif) { cursor[s] = v.d + 15 + Math.random() * 25; continue; }
+        if (!op || !porTipo[op[0]] || Math.random() > calidad().edif * DENS) { cursor[s] = v.d + 15 + Math.random() * 25; continue; }
         const k = elige(porTipo[op[0]]), M = await modeloEdificio(k), off = op[2] + M.fondo / 2 + Math.random() * 6;
         const ok = await poner(k, v.x + nx * off, v.z + nz * off, -nx, -nz, op[2] - 2);
         cursor[s] = v.d + (ok ? M.ancho + 4 + Math.random() * 12 : 12);
         // segunda fila en barrio: bloques detrás
-        if (ok && amb === 'barrio' && porTipo.bloques && Math.random() < 0.5) { const k2 = elige(porTipo.bloques), M2 = await modeloEdificio(k2), off2 = off + M.fondo / 2 + 12 + M2.fondo / 2; await poner(k2, v.x + nx * off2, v.z + nz * off2, -nx, -nz, 30); }
+        if (ok && amb === 'barrio' && porTipo.bloques && !STRAVA && Math.random() < 0.5) { const k2 = elige(porTipo.bloques), M2 = await modeloEdificio(k2), off2 = off + M.fondo / 2 + 12 + M2.fondo / 2; await poner(k2, v.x + nx * off2, v.z + nz * off2, -nx, -nz, 30); }
       }
     }
     // la ciudad de dentro del anillo: bloques, oficinas y rascacielos rellenando hacia el horizonte
     const dentro = (x, z) => { let c = false; for (let i = 0, j = via.length - 1; i < via.length; j = i, i += 4) { const a = via[i], b = via[j]; if (((a.z > z) !== (b.z > z)) && (x < (b.x - a.x) * (z - a.z) / (b.z - a.z) + a.x)) c = !c; } return c; };
     const cerrada = Math.hypot(via[0].x - via[via.length - 1].x, via[0].z - via[via.length - 1].z) < 300;
-    if (cerrada) { const xs = via.map(v => v.x), zs = via.map(v => v.z), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+    if (cerrada && !STRAVA) { const xs = via.map(v => v.x), zs = via.map(v => v.z), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
       const urb = [...(porTipo.bloques || []), ...(porTipo.bloques || []), ...(porTipo['tienda/oficina'] || []), ...(porTipo.rascacielos || [])];
       for (let t = 0, n = 0; t < 3000 && n < 700 * calidad().edif; t++) { const x = x0 + Math.random() * (x1 - x0), z = z0 + Math.random() * (z1 - z0);
         if (!dentro(x, z) || cercana(x, z).d < 220) continue; const a = Math.random() * 6.28;
