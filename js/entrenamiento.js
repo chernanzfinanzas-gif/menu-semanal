@@ -70,8 +70,12 @@
        entrenar con la bici desde el ordenador»). No pinta nada aquí: abre
        simulador/ en una pestaña propia, porque el Bluetooth de la bici, el
        pulsómetro y los Zwift Play necesitan la página entera para él. */
-    { id: "simulador", nombre: "Simulador de rodillo", img: "iconos/khb/11-montana.webp", soloPC: true, abre: "simulador/",
-      pie: "Puertos y rutas en 3D con la Kickr: rivales, tramos cronometrados y resumen de cada salida.", listo: true }
+    /* 19-nov, v682: también en móvil y tablet. Allí el simulador va en MODO
+       LIGERO (sin el 3D de 64 MB: mapa, perfil, datos, rivales y tramos) y el
+       3D enseña un vídeo de demostración. Carlos: «para salir de un apuro». */
+    { id: "simulador", nombre: "Simulador de rodillo", img: "iconos/khb/11-montana.webp", abre: "simulador/",
+      pie: enOrdenador() ? "Puertos y rutas en 3D con la Kickr: rivales, tramos cronometrados y resumen de cada salida."
+                         : "Rueda con la Kickr desde aquí: mapa, perfil, rivales y tramos (el 3D, en el ordenador).", listo: true }
   ];
   /* «solo en el ordenador»: ratón y pantalla ancha. En el móvil la tarjeta no sale. */
   function enOrdenador() {
