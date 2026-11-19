@@ -172,6 +172,10 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #formLiebre { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; font-size:14px; }
   #formLiebre input[type=number] { width:62px; } #formLiebre #lNombre { width:120px; }
   #pantallaRutas .mejor { color:#d2a8ff; font-size:13px; }
+  #clasifPanel { position:fixed; left:12px; top:200px; bottom:34px; z-index:1004; background:rgba(13,17,23,.92); border:1px solid #30363d; border-radius:10px; padding:8px 10px; color:#e6edf3; font-size:14px; max-height:calc(100vh - 260px); overflow:auto; font-variant-numeric:tabular-nums; }
+  #clasifPanel .cab { display:flex; gap:8px; align-items:center; font-weight:bold; margin-bottom:4px; } #clasifPanel .cab small { font-weight:normal; color:#aab2bd; flex:1; }
+  #clasifPanel table { border-collapse:collapse; } #clasifPanel td, #clasifPanel th { padding:2px 8px; text-align:left; } #clasifPanel th { color:#aab2bd; font-weight:normal; }
+  #clasifPanel tr.yo td { color:#ffd33d; font-weight:bold; }
   #rivales3d { position:fixed; left:12px; bottom:34px; z-index:1002; display:none; flex-direction:column; gap:6px; }
   #rivales3d .r, #rivalesFila .r { background:rgba(13,17,23,.85); border-left:5px solid var(--c); border-radius:8px; padding:5px 10px; color:#fff; font-size:15px; font-variant-numeric:tabular-nums; }
   #rivales3d .r b, #rivalesFila .r b { font-size:18px; } #rivales3d .r small, #rivalesFila .r small { color:#aab2bd; }
@@ -257,7 +261,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v99 · paisaje según el mapa en Strava</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v101 · grupeta, clasificaciones y reacción a tus ataques</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -361,7 +365,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
       <div class="sub" id="lAviso"></div></div></div>
   <div id="listaRutas"></div>
 </div>
-<div id="panel3d"><canvas id="vista3d"></canvas><div id="estado3d"></div><div id="credito3d"></div><div id="aviso3d"></div><div id="rivales3d"></div><div id="colDer3d"><div id="cercaBox"><div class="t" id="cercaTit">Próximo km</div><canvas id="perfilCerca" width="680" height="150"></canvas></div><div id="medias3d"></div></div><div id="tramo3d"></div></div>
+<div id="panel3d"><canvas id="vista3d"></canvas><div id="estado3d"></div><div id="credito3d"></div><div id="aviso3d"></div><div id="rivales3d"></div><div id="clasifPanel" hidden></div><div id="colDer3d"><div id="cercaBox"><div class="t" id="cercaTit">Próximo km</div><canvas id="perfilCerca" width="680" height="150"></canvas></div><div id="medias3d"></div></div><div id="tramo3d"></div></div>
 <div class="panel" id="panelMapa">
   <div class="barra" style="margin:0 0 8px">
     <b style="font-size:14px">Mapa</b>
@@ -384,6 +388,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     <select id="calidad3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Calidad"><option value="alta">Calidad: alta</option><option value="media" selected>Calidad: media</option><option value="baja">Calidad: baja</option></select>
     <select id="hora3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Hora"><option value="ahora">Hora: ahora</option><option value="7">Hora: 7:00</option><option value="8">Hora: 8:00</option><option value="9">Hora: 9:00</option><option value="10">Hora: 10:00</option><option value="12">Hora: 12:00</option><option value="14">Hora: 14:00</option><option value="16">Hora: 16:00</option><option value="17">Hora: 17:00</option><option value="18">Hora: 18:00</option><option value="19">Hora: 19:00</option><option value="20">Hora: 20:00</option><option value="22">Hora: 22:00</option></select>
     <button id="b3Empezar">▶ Empezar</button>
+    <button class="sec" id="b3Clasif" onclick="alternarClasif()" title="Clasificación de la carrera: puesto, diferencias, montaña y regularidad">🏁 Clasificación</button>
     <button class="sec" id="b3Grabar" title="Graba el 3D con velocidad, tiempo y kilómetro; al parar se descarga el vídeo">⏺ Grabar</button>
     <button class="sec" id="b3Tester" title="Recorre la ruta solo, sin bici, para ver el paisaje">▶ Recorrer</button>
     <input type="range" id="kmTester" min="0" max="100" step="0.1" value="0" style="width:180px;vertical-align:middle" title="Saltar a un kilómetro"><b id="kmTesterTxt" style="font-size:13px"></b>
@@ -786,6 +791,91 @@ function calibrarLiebre(l, d0){
   const kg = pesoCiclista(), obj = l.media * kg; let lo = l.min * kg - 300, hi = l.max * kg + 300, r = null;
   for (let i = 0; i < 18; i++) { l.base = (lo + hi) / 2; r = simularLiebre(l, d0); if (r.media < obj) lo = l.base; else hi = l.base; }
   l.tPrevisto = r.t; l.mediaReal = r.media / kg; }
+// ===================== rebufo, pelotón y carrera con bots (19-nov) =====================
+// Rebufo: a rueda de alguien hace falta menos aire; con 3 o más delante (pelotón), más aún. Se apaga entre el 1 % y el 2 % de pendiente (regla de Carlos).
+const REBUFO = { rueda: 0.35, peloton: 0.45 };
+const rebufoPend = g => g <= 1 ? 1 : g >= 2 ? 0 : 2 - g;
+function rebufoEn(d, delanteros){ let f = 0, n = 0;
+  for (const x of delanteros) { const gap = x - d; if (gap <= 0.3 || gap > 12) continue; n++; f = Math.max(f, gap <= 2 ? 1 : 1 - (gap - 2) / 10); }
+  return f ? (n >= 3 ? REBUFO.peloton : REBUFO.rueda) * f * rebufoPend(pendAplicada(d)) : 0; }
+// Carrera: bots alrededor de un nivel en w/kg, con carácter, reserva de fuerzas (W') y la costumbre de ir a rueda
+const NOMBRES_BOT = ['Toño', 'Marta', 'Iker', 'Lucía', 'Nacho', 'Bea', 'Rubén', 'Elena', 'Javi', 'Nuria', 'Dani', 'Inés', 'Paco', 'Sara', 'Óscar', 'Carmen', 'Raúl', 'Alba', 'Sergio', 'Lola'];
+const COLORES_BOT = ['#e5534b', '#57ab5a', '#539bf5', '#c69026', '#b083f0', '#39c5cf', '#e0823d', '#d65c9c', '#8ddb8c', '#f69d50', '#6cb6ff', '#dcbdfb', '#96d0ff', '#ff938a', '#7ee787', '#ffa198', '#a5d6ff', '#d2a8ff', '#ffdf5d', '#79c0ff'];
+const PERFILES_BOT = { rodador: '🚂', escalador: '⛰', sprinter: '⚡' };
+function carreraConf(){ let c = null; try { c = JSON.parse(localStorage.getItem(CLAVE('simulador-carrera')) || 'null'); } catch(e) {}
+  const kg = pesoCiclista(), nivel = Math.round(FTP() / kg * 10) / 10;
+  return Object.assign({ activa: false, n: 12, nivel: nivel || 2.2, tipo: 'carrera', ritmo: 1.8 }, c || {}); }
+function guardarCarrera(c){ try { localStorage.setItem(CLAVE('simulador-carrera'), JSON.stringify(c)); } catch(e) {} }
+function crearBots(){ const c = carreraConf(); if (!c.activa) return [];
+  const kg = pesoCiclista(), azar = mulberry(Date.now() & 0xffffffff), bots = [], perfiles = ['rodador', 'escalador', 'sprinter'];
+  const grupeta = c.tipo === 'grupeta';
+  for (let i = 0; i < c.n; i++) { const perfil = grupeta ? 'rodador' : perfiles[i % 3], f = grupeta ? 1 : 0.92 + 0.16 * (i + azar()) / c.n, ftp = grupeta ? c.ritmo * kg / 0.75 : c.nivel * f * kg;
+    bots.push({ tipo: 'bot', nombre: NOMBRES_BOT[i % NOMBRES_BOT.length], color: COLORES_BOT[i % COLORES_BOT.length], perfil, ftp, forma: 0.96 + 0.08 * azar(),
+      wpMax: perfil === 'rodador' ? 11000 : 15000, wp: 0, ataque: 0, d: 0, v: 0, w: 0, grupeta, mont: 0, regu: 0, sub: grupeta ? 'grupeta a ' + String(c.ritmo).replace('.', ',') + ' w/kg' : PERFILES_BOT[perfil] + ' ' + perfil + ' · ' + (ftp / kg).toFixed(1).replace('.', ',') + ' w/kg' }); }
+  return bots; }
+function mulberry(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function moverBot(b, dt, todos){
+  if (b.d >= ruta.total) return;
+  const g = pendAplicada(b.d), F = b.ftp * (b.grupeta ? 1 : b.forma), resta = ruta.total - b.d;
+  let obj = g > 2 ? F * (b.perfil === 'escalador' ? 0.98 : 0.9) : g < -2 ? F * 0.45 : F * (b.perfil === 'rodador' ? 0.8 : 0.75);
+  // escapada: en un grupo pequeño con hueco por detrás, ritmo alto y relevos (el de cabeza tira y se aparta)
+  if (b.escapado) { obj = Math.max(obj, F * 0.9); if (b.enCabeza) { b.turno = (b.turno || 0) + dt; if (b.turno > 35 && !b.aparta) { b.aparta = 8; b.turno = 0; } } else b.turno = 0; }
+  if (b.aparta > 0) { b.aparta -= dt; obj = F * 0.6; }
+  // sale a tu rueda si atacas
+  if (b.persigue > 0) { b.persigue -= dt; if (ruta.dist - b.d > 2.5) obj = Math.max(obj, F * 1.25); }
+  if (b.ataque > 0) { b.ataque -= dt; obj = F * (b.perfil === 'sprinter' ? 1.3 : 1.2); }
+  else if (b.wp > 0.7 * b.wpMax && resta > 1500 && Math.random() < dt / (g > 3 && b.perfil === 'escalador' ? 260 : g > 3 ? 900 : 2400)) {
+    b.ataque = 25 + Math.random() * 30; if (Math.abs(b.d - ruta.dist) < 300 && sesion.tTotal > 30) avisar('⚡ ' + b.nombre + ' ataca.'); }
+  // cabeza de grupo con alguien escapado delante (30–300 m): tira para cazarle mientras le quede reserva
+  if (!(b.ataque > 0) && b.wp > 0.5 * b.wpMax && !b.cerca.some(o => o.d - b.d > 0.3 && o.d - b.d < 3)) {
+    let esc = null; for (const o of b.lejanos || []) if (o.d - b.d >= 30 && o.d - b.d < 300) { esc = o; break; }
+    if (esc) obj = Math.max(obj, F * (g > 2 ? 1.0 : 0.92)); }
+  if (resta < 1000) obj = Math.max(obj, F * 1.05); if (resta < 300) obj = F * (b.perfil === 'sprinter' ? 1.7 : 1.3);
+  if (b.wp <= 0) obj = Math.min(obj, F * 0.85);
+  const reb = rebufoEn(b.d, todos); let v = velocidadFisica(obj, g, reb), w = obj;
+  // a rueda: con alguien a menos de 3 m va a su velocidad (sin pasarle, salvo ataque o sprint) mientras los vatios le lleguen;
+  // con un hueco de menos de 30 m aprieta para cerrarlo si le queda reserva
+  if (resta > 1000 || !(b.ataque > 0)) { let pegado = null, hueco = null;
+    const solo = velocidadFisica(obj, g, 0);   // a rueda solo si el de delante lleva al menos su ritmo; si va más lento, le pasa y tira él
+    for (const o of b.cerca) { const gap = o.d - b.d; if (gap > 0.3 && gap < 3 && !(o.aparta > 0) && o.tipo !== 'liebre' && (o.v || 0) >= solo * 0.97 && (!pegado || o.d < pegado.d)) pegado = o; }
+    if (!pegado) for (const o of b.cercaLejos) { const gap = o.d - b.d; if (gap >= 3 && gap < 30 && o.tipo !== 'liebre' && (!hueco || o.d < hueco.d)) hueco = o; }
+    const tope = b.wp > 0.15 * b.wpMax ? F * 1.15 : F * 0.95;
+    if (pegado && pegado.v > 0 && !(b.ataque > 0)) { const wr = potenciaPara(pegado.v, g, reb);
+      if (wr <= tope) { v = pegado.v; w = wr; } else { w = tope; v = velocidadFisica(w, g, reb); } }
+    else if (hueco && hueco.v > 0 && !(b.ataque > 0) && v <= hueco.v * 1.04 && b.wp > 0.3 * b.wpMax) { w = Math.max(w, Math.min(tope, potenciaPara(hueco.v * 1.06, g, reb))); v = velocidadFisica(w, g, reb); } }
+  b.wp = w > F ? b.wp - (w - F) * dt : Math.min(b.wpMax, b.wp + (F - w) * dt * 0.4);
+  b.w = w; b.v = v; b.d = Math.min(ruta.total, b.d + v * dt);
+  if (b.d >= ruta.total && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal;
+    const ant = rivales.lista.filter(r => r.tipo === 'bot' && r.llego).length + (ruta.dist >= ruta.total ? 1 : 0);
+    if (ant === 1) avisar('🏁 ' + b.nombre + ' gana la carrera en ' + hms(b.tLlegada) + '.'); } }
+// Clasificaciones: puertos (las subidas detectadas), metas volantes a 1/3 y 2/3, y meta (cuenta para la regularidad)
+const carrera = { metas: [], yoPrev: 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0, tPanel: 0 };
+function prepararCarrera(){ Object.assign(carrera, { grupeta: null, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
+  const bots = rivales.lista.filter(r => r.tipo === 'bot'); if (!bots.length || bots[0].grupeta) return;
+  const T = ruta.total;
+  for (const t of (tramos.lista || []).filter(t => t.tipo === 'subida')) carrera.metas.push({ d: t.b, tipo: 'puerto', nombre: t.nombre.replace(/ \(km.*$/, ''), pts: /^Repecho/.test(t.nombre) ? [3, 2, 1] : [5, 3, 2, 1], pasados: [] });
+  if (T > 8000) for (const fr of [1 / 3, 2 / 3]) { let d = Math.round(T * fr / 100) * 100; if (carrera.metas.some(m => Math.abs(m.d - d) < 600)) d += 700;
+    carrera.metas.push({ d, tipo: 'sprint', nombre: 'Meta volante km ' + (d / 1000).toFixed(1).replace('.', ','), pts: [6, 4, 2, 1], pasados: [] }); }
+  carrera.metas.push({ d: T, tipo: 'meta', nombre: 'Meta', pts: [10, 7, 5, 3, 2, 1], pasados: [] });
+  carrera.metas.sort((a, b) => a.d - b.d); }
+function cruzarMetas(quien, d0, d1){
+  for (const m of carrera.metas) if (d0 < m.d && d1 >= m.d && !m.pasados.includes(quien)) { m.pasados.push(quien); const k = m.pasados.length - 1, p = m.pts[k] || 0, yo = quien === 'yo';
+    if (p) { if (m.tipo === 'puerto') { if (yo) carrera.montYo += p; else quien.mont += p; } else { if (yo) carrera.reguYo += p; else quien.regu += p; } }
+    if (yo && m.tipo !== 'meta') avisar((m.tipo === 'puerto' ? '⛰ ' : '⚡ ') + m.nombre + ': pasas ' + (k + 1) + 'º' + (p ? ' · +' + p + ' puntos' : '') + '.');
+    else if (!yo && k === 0 && m.tipo !== 'meta' && Math.abs(quien.d - ruta.dist) < 2000) avisar((m.tipo === 'puerto' ? '⛰ ' : '⚡ ') + quien.nombre + ' pasa 1º por ' + m.nombre + '.'); } }
+const apuntarPasos = (arr, d0, d1) => { for (let k = Math.floor(d0 / 100) + 1; k <= Math.floor(d1 / 100); k++) arr[k] = sesion.tTotal; };
+function difTiempo(x, lider){ if (x === lider) return 0; if (x.llego && lider.llego) return x.tLlegada - lider.tLlegada;
+  const k = Math.floor(x.d / 100); return lider.pasos[k] != null && x.pasos[k] != null ? x.pasos[k] - lider.pasos[k] + (sesion.tTotal - x.pasos[k]) : null; }
+function pintarClasif(forzar){ const P = $('clasifPanel'); if (!P || P.hidden) return; if (!forzar && Date.now() - carrera.tPanel < 1000) return; carrera.tPanel = Date.now();
+  const C = clasificacion(), lid = C[0], sig = carrera.metas.find(m => m.d > ruta.dist), f1 = x => x.toFixed(1).replace('.', ',');
+  const grupeta = rivales.lista.some(r => r.tipo === 'bot' && r.grupeta);
+  P.innerHTML = '<div class="cab">🏁 ' + (grupeta ? 'Grupeta' : 'Clasificación') + ' <small>' + (sig && !grupeta ? 'próximo: ' + (sig.tipo === 'puerto' ? '⛰ ' : sig.tipo === 'sprint' ? '⚡ ' : '🏁 ') + sig.nombre + ' a ' + f1((sig.d - ruta.dist) / 1000) + ' km' : '') + '</small><button class="mini" onclick="alternarClasif()">✕</button></div>'
+    + '<table><tr><th></th><th>Corredor</th><th>Dif.</th>' + (grupeta ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => { const dt = difTiempo(x, lid);
+      return '<tr' + (x.yo ? ' class="yo"' : '') + '><td>' + (i + 1) + '</td><td>' + (x.yo ? 'Tú' : '<span style="color:' + x.color + '">●</span> ' + x.nombre) + (x.llego ? ' 🏁' : '') + '</td><td>' + (i === 0 ? '—' : dt != null ? '+' + hms(Math.max(0, dt)) : '+' + Math.round(lid.d - x.d) + ' m') + '</td>'
+        + (grupeta ? '' : '<td>' + (x.mont || '') + '</td><td>' + (x.regu || '') + '</td>') + '</tr>'; }).join('') + '</table>'; }
+function alternarClasif(){ const P = $('clasifPanel'); if (P.parentNode !== document.body) document.body.appendChild(P); P.hidden = !P.hidden; pintarClasif(true); pintarRivales(); }
+function clasificacion(){ const yo = { yo: true, nombre: 'Tú', d: ruta.dist, llego: ruta.dist >= ruta.total, tLlegada: sesion.tLlegada, pasos: carrera.pasosYo, mont: carrera.montYo, regu: carrera.reguYo };
+  return [yo, ...rivales.lista.filter(r => r.tipo === 'bot')].sort((a, b) => (a.llego && b.llego) ? a.tLlegada - b.tLlegada : a.llego ? -1 : b.llego ? 1 : b.d - a.d); }
 const rivales = { lista: [] };
 function prepararRivales(){
   if (mapa.rivales) mapa.rivales.forEach(m => mapa.m && mapa.m.removeLayer(m)); mapa.rivales = [];
@@ -799,17 +889,46 @@ function prepararRivales(){
   for (const l of liebres.filter(x => x.activa)) { const c = Object.assign({}, l); calibrarLiebre(c, ruta.dist || 0);
     rivales.lista.push({ tipo:'liebre', nombre:l.nombre, color:l.color, l:c, d: ruta.dist || 0, w:0,
       sub: String(l.media).replace('.', ',') + ' w/kg (' + String(l.min).replace('.', ',') + '–' + String(l.max).replace('.', ',') + ') · llegaría en ' + hms(c.tPrevisto) }); }
-  for (const r of rivales.lista) { r.d = ruta.dist || 0; r.off = ruta.dist || 0; r.delante = null; r.corto = r.tipo === 'fantasma' ? '👻 ' + (r.datos.completa ? 'Mejor' : 'Última') : '🐇 ' + r.nombre.replace(/^liebre\s*/i, '');
-    if (mapa.m && typeof L !== 'undefined') { const p = puntoEn(r.d); r.mk = L.circleMarker([p.lat, p.lon], { radius:7, color:'#0d1117', weight:2, fillColor:r.color, fillOpacity: r.tipo === 'fantasma' ? 0.6 : 1 }).bindTooltip(r.corto, { permanent:true, direction:'right', offset:[8, 0], className:'etRival' }).addTo(mapa.m); r.mk.getTooltip().getElement && setTimeout(() => { const e = r.mk.getTooltip() && r.mk.getTooltip().getElement(); if (e) e.style.setProperty('--c', r.color); }, 0); mapa.rivales.push(r.mk); } }
-  prepararTramos(); pintarRivales(); if (typeof dibujar === 'function') dibujar();
+  rivales.lista.push(...crearBots());
+  for (const r of rivales.lista) { r.d = ruta.dist || 0; r.off = ruta.dist || 0; r.delante = null; r.corto = r.tipo === 'bot' ? r.nombre : r.tipo === 'fantasma' ? '👻 ' + (r.datos.completa ? 'Mejor' : 'Última') : '🐇 ' + r.nombre.replace(/^liebre\s*/i, '');
+    if (mapa.m && typeof L !== 'undefined') { const p = puntoEn(r.d); r.mk = L.circleMarker([p.lat, p.lon], { radius:7, color:'#0d1117', weight:2, fillColor:r.color, fillOpacity: r.tipo === 'fantasma' ? 0.6 : 1 }).bindTooltip(r.corto, { permanent: r.tipo !== 'bot', direction:'right', offset:[8, 0], className:'etRival' }).addTo(mapa.m); r.mk.getTooltip().getElement && setTimeout(() => { const e = r.mk.getTooltip() && r.mk.getTooltip().getElement(); if (e) e.style.setProperty('--c', r.color); }, 0); mapa.rivales.push(r.mk); } }
+  prepararTramos(); prepararCarrera(); pintarRivales(); if (typeof dibujar === 'function') dibujar();
 }
-function arrancarRivales(){ for (const r of rivales.lista) { r.off = ruta.dist; if (r.tipo === 'liebre') r.d = ruta.dist; } }
+function arrancarRivales(){ sesion.tLlegada = null; for (const r of rivales.lista) { r.off = ruta.dist; if (r.tipo === 'liebre' || r.tipo === 'bot') { r.d = ruta.dist - (r.tipo === 'bot' ? 1 + Math.random() * 6 : 0); r.llego = false; } if (r.tipo === 'bot') { r.wp = r.wpMax; r.ataque = 0; r.v = 0; r.pasos = []; r.mont = 0; r.regu = 0; r.persigue = 0; r.aparta = 0; } } prepararCarrera(); }
 function moverRivales(dt){
-  if (!rivales.lista.length) return;
+  if (!rivales.lista.length) { vivo.rebufo = 0; return; }
+  if (ruta.dist >= ruta.total && !sesion.tLlegada) sesion.tLlegada = sesion.tTotal;
+  const bots = rivales.lista.filter(r => r.tipo === 'bot'), vYo = velocidadRuta(), yo = { d: ruta.dist, v: vYo };
+  if (bots.length) { const grupeta = bots[0].grupeta;
+    // grupos (huecos de más de 20 m) → escapadas y quién va en cabeza
+    const orden = [{ d: ruta.dist, yo: true }, ...bots.filter(b => !b.llego)].sort((a, b) => b.d - a.d), grupos = [];
+    for (const x of orden) { const g = grupos[grupos.length - 1]; if (g && g[g.length - 1].d - x.d <= 20) g.push(x); else grupos.push([x]); }
+    grupos.forEach((g, i) => { const tras = grupos[i + 1], esc = !grupeta && tras && g.length <= 6 && tras.length >= g.length + 2 && g[g.length - 1].d - tras[0].d >= 40;
+      g.forEach((x, j) => { if (!x.yo) { x.escapado = esc; x.enCabeza = j === 0 || (j === 1 && g[0].yo); } }); });
+    // tu ataque: más del 120 % de tu FTP 5 s seguidos con bots cerca → algunos salen a tu rueda
+    if (!grupeta) { carrera.fuerte = vivo.w > 1.2 * FTP() ? carrera.fuerte + dt : 0; carrera.cd -= dt;
+      if (carrera.fuerte >= 5 && carrera.cd <= 0 && bots.some(b => Math.abs(b.d - ruta.dist) < 30)) { carrera.cd = 60; const g = pendAplicada(ruta.dist), sal = [];
+        for (const b of bots) { const gap = ruta.dist - b.d; if (gap < -5 || gap > 40 || b.wp < 0.4 * b.wpMax || b.llego) continue;
+          const pr = g > 2 ? (b.perfil === 'escalador' ? 0.6 : 0.25) : (b.perfil === 'rodador' ? 0.45 : b.perfil === 'sprinter' ? 0.35 : 0.2);
+          if (Math.random() < pr) { b.persigue = 45; sal.push(b.nombre); } }
+        avisar('⚡ Atacas: ' + (sal.length ? sal.join(', ') + (sal.length > 1 ? ' salen' : ' sale') + ' a tu rueda.' : 'nadie te sigue.')); } }
+    for (const b of bots) b.d0 = b.d; }
+  if (bots.length && bots[0].grupeta) {   // grupeta: un solo grupo a ritmo fijo, de dos en dos; si te quedas atrás, afloja y te espera
+    const G = carrera.grupeta || (carrera.grupeta = { d: bots[0].d }), F = bots[0].ftp, g = pendAplicada(G.d);
+    let P = F * 0.75 * (g > 2 ? 1.12 : g < -2 ? 0.55 : 1); if (G.d - ruta.dist > 12 && sesion.tTotal > 20) P = F * 0.5;
+    G.v = velocidadFisica(P, g, 0); G.d = Math.min(ruta.total + 30, G.d + G.v * dt);
+    bots.forEach((b, i) => { b.d = Math.min(ruta.total, G.d - Math.floor(i / 2) * 1.6 - (i % 2) * 0.3); b.v = G.v; b.w = potenciaPara(G.v, g, i < 2 ? 0 : REBUFO.peloton);
+      if (b.d >= ruta.total && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal; } }); }
+  else if (bots.length) { const todos = [yo, ...rivales.lista.filter(r => r.tipo !== 'fantasma')];
+    for (const b of bots) { b.lejanos = todos.filter(o => o !== b && o.d - b.d >= 30 && o.d - b.d < 300); b.cercaLejos = todos.filter(o => o !== b && o.d - b.d > -15 && o.d - b.d < 30); b.cerca = b.cercaLejos.filter(o => Math.abs(o.d - b.d) < 15); moverBot(b, dt, b.cerca.map(o => o.d)); } }
+  vivo.rebufo = sesion.corriendo ? rebufoEn(ruta.dist, rivales.lista.filter(r => r.tipo !== 'fantasma' && !r.llego).map(r => r.d)) : 0;
+  if (bots.length && sesion.corriendo) { apuntarPasos(carrera.pasosYo, carrera.yoPrev, ruta.dist); cruzarMetas('yo', carrera.yoPrev, ruta.dist); carrera.yoPrev = ruta.dist;
+    for (const b of bots) { apuntarPasos(b.pasos, b.d0, b.d); cruzarMetas(b, b.d0, b.d); } pintarClasif(); }
   for (const r of rivales.lista) {
+    if (r.tipo === 'bot') { if (r.mk) { const p = puntoEn(r.d); r.mk.setLatLng([p.lat, p.lon]); } continue; }
     if (r.tipo === 'fantasma') { const a = r.datos.d, x = sesion.tTotal / r.datos.paso, i = Math.floor(x);
       r.d = Math.min(ruta.total, r.off + (i >= a.length - 1 ? a[a.length - 1] : a[i] + (a[i + 1] - a[i]) * (x - i))); }
-    else if (r.d < ruta.total) { const g = pendAplicada(r.d); r.w = potLiebre(r.l, g); r.d = Math.min(ruta.total, r.d + velocidadFisica(r.w, g) * dt);
+    else if (r.d < ruta.total) { const g = pendAplicada(r.d); r.w = potLiebre(r.l, g); r.v = velocidadFisica(r.w, g); r.d = Math.min(ruta.total, r.d + r.v * dt);
       if (r.d >= ruta.total && !r.llego) { r.llego = true; avisar(r.nombre + ' ha llegado en ' + hms(sesion.tTotal) + '.'); } }
     const delante = r.d > ruta.dist; if (r.delante !== null && delante !== r.delante && sesion.tTotal > 5) avisar(delante ? r.nombre + ' te ha pasado.' : 'Has pasado a ' + r.nombre + '.');
     r.delante = delante;
@@ -817,11 +936,21 @@ function moverRivales(dt){
   pintarRivales(); }
 function pintarRivales(){
   const v = Math.max(2, velocidadRuta() || 6);
-  const html = rivales.lista.map(r => { const dif = r.d - ruta.dist, m = Math.round(Math.abs(dif));
+  const enCarrera = rivales.lista.some(r => r.tipo === 'bot'), corriendo = sesion.corriendo || sesion.tTotal;
+  let cab = '', lista = rivales.lista;
+  if (enCarrera && corriendo) { const C = clasificacion(), pos = C.findIndex(x => x.yo) + 1, bots = rivales.lista.filter(r => r.tipo === 'bot');
+    const grupo = bots.filter(b => Math.abs(b.d - ruta.dist) < 15).length;
+    cab = '<div class="r" style="--c:#ffd33d;cursor:pointer;pointer-events:auto" onclick="alternarClasif()" title="Ver la clasificación">🏁 <b>' + pos + 'º</b> de ' + C.length + (grupo ? ' · en grupo con ' + grupo : ' · solo') + (vivo.rebufo > 0.02 ? ' · 🌀 a rueda −' + Math.round(vivo.rebufo * 100) + ' % de aire' : '') + '</div>';
+    const cerca = bots.slice().sort((a, b) => Math.abs(a.d - ruta.dist) - Math.abs(b.d - ruta.dist)).slice(0, 4), lider = C[0].yo ? null : C[0];
+    lista = [...rivales.lista.filter(r => r.tipo !== 'bot'), ...(lider && !cerca.includes(lider) ? [lider] : []), ...cerca].sort((a, b) => b.d - a.d); }
+  else if (vivo.rebufo > 0.02 && corriendo) cab = '<div class="r" style="--c:#ffd33d">🌀 a rueda −' + Math.round(vivo.rebufo * 100) + ' % de aire</div>';
+  if (enCarrera && !corriendo) lista = rivales.lista.filter(r => r.tipo !== 'bot');
+  const html = cab + (enCarrera && !corriendo ? '<div class="r" style="--c:#ffd33d">🏁 Carrera con ' + rivales.lista.filter(r => r.tipo === 'bot').length + ' bots · <small>salís todos juntos</small></div>' : '') + lista.map(r => { const dif = r.d - ruta.dist, m = Math.round(Math.abs(dif));
     const txt = !sesion.corriendo && !sesion.tTotal ? '<small>' + r.sub + '</small>' : (m < 3 ? '<b>a tu lado</b>' : '<b>' + (m >= 1000 ? (m / 1000).toFixed(2).replace('.', ',') + ' km' : m + ' m') + '</b> ' + (dif > 0 ? 'delante' : 'detrás') + ' <small>≈ ' + hms(m / v) + (r.tipo === 'liebre' && r.w ? ' · ' + Math.round(r.w) + ' W' : '') + '</small>');
-    return '<div class="r" style="--c:' + r.color + '">' + r.nombre + ' · ' + txt + '</div>'; }).join('');
+    return '<div class="r" style="--c:' + r.color + '">' + (r.tipo === 'bot' ? PERFILES_BOT[r.perfil] + ' ' + (r.llego ? '🏁 ' : '') : '') + r.nombre + ' · ' + txt + '</div>'; }).join('');
   const a = $('rivales3d'), b = $('rivalesFila');
-  if (a) { a.innerHTML = html; a.style.display = html && typeof v3 !== 'undefined' && v3.activo ? 'flex' : 'none'; }
+  const abierta = $('clasifPanel') && !$('clasifPanel').hidden;
+  if (a) { a.innerHTML = html; a.style.display = html && !abierta && typeof v3 !== 'undefined' && v3.activo ? 'flex' : 'none'; }
   if (b) { b.innerHTML = html; b.style.display = html && !(typeof v3 !== 'undefined' && v3.activo) ? 'flex' : 'none'; } }
 // rivales en el 3D: ciclistas con el color del rival (el fantasma, translúcido) y su nombre encima
 function cartelNombre(txt, color){ const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
@@ -837,8 +966,9 @@ function moverRivales3D(dt, dYo){
       r.g.add(cartelNombre(r.nombre, r.color)); v3.escena.add(r.g); r.esc = v3.escena; r.dVis = r.d; }
     r.dVis += (r.d - r.dVis) * Math.min(1, dt * 2.5);
     const lejos = Math.abs(r.dVis - dYo); r.g.visible = lejos < 700 && r.dVis > 2; if (!r.g.visible) return;
-    colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), (v3.latYo ?? 0.5) - 1.0 - 0.8 * k, 1, 0.18);
-    const u = r.g.userData, vel = r.tipo === 'liebre' && sesion.corriendo && !sesion.pausa ? velocidadFisica(r.w || 100, pendAplicada(r.d)) : (sesion.corriendo && !sesion.pausa ? 7 : 0);
+    const lat = r.tipo === 'bot' ? (v3.latYo ?? 0.5) + (r.grupeta ? (k % 2 ? 0.45 : -0.45) : ((k * 7) % 5 - 2) * 0.62) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
+    colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), lat, 1, 0.18);
+    const u = r.g.userData, vel = (r.tipo === 'liebre' || r.tipo === 'bot') && sesion.corriendo && !sesion.pausa ? (r.v || velocidadFisica(r.w || 100, pendAplicada(r.d))) : (sesion.corriendo && !sesion.pausa ? 7 : 0);
     if (vel > 0) { u.giro += 85 / 60 * Math.PI * 2 * dt; posarPiernas(r.g); for (const w of u.ruedas) w.rotation.x += vel * dt / 0.335; } });
 }
 // al terminar: si has completado la ruta y es tu mejor tiempo, pasa a ser tu fantasma (si no hay ninguna completa, se guarda la última)
@@ -858,14 +988,25 @@ function pintarListaRivales(){
   const chip = (id, on, color, txt, sub, editable) => '<div class="chipRival ' + (on ? 'on' : 'off') + '" data-id="' + id + '" style="--c:' + color + '"><span class="pt"></span>' + txt + ' <small>' + sub + '</small>' + (editable ? '<button class="mini" data-ed="' + id + '" title="Cambiar">✎</button><button class="mini" data-bo="' + id + '" title="Borrar">✕</button>' : '') + '</div>';
   L.innerHTML = chip('fantasma', fantasmaActivo(), '#c9d1d9', '👻 Mi mejor vuelta', 'si ya has hecho esa ruta', false)
     + liebres.map(l => chip(l.id, l.activa, l.color, '🐇 ' + l.nombre, String(l.media).replace('.', ',') + ' w/kg · ' + String(l.min).replace('.', ',') + '–' + String(l.max).replace('.', ','), true)).join('')
-    + '<button class="sec" id="bNuevaLiebre">+ Nueva liebre</button>';
+    + '<button class="sec" id="bNuevaLiebre">+ Nueva liebre</button>'
+    + (() => { const c = carreraConf(), gr = c.tipo === 'grupeta', n2 = x => String(x).replace('.', ',');
+      return chip('carrera', c.activa, '#ffd33d', gr ? '🚴 Grupeta con bots' : '🏁 Carrera con bots', c.n + ' corredores · ' + (gr ? 'ritmo fijo ' + n2(c.ritmo) + ' w/kg, te esperan' : 'nivel ' + n2(c.nivel) + ' w/kg · puertos, metas volantes y meta'), false)
+      + '<span class="confCarrera"><select id="cTipo"><option value="carrera"' + (gr ? '' : ' selected') + '>Carrera</option><option value="grupeta"' + (gr ? ' selected' : '') + '>Grupeta tranquila</option></select>'
+      + ' Corredores <select id="cN">' + [6, 9, 12, 15, 20].map(n => '<option' + (n === c.n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>'
+      + (gr ? ' Ritmo <input id="cRitmo" type="number" step="0.1" min="1" max="4" value="' + c.ritmo + '" style="width:4.5em"> w/kg'
+            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + '</span>'; })();
   L.querySelectorAll('.chipRival').forEach(c => c.onclick = e => { if (e.target.closest('.mini')) return; const id = c.dataset.id;
     if (id === 'fantasma') { try { localStorage.setItem(CLAVE('simulador-fantasma-activo'), fantasmaActivo() ? '0' : '1'); } catch(e) {} }
+    else if (id === 'carrera') { const c = carreraConf(); c.activa = !c.activa; guardarCarrera(c); if (typeof prepararRivales === 'function' && ruta.activa && !sesion.corriendo) prepararRivales(); }
     else { const l = liebres.find(x => x.id === id); l.activa = !l.activa; guardarLiebres(); }
     pintarListaRivales(); });
   L.querySelectorAll('[data-bo]').forEach(b => b.onclick = () => { const l = liebres.find(x => x.id === b.dataset.bo); if (confirm('¿Borrar «' + l.nombre + '»?')) { liebres = liebres.filter(x => x !== l); guardarLiebres(); pintarListaRivales(); } });
   L.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => abrirFormLiebre(liebres.find(x => x.id === b.dataset.ed)));
   $('bNuevaLiebre').onclick = () => abrirFormLiebre(null);
+  const cambia = () => { const c = carreraConf(); c.n = +$('cN').value; c.tipo = $('cTipo').value;
+    if ($('cNivel')) c.nivel = Math.max(1, Math.min(5, +$('cNivel').value || c.nivel)); if ($('cRitmo')) c.ritmo = Math.max(1, Math.min(4, +$('cRitmo').value || c.ritmo));
+    guardarCarrera(c); pintarListaRivales(); if (ruta.activa && !sesion.corriendo) prepararRivales(); };
+  $('cN').onchange = cambia; $('cTipo').onchange = cambia; if ($('cNivel')) $('cNivel').onchange = cambia; if ($('cRitmo')) $('cRitmo').onchange = cambia;
 }
 function abrirFormLiebre(l){ const F = $('formLiebre'); F.hidden = false; F.dataset.id = l ? l.id : '';
   $('lNombre').value = l ? l.nombre : 'Liebre ' + (liebres.length + 1); $('lMedia').value = l ? l.media : 1.7; $('lMax').value = l ? l.max : 3.0; $('lMin').value = l ? l.min : 1.3; $('lColor').value = l ? l.color : '#f0883e'; $('lAviso').textContent = ''; $('lNombre').focus(); }
@@ -916,10 +1057,17 @@ function mostrarResumen(){
     + cifra('Cadencia media', f(R.cad), 'rpm', 'cad', 0, null) + cifra('Eficiencia', f(R.efic, 2), 'W/ppm', 'efic', 2, true)
     + cifra('Carga (TSS)', f(R.tss), '', 'tss', 0, null, 'carga') + cifra('Intensidad (IF)', f(R.IF, 2), '', 'IF', 2, null, 'carga');
   // rivales
-  const rv = rivales.lista.map(r => { const dif = r.d - ruta.dist, m = Math.round(Math.abs(dif));
+  const rv = rivales.lista.filter(r => r.tipo !== 'bot').map(r => { const dif = r.d - ruta.dist, m = Math.round(Math.abs(dif));
     const txt = r.tipo === 'liebre' && r.llego ? 'llegó antes que tú' : m < 3 ? 'empate' : (dif > 0 ? 'te sacó ' : 'le sacaste ') + (m >= 1000 ? f(m / 1000, 2) + ' km' : m + ' m');
     return '<div style="--c:' + r.color + '"><b>' + r.nombre + '</b> · ' + txt + (r.tipo === 'fantasma' && r.datos.completa && R.completa ? ' · tu récord ' + hms(r.datos.t) + (R.seg < r.datos.t ? ' → <span class="mejora">nuevo récord ' + hms(R.seg) + '</span>' : '') : '') + '</div>'; }).join('');
-  $('resRivales').innerHTML = rv ? '<h3>Rivales</h3><div class="rivRes">' + rv + '</div>' : '';
+  let cla = '';
+  if (rivales.lista.some(r => r.tipo === 'bot')) { const C = clasificacion(), t0 = C[0].llego ? C[0].tLlegada : null;
+    const gr = rivales.lista.some(r => r.tipo === 'bot' && r.grupeta), nom = x => x.yo ? 'Tú' : x.nombre;
+    const rey = k => { const m = C.reduce((a, x) => (x[k] || 0) > (a[k] || 0) ? x : a, C[0]); return m[k] ? nom(m) + ' (' + m[k] + ' pts)' : '—'; };
+    cla = '<h3>' + (gr ? 'Grupeta' : 'Carrera') + '</h3>' + (gr ? '' : '<p>🏆 Gana: <b>' + nom(C[0]) + '</b> · ⛰ Montaña: <b>' + rey('mont') + '</b> · ⚡ Regularidad: <b>' + rey('regu') + '</b></p>')
+      + '<table><tr><th>Puesto</th><th>Corredor</th><th>Tiempo</th><th>Diferencia</th>' + (gr ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => '<tr' + (x.yo ? ' style="font-weight:bold;color:#ffd33d"' : '') + '><td>' + (i + 1) + 'º</td><td>' + (x.yo ? 'Tú' : (gr ? '' : PERFILES_BOT[x.perfil] + ' ') + x.nombre) + '</td><td>'
+      + (x.llego ? hms(x.tLlegada) : 'a ' + f((ruta.total - x.d) / 1000, 2) + ' km') + '</td><td>' + (x.llego && t0 != null && i ? '+' + hms(x.tLlegada - t0) : '') + '</td>' + (gr ? '' : '<td>' + (x.mont || '') + '</td><td>' + (x.regu || '') + '</td>') + '</tr>').join('') + '</table>'; }
+  $('resRivales').innerHTML = cla + (rv ? '<h3>Rivales</h3><div class="rivRes">' + rv + '</div>' : '');
   const ORD = n => /^Subida|^Repecho/.test(n) ? 0 : /^Últimos/.test(n) ? 1 : /–/.test(n) ? 2 : 3;
   const TH = (sesion.tramosHoy || []).slice().sort((a, b) => ORD(a.nombre) - ORD(b.nombre));
   $('resTramos').innerHTML = TH.length ? '<h3>Tramos de hoy</h3><table><tr><th>Tramo</th><th>Tiempo</th><th>Tu récord anterior</th><th>Diferencia</th><th>Récord total</th><th>W med.</th><th>FC med.</th><th>W/ppm</th><th>vs última vez</th></tr>'
@@ -1135,7 +1283,7 @@ function datosDemo(){
   const k = Math.max(1, demo.x || 1);
   demo.c += ((g < -3 ? 72 : g > 6 ? 78 : 87) - demo.c) * Math.min(1, 0.05 * k) + ru(1.2);
   demo.p += ((72 + w * 0.34) - demo.p) * Math.min(1, 0.012 * k);
-  vivo.w = Math.round(w); vivo.c = Math.round(demo.c); vivo.p = Math.round(demo.p); vivo.v = velocidadFisica(w, g) * 3.6; vivo.tW = vivo.tP = Date.now(); }
+  vivo.w = Math.round(w); vivo.c = Math.round(demo.c); vivo.p = Math.round(demo.p); vivo.v = velocidadFisica(w, g, vivo.rebufo) * 3.6; vivo.tW = vivo.tP = Date.now(); }
 function empezarDemo(){
   if (!ruta.activa) return;
   if (sesion.corriendo) { if (sesion.demo) terminar(false); else avisar('Estás en una salida de verdad: la demostración, cuando termines.'); return; }
@@ -1306,20 +1454,24 @@ const pendAplicada = d => { const g = puntoEn(d).pend * DIF_EF() / 100; return g
 function enviarPendiente(forzar){
   if (!controlBici || !ruta.activa || !sesion.corriendo) return;
   const g = Math.round(pendAplicada(ruta.dist) * 10) / 10;
-  if (!forzar && ruta.ultimaPend !== null && Math.abs(g - ruta.ultimaPend) < 0.1 && Date.now() - ruta.tPend < 5000) return;
-  ruta.ultimaPend = g; ruta.tPend = Date.now();
-  const gg = Math.round(g * FACTOR_PESO() * 100); enviarBici([0x11, 0, 0, gg & 0xff, (gg >> 8) & 0xff, 40, 51]);
+  const cw = Math.round(51 * (1 - (vivo.rebufo || 0)));   // a rueda: coeficiente de aire más bajo → menos vatios para la misma velocidad
+  if (!forzar && ruta.ultimaPend !== null && Math.abs(g - ruta.ultimaPend) < 0.1 && Math.abs(cw - (ruta.ultimoCw ?? 51)) < 3 && Date.now() - ruta.tPend < 5000) return;
+  ruta.ultimaPend = g; ruta.ultimoCw = cw; ruta.tPend = Date.now();
+  const gg = Math.round(g * FACTOR_PESO() * 100); enviarBici([0x11, 0, 0, gg & 0xff, (gg >> 8) & 0xff, 40, cw]);
 }
 // velocidad: la que da la bici (ya lleva tu marcha y tu cadencia); si no llega, la física con tus vatios
 function velocidadRuta(){
   if (Date.now() - vivo.tW < 3000 && vivo.v > 0) return vivo.v / 3.6;
-  if (Date.now() - vivo.tW < 3000 && vivo.w > 0) return velocidadFisica(vivo.w, pendAplicada(ruta.dist));
+  if (Date.now() - vivo.tW < 3000 && vivo.w > 0) return velocidadFisica(vivo.w, pendAplicada(ruta.dist), vivo.rebufo);
   return 0;
 }
 // velocidad (m/s) a la que tus vatios igualan pendiente + rodadura + aire. 105 kg con bici. Búsqueda por bisección: estable en subidas y bajadas.
-function velocidadFisica(w, pend){
-  const m = PESO_TOTAL(), g = 9.81, th = Math.atan(pend / 100), P = w * 0.97;
-  const potencia = v => (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + 0.5*0.4*1.2*v*v) * v;
+// vatios que hacen falta para ir a v (m/s): la cuenta inversa, para que un bot se quede a rueda sin pasar al de delante
+function potenciaPara(v, pend, reb){ const m = PESO_TOTAL(), g = 9.81, th = Math.atan(pend / 100);
+  return Math.max(0, (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + 0.5 * 0.4 * (1 - (reb || 0)) * 1.2 * v * v) * v / 0.97); }
+function velocidadFisica(w, pend, reb){
+  const m = PESO_TOTAL(), g = 9.81, th = Math.atan(pend / 100), P = w * 0.97, aire = 0.5 * 0.4 * (1 - (reb || 0)) * 1.2;   // reb: rebufo (0–0,45), rebaja el aire
+  const potencia = v => (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + aire*v*v) * v;
   let lo = 0, hi = 25; if (potencia(hi) < P) return hi;
   for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (potencia(mid) < P) lo = mid; else hi = mid; }
   return lo;
