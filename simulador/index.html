@@ -172,6 +172,14 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #formLiebre { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; font-size:14px; }
   #formLiebre input[type=number] { width:62px; } #formLiebre #lNombre { width:120px; }
   #pantallaRutas .mejor { color:#d2a8ff; font-size:13px; }
+  #mandoTeclado { position:fixed; right:500px; top:310px; z-index:1005; width:270px; background:rgba(13,17,23,.93); border:1px solid #30363d; border-radius:12px; padding:8px 10px; color:#e6edf3; font-size:13px; user-select:none; }
+  #mandoTeclado .cab { cursor:move; font-weight:bold; margin-bottom:6px; } #mandoTeclado .cab small { font-weight:normal; color:#8b949e; margin-left:6px; }
+  #mandoTeclado .fila { display:flex; align-items:center; gap:8px; } #mandoTeclado .fila button { width:44px; height:44px; font-size:26px; border-radius:10px; background:#21262d; color:#fff; border:1px solid #30363d; cursor:pointer; }
+  #mandoTeclado .w { flex:1; text-align:center; font-size:15px; } #mandoTeclado .w b { font-size:30px; font-variant-numeric:tabular-nums; } #mandoTeclado .w small { display:block; color:#8b949e; }
+  #mandoTeclado .barra { position:relative; height:10px; background:#21262d; border-radius:5px; margin:6px 0; overflow:hidden; } #mandoTeclado .barra div { height:100%; width:0; border-radius:5px; transition:width .2s; }
+  #mandoTeclado .barra .ftp { position:absolute; left:66.6%; top:0; bottom:0; width:2px; background:#fff; opacity:.7; } #mandoTeclado .lbl { display:flex; justify-content:space-between; color:#aab2bd; }
+  #mandoTeclado .tope { width:100%; margin:4px 0; padding:6px; background:#3d1d1d; color:#ffb4a8; border:1px solid #f85149; border-radius:8px; cursor:pointer; font-weight:bold; }
+  #mandoTeclado .ayuda { color:#8b949e; font-size:11px; line-height:1.35; margin-top:2px; }
   #clasifPanel { position:fixed; left:12px; top:200px; bottom:34px; z-index:1004; background:rgba(13,17,23,.92); border:1px solid #30363d; border-radius:10px; padding:8px 10px; color:#e6edf3; font-size:14px; max-height:calc(100vh - 260px); overflow:auto; font-variant-numeric:tabular-nums; }
   #clasifPanel .cab { display:flex; gap:8px; align-items:center; font-weight:bold; margin-bottom:4px; } #clasifPanel .cab small { font-weight:normal; color:#aab2bd; flex:1; }
   #clasifPanel table { border-collapse:collapse; } #clasifPanel td, #clasifPanel th { padding:2px 8px; text-align:left; } #clasifPanel th { color:#aab2bd; font-weight:normal; }
@@ -261,7 +269,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v101 · grupeta, clasificaciones y reacción a tus ataques</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v102 · pedalear con teclado para probar sin bici</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -365,7 +373,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
       <div class="sub" id="lAviso"></div></div></div>
   <div id="listaRutas"></div>
 </div>
-<div id="panel3d"><canvas id="vista3d"></canvas><div id="estado3d"></div><div id="credito3d"></div><div id="aviso3d"></div><div id="rivales3d"></div><div id="clasifPanel" hidden></div><div id="colDer3d"><div id="cercaBox"><div class="t" id="cercaTit">Próximo km</div><canvas id="perfilCerca" width="680" height="150"></canvas></div><div id="medias3d"></div></div><div id="tramo3d"></div></div>
+<div id="panel3d"><canvas id="vista3d"></canvas><div id="estado3d"></div><div id="credito3d"></div><div id="aviso3d"></div><div id="rivales3d"></div><div id="mandoTeclado" hidden><div class="cab" id="mtCab">⌨ Pedaleo simulado <small>no se guarda · arrástrame</small></div><div class="fila"><button id="mtMenos" title="−10 W (Mayús: −50)">−</button><div class="w"><b id="mtW">0</b> W<small id="mtPct"></small></div><button id="mtMas" title="+10 W (Mayús: +50)">+</button></div><div class="barra"><div id="mtBarW"></div><span class="ftp" title="tu FTP"></span></div><div class="lbl">🔋 Reserva <span id="mtRes">100 %</span></div><div class="barra"><div id="mtBarRes"></div></div><button id="mtTope" class="tope">⚡ A tope (Espacio)</button><div class="ayuda">↑ ↓ ±10 W · Mayús ±50 · Z X C V B = 55 · 70 · 88 · 100 · 120 % FTP · 0 parar</div></div><div id="clasifPanel" hidden></div><div id="colDer3d"><div id="cercaBox"><div class="t" id="cercaTit">Próximo km</div><canvas id="perfilCerca" width="680" height="150"></canvas></div><div id="medias3d"></div></div><div id="tramo3d"></div></div>
 <div class="panel" id="panelMapa">
   <div class="barra" style="margin:0 0 8px">
     <b style="font-size:14px">Mapa</b>
@@ -391,6 +399,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     <button class="sec" id="b3Clasif" onclick="alternarClasif()" title="Clasificación de la carrera: puesto, diferencias, montaña y regularidad">🏁 Clasificación</button>
     <button class="sec" id="b3Grabar" title="Graba el 3D con velocidad, tiempo y kilómetro; al parar se descarga el vídeo">⏺ Grabar</button>
     <button class="sec" id="b3Tester" title="Recorre la ruta solo, sin bici, para ver el paisaje">▶ Recorrer</button>
+    <button class="sec" id="b3Teclado" onclick="this.blur(); empezarTeclado()" title="Pedalea con el teclado para probar sin bici: ↑ ↓ vatios, Espacio a tope. No se guarda nada">⌨ Pedalear con teclado</button>
     <input type="range" id="kmTester" min="0" max="100" step="0.1" value="0" style="width:180px;vertical-align:middle" title="Saltar a un kilómetro"><b id="kmTesterTxt" style="font-size:13px"></b>
     <button class="sec" id="b3Pausa" disabled>⏸ Pausa</button>
     <button class="peligro" id="b3Terminar" disabled>Terminar y guardar</button>
@@ -963,9 +972,10 @@ function moverRivales3D(dt, dYo){
       const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: 0xffffff, casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
       r.g = hacerCiclista(K, { sencillo: true });
       if (r.tipo === 'fantasma') r.g.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.42; o.material.depthWrite = false; o.castShadow = false; } });
-      r.g.add(cartelNombre(r.nombre, r.color)); v3.escena.add(r.g); r.esc = v3.escena; r.dVis = r.d; }
+      r.cartel = cartelNombre(r.nombre, r.color); r.g.add(r.cartel); v3.escena.add(r.g); r.esc = v3.escena; r.dVis = r.d; }
     r.dVis += (r.d - r.dVis) * Math.min(1, dt * 2.5);
     const lejos = Math.abs(r.dVis - dYo); r.g.visible = lejos < 700 && r.dVis > 2; if (!r.g.visible) return;
+    if (r.cartel) r.cartel.visible = r.tipo !== 'bot' || (lejos > 10 && lejos < 250);   // en el pelotón, sin carteles encima de la cámara
     const lat = r.tipo === 'bot' ? (v3.latYo ?? 0.5) + (r.grupeta ? (k % 2 ? 0.45 : -0.45) : ((k * 7) % 5 - 2) * 0.62) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
     colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), lat, 1, 0.18);
     const u = r.g.userData, vel = (r.tipo === 'liebre' || r.tipo === 'bot') && sesion.corriendo && !sesion.pausa ? (r.v || velocidadFisica(r.w || 100, pendAplicada(r.d))) : (sesion.corriendo && !sesion.pausa ? 7 : 0);
@@ -1277,7 +1287,50 @@ if (window.LIGERO) {
 // Pedalea unos 2 w/kg (más en subida, poco en bajada), cadencia y pulso creíbles; la velocidad sale de la física.
 // Salen todas las pantallas de una salida de verdad y no se guarda nada (ni .fit, ni récords, ni fantasma, ni historial).
 const demo = { t: null, p: 92, c: 86, x: 0 };   // x: cuántas veces más rápido que el tiempo real
+// Pedaleo con teclado (19-nov): tú pones los vatios; la reserva (W') se gasta por encima de tu FTP y se recupera por debajo
+const teclado = { w: 0, tope: false, wp: 15000, wpMax: 15000, tPrev: null };
+function datosTeclado(){
+  const ahora = sesion.tTotal, dt = Math.max(0, Math.min(2, ahora - (teclado.tPrev ?? ahora))); teclado.tPrev = ahora;
+  const F = FTP(); let w = teclado.tope ? F * 1.5 : teclado.w; const sinReserva = teclado.wp <= 0;
+  if (sinReserva) w = Math.min(w, F * 0.9);
+  if (w > F) teclado.wp = Math.max(0, teclado.wp - (w - F) * dt); else teclado.wp = Math.min(teclado.wpMax, teclado.wp + (F - w) * dt * 0.4);
+  if (teclado.wp <= 0 && !sinReserva) avisar('🔋 Sin reserva: no pasas de ' + Math.round(F * 0.9) + ' W hasta que recuperes.');
+  const g = pendAplicada(ruta.dist), ru = a => (Math.random() - 0.5) * a, wr = w > 0 ? Math.max(0, w + ru(6)) : 0;
+  demo.c += ((w > 0 ? (teclado.tope ? 98 : 86) : 0) - demo.c) * 0.3; demo.p += ((70 + wr * 0.36) - demo.p) * 0.02;
+  vivo.w = Math.round(wr); vivo.c = Math.round(demo.c); vivo.p = Math.round(demo.p); vivo.v = wr > 0 ? velocidadFisica(wr, g, vivo.rebufo) * 3.6 : Math.max(0, vivo.v - 3); vivo.tW = vivo.tP = Date.now();
+  pintarMando(); }
+function pintarMando(){ const M = $('mandoTeclado'); if (!M || M.hidden) return; const F = FTP(), w = teclado.tope ? Math.min(F * 1.5, teclado.wp > 0 ? F * 1.5 : F * 0.9) : teclado.w, r = teclado.wp / teclado.wpMax;
+  $('mtW').textContent = Math.round(w); $('mtPct').textContent = Math.round(w / F * 100) + ' % FTP' + (teclado.tope ? ' · a tope' : '');
+  $('mtBarW').style.width = Math.min(100, w / (F * 1.5) * 100) + '%'; $('mtBarW').style.background = w > F ? '#f85149' : w > F * 0.88 ? '#f0883e' : w > F * 0.7 ? '#d29922' : '#3fb950';
+  $('mtBarRes').style.width = (r * 100) + '%'; $('mtBarRes').style.background = r < 0.25 ? '#f85149' : r < 0.5 ? '#d29922' : '#58a6ff'; $('mtRes').textContent = Math.round(r * 100) + ' %'; }
+function ponerVatios(w){ teclado.w = Math.max(0, Math.min(1500, Math.round(w))); pintarMando(); }
+function empezarTeclado(){
+  if (!ruta.activa) { avisar('Elige antes una ruta.'); return; }
+  if (sesion.corriendo && !sesion.demo) { avisar('Estás en una salida de verdad.'); return; }
+  const M = $('mandoTeclado'); if (M.parentNode !== document.body) document.body.appendChild(M); M.hidden = false;
+  Object.assign(teclado, { wp: teclado.wpMax, tPrev: null, tope: false }); if (!teclado.w) teclado.w = Math.round(FTP() * 0.7);
+  demo.manual = true; if (!sesion.demo) { demo.x = 1; $('b3Tester').textContent = '▶ Tiempo real'; empezarDemo(); } pintarMando(); }
+document.addEventListener('keydown', e => {
+  if (!demo.manual || !sesion.demo || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+  const F = FTP(), paso = e.shiftKey ? 50 : 10, Z = { z: 0.55, x: 0.7, c: 0.88, v: 1.0, b: 1.2 }, k = e.key.toLowerCase();
+  if (e.key === 'ArrowUp' || e.key === '+') ponerVatios(teclado.w + paso);
+  else if (e.key === 'ArrowDown' || e.key === '-') ponerVatios(teclado.w - paso);
+  else if (Z[k]) ponerVatios(F * Z[k]);
+  else if (e.key === '0') ponerVatios(0);
+  else if (e.key === ' ') { teclado.tope = true; pintarMando(); }
+  else return;
+  e.preventDefault(); });
+document.addEventListener('keyup', e => { if (e.key === ' ' && demo.manual) { teclado.tope = false; pintarMando(); e.preventDefault(); } });
+{ const rep = (id, f) => { let t = null; const el = () => $(id); document.addEventListener('pointerdown', e => { if (e.target === el()) { f(e); t = setInterval(() => f(e), 180); } });
+    document.addEventListener('pointerup', () => { clearInterval(t); t = null; }); };
+  rep('mtMas', e => ponerVatios(teclado.w + (e.shiftKey ? 50 : 10))); rep('mtMenos', e => ponerVatios(teclado.w - (e.shiftKey ? 50 : 10)));
+  document.addEventListener('pointerdown', e => { if (e.target && e.target.id === 'mtTope') { teclado.tope = true; pintarMando(); } });
+  document.addEventListener('pointerup', () => { if (teclado.tope && !document.activeElement?.matches?.('body')) {} if (teclado.tope) { teclado.tope = false; pintarMando(); } });
+  let arr = null; document.addEventListener('pointerdown', e => { if (e.target && e.target.id === 'mtCab') { const M = $('mandoTeclado'), r = M.getBoundingClientRect(); arr = { dx: e.clientX - r.left, dy: e.clientY - r.top }; e.preventDefault(); } });
+  document.addEventListener('pointermove', e => { if (!arr) return; const M = $('mandoTeclado'); M.style.left = (e.clientX - arr.dx) + 'px'; M.style.top = (e.clientY - arr.dy) + 'px'; M.style.right = 'auto'; });
+  document.addEventListener('pointerup', () => { arr = null; }); }
 function datosDemo(){
+  if (demo.manual) return datosTeclado();
   const g = pendAplicada(ruta.dist), kg = pesoCiclista(), ru = (a) => (Math.random() - 0.5) * a;
   let w = g < -3 ? kg * 0.7 : kg * (1.6 + 0.18 * g); w = Math.max(kg * 0.6, Math.min(kg * 3.3, w)) + ru(14);
   const k = Math.max(1, demo.x || 1);
@@ -1288,8 +1341,8 @@ function empezarDemo(){
   if (!ruta.activa) return;
   if (sesion.corriendo) { if (sesion.demo) terminar(false); else avisar('Estás en una salida de verdad: la demostración, cuando termines.'); return; }
   sesion.demo = true; sesion.segReg = 0; demo.p = 92; demo.c = 86; datosDemo(); demo.t = setInterval(datosDemo, 200);
-  empezar(); aviso3d('Recorrer: ciclista virtual a ×' + demo.x + ' · no se guarda nada', 3500); }
-function pararDemo(){ clearInterval(demo.t); demo.t = null; demo.x = 0; $('b3Tester').textContent = '▶ Recorrer'; if ($('bRecorrer')) $('bRecorrer').textContent = '▶ Recorrer la ruta (sin bici)'; vivo.tW = vivo.tP = 0; }
+  empezar(); aviso3d(demo.manual ? 'Pedaleo con teclado: ↑ ↓ vatios · Espacio a tope · no se guarda nada' : 'Recorrer: ciclista virtual a ×' + demo.x + ' · no se guarda nada', 3500); }
+function pararDemo(){ clearInterval(demo.t); demo.t = null; demo.x = 0; demo.manual = false; teclado.tope = false; if ($('mandoTeclado')) $('mandoTeclado').hidden = true; $('b3Tester').textContent = '▶ Recorrer'; if ($('bRecorrer')) $('bRecorrer').textContent = '▶ Recorrer la ruta (sin bici)'; vivo.tW = vivo.tP = 0; }
 function reiniciarTrasDemo(){   // la ruta queda como recién elegida, lista para salir de verdad
   Object.assign(sesion, { tTotal:0, idx:0, tBloque:0, corriendo:false, pausa:false, registro:[], inicio:null, demo:false, tramosHoy:[], acum:null, ultimoSeg:null, segReg:0 });
   Object.assign(ruta, { dist:0, subido:0, ultimaAlt:null, ultimaPend:null }); v3.dVis = 0; v3.camPos = null;
