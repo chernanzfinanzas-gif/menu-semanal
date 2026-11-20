@@ -78,8 +78,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #zonaRuta.carretera #panel3d { display:block; position:fixed; left:0; top:0; bottom:0; width:calc(100vw - var(--colD)); z-index:999; background:#9fc6ea; }
   #vista3d { width:100vw; height:100vh; display:block; }
   #zonaRuta.carretera #vista3d { width:100%; height:100vh; }
-  #ciclista3d, #camara3d, #escenario3d, #b3Pausa, #b3Terminar, #b3Tester, #kmTester, #kmTesterTxt, #b3Empezar, #calidad3d, #b3Grabar, #hora3d { display:none; }
-  #zonaRuta.carretera #ciclista3d, #zonaRuta.carretera #camara3d, #zonaRuta.carretera #escenario3d, #zonaRuta.carretera #b3Pausa, #zonaRuta.carretera #b3Terminar, #zonaRuta.carretera #b3Tester, #zonaRuta.carretera #kmTester, #zonaRuta.carretera #kmTesterTxt, #zonaRuta.carretera #b3Empezar, #zonaRuta.carretera #calidad3d, #zonaRuta.carretera #hora3d, #zonaRuta.carretera #b3Grabar { display:inline-block; }
+  #ciclista3d, #camara3d, #escenario3d, #b3Pausa, #b3Terminar, #b3Tester, #kmTester, #kmTesterTxt, #b3Empezar, #calidad3d, #b3Grabar, #b3Camara, #hora3d { display:none; }
+  #zonaRuta.carretera #ciclista3d, #zonaRuta.carretera #camara3d, #zonaRuta.carretera #escenario3d, #zonaRuta.carretera #b3Pausa, #zonaRuta.carretera #b3Terminar, #zonaRuta.carretera #b3Tester, #zonaRuta.carretera #kmTester, #zonaRuta.carretera #kmTesterTxt, #zonaRuta.carretera #b3Empezar, #zonaRuta.carretera #calidad3d, #zonaRuta.carretera #hora3d, #zonaRuta.carretera #b3Grabar, #zonaRuta.carretera #b3Camara { display:inline-block; }
   #zonaRuta.carretera #bPausaMapa { display:none; }
   #aviso3d { position:fixed; left:calc((100vw - var(--colD, 0px)) / 2); top:90px; transform:translateX(-50%); z-index:1003; background:rgba(13,17,23,.88); color:#fff; font-size:22px; font-weight:600; padding:10px 22px; border-radius:12px; display:none; }
   #credito3d { position:fixed; right:calc(var(--colD, 0px) + 12px); bottom:8px; z-index:1000; font-size:11px; color:#fff; text-shadow:0 1px 2px #000; opacity:.8; }
@@ -216,9 +216,9 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     #zonaRuta.carretera #tablero .tv { font-size:18px; } #zonaRuta.carretera #tablero .vel .tv { font-size:34px; }
   }
   #rivales3d { position:fixed; left:12px; bottom:34px; z-index:1002; display:none; flex-direction:column; gap:6px; }
-  #mandoTeclado, #marcador, #rivales3d, #colDer3d, #tramo3d, #clasifPanel { cursor:grab; touch-action:none; } #rivales3d *, #colDer3d * { pointer-events:auto; }
+  #mandoTeclado, #marcador, #rivales3d, #colDer3d, #tramo3d, #clasifPanel, #camara { cursor:grab; touch-action:none; } #rivales3d *, #colDer3d * { pointer-events:auto; }
   body.menuAbierto #zonaRuta.carretera #panelMapa .barra { top:56px; }
-  body.menuAbierto #marcador, body.menuAbierto #rivales3d, body.menuAbierto #colDer3d, body.menuAbierto #tramo3d, body.menuAbierto #mandoTeclado, body.menuAbierto #clasifPanel, body.menuAbierto #rotulo { visibility:hidden; }
+  body.menuAbierto #camara, body.menuAbierto #marcador, body.menuAbierto #rivales3d, body.menuAbierto #colDer3d, body.menuAbierto #tramo3d, body.menuAbierto #mandoTeclado, body.menuAbierto #clasifPanel, body.menuAbierto #rotulo { visibility:hidden; }
   #rivales3d .r, #rivalesFila .r { background:rgba(13,17,23,.85); border-left:5px solid var(--c); border-radius:8px; padding:5px 10px; color:#fff; font-size:15px; font-variant-numeric:tabular-nums; }
   #rivales3d .r b, #rivalesFila .r b { font-size:18px; } #rivales3d .r small, #rivalesFila .r small { color:#aab2bd; }
   .leaflet-tooltip.etRival { background:rgba(13,17,23,.85); color:#fff; border:none; border-left:4px solid var(--c, #fff); border-radius:6px; padding:1px 6px; font-weight:600; font-size:12px; box-shadow:none; }
@@ -264,6 +264,9 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     #pantallaResumen .cajaRes, #pantallaTramos .cajaRes { padding:12px; } #pantallaTramos .graf { grid-template-columns:1fr; }
     #pantallaResumen table, #pantallaTramos table { font-size:12px; } .tr .gap { font-size:28px; }
   }
+  #camara { position:fixed; left:330px; bottom:34px; z-index:1004; width:240px; aspect-ratio:4/3; border-radius:14px; overflow:hidden; border:2px solid rgba(255,255,255,.75); box-shadow:0 6px 20px rgba(0,0,0,.5); background:#000; }
+  #camara.grande { width:360px; } #camara video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; pointer-events:none; }
+  #camara .camRec { position:absolute; top:6px; left:8px; color:#ff5555; font:700 12px system-ui; text-shadow:0 1px 3px #000; }
   #pantallaFicha { position:fixed; inset:0; z-index:6000; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
   #pantallaFicha .cajaRes { max-width:1150px; margin:0 auto; background:#0d1117; border:1px solid #30363d; border-radius:16px; padding:18px 24px 22px; }
   #pantallaFicha h3 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:#8b949e; margin:18px 0 8px; }
@@ -275,6 +278,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   .curvaFicha { width:100%; max-width:900px; display:block; } .curvaFicha text { fill:#8b949e; font-size:12px; }
   .chipZ, .chipA { font-size:11px; padding:1px 6px; border-radius:6px; background:#f0883e33; color:#f0883e; } .chipA { background:#1f6feb33; color:#58a6ff; }
   #pantallaFicha .cabRes { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  #fiVisor { float:right; width:300px; margin:0 0 10px 16px; text-align:center; } #fiLienzo { width:300px; height:360px; background:radial-gradient(circle at 50% 40%, #1c2433, #0d1117 70%); border-radius:14px; cursor:grab; touch-action:none; display:block; }
+  @media (max-width:900px) { #fiVisor { float:none; margin:0 auto 10px; } }
   .pieFicha { margin-top:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   @media (max-width:900px) { #pantallaFicha { padding:8px; } #pantallaFicha .cajaRes { padding:12px; } #pantallaFicha table { font-size:12px; } #pantallaFicha .cajaRes { overflow-x:auto; } }
   #pantallaResumen { position:fixed; inset:0; z-index:6000; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
@@ -317,7 +322,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v119 · salida neutralizada 400 m; clasificación con diferencias reales; subida a intervals</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v121 · tu muñeco en la ficha; carreras de hasta 60; webcam y micrófono en las grabaciones</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -413,8 +418,10 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <h3 id="resProgTit">Progreso</h3><div id="resProgreso"></div>
   <div class="sub nota" id="resNota"></div>
 </div></div>
+<div id="camara" hidden><video id="camVideo" autoplay muted playsinline></video><div class="camRec" id="camRec" hidden>● REC</div></div>
 <div id="pantallaFicha" hidden><div class="cajaRes">
   <div class="cabRes"><div><h2 id="fiTitulo">Ficha</h2><div class="sub" id="fiSub"></div></div><button id="bCerrarFicha">Cerrar</button></div>
+  <div id="fiVisor" hidden><canvas id="fiLienzo" width="300" height="360"></canvas><div class="sub" id="fiCredito">Arrastra para girarlo</div></div>
   <div id="fiCuerpo"></div><input type="file" id="ficheroFit" accept=".fit" multiple style="display:none"></div></div>
 <div id="pantallaTramos" hidden><div class="cajaRes">
   <div class="cabRes"><div><h2 id="trTitulo">Tramos</h2><div class="sub" id="trSub"></div></div><div><button class="sec" id="bTrAtras" hidden>← Tramos de la ruta</button> <button id="bCerrarTramos">Cerrar</button></div></div>
@@ -461,6 +468,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     <button class="sec" id="b3Voz" title="Narración por voz">🔊</button>
     <button class="sec" id="b3Recolocar" onclick="recolocarVentanas()" title="Devuelve todas las ventanas a su sitio de fábrica">↺ Recolocar ventanas</button>
     <button class="sec" id="b3Clasif" onclick="alternarClasif()" title="Clasificación de la carrera: puesto, diferencias, montaña y regularidad">🏁 Clasificación</button>
+    <button class="sec" id="b3Camara" title="Tu webcam en una ventanita que sale en las grabaciones (doble clic: más grande o más pequeña)">📷 Cámara</button>
     <button class="sec" id="b3Grabar" title="Graba el 3D con velocidad, tiempo y kilómetro; al parar se descarga el vídeo">⏺ Grabar</button>
     <button class="sec" id="b3Tester" title="Recorre la ruta solo, sin bici, para ver el paisaje">▶ Recorrer</button>
     <button class="sec" id="b3Teclado" onclick="this.blur(); empezarTeclado()" title="Pedalea con el teclado para probar sin bici: ↑ ↓ vatios, Espacio a tope. No se guarda nada">⌨ Pedalear con teclado</button>
@@ -929,8 +937,8 @@ function rebufoEn(d, otros, lat){ lat = lat || 0; let rueda = 0, n = 0, izq = 0,
   const r = 0.30 * rueda + (n >= 3 ? 0.04 : 0) + (izq && dch ? 0.11 : izq || dch ? 0.03 : 0);
   return Math.min(REBUFO.peloton, r) * rebufoPend(pendAplicada(d)); }
 // elegir carril (bots y tú): no meterse donde hay alguien al lado, no ir a chocar con uno más lento, y buscar una buena rueda
-function elegirCarril(s, otros){ let mejor = null; const actual = s.laneObj ?? s.lat ?? 0;
-  for (const L of [-CARRIL, 0, CARRIL]) { let p = Math.abs(L - actual) < 0.1 ? 1.5 : 0;
+function elegirCarril(s, otros, quedarse){ let mejor = null; const actual = s.laneObj ?? s.lat ?? 0;
+  for (const L of [-CARRIL, 0, CARRIL]) { let p = Math.abs(L - actual) < 0.1 ? (quedarse || 1.5) : 0;
     for (const o of otros) { if (o === s || o.lat == null || o.llego) continue; const gap = o.d - s.d, ol = o.lane != null && !o.grupeta ? o.lane : o.lat; if (Math.abs(o.lat - L) >= 0.55 && Math.abs(ol - L) >= 0.55) continue;   // donde está o adonde va
       if (gap > -1.5 && gap < 1.6) p -= 10;                                   // ocupado: alguien justo ahí
       else if (gap >= 1.6 && gap < 7 && (o.v || 0) < (s.v || 0) - 0.4) p -= 4;  // te lo comerías: mejor por otro lado
@@ -940,7 +948,7 @@ function elegirCarril(s, otros){ let mejor = null; const actual = s.laneObj ?? s
   return mejor.L; }
 // grupeta en tres filas con huecos irregulares; cada 25–60 s alguien cambia de fila o sube un par de puestos
 function formarGrupeta(G, bots, dt){ const t = sesion.tTotal || 0;
-  if (!G.orden) { G.orden = bots.slice(); const az = mulberry(97); bots.forEach((b, i) => { b.col = [0, 1, -1][i % 3]; b.hueco = 1.4 + 1.2 * az() + (i % 4 === 3 ? 1.8 : 0); b.fase = az() * 6.28; b.off = null; b.lat = null; b.lane = null; }); G.tCambio = t + 25; }
+  if (!G.orden) { G.orden = bots.slice(); const az = mulberry(97); bots.forEach((b, i) => { b.col = [0, 1, -1][i % 3]; b.hueco = 1.4 + 1.2 * az() + (i % 4 === 3 ? 1.8 : 0); b.fase = az() * 6.28; b.fw = 0.12 + 0.3 * az(); b.amp = 0.04 + 0.1 * az(); b.vLat = 0.18 + 0.2 * az(); b.off = null; b.lat = null; b.lane = null; }); G.tCambio = t + 25; }
   if (t > G.tCambio) { G.tCambio = t + 25 + 35 * Math.random(); const b = G.orden[Math.floor(Math.random() * G.orden.length)];
     if (Math.random() < 0.5) { const o = [-1, 0, 1].filter(c => c !== b.col); b.col = o[Math.random() < 0.5 ? 0 : 1]; }
     else { const i = G.orden.indexOf(b); if (i > 0) { G.orden.splice(i, 1); G.orden.splice(Math.max(0, i - 2), 0, b); } }
@@ -948,10 +956,13 @@ function formarGrupeta(G, bots, dt){ const t = sesion.tTotal || 0;
   const acum = { '-1': 0.8, '0': 0, '1': 0.8 };
   for (const b of G.orden) { const k = String(b.col); const offObj = acum[k]; acum[k] += b.hueco;
     b.off = b.off == null ? offObj : b.off + (offObj - b.off) * Math.min(1, dt / 6);
-    const latObj = b.col * CARRIL + 0.12 * Math.sin(t * 0.35 + b.fase);
-    b.lat = b.lat == null ? latObj : b.lat + (latObj - b.lat) * Math.min(1, dt / 2.5); } }
+    // 20-nov (Carlos: «sincronizados y muy mecánicos»): cada uno con su balanceo y su velocidad de cambio, gradual
+    const latObj = b.col * CARRIL + b.amp * Math.sin(t * b.fw + b.fase);
+    b.lat = b.lat == null ? latObj : moverLateral(b.lat, latObj, b.vLat, dt); } }
+// paso lateral suave: como mucho vmax m/s, y frenando al llegar
+function moverLateral(lat, obj, vmax, dt){ const d = obj - lat, v = Math.min(vmax, Math.abs(d) * 1.1); return lat + Math.sign(d) * Math.min(Math.abs(d), v * dt); }
 // Carrera: bots alrededor de un nivel en w/kg, con carácter, reserva de fuerzas (W') y la costumbre de ir a rueda
-const NOMBRES_BOT = ['Toño', 'Marta', 'Iker', 'Lucía', 'Nacho', 'Bea', 'Rubén', 'Elena', 'Javi', 'Nuria', 'Dani', 'Inés', 'Paco', 'Sara', 'Óscar', 'Carmen', 'Raúl', 'Alba', 'Sergio', 'Lola'];
+const NOMBRES_BOT = ['Toño', 'Marta', 'Iker', 'Lucía', 'Nacho', 'Bea', 'Rubén', 'Elena', 'Javi', 'Nuria', 'Dani', 'Inés', 'Paco', 'Sara', 'Óscar', 'Carmen', 'Raúl', 'Alba', 'Sergio', 'Lola', 'Pablo', 'Irene', 'Jorge', 'Laura', 'Álvaro', 'Paula', 'Hugo', 'Marina', 'Diego', 'Rocío', 'Adrián', 'Celia', 'Mario', 'Julia', 'Víctor', 'Noelia', 'Gonzalo', 'Ana', 'Íñigo', 'Claudia', 'Luis', 'Sofía', 'Marcos', 'Teresa', 'Andrés', 'Pilar', 'Fermín', 'Lidia', 'Rafa', 'Carla', 'Quique', 'Eva', 'Unai', 'Maite', 'Alberto', 'Olga', 'Borja', 'Ainhoa', 'Chema', 'Silvia'];
 const COLORES_BOT = ['#e5534b', '#57ab5a', '#539bf5', '#c69026', '#b083f0', '#39c5cf', '#e0823d', '#d65c9c', '#8ddb8c', '#f69d50', '#6cb6ff', '#dcbdfb', '#96d0ff', '#ff938a', '#7ee787', '#ffa198', '#a5d6ff', '#d2a8ff', '#ffdf5d', '#79c0ff'];
 const PERFILES_BOT = { rodador: '🚂', escalador: '⛰', sprinter: '⚡' };
 // Siete perfiles (página de Endurance Group): altura, peso, curva de potencia como × FTP en 5 s, 15 s, 30 s, 1 min y 4 min,
@@ -993,7 +1004,7 @@ function crearBots(){ const c = carreraConf(); if (!c.activa) return [];
   for (let i = 0; i < c.n; i++) { const tipoP = grupeta ? 'todoterreno' : tipos[i % tipos.length], P = PERFILES[tipoP], kg = grupeta ? kgYo : P.kg + (azar() - 0.5) * 8;
     const f = grupeta ? 1 : P.fw * (0.92 + 0.16 * (i + azar()) / c.n), ftp = grupeta ? c.ritmo * kg / 0.75 : c.nivel * f * kg;
     const wpMax = Math.round(1.15 * ftp * Math.max((P.c[3] - 1) * 60, (P.c[4] - 1) * 240));
-    bots.push({ tipo: 'bot', nombre: NOMBRES_BOT[i % NOMBRES_BOT.length], color: COLORES_BOT[i % COLORES_BOT.length], tipoP, perfil: P.clase, ico: P.ico, kg, q: { m: kg + 8, cda: cdaDe(P.h, kg) },
+    bots.push({ tipo: 'bot', nombre: NOMBRES_BOT[i % NOMBRES_BOT.length], color: i < COLORES_BOT.length ? COLORES_BOT[i] : '#' + new THREE.Color(COLORES_BOT[i % COLORES_BOT.length]).offsetHSL(0.04 * Math.floor(i / COLORES_BOT.length), 0, -0.08 * Math.floor(i / COLORES_BOT.length)).getHexString(), tipoP, perfil: P.clase, ico: P.ico, kg, q: { m: kg + 8, cda: cdaDe(P.h, kg) },
       ftp, forma: grupeta ? 1 : 0.96 + 0.08 * azar(), wpMax, wp: wpMax, esf: 0, lane: grupeta ? null : ((i % 3) - 1) * 0.9, lat: grupeta ? null : ((i % 3) - 1) * 0.9, ataque: 0, d: 0, v: 0, w: 0, grupeta, mont: 0, regu: 0,
       sub: grupeta ? 'grupeta a ' + n2(c.ritmo) + ' w/kg' : P.ico + ' ' + P.nom + ' · ' + Math.round(kg) + ' kg · ' + n2(ftp / kg) + ' w/kg' }); }
   return bots; }
@@ -1216,14 +1227,17 @@ function moverRivales(dt){
       if (b.d >= dMeta() && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal; } }); }
   else if (bots.length) { const todos = [yo, ...rivales.lista.filter(r => r.tipo !== 'fantasma')];
     for (const b of bots) { b.lejanos = todos.filter(o => o !== b && o.d - b.d >= 30 && o.d - b.d < 300); b.cercaLejos = todos.filter(o => o !== b && o.d - b.d > -15 && o.d - b.d < 30); b.cerca = b.cercaLejos.filter(o => Math.abs(o.d - b.d) < 15); moverBot(b, dt, b.cerca);
-      b.tCarril = (b.tCarril || 0) - dt; if (b.tCarril <= 0) { b.tCarril = 0.6 + 0.6 * Math.random(); b.lane = elegirCarril(Object.assign(b, { laneObj: b.lane }), b.cerca); } } }
+      b.tCarril = (b.tCarril || 0) - dt; if (b.tCarril <= 0) { b.tCarril = 2 + 3 * Math.random();
+        const nuevo = elegirCarril(Object.assign(b, { laneObj: b.lane }), b.cerca, 3), cambiando = bots.filter(x => x.lane != null && x.lat != null && Math.abs(x.lat - x.lane) > 0.15).length;
+        if (nuevo !== b.lane && cambiando < 2) b.lane = nuevo; } } }
   // tu carril: lo elige la app (adelantar por donde hay sitio, meterte en un hueco, caer por él si te quedas)
   if (bots.length) { carrera.tCarrilYo = (carrera.tCarrilYo || 0) - dt;
     if (carrera.tCarrilYo <= 0) { carrera.tCarrilYo = 0.5; carrera.yoLatObj = elegirCarril({ d: ruta.dist, lat: carrera.yoLat || 0, laneObj: carrera.yoLatObj, v: vYo }, bots.filter(b => Math.abs(b.d - ruta.dist) < 15)); }
     carrera.yoLat = (carrera.yoLat || 0) + ((carrera.yoLatObj || 0) - (carrera.yoLat || 0)) * Math.min(1, dt / 1.2); }
   vivo.rebufo = sesion.corriendo ? rebufoEn(ruta.dist, rivales.lista.filter(r => r.tipo !== 'fantasma' && !r.llego).map(r => r.tipo === 'bot' ? r : r.d), bots.length ? carrera.yoLat || 0 : 0) : 0;
   if (bots.length && sesion.corriendo) { apuntarPasos(carrera.pasosYo, carrera.yoPrev, ruta.dist); cruzarMetas('yo', carrera.yoPrev, ruta.dist); carrera.yoPrev = ruta.dist;
-    for (const b of bots) { apuntarPasos(b.pasos, b.d0, b.d); cruzarMetas(b, b.d0, b.d); if (b.lat != null && b.lane != null && !b.grupeta) b.lat += (b.lane - b.lat) * Math.min(1, dt / 1.5); } pintarClasif(); vigilarCarrera(dt); }
+    for (const b of bots) { apuntarPasos(b.pasos, b.d0, b.d); cruzarMetas(b, b.d0, b.d); if (b.lat != null && b.lane != null && !b.grupeta) { if (b.vLat == null) { b.vLat = 0.18 + 0.2 * Math.random(); b.fase = Math.random() * 6.28; b.fw = 0.12 + 0.3 * Math.random(); b.amp = 0.03 + 0.07 * Math.random(); }
+      b.lat = moverLateral(b.lat, b.lane + b.amp * Math.sin((sesion.tTotal || 0) * b.fw + b.fase), b.vLat, dt); } } pintarClasif(); vigilarCarrera(dt); }
   for (const r of rivales.lista) {
     if (r.tipo === 'bot') { if (r.mk) { const p = puntoEn(r.d); r.mk.setLatLng([p.lat, p.lon]); } continue; }
     if (r.tipo === 'fantasma') { const a = r.datos.d, x = sesion.tTotal / r.datos.paso, i = Math.floor(x);
@@ -1303,7 +1317,7 @@ function pintarListaRivales(){
     + (() => { const c = carreraConf(), gr = c.tipo === 'grupeta', n2 = x => String(x).replace('.', ',');
       return chip('carrera', c.activa, '#ffd33d', gr ? '🚴 Grupeta con bots' : '🏁 Carrera con bots', c.n + ' corredores · ' + (gr ? 'ritmo fijo ' + n2(c.ritmo) + ' w/kg, te esperan' : 'nivel ' + n2(c.nivel) + ' w/kg · puertos, metas volantes y meta'), false)
       + '<span class="confCarrera"><select id="cTipo"><option value="carrera"' + (gr ? '' : ' selected') + '>Carrera</option><option value="grupeta"' + (gr ? ' selected' : '') + '>Grupeta tranquila</option></select>'
-      + ' Corredores <select id="cN">' + [6, 9, 12, 15, 20].map(n => '<option' + (n === c.n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>'
+      + ' Corredores <select id="cN">' + [6, 9, 12, 15, 20, 30, 40, 60].map(n => '<option' + (n === c.n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>'
       + (gr ? ' Ritmo <input id="cRitmo" type="number" step="0.1" min="1" max="4" value="' + c.ritmo + '" style="width:4.5em"> w/kg'
             : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + '</span>'; })();
   L.querySelectorAll('.chipRival').forEach(c => c.onclick = e => { if (e.target.closest('.mini')) return; const id = c.dataset.id;
@@ -1390,7 +1404,36 @@ function tipoCorredor(b, ftp){
   const imax = mejor.dif.reduce((m, x, i, a) => Math.abs(x) > Math.abs(a[m]) ? i : m, 0); return Object.assign(mejor, { imax });
 }
 const fichaUI = { pest: 'resumen' };
-function abrirFicha(){ $('pantallaFicha').hidden = false; pintarFicha(); }
+function abrirFicha(){ $('pantallaFicha').hidden = false; pintarFicha(); montarVisor(); }
+// ---- tu muñeco en la ficha (20-nov, Carlos): el de Hugging Face (TRELLIS.2 + esqueleto y pedalada en Blender), girando con el ratón ----
+const visor = { u: null, r: null, esc: null, cam: null, mod: null, mez: null, rotY: 0.6, arr: null, t: 0, tPrev: 0 };
+async function montarVisor(){ const V = $('fiVisor');
+  if (!window.THREE || typeof GLTFLoaderSim === 'undefined') { V.hidden = true; return; }
+  V.hidden = fichaUI.pest !== 'resumen';
+  try { if (!(window.RECURSOS_SIM && RECURSOS_SIM.ciclistasReales)) { $('fiCredito').textContent = 'Cargando tu ciclista…'; await cargarScript('recursos/ciclistas-reales.js'); } }
+  catch(e) { $('fiCredito').textContent = 'No se ha podido cargar el muñeco.'; return; }
+  const R = RECURSOS_SIM.ciclistasReales, d = R[USUARIO] || R.carlos; if (!d) return;
+  if (!visor.r) { visor.r = new THREE.WebGLRenderer({ canvas: $('fiLienzo'), antialias: true, alpha: true }); visor.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); visor.r.setSize(300, 360, false);
+    visor.esc = new THREE.Scene(); visor.cam = new THREE.PerspectiveCamera(30, 300 / 360, 0.1, 50); visor.cam.position.set(0, 1.0, 4.6); visor.cam.lookAt(0, 0.85, 0);
+    visor.esc.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.1)); const sol = new THREE.DirectionalLight(0xffffff, 1.3); sol.position.set(2, 4, 3); visor.esc.add(sol);
+    const L = $('fiLienzo');
+    L.addEventListener('pointerdown', e => { visor.arr = { x: e.clientX, r: visor.rotY }; L.setPointerCapture(e.pointerId); L.style.cursor = 'grabbing'; });
+    L.addEventListener('pointermove', e => { if (visor.arr) visor.rotY = visor.arr.r + (e.clientX - visor.arr.x) * 0.012; });
+    L.addEventListener('pointerup', () => { visor.arr = null; L.style.cursor = 'grab'; visor.tSuelto = performance.now(); });
+    const bucle = now => { requestAnimationFrame(bucle); if ($('pantallaFicha').hidden || $('fiVisor').hidden || !visor.mod) return;
+      const dt = Math.min(0.05, (now - (visor.tPrev || now)) / 1000); visor.tPrev = now;
+      if (!visor.arr && now - (visor.tSuelto || 0) > 2500) visor.rotY += dt * 0.35;   // gira solo si no lo tocas
+      visor.mod.rotation.y = visor.rotY; if (visor.mez) visor.mez.update(dt); visor.r.render(visor.esc, visor.cam); };
+    requestAnimationFrame(bucle); }
+  if (visor.u === USUARIO) return; visor.u = USUARIO;
+  if (visor.mod) { visor.esc.remove(visor.mod); visor.mod = null; }
+  const gl = await new Promise((ok, mal) => new GLTFLoaderSim().parse(b64aBuffer(d.glb), '', ok, mal));
+  const m = gl.scene, g = new THREE.Group(); g.add(m);
+  m.traverse(o => { if (o.isMesh) { o.frustumCulled = false; } });
+  visor.mez = new THREE.AnimationMixer(m); if (gl.animations[0]) visor.mez.clipAction(gl.animations[0]).play(); visor.mez.update(0.01); m.updateMatrixWorld(true);
+  const caja = new THREE.Box3().setFromObject(m), tam = caja.getSize(new THREE.Vector3()), cen = caja.getCenter(new THREE.Vector3());
+  const k = 1.7 / Math.max(tam.y, 0.01); m.scale.setScalar(k); m.position.set(-cen.x * k, -caja.min.y * k, -cen.z * k);
+  visor.esc.add(g); visor.mod = g; $('fiCredito').textContent = U.nombre + ' · arrastra para girarlo'; $('fiCredito').title = d.credito || ''; }
 function pintarFicha(){
   const A = actividadesFicha(), ftp = FTP(), kg = pesoCiclista(), hoy = Date.now(), d90 = hoy - 90 * 864e5;
   const f1 = x => x == null ? '–' : x.toFixed(1).replace('.', ','), hm = s => Math.floor(s / 3600) + ' h ' + String(Math.round(s % 3600 / 60)).padStart(2, '0');
@@ -1455,7 +1498,7 @@ function pintarFicha(){
   }
   h += '<div class="pieFicha"><button class="sec" id="bImportarFit">⬆ Cargar salidas de Zwift (.fit)</button> <span class="sub">En la ventana, escribe <b>%LOCALAPPDATA%\\Zwift\\Activities</b> arriba, pulsa Enter, Ctrl+A y Abrir. Las que ya estén no se repiten.</span></div>';
   $('fiCuerpo').innerHTML = h;
-  $('fiCuerpo').querySelectorAll('.pestFicha button').forEach(b => b.onclick = () => { fichaUI.pest = b.dataset.p; pintarFicha(); });
+  $('fiCuerpo').querySelectorAll('.pestFicha button').forEach(b => b.onclick = () => { fichaUI.pest = b.dataset.p; pintarFicha(); montarVisor(); });
   $('bImportarFit').onclick = () => $('ficheroFit').click();
 }
 $('ficheroFit').onchange = e => { const F = [...e.target.files]; e.target.value = ''; if (F.length) importarFits(F); };
@@ -2241,15 +2284,25 @@ const grab = { rec:null, lienzo:null, ctx:null, trozos:[], t0:0, tEtq:0 };
 // Si el navegador no deja grabar la pestaña, se graba como antes: solo el 3D con el recuadro de datos.
 function guardarGrabacion(){ const mp4 = /mp4/.test(grab.tipo || ''), blob = new Blob(grab.trozos, { type: mp4 ? 'video/mp4' : 'video/webm' }), a = document.createElement('a'), f = new Date();
   a.href = URL.createObjectURL(blob); const d2 = n => String(n).padStart(2, '0'); a.download = 'simulador ' + (USUARIO === 'carlos' ? '' : U.nombre + ' ') + f.getFullYear() + '-' + d2(f.getMonth() + 1) + '-' + d2(f.getDate()) + ' ' + d2(f.getHours()) + '-' + d2(f.getMinutes()) + (mp4 ? '.mp4' : '.webm'); document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 60000); if (grab.flujo) grab.flujo.getTracks().forEach(t => t.stop()); grab.flujo = null; grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000); if (grab.flujo) grab.flujo.getTracks().forEach(t => t.stop()); grab.flujo = null; if (grab.audio) { grab.audio.mic.getTracks().forEach(t => t.stop()); grab.audio.ac.close(); grab.audio = null; } $('camRec').hidden = true; grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
   avisar('Vídeo guardado en Descargas (' + (blob.size / 1e6).toFixed(1).replace('.', ',') + ' MB).'); log('Grabación guardada: ' + a.download); }
+// 20-nov (Carlos): tu micrófono se graba con el vídeo para ir comentando; si hay sonido de la pestaña, se mezclan
+async function conMicro(flujo){ try {
+    const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    const ac = new AudioContext(), dest = ac.createMediaStreamDestination(); try { await ac.resume(); } catch(e) {}
+    if (ac.state !== 'running') throw new Error('el mezclador de audio no arranca');
+    if (flujo.getAudioTracks().length) ac.createMediaStreamSource(new MediaStream(flujo.getAudioTracks())).connect(dest);
+    ac.createMediaStreamSource(mic).connect(dest); grab.audio = { mic, ac };
+    return new MediaStream([...flujo.getVideoTracks(), ...dest.stream.getAudioTracks()]); }
+  catch(e) { log('Micrófono: ' + e.message + ' · grabo sin tu voz'); aviso3d('Sin micrófono: el vídeo va sin tu voz'); return flujo; } }
 function empezarGrabacion(flujo, pestana){
   // 20-nov: la pantalla entera en .mp4 salía rota (franjas de colores en todos los fotogramas, fallo de Chrome); en .webm sale bien. El 3D solo sí va en .mp4.
-  grab.tipo = (pestana ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9', 'video/webm'] : ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']).find(t => MediaRecorder.isTypeSupported(t));
-  grab.trozos = []; grab.pestana = pestana; grab.flujo = flujo;
+  grab.tipo = (pestana ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9', 'video/webm'] : ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']).find(t => MediaRecorder.isTypeSupported(t));
+  grab.trozos = []; grab.pestana = pestana; grab.flujo = flujo; $('camRec').hidden = false;
   grab.rec = new MediaRecorder(flujo, { mimeType: grab.tipo, videoBitsPerSecond: pestana ? 10000000 : 6000000 });
   grab.rec.ondataavailable = e => { if (e.data && e.data.size) grab.trozos.push(e.data); };
   grab.rec.onstop = guardarGrabacion;
+  if (grab.fuente) grab.fuente.getVideoTracks()[0].onended = () => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); };
   flujo.getVideoTracks()[0].onended = () => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); };   // si paras desde la barra de Chrome
   grab.rec.start(1000); grab.t0 = performance.now(); $('b3Grabar').classList.add('peligro'); $('b3Grabar').textContent = '⏹ Parar 0:00'; aviso3d(pestana ? 'Grabando la pantalla entera' : 'Grabando el 3D');
   if (pestana) grab.reloj = setInterval(() => { if (!grab.rec) { clearInterval(grab.reloj); return; } $('b3Grabar').textContent = '⏹ Parar ' + mmss((performance.now() - grab.t0) / 1000); }, 1000);
@@ -2261,12 +2314,12 @@ $('b3Grabar').onclick = async () => { $('b3Grabar').blur();
   if (!pulsado) aviso3d('Desde el mando solo se graba el 3D; para grabarlo todo pulsa ⏺ en pantalla o la tecla G');
   if (pulsado && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
     try { const flujo = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
-      empezarGrabacion(flujo, true); return; }
+      grab.fuente = flujo; empezarGrabacion(await conMicro(flujo), true); return; }
     catch(e) { if (e && e.name === 'NotAllowedError') { avisar('Grabación cancelada.'); return; } log('Grabar pestaña: ' + e.message + ' · grabo solo el 3D'); } }
   if (!v3.construido) { avisar('La grabación necesita la vista 3D construida.'); return; }
   const src = v3.r.domElement, w = Math.min(1280, src.width) & ~1, hh = Math.round(src.height * w / src.width) & ~1;
   grab.lienzo = document.createElement('canvas'); grab.lienzo.width = w; grab.lienzo.height = hh; grab.ctx = grab.lienzo.getContext('2d');
-  empezarGrabacion(grab.lienzo.captureStream(30), false);
+  const fl = grab.lienzo.captureStream(30); grab.fuente = fl; empezarGrabacion(await conMicro(fl), false);
 };
 function componerGrabacion(){
   if (!grab.rec || grab.pestana) return; const c = grab.ctx, W = grab.lienzo.width, H = grab.lienzo.height;
@@ -2278,6 +2331,21 @@ function componerGrabacion(){
   c.fillStyle = '#ffffff'; c.font = 'italic bold ' + Math.round(20 * k) + 'px "Segoe Script", cursive'; c.fillText('KhB', W - 70 * k, H - 22 * k);
   const ahora = performance.now(); if (ahora - grab.tEtq > 1000) { grab.tEtq = ahora; $('b3Grabar').textContent = '⏹ Parar ' + mmss((ahora - grab.t0) / 1000); }
 }
+// ---- webcam (20-nov, Carlos): ventanita siempre visible mientras esté encendida; sale en las grabaciones de pantalla entera ----
+const cam = { flujo: null };
+async function encenderCamara(){ try {
+    cam.flujo = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }, audio: false });
+    $('camVideo').srcObject = cam.flujo; $('camara').hidden = false; $('b3Camara').classList.add('activo'); $('b3Camara').textContent = '📷 Cámara ✓';
+    try { localStorage.setItem('simulador-camara', '1'); } catch(e) {} }
+  catch(e) { avisar('No he podido encender la cámara (' + e.message + '). Revisa el permiso de cámara de Chrome.', true); } }
+function apagarCamara(){ if (cam.flujo) cam.flujo.getTracks().forEach(t => t.stop()); cam.flujo = null; $('camVideo').srcObject = null; $('camara').hidden = true;
+  $('b3Camara').classList.remove('activo'); $('b3Camara').textContent = '📷 Cámara'; try { localStorage.removeItem('simulador-camara'); } catch(e) {} }
+$('b3Camara').onclick = () => { $('b3Camara').blur(); cam.flujo ? apagarCamara() : encenderCamara(); };
+$('camara').addEventListener('dblclick', () => { const c = $('camara'); c.classList.toggle('grande'); try { localStorage.setItem('simulador-camara-grande', c.classList.contains('grande') ? '1' : ''); } catch(e) {} });
+try { if (localStorage.getItem('simulador-camara-grande')) $('camara').classList.add('grande'); } catch(e) {}
+// si la dejaste encendida, vuelve a encenderse al entrar al 3D (Chrome ya tiene el permiso)
+{ let pedida = false; setInterval(() => { let quiere = false; try { quiere = !!localStorage.getItem('simulador-camara'); } catch(e) {}
+    if (quiere && !cam.flujo && !pedida && v3 && v3.activo) { pedida = true; encenderCamara().finally(() => { pedida = false; }); } }, 1500); }
 try { const c = localStorage.getItem('simulador-calidad'); if (c) $('calidad3d').value = c; } catch(e) {}
 $('calidad3d').onchange = () => { try { localStorage.setItem('simulador-calidad', $('calidad3d').value); } catch(e) {} $('calidad3d').blur(); aviso3d($('calidad3d').options[$('calidad3d').selectedIndex].text);
   if (v3.construyendo) { v3.rehacer = true; return; } v3.construido = false; v3.escena = null; v3.camPos = null; if (v3.activo) construir3D(); };
@@ -3645,7 +3713,7 @@ function ponerMenu(abrir){ menu3d.abierto = !!abrir; const en3d = !!(v3 && v3.ac
   document.addEventListener('click', e => { if (e.target && e.target.id === 'bMenu3d') { ponerMenu(!menu3d.abierto); e.target.blur(); } });
   document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && v3.activo && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) { ponerMenu(!menu3d.abierto); e.preventDefault(); } }); }
 // Ventanas que se arrastran y se recuerdan (20-nov, Carlos): cada aparato guarda dónde dejaste cada una; «↺ Recolocar ventanas» vuelve a lo de fábrica
-const VENTANAS = ['mandoTeclado', 'marcador', 'rivales3d', 'colDer3d', 'tramo3d', 'clasifPanel'];
+const VENTANAS = ['mandoTeclado', 'marcador', 'rivales3d', 'colDer3d', 'tramo3d', 'clasifPanel', 'camara'];
 function posGuardada(id){ try { return JSON.parse(localStorage.getItem('simulador-pos-' + id) || 'null'); } catch(e) { return null; } }
 function aplicarPos(el){ const p = posGuardada(el.id); if (!p) { delete el.dataset.movido; return; }
   const w = el.offsetWidth || 200, h = el.offsetHeight || 60, x = Math.max(0, Math.min(innerWidth - Math.min(w, 120), p.x)), y = Math.max(0, Math.min(innerHeight - 30, p.y));
