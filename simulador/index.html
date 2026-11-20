@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v131 · 🌬 viento: de cara, de espalda y de lado, también en la bici; grupeta con relevos y por zonas</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v132 · 🚩 neutralizada: tampoco tú pasas de la cabeza hasta los 400 m</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -1183,7 +1183,7 @@ const M_NEUTRA = 400;
 function neutralizada(){ const dentro = (ruta.dist - (carrera.dSalida || 0)) < M_NEUTRA || (sesion.tTotal || 0) < 5;
   if (!dentro && !carrera.salidaReal && sesion.corriendo) { carrera.salidaReal = true; aviso3d('🏁 ¡Salida real!'); narrar('alta', rivales.lista.some(r => r.grupeta) ? 'Fin de la neutralizada: la grupeta se pone a su ritmo' : '¡Bajan la bandera! Salida real: empieza la carrera', 'salidaReal'); }
   return dentro; }
-function prepararCarrera(){ Object.assign(carrera, { grupeta: null, turnoYo: 0, cuentaRel: 0, ajuste: 1, lento: 0, tFuera: 0, wYo: null, tAvPulso: 0, dSalida: ruta.dist || 0, salidaReal: false, yoLat: 0, yoLatObj: 0, tCarrilYo: 0, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
+function prepararCarrera(){ Object.assign(carrera, { grupeta: null, turnoYo: 0, cuentaRel: 0, ajuste: 1, lento: 0, tFuera: 0, wYo: null, tAvPulso: 0, dSalida: ruta.dist || 0, salidaReal: false, avNeutra: false, yoLat: 0, yoLatObj: 0, tCarrilYo: 0, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
   const bots = rivales.lista.filter(r => r.tipo === 'bot'); if (!bots.length || bots[0].grupeta) return;
   const T = ruta.total;
   for (const t of (tramos.lista || []).filter(t => t.tipo === 'subida')) carrera.metas.push({ d: Math.min(t.b, dMeta()), tipo: 'puerto', nombre: t.nombre.replace(/ \(km.*$/, ''), pts: /^Repecho/.test(t.nombre) ? [3, 2, 1] : [5, 3, 2, 1], pasados: [] });
@@ -2152,8 +2152,11 @@ const velYo = { v: 0, t: 0 };
 function velocidadRuta(){
   const ahora = performance.now(), dt = velYo.t ? Math.min(1, (ahora - velYo.t) / 1000) : 0; if (dt < 0.02 && velYo.t) return velYo.v; velYo.t = ahora;
   if (!sesion.corriendo || sesion.pausa) { velYo.v = 0; return 0; }
-  const w = Date.now() - vivo.tW < 3000 ? (vivo.w || 0) : 0, obj = velocidadFisica(w, pendAplicada(ruta.dist), vivo.rebufo, undefined, vientoCara(ruta.dist));
+  const w = Date.now() - vivo.tW < 3000 ? (vivo.w || 0) : 0; let obj = velocidadFisica(w, pendAplicada(ruta.dist), vivo.rebufo, undefined, vientoCara(ruta.dist));
   // arranque vivo (20-nov: «mi muñeco tarda en moverse»): desde parado casi inmediato; ya rodando, algo de inercia para no dar tirones
+  // neutralizada (20-nov, Carlos: «me ha dejado atacar antes»): tampoco tú pasas de la cabeza hasta los 400 m
+  if (neutralizada() && rivales.lista.length) { let cab = null; for (const r of rivales.lista) if (r.tipo !== 'fantasma' && r.d != null && (!cab || r.d > cab.d)) cab = r;
+    if (cab && ruta.dist > cab.d - 2) { obj = Math.min(obj, Math.max(1.5, (cab.v || velYo.v) - 0.3)); if (!carrera.avNeutra && obj < velYo.v - 0.3) { carrera.avNeutra = true; aviso3d('🚩 Neutralizada: no se ataca hasta los ' + M_NEUTRA + ' m'); } } }
   const tau = obj > velYo.v ? (velYo.v < 5.5 ? 1 : 2) : 5;
   velYo.v += (obj - velYo.v) * Math.min(1, dt / tau);
   return velYo.v;
