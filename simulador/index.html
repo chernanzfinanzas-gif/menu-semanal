@@ -317,7 +317,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v109 · grabar con toda la pantalla también con el menú recogido</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v113 · arrancada fuerte con tus vatios de la cuenta atrás; la pantalla entera se graba en .webm</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -1897,7 +1897,9 @@ function velocidadRuta(){
   const ahora = performance.now(), dt = velYo.t ? Math.min(1, (ahora - velYo.t) / 1000) : 0; if (dt < 0.02 && velYo.t) return velYo.v; velYo.t = ahora;
   if (!sesion.corriendo || sesion.pausa) { velYo.v = 0; return 0; }
   const w = Date.now() - vivo.tW < 3000 ? (vivo.w || 0) : 0, obj = velocidadFisica(w, pendAplicada(ruta.dist), vivo.rebufo);
-  velYo.v += (obj - velYo.v) * Math.min(1, dt / (obj > velYo.v ? 3 : 5));
+  // arranque vivo (20-nov: «mi muñeco tarda en moverse»): desde parado casi inmediato; ya rodando, algo de inercia para no dar tirones
+  const tau = obj > velYo.v ? (velYo.v < 5.5 ? 1 : 2) : 5;
+  velYo.v += (obj - velYo.v) * Math.min(1, dt / tau);
   return velYo.v;
 }
 // velocidad (m/s) a la que tus vatios igualan pendiente + rodadura + aire. 105 kg con bici. Búsqueda por bisección: estable en subidas y bajadas.
@@ -2178,7 +2180,8 @@ function guardarGrabacion(){ const mp4 = /mp4/.test(grab.tipo || ''), blob = new
   setTimeout(() => URL.revokeObjectURL(a.href), 60000); if (grab.flujo) grab.flujo.getTracks().forEach(t => t.stop()); grab.flujo = null; grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
   avisar('Vídeo guardado en Descargas (' + (blob.size / 1e6).toFixed(1).replace('.', ',') + ' MB).'); log('Grabación guardada: ' + a.download); }
 function empezarGrabacion(flujo, pestana){
-  grab.tipo = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
+  // 20-nov: la pantalla entera en .mp4 salía rota (franjas de colores en todos los fotogramas, fallo de Chrome); en .webm sale bien. El 3D solo sí va en .mp4.
+  grab.tipo = (pestana ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9', 'video/webm'] : ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']).find(t => MediaRecorder.isTypeSupported(t));
   grab.trozos = []; grab.pestana = pestana; grab.flujo = flujo;
   grab.rec = new MediaRecorder(flujo, { mimeType: grab.tipo, videoBitsPerSecond: pestana ? 10000000 : 6000000 });
   grab.rec.ondataavailable = e => { if (e.data && e.data.size) grab.trozos.push(e.data); };
@@ -3609,6 +3612,8 @@ function iniciarCuenta(){ if (cuenta.activa) return; cuenta.activa = true;
   const iv = setInterval(() => { k--; if (k > 0) { mostrar(k); pitido(880, 0.15); hablar(String(k)); return; }
     clearInterval(iv); mostrar('¡YA!'); pitido(1320, 0.55); hablar('¡Ya!'); setTimeout(() => { C.hidden = true; }, 900);
     cuenta.activa = false; cuenta.hecha = true; empezar();
+    // salida lanzada (20-nov, Carlos): ya vienes pedaleando en la cuenta atrás; en el «¡YA!» sales con una arrancada fuerte, no desde cero ni de golpe a tope
+    if (Date.now() - vivo.tW < 3000 && vivo.w > 0 && ruta.activa) { velYo.v = 0.4 * velocidadFisica(vivo.w, pendAplicada(ruta.dist), 0); velYo.t = performance.now(); }   // arrancada fuerte: 40 % de golpe y el resto en 2–3 s
     if (cuenta.camPrev) { const prev = cuenta.camPrev; cuenta.camPrev = null; setTimeout(() => { if ($('camara3d').value === 'dron') $('camara3d').value = prev; }, 10000); } }, 1000); }
 // controles de la narración
 { const sel = $('narracion3d'), bv = $('b3Voz'); if (sel) { sel.value = NARR.nivel; sel.onchange = () => { NARR.nivel = sel.value; try { localStorage.setItem('simulador-narracion', sel.value); } catch(e) {} sel.blur(); }; }
