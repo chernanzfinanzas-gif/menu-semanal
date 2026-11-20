@@ -317,7 +317,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v116 · animales sin desplomarse; subida a intervals; pelotón en tres filas</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v118 · clasificación con diferencias reales; el pelotón cabe en la vía; subida a intervals</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -931,7 +931,7 @@ function rebufoEn(d, otros, lat){ lat = lat || 0; let rueda = 0, n = 0, izq = 0,
 // elegir carril (bots y tú): no meterse donde hay alguien al lado, no ir a chocar con uno más lento, y buscar una buena rueda
 function elegirCarril(s, otros){ let mejor = null; const actual = s.laneObj ?? s.lat ?? 0;
   for (const L of [-CARRIL, 0, CARRIL]) { let p = Math.abs(L - actual) < 0.1 ? 1.5 : 0;
-    for (const o of otros) { if (o === s || o.lat == null || o.llego) continue; const gap = o.d - s.d; if (Math.abs(o.lat - L) >= 0.55) continue;
+    for (const o of otros) { if (o === s || o.lat == null || o.llego) continue; const gap = o.d - s.d, ol = o.lane != null && !o.grupeta ? o.lane : o.lat; if (Math.abs(o.lat - L) >= 0.55 && Math.abs(ol - L) >= 0.55) continue;   // donde está o adonde va
       if (gap > -1.5 && gap < 1.6) p -= 10;                                   // ocupado: alguien justo ahí
       else if (gap >= 1.6 && gap < 7 && (o.v || 0) < (s.v || 0) - 0.4) p -= 4;  // te lo comerías: mejor por otro lado
       else if (gap >= 1.6 && gap < 3.5) p += 2; }                            // buena rueda
@@ -1134,14 +1134,22 @@ function cruzarMetas(quien, d0, d1){
     if (yo && m.tipo !== 'meta') narrar('alta', (m.tipo === 'puerto' ? '⛰ ' : '⚡ ') + m.nombre + ': pasas ' + (k + 1) + 'º' + (p ? ' · +' + p + (p === 1 ? ' punto' : ' puntos') : (k === 0 ? '' : '. Sin premio esta vez')), 'paso' + m.d);
     else if (!yo && k === 0 && m.tipo !== 'meta' && Math.abs(quien.d - ruta.dist) < 2000) narrar('alta', (m.tipo === 'puerto' ? '⛰ ' : '⚡ ') + quien.nombre + ' pasa primero por ' + m.nombre, 'pri' + m.d); } }
 const apuntarPasos = (arr, d0, d1) => { for (let k = Math.floor(d0 / 100) + 1; k <= Math.floor(d1 / 100); k++) arr[k] = sesion.tTotal; };
+// diferencia = cuánto hace que el primero pasó por el punto exacto donde estás ahora (como en la tele).
+// 20-nov: antes se sumaba el tiempo desde el último poste de 100 m y salían «+0:11» a todos sin sentido.
 function difTiempo(x, lider){ if (x === lider) return 0; if (x.llego && lider.llego) return x.tLlegada - lider.tLlegada;
-  const k = Math.floor(x.d / 100); return lider.pasos[k] != null && x.pasos[k] != null ? x.pasos[k] - lider.pasos[k] + (sesion.tTotal - x.pasos[k]) : null; }
+  if (lider.d <= x.d) return 0;
+  const k = Math.floor(x.d / 100), t0 = lider.pasos[k], t1 = lider.pasos[k + 1]; if (t0 == null) return null;
+  const fr = (x.d - k * 100) / 100, tFin = t1 != null ? t1 : sesion.tTotal, dFin = t1 != null ? 100 : Math.max(1, lider.d - k * 100);
+  const tLider = t0 + (tFin - t0) * Math.min(1, (x.d - k * 100) / dFin);
+  return Math.max(0, sesion.tTotal - tLider); }
 function pintarClasif(forzar){ const P = $('clasifPanel'); if (!P || P.hidden) return; if (!forzar && Date.now() - carrera.tPanel < 1000) return; carrera.tPanel = Date.now();
   const C = clasificacion(), lid = C[0], sig = carrera.metas.find(m => m.d > ruta.dist), f1 = x => x.toFixed(1).replace('.', ',');
   const grupeta = rivales.lista.some(r => r.tipo === 'bot' && r.grupeta);
+  // como en carrera de verdad: los que van en el mismo grupo (menos de 2 s entre uno y el siguiente) tienen el mismo tiempo que su cabeza
+  const vG = Math.max(2, velocidadRuta() || 6), cabDe = []; C.forEach((x, i) => { const prev = C[i - 1]; cabDe[i] = i && !x.llego && !prev.llego && (prev.d - x.d) / vG < 2 ? cabDe[i - 1] : x; });
   P.innerHTML = '<div class="cab">🏁 ' + (grupeta ? 'Grupeta' : 'Clasificación') + ' <small>' + (sig && !grupeta ? 'próximo: ' + (sig.tipo === 'puerto' ? '⛰ ' : sig.tipo === 'sprint' ? '⚡ ' : '🏁 ') + sig.nombre + ' a ' + f1((sig.d - ruta.dist) / 1000) + ' km' : '') + '</small><button class="mini" onclick="alternarClasif()">✕</button></div>'
-    + '<table><tr><th></th><th>Corredor</th><th>Dif.</th>' + (grupeta ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => { const dt = difTiempo(x, lid);
-      return '<tr' + (x.yo ? ' class="yo"' : '') + '><td>' + (i + 1) + '</td><td>' + (x.yo ? 'Tú' : '<span style="color:' + x.color + '">●</span> ' + x.nombre) + (x.llego ? ' 🏁' : '') + '</td><td>' + (i === 0 ? '—' : dt != null ? '+' + hms(Math.max(0, dt)) : '+' + Math.round(lid.d - x.d) + ' m') + '</td>'
+    + '<table><tr><th></th><th>Corredor</th><th>Dif.</th>' + (grupeta ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => { const dt = difTiempo(cabDe[i], lid);
+      return '<tr' + (x.yo ? ' class="yo"' : '') + '><td>' + (i + 1) + '</td><td>' + (x.yo ? 'Tú' : '<span style="color:' + x.color + '">●</span> ' + x.nombre) + (x.llego ? ' 🏁' : '') + '</td><td>' + (i === 0 ? '—' : cabDe[i] === lid ? 'mismo t.' : dt != null ? '+' + hms(Math.max(0, dt)) : '+' + Math.round(lid.d - x.d) + ' m') + '</td>'
         + (grupeta ? '' : '<td>' + (x.mont || '') + '</td><td>' + (x.regu || '') + '</td>') + '</tr>'; }).join('') + '</table>'; }
 function alternarClasif(){ const P = $('clasifPanel'); if (P.parentNode !== document.body) document.body.appendChild(P); P.hidden = !P.hidden; pintarClasif(true); pintarRivales(); }
 // En carrera la meta está 200 m antes del final del recorrido: se cruza y se sigue rodando
@@ -1249,6 +1257,9 @@ function cartelNombre(txt, color, estado){ const c = document.createElement('can
   x.fillStyle = '#fff'; x.font = 'bold 28px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 134, 33);
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true })); s.scale.set(2.4, 0.6, 1); s.position.y = 2.45; s.material.sizeAttenuation = true; s.renderOrder = 10; return s; }
 function moverRivales3D(dt, dYo){
+  // carteles (20-nov: «aquí molestan los nombres»): sin cartel a menos de 40 m; de cada grupo, solo el que va en cabeza
+  const conCartel = new Set(); { let ultimo = null; for (const b of rivales.lista.filter(r => r.tipo === 'bot' && r.dVis != null).sort((a, b) => b.dVis - a.dVis)) {
+    if (Math.abs(b.dVis - dYo) < 40) { ultimo = b; continue; } if (!ultimo || ultimo.dVis - b.dVis > 15) conCartel.add(b); ultimo = b; } }
   rivales.lista.forEach((r, k) => {
     if (!r.g || r.esc !== v3.escena) { const col = new THREE.Color(r.color).getHex();
       const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: 0xffffff, casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
@@ -1257,8 +1268,8 @@ function moverRivales3D(dt, dYo){
       r.cartel = cartelNombre(r.nombre, r.color); r.g.add(r.cartel); v3.escena.add(r.g); r.esc = v3.escena; r.dVis = r.d; }
     r.dVis += (r.d - r.dVis) * Math.min(1, dt * 2.5);
     const lejos = Math.abs(r.dVis - dYo); r.g.visible = lejos < 700 && r.dVis > 2; if (!r.g.visible) return;
-    if (r.cartel) r.cartel.visible = lejos > 10 && (r.tipo !== 'bot' || lejos < 250);   // en el pelotón, sin carteles encima de la cámara
-    const lat = r.tipo === 'bot' ? (v3.latBase ?? 0.5) + (r.lat ?? ((k % 3) - 1) * CARRIL) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
+    if (r.cartel) r.cartel.visible = lejos > 10 && (r.tipo !== 'bot' || (lejos < 250 && conCartel.has(r)));   // en el pelotón, sin carteles encima de la cámara
+    const lat = r.tipo === 'bot' ? (v3.latBase ?? 0) + (r.lat ?? ((k % 3) - 1) * CARRIL) * (v3.kFilas ?? 1) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
     colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), lat, 1, 0.18);
     if (r.tipo === 'bot' && !r.grupeta && sesion.corriendo) { const est = colorRes(r);
       if (r.cartel && r.cartelEst !== est) { r.g.remove(r.cartel); r.cartel = cartelNombre(r.nombre, r.color, est); r.g.add(r.cartel); r.cartelEst = est; }
@@ -2215,7 +2226,7 @@ $('escenario3d').onchange = () => {
   try { localStorage.setItem('simulador-escenario', $('escenario3d').value); } catch(e) {}
   $('escenario3d').blur(); aviso3d($('escenario3d').options[$('escenario3d').selectedIndex].text);
   if (v3.construyendo) { v3.rehacer = true; return; }
-  v3.construido = false; v3.escena = null; v3.camPos = null; v3.latYo = null; v3.latBase = null; v3.viento = null; if (v3.activo) construir3D();
+  v3.construido = false; v3.escena = null; v3.camPos = null; v3.latYo = null; v3.latBase = null; v3.kFilas = null; v3.viento = null; if (v3.activo) construir3D();
 };
 $('b3Pausa').onclick = () => $('bPausa').click();
 // ---- grabación del 3D (MediaRecorder): se compone cada imagen con un recuadro de datos y se descarga al parar ----
@@ -3567,8 +3578,11 @@ function bucle3D(t){
   const d = Math.max(8, Math.min(ruta.total - 30, v3.dVis));
   const aqui = puntoVia(d), delante = puntoVia(d + 6);
   { // ir por la derecha de la vía (en carretera, cerca del borde); el cambio entre tramos es suave
-    const hayBots = rivales.lista.some(r => r.tipo === 'bot'), latObj = hayBots ? Math.max(0, anchoEn(d) - 1.0 - CARRIL) : Math.max(0.4, anchoEn(d) - 1.0);
-    if (v3.latBase == null) v3.latBase = latObj; v3.latBase += (latObj - v3.latBase) * Math.min(1, dt * 1.5); v3.latYo = v3.latBase + (hayBots ? carrera.yoLat || 0 : 0);
+    // con bots el grupo va centrado en la vía y, si es estrecha (carril bici), las tres filas se juntan para no pisar la hierba (20-nov)
+    const hayBots = rivales.lista.some(r => r.tipo === 'bot'), latObj = hayBots ? 0 : Math.max(0.4, anchoEn(d) - 1.0);
+    const kObj = hayBots ? Math.min(1, Math.max(0.45, (0.7 * anchoEn(d) - 0.3) / (CARRIL + 0.15))) : 1;
+    if (v3.latBase == null) { v3.latBase = latObj; v3.kFilas = kObj; } v3.latBase += (latObj - v3.latBase) * Math.min(1, dt * 1.5); v3.kFilas += (kObj - v3.kFilas) * Math.min(1, dt * 1.5);
+    v3.latYo = v3.latBase + (hayBots ? (carrera.yoLat || 0) * v3.kFilas : 0);
     const fx = delante.x - aqui.x, fz = delante.z - aqui.z, L = Math.hypot(fx, fz) || 1, ox = -fz / L * v3.latYo, oz = fx / L * v3.latYo;
     aqui.x += ox; aqui.z += oz; delante.x += ox; delante.z += oz; v3.offYo = { x: ox, z: oz }; }
   v3.ciclista.position.copy(aqui); v3.ciclista.position.y += 0.18; v3.ciclista.lookAt(delante.x, delante.y + 0.18, delante.z);   // la bici se inclina con la pendiente
