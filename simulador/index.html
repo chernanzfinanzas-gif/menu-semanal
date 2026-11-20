@@ -266,6 +266,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   }
   #camara { position:fixed; left:330px; bottom:34px; z-index:1004; width:240px; aspect-ratio:4/3; border-radius:14px; overflow:hidden; border:2px solid rgba(255,255,255,.75); box-shadow:0 6px 20px rgba(0,0,0,.5); background:#000; }
   #camara.grande { width:360px; } #camara video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; pointer-events:none; }
+  #camara #camOtra { position:absolute; top:6px; right:6px; padding:2px 7px; font-size:14px; border-radius:8px; background:rgba(13,17,23,.75); color:#fff; border:1px solid #30363d; cursor:pointer; opacity:.25; }
+  #camara:hover #camOtra { opacity:1; } #camara #camNombre { position:absolute; bottom:5px; left:8px; right:8px; color:#fff; font:600 11px system-ui; text-shadow:0 1px 3px #000; opacity:0; transition:opacity .4s; pointer-events:none; } #camara #camNombre.ver { opacity:1; }
   #camara .camRec { position:absolute; top:6px; left:8px; color:#ff5555; font:700 12px system-ui; text-shadow:0 1px 3px #000; }
   #pantallaFicha { position:fixed; inset:0; z-index:6000; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
   #pantallaFicha .cajaRes { max-width:1150px; margin:0 auto; background:#0d1117; border:1px solid #30363d; border-radius:16px; padding:18px 24px 22px; }
@@ -322,7 +324,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v121 · tu muñeco en la ficha; carreras de hasta 60; webcam y micrófono en las grabaciones</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v122 · elegir cámara (🔁); tu muñeco en la ficha; carreras de hasta 60; webcam y micrófono</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -418,7 +420,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <h3 id="resProgTit">Progreso</h3><div id="resProgreso"></div>
   <div class="sub nota" id="resNota"></div>
 </div></div>
-<div id="camara" hidden><video id="camVideo" autoplay muted playsinline></video><div class="camRec" id="camRec" hidden>● REC</div></div>
+<div id="camara" hidden><video id="camVideo" autoplay muted playsinline></video><div class="camRec" id="camRec" hidden>● REC</div><button id="camOtra" title="Cambiar de cámara (se recuerda la elegida)">🔁</button><div id="camNombre"></div></div>
 <div id="pantallaFicha" hidden><div class="cajaRes">
   <div class="cabRes"><div><h2 id="fiTitulo">Ficha</h2><div class="sub" id="fiSub"></div></div><button id="bCerrarFicha">Cerrar</button></div>
   <div id="fiVisor" hidden><canvas id="fiLienzo" width="300" height="360"></canvas><div class="sub" id="fiCredito">Arrastra para girarlo</div></div>
@@ -1405,17 +1407,17 @@ function tipoCorredor(b, ftp){
 }
 const fichaUI = { pest: 'resumen' };
 function abrirFicha(){ $('pantallaFicha').hidden = false; pintarFicha(); montarVisor(); }
-// ---- tu muñeco en la ficha (20-nov, Carlos): el de Hugging Face (TRELLIS.2 + esqueleto y pedalada en Blender), girando con el ratón ----
+// ---- tu muñeco en la ficha (20-nov, Carlos): el de Hugging Face DE PIE (TRELLIS.2, recursos/munecos-pie.js), girando con el ratón ----
 const visor = { u: null, r: null, esc: null, cam: null, mod: null, mez: null, rotY: 0.6, arr: null, t: 0, tPrev: 0 };
 async function montarVisor(){ const V = $('fiVisor');
   if (!window.THREE || typeof GLTFLoaderSim === 'undefined') { V.hidden = true; return; }
   V.hidden = fichaUI.pest !== 'resumen';
-  try { if (!(window.RECURSOS_SIM && RECURSOS_SIM.ciclistasReales)) { $('fiCredito').textContent = 'Cargando tu ciclista…'; await cargarScript('recursos/ciclistas-reales.js'); } }
+  try { if (!(window.RECURSOS_SIM && RECURSOS_SIM.munecosPie)) { $('fiCredito').textContent = 'Cargando tu muñeco…'; await cargarScript('recursos/munecos-pie.js'); } }
   catch(e) { $('fiCredito').textContent = 'No se ha podido cargar el muñeco.'; return; }
-  const R = RECURSOS_SIM.ciclistasReales, d = R[USUARIO] || R.carlos; if (!d) return;
+  const R = RECURSOS_SIM.munecosPie, d = R[USUARIO] || R.carlos; if (!d) return;
   if (!visor.r) { visor.r = new THREE.WebGLRenderer({ canvas: $('fiLienzo'), antialias: true, alpha: true }); visor.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); visor.r.setSize(300, 360, false);
-    visor.esc = new THREE.Scene(); visor.cam = new THREE.PerspectiveCamera(30, 300 / 360, 0.1, 50); visor.cam.position.set(0, 1.0, 4.6); visor.cam.lookAt(0, 0.85, 0);
-    visor.esc.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.1)); const sol = new THREE.DirectionalLight(0xffffff, 1.3); sol.position.set(2, 4, 3); visor.esc.add(sol);
+    visor.esc = new THREE.Scene(); visor.cam = new THREE.PerspectiveCamera(30, 300 / 360, 0.1, 50); visor.cam.position.set(0, 0.95, 4.4); visor.cam.lookAt(0, 0.85, 0);
+    visor.esc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.8)); const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(2, 4, 3); visor.esc.add(sol); const contra = new THREE.DirectionalLight(0xbfd4ff, 0.8); contra.position.set(-3, 2, -3); visor.esc.add(contra);
     const L = $('fiLienzo');
     L.addEventListener('pointerdown', e => { visor.arr = { x: e.clientX, r: visor.rotY }; L.setPointerCapture(e.pointerId); L.style.cursor = 'grabbing'; });
     L.addEventListener('pointermove', e => { if (visor.arr) visor.rotY = visor.arr.r + (e.clientX - visor.arr.x) * 0.012; });
@@ -2334,13 +2336,22 @@ function componerGrabacion(){
 // ---- webcam (20-nov, Carlos): ventanita siempre visible mientras esté encendida; sale en las grabaciones de pantalla entera ----
 const cam = { flujo: null };
 async function encenderCamara(){ try {
-    cam.flujo = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }, audio: false });
+    let id = null; try { id = localStorage.getItem('simulador-camara-id'); } catch(e) {}
+    const v = { width: { ideal: 640 }, height: { ideal: 480 } }; if (id) v.deviceId = { exact: id }; else v.facingMode = 'user';
+    try { cam.flujo = await navigator.mediaDevices.getUserMedia({ video: v, audio: false }); }
+    catch(e) { if (!id) throw e; delete v.deviceId; cam.flujo = await navigator.mediaDevices.getUserMedia({ video: v, audio: false }); }   // la elegida no está enchufada: la que haya
+    const tr = cam.flujo.getVideoTracks()[0]; $('camNombre').textContent = tr ? tr.label : ''; $('camNombre').classList.add('ver'); setTimeout(() => $('camNombre').classList.remove('ver'), 3000);
     $('camVideo').srcObject = cam.flujo; $('camara').hidden = false; $('b3Camara').classList.add('activo'); $('b3Camara').textContent = '📷 Cámara ✓';
     try { localStorage.setItem('simulador-camara', '1'); } catch(e) {} }
   catch(e) { avisar('No he podido encender la cámara (' + e.message + '). Revisa el permiso de cámara de Chrome.', true); } }
 function apagarCamara(){ if (cam.flujo) cam.flujo.getTracks().forEach(t => t.stop()); cam.flujo = null; $('camVideo').srcObject = null; $('camara').hidden = true;
   $('b3Camara').classList.remove('activo'); $('b3Camara').textContent = '📷 Cámara'; try { localStorage.removeItem('simulador-camara'); } catch(e) {} }
 $('b3Camara').onclick = () => { $('b3Camara').blur(); cam.flujo ? apagarCamara() : encenderCamara(); };
+// 🔁 pasa a la siguiente cámara (portátil, Trust USB…) y la recuerda
+$('camOtra').onclick = async e => { e.stopPropagation(); const lista = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+  if (lista.length < 2) { avisar('Solo veo una cámara. ¿Está enchufada la otra?'); return; }
+  const actual = cam.flujo && cam.flujo.getVideoTracks()[0] ? cam.flujo.getVideoTracks()[0].getSettings().deviceId : null, i = lista.findIndex(d => d.deviceId === actual), sig = lista[(i + 1) % lista.length];
+  try { localStorage.setItem('simulador-camara-id', sig.deviceId); } catch(e) {} if (cam.flujo) cam.flujo.getTracks().forEach(t => t.stop()); cam.flujo = null; await encenderCamara(); };
 $('camara').addEventListener('dblclick', () => { const c = $('camara'); c.classList.toggle('grande'); try { localStorage.setItem('simulador-camara-grande', c.classList.contains('grande') ? '1' : ''); } catch(e) {} });
 try { if (localStorage.getItem('simulador-camara-grande')) $('camara').classList.add('grande'); } catch(e) {}
 // si la dejaste encendida, vuelve a encenderse al entrar al 3D (Chrome ya tiene el permiso)
