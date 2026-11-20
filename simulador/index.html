@@ -269,6 +269,12 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #camara #camOtra { position:absolute; top:6px; right:6px; padding:2px 7px; font-size:14px; border-radius:8px; background:rgba(13,17,23,.75); color:#fff; border:1px solid #30363d; cursor:pointer; opacity:.25; }
   #camara:hover #camOtra { opacity:1; } #camara #camNombre { position:absolute; bottom:5px; left:8px; right:8px; color:#fff; font:600 11px system-ui; text-shadow:0 1px 3px #000; opacity:0; transition:opacity .4s; pointer-events:none; } #camara #camNombre.ver { opacity:1; }
   #camara .camRec { position:absolute; top:6px; left:8px; color:#ff5555; font:700 12px system-ui; text-shadow:0 1px 3px #000; }
+  #ayudaTeclas { position:fixed; inset:0; z-index:6500; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
+  #ayudaTeclas .cajaRes { max-width:980px; margin:0 auto; background:#0d1117; border:1px solid #30363d; border-radius:16px; padding:18px 24px 22px; }
+  #ayudaTeclas .cabRes { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; } #ayudaTeclas h2 { margin:0; }
+  #ayudaCuerpo { display:grid; grid-template-columns:1fr 1fr; gap:4px 28px; margin-top:14px; } #ayudaCuerpo h3 { grid-column:1/-1; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:#8b949e; margin:12px 0 2px; }
+  #ayudaCuerpo .t { display:flex; gap:10px; align-items:baseline; font-size:15px; padding:3px 0; border-bottom:1px solid #21262d; } #ayudaCuerpo kbd { min-width:58px; text-align:center; background:#21262d; border:1px solid #30363d; border-bottom-width:2px; border-radius:6px; padding:1px 6px; font:600 13px system-ui; color:#e8eaed; }
+  @media (max-width:800px) { #ayudaCuerpo { grid-template-columns:1fr; } }
   #pantallaFicha { position:fixed; inset:0; z-index:6000; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
   #pantallaFicha .cajaRes { max-width:1150px; margin:0 auto; background:#0d1117; border:1px solid #30363d; border-radius:16px; padding:18px 24px 22px; }
   #pantallaFicha h3 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:#8b949e; margin:18px 0 8px; }
@@ -324,7 +330,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v122 · elegir cámara (🔁); tu muñeco en la ficha; carreras de hasta 60; webcam y micrófono</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v123 · todo con teclas (H: ayuda); elegir cámara (🔁); tu muñeco en la ficha; carreras de hasta 60</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -421,6 +427,10 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <div class="sub nota" id="resNota"></div>
 </div></div>
 <div id="camara" hidden><video id="camVideo" autoplay muted playsinline></video><div class="camRec" id="camRec" hidden>● REC</div><button id="camOtra" title="Cambiar de cámara (se recuerda la elegida)">🔁</button><div id="camNombre"></div></div>
+<div id="ayudaTeclas" hidden><div class="cajaRes">
+  <div class="cabRes"><div><h2>⌨ Teclas</h2><div class="sub">Todo se maneja sin la bici ni los Zwift Play. Esc o H para cerrar.</div></div><button onclick="alternarAyudaTeclas()">Cerrar</button></div>
+  <div id="ayudaCuerpo"></div>
+  <div style="margin-top:12px"><button class="sec" onclick="alternarAyudaTeclas(); if (v3 && v3.activo) alternarBotones(); else alternarMandosPagina();">🎮 Ver los botones de los mandos</button></div></div></div>
 <div id="pantallaFicha" hidden><div class="cajaRes">
   <div class="cabRes"><div><h2 id="fiTitulo">Ficha</h2><div class="sub" id="fiSub"></div></div><button id="bCerrarFicha">Cerrar</button></div>
   <div id="fiVisor" hidden><canvas id="fiLienzo" width="300" height="360"></canvas><div class="sub" id="fiCredito">Arrastra para girarlo</div></div>
@@ -468,6 +478,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     <button id="b3Empezar">▶ Empezar</button>
     <select id="narracion3d" title="Narración de la carrera" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="mucha">Narración: mucha</option><option value="normal">Narración: normal</option><option value="poca">Narración: poca</option><option value="nada">Narración: nada</option></select>
     <button class="sec" id="b3Voz" title="Narración por voz">🔊</button>
+    <button class="sec" id="b3Teclas" onclick="this.blur(); alternarAyudaTeclas()" title="Todas las teclas y los botones de los mandos (tecla H)">⌨ Teclas (H)</button>
     <button class="sec" id="b3Recolocar" onclick="recolocarVentanas()" title="Devuelve todas las ventanas a su sitio de fábrica">↺ Recolocar ventanas</button>
     <button class="sec" id="b3Clasif" onclick="alternarClasif()" title="Clasificación de la carrera: puesto, diferencias, montaña y regularidad">🏁 Clasificación</button>
     <button class="sec" id="b3Camara" title="Tu webcam en una ventanita que sale en las grabaciones (doble clic: más grande o más pequeña)">📷 Cámara</button>
@@ -512,7 +523,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <div class="sub" style="margin-top:6px">En entrenamiento no hay vista 3D, por eso los Play no tienen función. La paleta lateral derecha no tiene función. Teclado: R = recorrer sin bici.</div>
 </div>
 
-<div class="panel" id="panelRegistro"><div class="fila"><b style="font-size:13px">Registro técnico</b><button class="sec" id="bVerMandos" style="font-size:13px;padding:5px 10px">🎮 Pulsa freno 2 segundos para ver asignación de botones</button></div><pre id="log"></pre></div>
+<div class="panel" id="panelRegistro"><div class="fila"><b style="font-size:13px">Registro técnico</b><button class="sec" id="bVerMandos" style="font-size:13px;padding:5px 10px">🎮 Botones de los mandos (o freno 2 s) · ⌨ tecla H: todas las teclas</button></div><pre id="log"></pre></div>
 
 <script>
 // ===================== utilidades =====================
@@ -2318,11 +2329,14 @@ $('b3Grabar').onclick = async () => { $('b3Grabar').blur();
     try { const flujo = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
       grab.fuente = flujo; empezarGrabacion(await conMicro(flujo), true); return; }
     catch(e) { if (e && e.name === 'NotAllowedError') { avisar('Grabación cancelada.'); return; } log('Grabar pestaña: ' + e.message + ' · grabo solo el 3D'); } }
+  grabarLienzo3d();
+};
+// solo el 3D con el recuadro de datos (tecla T, o el mando)
+async function grabarLienzo3d(){ if (grab.rec) { grab.rec.stop(); return; }
   if (!v3.construido) { avisar('La grabación necesita la vista 3D construida.'); return; }
   const src = v3.r.domElement, w = Math.min(1280, src.width) & ~1, hh = Math.round(src.height * w / src.width) & ~1;
   grab.lienzo = document.createElement('canvas'); grab.lienzo.width = w; grab.lienzo.height = hh; grab.ctx = grab.lienzo.getContext('2d');
-  const fl = grab.lienzo.captureStream(30); grab.fuente = fl; empezarGrabacion(await conMicro(fl), false);
-};
+  const fl = grab.lienzo.captureStream(30); grab.fuente = fl; empezarGrabacion(await conMicro(fl), false); }
 function componerGrabacion(){
   if (!grab.rec || grab.pestana) return; const c = grab.ctx, W = grab.lienzo.width, H = grab.lienzo.height;
   c.drawImage(v3.r.domElement, 0, 0, W, H);
@@ -2333,6 +2347,47 @@ function componerGrabacion(){
   c.fillStyle = '#ffffff'; c.font = 'italic bold ' + Math.round(20 * k) + 'px "Segoe Script", cursive'; c.fillText('KhB', W - 70 * k, H - 22 * k);
   const ahora = performance.now(); if (ahora - grab.tEtq > 1000) { grab.tEtq = ahora; $('b3Grabar').textContent = '⏹ Parar ' + mmss((ahora - grab.t0) / 1000); }
 }
+// ---- TECLAS (20-nov, Carlos): todo se maneja sin la bici ni los Zwift Play ----
+// Las del pedaleo simulado (Z X C V B, 0, + −, ↑ ↓, Espacio) no se tocan: solo valen mientras pedaleas con el teclado.
+const TECLAS = [
+  ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente']]],
+  ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +']]],
+  ['Pantalla', [['M', 'Menú ☰'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
+  ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
+  ['Grabar y sonido', [['G', 'Grabar la pantalla entera (con micrófono)'], ['T', 'Grabar solo el 3D (con micrófono)'], ['Y', 'Voz de la narración']]],
+  ['Pedaleo simulado (⌨ en el menú)', [['↑ ↓  + −', '±10 W (con Mayús ±50 W)'], ['Z X C V B', '55 · 70 · 88 · 100 · 120 % de tu FTP'], ['Espacio', 'A tope mientras lo mantienes'], ['0', 'Dejar de pedalear']]],
+  ['Ayuda', [['H  F1  ?', 'Esta ventana']]]];
+function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !== document.body) document.body.appendChild(A);
+  if (A.hidden) $('ayudaCuerpo').innerHTML = TECLAS.map(([g, L]) => '<h3>' + g + '</h3>' + L.map(([k, t]) => '<div class="t"><kbd>' + k + '</kbd><span>' + t + '</span></div>').join('')).join('');
+  A.hidden = !A.hidden; }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+  const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
+  if (pedaleo && (/^[zxcvb0+\- ]$/.test(kl) || k === 'ArrowUp' || k === 'ArrowDown')) return;   // son del pedaleo simulado
+  if (kl === 'r' || kl === 'g' || kl === 'm') return;   // ya tienen su propio manejo
+  const en3d = !!(v3 && v3.activo); let hecho = true;
+  if (/^[1-6]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
+  else if ((k === 'ArrowRight' || k === 'ArrowLeft') && en3d) cambiarCamara(k === 'ArrowRight' ? 1 : -1);
+  else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
+  else if (k === 'Escape') { for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; break; } } }
+  else if (k === 'Enter') { if (!sesion.corriendo) { const b = en3d ? $('b3Empezar') : $('bEmpezar'); if (b && !b.disabled) b.click(); } else hecho = false; }
+  else if (kl === 'p') alternarPausa();
+  else if (k === 'End') { if (sesion.corriendo && !$('bTerminar').disabled) $('bTerminar').click(); }
+  else if (kl === 's') { if (sesion.corriendo && !ruta.activa) saltarBloque(); }
+  else if (k === ']' || k === '[') pulsarAccion(k === ']' ? 'dif+' : 'dif-', true, 'teclado');
+  else if (kl === 'a') pulsarAccion('mapa', true, 'teclado');
+  else if (kl === 'd') pulsarAccion('datos', true, 'teclado');
+  else if (kl === 'q' && en3d) pulsarAccion('calidad', true, 'teclado');
+  else if (kl === 'e' && en3d) pulsarAccion('escenario', true, 'teclado');
+  else if (kl === 'n' && en3d) pulsarAccion('ciclista', true, 'teclado');
+  else if (kl === 't' && en3d) grabarLienzo3d();
+  else if (kl === 'w' && en3d) $('b3Camara').click();
+  else if (kl === 'l') alternarClasif();
+  else if (kl === 'o') recolocarVentanas();
+  else if (kl === 'f') { $('pantallaFicha').hidden ? abrirFicha() : ($('pantallaFicha').hidden = true); }
+  else if (kl === 'y') $('b3Voz').click();
+  else hecho = false;
+  if (hecho) e.preventDefault(); });
 // ---- webcam (20-nov, Carlos): ventanita siempre visible mientras esté encendida; sale en las grabaciones de pantalla entera ----
 const cam = { flujo: null };
 async function encenderCamara(){ try {
