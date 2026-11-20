@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v132 · 🚩 neutralizada: tampoco tú pasas de la cabeza hasta los 400 m</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v133 · 🔍 zoom del dron con la rueda o RePág/AvPág</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2495,7 +2495,7 @@ function componerGrabacion(){
 // ---- TECLAS (20-nov, Carlos): todo se maneja sin la bici ni los Zwift Play ----
 // Las del pedaleo simulado (Z X C V B, 0, + −, ↑ ↓, Espacio) no se tocan: solo valen mientras pedaleas con el teclado.
 const TECLAS = [
-  ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente']]],
+  ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente'], ['RePág / AvPág', 'Dron: acercar / alejar (también la rueda del ratón)']]],
   ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +'], ['Re Pág  Av Pág', 'Grupeta: subir / bajar zona'], ['K', 'Grupeta: relevos contigo sí / no'], ['J', 'Grupeta: pasar el relevo']]],
   ['Pantalla', [['M', 'Menú ☰'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
   ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
@@ -2505,6 +2505,12 @@ const TECLAS = [
 function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !== document.body) document.body.appendChild(A);
   if (A.hidden) $('ayudaCuerpo').innerHTML = TECLAS.map(([g, L]) => '<h3>' + g + '</h3>' + L.map(([k, t]) => '<div class="t"><kbd>' + k + '</kbd><span>' + t + '</span></div>').join('')).join('');
   A.hidden = !A.hidden; }
+// zoom de la cámara dron (20-nov, Carlos): rueda del ratón o RePág/AvPág; se recuerda
+let zoomDronV = null;
+function zoomDron(){ if (zoomDronV == null) { zoomDronV = +localStorage.getItem('simulador-zoom-dron') || 1; } return zoomDronV; }
+function cambiarZoomDron(f){ zoomDronV = Math.max(0.3, Math.min(4, zoomDron() * f)); try { localStorage.setItem('simulador-zoom-dron', zoomDronV); } catch(e) {}
+  aviso3d('🔍 Dron ' + (zoomDronV < 0.95 ? 'más cerca' : zoomDronV > 1.05 ? 'más lejos' : 'normal') + ' · ×' + zoomDronV.toFixed(1).replace('.', ',')); }
+document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || $('camara3d').value !== 'dron' || !v3.r || e.target !== v3.r.domElement) return; e.preventDefault(); cambiarZoomDron(e.deltaY > 0 ? 1.1 : 1 / 1.1); }, { passive: false });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
@@ -2513,6 +2519,7 @@ document.addEventListener('keydown', e => {
   const en3d = !!(v3 && v3.activo); let hecho = true;
   if (/^[1-6]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
   else if ((k === 'ArrowRight' || k === 'ArrowLeft') && en3d) cambiarCamara(k === 'ArrowRight' ? 1 : -1);
+  else if ((k === 'PageUp' || k === 'PageDown') && en3d && $('camara3d').value === 'dron') cambiarZoomDron(k === 'PageDown' ? 1.15 : 1 / 1.15);
   else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
   else if (k === 'Escape') { for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; break; } } }
   else if (k === 'Enter') { if (!sesion.corriendo) { const b = en3d ? $('b3Empezar') : $('bEmpezar'); if (b && !b.disabled) b.click(); } else hecho = false; }
@@ -3895,7 +3902,7 @@ function bucle3D(t){
   if (modo === 'cerca') { camObj = P(d - 3.4, 1.55); camObj.y = Math.max(camObj.y, aqui.y + 1.55); miraObj = P(d + 12, 0.9); }
   else if (modo === 'lado') { camObj = aqui.clone().addScaledVector(dcha, 4.2).addScaledVector(f, 0.6); camObj.y += 1.2; miraObj = aqui.clone().addScaledVector(f, 0.6); miraObj.y += 0.9; }
   else if (modo === 'frente') { camObj = P(d + 6.5, 1.4); miraObj = aqui.clone(); miraObj.y += 1.0; }
-  else if (modo === 'dron') { camObj = P(d - 26, 0); camObj.y = Math.max(camObj.y, aqui.y) + 18; miraObj = P(d + 18, 0); }
+  else if (modo === 'dron') { const z = zoomDron(); camObj = P(d - 26 * z, 0); camObj.y = Math.max(camObj.y, aqui.y) + 18 * z; miraObj = P(d + 18 * Math.min(1, z), 0); }
   else if (modo === 'ojos') { camObj = aqui.clone().addScaledVector(f, 0.35); camObj.y += 1.55; miraObj = P(d + 22, 1.2); }
   else { const atras = puntoVia(d - 7); atras.x += v3.offYo.x; atras.z += v3.offYo.z; camObj = new THREE.Vector3(atras.x, Math.max(atras.y, aqui.y) + 2.3, atras.z); miraObj = P(d + 16, 1.1); }
   v3.ciclista.visible = modo !== 'ojos';
