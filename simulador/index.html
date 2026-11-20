@@ -216,7 +216,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     #zonaRuta.carretera #tablero .tv { font-size:18px; } #zonaRuta.carretera #tablero .vel .tv { font-size:34px; }
   }
   #rivales3d { position:fixed; left:12px; bottom:34px; z-index:1002; display:none; flex-direction:column; gap:6px; }
-  #mandoTeclado, #marcador, #rivales3d, #colDer3d, #tramo3d, #clasifPanel, #camara { cursor:grab; touch-action:none; } #rivales3d *, #colDer3d * { pointer-events:auto; }
+  #mandoTeclado, #marcador, #rivales3d, #colDer3d, #tramo3d, #clasifPanel, #camara, #viento3d { cursor:grab; touch-action:none; } #rivales3d *, #colDer3d * { pointer-events:auto; }
   body.menuAbierto #zonaRuta.carretera #panelMapa .barra { top:56px; }
   body.menuAbierto #camara, body.menuAbierto #marcador, body.menuAbierto #rivales3d, body.menuAbierto #colDer3d, body.menuAbierto #tramo3d, body.menuAbierto #mandoTeclado, body.menuAbierto #clasifPanel, body.menuAbierto #rotulo { visibility:hidden; }
   #rivales3d .r, #rivalesFila .r { background:rgba(13,17,23,.85); border-left:5px solid var(--c); border-radius:8px; padding:5px 10px; color:#fff; font-size:15px; font-variant-numeric:tabular-nums; }
@@ -264,6 +264,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     #pantallaResumen .cajaRes, #pantallaTramos .cajaRes { padding:12px; } #pantallaTramos .graf { grid-template-columns:1fr; }
     #pantallaResumen table, #pantallaTramos table { font-size:12px; } .tr .gap { font-size:28px; }
   }
+  #viento3d { position:fixed; top:150px; left:12px; z-index:1002; background:rgba(13,17,23,.85); color:#e8eaed; border:1px solid #30363d; border-radius:10px; padding:5px 10px; font-size:14px; } #viento3d .flecha { display:inline-block; font-size:18px; color:#79c0ff; }
+  body.menuAbierto #viento3d { visibility:hidden; }
   #camara { position:fixed; left:330px; bottom:34px; z-index:1004; width:240px; aspect-ratio:4/3; border-radius:14px; overflow:hidden; border:2px solid rgba(255,255,255,.75); box-shadow:0 6px 20px rgba(0,0,0,.5); background:#000; }
   #camara.grande { width:360px; } #camara video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; pointer-events:none; }
   #camara #camOtra { position:absolute; top:6px; right:6px; padding:2px 7px; font-size:14px; border-radius:8px; background:rgba(13,17,23,.75); color:#fff; border:1px solid #30363d; cursor:pointer; opacity:.25; }
@@ -330,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v129 · 🌬 prueba de viento en la bici; grupeta con relevos (K / J) y por zonas</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v131 · 🌬 viento: de cara, de espalda y de lado, también en la bici; grupeta con relevos y por zonas</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -426,6 +428,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <h3 id="resProgTit">Progreso</h3><div id="resProgreso"></div>
   <div class="sub nota" id="resNota"></div>
 </div></div>
+<div id="viento3d" hidden></div>
 <div id="camara" hidden><video id="camVideo" autoplay muted playsinline></video><div class="camRec" id="camRec" hidden>● REC</div><button id="camOtra" title="Cambiar de cámara (se recuerda la elegida)">🔁</button><div id="camNombre"></div></div>
 <div id="ayudaTeclas" hidden><div class="cajaRes">
   <div class="cabRes"><div><h2>⌨ Teclas</h2><div class="sub">Todo se maneja sin la bici ni los Zwift Play. Esc o H para cerrar.</div></div><button onclick="alternarAyudaTeclas()">Cerrar</button></div>
@@ -475,6 +478,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     </select>
     <select id="calidad3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Calidad"><option value="alta">Calidad: alta</option><option value="media" selected>Calidad: media</option><option value="baja">Calidad: baja</option></select>
     <select id="hora3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Hora"><option value="ahora">Hora: ahora</option><option value="7">Hora: 7:00</option><option value="8">Hora: 8:00</option><option value="9">Hora: 9:00</option><option value="10">Hora: 10:00</option><option value="12">Hora: 12:00</option><option value="14">Hora: 14:00</option><option value="16">Hora: 16:00</option><option value="17">Hora: 17:00</option><option value="18">Hora: 18:00</option><option value="19">Hora: 19:00</option><option value="20">Hora: 20:00</option><option value="22">Hora: 22:00</option></select>
+    <select id="vientoFuerza" title="Viento" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="0">Viento: no</option><option value="10">Viento: suave (10)</option><option value="20">Viento: moderado (20)</option><option value="30">Viento: fuerte (30)</option></select>
+    <select id="vientoDir" title="De dónde sopla" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="azar">del: al azar</option><option value="0">del N</option><option value="45">del NE</option><option value="90">del E</option><option value="135">del SE</option><option value="180">del S</option><option value="225">del SO</option><option value="270">del O</option><option value="315">del NO</option></select>
     <button id="b3Empezar">▶ Empezar</button>
     <select id="narracion3d" title="Narración de la carrera" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="mucha">Narración: mucha</option><option value="normal">Narración: normal</option><option value="poca">Narración: poca</option><option value="nada">Narración: nada</option></select>
     <button class="sec" id="b3Voz" title="Narración por voz">🔊</button>
@@ -566,6 +571,9 @@ $('usuario').value = USUARIO;
 document.querySelectorAll('.bUsu').forEach(b => { b.classList.toggle('activo', b.dataset.u === USUARIO);
   b.onclick = () => { if (b.dataset.u === USUARIO) return; $('usuario').value = b.dataset.u; $('usuario').onchange(); }; });
 $('usuario').onchange = () => { if (sesion.corriendo) { $('usuario').value = USUARIO; avisar('Termina la sesión antes de cambiar de persona.'); return; }
+  // 20-nov: cambiar de persona recarga la página y Chrome corta el Bluetooth; si hay aparatos conectados, se avisa antes
+  const con = ['eBici', 'ePulso', 'ePlayI', 'ePlayD'].filter(id => $(id) && $(id).classList.contains('si')).map(id => ({ eBici: 'la bici', ePulso: 'el pulsómetro', ePlayI: 'el Play izquierdo', ePlayD: 'el Play derecho' })[id]);
+  if (con.length && !confirm('Cambiar de persona recarga el simulador y desconecta ' + con.join(', ') + '. Tendrás que volver a conectarlos. ¿Seguir?')) { $('usuario').value = USUARIO; return; }
   try { localStorage.setItem('simulador-usuario', $('usuario').value); } catch(e) {} location.reload(); };
 document.title = 'Simulador · ' + U.nombre;
 if (!navigator.bluetooth) { log('Este navegador no tiene Bluetooth web: abre la página con Chrome o Edge.'); alert('Abre esta página con Chrome o Edge: este navegador no deja usar el Bluetooth.'); }
@@ -940,10 +948,11 @@ const rebufoPend = g => g <= 3.5 ? 1 : g >= 6 ? 0 : (6 - g) / 2.5;   // 20-nov (
 // otros: números (distancias, sin carril: liebres, como antes) u objetos { d, lat }; lat: tu carril (−0,9 izquierda, 0 centro, +0,9 derecha)
 const CARRIL = 0.9;
 function rebufoEn(d, otros, lat){ lat = lat || 0; let rueda = 0, n = 0, izq = 0, dch = 0;
+  const vt = vientoEn(d), tot = Math.abs(vt.cara) + Math.abs(vt.lado), corr = tot > 0.5 ? Math.max(-0.9, Math.min(0.9, 0.9 * vt.lado / tot)) : 0;   // con viento de lado, el sitio bueno está en diagonal
   for (const o of otros) { const num = typeof o === 'number', od = num ? o : o.d, gap = od - d;
     if (gap > 0.3 && gap <= 12) n++;
     if (num || o.lat == null) { if (gap > 0.3 && gap <= 12) rueda = Math.max(rueda, gap <= 2 ? 1 : 1 - (gap - 2) / 10); continue; }
-    const dl = o.lat - lat;
+    const dl = o.lat + corr - lat;
     if (gap > 0.3 && gap <= 12 && Math.abs(dl) < 0.55) rueda = Math.max(rueda, gap <= 2 ? 1 : 1 - (gap - 2) / 10);   // justo a rueda
     else if (gap > 0.3 && gap <= 4 && Math.abs(dl) < 1.3) rueda = Math.max(rueda, 0.4 * (gap <= 2 ? 1 : 1 - (gap - 2) / 2));   // en diagonal
     if (gap > -3 && gap < 5) { if (dl < -0.45) izq++; else if (dl > 0.45) dch++; } }
@@ -958,6 +967,7 @@ function elegirCarril(s, otros, quedarse){ let mejor = null; const actual = s.la
       else if (gap >= 1.6 && gap < 7 && (o.v || 0) < (s.v || 0) - 0.4) p -= 4;  // te lo comerías: mejor por otro lado
       else if (gap >= 1.6 && gap < 3.5) p += 2; }                            // buena rueda
     p -= Math.abs(L) * 0.2;   // un poco mejor dentro que fuera
+    if (viento.kmh) p += 8 * rebufoEn(s.d, otros.filter(o => o !== s && o.lat != null && !o.llego), L);   // con viento, el carril con más abrigo (en diagonal si es de lado)
     if (!mejor || p > mejor.p) mejor = { L, p }; }
   return mejor.L; }
 // grupeta en tres filas con huecos irregulares; cada 25–60 s alguien cambia de fila o sube un par de puestos
@@ -1046,6 +1056,8 @@ function crearBots(){ const c = carreraConf(); if (!c.activa) return [];
 function mulberry(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function moverBot(b, dt, todos){
   if (b.d >= ruta.total) return;
+  vientoCtx = vientoCara(b.d); try { moverBotCalc(b, dt, todos); } finally { vientoCtx = 0; } }
+function moverBotCalc(b, dt, todos){
   const g = pendAplicada(b.d), F = b.ftp * (b.grupeta ? 1 : b.forma), resta = dMeta() - b.d;
   if (b.llego) { b.w = F * 0.5; b.v = velocidadFisica(b.w, g, 0, b.q); b.d = Math.min(ruta.total, b.d + b.v * dt); return; }   // pasada la meta, rueda suave
   let obj = g > 2 ? F * (b.perfil === 'escalador' ? 0.98 : 0.9) : g < -2 ? F * 0.45 : F * (b.perfil === 'rodador' ? 0.8 : 0.75);
@@ -1267,7 +1279,7 @@ function moverRivales(dt){
     else carrera.tFuera = 0;
     if (carrera.lento > 0) carrera.lento -= dt;
     let P = wkgZona(z) * kgYo * carrera.ajuste * (carrera.lento > 0 ? 0.9 : 1); if (G.d - ruta.dist > 12) P *= 0.7;
-    G.v = velocidadFisica(P, g, rebG); if (G.d - ruta.dist > 10) G.v = Math.min(G.v, Math.max(1, velocidadRuta() * 0.92));   // te has quedado: te esperan de verdad
+    vientoCtx = vientoCara(G.d); G.v = velocidadFisica(P, g, rebG); vientoCtx = 0; if (G.d - ruta.dist > 10) G.v = Math.min(G.v, Math.max(1, velocidadRuta() * 0.92));   // te has quedado: te esperan de verdad
     if (neutralizada()) { const vy = velocidadRuta(); G.v = Math.min(G.v, G.d - ruta.dist > 6 ? Math.max(1.2, vy - 0.3) : Math.max(1.5, vy + 0.3)); }   // salida neutralizada
     // TU RELEVO (si lo activas con K): te avisa, el grupo va a tu rueda mientras tiras; J para pasar
     if (carrera.turnoYo > 0) { carrera.turnoYo -= dt; G.v = Math.min(G.v, Math.max(1, velocidadRuta() - 0.05)); if (G.d > ruta.dist - 1.5) G.d = ruta.dist - 1.5;
@@ -1278,7 +1290,7 @@ function moverRivales(dt){
     if (G.relevo && carrera.relevosYo) { carrera.cuentaRel = (carrera.cuentaRel || 0) + 1; const enGrupo = G.d - ruta.dist < 20 && G.d - ruta.dist > -3;
       if (carrera.cuentaRel >= Math.min(8, bots.length) && enGrupo && g < 5 && !(carrera.turnoYo > 0)) { carrera.cuentaRel = 0; carrera.turnoYo = 35 + Math.round(15 * Math.random());
         aviso3d('🔄 Te toca relevo: ' + Math.round(carrera.turnoYo) + ' s · J para pasar'); narrar('alta', 'Te toca relevo: tira ' + Math.round(carrera.turnoYo) + ' segundos, o pulsa J para pasar', 'turnoYo'); } }
-    bots.forEach((b, i) => { b.d = Math.min(ruta.total, G.d - b.off); b.v = G.v; b.w = potenciaPara(G.v, g, b.off < 0.5 ? 0 : 0.38 * rebufoPend(g), b.q);
+    bots.forEach((b, i) => { b.d = Math.min(ruta.total, G.d - b.off); b.v = G.v; b.w = potenciaPara(G.v, g, b.off < 0.5 ? 0 : 0.38 * rebufoPend(g), b.q, vientoCara(b.d));
       if (b.d >= dMeta() && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal; } }); }
   else if (bots.length) { const todos = [yo, ...rivales.lista.filter(r => r.tipo !== 'fantasma')];
     for (const b of bots) { b.lejanos = todos.filter(o => o !== b && o.d - b.d >= 30 && o.d - b.d < 300); b.cercaLejos = todos.filter(o => o !== b && o.d - b.d > -15 && o.d - b.d < 30); b.cerca = b.cercaLejos.filter(o => Math.abs(o.d - b.d) < 15); moverBot(b, dt, b.cerca);
@@ -1297,7 +1309,7 @@ function moverRivales(dt){
     if (r.tipo === 'bot') { if (r.mk) { const p = puntoEn(r.d); r.mk.setLatLng([p.lat, p.lon]); } continue; }
     if (r.tipo === 'fantasma') { const a = r.datos.d, x = sesion.tTotal / r.datos.paso, i = Math.floor(x);
       r.d = Math.min(ruta.total, r.off + (i >= a.length - 1 ? a[a.length - 1] : a[i] + (a[i + 1] - a[i]) * (x - i))); }
-    else if (r.d < ruta.total) { const g = pendAplicada(r.d); r.w = potLiebre(r.l, g); r.v = velocidadFisica(r.w, g); r.d = Math.min(ruta.total, r.d + r.v * dt);
+    else if (r.d < ruta.total) { const g = pendAplicada(r.d); r.w = potLiebre(r.l, g); r.v = velocidadFisica(r.w, g, 0, undefined, vientoCara(r.d)); r.d = Math.min(ruta.total, r.d + r.v * dt);
       if (r.d >= ruta.total && !r.llego) { r.llego = true; avisar(r.nombre + ' ha llegado en ' + hms(sesion.tTotal) + '.'); } }
     const delante = r.d > ruta.dist; if (r.delante !== null && delante !== r.delante && sesion.tTotal > 5) avisar(delante ? r.nombre + ' te ha pasado.' : 'Has pasado a ' + r.nombre + '.');
     r.delante = delante;
@@ -2081,6 +2093,31 @@ function leerGpx(texto){
 const puntoEn = d => ruta.pts[Math.min(ruta.pts.length - 1, Math.max(0, Math.round(d / 10)))];
 // Como Zwift: la pendiente se multiplica por la dificultad, y en las bajadas además se manda la mitad.
 const pendAplicada = d => { const g = puntoEn(d).pend * DIF_EF() / 100; return g < 0 ? g / 2 : g; };
+// ---- VIENTO (20-nov, Carlos): fuerza y dirección elegidas; según el rumbo de la ruta te da de cara, de espalda o de lado ----
+// La bici lo aplica (probado el 20-nov: de cara 30 km/h, de ~45 W a ~200 W con la misma marcha). Abanicos: en otra tanda.
+var vientoCtx = 0;   // viento de cara (m/s) para el ciclista que se está calculando
+var viento = { kmh: 0, desde: 0, azar: false };
+function cargarViento(){ let c = null; try { c = JSON.parse(localStorage.getItem('simulador-viento') || 'null'); } catch(e) {} c = c || { kmh: 0, dir: 'azar' };
+  viento.kmh = +c.kmh || 0; viento.azar = c.dir === 'azar'; viento.desde = viento.azar ? (viento.desde || Math.random() * 360) : +c.dir; viento.cfg = c; }
+function guardarViento(c){ try { localStorage.setItem('simulador-viento', JSON.stringify(c)); } catch(e) {} if (c.dir === 'azar') viento.desde = Math.random() * 360; cargarViento(); }
+cargarViento();
+const RUMBOS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'], nombreRumbo = g => RUMBOS[Math.round(((g % 360) + 360) % 360 / 45) % 8];
+function rumboEn(d){ if (!ruta.activa || !ruta.pts || ruta.pts.length < 2) return 0; const a = puntoEn(Math.max(0, d - 15)), b = puntoEn(Math.min(ruta.total, d + 15));
+  if (!a || !b || a.lat == null) return 0; const r = x => x * Math.PI / 180, y = Math.sin(r(b.lon - a.lon)) * Math.cos(r(b.lat)), x = Math.cos(r(a.lat)) * Math.sin(r(b.lat)) - Math.sin(r(a.lat)) * Math.cos(r(b.lat)) * Math.cos(r(b.lon - a.lon));
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; }
+// componentes en m/s: cara (+ de cara, − de espalda) y lado (+ te da por la izquierda, empuja hacia la derecha)
+function vientoEn(d){ if (!viento.kmh) return { cara: 0, lado: 0 }; const W = viento.kmh / 3.6, rel = (viento.desde - rumboEn(d)) * Math.PI / 180;
+  return { cara: W * Math.cos(rel), lado: -W * Math.sin(rel) }; }
+const vientoCara = d => vientoEn(d).cara;
+function pintarViento(){ const el = $('viento3d'); if (!el) return; if (!viento.kmh || !ruta.activa) { el.hidden = true; return; } el.hidden = false;
+  const v = vientoEn(ruta.dist), kmh = x => Math.round(Math.abs(x) * 3.6), rel = Math.atan2(-v.lado, v.cara) * 180 / Math.PI;
+  const txt = Math.abs(v.cara) > Math.abs(v.lado) * 1.5 ? (v.cara > 0 ? 'de cara ' : 'de espalda ') + kmh(v.cara) + ' km/h' : Math.abs(v.lado) > Math.abs(v.cara) * 1.5 ? 'de lado ' + kmh(v.lado) + ' km/h' : (v.cara > 0 ? 'de cara' : 'de espalda') + ' y de lado';
+  el.innerHTML = '<span class="flecha" style="transform:rotate(' + Math.round(rel + 180) + 'deg)">↑</span> <b>' + txt + '</b> <small>' + viento.kmh + ' km/h del ' + nombreRumbo(viento.desde) + '</small>'; }
+setInterval(pintarViento, 1000);
+{ const F = $('vientoFuerza'), D = $('vientoDir'); if (F && D) { F.value = String(viento.cfg.kmh || 0); D.value = String(viento.cfg.dir ?? 'azar');
+    const cam = () => { guardarViento({ kmh: +F.value, dir: D.value }); F.blur(); D.blur(); pintarViento(); if (typeof enviarPendiente === 'function') enviarPendiente(true);
+      aviso3d(viento.kmh ? '🌬 Viento ' + viento.kmh + ' km/h del ' + nombreRumbo(viento.desde) : '🌬 Sin viento'); };
+    F.onchange = cam; D.onchange = cam; } }
 // ---- PRUEBA DE VIENTO EN LA BICI (20-nov): ¿la KICKR aplica el viento que se le manda? Misma marcha y cadencia; se comparan los vatios ----
 const pruebaViento = { ms: 0, activa: false, pasos: [] };
 async function probarViento(){
@@ -2101,10 +2138,10 @@ function enviarPendiente(forzar){
   if (!controlBici || !ruta.activa || !sesion.corriendo) return;
   const g = Math.round(pendAplicada(ruta.dist) * 10) / 10;
   const cw = Math.round(51 * (1 - (vivo.rebufo || 0)));   // a rueda: coeficiente de aire más bajo → menos vatios para la misma velocidad
-  if (!forzar && ruta.ultimaPend !== null && Math.abs(g - ruta.ultimaPend) < 0.1 && Math.abs(cw - (ruta.ultimoCw ?? 51)) < 3 && Date.now() - ruta.tPend < 5000 && ruta.ultimoViento === (pruebaViento.ms || 0)) return;
-  ruta.ultimoViento = pruebaViento.ms || 0;
+  if (!forzar && ruta.ultimaPend !== null && Math.abs(g - ruta.ultimaPend) < 0.1 && Math.abs(cw - (ruta.ultimoCw ?? 51)) < 3 && Date.now() - ruta.tPend < 5000 && ruta.ultimoViento === (pruebaViento.activa ? (pruebaViento.ms || 0) : Math.round(vientoCara(ruta.dist) * 4) / 4)) return;
+  ruta.ultimoViento = pruebaViento.activa ? (pruebaViento.ms || 0) : Math.round(vientoCara(ruta.dist) * 4) / 4;
   ruta.ultimaPend = g; ruta.ultimoCw = cw; ruta.tPend = Date.now();
-  const gg = Math.round(g * FACTOR_PESO() * 100), vto = Math.round((pruebaViento.ms || 0) * 1000);   // viento en mm/s (FTMS: + de cara)
+  const vAhora = pruebaViento.activa ? (pruebaViento.ms || 0) : Math.round(vientoCara(ruta.dist) * 4) / 4, gg = Math.round(g * FACTOR_PESO() * 100), vto = Math.round(vAhora * 1000);   // viento en mm/s (FTMS: + de cara)
   enviarBici([0x11, vto & 0xff, (vto >> 8) & 0xff, gg & 0xff, (gg >> 8) & 0xff, 40, cw]);
 }
 // velocidad: la que da la bici (ya lleva tu marcha y tu cadencia); si no llega, la física con tus vatios
@@ -2115,7 +2152,7 @@ const velYo = { v: 0, t: 0 };
 function velocidadRuta(){
   const ahora = performance.now(), dt = velYo.t ? Math.min(1, (ahora - velYo.t) / 1000) : 0; if (dt < 0.02 && velYo.t) return velYo.v; velYo.t = ahora;
   if (!sesion.corriendo || sesion.pausa) { velYo.v = 0; return 0; }
-  const w = Date.now() - vivo.tW < 3000 ? (vivo.w || 0) : 0, obj = velocidadFisica(w, pendAplicada(ruta.dist), vivo.rebufo);
+  const w = Date.now() - vivo.tW < 3000 ? (vivo.w || 0) : 0, obj = velocidadFisica(w, pendAplicada(ruta.dist), vivo.rebufo, undefined, vientoCara(ruta.dist));
   // arranque vivo (20-nov: «mi muñeco tarda en moverse»): desde parado casi inmediato; ya rodando, algo de inercia para no dar tirones
   const tau = obj > velYo.v ? (velYo.v < 5.5 ? 1 : 2) : 5;
   velYo.v += (obj - velYo.v) * Math.min(1, dt / tau);
@@ -2128,11 +2165,11 @@ const cdaDe = (hM, kg) => 0.88 * (0.0267 * Math.pow(hM, 0.725) * Math.pow(kg, 0.
 let qYoCache = null, qYoT = 0;
 function qYo(){ if (qYoCache && Date.now() - qYoT < 2000) return qYoCache; const kg = pesoUsuario() || (PESO_TOTAL() - 9), h = (+$('altura').value || 178) / 100; qYoT = Date.now(); return qYoCache = { m: PESO_TOTAL(), cda: cdaDe(h, kg) }; }
 // vatios que hacen falta para ir a v (m/s): la cuenta inversa, para que un bot se quede a rueda sin pasar al de delante
-function potenciaPara(v, pend, reb, q){ q = q || qYo(); const m = q.m, g = 9.81, th = Math.atan(pend / 100);
-  return Math.max(0, (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + 0.5 * 1.205 * q.cda * (1 - (reb || 0)) * v * v) * v / 0.975); }
-function velocidadFisica(w, pend, reb, q){
+function potenciaPara(v, pend, reb, q, vw = vientoCtx){ q = q || qYo(); const m = q.m, g = 9.81, th = Math.atan(pend / 100);
+  return Math.max(0, (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + 0.5 * 1.205 * q.cda * (1 - (reb || 0)) * (v + vw) * Math.abs(v + vw)) * v / 0.975); }
+function velocidadFisica(w, pend, reb, q, vw = vientoCtx){
   q = q || qYo(); const m = q.m, g = 9.81, th = Math.atan(pend / 100), P = w * 0.975, aire = 0.5 * 1.205 * q.cda * (1 - (reb || 0));   // reb: rebufo (0–0,45), rebaja el aire
-  const potencia = v => (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + aire*v*v) * v;
+  const potencia = v => (m*g*Math.sin(th) + 0.004*m*g*Math.cos(th) + aire*(v + vw)*Math.abs(v + vw)) * v;   // vw: viento de cara (+) o de espalda (−)
   let lo = 0, hi = 25; if (potencia(hi) < P) return hi;
   for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (potencia(mid) < P) lo = mid; else hi = mid; }
   return lo;
@@ -3887,7 +3924,7 @@ function ponerMenu(abrir){ menu3d.abierto = !!abrir; const en3d = !!(v3 && v3.ac
   document.addEventListener('click', e => { if (e.target && e.target.id === 'bMenu3d') { ponerMenu(!menu3d.abierto); e.target.blur(); } });
   document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && v3.activo && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) { ponerMenu(!menu3d.abierto); e.preventDefault(); } }); }
 // Ventanas que se arrastran y se recuerdan (20-nov, Carlos): cada aparato guarda dónde dejaste cada una; «↺ Recolocar ventanas» vuelve a lo de fábrica
-const VENTANAS = ['mandoTeclado', 'marcador', 'rivales3d', 'colDer3d', 'tramo3d', 'clasifPanel', 'camara'];
+const VENTANAS = ['mandoTeclado', 'marcador', 'rivales3d', 'colDer3d', 'tramo3d', 'clasifPanel', 'camara', 'viento3d'];
 function posGuardada(id){ try { return JSON.parse(localStorage.getItem('simulador-pos-' + id) || 'null'); } catch(e) { return null; } }
 function aplicarPos(el){ const p = posGuardada(el.id); if (!p) { delete el.dataset.movido; return; }
   const w = el.offsetWidth || 200, h = el.offsetHeight || 60, x = Math.max(0, Math.min(innerWidth - Math.min(w, 120), p.x)), y = Math.max(0, Math.min(innerHeight - 30, p.y));
