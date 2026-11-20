@@ -330,7 +330,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v125 · grupeta por zonas (Re Pág / Av Pág), manda el pulso; rebufo hasta el 3,5–6 %; rivales más ligeros</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v127 · grabar: un permiso por salida y sin avisos de más; grupeta por zonas; rivales más ligeros</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2355,7 +2355,7 @@ const grab = { rec:null, lienzo:null, ctx:null, trozos:[], t0:0, tEtq:0 };
 // Si el navegador no deja grabar la pestaña, se graba como antes: solo el 3D con el recuadro de datos.
 function guardarGrabacion(){ const mp4 = /mp4/.test(grab.tipo || ''), blob = new Blob(grab.trozos, { type: mp4 ? 'video/mp4' : 'video/webm' }), a = document.createElement('a'), f = new Date();
   a.href = URL.createObjectURL(blob); const d2 = n => String(n).padStart(2, '0'); a.download = 'simulador ' + (USUARIO === 'carlos' ? '' : U.nombre + ' ') + f.getFullYear() + '-' + d2(f.getMonth() + 1) + '-' + d2(f.getDate()) + ' ' + d2(f.getHours()) + '-' + d2(f.getMinutes()) + (mp4 ? '.mp4' : '.webm'); document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 60000); if (grab.flujo) grab.flujo.getTracks().forEach(t => t.stop()); grab.flujo = null; if (grab.audio) { grab.audio.mic.getTracks().forEach(t => t.stop()); grab.audio.ac.close(); grab.audio = null; } $('camRec').hidden = true; grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000); if (grab.flujo) grab.flujo.getTracks().forEach(t => { if (!(grab.pantalla && grab.pantalla.getTracks().includes(t))) t.stop(); }); grab.flujo = null; if (grab.audio) { grab.audio.mic.getTracks().forEach(t => t.stop()); grab.audio.ac.close(); grab.audio = null; } $('camRec').hidden = true; grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
   avisar('Vídeo guardado en Descargas (' + (blob.size / 1e6).toFixed(1).replace('.', ',') + ' MB).'); log('Grabación guardada: ' + a.download); }
 // 20-nov (Carlos): tu micrófono se graba con el vídeo para ir comentando; si hay sonido de la pestaña, se mezclan
 async function conMicro(flujo){ try {
@@ -2373,7 +2373,7 @@ function empezarGrabacion(flujo, pestana){
   grab.rec = new MediaRecorder(flujo, { mimeType: grab.tipo, videoBitsPerSecond: pestana ? 10000000 : 6000000 });
   grab.rec.ondataavailable = e => { if (e.data && e.data.size) grab.trozos.push(e.data); };
   grab.rec.onstop = guardarGrabacion;
-  if (grab.fuente) grab.fuente.getVideoTracks()[0].onended = () => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); };
+  if (grab.fuente) grab.fuente.getVideoTracks()[0].onended = () => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); if (grab.pantalla === grab.fuente) grab.pantalla = null; };
   flujo.getVideoTracks()[0].onended = () => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); };   // si paras desde la barra de Chrome
   grab.rec.start(1000); grab.t0 = performance.now(); $('b3Grabar').classList.add('peligro'); $('b3Grabar').textContent = '⏹ Parar 0:00'; aviso3d(pestana ? 'Grabando la pantalla entera' : 'Grabando el 3D');
   if (pestana) grab.reloj = setInterval(() => { if (!grab.rec) { clearInterval(grab.reloj); return; } $('b3Grabar').textContent = '⏹ Parar ' + mmss((performance.now() - grab.t0) / 1000); }, 1000);
@@ -2384,11 +2384,17 @@ $('b3Grabar').onclick = async () => { $('b3Grabar').blur();
   const pulsado = !navigator.userActivation || navigator.userActivation.isActive;
   if (!pulsado) aviso3d('Desde el mando solo se graba el 3D; para grabarlo todo pulsa ⏺ en pantalla o la tecla G');
   if (pulsado && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-    try { const flujo = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
-      grab.fuente = flujo; empezarGrabacion(await conMicro(flujo), true); return; }
+    // 20-nov (Carlos: «molesta mucho el permiso»): se pide UNA vez por sesión; las siguientes G reutilizan la misma captura
+    const viva = grab.pantalla && grab.pantalla.getVideoTracks()[0] && grab.pantalla.getVideoTracks()[0].readyState === 'live';
+    if (viva) { grab.fuente = grab.pantalla; empezarGrabacion(await conMicro(new MediaStream(grab.pantalla.getVideoTracks())), true); return; }
+    try { const flujo = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
+      grab.pantalla = flujo; grab.fuente = flujo; empezarGrabacion(await conMicro(new MediaStream(flujo.getVideoTracks())), true); return; }
     catch(e) { if (e && e.name === 'NotAllowedError') { avisar('Grabación cancelada.'); return; } log('Grabar pestaña: ' + e.message + ' · grabo solo el 3D'); } }
   grabarLienzo3d();
 };
+// cierra la captura de la pestaña del todo (imagen y sonido) para que Chrome quite su aviso «Compartiendo esta pestaña»
+function cerrarCaptura(){ if (grab.rec && grab.pestana) return; if (grab.pantalla) { grab.pantalla.getTracks().forEach(t => t.stop()); grab.pantalla = null; } }
+addEventListener('pagehide', () => { if (grab.pantalla) grab.pantalla.getTracks().forEach(t => t.stop()); });
 // solo el 3D con el recuadro de datos (tecla T, o el mando)
 async function grabarLienzo3d(){ if (grab.rec) { grab.rec.stop(); return; }
   if (!v3.construido) { avisar('La grabación necesita la vista 3D construida.'); return; }
@@ -3834,7 +3840,7 @@ function ponerMenu(abrir){ menu3d.abierto = !!abrir; const en3d = !!(v3 && v3.ac
     t.onclick = () => { t.blur(); if (!$('bTerminar').disabled) $('bTerminar').click(); }; document.body.appendChild(t); }
   const rodandoDeVerdad = en3d && sesion.corriendo && !sesion.demo && !menu3d.abierto && !$('bTerminar').disabled;
   t.style.display = rodandoDeVerdad ? 'block' : 'none'; if (b && rodandoDeVerdad) t.style.left = (10 + b.offsetWidth + 8) + 'px'; }
-{ let en3dAntes = null; setInterval(() => { const en3d = !!(v3 && v3.activo); if (en3d !== en3dAntes) { en3dAntes = en3d; menu3d.abierto = false; } ponerMenu(menu3d.abierto); }, 400);
+{ let en3dAntes = null; setInterval(() => { const en3d = !!(v3 && v3.activo); if (en3d !== en3dAntes) { en3dAntes = en3d; menu3d.abierto = false; if (!en3d) cerrarCaptura(); } ponerMenu(menu3d.abierto); }, 400);
   document.addEventListener('click', e => { if (e.target && e.target.id === 'bMenu3d') { ponerMenu(!menu3d.abierto); e.target.blur(); } });
   document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && v3.activo && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) { ponerMenu(!menu3d.abierto); e.preventDefault(); } }); }
 // Ventanas que se arrastran y se recuerdan (20-nov, Carlos): cada aparato guarda dónde dejaste cada una; «↺ Recolocar ventanas» vuelve a lo de fábrica
@@ -4067,6 +4073,7 @@ function dibujar(){
 // ===================== terminar y guardar (.fit) =====================
 function terminar(fin){
   if (!sesion.corriendo) return;
+  setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300);   // la grabación se guarda y se cierra la captura
   if (!fin && !sesion.demo && !confirm('¿Terminar la sesión y guardar lo hecho?')) return;
   clearInterval(tick); sesion.corriendo = false;
 
