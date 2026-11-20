@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v136 · 🔍 zoom del dron más notable (I / U o la rueda) · 🚩 neutralizada firme</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v137 · ⛰ el suelo ya no tapa el camino · 🌉 barandillas de los puentes fuera del camino · 🔍 zoom del dron con I / U o la rueda</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -3500,10 +3500,19 @@ function moverFauna(dt, aqui){
 }
 function barandillas(esc, via){
   const postes = [], techos = [], q = new THREE.Quaternion(), eje = new THREE.Vector3(0, 1, 0);
+  // ida y vuelta por el mismo puente (20-nov): ningún poste encima de otra pasada del camino
+  const CE = 20, rej = new Map(); via.forEach((v, i) => { const k = Math.floor(v.x / CE) + ',' + Math.floor(v.z / CE); if (!rej.has(k)) rej.set(k, []); rej.get(k).push(i); });
+  const pisaOtro = (x, z, d) => { const cx = Math.floor(x / CE), cz = Math.floor(z / CE);
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const j of (rej.get((cx + a) + ',' + (cz + b)) || [])) { const w = via[j]; if (Math.abs(w.d - d) < 40) continue;
+      const w2 = via[Math.min(via.length - 1, j + 1)], Lw = Math.hypot(w2.x - w.x, w2.z - w.z) || 1, t = Math.max(0, Math.min(1, ((x - w.x) * (w2.x - w.x) + (z - w.z) * (w2.z - w.z)) / (Lw * Lw)));
+      if (Math.hypot(x - (w.x + (w2.x - w.x) * t), z - (w.z + (w2.z - w.z) * t)) < 3.6) return true; } return false; };
   for (let i = 1; i < via.length - 1; i++) { const t = tramoEn(via[i].d); if (!t || (t.sup !== 'puente' && t.sup !== 'paso inferior')) continue;
     const a = via[i - 1], b = via[i + 1], L = Math.hypot(b.x - a.x, b.z - a.z) || 1, tx = (b.x - a.x) / L, tz = (b.z - a.z) / L, v = via[i], ang = Math.atan2(tx, tz);
-    if (t.sup === 'puente') for (const s of [-1, 1]) for (let k = 0; k < 5; k++) { const f = k / 5 - 0.5, x = v.x + tx * f * 10 - tz * 2.2 * s, z = v.z + tz * f * 10 + tx * 2.2 * s;
-      postes.push(new THREE.Matrix4().compose(new THREE.Vector3(x, v.y + 0.18, z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(1, 1, 1))); }
+    // 20-nov (Carlos: «las barandillas entran dentro del camino»): fuera del firme (medio ancho 3 m + 0,35) y siguiendo la curva,
+    // repartidas entre este punto y el siguiente de la vía, no en línea recta
+    if (t.sup === 'puente') { const n2 = via[i + 1], L2 = Math.hypot(n2.x - v.x, n2.z - v.z) || 1, nk = Math.max(1, Math.round(L2 / 2));
+      for (let k = 0; k < nk; k++) { const f = k / nk, cx = v.x + (n2.x - v.x) * f, cz = v.z + (n2.z - v.z) * f, cy = v.y + (n2.y - v.y) * f, ux = (n2.x - v.x) / L2, uz = (n2.z - v.z) / L2, ang2 = Math.atan2(ux, uz);
+        for (const s of [-1, 1]) if (!pisaOtro(cx - uz * 3.35 * s, cz + ux * 3.35 * s, v.d)) postes.push(new THREE.Matrix4().compose(new THREE.Vector3(cx - uz * 3.35 * s, cy + 0.18, cz + ux * 3.35 * s), q.setFromAxisAngle(eje, ang2), new THREE.Vector3(1, 1, 1))); } }
     else techos.push(new THREE.Matrix4().compose(new THREE.Vector3(v.x, v.y + 4.6, v.z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(1, 1, 1))); }
   if (postes.length) { const g1 = new THREE.BoxGeometry(0.08, 1.1, 0.08); g1.translate(0, 0.55, 0); const g2 = new THREE.BoxGeometry(0.06, 0.06, 2.05); g2.translate(0, 1.1, 0);
     for (const g of [g1, g2]) { const im = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ color: 0x9aa3ab }), postes.length); postes.forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = true; esc.add(im); } }
@@ -3629,6 +3638,13 @@ async function construir3D(){
       if (c.d < R1) { const t = Math.max(0, Math.min(1, (c.d - R0) / (R1 - R0))), s = t * t * (3 - 2 * t); h = (via[c.i].y - 0.5) * (1 - s) + h * s; if (PASO > 20) h = Math.min(h, via[c.i].y - 0.5 + s * PASO * 0.6); }
       alt[k] = h; pos.set([x, h, z], k * 3);
     }
+    // 20-nov (Carlos, «se hunden, faltaría un túnel»): entre vértice y vértice la ladera podía tapar el camino.
+    // Recorremos el camino cada 2 m y, a lo ancho, bajamos las esquinas de las celdas que lo pisan por debajo del firme.
+    for (let i = 0; i < via.length - 1; i++) { const a = via[i], b2 = via[i + 1], L = Math.hypot(b2.x - a.x, b2.z - a.z) || 1, nPasos = Math.max(1, Math.ceil(L / 2)), tx = (b2.x - a.x) / L, tz = (b2.z - a.z) / L;
+      for (let q = 0; q <= nPasos; q++) { const f = q / nPasos, x0 = a.x + (b2.x - a.x) * f, z0 = a.z + (b2.z - a.z) * f, y0 = a.y + (b2.y - a.y) * f - 0.35;
+        for (const lat of [-4, -2, 0, 2, 4]) { const x = x0 - tz * lat, z = z0 + tx * lat, ci = Math.floor((x - p0.x) / PASO), cj = Math.floor((z - p0.z) / PASO);
+          for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const ii = ci + di, jj = cj + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= nz) continue; const k = jj * nx + ii;
+            if (alt[k] > y0) { alt[k] = y0; pos[k * 3 + 1] = y0; } } } } }
     const idx = []; for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, b, c, d); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
     const nor = geo.getAttribute('normal');
