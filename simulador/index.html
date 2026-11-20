@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v135 · 🔍 zoom del dron con la rueda o I/U · 🚩 neutralizada firme</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v136 · 🔍 zoom del dron más notable (I / U o la rueda) · 🚩 neutralizada firme</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2510,9 +2510,9 @@ function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !==
 // zoom de la cámara dron (20-nov, Carlos): rueda del ratón o RePág/AvPág; se recuerda
 let zoomDronV = null;
 function zoomDron(){ if (zoomDronV == null) { zoomDronV = +localStorage.getItem('simulador-zoom-dron') || 1; } return zoomDronV; }
-function cambiarZoomDron(f){ zoomDronV = Math.max(0.3, Math.min(4, zoomDron() * f)); try { localStorage.setItem('simulador-zoom-dron', zoomDronV); } catch(e) {}
+function cambiarZoomDron(f){ zoomDronV = Math.max(0.25, Math.min(2.5, zoomDron() * f)); try { localStorage.setItem('simulador-zoom-dron', zoomDronV); } catch(e) {}
   aviso3d('🔍 Dron ' + (zoomDronV < 0.95 ? 'más cerca' : zoomDronV > 1.05 ? 'más lejos' : 'normal') + ' · ×' + zoomDronV.toFixed(1).replace('.', ',')); }
-document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || $('camara3d').value !== 'dron' || !v3.r || e.target !== v3.r.domElement) return; e.preventDefault(); cambiarZoomDron(e.deltaY > 0 ? 1.1 : 1 / 1.1); }, { passive: false });
+document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || $('camara3d').value !== 'dron' || !v3.r || e.target !== v3.r.domElement) return; e.preventDefault(); cambiarZoomDron(e.deltaY > 0 ? 1.2 : 1 / 1.2); }, { passive: false });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
@@ -2521,7 +2521,7 @@ document.addEventListener('keydown', e => {
   const en3d = !!(v3 && v3.activo); let hecho = true;
   if (/^[1-6]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
   else if ((k === 'ArrowRight' || k === 'ArrowLeft') && en3d) cambiarCamara(k === 'ArrowRight' ? 1 : -1);
-  else if ((k === 'PageUp' || k === 'PageDown' || kl === 'i' || kl === 'u') && en3d && $('camara3d').value === 'dron') cambiarZoomDron(k === 'PageDown' || kl === 'u' ? 1.15 : 1 / 1.15);
+  else if ((k === 'PageUp' || k === 'PageDown' || kl === 'i' || kl === 'u') && en3d && $('camara3d').value === 'dron') cambiarZoomDron(k === 'PageDown' || kl === 'u' ? 1.35 : 1 / 1.35);
   else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
   else if (k === 'Escape') { for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; break; } } }
   else if (k === 'Enter') { if (!sesion.corriendo) { const b = en3d ? $('b3Empezar') : $('bEmpezar'); if (b && !b.disabled) b.click(); } else hecho = false; }
