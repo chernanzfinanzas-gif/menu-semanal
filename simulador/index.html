@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v133 · 🔍 zoom del dron con la rueda o RePág/AvPág</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v134 · 🚩 neutralizada firme (no te embalas por delante) · 🔍 zoom del dron con la rueda o RePág/AvPág</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2156,7 +2156,9 @@ function velocidadRuta(){
   // arranque vivo (20-nov: «mi muñeco tarda en moverse»): desde parado casi inmediato; ya rodando, algo de inercia para no dar tirones
   // neutralizada (20-nov, Carlos: «me ha dejado atacar antes»): tampoco tú pasas de la cabeza hasta los 400 m
   if (neutralizada() && rivales.lista.length) { let cab = null; for (const r of rivales.lista) if (r.tipo !== 'fantasma' && r.d != null && (!cab || r.d > cab.d)) cab = r;
-    if (cab && ruta.dist > cab.d - 2) { obj = Math.min(obj, Math.max(1.5, (cab.v || velYo.v) - 0.3)); if (!carrera.avNeutra && obj < velYo.v - 0.3) { carrera.avNeutra = true; aviso3d('🚩 Neutralizada: no se ataca hasta los ' + M_NEUTRA + ' m'); } } }
+    if (cab && ruta.dist > cab.d - 3) { const tope = Math.max(1.5, (cab.v || velYo.v) - (ruta.dist > cab.d ? 0.4 + 0.1 * (ruta.dist - cab.d) : 0));   // pasada la cabeza, pierdes hasta volver
+      if (!carrera.avNeutra && Math.max(obj, velYo.v) > tope + 0.5) { carrera.avNeutra = true; aviso3d('🚩 Neutralizada: no se ataca hasta los ' + M_NEUTRA + ' m'); }
+      obj = Math.min(obj, tope); velYo.v = Math.min(velYo.v, tope + 0.2); } }   // sin inercia: no te embalas por delante
   const tau = obj > velYo.v ? (velYo.v < 5.5 ? 1 : 2) : 5;
   velYo.v += (obj - velYo.v) * Math.min(1, dt / tau);
   return velYo.v;
