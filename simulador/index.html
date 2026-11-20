@@ -317,7 +317,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v108 · grabar con toda la pantalla, liebre y terminar a mano</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v109 · grabar con toda la pantalla también con el menú recogido</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -709,7 +709,7 @@ function pulsarAccion(accion, pulsado, origen){
   if (!pulsado) return;
   if (accion === 'dif+' || accion === 'dif-') { const s = accion === 'dif+' ? 1 : -1;
     if (ruta.activa) { cambiaDif(DIF() + 10 * s); avisar('Dificultad ' + DIF() + ' %'); } else cambiarIntensidad(2 * s); return; }
-  if (accion === 'grabar') { if ($('b3Grabar').offsetWidth) $('b3Grabar').click(); else avisar('La grabación funciona en la vista carretera 3D.'); return; }
+  if (accion === 'grabar') { if (v3.activo) $('b3Grabar').click(); else avisar('La grabación funciona en la vista carretera 3D.'); return; }   // con el menú recogido el botón no se ve, pero graba igual
   if (accion === 'recorrer') { if (sesion.corriendo) { avisar('Recorrer es solo para mirar, sin entrenar.'); return; } if ($('bRecorrer') && !$('bRecorrer').disabled && !v3.activo) $('bRecorrer').click(); else $('b3Tester').click(); return; }
   if (accion === 'calidad') { const c = $('calidad3d'), n = c.options.length; c.selectedIndex = (c.selectedIndex + 1) % n; c.onchange(); return; }
   if (accion === 'mapa') { if (typeof alternarSeguir === 'function') { alternarSeguir(); aviso3d(mapa.seguir ? 'Mapa: te sigue' : 'Mapa: ruta entera'); } return; }
@@ -2190,7 +2190,9 @@ function empezarGrabacion(flujo, pestana){
 $('b3Grabar').onclick = async () => { $('b3Grabar').blur();
   if (grab.rec) { grab.rec.stop(); return; }
   if (typeof MediaRecorder === 'undefined') { avisar('La grabación necesita Chrome o Edge.'); return; }
-  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+  const pulsado = !navigator.userActivation || navigator.userActivation.isActive;
+  if (!pulsado) aviso3d('Desde el mando solo se graba el 3D; para grabarlo todo pulsa ⏺ en pantalla o la tecla G');
+  if (pulsado && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
     try { const flujo = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
       empezarGrabacion(flujo, true); return; }
     catch(e) { if (e && e.name === 'NotAllowedError') { avisar('Grabación cancelada.'); return; } log('Grabar pestaña: ' + e.message + ' · grabo solo el 3D'); } }
@@ -2214,7 +2216,8 @@ $('calidad3d').onchange = () => { try { localStorage.setItem('simulador-calidad'
   if (v3.construyendo) { v3.rehacer = true; return; } v3.construido = false; v3.escena = null; v3.camPos = null; if (v3.activo) construir3D(); };
 $('b3Empezar').onclick = () => { $('b3Empezar').blur(); if (v3.tester) $('b3Tester').click(); while (v3.tester) $('b3Tester').click(); $('bEmpezar').click(); };
 $('bRecorrer').onclick = () => { if (!ruta.activa) return; if (!window.LIGERO && $('vistaRuta').value !== 'carretera') { $('vistaRuta').value = 'carretera'; ponerVista(); } $('b3Tester').click(); $('bRecorrer').textContent = demo.x ? $('b3Tester').textContent : '▶ Recorrer la ruta (sin bici)'; };
-document.addEventListener('keydown', e => { if (!v3.activo || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return; if (e.key === 'r' || e.key === 'R') { $('b3Tester').click(); e.preventDefault(); } });
+document.addEventListener('keydown', e => { if (!v3.activo || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return; if (e.key === 'r' || e.key === 'R') { $('b3Tester').click(); e.preventDefault(); }
+  if (e.key === 'g' || e.key === 'G') { $('b3Grabar').click(); e.preventDefault(); } });   // G: grabar / parar (con el teclado sí se graba la pantalla entera)
 // Recorrido rápido (sin bici): para revisar el paisaje de una ruta. Velocidades: parado → 50 → 200 → 600 km/h
 const VEL_TESTER = [0, 50, 200, 600];
 $('b3Tester').onclick = () => {
