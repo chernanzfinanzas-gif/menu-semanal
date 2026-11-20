@@ -317,7 +317,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v115 · al terminar y guardar, la salida sube sola a intervals; pelotón en tres filas</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v116 · animales sin desplomarse; subida a intervals; pelotón en tres filas</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2979,7 +2979,10 @@ async function modeloAnimal(k, fuente){
   env.position.set(-cc.x, -c2.min.y, -cc.z); mez.stopAllAction();
   return cacheModelos[clave] = { g, clips: cl, vuela };
 }
-const prefClip = (clips, lista) => { for (const r of lista) { const c = clips.find(a => r.test(a.name)); if (c) return c; } return clips[0]; };
+// 20-nov (Carlos: «caballos que se desploman»): /eat/ casaba con «Death» y caballos y vacas se morían en bucle. Fuera morir, caer y atacar.
+const CLIP_MALO = /death|dead|dying|die\b|attack|hit|fall/i;
+const prefClip = (clips, lista) => { const buenos = clips.filter(a => !CLIP_MALO.test(a.name)); if (!buenos.length) return null;
+  for (const r of lista) { const c = buenos.find(a => r.test(a.name.split('|').pop())); if (c) return c; } return buenos.find(a => /idle|stand|basic|walk/i.test(a.name)) || buenos[0]; };
 const COLOR_AMB = { roca:0x8a857c, parque:0x5f8f3a, bosque:0x3e6a2b, barrio:0x8f8c80, poligono:0x8e8e88, campo:0xb5a46a, descampado:0xab9c6c, agua:0x4f86ad, deporte:0x6fa24c, otro:0x8d9668 };
 const ARBOLES_AMB = { roca:0.05, bosque:1, parque:0.75, deporte:0.3, otro:0.3, campo:0.1, descampado:0.14, barrio:0.12, poligono:0.04, agua:0 };
 async function decorarReal(esc, D){
