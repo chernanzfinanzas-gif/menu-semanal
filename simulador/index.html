@@ -262,6 +262,19 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     #pantallaResumen .cajaRes, #pantallaTramos .cajaRes { padding:12px; } #pantallaTramos .graf { grid-template-columns:1fr; }
     #pantallaResumen table, #pantallaTramos table { font-size:12px; } .tr .gap { font-size:28px; }
   }
+  #pantallaFicha { position:fixed; inset:0; z-index:6000; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
+  #pantallaFicha .cajaRes { max-width:1150px; margin:0 auto; background:#0d1117; border:1px solid #30363d; border-radius:16px; padding:18px 24px 22px; }
+  #pantallaFicha h3 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:#8b949e; margin:18px 0 8px; }
+  #pantallaFicha table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:14px; margin-top:8px; }
+  #pantallaFicha th { text-align:right; color:#8b949e; font-weight:600; padding:5px 8px; border-bottom:1px solid #30363d; } #pantallaFicha td { text-align:right; padding:5px 8px; border-bottom:1px solid #21262d; }
+  #pantallaFicha th:first-child, #pantallaFicha td:first-child, #pantallaFicha td:nth-child(2) { text-align:left; }
+  .pestFicha { display:flex; gap:6px; flex-wrap:wrap; margin:12px 0; } .pestFicha .activo { background:#1f6feb; color:#fff; border-color:#1f6feb; }
+  .cajaTipo { background:#161b22; border-radius:10px; padding:10px 14px; margin:8px 0; line-height:1.45; } .cajaTipo .sub { margin-top:4px; }
+  .curvaFicha { width:100%; max-width:900px; display:block; } .curvaFicha text { fill:#8b949e; font-size:12px; }
+  .chipZ, .chipA { font-size:11px; padding:1px 6px; border-radius:6px; background:#f0883e33; color:#f0883e; } .chipA { background:#1f6feb33; color:#58a6ff; }
+  #pantallaFicha .cabRes { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .pieFicha { margin-top:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  @media (max-width:900px) { #pantallaFicha { padding:8px; } #pantallaFicha .cajaRes { padding:12px; } #pantallaFicha table { font-size:12px; } #pantallaFicha .cajaRes { overflow-x:auto; } }
   #pantallaResumen { position:fixed; inset:0; z-index:6000; background:rgba(5,8,12,.82); overflow:auto; padding:30px 20px; }
   #pantallaResumen .cajaRes { max-width:1100px; margin:0 auto; background:#0d1117; border:1px solid #30363d; border-radius:16px; padding:18px 24px 22px; }
   #pantallaResumen .cabRes { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; } #pantallaResumen h2 { margin:0; font-size:26px; }
@@ -302,7 +315,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v106 · menú ☰ siempre y ventanas que se mueven y se recuerdan</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v107 · ficha de corredor: curva de potencia, reserva e historial por periodos</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -339,6 +352,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
       <div class="dosBotones">
         <button class="sec grandeB" id="bZwo">Cargar sesión<br><small>entrenamiento .zwo</small></button>
         <button class="grandeB" id="bSimulador">Simulador de rutas<br><small>incluidas o tu .gpx · mapa o 3D</small></button>
+        <button class="sec grandeB" id="bFicha">🪪 Mi ficha<br><small>curva de potencia, reserva e historial</small></button>
       </div>
       <input type="file" id="fichero" accept=".zwo" style="display:none">
       <select id="rutaIncluida" style="display:none" aria-label="Rutas incluidas"><option value="">o elige una ruta incluida…</option></select>
@@ -389,11 +403,14 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <h3 id="resProgTit">Progreso</h3><div id="resProgreso"></div>
   <div class="sub nota" id="resNota"></div>
 </div></div>
+<div id="pantallaFicha" hidden><div class="cajaRes">
+  <div class="cabRes"><div><h2 id="fiTitulo">Ficha</h2><div class="sub" id="fiSub"></div></div><button id="bCerrarFicha">Cerrar</button></div>
+  <div id="fiCuerpo"></div><input type="file" id="ficheroFit" accept=".fit" multiple style="display:none"></div></div>
 <div id="pantallaTramos" hidden><div class="cajaRes">
   <div class="cabRes"><div><h2 id="trTitulo">Tramos</h2><div class="sub" id="trSub"></div></div><div><button class="sec" id="bTrAtras" hidden>← Tramos de la ruta</button> <button id="bCerrarTramos">Cerrar</button></div></div>
   <div id="trCuerpo"></div></div></div>
 <div id="pantallaRutas" hidden>
-  <div class="cabRutas"><button class="sec" id="bVolverRutas">← Volver</button><h2>Simulador de rutas</h2>
+  <div class="cabRutas"><button class="sec" id="bVolverRutas">← Volver</button><button class="sec" onclick="abrirFicha()">🪪 Mi ficha</button><h2>Simulador de rutas</h2>
     <span class="sub">Recorrer en</span>
     <div class="vistaElegir"><button data-v="dos">Mapa 2D</button><button data-v="carretera">Escenario 3D</button></div></div>
   <div id="cajaRivales"><h3>Rivales <button class="sec mini" style="font-size:13px;margin-left:8px" onclick="mostrarDemo('carrera')" title="Vídeo de la primera carrera con bots">🎬 Ver una carrera</button></h3><div id="listaRivales"></div>
@@ -919,7 +936,8 @@ function arrancarMiReserva(){ miRes.wpMax = wPrimaYo(); miRes.wp = miRes.wpMax; 
 function pasoMiReserva(dt){ if (!sesion.corriendo || sesion.pausa || !miRes.wpMax) return; const w = Date.now() - vivo.tW < 3000 ? vivo.w : 0;
   pasoReserva(miRes, w, FTP(), dt);
   if (miRes.wp < -1500 && !sesion.demo) {   // has hecho más de lo que el modelo creía posible: tu W′ era mayor
-    miRes.wpMax = Math.round(miRes.wpMax - miRes.wp); miRes.wp = 0; try { localStorage.setItem(CLAVE('simulador-wprima'), miRes.wpMax); } catch(e) {}
+    const antes = miRes.wpMax; miRes.wpMax = Math.round(miRes.wpMax - miRes.wp); miRes.wp = 0; try { localStorage.setItem(CLAVE('simulador-wprima'), miRes.wpMax); } catch(e) {}
+    apuntarReserva(antes, miRes.wpMax, (carreraConf().activa ? 'en carrera' : 'en salida') + (ruta.activa ? ' por ' + ruta.nombre : '') + ': seguiste apretando con la reserva a cero');
     narrar('media', 'Tu reserva era mayor de lo que creía: ahora ' + (miRes.wpMax / 1000).toFixed(1).replace('.', ',') + ' kJ. Así me gusta', 'wprima'); } }
 function carreraConf(){ let c = null; try { c = JSON.parse(localStorage.getItem(CLAVE('simulador-carrera')) || 'null'); } catch(e) {}
   const kg = pesoCiclista(), nivel = Math.round(FTP() / kg * 10) / 10;
@@ -1242,6 +1260,139 @@ $('bGuardarLiebre').onclick = () => {
   if (l) Object.assign(l, datos); else liebres.push(Object.assign({ id:'l' + Date.now(), activa:true }, datos));
   guardarLiebres(); $('formLiebre').hidden = true; pintarListaRivales(); };
 
+// ===================== ficha de corredor (20-nov, Carlos) =====================
+// Cada salida guarda sus mejores vatios en 7 duraciones. La ficha junta las salidas de la app y las de Zwift (.fit),
+// enseña la curva de potencia de los últimos 90 días, tu reserva y el historial por semana, mes, trimestre y año.
+const DUR_FICHA = [5, 15, 30, 60, 300, 1200, 3600], NOM_DUR = ['5 s', '15 s', '30 s', '1 min', '5 min', '20 min', '60 min'];
+// a partir de cuánto (× FTP) una marca parece un esfuerzo de verdad y no un trozo de rodaje suave
+const UMBRAL_MAX = [2.2, 1.9, 1.6, 1.35, 1.05, 0.95, 0.85];
+function mejoresDe(W){ return DUR_FICHA.map(n => { if (W.length < n) return null; let a = 0; for (let i = 0; i < n; i++) a += W[i]; let m = a;
+  for (let i = n; i < W.length; i++) { a += W[i] - W[i - n]; if (a > m) m = a; } return Math.round(m / n); }); }
+function npDe(W){ if (W.length < 30) return null; let acc = 0, s = 0, n = 0; for (let i = 0; i < W.length; i++) { acc += W[i]; if (i >= 30) acc -= W[i - 30]; if (i >= 29) { s += Math.pow(acc / 30, 4); n++; } } return Math.pow(s / n, 0.25); }
+const leerImportadas = () => { try { return JSON.parse(localStorage.getItem(CLAVE('simulador-importadas')) || '[]'); } catch(e) { return []; } };
+const leerLogReserva = () => { try { return JSON.parse(localStorage.getItem(CLAVE('simulador-wprima-log')) || '[]'); } catch(e) { return []; } };
+function apuntarReserva(de, a, motivo){ const L = leerLogReserva(); L.push({ fecha: new Date().toISOString(), de, a, motivo }); while (L.length > 100) L.shift(); try { localStorage.setItem(CLAVE('simulador-wprima-log'), JSON.stringify(L)); } catch(e) {} }
+// todas las actividades: las de la app (historial) y las importadas de Zwift, de la más antigua a la más nueva
+function actividadesFicha(){ const A = leerHistorial().filter(h => h.seg >= 300).map(h => Object.assign({ origen: 'app' }, h)).concat(leerImportadas());
+  return A.sort((a, b) => a.fecha < b.fecha ? -1 : 1); }
+
+// --- lector mínimo de .fit (registros de potencia, pulso, cadencia, distancia; resumen de la sesión) ---
+function leerFit(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf), hs = u8[0], fin = Math.min(buf.byteLength, hs + dv.getUint32(4, true));
+  if (String.fromCharCode(u8[8], u8[9], u8[10], u8[11]) !== '.FIT') throw new Error('no es un .fit');
+  const defs = {}, R = [], S = {}; let p = hs, ultTs = 0;
+  const campo = (le, size, base) => { let v; if (size === 1) { v = u8[p]; if (v === 0xFF) v = null; } else if (size === 2) { v = dv.getUint16(p, le); if (v === 0xFFFF) v = null; }
+    else if (size === 4) { v = (base === 0x85) ? dv.getInt32(p, le) : dv.getUint32(p, le); if (v === 0xFFFFFFFF || v === 0x7FFFFFFF) v = null; } else v = null; p += size; return v; };
+  const leer = d => { const v = {}; for (const [n, size, base] of d.f) v[n] = campo(d.le, size, base); p += d.dev; return v; };
+  const usar = (d, v) => { if (d.gm === 20 && v[253] != null) R.push({ t: v[253], w: v[7], hr: v[3], c: v[4], d: v[5] != null ? v[5] / 100 : null });
+    else if (d.gm === 18) Object.assign(S, { asc: v[22], dist: v[9] != null ? v[9] / 100 : null, t0: v[2] }); };
+  while (p < fin) { const h = u8[p++];
+    if (h & 0x80) { const d = defs[(h >> 5) & 3]; if (!d) break; const off = h & 0x1F; let ts = (ultTs & ~0x1F) + off; if (off < (ultTs & 0x1F)) ts += 0x20; ultTs = ts; const v = leer(d); v[253] = ts; usar(d, v); continue; }
+    const lt = h & 0x0F;
+    if (h & 0x40) { p++; const le = u8[p++] === 0, gm = dv.getUint16(p, le); p += 2; const n = u8[p++], f = []; for (let i = 0; i < n; i++, p += 3) f.push([u8[p], u8[p + 1], u8[p + 2]]);
+      let dev = 0; if (h & 0x20) { const nd = u8[p++]; for (let i = 0; i < nd; i++, p += 3) dev += u8[p + 1]; } defs[lt] = { gm, le, f, dev }; }
+    else { const d = defs[lt]; if (!d) break; const v = leer(d); if (v[253] != null) ultTs = v[253]; usar(d, v); } }
+  return { R, S };
+}
+function actividadDeFit(nombre, buf){
+  const { R, S } = leerFit(buf); if (R.length < 300) return null;
+  const t0 = R[0].t, tn = R[R.length - 1].t, W = new Array(tn - t0 + 1).fill(0);
+  for (const r of R) if (r.w != null && r.w < 2500) W[r.t - t0] = r.w;
+  const seg = R.length, ftp = FTP(), np = npDe(W) || 0, IF = np / ftp, wMed = R.reduce((s, r) => s + (r.w || 0), 0) / seg;
+  const P = R.map(r => r.hr).filter(x => x > 40), fc = P.length ? P.reduce((a, b) => a + b, 0) / P.length : null, C = R.map(r => r.c).filter(x => x > 0);
+  const dM = S.dist != null ? S.dist : (R[R.length - 1].d || 0);   // metros, como el historial de la app
+  return { id: 'zw' + t0, origen: 'zwift', fecha: new Date((t0 + 631065600) * 1000).toISOString(), nombre: 'Zwift · ' + nombre.replace(/\.fit$/i, ''), seg, dist: dM,
+    desn: S.asc, wMed: Math.round(wMed), np: Math.round(np), IF: +IF.toFixed(2), tss: Math.round(seg * np * IF / (ftp * 3600) * 100), kj: Math.round(wMed * seg / 1000),
+    fcMed: fc ? Math.round(fc) : null, fcMax: P.length ? Math.max(...P) : null, cad: C.length ? Math.round(C.reduce((a, b) => a + b, 0) / C.length) : null,
+    efic: fc ? +(wMed / fc).toFixed(2) : null, ftp, b: mejoresDe(W), completa: true };
+}
+async function importarFits(files){
+  const I = leerImportadas(), ya = new Set(I.map(x => x.id)); let nuevas = 0, repes = 0, malas = 0;
+  for (const f of files) { try { const a = actividadDeFit(f.name, await f.arrayBuffer()); if (!a) { malas++; continue; } if (ya.has(a.id)) { repes++; continue; } I.push(a); ya.add(a.id); nuevas++; } catch(e) { malas++; } }
+  I.sort((a, b) => a.fecha < b.fecha ? -1 : 1); try { localStorage.setItem(CLAVE('simulador-importadas'), JSON.stringify(I)); } catch(e) { avisar('No se han podido guardar: ' + e.message); }
+  avisar(nuevas + ' salidas nuevas' + (repes ? ', ' + repes + ' ya estaban' : '') + (malas ? ', ' + malas + ' sin datos o muy cortas' : '') + '.'); pintarFicha();
+}
+
+// --- qué corredor eres: tu curva (÷ FTP) frente a los 7 perfiles de los bots ---
+function tipoCorredor(b, ftp){
+  const idx = [0, 1, 2, 3, 4], durs = [5, 15, 30, 60, 300], tuyo = idx.map(i => b[i] / ftp); let mejor = null;
+  for (const k of Object.keys(PERFILES)) { const pf = PERFILES[k], val = durs.map(t => curvaPot({ tipoP: k, ftp: 1, forma: 1 }, t));
+    const dif = val.map((v, i) => Math.log(tuyo[i] / v)), d = dif.reduce((s, x) => s + x * x, 0); if (!mejor || d < mejor.d) mejor = { k, pf, d, dif }; }
+  const imax = mejor.dif.reduce((m, x, i, a) => Math.abs(x) > Math.abs(a[m]) ? i : m, 0); return Object.assign(mejor, { imax });
+}
+const fichaUI = { pest: 'resumen' };
+function abrirFicha(){ $('pantallaFicha').hidden = false; pintarFicha(); }
+function pintarFicha(){
+  const A = actividadesFicha(), ftp = FTP(), kg = pesoCiclista(), hoy = Date.now(), d90 = hoy - 90 * 864e5;
+  const f1 = x => x == null ? '–' : x.toFixed(1).replace('.', ','), hm = s => Math.floor(s / 3600) + ' h ' + String(Math.round(s % 3600 / 60)).padStart(2, '0');
+  const mejores = desde => DUR_FICHA.map((_, i) => { let m = null; for (const a of A) if (a.b && a.b[i] && new Date(a.fecha) >= desde && (!m || a.b[i] > m.w)) m = { w: a.b[i], fecha: a.fecha }; return m; });
+  const B90 = mejores(new Date(d90)), BS = mejores(new Date(0));
+  const fiable = B90.map((m, i) => !!m && m.w >= UMBRAL_MAX[i] * ftp);
+  $('fiTitulo').textContent = '🪪 Ficha de ' + U.nombre;
+  $('fiSub').textContent = 'FTP ' + ftp + ' W · ' + f1(kg) + ' kg · ' + f1(ftp / kg) + ' W/kg · ' + A.length + ' salidas (' + A.filter(a => a.origen === 'zwift').length + ' de Zwift)';
+  const tabs = [['resumen', 'Resumen'], ['act', 'Actividades'], ['sem', 'Semanas'], ['mes', 'Meses'], ['tri', 'Trimestres'], ['ano', 'Años']];
+  let h = '<div class="pestFicha">' + tabs.map(([k, t]) => '<button class="sec ' + (fichaUI.pest === k ? 'activo' : '') + '" data-p="' + k + '">' + t + '</button>').join('') + '</div>';
+  if (fichaUI.pest === 'resumen') {
+    // tipo de corredor
+    const clave = [0, 3, 4, 5], faltan = clave.filter(i => !fiable[i]);
+    let tipo;
+    if (faltan.length) tipo = '<div class="cajaTipo"><b>Tipo de corredor: faltan esfuerzos.</b> Para saber qué corredor eres hacen falta esfuerzos a tope en '
+      + faltan.map(i => NOM_DUR[i]).join(', ') + ' dentro de los últimos 90 días. Tus marcas de ahora son de rodar en base, no de apretar.'
+      + '<div class="sub">Referencia de Strava, de cuando estabas en forma: puncheur.</div></div>';
+    else { const t = tipoCorredor(B90.map(m => m.w), ftp), lado = t.dif[t.imax] > 0 ? 'más fuerte' : 'más flojo';
+      tipo = '<div class="cajaTipo"><b>Tipo de corredor: ' + t.pf.ico + ' ' + t.pf.nom + '.</b> Donde más te separas de ese perfil: ' + lado + ' en ' + NOM_DUR[t.imax] + '.</div>'; }
+    // reserva
+    const L = leerLogReserva(), wp = wPrimaYo(), aprendida = +localStorage.getItem(CLAVE('simulador-wprima')) > 3000;
+    let cpTxt = ''; if (fiable[4] && fiable[5] && B90[4].w >= 1.12 * B90[5].w) { const cp = (B90[5].w * 1200 - B90[4].w * 300) / 900, w2 = (B90[4].w - cp) * 300; cpTxt = ' Según tus marcas de 5 y 20 min: CP ' + Math.round(cp) + ' W y reserva ' + f1(w2 / 1000) + ' kJ.'; }
+    const res = '<div class="cajaTipo"><b>Tu reserva (W′): ' + f1(wp / 1000) + ' kJ</b> · ' + (aprendida ? 'aprendida de tus salidas' : 'teórica (80 × FTP), aún sin probar') + '.' + cpTxt
+      + (L.length ? '<div class="sub">' + L.slice(-5).reverse().map(x => fechaCorta(x.fecha) + ': de ' + f1(x.de / 1000) + ' a ' + f1(x.a / 1000) + ' kJ · ' + x.motivo).join('<br>') + '</div>'
+        : '<div class="sub">Si en una salida en la bici la reserva llega a cero y sigues apretando, sube y queda apuntado aquí.</div>') + '</div>';
+    // curva
+    const X = t => 40 + Math.log(t / 5) / Math.log(3600 / 5) * 600, top = Math.max(ftp * 1.6, ...BS.filter(Boolean).map(m => m.w)) * 1.05, Y = w => 220 - Math.sqrt(w / top) * 200;
+    const linea = (B, col) => { const pts = B.map((m, i) => m ? X(DUR_FICHA[i]).toFixed(1) + ',' + Y(m.w).toFixed(1) : null).filter(Boolean); return pts.length > 1 ? '<polyline fill="none" stroke="' + col + '" stroke-width="2.5" points="' + pts.join(' ') + '"/>' + B.map((m, i) => m ? '<circle cx="' + X(DUR_FICHA[i]).toFixed(1) + '" cy="' + Y(m.w).toFixed(1) + '" r="3.5" fill="' + col + '"/>' : '').join('') : ''; };
+    const svg = '<svg viewBox="0 0 680 250" class="curvaFicha">'
+      + [100, 200, 300, 500, 800].filter(w => w < top).map(w => '<line x1="40" x2="640" y1="' + Y(w) + '" y2="' + Y(w) + '" stroke="#21262d"/><text x="34" y="' + (Y(w) + 4) + '" text-anchor="end">' + w + '</text>').join('')
+      + DUR_FICHA.map((t, i) => '<text x="' + X(t) + '" y="242" text-anchor="middle">' + NOM_DUR[i] + '</text>').join('')
+      + '<line x1="40" x2="640" y1="' + Y(ftp) + '" y2="' + Y(ftp) + '" stroke="#d29922" stroke-dasharray="5 4"/><text x="644" y="' + (Y(ftp) + 4) + '" fill="#d29922">FTP</text>'
+      + linea(BS, '#6e7681') + linea(B90, '#58a6ff') + '</svg><div class="sub"><span style="color:#58a6ff">●</span> últimos 90 días · <span style="color:#6e7681">●</span> desde siempre · vatios en escala de raíz para que se vean bien las duraciones largas</div>';
+    const tabla = '<table><tr><th>Duración</th><th>90 días</th><th>× FTP</th><th>W/kg</th><th>Fecha</th><th>¿Esfuerzo real?</th><th>Desde siempre</th></tr>'
+      + DUR_FICHA.map((_, i) => { const m = B90[i], s = BS[i]; return '<tr><td>' + NOM_DUR[i] + '</td><td><b>' + (m ? m.w + ' W' : '–') + '</b></td><td>' + (m ? f1(m.w / ftp) : '–') + '</td><td>' + (m ? f1(m.w / kg) : '–')
+        + '</td><td>' + (m ? fechaCorta(m.fecha) : '–') + '</td><td>' + (!m ? '–' : fiable[i] ? '<span class="mejora">✔ sí</span>' : '<span class="igual">⚠ faltan esfuerzos</span>') + '</td><td>' + (s ? s.w + ' W · ' + fechaCorta(s.fecha) : '–') + '</td></tr>'; }).join('') + '</table>';
+    h += tipo + res + '<h3>Curva de potencia</h3>' + svg + tabla;
+  } else if (fichaUI.pest === 'act') {
+    h += '<table><tr><th>Día</th><th>Salida</th><th>Tiempo</th><th>km</th><th>Desnivel</th><th>W med.</th><th>NP</th><th>FC</th><th>W/ppm</th><th>TSS</th><th>5 min</th><th>20 min</th></tr>'
+      + A.slice().reverse().slice(0, 150).map(a => '<tr><td>' + fechaCorta(a.fecha) + '</td><td>' + (a.origen === 'zwift' ? '<span class="chipZ">Zwift</span> ' : '<span class="chipA">App</span> ') + (a.origen === 'zwift' ? '' : a.nombre) + '</td><td>' + hm(a.seg)
+        + '</td><td>' + (a.dist != null ? f1(a.dist / 1000) : '–') + '</td><td>' + (a.desn != null ? Math.round(a.desn) + ' m' : '–') + '</td><td>' + a.wMed + '</td><td>' + (a.np || '–') + '</td><td>' + (a.fcMed || '–')
+        + '</td><td>' + (a.efic != null ? a.efic.toFixed(2).replace('.', ',') : '–') + '</td><td>' + (a.tss != null ? a.tss : '–') + '</td><td>' + (a.b && a.b[4] ? a.b[4] : '–') + '</td><td>' + (a.b && a.b[5] ? a.b[5] : '–') + '</td></tr>').join('') + '</table>'
+      + (A.length ? '' : '<p class="sub">Aún no hay salidas. Carga las de Zwift con el botón de abajo o rueda con la app.</p>');
+  } else {
+    // resúmenes por periodo
+    const lunes = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
+    const claveP = d => { d = new Date(d); if (fichaUI.pest === 'sem') { const l = lunes(d); return [l.toISOString().slice(0, 10), 'Semana del ' + l.getDate() + ' ' + l.toLocaleDateString('es-ES', { month: 'short' }) + ' ' + l.getFullYear()]; }
+      if (fichaUI.pest === 'mes') return [d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })];
+      if (fichaUI.pest === 'tri') { const q = Math.floor(d.getMonth() / 3) + 1; return [d.getFullYear() + '-' + q, q + 'º trimestre ' + d.getFullYear()]; } return [String(d.getFullYear()), String(d.getFullYear())]; };
+    const G = new Map(); for (const a of A) { const [k, n] = claveP(a.fecha); if (!G.has(k)) G.set(k, { n, L: [] }); G.get(k).L.push(a); }
+    const med = (L, k) => { const v = L.map(a => a[k]).filter(x => x != null && x > 0); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+    const sum = (L, f) => L.reduce((s, a) => s + (f(a) || 0), 0);
+    const filas = [...G.keys()].sort().map(k => { const L = G.get(k).L; return { n: G.get(k).n, num: L.length, seg: sum(L, a => a.seg), km: sum(L, a => a.dist != null ? a.dist / 1000 : 0),
+      desn: sum(L, a => a.desn), kj: sum(L, a => a.kj), tss: sum(L, a => a.tss), w: med(L, 'wMed'), np: med(L, 'np'), fc: med(L, 'fcMed'), ef: med(L, 'efic'),
+      b5: Math.max(0, ...L.map(a => a.b && a.b[4] || 0)) || null, b20: Math.max(0, ...L.map(a => a.b && a.b[5] || 0)) || null }; });
+    const fl = (x, y, d, sube) => { if (x == null || y == null) return ''; const df = x - y; if (Math.abs(df) < Math.pow(10, -d) / 2) return ''; return ' <span class="' + ((df > 0) === sube ? 'mejora' : 'empeora') + '">' + (df > 0 ? '▲' : '▼') + '</span>'; };
+    h += '<table><tr><th>Periodo</th><th>Salidas</th><th>Horas</th><th>km</th><th>Desnivel</th><th>kJ</th><th>TSS</th><th>W med.</th><th>NP</th><th>FC med.</th><th>W/ppm</th><th>Duración media</th><th>Mejor 5 min</th><th>Mejor 20 min</th></tr>'
+      + filas.map((r, i) => { const p = filas[i - 1] || {}; return '<tr><td>' + r.n + '</td><td>' + r.num + '</td><td>' + hm(r.seg) + fl(r.seg, p.seg, 0, true) + '</td><td>' + Math.round(r.km) + '</td><td>' + Math.round(r.desn) + ' m</td><td>' + Math.round(r.kj) + '</td><td>' + Math.round(r.tss) + fl(r.tss, p.tss, 0, true)
+        + '</td><td>' + (r.w ? Math.round(r.w) : '–') + fl(r.w, p.w, 0, true) + '</td><td>' + (r.np ? Math.round(r.np) : '–') + '</td><td>' + (r.fc ? Math.round(r.fc) : '–') + '</td><td>' + (r.ef ? r.ef.toFixed(2).replace('.', ',') : '–') + fl(r.ef, p.ef, 2, true)
+        + '</td><td>' + hm(r.seg / r.num) + '</td><td>' + (r.b5 || '–') + '</td><td>' + (r.b20 || '–') + '</td></tr>'; }).reverse().join('') + '</table>'
+      + '<div class="sub">Totales del periodo y, de vatios, pulso y W/ppm, la media de sus salidas. Las flechas comparan con el periodo anterior.</div>';
+  }
+  h += '<div class="pieFicha"><button class="sec" id="bImportarFit">⬆ Cargar salidas de Zwift (.fit)</button> <span class="sub">En la ventana, escribe <b>%LOCALAPPDATA%\\Zwift\\Activities</b> arriba, pulsa Enter, Ctrl+A y Abrir. Las que ya estén no se repiten.</span></div>';
+  $('fiCuerpo').innerHTML = h;
+  $('fiCuerpo').querySelectorAll('.pestFicha button').forEach(b => b.onclick = () => { fichaUI.pest = b.dataset.p; pintarFicha(); });
+  $('bImportarFit').onclick = () => $('ficheroFit').click();
+}
+$('ficheroFit').onchange = e => { const F = [...e.target.files]; e.target.value = ''; if (F.length) importarFits(F); };
+$('bCerrarFicha').onclick = () => $('pantallaFicha').hidden = true;
+$('bFicha').onclick = abrirFicha;
+
 // ===================== resumen al terminar y progreso =====================
 const leerHistorial = () => { try { return JSON.parse(localStorage.getItem(CLAVE('simulador-historial')) || '[]'); } catch(e) { return []; } };
 function calcularResumen(){
@@ -1259,7 +1410,7 @@ function calcularResumen(){
     completa: ruta.activa ? ruta.dist >= ruta.total - 2 : !!sesion.completada, seg, dist, desn: ruta.activa ? ruta.subido : null,
     wMed: Math.round(wMed), np: Math.round(np), IF: +IF.toFixed(2), tss: Math.round(tss), wkg: +(wMed / kg).toFixed(2), kj: Math.round(wMed * seg / 1000),
     fcMed: fcMed ? Math.round(fcMed) : null, fcMax: P.length ? Math.max(...P) : null, cad: C.length ? Math.round(media(C)) : null,
-    efic: fcMed ? +(wMed / fcMed).toFixed(2) : null, vel: dist ? +(dist / seg * 3.6).toFixed(1) : null, ftp, dif: ruta.activa ? DIF() : null };
+    efic: fcMed ? +(wMed / fcMed).toFixed(2) : null, vel: dist ? +(dist / seg * 3.6).toFixed(1) : null, ftp, dif: ruta.activa ? DIF() : null, b: mejoresDe(W), origen: 'app' };
 }
 function mostrarResumen(){
   const R = calcularResumen(); if (!R) return;
