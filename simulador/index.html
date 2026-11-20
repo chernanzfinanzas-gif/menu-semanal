@@ -317,7 +317,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v118 · clasificación con diferencias reales; el pelotón cabe en la vía; subida a intervals</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v119 · salida neutralizada 400 m; clasificación con diferencias reales; subida a intervals</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -1033,7 +1033,7 @@ function moverBot(b, dt, todos){
   b.esf = w > F ? b.esf + dt : 0; const techoC = curvaPot(b, Math.max(5, b.esf)); if (w > techoC) { w = techoC; v = velocidadFisica(w, g, reb, b.q); }
   pasoReserva(b, w, F, dt);
   if (b.reviento) { b.reviento = false; if (Math.abs(b.d - ruta.dist) < 80 && sesion.tTotal > 30) narrar('baja', frase('revienta', { n: b.nombre }), 'rev' + b.nombre); }
-  if ((sesion.tTotal || 0) < 20) { const tope = Math.max(1.5, velocidadRuta() + 0.6); if (v > tope) { v = tope; w = potenciaPara(v, g, reb, b.q); } }   // salida neutralizada: arrancáis juntos
+  if (neutralizada()) { const vy = velocidadRuta(), tope = b.d > ruta.dist + 3 ? Math.max(1.2, vy - 0.3) : Math.max(1.5, vy + 0.6); /* delante de ti no se va; detrás, se junta */ if (v > tope) { v = tope; w = potenciaPara(v, g, reb, b.q); } }   // salida neutralizada: arrancáis juntos
   b.w = w; b.v = v; b.d = Math.min(ruta.total, b.d + v * dt);
   if (b.d >= dMeta() && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal;
     const ant = rivales.lista.filter(r => r.tipo === 'bot' && r.llego).length + (ruta.dist >= dMeta() ? 1 : 0);
@@ -1120,7 +1120,12 @@ function miReservaHtml(){ if (!miRes.wpMax || !sesion.corriendo) return ''; cons
   return '<div class="mires">🔋 Tu reserva <b style="color:' + c + '">' + (miRes.vacia ? '💥 vacía' : Math.round(r * 100) + ' %') + '</b><span class="bar"><i style="width:' + Math.round(r * 100) + '%;background:' + c + '"></i></span></div>'; }
 // Clasificaciones: puertos (las subidas detectadas), metas volantes a 1/3 y 2/3, y meta (cuenta para la regularidad)
 const carrera = { metas: [], yoPrev: 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0, tPanel: 0 };
-function prepararCarrera(){ Object.assign(carrera, { grupeta: null, yoLat: 0, yoLatObj: 0, tCarrilYo: 0, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
+// salida neutralizada (20-nov, Carlos): los primeros 400 m nadie se va; al pasarlos, salida real
+const M_NEUTRA = 400;
+function neutralizada(){ const dentro = (ruta.dist - (carrera.dSalida || 0)) < M_NEUTRA || (sesion.tTotal || 0) < 5;
+  if (!dentro && !carrera.salidaReal && sesion.corriendo) { carrera.salidaReal = true; aviso3d('🏁 ¡Salida real!'); narrar('alta', rivales.lista.some(r => r.grupeta) ? 'Fin de la neutralizada: la grupeta se pone a su ritmo' : '¡Bajan la bandera! Salida real: empieza la carrera', 'salidaReal'); }
+  return dentro; }
+function prepararCarrera(){ Object.assign(carrera, { grupeta: null, dSalida: ruta.dist || 0, salidaReal: false, yoLat: 0, yoLatObj: 0, tCarrilYo: 0, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
   const bots = rivales.lista.filter(r => r.tipo === 'bot'); if (!bots.length || bots[0].grupeta) return;
   const T = ruta.total;
   for (const t of (tramos.lista || []).filter(t => t.tipo === 'subida')) carrera.metas.push({ d: Math.min(t.b, dMeta()), tipo: 'puerto', nombre: t.nombre.replace(/ \(km.*$/, ''), pts: /^Repecho/.test(t.nombre) ? [3, 2, 1] : [5, 3, 2, 1], pasados: [] });
@@ -1204,7 +1209,7 @@ function moverRivales(dt){
   if (bots.length && bots[0].grupeta) {   // grupeta: un solo grupo a ritmo fijo, de dos en dos; si te quedas atrás, afloja y te espera
     const G = carrera.grupeta || (carrera.grupeta = { d: bots[0].d }), F = bots[0].ftp, g = pendAplicada(G.d);
     let P = F * 0.75 * (g > 2 ? 1.12 : g < -2 ? 0.55 : 1); if (G.d - ruta.dist > 12) P = F * 0.5;
-    G.v = velocidadFisica(P, g, 0, bots[0].q); if ((sesion.tTotal || 0) < 20) G.v = Math.min(G.v, Math.max(1.5, velocidadRuta() + 0.6));   // salida neutralizada
+    G.v = velocidadFisica(P, g, 0, bots[0].q); if (neutralizada()) { const vy = velocidadRuta(); G.v = Math.min(G.v, G.d - ruta.dist > 6 ? Math.max(1.2, vy - 0.3) : Math.max(1.5, vy + 0.3)); }   // salida neutralizada
     G.d = Math.min(ruta.total + 30, G.d + G.v * dt);
     formarGrupeta(G, bots, dt);
     bots.forEach((b, i) => { b.d = Math.min(ruta.total, G.d - b.off); b.v = G.v; b.w = potenciaPara(G.v, g, b.off < 0.5 ? 0 : REBUFO.peloton, b.q);
