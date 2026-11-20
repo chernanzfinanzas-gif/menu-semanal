@@ -169,6 +169,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   .chipRival .pt { width:12px; height:12px; border-radius:50%; background:var(--c); }
   .chipRival.off { opacity:.55; } .chipRival small { color:#8b949e; }
   .chipRival .mini { background:none; border:none; color:#8b949e; padding:0 4px; font-size:14px; cursor:pointer; }
+  #formLiebre[hidden] { display:none !important; }
   #formLiebre { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; font-size:14px; }
   #formLiebre input[type=number] { width:62px; } #formLiebre #lNombre { width:120px; }
   #pantallaRutas .mejor { color:#d2a8ff; font-size:13px; }
@@ -199,6 +200,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #clasifPanel table { border-collapse:collapse; } #clasifPanel td, #clasifPanel th { padding:2px 8px; text-align:left; } #clasifPanel th { color:#aab2bd; font-weight:normal; }
   #clasifPanel tr.yo td { color:#ffd33d; font-weight:bold; }
   /* barra plegable en el 3D (19-nov): se recoge al rodar; ☰ Menú o la tecla M la abren */
+  #bTerm3d { display:none; position:fixed; top:10px; z-index:1003; background:rgba(110,20,20,.9); color:#fff; border:1px solid #f85149; border-radius:10px; padding:8px 14px; font-size:15px; font-weight:600; cursor:pointer; }
   #bMenu3d { display:none; position:fixed; top:10px; left:10px; z-index:1003; background:rgba(13,17,23,.88); color:#fff; border:1px solid #30363d; border-radius:10px; padding:8px 14px; font-size:15px; font-weight:600; cursor:pointer; }
   body.barraOculta #zonaRuta.carretera #panelMapa .barra { display:none; }
   body.barraOculta #zonaRuta.carretera ~ #bMenu3d, body.barraOculta #bMenu3d.en3d { display:block; }
@@ -315,7 +317,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v107 · ficha de corredor: curva de potencia, reserva e historial por periodos</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v108 · grabar con toda la pantalla, liebre y terminar a mano</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -989,6 +991,7 @@ function moverBot(b, dt, todos){
   b.esf = w > F ? b.esf + dt : 0; const techoC = curvaPot(b, Math.max(5, b.esf)); if (w > techoC) { w = techoC; v = velocidadFisica(w, g, reb, b.q); }
   pasoReserva(b, w, F, dt);
   if (b.reviento) { b.reviento = false; if (Math.abs(b.d - ruta.dist) < 80 && sesion.tTotal > 30) narrar('baja', frase('revienta', { n: b.nombre }), 'rev' + b.nombre); }
+  if ((sesion.tTotal || 0) < 20) { const tope = Math.max(1.5, velocidadRuta() + 0.6); if (v > tope) { v = tope; w = potenciaPara(v, g, reb, b.q); } }   // salida neutralizada: arrancáis juntos
   b.w = w; b.v = v; b.d = Math.min(ruta.total, b.d + v * dt);
   if (b.d >= dMeta() && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal;
     const ant = rivales.lista.filter(r => r.tipo === 'bot' && r.llego).length + (ruta.dist >= dMeta() ? 1 : 0);
@@ -1150,8 +1153,9 @@ function moverRivales(dt){
     for (const b of bots) b.d0 = b.d; }
   if (bots.length && bots[0].grupeta) {   // grupeta: un solo grupo a ritmo fijo, de dos en dos; si te quedas atrás, afloja y te espera
     const G = carrera.grupeta || (carrera.grupeta = { d: bots[0].d }), F = bots[0].ftp, g = pendAplicada(G.d);
-    let P = F * 0.75 * (g > 2 ? 1.12 : g < -2 ? 0.55 : 1); if (G.d - ruta.dist > 12 && sesion.tTotal > 20) P = F * 0.5;
-    G.v = velocidadFisica(P, g, 0, bots[0].q); G.d = Math.min(ruta.total + 30, G.d + G.v * dt);
+    let P = F * 0.75 * (g > 2 ? 1.12 : g < -2 ? 0.55 : 1); if (G.d - ruta.dist > 12) P = F * 0.5;
+    G.v = velocidadFisica(P, g, 0, bots[0].q); if ((sesion.tTotal || 0) < 20) G.v = Math.min(G.v, Math.max(1.5, velocidadRuta() + 0.6));   // salida neutralizada
+    G.d = Math.min(ruta.total + 30, G.d + G.v * dt);
     bots.forEach((b, i) => { b.d = Math.min(ruta.total, G.d - Math.floor(i / 2) * 1.6 - (i % 2) * 0.3); b.v = G.v; b.w = potenciaPara(G.v, g, i < 2 ? 0 : REBUFO.peloton, b.q);
       if (b.d >= dMeta() && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal; } }); }
   else if (bots.length) { const todos = [yo, ...rivales.lista.filter(r => r.tipo !== 'fantasma')];
@@ -1173,6 +1177,7 @@ function pintarRivales(){
   const v = Math.max(2, velocidadRuta() || 6);
   const enCarrera = rivales.lista.some(r => r.tipo === 'bot'), corriendo = sesion.corriendo || sesion.tTotal;
   let cab = '', lista = rivales.lista;
+  if (enCarrera && !sesion.corriendo && sesion.tTotal) { const a = $('rivales3d'), b = $('rivalesFila'); for (const x of [a, b]) if (x) { x.innerHTML = ''; x.style.display = 'none'; } return; }   // carrera terminada: fuera de la pantalla (la clasificación sigue en 🏁)
   if (enCarrera && corriendo) { const C = clasificacion(), pos = C.findIndex(x => x.yo) + 1, bots = rivales.lista.filter(r => r.tipo === 'bot');
     const grupo = bots.filter(b => Math.abs(b.d - ruta.dist) < 15).length;
     cab = '<div class="r" style="--c:#ffd33d;cursor:pointer;pointer-events:auto" onclick="alternarClasif()" title="Ver la clasificación">🏁 <b>' + pos + 'º</b> de ' + C.length + (grupo ? ' · en grupo con ' + grupo : ' · solo') + (vivo.rebufo > 0.02 ? ' · 🌀 a rueda −' + Math.round(vivo.rebufo * 100) + ' % de aire' : '') + '</div>';
@@ -1884,10 +1889,16 @@ function enviarPendiente(forzar){
   const gg = Math.round(g * FACTOR_PESO() * 100); enviarBici([0x11, 0, 0, gg & 0xff, (gg >> 8) & 0xff, 40, cw]);
 }
 // velocidad: la que da la bici (ya lleva tu marcha y tu cadencia); si no llega, la física con tus vatios
+// 20-nov (prueba de la grupeta): tu velocidad ya NO la da la bici (marcha × cadencia), que no sabe del rebufo y en bajada se quedaba
+// 10–25 km/h corta; sale de la física con tus vatios, la pendiente y el rebufo, como la de los bots y como en Zwift. Con algo de inercia,
+// para que no salte con cada pedalada; sin pedalear, ruedas por inercia (en bajada sigues bajando).
+const velYo = { v: 0, t: 0 };
 function velocidadRuta(){
-  if (Date.now() - vivo.tW < 3000 && vivo.v > 0) return vivo.v / 3.6;
-  if (Date.now() - vivo.tW < 3000 && vivo.w > 0) return velocidadFisica(vivo.w, pendAplicada(ruta.dist), vivo.rebufo);
-  return 0;
+  const ahora = performance.now(), dt = velYo.t ? Math.min(1, (ahora - velYo.t) / 1000) : 0; if (dt < 0.02 && velYo.t) return velYo.v; velYo.t = ahora;
+  if (!sesion.corriendo || sesion.pausa) { velYo.v = 0; return 0; }
+  const w = Date.now() - vivo.tW < 3000 ? (vivo.w || 0) : 0, obj = velocidadFisica(w, pendAplicada(ruta.dist), vivo.rebufo);
+  velYo.v += (obj - velYo.v) * Math.min(1, dt / (obj > velYo.v ? 3 : 5));
+  return velYo.v;
 }
 // velocidad (m/s) a la que tus vatios igualan pendiente + rodadura + aire. 105 kg con bici. Búsqueda por bisección: estable en subidas y bajadas.
 // Física (20-nov, modelo de la página de Endurance Group: Van Dijk + CdA de Basset): aire 1,205 kg/m³, rodadura 0,004, transmisión 2,5 %,
@@ -2159,22 +2170,37 @@ $('escenario3d').onchange = () => {
 $('b3Pausa').onclick = () => $('bPausa').click();
 // ---- grabación del 3D (MediaRecorder): se compone cada imagen con un recuadro de datos y se descarga al parar ----
 const grab = { rec:null, lienzo:null, ctx:null, trozos:[], t0:0, tEtq:0 };
-$('b3Grabar').onclick = () => { $('b3Grabar').blur();
+// 20-nov (Carlos): el vídeo debe llevar TODO lo que se ve (marcador, rivales, mapa, perfil…); en edición ya se quita lo que sobre.
+// Se graba la pestaña entera (Chrome pide confirmar «compartir esta pestaña») y en .mp4 si Chrome lo sabe hacer, que Windows lo abre sin problemas.
+// Si el navegador no deja grabar la pestaña, se graba como antes: solo el 3D con el recuadro de datos.
+function guardarGrabacion(){ const mp4 = /mp4/.test(grab.tipo || ''), blob = new Blob(grab.trozos, { type: mp4 ? 'video/mp4' : 'video/webm' }), a = document.createElement('a'), f = new Date();
+  a.href = URL.createObjectURL(blob); const d2 = n => String(n).padStart(2, '0'); a.download = 'simulador ' + (USUARIO === 'carlos' ? '' : U.nombre + ' ') + f.getFullYear() + '-' + d2(f.getMonth() + 1) + '-' + d2(f.getDate()) + ' ' + d2(f.getHours()) + '-' + d2(f.getMinutes()) + (mp4 ? '.mp4' : '.webm'); document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000); if (grab.flujo) grab.flujo.getTracks().forEach(t => t.stop()); grab.flujo = null; grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
+  avisar('Vídeo guardado en Descargas (' + (blob.size / 1e6).toFixed(1).replace('.', ',') + ' MB).'); log('Grabación guardada: ' + a.download); }
+function empezarGrabacion(flujo, pestana){
+  grab.tipo = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
+  grab.trozos = []; grab.pestana = pestana; grab.flujo = flujo;
+  grab.rec = new MediaRecorder(flujo, { mimeType: grab.tipo, videoBitsPerSecond: pestana ? 10000000 : 6000000 });
+  grab.rec.ondataavailable = e => { if (e.data && e.data.size) grab.trozos.push(e.data); };
+  grab.rec.onstop = guardarGrabacion;
+  flujo.getVideoTracks()[0].onended = () => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); };   // si paras desde la barra de Chrome
+  grab.rec.start(1000); grab.t0 = performance.now(); $('b3Grabar').classList.add('peligro'); $('b3Grabar').textContent = '⏹ Parar 0:00'; aviso3d(pestana ? 'Grabando la pantalla entera' : 'Grabando el 3D');
+  if (pestana) grab.reloj = setInterval(() => { if (!grab.rec) { clearInterval(grab.reloj); return; } $('b3Grabar').textContent = '⏹ Parar ' + mmss((performance.now() - grab.t0) / 1000); }, 1000);
+}
+$('b3Grabar').onclick = async () => { $('b3Grabar').blur();
   if (grab.rec) { grab.rec.stop(); return; }
-  if (!v3.construido || typeof MediaRecorder === 'undefined') { avisar('La grabación necesita la vista 3D construida y Chrome.'); return; }
+  if (typeof MediaRecorder === 'undefined') { avisar('La grabación necesita Chrome o Edge.'); return; }
+  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+    try { const flujo = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
+      empezarGrabacion(flujo, true); return; }
+    catch(e) { if (e && e.name === 'NotAllowedError') { avisar('Grabación cancelada.'); return; } log('Grabar pestaña: ' + e.message + ' · grabo solo el 3D'); } }
+  if (!v3.construido) { avisar('La grabación necesita la vista 3D construida.'); return; }
   const src = v3.r.domElement, w = Math.min(1280, src.width) & ~1, hh = Math.round(src.height * w / src.width) & ~1;
   grab.lienzo = document.createElement('canvas'); grab.lienzo.width = w; grab.lienzo.height = hh; grab.ctx = grab.lienzo.getContext('2d');
-  const tipo = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
-  grab.trozos = []; grab.rec = new MediaRecorder(grab.lienzo.captureStream(30), { mimeType: tipo, videoBitsPerSecond: 6000000 });
-  grab.rec.ondataavailable = e => { if (e.data && e.data.size) grab.trozos.push(e.data); };
-  grab.rec.onstop = () => { const blob = new Blob(grab.trozos, { type: 'video/webm' }), a = document.createElement('a'), f = new Date();
-    a.href = URL.createObjectURL(blob); const d2 = n => String(n).padStart(2, '0'); a.download = 'simulador ' + (USUARIO === 'carlos' ? '' : U.nombre + ' ') + f.getFullYear() + '-' + d2(f.getMonth() + 1) + '-' + d2(f.getDate()) + ' ' + d2(f.getHours()) + '-' + d2(f.getMinutes()) + '.webm'; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 60000); grab.rec = null; $('b3Grabar').textContent = '⏺ Grabar'; $('b3Grabar').classList.remove('peligro');
-    avisar('Vídeo guardado en Descargas (' + (blob.size / 1e6).toFixed(1).replace('.', ',') + ' MB).'); log('Grabación guardada: ' + a.download); };
-  grab.rec.start(1000); grab.t0 = performance.now(); $('b3Grabar').classList.add('peligro'); $('b3Grabar').textContent = '⏹ Parar 0:00'; aviso3d('Grabando');
+  empezarGrabacion(grab.lienzo.captureStream(30), false);
 };
 function componerGrabacion(){
-  if (!grab.rec) return; const c = grab.ctx, W = grab.lienzo.width, H = grab.lienzo.height;
+  if (!grab.rec || grab.pestana) return; const c = grab.ctx, W = grab.lienzo.width, H = grab.lienzo.height;
   c.drawImage(v3.r.domElement, 0, 0, W, H);
   const k = W / 1280, cajas = [['km/h', $('tVel').textContent], ['tiempo', mmss(sesion.tTotal || 0)], ['km', (ruta.dist / 1000).toFixed(1).replace('.', ',')], ['%', ruta.activa ? (puntoEn(ruta.dist).pend).toFixed(1).replace('.', ',') : '–']];
   c.fillStyle = 'rgba(13,17,23,0.72)'; c.fillRect(16 * k, H - 86 * k, 520 * k, 70 * k);
@@ -3533,7 +3559,11 @@ let tick = null, ultimoTick = 0, quietoDesde = null, mensajeHasta = 0;
 const menu3d = { abierto: false };
 function ponerMenu(abrir){ menu3d.abierto = !!abrir; const en3d = !!(v3 && v3.activo);
   document.body.classList.toggle('barraOculta', en3d && !menu3d.abierto); document.body.classList.toggle('menuAbierto', en3d && menu3d.abierto);
-  const b = $('bMenu3d'); if (b) { if (b.parentNode !== document.body) document.body.appendChild(b); b.style.display = en3d ? 'block' : 'none'; b.textContent = menu3d.abierto ? '✕ Cerrar menú' : '☰ Menú'; } }
+  const b = $('bMenu3d'); if (b) { if (b.parentNode !== document.body) document.body.appendChild(b); b.style.display = en3d ? 'block' : 'none'; b.textContent = menu3d.abierto ? '✕ Cerrar menú' : '☰ Menú'; }
+  let t = $('bTerm3d'); if (!t) { t = document.createElement('button'); t.id = 'bTerm3d'; t.textContent = '⏹ Terminar y guardar'; t.title = 'Termina la salida y la guarda (también con el botón A del mando, 3 s)';
+    t.onclick = () => { t.blur(); if (!$('bTerminar').disabled) $('bTerminar').click(); }; document.body.appendChild(t); }
+  const rodandoDeVerdad = en3d && sesion.corriendo && !sesion.demo && !menu3d.abierto && !$('bTerminar').disabled;
+  t.style.display = rodandoDeVerdad ? 'block' : 'none'; if (b && rodandoDeVerdad) t.style.left = (10 + b.offsetWidth + 8) + 'px'; }
 { let en3dAntes = null; setInterval(() => { const en3d = !!(v3 && v3.activo); if (en3d !== en3dAntes) { en3dAntes = en3d; menu3d.abierto = false; } ponerMenu(menu3d.abierto); }, 400);
   document.addEventListener('click', e => { if (e.target && e.target.id === 'bMenu3d') { ponerMenu(!menu3d.abierto); e.target.blur(); } });
   document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && v3.activo && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) { ponerMenu(!menu3d.abierto); e.preventDefault(); } }); }
@@ -3553,7 +3583,9 @@ function recolocarVentanas(){ for (const id of VENTANAS) { try { localStorage.re
     arr.moviendo = true; const x = e.clientX - arr.dx, y = e.clientY - arr.dy; Object.assign(arr.el.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto', transform: 'none' }); arr.el.dataset.movido = '1'; e.preventDefault(); });
   document.addEventListener('pointerup', () => { if (arr && arr.moviendo) { const r = arr.el.getBoundingClientRect(); try { localStorage.setItem('simulador-pos-' + arr.el.id, JSON.stringify({ x: Math.round(r.left), y: Math.round(r.top) })); } catch(e) {} } arr = null; });
   // al aparecer o cambiar de tamaño la ventana del navegador, cada una vuelve a su sitio guardado
-  setInterval(() => { for (const id of VENTANAS) { const el = $(id); if (el && posGuardada(id) && !el.dataset.movido) aplicarPos(el); } }, 700);
+  setInterval(() => { for (const id of VENTANAS) { const el = $(id); if (el && posGuardada(id) && !el.dataset.movido) aplicarPos(el); }
+    const M = $('marcador'); if (M && !M.hidden && !sesion.corriendo) M.hidden = true;
+    if (!sesion.corriendo && sesion.tTotal && rivales.lista.some(r => r.tipo === 'bot')) pintarRivales(); }, 700);
   addEventListener('resize', () => { for (const id of VENTANAS) { const el = $(id); if (el && posGuardada(id)) aplicarPos(el); } }); }
 // ===================== cuenta atrás (20-nov): en carrera, parrilla de 3 en fondo, tu sitio al azar, 5 s y cámara elevada; sin carrera, 3 s =====================
 const cuenta = { activa: false, hecha: false, camPrev: null };
