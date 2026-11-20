@@ -330,7 +330,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v127 · grabar: un permiso por salida y sin avisos de más; grupeta por zonas; rivales más ligeros</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v129 · 🌬 prueba de viento en la bici; grupeta con relevos (K / J) y por zonas</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -478,6 +478,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     <button id="b3Empezar">▶ Empezar</button>
     <select id="narracion3d" title="Narración de la carrera" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="mucha">Narración: mucha</option><option value="normal">Narración: normal</option><option value="poca">Narración: poca</option><option value="nada">Narración: nada</option></select>
     <button class="sec" id="b3Voz" title="Narración por voz">🔊</button>
+    <button class="sec" id="b3Viento" onclick="this.blur(); probarViento()" title="Comprueba si la KICKR aplica el viento (en la bici, en llano, misma marcha)">🌬 Probar viento</button>
     <button class="sec" id="b3Teclas" onclick="this.blur(); alternarAyudaTeclas()" title="Todas las teclas y los botones de los mandos (tecla H)">⌨ Teclas (H)</button>
     <button class="sec" id="b3Recolocar" onclick="recolocarVentanas()" title="Devuelve todas las ventanas a su sitio de fábrica">↺ Recolocar ventanas</button>
     <button class="sec" id="b3Clasif" onclick="alternarClasif()" title="Clasificación de la carrera: puesto, diferencias, montaña y regularidad">🏁 Clasificación</button>
@@ -962,12 +963,21 @@ function elegirCarril(s, otros, quedarse){ let mejor = null; const actual = s.la
 // grupeta en tres filas con huecos irregulares; cada 25–60 s alguien cambia de fila o sube un par de puestos
 function formarGrupeta(G, bots, dt){ const t = sesion.tTotal || 0;
   if (!G.orden) { G.orden = bots.slice(); const az = mulberry(97); bots.forEach((b, i) => { b.col = [0, 1, -1][i % 3]; b.hueco = 1.4 + 1.2 * az() + (i % 4 === 3 ? 1.8 : 0); b.fase = az() * 6.28; b.fw = 0.12 + 0.3 * az(); b.amp = 0.04 + 0.1 * az(); b.vLat = 0.18 + 0.2 * az(); b.off = null; b.lat = null; b.lane = null; }); G.tCambio = t + 25; }
-  if (t > G.tCambio) { G.tCambio = t + 25 + 35 * Math.random(); const b = G.orden[Math.floor(Math.random() * G.orden.length)];
+  // RELEVOS (20-nov): el de cabeza tira 25–60 s (menos en subida), se abre a una fila de fuera, se deja caer y se mete al final
+  G.relevo = false; if (G.tRelevo == null) G.tRelevo = t + 30;
+  if (G.pausaRelevos) G.tRelevo += dt;
+  else if (t > G.tRelevo) { const g = pendAplicada(G.d); G.tRelevo = t + (g > 3 ? 25 : 40) + 20 * Math.random();
+    const cab = G.orden.filter(b => !b.cayendo && b.off != null).sort((a, b) => a.off - b.off)[0] || G.orden[0];   // el que va más adelantado, sea de la fila que sea
+    if (cab) { G.orden.splice(G.orden.indexOf(cab), 1); G.orden.push(cab);
+      const n = c => G.orden.filter(b => (b.cayendo ? b.colFin : b.col) === c).length; cab.colFin = [-1, 0, 1].sort((a, b) => n(a) - n(b))[0];
+      cab.col = Math.random() < 0.5 ? -1 : 1; cab.cayendo = true; G.relevo = true; } }
+  for (const b of G.orden) if (b.cayendo && b.off != null && b.offObj != null && Math.abs(b.off - b.offObj) < 0.6) { b.col = b.colFin; b.cayendo = false; }
+  if (t > G.tCambio) { G.tCambio = t + 60 + 60 * Math.random(); const b = G.orden[Math.floor(Math.random() * G.orden.length)];
     if (Math.random() < 0.5) { const o = [-1, 0, 1].filter(c => c !== b.col); b.col = o[Math.random() < 0.5 ? 0 : 1]; }
     else { const i = G.orden.indexOf(b); if (i > 0) { G.orden.splice(i, 1); G.orden.splice(Math.max(0, i - 2), 0, b); } }
     b.hueco = 1.4 + 1.2 * Math.random() + (Math.random() < 0.3 ? 1.8 : 0); }
   const acum = { '-1': 0.8, '0': 0, '1': 0.8 };
-  for (const b of G.orden) { const k = String(b.col); const offObj = acum[k]; acum[k] += b.hueco;
+  for (const b of G.orden) { const k = String(b.col); const offObj = b.offObj = acum[k]; acum[k] += b.hueco;
     b.off = b.off == null ? offObj : b.off + (offObj - b.off) * Math.min(1, dt / 6);
     // 20-nov (Carlos: «sincronizados y muy mecánicos»): cada uno con su balanceo y su velocidad de cambio, gradual
     const latObj = b.col * CARRIL + b.amp * Math.sin(t * b.fw + b.fase);
@@ -1015,6 +1025,10 @@ const wkgZona = z => FTP() * z.pct / pesoCiclista();
 function cambiarZona(paso){ const c = carreraConf(), i = Math.max(0, Math.min(ZONAS.length - 1, ZONAS.indexOf(zonaActual()) + paso)); if (ZONAS[i].n === c.zona) return;
   c.zona = ZONAS[i].n; guardarCarrera(c); const z = ZONAS[i], f1 = x => x.toFixed(1).replace('.', ',');
   aviso3d('Grupeta en ' + z.n + ' (' + z.txt + ') · ' + f1(wkgZona(z)) + ' W/kg'); narrar('media', 'La grupeta cambia a ' + z.n + ': ' + f1(wkgZona(z)) + ' vatios por kilo', 'zona'); }
+function acabarTurno(txt){ carrera.turnoYo = 0; aviso3d('✔ ' + txt); narrar('media', txt, 'finTurno'); }
+function pasarRelevo(){ if (carrera.turnoYo > 0) acabarTurno('Pasas el relevo: el siguiente tira'); }
+function alternarRelevosYo(){ carrera.relevosYo = !carrera.relevosYo; if (!carrera.relevosYo && carrera.turnoYo > 0) carrera.turnoYo = 0;
+  aviso3d(carrera.relevosYo ? '🔄 Relevos contigo: te tocará tirar de vez en cuando (J para pasar)' : '🔄 Relevos sin ti: solo ruedas a rueda'); }
 function carreraConf(){ let c = null; try { c = JSON.parse(localStorage.getItem(CLAVE('simulador-carrera')) || 'null'); } catch(e) {}
   const kg = pesoCiclista(), nivel = Math.round(FTP() / kg * 10) / 10;
   return Object.assign({ activa: false, n: 12, nivel: nivel || 2.2, tipo: 'carrera', ritmo: 1.8, zona: 'Z2' }, c || {}); }
@@ -1157,7 +1171,7 @@ const M_NEUTRA = 400;
 function neutralizada(){ const dentro = (ruta.dist - (carrera.dSalida || 0)) < M_NEUTRA || (sesion.tTotal || 0) < 5;
   if (!dentro && !carrera.salidaReal && sesion.corriendo) { carrera.salidaReal = true; aviso3d('🏁 ¡Salida real!'); narrar('alta', rivales.lista.some(r => r.grupeta) ? 'Fin de la neutralizada: la grupeta se pone a su ritmo' : '¡Bajan la bandera! Salida real: empieza la carrera', 'salidaReal'); }
   return dentro; }
-function prepararCarrera(){ Object.assign(carrera, { grupeta: null, ajuste: 1, lento: 0, tFuera: 0, wYo: null, tAvPulso: 0, dSalida: ruta.dist || 0, salidaReal: false, yoLat: 0, yoLatObj: 0, tCarrilYo: 0, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
+function prepararCarrera(){ Object.assign(carrera, { grupeta: null, turnoYo: 0, cuentaRel: 0, ajuste: 1, lento: 0, tFuera: 0, wYo: null, tAvPulso: 0, dSalida: ruta.dist || 0, salidaReal: false, yoLat: 0, yoLatObj: 0, tCarrilYo: 0, metas: [], yoPrev: ruta.dist || 0, pasosYo: [], fuerte: 0, cd: 0, montYo: 0, reguYo: 0 });
   const bots = rivales.lista.filter(r => r.tipo === 'bot'); if (!bots.length || bots[0].grupeta) return;
   const T = ruta.total;
   for (const t of (tramos.lista || []).filter(t => t.tipo === 'subida')) carrera.metas.push({ d: Math.min(t.b, dMeta()), tipo: 'puerto', nombre: t.nombre.replace(/ \(km.*$/, ''), pts: /^Repecho/.test(t.nombre) ? [3, 2, 1] : [5, 3, 2, 1], pasados: [] });
@@ -1241,7 +1255,7 @@ function moverRivales(dt){
   if (bots.length && bots[0].grupeta) {   // grupeta: un solo grupo a ritmo fijo, de dos en dos; si te quedas atrás, afloja y te espera
     const G = carrera.grupeta || (carrera.grupeta = { d: bots[0].d }), F = bots[0].ftp, g = pendAplicada(G.d);
     // velocidad a la que un ciclista A RUEDA hace los W/kg de la zona (con tu peso y tu aire); el que tira hace más
-    const z = zonaActual(), kgYo = pesoCiclista(), rebG = 0.38 * rebufoPend(g); carrera.ajuste = carrera.ajuste ?? 1;
+    const z = zonaActual(), kgYo = pesoCiclista(), rebG = Math.min(0.45, 0.355 + 0.0016 * bots.length) * rebufoPend(g);   // más grupo, más abrigo (9 → 0,37; 30 → 0,40; 60 → 0,45) carrera.ajuste = carrera.ajuste ?? 1;
     // manda el pulso: por encima del techo, el grupo afloja poco a poco; cuando bajas, recupera
     const fc = Date.now() - (vivo.tP || 0) < 5000 ? vivo.p : null, tec = TECHO();
     if (fc && tec && fc > tec) { carrera.ajuste = Math.max(0.7, carrera.ajuste - 0.004 * dt); if (!carrera.tAvPulso || sesion.tTotal - carrera.tAvPulso > 60) { carrera.tAvPulso = sesion.tTotal; aviso3d('❤ ' + fc + ' ppm, por encima de ' + tec + ': el grupo afloja'); narrar('media', 'Pulso por encima del techo: la grupeta afloja un poco', 'pulsoAlto'); } }
@@ -1253,9 +1267,17 @@ function moverRivales(dt){
     else carrera.tFuera = 0;
     if (carrera.lento > 0) carrera.lento -= dt;
     let P = wkgZona(z) * kgYo * carrera.ajuste * (carrera.lento > 0 ? 0.9 : 1); if (G.d - ruta.dist > 12) P *= 0.7;
-    G.v = velocidadFisica(P, g, rebG); if (neutralizada()) { const vy = velocidadRuta(); G.v = Math.min(G.v, G.d - ruta.dist > 6 ? Math.max(1.2, vy - 0.3) : Math.max(1.5, vy + 0.3)); }   // salida neutralizada
+    G.v = velocidadFisica(P, g, rebG); if (G.d - ruta.dist > 10) G.v = Math.min(G.v, Math.max(1, velocidadRuta() * 0.92));   // te has quedado: te esperan de verdad
+    if (neutralizada()) { const vy = velocidadRuta(); G.v = Math.min(G.v, G.d - ruta.dist > 6 ? Math.max(1.2, vy - 0.3) : Math.max(1.5, vy + 0.3)); }   // salida neutralizada
+    // TU RELEVO (si lo activas con K): te avisa, el grupo va a tu rueda mientras tiras; J para pasar
+    if (carrera.turnoYo > 0) { carrera.turnoYo -= dt; G.v = Math.min(G.v, Math.max(1, velocidadRuta() - 0.05)); if (G.d > ruta.dist - 1.5) G.d = ruta.dist - 1.5;
+      if (carrera.turnoYo <= 0) acabarTurno('Relevo hecho: apártate y métete al final del grupo'); }
+    G.pausaRelevos = carrera.turnoYo > 0;
     G.d = Math.min(ruta.total + 30, G.d + G.v * dt);
     formarGrupeta(G, bots, dt);
+    if (G.relevo && carrera.relevosYo) { carrera.cuentaRel = (carrera.cuentaRel || 0) + 1; const enGrupo = G.d - ruta.dist < 20 && G.d - ruta.dist > -3;
+      if (carrera.cuentaRel >= Math.min(8, bots.length) && enGrupo && g < 5 && !(carrera.turnoYo > 0)) { carrera.cuentaRel = 0; carrera.turnoYo = 35 + Math.round(15 * Math.random());
+        aviso3d('🔄 Te toca relevo: ' + Math.round(carrera.turnoYo) + ' s · J para pasar'); narrar('alta', 'Te toca relevo: tira ' + Math.round(carrera.turnoYo) + ' segundos, o pulsa J para pasar', 'turnoYo'); } }
     bots.forEach((b, i) => { b.d = Math.min(ruta.total, G.d - b.off); b.v = G.v; b.w = potenciaPara(G.v, g, b.off < 0.5 ? 0 : 0.38 * rebufoPend(g), b.q);
       if (b.d >= dMeta() && !b.llego) { b.llego = true; b.tLlegada = sesion.tTotal; } }); }
   else if (bots.length) { const todos = [yo, ...rivales.lista.filter(r => r.tipo !== 'fantasma')];
@@ -1289,7 +1311,8 @@ function pintarRivales(){
   if (enCarrera && corriendo) { const C = clasificacion(), pos = C.findIndex(x => x.yo) + 1, bots = rivales.lista.filter(r => r.tipo === 'bot');
     const grupo = bots.filter(b => Math.abs(b.d - ruta.dist) < 15).length;
     const grz = bots[0] && bots[0].grupeta, z = zonaActual();
-    cab = (grz ? '<div class="r" style="--c:#3fb950;pointer-events:auto">🚴 Grupeta <b>' + z.n + '</b> · ' + wkgZona(z).toFixed(1).replace('.', ',') + ' W/kg' + ((carrera.ajuste ?? 1) < 0.98 ? ' · ❤ aflojando ' + Math.round((1 - carrera.ajuste) * 100) + ' %' : '') + ' <button class="sec mini" onclick="cambiarZona(-1)" title="Bajar zona (Av Pág)">−</button><button class="sec mini" onclick="cambiarZona(1)" title="Subir zona (Re Pág)">+</button></div>' : '')
+    cab = (grz ? '<div class="r" style="--c:#3fb950;pointer-events:auto">🚴 Grupeta <b>' + z.n + '</b> · ' + wkgZona(z).toFixed(1).replace('.', ',') + ' W/kg' + ((carrera.ajuste ?? 1) < 0.98 ? ' · ❤ aflojando ' + Math.round((1 - carrera.ajuste) * 100) + ' %' : '') + ' <button class="sec mini" onclick="cambiarZona(-1)" title="Bajar zona (Av Pág)">−</button><button class="sec mini" onclick="cambiarZona(1)" title="Subir zona (Re Pág)">+</button> <button class="sec mini" onclick="alternarRelevosYo()" title="Relevos contigo (K)">' + (carrera.relevosYo ? '🔄 relevos: sí' : '🔄 relevos: no') + '</button></div>'
+        + (carrera.turnoYo > 0 ? '<div class="r" style="--c:#f0883e;pointer-events:auto">🔥 <b>Tiras tú: ' + Math.ceil(carrera.turnoYo) + ' s</b> <button class="sec mini" onclick="pasarRelevo()" title="Pasar (J)">pasar (J)</button></div>' : '') : '')
       + '<div class="r" style="--c:#ffd33d;cursor:pointer;pointer-events:auto" onclick="alternarClasif()" title="Ver la clasificación">🏁 <b>' + pos + 'º</b> de ' + C.length + (grupo ? ' · en grupo con ' + grupo : ' · solo') + (vivo.rebufo > 0.02 ? ' · 🌀 a rueda −' + Math.round(vivo.rebufo * 100) + ' % de aire' : '') + '</div>';
     const cerca = bots.slice().sort((a, b) => Math.abs(a.d - ruta.dist) - Math.abs(b.d - ruta.dist)).slice(0, innerHeight <= 900 || innerWidth <= 1500 ? 2 : 4), lider = C[0].yo ? null : C[0];
     lista = [...rivales.lista.filter(r => r.tipo !== 'bot'), ...(lider && !cerca.includes(lider) ? [lider] : []), ...cerca].sort((a, b) => b.d - a.d); }
@@ -2058,13 +2081,31 @@ function leerGpx(texto){
 const puntoEn = d => ruta.pts[Math.min(ruta.pts.length - 1, Math.max(0, Math.round(d / 10)))];
 // Como Zwift: la pendiente se multiplica por la dificultad, y en las bajadas además se manda la mitad.
 const pendAplicada = d => { const g = puntoEn(d).pend * DIF_EF() / 100; return g < 0 ? g / 2 : g; };
+// ---- PRUEBA DE VIENTO EN LA BICI (20-nov): ¿la KICKR aplica el viento que se le manda? Misma marcha y cadencia; se comparan los vatios ----
+const pruebaViento = { ms: 0, activa: false, pasos: [] };
+async function probarViento(){
+  if (pruebaViento.activa) { pruebaViento.activa = false; pruebaViento.ms = 0; aviso3d('Prueba de viento cancelada'); return; }
+  if (!controlBici || !ruta.activa || !sesion.corriendo || sesion.demo) { avisar('La prueba de viento se hace en la bici, con una ruta en marcha (mejor en llano).', true); return; }
+  const P = [['sin viento', 0], ['de cara 15 km/h', 15 / 3.6], ['de cara 30 km/h', 30 / 3.6], ['sin viento', 0], ['de espalda 15 km/h', -15 / 3.6]];
+  pruebaViento.activa = true; pruebaViento.pasos = [];
+  aviso3d('🌬 Prueba de viento: misma marcha y misma cadencia todo el rato (≈ 90 rpm). 5 tramos de 30 s.', 6000); log('Prueba de viento: empieza');
+  for (const [txt, ms] of P) { if (!pruebaViento.activa) return;
+    pruebaViento.ms = ms; enviarPendiente(true); aviso3d('🌬 ' + txt + ' · 30 s · no cambies de marcha', 3000);
+    const W = [], C = []; for (let t = 0; t < 30; t++) { await new Promise(r => setTimeout(r, 1000)); if (!pruebaViento.activa) return; if (t >= 8) { W.push(vivo.w || 0); C.push(vivo.c || 0); } }   // los 8 primeros s, para que se asiente
+    const med = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : 0; pruebaViento.pasos.push({ txt, w: med(W), c: med(C) }); log('Prueba de viento · ' + txt + ': ' + med(W) + ' W a ' + med(C) + ' rpm'); }
+  pruebaViento.ms = 0; pruebaViento.activa = false; enviarPendiente(true);
+  const base = pruebaViento.pasos[0].w || 1, res = pruebaViento.pasos.map(p => p.txt + ': ' + p.w + ' W (' + p.c + ' rpm)').join(' · ');
+  const subeCara = pruebaViento.pasos[2].w > base * 1.08, bajaEsp = pruebaViento.pasos[4].w < pruebaViento.pasos[3].w * 0.95;
+  avisar('🌬 Resultado: ' + res + ' → ' + (subeCara ? 'la bici SÍ aplica el viento' + (bajaEsp ? ' (de cara y de espalda)' : ' (de cara; de espalda no se nota)') : 'no se nota: parece que la bici NO aplica el viento'), true); }
 function enviarPendiente(forzar){
   if (!controlBici || !ruta.activa || !sesion.corriendo) return;
   const g = Math.round(pendAplicada(ruta.dist) * 10) / 10;
   const cw = Math.round(51 * (1 - (vivo.rebufo || 0)));   // a rueda: coeficiente de aire más bajo → menos vatios para la misma velocidad
-  if (!forzar && ruta.ultimaPend !== null && Math.abs(g - ruta.ultimaPend) < 0.1 && Math.abs(cw - (ruta.ultimoCw ?? 51)) < 3 && Date.now() - ruta.tPend < 5000) return;
+  if (!forzar && ruta.ultimaPend !== null && Math.abs(g - ruta.ultimaPend) < 0.1 && Math.abs(cw - (ruta.ultimoCw ?? 51)) < 3 && Date.now() - ruta.tPend < 5000 && ruta.ultimoViento === (pruebaViento.ms || 0)) return;
+  ruta.ultimoViento = pruebaViento.ms || 0;
   ruta.ultimaPend = g; ruta.ultimoCw = cw; ruta.tPend = Date.now();
-  const gg = Math.round(g * FACTOR_PESO() * 100); enviarBici([0x11, 0, 0, gg & 0xff, (gg >> 8) & 0xff, 40, cw]);
+  const gg = Math.round(g * FACTOR_PESO() * 100), vto = Math.round((pruebaViento.ms || 0) * 1000);   // viento en mm/s (FTMS: + de cara)
+  enviarBici([0x11, vto & 0xff, (vto >> 8) & 0xff, gg & 0xff, (gg >> 8) & 0xff, 40, cw]);
 }
 // velocidad: la que da la bici (ya lleva tu marcha y tu cadencia); si no llega, la física con tus vatios
 // 20-nov (prueba de la grupeta): tu velocidad ya NO la da la bici (marcha × cadencia), que no sabe del rebufo y en bajada se quedaba
@@ -2415,7 +2456,7 @@ function componerGrabacion(){
 // Las del pedaleo simulado (Z X C V B, 0, + −, ↑ ↓, Espacio) no se tocan: solo valen mientras pedaleas con el teclado.
 const TECLAS = [
   ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente']]],
-  ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +'], ['Re Pág  Av Pág', 'Grupeta: subir / bajar zona']]],
+  ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +'], ['Re Pág  Av Pág', 'Grupeta: subir / bajar zona'], ['K', 'Grupeta: relevos contigo sí / no'], ['J', 'Grupeta: pasar el relevo']]],
   ['Pantalla', [['M', 'Menú ☰'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
   ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
   ['Grabar y sonido', [['G', 'Grabar la pantalla entera (con micrófono)'], ['T', 'Grabar solo el 3D (con micrófono)'], ['Y', 'Voz de la narración']]],
@@ -2439,6 +2480,8 @@ document.addEventListener('keydown', e => {
   else if (k === 'End') { if (sesion.corriendo && !$('bTerminar').disabled) $('bTerminar').click(); }
   else if (kl === 's') { if (sesion.corriendo && !ruta.activa) saltarBloque(); }
   else if (k === ']' || k === '[') pulsarAccion(k === ']' ? 'dif+' : 'dif-', true, 'teclado');
+  else if (kl === 'j') pasarRelevo();
+  else if (kl === 'k') { if (rivales.lista.some(r => r.grupeta)) alternarRelevosYo(); }
   else if (k === 'PageUp' || k === 'PageDown') { if (rivales.lista.some(r => r.grupeta)) cambiarZona(k === 'PageUp' ? 1 : -1); }
   else if (kl === 'a') pulsarAccion('mapa', true, 'teclado');
   else if (kl === 'd') pulsarAccion('datos', true, 'teclado');
