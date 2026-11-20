@@ -330,7 +330,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v123 · todo con teclas (H: ayuda); elegir cámara (🔁); tu muñeco en la ficha; carreras de hasta 60</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v124 · rivales lejanos más ligeros (carreras más fluidas); todo con teclas (H: ayuda)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -1283,7 +1283,42 @@ function pintarRivales(){
   if (a) { a.innerHTML = html; a.style.display = html && !abierta && typeof v3 !== 'undefined' && v3.activo ? 'flex' : 'none'; }
   if (b) { b.innerHTML = html; b.style.display = html && !(typeof v3 !== 'undefined' && v3.activo) ? 'flex' : 'none'; } }
 // rivales en el 3D: ciclistas con el color del rival (el fantasma, translúcido) y su nombre encima
-function cartelNombre(txt, color, estado){ const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+// muñeco de lejos (20-nov, «las carreras de 20 ya parecían atascarse»): el mismo ciclista, con ~1/9 de los triángulos y fundido
+// en una pieza por material (de ~105 piezas a ~10). Se usa a partir de ~40 m, donde no se nota la diferencia.
+function conPocoDetalle(f){ const O = {}, red = (n, d, m) => Math.max(m, Math.round((n || d) / 3));
+  for (const k of ['SphereGeometry', 'CylinderGeometry', 'LatheGeometry', 'TorusGeometry', 'TubeGeometry']) O[k] = THREE[k];
+  try {
+    THREE.SphereGeometry = class extends O.SphereGeometry { constructor(r, w, h, ...a){ super(r, red(w, 32, 6), red(h, 16, 4), ...a); } };
+    THREE.CylinderGeometry = class extends O.CylinderGeometry { constructor(a, b, h, rs, ...x){ super(a, b, h, red(rs, 32, 6), ...x); } };
+    THREE.LatheGeometry = class extends O.LatheGeometry { constructor(p, seg, ...a){ super(p, red(seg, 12, 6), ...a); } };
+    THREE.TorusGeometry = class extends O.TorusGeometry { constructor(r, t, rs, ts, ...a){ super(r, t, Math.max(3, Math.round((rs || 12) / 2)), red(ts, 48, 8), ...a); } };
+    THREE.TubeGeometry = class extends O.TubeGeometry { constructor(p, ts, r, rs, c){ super(p, red(ts, 64, 6), r, Math.max(4, Math.round((rs || 8) / 2)), c); } };
+    return f(); }
+  finally { Object.assign(THREE, O); } }
+function fusionarPorMaterial(g){ g.updateMatrixWorld(true); const grupos = new Map();
+  g.traverse(o => { if (!o.isMesh || !o.visible || Array.isArray(o.material) || o.material.transparent) return;
+    let geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); geo.applyMatrix4(o.matrixWorld);
+    if (!geo.attributes.normal) geo.computeVertexNormals(); if (!grupos.has(o.material)) grupos.set(o.material, []); grupos.get(o.material).push(geo); });
+  const out = new THREE.Group();
+  for (const [mat, L] of grupos) { const n = L.reduce((s, x) => s + x.attributes.position.count, 0), P = new Float32Array(n * 3), N = new Float32Array(n * 3); let i = 0;
+    for (const x of L) { P.set(x.attributes.position.array, i * 3); N.set(x.attributes.normal.array, i * 3); i += x.attributes.position.count; x.dispose(); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+    const m = new THREE.Mesh(geo, mat); m.castShadow = false; m.receiveShadow = false; out.add(m); }
+  return out; }
+// rival ligero: lo que no se mueve (cuadro, cuerpo, brazos, cabeza) fundido en una pieza por material; piernas, bielas y ruedas sueltas para que pedalee
+function ciclistaLigero(K){ const g = conPocoDetalle(() => hacerCiclista(K, { sencillo: true })), u = g.userData, mueve = new Set();
+  const marcar = o => { if (o) o.traverse(x => mueve.add(x)); };
+  for (const p of u.piernas) [p.biela, p.muslo, p.musloPiel, p.rodilla, p.calcetin, p.pie].forEach(marcar); for (const w of u.ruedas) marcar(w);
+  const quieto = new THREE.Group(); g.updateMatrixWorld(true);
+  for (const o of g.children.slice()) { if (mueve.has(o)) continue; let tiene = false; o.traverse(x => { if (mueve.has(x)) tiene = true; }); if (tiene) continue; quieto.add(o.clone()); g.remove(o); }
+  const fus = fusionarPorMaterial(quieto); fus.children.forEach(m => { m.castShadow = true; }); g.add(fus);
+  for (const w of u.ruedas) { const T = new THREE.Group(); for (const c of w.children.slice()) { T.add(c.clone()); w.remove(c); } const fw = fusionarPorMaterial(T); for (const m of fw.children.slice()) w.add(m); }   // cada rueda gira entera: sus piezas, fundidas g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g; }
+// carteles: se dibujan una vez por nombre, color y estado, y se reutilizan
+const cacheCarteles = new Map();
+function cartelNombre(txt, color, estado){ const clave = txt + '|' + color + '|' + (estado || ''), hecho = cacheCarteles.get(clave); if (hecho) return hecho.clone();
+  const sp = cartelNombreNuevo(txt, color, estado); cacheCarteles.set(clave, sp); return sp.clone(); }
+function cartelNombreNuevo(txt, color, estado){ const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
   x.fillStyle = 'rgba(13,17,23,.75)'; x.beginPath(); x.roundRect(4, 8, 248, 48, 14); x.fill(); x.fillStyle = color; x.fillRect(4, 8, 12, 48);
   if (estado) { x.fillStyle = estado; x.beginPath(); x.arc(232, 32, 10, 0, Math.PI * 2); x.fill(); }
   x.fillStyle = '#fff'; x.font = 'bold 28px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 134, 33);
@@ -1295,11 +1330,12 @@ function moverRivales3D(dt, dYo){
   rivales.lista.forEach((r, k) => {
     if (!r.g || r.esc !== v3.escena) { const col = new THREE.Color(r.color).getHex();
       const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: 0xffffff, casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
-      r.g = hacerCiclista(K, { sencillo: true });
+      r.g = r.tipo === 'bot' ? ciclistaLigero(K) : hacerCiclista(K, { sencillo: true });
       if (r.tipo === 'fantasma') r.g.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.42; o.material.depthWrite = false; o.castShadow = false; } });
       r.cartel = cartelNombre(r.nombre, r.color); r.g.add(r.cartel); v3.escena.add(r.g); r.esc = v3.escena; r.dVis = r.d; }
     r.dVis += (r.d - r.dVis) * Math.min(1, dt * 2.5);
     const lejos = Math.abs(r.dVis - dYo); r.g.visible = lejos < 700 && r.dVis > 2; if (!r.g.visible) return;
+    const cerca = lejos < 150;   // a más de 150 m no se ve pedalear: no se mueven piernas ni ruedas
     if (r.cartel) r.cartel.visible = lejos > 10 && (r.tipo !== 'bot' || (lejos < 250 && conCartel.has(r)));   // en el pelotón, sin carteles encima de la cámara
     const lat = r.tipo === 'bot' ? (v3.latBase ?? 0) + (r.lat ?? ((k % 3) - 1) * CARRIL) * (v3.kFilas ?? 1) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
     colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), lat, 1, 0.18);
@@ -1307,7 +1343,7 @@ function moverRivales3D(dt, dYo){
       if (r.cartel && r.cartelEst !== est) { r.g.remove(r.cartel); r.cartel = cartelNombre(r.nombre, r.color, est); r.g.add(r.cartel); r.cartelEst = est; }
       if (!r.llego && (r.vacia || r.wp < 0.25 * r.wpMax) && !sesion.pausa) { r.balanceo = (r.balanceo || 0) + dt * 7; r.g.rotateZ(Math.sin(r.balanceo) * 0.09); } }
     const u = r.g.userData, vel = (r.tipo === 'liebre' || r.tipo === 'bot') && sesion.corriendo && !sesion.pausa ? (r.v || velocidadFisica(r.w || 100, pendAplicada(r.d))) : (sesion.corriendo && !sesion.pausa ? 7 : 0);
-    if (vel > 0) { u.giro += 85 / 60 * Math.PI * 2 * dt; posarPiernas(r.g); for (const w of u.ruedas) w.rotation.x += vel * dt / 0.335; } });
+    if (vel > 0 && cerca) { u.giro += 85 / 60 * Math.PI * 2 * dt; posarPiernas(r.g); for (const w of u.ruedas) w.rotation.x += vel * dt / 0.335; } });
 }
 // al terminar: si has completado la ruta y es tu mejor tiempo, pasa a ser tu fantasma (si no hay ninguna completa, se guarda la última)
 function guardarFantasma(){
