@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v142 · 🏁 meta con el logo KhB · 👥 pueblos con gente, farolas y bancos · 🏠 en los pueblos pequeños, solo casas bajas · 🚧 carretera cortada en carrera · 🛣️ salida y llegada a la misma altura · 💧 agua más honda · 🪧 carteles de pueblos y puertos</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v143 · 🌾 campos de trigo con el suelo dorado · 🎡 noria y montaña rusa en la Casa de Campo · 👥 gente en la ciudad y corredores · 🪧 vallas con el logo KhB</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2777,7 +2777,7 @@ function equiparCarretera(esc, via, conTramos, TEMA){
 }
 // v141 · carteles reales (recursos/lugares.js, de OpenStreetMap): entrada y fin de cada pueblo, cartel azul en la cima de cada puerto con su altitud,
 // límite de 50 al entrar en los pueblos y «adelantar a ciclistas 1,5 m» al empezar; al pasar, aviso en pantalla («dónde estamos»)
-async function ponerLugares(esc, via, TEMA){
+async function ponerLugares(esc, via, TEMA, hSuelo){
   v3.lugares = []; const LG = window.RECURSOS_SIM && RECURSOS_SIM.lugares, P = ruta.pts;
   if (!LG || !TEMA.real || !P || P.length < 20 || P[0].lat == null || via.length !== P.length) return;
   const N = via.length, cosL = Math.cos(P[0].lat * Math.PI / 180); let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180;
@@ -2788,7 +2788,8 @@ async function ponerLugares(esc, via, TEMA){
   const ancho = i => { const su = (tramoEn(via[i].d) || {}).sup || 'carretera'; return su === 'carretera' || su === 'puente' ? 5.0 : 3.6; };
   const matPoste = new THREE.MeshLambertMaterial({ color: 0xa9adb2 }), dorso = new THREE.MeshLambertMaterial({ color: 0x8d9399 });
   const rr = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
-  const poner = (i, tex, an, al, altura, dosPostes, recorte) => { const [tx, tz] = T(i), v = via[i], lat = ancho(i), x = v.x + (-tz) * lat, z = v.z + tx * lat, y = v.y + 0.1;
+  const suelo = (x, z, yv) => hSuelo ? hSuelo(x, z) : yv;   // v143 (Carlos: «farolas, gente, bancos y carteles flotando» en Ventosilla): todo apoyado en el terreno real, no a la altura de la carretera
+  const poner = (i, tex, an, al, altura, dosPostes, recorte) => { const [tx, tz] = T(i), v = via[i], lat = ancho(i), x = v.x + (-tz) * lat, z = v.z + tx * lat, y = suelo(x, z, v.y) - 0.05;
     const g = new THREE.Group(); g.position.set(x, y, z); g.lookAt(x - tx * 0.94 + tz * 0.34, y, z - tz * 0.94 - tx * 0.34);   // de cara al que llega, algo girada hacia la carretera
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(an, al), new THREE.MeshLambertMaterial(recorte ? { map: tex, transparent: true, alphaTest: 0.4 } : { map: tex })); pl.position.y = altura; g.add(pl);
     const db = new THREE.Mesh(new THREE.PlaneGeometry(an * 0.97, al * 0.97), dorso); db.position.set(0, altura, -0.025); db.rotation.y = Math.PI; g.add(db);
@@ -2836,7 +2837,7 @@ async function ponerLugares(esc, via, TEMA){
       return carga[k] = { partes, alto: d.medida }; };
     const farolas = [], bancos = [], m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), arr = new THREE.Vector3(0, 1, 0), ROPA = [0x2f4b7c, 0xc0392b, 0x27ae60, 0xd4ac0d, 0x8e44ad, 0x34495e, 0xe67e22, 0xecf0f1, 0x16a085, 0x7f8c8d], PIEL = [0xf1c9a5, 0xe0ac69, 0xc68642, 0x8d5524];
     const POSES = ['p_saluda_h', 'p_saluda_m', 'p_pie_m', 'p_pie_h', 'p_jarras_h', 'p_jarras_m', 'p_anima_m'];
-    const lateral = (i, extra, lado) => { const [tx, tz] = T(i), v = via[i], lat = ancho(i) + extra; return { x: v.x + (-tz) * lat * lado, z: v.z + tx * lat * lado, y: v.y + 0.12, giro: Math.atan2(tz * lado, -tx * lado) }; };
+    const lateral = (i, extra, lado) => { const [tx, tz] = T(i), v = via[i], lat = ancho(i) + extra, x = v.x + (-tz) * lat * lado, z = v.z + tx * lat * lado; return { x, z, y: suelo(x, z, v.y) - 0.03, giro: Math.atan2(tz * lado, -tx * lado) }; };
     const gente = [];
     for (const o of L) { if (o.tipo !== 'pueblo') continue; const fin = L.find(f => f.tipo === 'fin' && f.nombre === o.nombre && f.d > o.d); const d1 = Math.min(fin ? fin.d - 20 : o.d + 400, o.d + 600);
       const i0 = o.i + 4, i1 = Math.min(N - 3, Math.round(o.i + (d1 - o.d) / 10)); if (i1 - i0 < 4) continue;
@@ -3876,6 +3877,16 @@ async function construir3D(){
     const relAlt = h => (h - hMin) / Math.max(1, hMax - hMin), SECO = new THREE.Color(0xa59b62);
     const COTA_NIEVE = [1600, 1600, 1650, 1800, 2000, 2500, 2500, 2500, 2500, 2200, 1800, 1600][new Date().getMonth()];   // v139: nieve por manchas según el mes (en verano, sin nieve)
     v3.cotaNieve = COTA_NIEVE;
+    // v143 (el trigo apenas se veía): campos rectangulares decididos antes de pintar el terreno, con el suelo dorado y surcos debajo de las espigas
+    v3.campos = [];
+    if (TEMA.real) { const nC = Math.round(Math.min(70, 14 * Math.max(1, ruta.total / 25000)));
+      for (let t = 0; t < 5000 && v3.campos.length < nC; t++) { const v = via[Math.floor(Math.random() * via.length)], a = Math.random() * 6.283, r = 28 + Math.pow(Math.random(), 1.3) * 160, x = v.x + Math.cos(a) * r, z = v.z + Math.sin(a) * r;
+        const ii = Math.round((x - p0.x) / PASO), jj = Math.round((z - p0.z) / PASO); if (ii < 1 || jj < 1 || ii >= nx - 1 || jj >= nz - 1) continue; if (alt[jj * nx + ii] > 1350) continue;
+        const w = 40 + Math.random() * 50, h = 25 + Math.random() * 35, g = Math.random() * Math.PI, cs = Math.cos(g), sn = Math.sin(g);
+        if (cercana(x, z).d < Math.max(w, h) / 2 + 12 || ambienteEn(x, z) !== 'campo') continue;
+        if (v3.campos.some(c => Math.hypot(c.x - x, c.z - z) < (Math.max(c.w, c.h) + Math.max(w, h)) / 2 + 6)) continue;
+        v3.campos.push({ x, z, w, h, cs, sn, verde: Math.random() < 0.25 }); } }
+    const enCampo = (x, z) => { for (const c of v3.campos) { const dx = x - c.x, dz = z - c.z, u = dx * c.cs + dz * c.sn, w = -dx * c.sn + dz * c.cs; if (Math.abs(u) < c.w / 2 && Math.abs(w) < c.h / 2) return { c, u }; } return null; };
     for (let k = 0; k < nx * nz; k++) {
       const h = alt[k], ny = nor.getY(k);
       if (TEMA.real) { const x = pos[k * 3], z = pos[k * 3 + 2], amb = ambienteEn(x, z) || 'otro', dd = cercana(x, z).d; tmp.setHex(TEMA.montana && amb === 'bosque' ? 0x4f5a34 : (COLOR_AMB[amb] || COLOR_AMB.otro));
@@ -3886,6 +3897,7 @@ async function construir3D(){
         if (TEMA.montana && h > COTA_NIEVE - 60) { const t = Math.min(1, (h - COTA_NIEVE + 60) / 220), mn = Math.sin(x * 0.031 + Math.cos(z * 0.021) * 2.2) * Math.cos(z * 0.027 + Math.sin(x * 0.017) * 1.8);
           const umbral = 0.55 - t * 1.1; if (mn > umbral && ny > 0.62) tmp.lerp(new THREE.Color(0xeef2f6), Math.min(1, (mn - umbral) * 2.5) * Math.min(1, t * 1.4)); } }
       else colorTerreno(NOMBRE, h, relAlt(h), ny, tmp);
+      if (v3.campos.length) { const ec = enCampo(pos[k * 3], pos[k * 3 + 2]); if (ec) { const surco = 0.5 + 0.5 * Math.sin(ec.u * 1.6); tmp.lerp(new THREE.Color(ec.c.verde ? 0x8a9a3e : 0xc9a64a), 0.85).multiplyScalar(0.94 + 0.08 * surco); } }
       { const x = pos[k * 3], z = pos[k * 3 + 2];
         const mancha = Math.sin(x * 0.013 + Math.sin(z * 0.007) * 2) * Math.cos(z * 0.011 + Math.sin(x * 0.006) * 2), fino = Math.sin(x * 0.07 + z * 0.05) * Math.sin(z * 0.09 - x * 0.03);
         if (!TEMA.nieve && NOMBRE !== 'desierto' && mancha > 0.35) tmp.lerp(SECO, (mancha - 0.35) * 0.55); }
@@ -4063,12 +4075,13 @@ async function construir3D(){
           else poner('mata_nieve', p.x, h - 0.1, p.z, 0.7 + Math.random() * 0.7);
           n++; } }
       // campo: manchas de trigo y alguna granja (silo, molino o pozo) lejos de la carretera
-      if (TEMA.real) { const nManchas = Math.round(Math.min(70, 14 * largo) * F), nGranjas = Math.round(Math.min(14, 3 * largo));
+      for (const c of (v3.campos || [])) { if (c.verde) continue; const nn = Math.round(Math.min(420, c.w * c.h * 0.11) * F);   // v143: espigas dentro de cada campo
+        for (let q = 0; q < nn; q++) { const u = (Math.random() - 0.5) * c.w * 0.96, w = (Math.random() - 0.5) * c.h * 0.96, x = c.x + u * c.cs - w * c.sn, z = c.z + u * c.sn + w * c.cs; if (!libre(x, z, 10)) continue; poner('trigo', x, hAqui(x, z) - 0.05, z, 0.85 + Math.random() * 0.4); } }
+      if (TEMA.real) { const nManchas = 0, nGranjas = Math.round(Math.min(14, 3 * largo));
         let hechas = 0, granjas = 0;
         for (let t = 0; t < 3000 && (hechas < nManchas || granjas < nGranjas); t++) { const p = cerca(hechas < nManchas ? 20 : 60, hechas < nManchas ? 110 : 170); if (!libre(p.x, p.z, 24)) continue; const h = hAqui(p.x, p.z); if (h > 1350) continue;
           if (ambienteEn(p.x, p.z) !== 'campo') continue;
-          if (hechas < nManchas) { hechas++; const R = 10 + Math.random() * 14, nn = Math.round((140 + Math.random() * 120) * F);
-            for (let q = 0; q < nn; q++) { const a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * R, x = p.x + Math.cos(a) * rr, z = p.z + Math.sin(a) * rr; if (!libre(x, z, 12)) continue; poner('trigo', x, hAqui(x, z) - 0.05, z, 0.8 + Math.random() * 0.4); } }
+          if (hechas < nManchas) { hechas++; }
           else if (granjas < nGranjas && cercana(p.x, p.z).d > 60) { granjas++; const c = cercana(p.x, p.z), v = via[c.i], giro = Math.atan2(v.x - p.x, v.z - p.z);
             poner(azar(['granero', 'granero_peq']), p.x, hAqui(p.x, p.z) - 0.3, p.z, 1, giro);
             const o = azar([['silo', 9, 4], ['molino', -12, 6], ['pozo', 7, -8]]), x2 = p.x + Math.cos(giro) * o[1] + Math.sin(giro) * o[2], z2 = p.z - Math.sin(giro) * o[1] + Math.cos(giro) * o[2];
@@ -4081,6 +4094,55 @@ async function construir3D(){
             for (let d = 0; d < L; d += cada) { if (Math.random() > 0.75) continue; const lado = Math.random() < 0.5 ? -1 : 1, off = W + 3 + Math.random() * (tipo === 'r' ? 10 : 6), x = a.x + tx * d - tz * off * lado, z = a.z + tz * d + tx * off * lado;
               if (!libre(x, z, 9)) continue; const h = hAqui(x, z); if (h > 1500) continue;
               poner(Math.random() < 0.6 ? azar(['sauce_1', 'sauce_3', 'sauce_5']) : azar(['abedul_1', 'abedul_3']), x, h - 0.3, z, 0.8 + Math.random() * 0.45); n++; } } } }
+      // v143 · gente en la ciudad y corredores por el arcén; noria y montaña rusa en la Casa de Campo; vallas con el logo KhB en el campo
+      if (TEMA.real) {
+        const ROPA = [0x2f4b7c, 0xc0392b, 0x27ae60, 0xd4ac0d, 0x8e44ad, 0x34495e, 0xe67e22, 0xecf0f1, 0x16a085, 0x7f8c8d], PIEL = [0xf1c9a5, 0xe0ac69, 0xc68642, 0x8d5524];
+        const tang = i => { const a = via[Math.max(0, i - 2)], b = via[Math.min(via.length - 1, i + 2)], L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [(b.x - a.x) / L, (b.z - a.z) / L]; };
+        const anchoV = i => { const su = (tramoEn(via[i].d) || {}).sup || 'carretera'; return su === 'carretera' || su === 'puente' ? 3.6 : 2.2; };
+        const vestir = async (k, x, y, z, giro) => { const Pz = await pieza(k); if (!Pz) return false; const alto = RA[k].medida, grp = new THREE.Group();
+          const pa = new THREE.Color(azar(ROPA)), ca = new THREE.Color(azar(ROPA)), pi = new THREE.Color(azar(PIEL)), zap = new THREE.Color(0x222222);
+          for (const { g } of Pz) { const gg = g.clone(), po = gg.getAttribute('position'), col = new Float32Array(po.count * 3);
+            for (let q = 0; q < po.count; q++) { const f = po.getY(q) / alto, c = f < 0.06 ? zap : f < 0.47 ? pa : f < 0.83 ? ca : pi; col[q * 3] = c.r; col[q * 3 + 1] = c.g; col[q * 3 + 2] = c.b; }
+            gg.setAttribute('color', new THREE.BufferAttribute(col, 3)); const me = new THREE.Mesh(gg, new THREE.MeshLambertMaterial({ vertexColors: true })); me.castShadow = !!Q.sombra; grp.add(me); }
+          grp.scale.setScalar(0.92 + Math.random() * 0.14); grp.position.set(x, y, z); grp.rotation.y = giro; esc.add(grp); return true; };
+        const GR = (RECURSOS_SIM.nucleosGrandes || []).map(([n, la, lo, pop]) => { const q = aXZ(la, lo); return { x: q.x, z: q.z, R: pop > 1000000 ? 12000 : pop > 40000 ? 3000 : 2000 }; });
+        const grande = (x, z) => GR.some(g => Math.hypot(g.x - x, g.z - z) < g.R);
+        // gente en las aceras de la ciudad (solo núcleos grandes: en los pueblos ya la pone ponerLugares)
+        let nG = 0; const objG = Math.round(Math.min(160, 45 * largo) * F);
+        for (let t = 0; t < 4000 && nG < objG; t++) { const i = 5 + Math.floor(Math.random() * (via.length - 10)), v = via[i], [tx, tz] = tang(i), lado = Math.random() < 0.5 ? -1 : 1, lat = anchoV(i) + 2.2 + Math.random() * 3;
+          const x = v.x - tz * lat * lado, z = v.z + tx * lat * lado; if (ambienteEn(x, z) !== 'barrio' || !grande(x, z)) continue;
+          const anda = Math.random() < 0.5, giro = anda ? Math.atan2(tx, tz) + (Math.random() < 0.5 ? 0 : Math.PI) : Math.atan2(tz * lado, -tx * lado) + (Math.random() - 0.5) * 1.2;
+          if (await vestir(azar(['p_pie_h', 'p_pie_m', 'p_jarras_h', 'p_jarras_m', 'p_saluda_h', 'p_saluda_m']), x, hAqui(x, z), z, giro)) nG++; }
+        // corredores por el arcén en parques y campo, en el sentido de la marcha o de frente
+        let nC = 0; const objC = Math.round(Math.min(40, 8 * largo) * F);
+        for (let t = 0; t < 2000 && nC < objC; t++) { const i = 5 + Math.floor(Math.random() * (via.length - 10)), v = via[i], [tx, tz] = tang(i), lado = Math.random() < 0.5 ? -1 : 1, lat = anchoV(i) + 1.1;
+          const x = v.x - tz * lat * lado, z = v.z + tx * lat * lado, amb = ambienteEn(x, z); if (amb !== 'parque' && amb !== 'campo' && amb !== 'deporte') continue;
+          if (await vestir(Math.random() < 0.5 ? 'p_corre_h' : 'p_corre_m', x, hAqui(x, z), z, Math.atan2(tx, tz) + (lado > 0 ? 0 : Math.PI))) nC++; }
+        // Parque de Atracciones de la Casa de Campo: noria y montaña rusa en su sitio real, si caen dentro del paisaje
+        { const pn = aXZ(40.4107, -3.7502), x1 = p0.x + (nx - 1) * PASO, z1 = p0.z + (nz - 1) * PASO;
+          if (pn.x > p0.x + 200 && pn.z > p0.z + 200 && pn.x < x1 - 200 && pn.z < z1 - 200 && cercana(pn.x, pn.z).d > 60) {
+            const g = new THREE.Group(), R0 = 16, mb = new THREE.MeshLambertMaterial({ color: 0xdfe3e8 }), cols = [0xd9473b, 0xf0b429, 0x3b82c4, 0x4caf50];
+            for (const zz of [-1.2, 1.2]) { const tor = new THREE.Mesh(new THREE.TorusGeometry(R0, 0.25, 6, 48), mb); tor.position.z = zz; g.add(tor);
+              for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, rr = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, R0, 4), mb); rr.position.set(Math.cos(a) * R0 / 2, Math.sin(a) * R0 / 2, zz); rr.rotation.z = a - Math.PI / 2; g.add(rr); } }
+            for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, c = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 1.6), new THREE.MeshLambertMaterial({ color: cols[k % 4] })); c.position.set(Math.cos(a) * R0, Math.sin(a) * R0 - 1.4, 0); g.add(c); }
+            for (const sx of [-1, 1]) for (const zz of [-2, 2]) { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, R0 * 1.35, 6), mb); pl.position.set(sx * 5, -R0 * 0.62, zz); pl.rotation.z = sx * 0.3; g.add(pl); }
+            g.position.set(pn.x, hAqui(pn.x, pn.z) + R0 + 3.5, pn.z); g.rotation.y = 0.5; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); esc.add(g); v3.noria = g;
+            const pm = aXZ(40.4121, -3.7486), mon = new THREE.Group(), rojo2 = new THREE.MeshLambertMaterial({ color: 0xc8453a });
+            for (let k = 0; k < 34; k++) { const hh = 8 + 7 * Math.sin(k * 0.5) + 3 * Math.sin(k * 0.17), t2 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 6), rojo2); t2.position.set(k * 5, hh, 0); mon.add(t2);
+              const pi2 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, hh, 4), mb); pi2.position.set(k * 5, hh / 2, 0); mon.add(pi2); }
+            mon.position.set(pm.x, hAqui(pm.x, pm.z), pm.z); mon.rotation.y = -0.9; esc.add(mon); log('3D: noria y montaña rusa en la Casa de Campo.'); } }
+        // vallas publicitarias con el logo KhB, de vez en cuando en el campo
+        if (RECURSOS_SIM.logoKhB) { const im = new Image(); im.src = RECURSOS_SIM.logoKhB; const tl = new THREE.Texture(im); im.onload = () => { tl.needsUpdate = true; }; tl.colorSpace = THREE.SRGBColorSpace; tl.anisotropy = 4;
+          const mPanel = new THREE.MeshLambertMaterial({ map: tl }), mMarco = new THREE.MeshLambertMaterial({ color: 0x22262b }), mPata = new THREE.MeshLambertMaterial({ color: 0x8d9297 });
+          let ultima = -1e9, nV = 0;
+          for (let i = 40; i < via.length - 40 && nV < 8; i += 25) { const v = via[i]; if (v.d - ultima < 9000) continue; const [tx, tz] = tang(i), lat = 15 + Math.random() * 5, x = v.x - tz * lat, z = v.z + tx * lat;
+            if (ambienteEn(x, z) !== 'campo' || cercana(x, z).d < 12) continue;
+            const g = new THREE.Group(), W = 7.2, H = 4.0, pn2 = new THREE.Mesh(new THREE.PlaneGeometry(W, H), mPanel); pn2.position.set(0, 3.2 + H / 2, 0.07); g.add(pn2);
+            const mc = new THREE.Mesh(new THREE.BoxGeometry(W + 0.3, H + 0.3, 0.12), mMarco); mc.position.set(0, 3.2 + H / 2, 0); g.add(mc);
+            for (const sx of [-2.4, 2.4]) { const pt = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.3, 0.22), mPata); pt.position.set(sx, 1.65, -0.1); g.add(pt); }
+            g.position.set(x, hAqui(x, z), z); g.lookAt(x - tx * 0.8 + tz * 0.6, hAqui(x, z), z - tz * 0.8 - tx * 0.6); g.traverse(o => { if (o.isMesh) o.castShadow = true; }); esc.add(g); ultima = v.d; nV++; }
+          if (nV) log('3D: ' + nV + ' vallas con el logo.'); }
+        log('3D: ' + nG + ' personas en la ciudad, ' + nC + ' corredores, ' + (v3.campos || []).length + ' campos.'); }
       let total = 0; for (const k in colocadas) { const P = await pieza(k); if (!P) continue; for (const { g, m } of P) instanciarPorZonas(esc, g, m, colocadas[k], Q.sombra && !k.startsWith('trigo')); total += colocadas[k].length; }
       log('3D: piezas por ambiente: ' + total + ' (' + Object.keys(colocadas).map(k => k + ' ' + colocadas[k].length).join(', ') + ').');
     } catch(e) { log('3D: piezas por ambiente: ' + e.message); } }
@@ -4146,7 +4208,7 @@ async function construir3D(){
       const hito = new THREE.Group(), cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), [lado, lado, lado, lado, new THREE.MeshLambertMaterial({ map: cara }), lado]); cuerpo.position.y = 0.31; hito.add(cuerpo);
       const cabeza = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.3, 18, 1, false, 0, Math.PI), verde); cabeza.rotation.z = Math.PI / 2; cabeza.rotation.y = Math.PI / 2; cabeza.position.y = 0.62; hito.add(cabeza);
       hito.traverse(o => { if (o.isMesh) o.castShadow = true; });
-      const tx0 = (b.x - a.x) / L, tz0 = (b.z - a.z) / L; hito.position.set(v.x + ox * 0.86, v.y + 0.02, v.z + oz * 0.86); hito.rotation.y = Math.atan2(-tx0, -tz0) + 0.35; esc.add(hito);
+      const tx0 = (b.x - a.x) / L, tz0 = (b.z - a.z) / L; hito.position.set(v.x + ox * 0.86, hAqui(v.x + ox * 0.86, v.z + oz * 0.86) - 0.05, v.z + oz * 0.86); hito.rotation.y = Math.atan2(-tx0, -tz0) + 0.35; esc.add(hito);
     }
     { const iM = Math.min(via.length - 1, Math.round(dMeta() / 10)), v = via[iM], a = via[Math.max(0, iM - 4)], L = Math.hypot(v.x - a.x, v.z - a.z) || 1, ox = -(v.z - a.z) / L * 5, oz = (v.x - a.x) / L * 5;
       const LOGO = window.RECURSOS_SIM && RECURSOS_SIM.logoKhB;
@@ -4164,7 +4226,7 @@ async function construir3D(){
         const lin = new THREE.Mesh(new THREE.PlaneGeometry(A - 2.4, 0.6), new THREE.MeshLambertMaterial({ map: tc, polygonOffset: true, polygonOffsetFactor: -4 })); lin.rotation.x = -Math.PI / 2; lin.position.set(0, 0.2, 0); g.add(lin);
         g.position.set(v.x, v.y, v.z); g.lookAt(a.x, v.y, a.z); esc.add(g); } }
     try { equiparCarretera(esc, via, conTramos, TEMA); } catch(e) { log('3D: quitamiedos y señales: ' + e.message); }
-    try { await ponerLugares(esc, via, TEMA); } catch(e) { log('3D: carteles reales: ' + e.message); }
+    try { await ponerLugares(esc, via, TEMA, hAqui); } catch(e) { log('3D: carteles reales: ' + e.message); }
     v3.ciclista = (await cargarCiclista()) || await conCanyon(hacerCiclista()); esc.add(v3.ciclista);
     { // foco de la bici: luz que alumbra la carretera por delante (de noche)
       const f = new THREE.SpotLight(0xfff4e0, 0, 120, 0.32, 0.6, 1.0); f.castShadow = false; esc.add(f); esc.add(f.target); v3.foco = f;
