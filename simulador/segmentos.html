@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segmentos · KHB En Forma</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="recursos/rutas.js"></script>
+<script src="recursos/segmentos.js"></script>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px system-ui, sans-serif; background:#0d1117; color:#e8eaed; display:grid; grid-template-columns:minmax(380px, 44%) 1fr; height:100vh; }
+  #lado { display:flex; flex-direction:column; min-height:0; border-right:1px solid #30363d; }
+  header { padding:12px 14px 8px; } h1 { font-size:18px; margin:0 0 4px; } .sub { color:#8b949e; font-size:12px; }
+  a.volver { color:#58a6ff; text-decoration:none; font-size:13px; }
+  #filtros { display:flex; flex-wrap:wrap; gap:6px; padding:0 14px 8px; }
+  #filtros button { background:#161b22; color:#e8eaed; border:1px solid #30363d; border-radius:16px; padding:4px 10px; cursor:pointer; font-size:13px; }
+  #filtros button.on { background:#1f6feb; border-color:#1f6feb; }
+  #busca, #ruta { margin:0 14px 8px; padding:7px 10px; border-radius:8px; border:1px solid #30363d; background:#161b22; color:#e8eaed; font-size:14px; }
+  .linea { display:flex; gap:8px; } .linea > * { flex:1; }
+  #lista { overflow:auto; flex:1; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { position:sticky; top:0; background:#161b22; text-align:left; padding:6px 8px; font-weight:600; color:#8b949e; cursor:pointer; white-space:nowrap; }
+  td { padding:6px 8px; border-top:1px solid #21262d; white-space:nowrap; } td.n { white-space:normal; }
+  tr.f { cursor:pointer; } tr.f:hover { background:#161b22; } tr.sel { background:#1f2a3a !important; }
+  .cat { display:inline-block; min-width:24px; text-align:center; border-radius:5px; padding:0 4px; font-weight:700; font-size:12px; background:#30363d; }
+  .c1, .cHC { background:#da3633; } .c2 { background:#d1722a; } .c3 { background:#bf9a1e; color:#111; } .c4 { background:#3f7f3f; }
+  .duda { color:#f0b429; font-size:12px; }
+  #mapa { height:100vh; }
+  #ficha { position:absolute; right:12px; top:12px; z-index:999; width:340px; background:rgba(13,17,23,.94); border:1px solid #30363d; border-radius:12px; padding:12px 14px; display:none; }
+  #ficha h2 { font-size:15px; margin:0 0 6px; } #ficha .x { float:right; cursor:pointer; color:#8b949e; }
+  #ficha .datos { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin:8px 0; } #ficha .datos div { background:#161b22; border-radius:8px; padding:5px 7px; } #ficha .datos b { display:block; font-size:15px; }
+  #perfil { width:100%; height:90px; }
+  @media (max-width:800px) { body { grid-template-columns:1fr; grid-template-rows:55vh 45vh; } #mapa { height:45vh; } #lado { border-right:0; } }
+</style>
+</head>
+<body>
+<div id="lado">
+  <header>
+    <a class="volver" href="./">← Simulador</a>
+    <h1>⏱ Segmentos</h1>
+    <div class="sub" id="resumen"></div>
+  </header>
+  <div id="filtros"></div>
+  <div class="linea"><input id="busca" placeholder="Buscar por nombre o pueblo…"><select id="ruta"></select></div>
+  <div id="lista"></div>
+</div>
+<div style="position:relative"><div id="mapa"></div><div id="ficha"></div></div>
+<script>
+const S = (window.RECURSOS_SIM && RECURSOS_SIM.segmentos) || [];
+const TIPOS = { puerto:['⛰','Puertos'], subida:['↗','Subidas'], repecho:['💥','Repechos'], sprint:['⚡','Sprints'], llano:['➖','Llanos'], bajada:['↘','Bajadas'], recorrido:['🏁','Recorridos'] };
+const COLOR = { puerto:'#da3633', subida:'#d1722a', repecho:'#f0b429', sprint:'#a371f7', llano:'#3fb950', bajada:'#58a6ff', recorrido:'#8b949e' };
+const USU = { carlos:'Carlos', susana:'Susana' };
+const hms = s => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+const km = m => (m / 1000).toFixed(m < 10000 ? 2 : 1).replace('.', ',');
+const coma = x => String(x).replace('.', ',');
+// récords: los mismos que guarda el simulador (vale en cualquier ruta)
+const REC = {}; for (const u of Object.keys(USU)) { let G = {}; try { G = JSON.parse(localStorage.getItem(u === 'carlos' ? 'simulador-segmentos' : 'simulador-segmentos-' + u) || '{}'); } catch(e) {}
+  for (const k of Object.keys(G)) { if (k.includes('#')) continue; const id = k.replace(/^seg-/, ''), H = G[k]; if (!H.length) continue; const m = Math.min(...H.map(x => x.t));
+    REC[id] = REC[id] || {}; REC[id][u] = { t: m, n: H.length }; } }
+const NOMBRE_RUTA = {}; for (const r of (window.RUTAS_SIM ? RUTAS_SIM.rutas : [])) NOMBRE_RUTA[r.id] = r.nombre;
+let filtro = new Set(Object.keys(TIPOS).filter(t => t !== 'recorrido')), orden = 'tipo', asc = true, sel = null;
+const mapa = L.map('mapa', { preferCanvas: true }).setView([40.75, -3.85], 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(mapa);
+const capa = L.layerGroup().addTo(mapa); let lineaSel = null;
+const LINEAS = {};
+for (const g of S) LINEAS[g.id] = L.polyline(g.traza.map(p => [p[0], p[1]]), { color: COLOR[g.tipo], weight: g.tipo === 'recorrido' ? 2 : 4, opacity: .75 }).on('click', () => elegir(g.id, true));
+// filtros
+const F = document.getElementById('filtros');
+for (const [t, [ico, nom]] of Object.entries(TIPOS)) { const b = document.createElement('button'); b.dataset.t = t; b.innerHTML = ico + ' ' + nom + ' <span class="sub">' + S.filter(g => g.tipo === t).length + '</span>';
+  b.className = filtro.has(t) ? 'on' : ''; b.onclick = () => { filtro.has(t) ? filtro.delete(t) : filtro.add(t); b.className = filtro.has(t) ? 'on' : ''; pintar(); }; F.appendChild(b); }
+const SR = document.getElementById('ruta'); SR.innerHTML = '<option value="">Todas las rutas</option>' + Object.keys(NOMBRE_RUTA).filter(id => S.some(g => g.rutas.some(r => r[0] === id))).map(id => '<option value="' + id + '">' + NOMBRE_RUTA[id] + '</option>').join('');
+SR.onchange = pintar; document.getElementById('busca').oninput = pintar;
+document.getElementById('resumen').textContent = S.length + ' segmentos en ' + (SR.options.length - 1) + ' rutas · el récord de cada uno vale en cualquier ruta que pase por él';
+function visibles(){ const q = document.getElementById('busca').value.trim().toLowerCase(), r = SR.value;
+  return S.filter(g => filtro.has(g.tipo) && (!q || g.nombre.toLowerCase().includes(q)) && (!r || g.rutas.some(x => x[0] === r))); }
+const CLAVES = { tipo: g => Object.keys(TIPOS).indexOf(g.tipo) * 1e6 + (1e5 - g.dist), nombre: g => g.nombre, dist: g => g.dist, desn: g => g.desn, pend: g => g.pend, cat: g => ({ HC:0, '1':1, '2':2, '3':3, '4':4 })[g.cat] ?? 9, rp: g => REC[g.id] && REC[g.id].carlos ? REC[g.id].carlos.t : 1e9 };
+function pintar(){
+  const V = visibles(), k = CLAVES[orden]; V.sort((a, b) => { const x = k(a), y = k(b); return (x < y ? -1 : x > y ? 1 : 0) * (asc ? 1 : -1); });
+  capa.clearLayers(); for (const g of V) capa.addLayer(LINEAS[g.id]);
+  const th = (c, t) => '<th data-o="' + c + '">' + t + (orden === c ? (asc ? ' ▲' : ' ▼') : '') + '</th>';
+  document.getElementById('lista').innerHTML = '<table><tr>' + th('cat', 'Cat') + th('nombre', 'Segmento') + th('dist', 'Dist.') + th('desn', 'Desn.') + th('pend', 'Pend.') + th('rp', 'Mi RP') + '<th>Susana</th></tr>'
+    + V.map(g => { const R = REC[g.id] || {}; return '<tr class="f' + (g.id === sel ? ' sel' : '') + '" data-id="' + g.id + '"><td>' + (g.cat ? '<span class="cat c' + g.cat + '">' + g.cat + '</span>' : '') + '</td><td class="n">' + TIPOS[g.tipo][0] + ' ' + g.nombre + (g.dudosa ? ' <span class="duda">⚠ medida dudosa</span>' : '') + '</td><td>' + km(g.dist) + ' km</td><td>' + (g.desn ? g.desn + ' m' : '–') + '</td><td>' + coma(g.pend) + ' %</td><td>' + (R.carlos ? hms(R.carlos.t) : '–') + '</td><td>' + (R.susana ? hms(R.susana.t) : '–') + '</td></tr>'; }).join('')
+    + '</table>' + (V.length ? '' : '<p class="sub" style="padding:14px">Nada con esos filtros.</p>');
+  document.querySelectorAll('#lista th[data-o]').forEach(h => h.onclick = () => { const c = h.dataset.o; if (orden === c) asc = !asc; else { orden = c; asc = c !== 'rp' ? !(c === 'dist' || c === 'desn' || c === 'pend') : true; } pintar(); });
+  document.querySelectorAll('#lista tr.f').forEach(tr => tr.onclick = () => elegir(tr.dataset.id, false));
+}
+function elegir(id, desdeMapa){
+  sel = id; const g = S.find(x => x.id === id); if (!g) return;
+  if (lineaSel) mapa.removeLayer(lineaSel);
+  lineaSel = L.polyline(g.traza.map(p => [p[0], p[1]]), { color: '#ffffff', weight: 7, opacity: .9 }).addTo(mapa); LINEAS[id].bringToFront();
+  if (!desdeMapa) mapa.fitBounds(lineaSel.getBounds(), { padding: [40, 40], maxZoom: 15 });
+  document.querySelectorAll('#lista tr.f').forEach(tr => tr.classList.toggle('sel', tr.dataset.id === id));
+  if (desdeMapa) { const tr = document.querySelector('#lista tr[data-id="' + id + '"]'); if (tr) tr.scrollIntoView({ block: 'center' }); }
+  const R = REC[id] || {}, rutas = [...new Set(g.rutas.map(r => NOMBRE_RUTA[r[0]] || r[0]))];
+  const fi = document.getElementById('ficha'); fi.style.display = 'block';
+  fi.innerHTML = '<span class="x" onclick="this.parentElement.style.display=\'none\'">✕</span><h2>' + TIPOS[g.tipo][0] + ' ' + g.nombre + '</h2>'
+    + (g.dudosa ? '<div class="duda">⚠ Pendiente sospechosa: puede ser un error del relieve. Revísala cuando la ruedes.</div>' : '')
+    + '<div class="datos"><div>Distancia<b>' + km(g.dist) + ' km</b></div><div>Desnivel<b>' + (g.desn || 0) + ' m</b></div><div>Pendiente<b>' + coma(g.pend) + ' %</b></div>'
+    + '<div>Máxima<b>' + coma(g.pmax) + ' %</b></div><div>Categoría<b>' + (g.cat || '–') + '</b></div><div>' + (g.cima ? 'Cima<b>' + g.cima + ' m</b>' : 'Tierra<b>' + Math.round((g.tierra || 0) * 100) + ' %</b>') + '</div></div>'
+    + '<canvas id="perfil" width="660" height="180"></canvas>'
+    + '<div style="margin-top:6px">Mi RP: <b>' + (R.carlos ? hms(R.carlos.t) + '</b> (' + R.carlos.n + (R.carlos.n === 1 ? ' vez' : ' veces') + ')' : '–</b>') + ' · Susana: <b>' + (R.susana ? hms(R.susana.t) : '–') + '</b></div>'
+    + '<div class="sub" style="margin-top:6px">Está en: ' + rutas.join(', ') + '</div>';
+  perfil(g);
+}
+function perfil(g){ const c = document.getElementById('perfil'), x = c.getContext('2d'), T = g.traza, W = c.width, H = c.height;
+  const e = T.map(p => p[2]), lo = Math.min(...e) - 5, hi = Math.max(...e) + 5, X = i => i / (T.length - 1) * W, Y = v => H - (v - lo) / (hi - lo) * (H - 16) - 4;
+  x.clearRect(0, 0, W, H);
+  const paso = g.dist / (T.length - 1), v = Math.max(1, Math.round(200 / Math.max(1, paso)));   // pendiente por tramos de 200 m
+  for (let i = 1; i < T.length; i++) { const k0 = Math.floor((i - 1) / v) * v, k1 = Math.min(T.length - 1, k0 + v), p = (e[k1] - e[k0]) / Math.max(1, (k1 - k0) * paso) * 100;
+    x.fillStyle = p > 9 ? '#da3633' : p > 6 ? '#d1722a' : p > 3 ? '#f0b429' : p > -1 ? '#3fb950' : '#58a6ff';
+    x.beginPath(); x.moveTo(X(i - 1), H); x.lineTo(X(i - 1), Y(e[i - 1])); x.lineTo(X(i), Y(e[i])); x.lineTo(X(i), H); x.fill(); }
+  x.fillStyle = '#e8eaed'; x.font = '22px system-ui'; x.fillText(Math.round(e[0]) + ' m', 6, 24); const t = Math.round(e[e.length - 1]) + ' m'; x.fillText(t, W - x.measureText(t).width - 6, 24); }
+pintar();
+if (S.length) mapa.fitBounds(L.featureGroup(S.filter(g => g.tipo === 'recorrido').map(g => LINEAS[g.id])).getBounds(), { padding: [20, 20] });
+</script>
+</body>
+</html>

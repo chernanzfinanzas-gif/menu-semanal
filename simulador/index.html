@@ -18,6 +18,7 @@ window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(locati
 if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
+<script src="recursos/segmentos.js"></script>
 <script src="recursos/dispositivos.js"></script>
 <script src="recursos/strava-indice.js"></script>
 <style>
@@ -332,7 +333,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v147 · 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v148 · ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -442,7 +443,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <div class="cabRes"><div><h2 id="trTitulo">Tramos</h2><div class="sub" id="trSub"></div></div><div><button class="sec" id="bTrAtras" hidden>← Tramos de la ruta</button> <button id="bCerrarTramos">Cerrar</button></div></div>
   <div id="trCuerpo"></div></div></div>
 <div id="pantallaRutas" hidden>
-  <div class="cabRutas"><button class="sec" id="bVolverRutas">← Volver</button><button class="sec" onclick="abrirFicha()">🪪 Mi ficha</button><h2>Simulador de rutas</h2>
+  <div class="cabRutas"><button class="sec" id="bVolverRutas">← Volver</button><button class="sec" onclick="abrirFicha()">🪪 Mi ficha</button><a class="sec" href="segmentos.html" style="text-decoration:none;display:inline-block;padding:6px 12px;border-radius:8px;border:1px solid #30363d;color:#e8eaed">⏱ Segmentos</a><h2>Simulador de rutas</h2>
     <span class="sub">Recorrer en</span>
     <div class="vistaElegir"><button data-v="dos">Mapa 2D</button><button data-v="carretera">Escenario 3D</button></div></div>
   <div id="cajaRivales"><h3>Rivales <button class="sec mini" style="font-size:13px;margin-left:8px" onclick="mostrarDemo('carrera')" title="Vídeo de la primera carrera con bots">🎬 Ver una carrera</button></h3><div id="listaRivales"></div>
@@ -1684,13 +1685,13 @@ function mostrarResumen(){
       + '<table><tr><th>Puesto</th><th>Corredor</th><th>Tiempo</th><th>Diferencia</th>' + (gr ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => '<tr' + (x.yo ? ' style="font-weight:bold;color:#ffd33d"' : '') + '><td>' + (i + 1) + 'º</td><td>' + (x.yo ? 'Tú' : (gr ? '' : (x.ico || '') + ' ') + x.nombre) + '</td><td>'
       + (x.llego ? hms(x.tLlegada) : 'a ' + f((ruta.total - x.d) / 1000, 2) + ' km') + '</td><td>' + (x.llego && t0 != null && i ? '+' + hms(x.tLlegada - t0) : '') + '</td>' + (gr ? '' : '<td>' + (x.mont || '') + '</td><td>' + (x.regu || '') + '</td>') + '</tr>').join('') + '</table>'; }
   $('resRivales').innerHTML = cla + (rv ? '<h3>Rivales</h3><div class="rivRes">' + rv + '</div>' : '');
-  const ORD = n => /^Subida|^Repecho/.test(n) ? 0 : /^Últimos/.test(n) ? 1 : /–/.test(n) ? 2 : 3;
-  const TH = (sesion.tramosHoy || []).slice().sort((a, b) => ORD(a.nombre) - ORD(b.nombre));
+  const ORDS = { puerto:0, subida:1, repecho:2, sprint:3, llano:4, bajada:5, recorrido:6 }, ORD = x => x.segTipo ? ORDS[x.segTipo] ?? 6 : /^Subida|^Repecho/.test(x.nombre) ? 7 : /^Últimos/.test(x.nombre) ? 8 : /–/.test(x.nombre) ? 9 : 10;
+  const TH = (sesion.tramosHoy || []).slice().sort((a, b) => ORD(a) - ORD(b));
   $('resTramos').innerHTML = TH.length ? '<h3>Tramos de hoy</h3><table><tr><th>Tramo</th><th>Tiempo</th><th>Tu récord anterior</th><th>Diferencia</th><th>Récord total</th><th>W med.</th><th>FC med.</th><th>W/ppm</th><th>vs última vez</th></tr>'
     + TH.map(x => { const d = x.mejorAnt == null ? '<span class="igual">primera vez</span>' : x.t < x.mejorAnt ? '<span class="mejora">🏆 −' + hms(x.mejorAnt - x.t) + '</span>' : '<span class="empeora">+' + hms(x.t - x.mejorAnt) + '</span>';
       const u = x.ultima ? (x.t <= x.ultima.t ? '<span class="mejora">−' : '<span class="empeora">+') + hms(Math.abs(x.t - x.ultima.t)) + '</span>' + (x.efic && x.ultima.efic ? ' · ' + (x.efic >= x.ultima.efic ? '<span class="mejora">' : '<span class="empeora">') + (x.efic - x.ultima.efic >= 0 ? '+' : '') + (x.efic - x.ultima.efic).toFixed(2).replace('.', ',') + ' W/ppm</span>' : '') : '–';
-      return '<tr class="pulsable" data-tramo="' + x.id + '" title="Ver tu progreso en este tramo"><td>📈 ' + x.nombre + '</td><td>' + hms(x.t) + '</td><td>' + (x.mejorAnt == null ? '–' : hms(x.mejorAnt)) + '</td><td>' + d + '</td><td>' + (() => { const T = recordTotal(claveTramos(), x.id); return T ? (T.u === USUARIO ? '🏅 tuyo · ' : T.quien + ' · ') + hms(T.t) : '–'; })() + '</td><td>' + f(x.w) + '</td><td>' + f(x.p) + '</td><td>' + f(x.efic, 2) + '</td><td>' + u + '</td></tr>'; }).join('') + '</table>' : '';
-  $('resTramos').querySelectorAll('tr[data-tramo]').forEach(tr => tr.onclick = () => { const x = TH.find(y => y.id === tr.dataset.tramo); verHistoriaTramo(claveTramos(), x.id, x.nombre, x.sub, ruta.nombre); });
+      return '<tr class="pulsable" data-tramo="' + x.id + '" title="Ver tu progreso en este tramo"><td>📈 ' + x.nombre + '</td><td>' + hms(x.t) + '</td><td>' + (x.mejorAnt == null ? '–' : hms(x.mejorAnt)) + '</td><td>' + d + '</td><td>' + (() => { const T = recordTotal(claveDe(x), x.id); return T ? (T.u === USUARIO ? '🏅 tuyo · ' : T.quien + ' · ') + hms(T.t) : '–'; })() + '</td><td>' + f(x.w) + '</td><td>' + f(x.p) + '</td><td>' + f(x.efic, 2) + '</td><td>' + u + '</td></tr>'; }).join('') + '</table>' : '';
+  $('resTramos').querySelectorAll('tr[data-tramo]').forEach(tr => tr.onclick = () => { const x = TH.find(y => y.id === tr.dataset.tramo); verHistoriaTramo(claveDe(x), x.id, x.nombre, x.sub, x.clave ? 'Segmento (vale en cualquier ruta)' : ruta.nombre); });
   // progreso: últimas salidas en esta ruta (o las últimas en general si es la primera vez)
   const lista = (previas.length ? previas : H.slice(0, -1)).slice(-7).concat([R]);
   $('resProgTit').textContent = previas.length ? 'Progreso en esta ruta (' + (previas.length + 1) + ' salidas)' : 'Tus últimas salidas (primera vez en esta ruta)';
@@ -1740,8 +1741,35 @@ function detectarSubidas(pts){
 function prepararTramos(){
   tramos.lista = []; if (!ruta.activa || !ruta.pts || ruta.pts.length < 60) return;
   tramos.lista = calcularTramos(ruta.pts, ruta.total);
-  const G = leerTramos(); for (const t of tramos.lista) { const h = G[t.id] || []; t.mejor = h.length ? Math.min(...h.map(x => x.t)) : null; t.pasadas = h.length; }
+  const GG = {}; for (const t of tramos.lista) { const k = claveDe(t), G = GG[k] || (GG[k] = leerDe(k)), h = G[t.id] || []; t.mejor = h.length ? Math.min(...h.map(x => x.t)) : null; t.pasadas = h.length; }
 }
+// v148 · segmentos (recursos/segmentos.js): se casan con la ruta por coordenadas; el récord es del segmento, valga la ruta que sea
+const CLAVE_SEG = 'simulador-segmentos', ICONO_SEG = { puerto:'⛰', subida:'↗', repecho:'💥', bajada:'↘', llano:'➖', sprint:'⚡', recorrido:'🏁' };
+const claveDe = t => (t && t.clave) || claveTramos();
+const leerDe = k => { try { return JSON.parse(localStorage.getItem(CLAVE(k)) || '{}'); } catch(e) { return {}; } };
+function segmentosEn(pts){
+  const S = window.RECURSOS_SIM && RECURSOS_SIM.segmentos; if (!S || !pts || pts.length < 30) return [];
+  const n = pts.length, kx = 111320 * Math.cos(pts[0].lat * Math.PI / 180), ky = 110574;
+  const dm = (p, la, lo) => Math.hypot((p.lat - la) * ky, (p.lon - lo) * kx);
+  let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180; for (const p of pts) { la0 = Math.min(la0, p.lat); la1 = Math.max(la1, p.lat); lo0 = Math.min(lo0, p.lon); lo1 = Math.max(lo1, p.lon); }
+  const M = 0.001, out = [], km = d => (d / 1000).toFixed(1).replace('.', ',');
+  for (const g of S) {
+    const [ia, oa] = g.ini, [ib, ob] = g.fin; if (ia < la0 - M || ia > la1 + M || oa < lo0 - M || oa > lo1 + M || ib < la0 - M || ib > la1 + M || ob < lo0 - M || ob > lo1 + M) continue;
+    let hecho = false;
+    for (let i = 0; i < n && !hecho; i++) { if (dm(pts[i], ia, oa) > 90) continue;
+      let ii = i; while (ii + 1 < n && dm(pts[ii + 1], ia, oa) < dm(pts[ii], ia, oa)) ii++;   // el punto más cercano a la salida
+      const j0 = ii + Math.floor(g.dist * 0.85 / 10), j1 = Math.min(n - 1, ii + Math.ceil(g.dist * 1.15 / 10) + 3); let jb = -1, db = 90;
+      for (let j = Math.max(ii + 1, j0); j <= j1; j++) { const x = dm(pts[j], ib, ob); if (x < db) { db = x; jb = j; } }
+      i = ii + 3; if (jb < 0) continue;
+      const T = g.traza || [], paso = Math.max(1, Math.floor(T.length / 12)); let bien = true;   // que el camino entre medias sea el mismo
+      let jq = ii; for (let q = 0; q < T.length && bien; q += paso) { while (jq <= jb && dm(pts[jq], T[q][0], T[q][1]) >= 45) jq++; if (jq > jb) bien = false; }   // en orden: el sentido contrario no vale
+      if (!bien) continue;
+      out.push({ id: 'seg-' + g.id, tipo: 'segmento', segTipo: g.tipo, clave: CLAVE_SEG, a: pts[ii].d, b: pts[jb].d, nombre: (ICONO_SEG[g.tipo] || '') + ' ' + g.nombre,
+        sub: km(g.dist) + ' km' + (g.tipo === 'llano' || g.tipo === 'sprint' ? '' : ' al ' + String(g.pend).replace('.', ',') + ' %') + (g.cat ? ' · cat. ' + g.cat : '') + (g.dudosa ? ' · medida dudosa' : '') });
+      hecho = true; } }
+  // dos del mismo tipo casi en el mismo sitio (versiones de rutas distintas): en esta ruta se queda el primero
+  const queda = []; for (const t of out) { const L = t.b - t.a; if (!queda.some(u => u.segTipo === t.segTipo && Math.min(u.b, t.b) - Math.max(u.a, t.a) > 0.7 * Math.max(L, u.b - u.a))) queda.push(t); }
+  return queda; }
 function calcularTramos(pts, T){
   const lista = [], km = d => (d / 1000).toFixed(1).replace('.', ','), sub = detectarSubidas(pts);
   let ns = 0, nr = 0;
@@ -1751,25 +1779,27 @@ function calcularTramos(pts, T){
   if (T > 25000) for (let a = 0; a + 10000 <= T + 500; a += 10000) lista.push({ id: 'p10-' + (a / 10000), tipo:'parcial', a, b: Math.min(T, a + 10000), nombre: 'Km ' + (a / 1000) + '–' + Math.round(Math.min(T, a + 10000) / 1000), sub: '' });
   if (T <= 25000) { for (let a = 0; a + 1000 <= T + 50; a += 1000) lista.push({ id: 'km-' + (a / 1000 + 1), tipo:'km', a, b: Math.min(T, a + 1000), nombre: 'Km ' + (a / 1000 + 1), sub: '' });
     if (T > 3000) lista.push({ id: 'ult2', tipo:'final', a: T - 2000, b: T, nombre: 'Últimos 2 km', sub: '' }); }
-  return lista;
+  const segs = segmentosEn(pts);   // v148: las subidas automáticas que ya cubre un segmento con nombre se cronometran pero no se enseñan
+  for (const t of lista) if (t.tipo === 'subida' && segs.some(g => /puerto|subida|repecho/.test(g.segTipo) && Math.min(g.b, t.b) - Math.max(g.a, t.a) > 0.6 * (t.b - t.a))) t.oculto = true;
+  return segs.concat(lista);
 }
 function arrancarTramos(){ for (const t of tramos.lista) { t.elegible = ruta.dist <= t.a + 5; t.activo = null; t.hecho = false; } sesion.tramosHoy = []; }
 function pasoTramos(dt){
   for (const t of tramos.lista) {
     if (!t.elegible || t.hecho) continue;
-    if (!t.activo && ruta.dist >= t.a) { t.activo = { t0: sesion.tTotal, w: 0, n: 0, p: 0, pn: 0, cada: [0], k: 1 }; t.ref = leerTramos()[t.id + '#mejor'] || null; }
+    if (!t.activo && ruta.dist >= t.a) { t.activo = { t0: sesion.tTotal, w: 0, n: 0, p: 0, pn: 0, cada: [0], k: 1 }; t.ref = leerDe(claveDe(t))[t.id + '#mejor'] || null; }
     if (!t.activo) continue;
     const A = t.activo, fr = Math.min(1, (ruta.dist - t.a) / Math.max(1, t.b - t.a)); while (A.k <= 50 && fr >= A.k / 50) { A.cada.push(+(sesion.tTotal - A.t0).toFixed(1)); A.k++; }
     if (Date.now() - vivo.tW < 3000) { A.w += vivo.w * dt; A.n += dt; } if (Date.now() - vivo.tP < 5000 && vivo.p > 40) { A.p += vivo.p * dt; A.pn += dt; }
     if (ruta.dist >= t.b) { t.hecho = true; const tt = sesion.tTotal - A.t0, w = A.n ? A.w / A.n : null, p = A.pn ? A.p / A.pn : null;
       const r = { fecha: new Date().toISOString(), t: Math.round(tt), w: w ? Math.round(w) : null, p: p ? Math.round(p) : null, efic: w && p ? +(w / p).toFixed(2) : null, dif: DIF() };
-      const G = leerTramos(), hist = G[t.id] || [], mejorAnt = hist.length ? Math.min(...hist.map(x => x.t)) : null, ultima = hist[hist.length - 1] || null;
-      if (!sesion.demo) { hist.push(r); while (hist.length > 40) hist.shift(); G[t.id] = hist; } if (!sesion.demo && (mejorAnt == null || tt < mejorAnt)) { while (A.cada.length < 51) A.cada.push(+tt.toFixed(1)); G[t.id + '#mejor'] = { t: +tt.toFixed(1), w: r.w, p: r.p, fecha: r.fecha, cada: A.cada }; } if (!sesion.demo) try { localStorage.setItem(CLAVE(claveTramos()), JSON.stringify(G)); } catch(e) {}
-      sesion.tramosHoy.push(Object.assign({ id: t.id, nombre: t.nombre, sub: t.sub, mejorAnt, ultima }, r));
-      const totAnt = (() => { let m = null; for (const u of Object.keys(USUARIOS)) if (u !== USUARIO) { let O = {}; try { O = JSON.parse(localStorage.getItem(claveTramos() + (u === 'carlos' ? '' : '-' + u)) || '{}'); } catch(e) {} for (const x of (O[t.id] || [])) if (!m || x.t < m.t) m = { t: x.t, quien: USUARIOS[u].nombre }; } return m; })();
+      const KT = claveDe(t), G = leerDe(KT), hist = G[t.id] || [], mejorAnt = hist.length ? Math.min(...hist.map(x => x.t)) : null, ultima = hist[hist.length - 1] || null;
+      if (!sesion.demo) { hist.push(r); while (hist.length > 40) hist.shift(); G[t.id] = hist; } if (!sesion.demo && (mejorAnt == null || tt < mejorAnt)) { while (A.cada.length < 51) A.cada.push(+tt.toFixed(1)); G[t.id + '#mejor'] = { t: +tt.toFixed(1), w: r.w, p: r.p, fecha: r.fecha, cada: A.cada }; } if (!sesion.demo) try { localStorage.setItem(CLAVE(KT), JSON.stringify(G)); } catch(e) {}
+      if (!t.oculto) sesion.tramosHoy.push(Object.assign({ id: t.id, nombre: t.nombre, sub: t.sub, clave: t.clave, segTipo: t.segTipo, mejorAnt, ultima }, r));
+      const totAnt = (() => { let m = null; for (const u of Object.keys(USUARIOS)) if (u !== USUARIO) { let O = {}; try { O = JSON.parse(localStorage.getItem(KT + (u === 'carlos' ? '' : '-' + u)) || '{}'); } catch(e) {} for (const x of (O[t.id] || [])) if (!m || x.t < m.t) m = { t: x.t, quien: USUARIOS[u].nombre }; } return m; })();
       const dif = (mejorAnt == null ? '' : tt < mejorAnt ? ' 🏆 nuevo récord (−' + hms(mejorAnt - tt) + ')' : ' · récord ' + hms(mejorAnt) + ' (+' + hms(tt - mejorAnt) + ')')
         + (totAnt && tt < totAnt.t && (mejorAnt == null || tt <= mejorAnt) ? ' · 🏅 ¡récord total! (le quitas el de ' + totAnt.quien + ')' : '');
-      avisar(t.nombre + ': ' + hms(tt) + (w ? ' · ' + Math.round(w) + ' W' : '') + dif); t.mejor = mejorAnt == null ? tt : Math.min(mejorAnt, tt); } }
+      if (!t.oculto) avisar(t.nombre + ': ' + hms(tt) + (w ? ' · ' + Math.round(w) + ' W' : '') + dif); t.mejor = mejorAnt == null ? tt : Math.min(mejorAnt, tt); } }
 }
 // récord TOTAL de un tramo: el mejor de todos los usuarios (cada uno guarda lo suyo con su sufijo de CLAVE)
 function recordTotal(claveBase, id){
@@ -1784,13 +1814,15 @@ function gapTramo(t){ const A = t.activo, tt = sesion.tTotal - A.t0, fr = Math.m
   return { tt, fr, gap: ref == null || fr < 0.01 ? null : tt - ref }; }
 function pintarTramo(){
   const a = $('tramo3d'), b = $('tramoFila'); if (!a || !b) return;
-  const act = tramos.lista.filter(x => x.activo && !x.hecho).sort((x, y) => (y.b - y.a) - (x.b - x.a));
+  const fondo = x => x.segTipo === 'recorrido' || x.tipo === 'parcial' || x.tipo === 'km';
+  let act = tramos.lista.filter(x => x.activo && !x.hecho && !x.oculto).sort((x, y) => (fondo(x) - fondo(y)) || ((y.b - y.a) - (x.b - x.a)));
+  if (act.length > 2) { const prim = act.filter(x => !fondo(x)); act = prim.length > 1 ? [prim[0], prim[prim.length - 1]] : [act[0], act[1]]; }
   if (!act.length || !sesion.corriendo) { a.style.display = b.style.display = 'none'; return; }
   const t = act[0], g = gapTramo(t), A = t.activo, wAhora = A.n ? Math.round(A.w / A.n) : null, falta = Math.max(0, t.b - ruta.dist);
   const sg = x => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(1).replace('.', ',') + ' s';
   const gapHtml = g.gap == null ? '<div class="gap igual">' + (t.mejor ? '…' : 'primera vez') + ' <small>' + (t.mejor ? '' : 'este tiempo será tu récord') + '</small></div>'
     : '<div class="gap ' + (g.gap < -0.05 ? 'mejor' : g.gap > 0.05 ? 'peor' : 'igual') + '">' + sg(g.gap) + ' <small>' + (g.gap < 0 ? 'por delante del récord' : 'por detrás del récord') + '</small></div>';
-  const ref = t.ref || (t.mejor ? { t: t.mejor } : null), tot = recordTotal(claveTramos(), t.id);
+  const ref = t.ref || (t.mejor ? { t: t.mejor } : null), tot = recordTotal(claveDe(t), t.id);
   let html = '<div class="tr"><div class="tt">⏱ Tramo cronometrado</div><div class="fila"><span class="nom">' + t.nombre + '</span><span class="reloj">' + hms(g.tt) + '</span></div>'
     + '<div class="fila ref"><span>Tu récord <b>' + (ref ? hms(ref.t) : '–') + '</b>' + (ref && ref.w ? ' · <b>' + ref.w + ' W</b>' : '') + (tot && tot.u !== USUARIO ? ' · 🏅 total <b>' + hms(tot.t) + '</b> ' + tot.quien + (g.fr > 0.01 ? ' (' + (g.tt - tot.t * g.fr > 0 ? '+' : '−') + Math.abs(g.tt - tot.t * g.fr).toFixed(0) + ' s)' : '') : tot ? ' · 🏅 es el récord total' : '') + '</span><span>Tú <b>' + (wAhora != null ? wAhora + ' W' : '–') + '</b> · quedan <b>' + (falta >= 1000 ? (falta / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(falta) + ' m') + '</b></span></div>' + gapHtml;
   if (act.length > 1) { const o = act[act.length - 1], go = gapTramo(o); html += '<div class="otro"><span>' + o.nombre + ' · ' + hms(go.tt) + '</span><span>' + (go.gap == null ? (o.mejor ? '' : 'primera vez') : '<b style="color:' + (go.gap < 0 ? '#3fb950' : '#f85149') + '">' + sg(go.gap) + '</b>') + '</span></div>'; }
@@ -1839,16 +1871,16 @@ function verHistoriaTramo(clave, id, nombre, sub, rutaNombre, volver){
 // lista de tramos de una ruta incluida, con récord, pasadas y tendencia; desde la pantalla de rutas
 function verTramosRuta(id, sentido){
   const R = RUTAS_SIM.rutas.find(x => x.id === id); if (!R) return;
-  const s = sentido || Object.keys(R.gpx)[0], g = leerGpx(R.gpx[s]), lista = calcularTramos(g.pts, g.total), clave = 'simulador-tramos|' + id + '|' + s;
+  const s = sentido || Object.keys(R.gpx)[0], g = leerGpx(R.gpx[s]), lista = calcularTramos(g.pts, g.total).filter(t => !t.oculto), clave = 'simulador-tramos|' + id + '|' + s;
   let G = {}; try { G = JSON.parse(localStorage.getItem(CLAVE(clave)) || '{}'); } catch(e) {}
   $('trTitulo').textContent = '📈 Tramos'; $('trSub').textContent = R.nombre + ' · ' + U.nombre; $('bTrAtras').hidden = true;
   const tabs = Object.keys(R.gpx).length > 1 ? '<div class="sentTab">' + Object.keys(R.gpx).map(k => '<button class="sec ' + (k === s ? 'activo' : '') + '" data-s="' + k + '">' + (NOMBRE_SENTIDO[k] || k) + '</button>').join('') + '</div>' : '';
-  $('trCuerpo').innerHTML = tabs + '<table><tr><th>Tramo</th><th>Pasadas</th><th>Tu récord</th><th>Récord total</th><th>Última</th><th>Tendencia</th></tr>' + lista.map(t => { const H = G[t.id] || [], m = H.length ? Math.min(...H.map(x => x.t)) : null, u = H[H.length - 1];
+  $('trCuerpo').innerHTML = tabs + '<table><tr><th>Tramo</th><th>Pasadas</th><th>Tu récord</th><th>Récord total</th><th>Última</th><th>Tendencia</th></tr>' + lista.map(t => { const H = (t.clave ? leerDe(t.clave) : G)[t.id] || [], m = H.length ? Math.min(...H.map(x => x.t)) : null, u = H[H.length - 1];
       const tend = H.length > 1 ? (u.t <= H[0].t ? '<span class="mejora">−' : '<span class="empeora">+') + hms(Math.abs(u.t - H[0].t)) + ' desde ' + fechaCorta(H[0].fecha) + '</span>' : '–';
-      return '<tr class="pulsable" data-t="' + t.id + '"><td>📈 ' + t.nombre + (t.sub ? ' <span class="sub">' + t.sub + '</span>' : '') + '</td><td>' + H.length + '</td><td>' + (m != null ? hms(m) : '–') + '</td><td>' + (() => { const T = recordTotal(clave, t.id); return T ? (T.u === USUARIO ? '🏅 tuyo' : T.quien + ' · ' + hms(T.t)) : '–'; })() + '</td><td>' + (u ? hms(u.t) + ' · ' + fechaCorta(u.fecha) : '–') + '</td><td>' + tend + '</td></tr>'; }).join('') + '</table>'
+      return '<tr class="pulsable" data-t="' + t.id + '"><td>📈 ' + t.nombre + (t.sub ? ' <span class="sub">' + t.sub + '</span>' : '') + '</td><td>' + H.length + '</td><td>' + (m != null ? hms(m) : '–') + '</td><td>' + (() => { const T = recordTotal(t.clave || clave, t.id); return T ? (T.u === USUARIO ? '🏅 tuyo' : T.quien + ' · ' + hms(T.t)) : '–'; })() + '</td><td>' + (u ? hms(u.t) + ' · ' + fechaCorta(u.fecha) : '–') + '</td><td>' + tend + '</td></tr>'; }).join('') + '</table>'
     + (lista.length ? '' : '<p class="sub">Esta ruta no tiene subidas que cronometrar.</p>');
   $('trCuerpo').querySelectorAll('.sentTab button').forEach(b => b.onclick = () => verTramosRuta(id, b.dataset.s));
-  $('trCuerpo').querySelectorAll('tr[data-t]').forEach(tr => tr.onclick = () => { const t = lista.find(x => x.id === tr.dataset.t); verHistoriaTramo(clave, t.id, t.nombre, t.sub, R.nombre + ' (' + (NOMBRE_SENTIDO[s] || s) + ')', () => verTramosRuta(id, s)); });
+  $('trCuerpo').querySelectorAll('tr[data-t]').forEach(tr => tr.onclick = () => { const t = lista.find(x => x.id === tr.dataset.t); verHistoriaTramo(t.clave || clave, t.id, t.nombre, t.sub, R.nombre + ' (' + (NOMBRE_SENTIDO[s] || s) + ')', () => verTramosRuta(id, s)); });
   abrirTramos(); }
 
 // perfil de lo que viene: los próximos 1000 m, coloreado por pendiente, con la pendiente media y lo que se sube
