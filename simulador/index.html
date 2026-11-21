@@ -18,6 +18,7 @@ window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(locati
 if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
+<script src="recursos/circuitos.js"></script>
 <script src="recursos/segmentos.js"></script>
 <script src="recursos/bots.js"></script>
 <script src="recursos/dispositivos.js"></script>
@@ -334,7 +335,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v151 · 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v152 · 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2132,7 +2133,7 @@ function abrirPantallaRutas(){
   if (window.LIGERO) P.querySelectorAll('.vistaElegir button[data-v="carretera"]').forEach(b => b.textContent = 'Escenario 3D (demo)');
   P.querySelectorAll('.vistaElegir button').forEach(b => { b.classList.toggle('activo', b.dataset.v === vis); b.onclick = () => { P.querySelectorAll('.vistaElegir button').forEach(c => c.classList.toggle('activo', c === b)); try { localStorage.setItem('simulador-vista-elegida', b.dataset.v); } catch(e) {} }; });
   pintarListaRivales();
-  const grupos = [['Madrid', r => /^anillo/.test(r.id)], ['Sierra de Guadarrama', r => !/^anillo/.test(r.id)]];
+  const grupos = [['Ciclocrós · Cerro Almodóvar y Vicálvaro (tus caminos)', r => /^cx-/.test(r.id)], ['Madrid', r => /^anillo/.test(r.id)], ['Sierra de Guadarrama', r => !/^anillo|^cx-/.test(r.id)]];
   let html = '<h3>Tu mundo · diseña la ruta</h3><div class="tarjRuta" id="mundoTarj"><div id="mapaMundo" style="height:min(62vh,520px);border-radius:10px;background:#161b22"></div>'
     + '<div class="datos" id="mundoInfo">Cargando el mundo…</div><canvas class="perfilMini" id="mundoPerfil"></canvas>'
     + '<div class="sentidos"><button class="sec" id="mundoDeshacer">↶ Quitar el último punto</button><button class="sec" id="mundoVolver">⟲ Volver a la salida: no</button><button class="sec" id="mundoReves">⇄ Al revés</button><button class="sec" id="mundoBorrar">✕ Empezar de nuevo</button><button id="mundoRodar" disabled>▶ Rodar esta ruta</button></div></div>';
@@ -3862,6 +3863,7 @@ async function decorarReal(esc, D){
       barrio:   [['chalé', 0.75, 8]],
       campo:    [['granja', 0.04, 25], ['chalé', 0.05, 12]],
       descampado: [], otro: [['chalé', 0.03, 12]], roca: [] });
+    if (ruta.tramos && ruta.tramos.ruta.cx && ruta.tramos.ruta.cx.sinCasas) for (const k of Object.keys(MENU)) MENU[k] = [];   // v152 (Carlos): en los circuitos de ciclocrós no hay casas
     const STRAVA = !!(ruta.tramos && ruta.tramos.ruta.strava), DENS = STRAVA ? 0.45 : 1;   // Strava: pocos edificios del catálogo
     // v142 (Carlos: «en Ventosilla, pueblos pequeños con edificios altos»): bloques y oficinas solo cerca de un núcleo de ≥15.000 habitantes
     // (Madrid a 12 km, >40.000 a 3 km, el resto a 2 km); en los demás pueblos, casas bajas
@@ -4362,7 +4364,7 @@ async function construir3D(){
       gt.setAttribute('color', new THREE.Float32BufferAttribute(tc, 3)); gt.setAttribute('uv', new THREE.Float32BufferAttribute(tu, 2));
       const talud = new THREE.Mesh(gt, new THREE.MeshLambertMaterial({ vertexColors: true, map: tSuelo, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1 })); /* mismo color y textura que el terreno de al lado */ talud.receiveShadow = true; esc.add(talud); }
     if (ap.length) { const ga = new THREE.BufferGeometry(); ga.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3)); ga.setIndex(ai); ga.computeVertexNormals();
-      const arcen = new THREE.Mesh(ga, new THREE.MeshLambertMaterial({ color: TEMA.montana ? 0x6f6a4c : 0x7e7c72, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })); arcen.receiveShadow = true; esc.add(arcen); }
+      const arcen = new THREE.Mesh(ga, new THREE.MeshLambertMaterial({ color: (ruta.tramos && ruta.tramos.ruta.cx) ? 0x8c7a58 : TEMA.montana ? 0x6f6a4c : 0x7e7c72, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })); arcen.receiveShadow = true; esc.add(arcen); }
     // árboles (instancias), fuera de la carretera y por debajo de 1.900 m
     const juntar = gs => { const po = [], no = []; for (const g0 of gs) { const g = g0.index ? g0.toNonIndexed() : g0; po.push(...g.getAttribute('position').array); no.push(...g.getAttribute('normal').array); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(po, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(no, 3)); return g; };
@@ -4372,7 +4374,8 @@ async function construir3D(){
     const copaFrondosa = juntar([bola(2.4, 0, 4.2, 0, 0.85), bola(1.7, 1.2, 5.0, 0.5, 0.9), bola(1.5, -1.1, 4.8, -0.4, 0.9)]);
     const troncoG = new THREE.CylinderGeometry(0.18, 0.3, 2.4, 6); troncoG.translate(0, 1.2, 0);
     const pinos = [], frondosos = [], m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eje = new THREE.Vector3(0, 1, 0);
-    const aceptaArbol = (x, z) => { if (!TEMA.real) return true; const amb = ambienteEn(x, z) || 'otro'; return Math.random() < (ARBOLES_AMB[amb] ?? 0.3) ? amb : false; };
+    const CX = ruta.tramos && ruta.tramos.ruta.cx;
+    const aceptaArbol = (x, z) => { if (!TEMA.real) return true; const amb = ambienteEn(x, z) || 'otro'; if (CX && CX.almendros && amb !== 'bosque') return false; /* cerro: sin árboles grandes */ return Math.random() < (ARBOLES_AMB[amb] ?? 0.3) ? amb : false; };
     const hAqui = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
       return (alt[k] * (1 - a) + alt[k + 1] * a) * (1 - b) + (alt[k + nx] * (1 - a) + alt[k + nx + 1] * a) * b; };   // altura exacta del terreno (antes: la del vértice más cercano)
     const plantar = (x, hh, z, e, amb) => { const h = Math.min(hAqui(x, z), hAqui(x + 0.8, z), hAqui(x - 0.8, z), hAqui(x, z + 0.8), hAqui(x, z - 0.8)) + 0.15; if (amb === 'bosque' && Math.random() < 0.75) { m4.compose(new THREE.Vector3(x, h - 0.4, z), q.setFromAxisAngle(eje, Math.random() * 6.28), new THREE.Vector3(e, e * (0.8 + Math.random() * 0.5), e)); pinos.push(m4.clone()); return; }
@@ -4388,6 +4391,14 @@ async function construir3D(){
       const am1 = aceptaArbol(x, z); if (!am1) continue;
       plantar(x, h, z, 0.7 + Math.random() * 0.7, am1);
     }
+    // v152 (Carlos: «en el cerro no hay casas ni árboles grandes, hay almendros que han plantado hace poco»): almendros jóvenes en filas
+    if (CX && CX.almendros) { const PIN = (CX.pinar || []).map(([la, lo]) => aXZ(la, lo)), enPinar = (x, z) => { let d = false; for (let i = 0, j = PIN.length - 1; i < PIN.length; j = i++) { const a = PIN[i], b = PIN[j]; if ((a.z > z) !== (b.z > z) && x < a.x + (z - a.z) * (b.x - a.x) / (b.z - a.z)) d = !d; } return d; };
+      const xs = via.map(v => v.x), zs = via.map(v => v.z), x0 = Math.min(...xs) - 160, x1 = Math.max(...xs) + 160, z0 = Math.min(...zs) - 160, z1 = Math.max(...zs) + 160, tope = Math.round(2500 * Q.arb); let n = 0;
+      for (let z = z0; z <= z1 && n < tope; z += 7) for (let x = x0 + ((Math.round(z / 7) % 2) ? 3.5 : 0); x <= x1 && n < tope; x += 7) {
+        const c = cercana(x, z); if (c.d < 14 || c.d > 160 || enPinar(x, z)) continue; const xx = x + (Math.random() - 0.5) * 1.2, zz = z + (Math.random() - 0.5) * 1.2, h = hAqui(xx, zz);
+        if (Math.random() < 0.12) continue;   // alguna marra
+        const e = 0.22 + Math.random() * 0.1; m4.compose(new THREE.Vector3(xx, h - 0.1, zz), q.setFromAxisAngle(eje, Math.random() * 6.28), new THREE.Vector3(e, e * 0.9, e)); frondosos.push(m4.clone()); n++; }
+      log('3D: ' + n + ' almendros jóvenes en el cerro.'); }
     // segunda pasada: pinar denso a los lados de la carretera (12-350 m), que es lo que más se ve
     const FACTOR = TEMA.real ? Math.max(1, ruta.total / 25000) * (TEMA.montana ? 4 : 1) : 1;
     for (let t = 0; t < 27000 * FACTOR * (TEMA.real ? 2.5 : 1) && pinos.length + frondosos.length < (5000 * Q.arb) + 9000 * TEMA.arboles * FACTOR * Q.arb; t++) {
