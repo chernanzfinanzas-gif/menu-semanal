@@ -15,7 +15,7 @@ if (window.THREE) { (()=>{var be=Object.create;var pe=Object.defineProperty;var 
    Mapa 2D, perfil, datos, rivales y tramos funcionan igual; el 3D enseña un vídeo de demostración.
    Para probar: ?ligero=1 fuerza el modo ligero y ?3d=1 lo quita. */
 window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(location.search) && !matchMedia('(any-pointer: fine)').matches);
-if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','bici','ambientes'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
+if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
 <script src="recursos/dispositivos.js"></script>
@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v140 · ❄️ nieve en la sierra según el mes · 🌾 trigo y granjas en el campo · 🌳 sauces y abedules en los ríos · 💧 ríos sin cortes · 🪨 hitos kilométricos de piedra</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v142 · 🏁 meta con el logo KhB · 👥 pueblos con gente, farolas y bancos · 🏠 en los pueblos pequeños, solo casas bajas · 🚧 carretera cortada en carrera · 🛣️ salida y llegada a la misma altura · 💧 agua más honda · 🪧 carteles de pueblos y puertos</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2762,7 +2762,7 @@ function equiparCarretera(esc, via, conTramos, TEMA){
   let ultima = -1e9;
   for (const [a, , s] of tramos) { const i = Math.max(1, a - 9); if (via[i].d - ultima < 120) continue; ultima = via[i].d; (v3.senalesD = v3.senalesD || []).push(Math.round(via[i].d)); senal(i, texTri[String(s)], 1.0, 1.0, 2.0, AN + 0.8); }
   // cartel azul en cada cima, con el nombre del puerto y su altitud oficial
-  const lista = PUERTOS[(ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.id) || ''] || [];
+  const lista = (window.RECURSOS_SIM && RECURSOS_SIM.lugares) ? [] : (PUERTOS[(ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.id) || ''] || []);   // v141: con lugares.js el cartel sale en cualquier puerto real
   if (lista.length) { const cimas = [];
     const orden = [...via.keys()].sort((p, q) => via[q].y - via[p].y);
     for (const i of orden) { if (cimas.length >= lista.length) break; if (cimas.every(c => Math.abs(via[c].d - via[i].d) > 5000)) cimas.push(i); }
@@ -2774,6 +2774,87 @@ function equiparCarretera(esc, via, conTramos, TEMA){
       senal(Math.max(1, ic - 4), tex, 2.6, 1.3, 2.6, AN + 0.9); });
   }
   log('3D: ' + tramos.length + ' curvas con quitamiedos' + (lista.length ? ', carteles de puerto' : '') + '.');
+}
+// v141 · carteles reales (recursos/lugares.js, de OpenStreetMap): entrada y fin de cada pueblo, cartel azul en la cima de cada puerto con su altitud,
+// límite de 50 al entrar en los pueblos y «adelantar a ciclistas 1,5 m» al empezar; al pasar, aviso en pantalla («dónde estamos»)
+async function ponerLugares(esc, via, TEMA){
+  v3.lugares = []; const LG = window.RECURSOS_SIM && RECURSOS_SIM.lugares, P = ruta.pts;
+  if (!LG || !TEMA.real || !P || P.length < 20 || P[0].lat == null || via.length !== P.length) return;
+  const N = via.length, cosL = Math.cos(P[0].lat * Math.PI / 180); let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180;
+  for (const p of P) { if (p.lat < la0) la0 = p.lat; if (p.lat > la1) la1 = p.lat; if (p.lon < lo0) lo0 = p.lon; if (p.lon > lo1) lo1 = p.lon; }
+  const dentroCaja = (la, lo) => la > la0 - 0.02 && la < la1 + 0.02 && lo > lo0 - 0.025 && lo < lo1 + 0.025;
+  const dm = (la, lo, p) => Math.hypot((la - p.lat) * 110574, (lo - p.lon) * cosL * 111320);
+  const T = i => { const a = via[Math.max(0, i - 2)], b = via[Math.min(N - 1, i + 2)], L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [(b.x - a.x) / L, (b.z - a.z) / L]; };
+  const ancho = i => { const su = (tramoEn(via[i].d) || {}).sup || 'carretera'; return su === 'carretera' || su === 'puente' ? 5.0 : 3.6; };
+  const matPoste = new THREE.MeshLambertMaterial({ color: 0xa9adb2 }), dorso = new THREE.MeshLambertMaterial({ color: 0x8d9399 });
+  const rr = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  const poner = (i, tex, an, al, altura, dosPostes, recorte) => { const [tx, tz] = T(i), v = via[i], lat = ancho(i), x = v.x + (-tz) * lat, z = v.z + tx * lat, y = v.y + 0.1;
+    const g = new THREE.Group(); g.position.set(x, y, z); g.lookAt(x - tx * 0.94 + tz * 0.34, y, z - tz * 0.94 - tx * 0.34);   // de cara al que llega, algo girada hacia la carretera
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(an, al), new THREE.MeshLambertMaterial(recorte ? { map: tex, transparent: true, alphaTest: 0.4 } : { map: tex })); pl.position.y = altura; g.add(pl);
+    const db = new THREE.Mesh(new THREE.PlaneGeometry(an * 0.97, al * 0.97), dorso); db.position.set(0, altura, -0.025); db.rotation.y = Math.PI; g.add(db);
+    for (const sx of (dosPostes ? [-an * 0.38, an * 0.38] : [0])) { const po = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, altura + al / 2 - 0.1, 8), matPoste); po.position.set(sx, (altura + al / 2 - 0.1) / 2, -0.05); g.add(po); }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; }); esc.add(g); };
+  const ajustar = (g, txt, max, px, fam) => { let f = px; g.font = 'bold ' + f + 'px ' + fam; while (g.measureText(txt).width > max && f > 20) { f -= 3; g.font = 'bold ' + f + 'px ' + fam; } };
+  const FAM = '"Arial Narrow", Arial, sans-serif';
+  const texPueblo = (nombre, fin) => textura(1024, 320, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#ffffff'; rr(g, 0, 0, w, h, 34); g.fill(); g.strokeStyle = '#111'; g.lineWidth = 14; rr(g, 20, 20, w - 40, h - 40, 24); g.stroke();
+    g.fillStyle = '#111'; g.textAlign = 'center'; g.textBaseline = 'middle'; ajustar(g, nombre.toUpperCase(), w - 120, 130, FAM); g.fillText(nombre.toUpperCase(), w / 2, h / 2 + 6);
+    if (fin) { g.strokeStyle = '#c8102e'; g.lineWidth = 34; g.lineCap = 'round'; g.beginPath(); g.moveTo(70, h - 50); g.lineTo(w - 70, 50); g.stroke(); } });
+  const texPuerto = (nombre, ele) => textura(512, 256, (g, w, hh) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, hh); g.fillStyle = '#1f4fa0'; g.fillRect(8, 8, w - 16, hh - 16);
+    g.strokeStyle = '#ffffff'; g.lineWidth = 6; g.strokeRect(20, 20, w - 40, hh - 40); g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const pal = nombre.split(' '), l1 = pal.slice(0, Math.ceil(pal.length / 2)).join(' '), l2 = pal.slice(Math.ceil(pal.length / 2)).join(' ');
+    ajustar(g, l1.length > l2.length ? l1 : l2, w - 70, 44, 'Arial, sans-serif'); g.fillText(l1, w / 2, 78); g.fillText(l2, w / 2, 128);
+    g.font = '34px Arial, sans-serif'; g.fillText('Altitud ' + ele.toLocaleString('es-ES') + ' m', w / 2, 190); });
+  const tex50 = textura(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#fff'; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 4, 0, 7); g.fill(); g.strokeStyle = '#c8102e'; g.lineWidth = 28; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 18, 0, 7); g.stroke();
+    g.fillStyle = '#111'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 110px Arial'; g.fillText('50', w / 2, h / 2 + 6); });
+  const tex15 = textura(512, 400, (g, w, h) => { g.fillStyle = '#fff'; rr(g, 0, 0, w, h, 24); g.fill(); g.strokeStyle = '#111'; g.lineWidth = 10; rr(g, 12, 12, w - 24, h - 24, 16); g.stroke();
+    g.fillStyle = '#111'; g.textAlign = 'center'; g.font = 'bold 66px Arial'; g.fillText('ADELANTAR', w / 2, 108); g.fillText('A CICLISTAS', w / 2, 186); g.font = 'bold 110px Arial'; g.fillText('1,5 m', w / 2, 328); });
+  const L = v3.lugares;
+  // pueblos: entrada cuando la ruta se acerca al centro del pueblo (radio según su tamaño) y fin al alejarse
+  const RAD = [210, 380, 720]; let nP = 0;
+  for (const [nombre, la, lo, tipo] of LG.pueblos) { if (!dentroCaja(la, lo)) continue; const R = RAD[tipo] || 300; let dentro = dm(la, lo, P[0]) < R, ult = -1e9;
+    for (let i = 0; i < N; i += 2) { const dd = dm(la, lo, P[i]);
+      if (!dentro && dd < R) { dentro = true; if (P[i].d > 120 && P[i].d - ult > 900 && P[i].d < ruta.total - 60) { L.push({ d: P[i].d, tipo: 'pueblo', nombre, i }); ult = P[i].d; nP++; } }
+      else if (dentro && dd > R + 80) { dentro = false; if (P[i].d < ruta.total - 60 && P[i].d > 60) L.push({ d: P[i].d, tipo: 'fin', nombre, i }); } } }
+  // puertos y collados con nombre: cartel donde la ruta pasa a menos de 80 m (puede pasar dos veces si es ida y vuelta)
+  for (const [nombre, la, lo, ele, esPuerto] of LG.puertos) { if (!dentroCaja(la, lo)) continue; if (!esPuerto && !/^(puerto|alto|collado|portillo)\b/i.test(nombre)) continue; let mejor = 1e9, im = -1, ultD = -1e9;
+    for (let i = 0; i <= N; i++) { const dd = i < N ? dm(la, lo, P[i]) : 1e9;
+      if (dd < 80 && dd < mejor) { mejor = dd; im = i; }
+      else if (im >= 0 && (dd > 200 || i === N)) { if (P[im].d - ultD > 1500) { L.push({ d: P[im].d, tipo: 'puerto', nombre, ele: ele || Math.round(P[im].ele || via[im].y), i: im }); ultD = P[im].d; } mejor = 1e9; im = -1; } } }
+  L.sort((a, b) => a.d - b.d);
+  for (const o of L) { const i = Math.max(2, Math.min(N - 3, o.i - (o.tipo === 'puerto' ? 3 : 0)));
+    if (o.tipo === 'puerto') poner(i, texPuerto(o.nombre, o.ele), 2.6, 1.3, 2.6, true, false);
+    else { poner(i, texPueblo(o.nombre, o.tipo === 'fin'), 2.7, 0.84, 2.3, true, true);
+      if (o.tipo === 'pueblo' && i + 3 < N - 2) poner(i + 3, tex50, 0.75, 0.75, 2.1, false, true); } }
+  if (N > 60 && ((tramoEn(via[30].d) || {}).sup || 'carretera') === 'carretera') poner(30, tex15, 1.05, 0.82, 2.2, false, false);
+  // v142 · pueblos con vida: farolas, bancos con papelera y gente mirando, entre el cartel de entrada y el de fin (máx. 600 m)
+  const RA = window.RECURSOS_SIM && RECURSOS_SIM.ambientes; let nGente = 0;
+  if (RA && typeof GLTFLoaderSim !== 'undefined') { const nQ = $('calidad3d') ? $('calidad3d').value : 'media', F = nQ === 'alta' ? 1 : nQ === 'baja' ? 0.35 : 0.7;
+    const carga = {}, pieza = async k => { if (k in carga) return carga[k]; const d = RA[k]; if (!d) return carga[k] = null;
+      const gl = await new Promise((ok, mal) => new GLTFLoaderSim().parse(b64aBuffer(d.glb), '', ok, mal)); gl.scene.updateMatrixWorld(true);
+      const caja = new THREE.Box3().setFromObject(gl.scene), e = d.medida / Math.max(0.01, caja.max.y - caja.min.y), partes = [];
+      gl.scene.traverse(o => { if (o.isMesh) { const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(o.matrixWorld); g.translate(0, -caja.min.y, 0); g.scale(e, e, e); partes.push({ g, m: o.material }); } });
+      return carga[k] = { partes, alto: d.medida }; };
+    const farolas = [], bancos = [], m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), arr = new THREE.Vector3(0, 1, 0), ROPA = [0x2f4b7c, 0xc0392b, 0x27ae60, 0xd4ac0d, 0x8e44ad, 0x34495e, 0xe67e22, 0xecf0f1, 0x16a085, 0x7f8c8d], PIEL = [0xf1c9a5, 0xe0ac69, 0xc68642, 0x8d5524];
+    const POSES = ['p_saluda_h', 'p_saluda_m', 'p_pie_m', 'p_pie_h', 'p_jarras_h', 'p_jarras_m', 'p_anima_m'];
+    const lateral = (i, extra, lado) => { const [tx, tz] = T(i), v = via[i], lat = ancho(i) + extra; return { x: v.x + (-tz) * lat * lado, z: v.z + tx * lat * lado, y: v.y + 0.12, giro: Math.atan2(tz * lado, -tx * lado) }; };
+    const gente = [];
+    for (const o of L) { if (o.tipo !== 'pueblo') continue; const fin = L.find(f => f.tipo === 'fin' && f.nombre === o.nombre && f.d > o.d); const d1 = Math.min(fin ? fin.d - 20 : o.d + 400, o.d + 600);
+      const i0 = o.i + 4, i1 = Math.min(N - 3, Math.round(o.i + (d1 - o.d) / 10)); if (i1 - i0 < 4) continue;
+      for (let i = i0, k = 0; i < i1; i += 3, k++) { const lado = k % 2 ? 1 : -1, p = lateral(i, 0.9, lado); m4.compose(new THREE.Vector3(p.x, p.y, p.z), q4.setFromAxisAngle(arr, p.giro), new THREE.Vector3(1, 1, 1)); farolas.push(m4.clone());
+        if (k % 2 === 0) { const b = lateral(i + 1, 1.6, -lado); m4.compose(new THREE.Vector3(b.x, b.y, b.z), q4.setFromAxisAngle(arr, b.giro), new THREE.Vector3(1, 1, 1)); bancos.push(m4.clone()); } }
+      const n = Math.round((6 + Math.random() * 8) * F); for (let k = 0; k < n; k++) { const i = i0 + Math.floor(Math.random() * Math.min(30, i1 - i0)), lado = Math.random() < 0.5 ? -1 : 1, p = lateral(i, 1.4 + Math.random() * 1.6, lado); gente.push([POSES[Math.floor(Math.random() * POSES.length)], p]); } }
+    const F1 = await pieza('farola'); if (F1 && farolas.length) for (const { g, m } of F1.partes) instanciarPorZonas(esc, g, m, farolas, false);
+    if (bancos.length) { const madera = new THREE.MeshLambertMaterial({ color: 0x7a5230 }), hierro = new THREE.MeshLambertMaterial({ color: 0x2f3a2f }), verde = new THREE.MeshLambertMaterial({ color: 0x3d5a3a });
+      const caja = (w, h, d, x, y, z) => { const b = new THREE.BoxGeometry(w, h, d); b.translate(x, y, z); return b; };
+      instanciarPorZonas(esc, caja(1.8, 0.06, 0.45, 0, 0.45, 0), madera, bancos, false); instanciarPorZonas(esc, caja(1.8, 0.4, 0.06, 0, 0.75, -0.22), madera, bancos, false);
+      for (const xx of [-0.8, 0.8]) instanciarPorZonas(esc, caja(0.06, 0.45, 0.45, xx, 0.22, 0), hierro, bancos, false);
+      const pap = new THREE.CylinderGeometry(0.22, 0.2, 0.75, 10); pap.translate(1.4, 0.38, 0); instanciarPorZonas(esc, pap, verde, bancos, false); }
+    for (const [pose, p] of gente) { const M = await pieza(pose); if (!M) continue; const pa = new THREE.Color(ROPA[Math.floor(Math.random() * 10)]), ca = new THREE.Color(ROPA[Math.floor(Math.random() * 10)]), pi = new THREE.Color(PIEL[Math.floor(Math.random() * 4)]), zap = new THREE.Color(0x222222);
+      const grp = new THREE.Group(); for (const { g } of M.partes) { const gg = g.clone(), pos = gg.getAttribute('position'), col = new Float32Array(pos.count * 3);
+        for (let k = 0; k < pos.count; k++) { const f = pos.getY(k) / M.alto, c = f < 0.06 ? zap : f < 0.47 ? pa : f < 0.83 ? ca : pi; col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b; }
+        gg.setAttribute('color', new THREE.BufferAttribute(col, 3)); gg.computeVertexNormals(); const me = new THREE.Mesh(gg, new THREE.MeshLambertMaterial({ vertexColors: true })); me.castShadow = true; grp.add(me); }
+      const sz = 0.92 + Math.random() * 0.14; grp.scale.setScalar(sz); grp.position.set(p.x, p.y, p.z); grp.rotation.y = p.giro + (Math.random() - 0.5) * 0.8; esc.add(grp); nGente++; } }
+  log('3D: carteles reales: ' + nP + ' pueblos, ' + L.filter(o => o.tipo === 'puerto').length + ' puertos; ' + nGente + ' personas en los pueblos.');
 }
 function cartel(texto, fondo, tam){
   const t = textura(512, 128, (g, w, h) => { g.fillStyle = fondo; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = 'bold 64px system-ui, Segoe UI, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(texto, w / 2, h / 2 + 4); });
@@ -3148,7 +3229,8 @@ function dibujarRios(esc, TEMA, D){
   const hT = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
     return (alt[k] * (1 - a) + alt[k + 1] * a) * (1 - b) + (alt[k + nx] * (1 - a) + alt[k + nx + 1] * a) * b; };
   const dentro = p => p.x > p0.x + PASO && p.z > p0.z + PASO && p.x < x1 - PASO && p.z < z1 - PASO;
-  const tex = textura(64, 256, (g, w, hh) => { g.fillStyle = '#4f86a3'; g.fillRect(0, 0, w, hh);
+  const tex = textura(64, 256, (g, w, hh) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#9cc4c9'); gr.addColorStop(0.12, '#5f98ad'); gr.addColorStop(0.5, '#2f6886'); gr.addColorStop(0.88, '#5f98ad'); gr.addColorStop(1, '#9cc4c9');
+    g.fillStyle = gr; g.fillRect(0, 0, w, hh); g.fillStyle = 'rgba(240,248,250,0.75)'; for (let y = 0; y < hh; y += 2) { g.fillRect(0, y, 1.5 + Math.random() * 2.5, 2); g.fillRect(w - 1.5 - Math.random() * 2.5, y, 4, 2); }   // v142: centro más hondo y espuma en la orilla
     for (let n = 0; n < 70; n++) { const y = Math.random() * hh, x = Math.random() * w, l = 6 + Math.random() * 18; g.strokeStyle = 'rgba(225,240,250,' + (0.25 + Math.random() * 0.4) + ')'; g.lineWidth = 1 + Math.random() * 1.5;
       g.beginPath(); g.moveTo(x - l / 2, y); g.quadraticCurveTo(x, y - 3, x + l / 2, y); g.stroke(); } });
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace;
@@ -3418,6 +3500,11 @@ async function decorarReal(esc, D){
       campo:    [['granja', 0.04, 25], ['chalé', 0.05, 12]],
       descampado: [], otro: [['chalé', 0.03, 12]], roca: [] });
     const STRAVA = !!(ruta.tramos && ruta.tramos.ruta.strava), DENS = STRAVA ? 0.45 : 1;   // Strava: pocos edificios del catálogo
+    // v142 (Carlos: «en Ventosilla, pueblos pequeños con edificios altos»): bloques y oficinas solo cerca de un núcleo de ≥15.000 habitantes
+    // (Madrid a 12 km, >40.000 a 3 km, el resto a 2 km); en los demás pueblos, casas bajas
+    const GRANDES = (window.RECURSOS_SIM && RECURSOS_SIM.nucleosGrandes && D.aXZ) ? RECURSOS_SIM.nucleosGrandes.map(([n, la, lo, pop]) => { const p = D.aXZ(la, lo); return { x: p.x, z: p.z, R: pop > 1000000 ? 12000 : pop > 40000 ? 3000 : 2000 }; }) : null;
+    const esGrande = (x, z) => !GRANDES || GRANDES.some(g => Math.hypot(g.x - x, g.z - z) < g.R);
+    const ALTOS = { 'bloques': 1, 'tienda/oficina': 1, 'rascacielos': 1 };
     // calles que salen de la ruta (Strava): un trozo de asfalto con el ángulo real y sin edificios encima
     if (STRAVA && ruta.tramos.ruta.calles.length) {
       const T = ruta.tramos, L = T.ruta.tramos.largo, rev = T.sentido === T.ruta.inverso, matC = new THREE.MeshLambertMaterial({ color: 0x4b4d50 }), pos = [], idx = [];
@@ -3440,12 +3527,13 @@ async function decorarReal(esc, D){
         const nx = tz * s, nz = -tx * s;                 // s=1: izquierda en el sentido de la marcha
         const amb = ambienteEn(v.x + nx * 40, v.z + nz * 40), menu = MENU[amb]; if (!menu) { cursor[s] = v.d + 20; continue; }
         let r = Math.random(), op = null; for (const o of menu) { if (r < o[1]) { op = o; break; } r -= o[1]; }
+        if (op && ALTOS[op[0]] && !esGrande(v.x, v.z)) op = ['chalé', op[1], Math.min(op[2], 9)];   // pueblo pequeño: casa baja en lugar de bloque u oficina
         if (!op || !porTipo[op[0]] || Math.random() > calidad().edif * DENS) { cursor[s] = v.d + 15 + Math.random() * 25; continue; }
         const k = elige(porTipo[op[0]]), M = await modeloEdificio(k), off = op[2] + M.fondo / 2 + Math.random() * 6;
         const ok = await poner(k, v.x + nx * off, v.z + nz * off, -nx, -nz, op[2] - 2);
         cursor[s] = v.d + (ok ? M.ancho + 4 + Math.random() * 12 : 12);
         // segunda fila en barrio: bloques detrás
-        if (ok && amb === 'barrio' && porTipo.bloques && !STRAVA && Math.random() < 0.5) { const k2 = elige(porTipo.bloques), M2 = await modeloEdificio(k2), off2 = off + M.fondo / 2 + 12 + M2.fondo / 2; await poner(k2, v.x + nx * off2, v.z + nz * off2, -nx, -nz, 30); }
+        if (ok && amb === 'barrio' && porTipo.bloques && !STRAVA && Math.random() < 0.5 && esGrande(v.x, v.z)) { const k2 = elige(porTipo.bloques), M2 = await modeloEdificio(k2), off2 = off + M.fondo / 2 + 12 + M2.fondo / 2; await poner(k2, v.x + nx * off2, v.z + nz * off2, -nx, -nz, 30); }
       }
     }
     // la ciudad de dentro del anillo: bloques, oficinas y rascacielos rellenando hacia el horizonte
@@ -3552,6 +3640,8 @@ async function modeloCoche(k){
 }
 function moverTrafico(dt, dYo){
   if (!v3.otros) return;
+  // v142 (Carlos: «en carreras los coches atropellan al pelotón»): con bots en carrera la carretera está cortada, como en una carrera de verdad
+  if (rivales.lista.some(r => r.tipo === 'bot')) { for (const o of v3.otros) { o.vivo = false; if (o.g) o.g.visible = false; } for (const c of v3.coches || []) { if (c.g) c.g.visible = false; c.vivo = false; c.espera = 5; } return; }
   const vYo = Math.max(3, velocidadRuta() || (v3.tester ? v3.tester / 3.6 : 0) || 6);
   for (const o of v3.otros) {
     if (!o.vivo || Math.abs(o.d - dYo) > 1500 || o.d < 5 || o.d > ruta.total - 5) {      // (re)aparece cerca, fuera de la vista
@@ -3653,6 +3743,21 @@ async function construir3D(){
     const via = P.map(p => ({ ...aXZ(p.lat, p.lon), y: dem ? dem(p.lat, p.lon) : p.ele, d: p.d }));
     const ys = via.map(v => v.y);
     via.forEach((v, i) => { let s = 0, n = 0; for (let k = Math.max(0, i - 6); k <= Math.min(via.length - 1, i + 6); k++) { s += ys[k]; n++; } v.y = s / n; });
+    // v142 (Carlos: «donde empezó la ruta sale a distinta altura, flotando»): si la ruta se cruza consigo misma (salida y llegada, ida y vuelta),
+    // cada pasada tenía su altura suavizada por separado y una quedaba en el aire. En esos cruces igualamos las dos alturas y lo repartimos 60 m a cada lado.
+    // Los puentes y pasos inferiores de verdad (o diferencias de más de 6 m) se dejan como están.
+    { const CC = 8, rej = new Map(), clv = (x, z) => Math.floor(x / CC) + ',' + Math.floor(z / CC), parejas = [];
+      via.forEach((v, i) => { const k = clv(v.x, v.z); if (!rej.has(k)) rej.set(k, []); rej.get(k).push(i); });
+      const supEn = i => ((ruta.tramos && tramoEn(via[i].d)) || {}).sup || 'carretera', paso = i => /puente|paso inferior/.test(supEn(i));
+      for (let i = 0; i < via.length; i += 2) { const v = via[i], cx = Math.floor(v.x / CC), cz = Math.floor(v.z / CC);
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const j of (rej.get((cx + a) + ',' + (cz + b)) || [])) {
+          if (j <= i + 15 || Math.abs(via[j].d - v.d) < 150) continue; if (Math.hypot(via[j].x - v.x, via[j].z - v.z) > 7) continue;
+          if (Math.abs(via[j].y - v.y) > 6 || paso(i) || paso(j)) continue; parejas.push([i, j]); } }
+      const corr = new Float32Array(via.length), peso = new Float32Array(via.length);
+      for (const [i, j] of parejas) { const obj = (via[i].y + via[j].y) / 2;
+        for (const c of [i, j]) { const dy = obj - via[c].y; for (let k = -6; k <= 6; k++) { const q = c + k; if (q < 0 || q >= via.length) continue; const w = 0.5 + 0.5 * Math.cos(Math.PI * k / 7); if (w > peso[q]) { peso[q] = w; corr[q] = dy * w; } } } }
+      v3.cruces = parejas.map(([i, j]) => [Math.round(via[i].d), Math.round(via[j].d)]);
+      if (parejas.length) { via.forEach((v, i) => { v.y += corr[i]; }); log('3D: ' + parejas.length + ' puntos de cruce de la ruta consigo misma igualados de altura.'); } }
     v3.via = via;
     // índice espacial para la distancia a la carretera
     const CEL = 60, celdas = new Map(), clave = (x, z) => Math.floor(x / CEL) + ',' + Math.floor(z / CEL);
@@ -4044,9 +4149,22 @@ async function construir3D(){
       const tx0 = (b.x - a.x) / L, tz0 = (b.z - a.z) / L; hito.position.set(v.x + ox * 0.86, v.y + 0.02, v.z + oz * 0.86); hito.rotation.y = Math.atan2(-tx0, -tz0) + 0.35; esc.add(hito);
     }
     { const iM = Math.min(via.length - 1, Math.round(dMeta() / 10)), v = via[iM], a = via[Math.max(0, iM - 4)], L = Math.hypot(v.x - a.x, v.z - a.z) || 1, ox = -(v.z - a.z) / L * 5, oz = (v.x - a.x) / L * 5;
-      for (const sgn of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 0.4), rojo); p.position.set(v.x + ox * sgn, v.y + 3, v.z + oz * sgn); esc.add(p); }
-      const c = cartel(ruta.nombre.length > 26 ? 'Meta' : ruta.nombre, '#da3633', 2.2); c.position.set(v.x, v.y + 6.5, v.z); esc.add(c); }
+      const LOGO = window.RECURSOS_SIM && RECURSOS_SIM.logoKhB;
+      if (!LOGO) { for (const sgn of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 0.4), rojo); p.position.set(v.x + ox * sgn, v.y + 3, v.z + oz * sgn); esc.add(p); }
+        const c = cartel(ruta.nombre.length > 26 ? 'Meta' : ruta.nombre, '#da3633', 2.2); c.position.set(v.x, v.y + 6.5, v.z); esc.add(c); }
+      else { // v142: arco de meta con el logo KhB (pilares azules, pancarta negra, «META» a los lados y línea de cuadros)
+        const g = new THREE.Group(), A = 10.4, azul = new THREE.MeshLambertMaterial({ color: 0x2c6fb7 }), negro = new THREE.MeshLambertMaterial({ color: 0x111418 });
+        for (const sx of [-A / 2, A / 2]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 5.8, 0.55), azul); c.position.set(sx, 2.9, 0); c.castShadow = true; g.add(c); }
+        const pb = new THREE.Mesh(new THREE.BoxGeometry(A + 0.55, 1.9, 0.36), negro); pb.position.set(0, 6.25, 0); pb.castShadow = true; g.add(pb);
+        const im = new Image(); im.src = LOGO; const tl = new THREE.Texture(im); im.onload = () => { tl.needsUpdate = true; }; tl.colorSpace = THREE.SRGBColorSpace; tl.anisotropy = 4;
+        const tm = textura(512, 128, (q, w, h) => { q.fillStyle = '#111418'; q.fillRect(0, 0, w, h); q.fillStyle = '#ffffff'; q.font = 'bold 92px Arial'; q.textAlign = 'center'; q.textBaseline = 'middle'; q.fillText('META', w / 2, h / 2 + 4); });
+        for (const lado of [1, -1]) { const lg = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.8), new THREE.MeshBasicMaterial({ map: tl, toneMapped: false })); lg.position.set(0, 6.25, 0.19 * lado); if (lado < 0) lg.rotation.y = Math.PI; g.add(lg);
+          for (const sx of [-3.45, 3.45]) { const t = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65), new THREE.MeshBasicMaterial({ map: tm, toneMapped: false })); t.position.set(sx, 6.25, 0.19 * lado); if (lado < 0) t.rotation.y = Math.PI; g.add(t); } }
+        const tc = textura(256, 32, (q, w, h) => { for (let i = 0; i < 32; i++) for (let j = 0; j < 4; j++) { q.fillStyle = (i + j) % 2 ? '#111' : '#fff'; q.fillRect(i * 8, j * 8, 8, 8); } });
+        const lin = new THREE.Mesh(new THREE.PlaneGeometry(A - 2.4, 0.6), new THREE.MeshLambertMaterial({ map: tc, polygonOffset: true, polygonOffsetFactor: -4 })); lin.rotation.x = -Math.PI / 2; lin.position.set(0, 0.2, 0); g.add(lin);
+        g.position.set(v.x, v.y, v.z); g.lookAt(a.x, v.y, a.z); esc.add(g); } }
     try { equiparCarretera(esc, via, conTramos, TEMA); } catch(e) { log('3D: quitamiedos y señales: ' + e.message); }
+    try { await ponerLugares(esc, via, TEMA); } catch(e) { log('3D: carteles reales: ' + e.message); }
     v3.ciclista = (await cargarCiclista()) || await conCanyon(hacerCiclista()); esc.add(v3.ciclista);
     { // foco de la bici: luz que alumbra la carretera por delante (de noche)
       const f = new THREE.SpotLight(0xfff4e0, 0, 120, 0.32, 0.6, 1.0); f.castShadow = false; esc.add(f); esc.add(f.target); v3.foco = f;
@@ -4088,6 +4206,9 @@ function bucle3D(t){
   if (!sesion.corriendo && ruta.total) { if (document.activeElement !== $('kmTester')) $('kmTester').value = (ruta.dist / ruta.total * 100).toFixed(1); $('kmTesterTxt').textContent = 'km ' + (ruta.dist / 1000).toFixed(1).replace('.', ','); }
   const dAntes = v3.dVis; v3.dVis += (ruta.dist - v3.dVis) * Math.min(1, dt * 2.5);
   const d = Math.max(8, Math.min(ruta.total - 30, v3.dVis));
+  if (v3.lugares && v3.lugares.length) for (const o of v3.lugares) { if (o.tipo === 'fin') continue;   // v141: «dónde estamos»
+    if (!o.dicho && ruta.dist >= o.d - 8 && ruta.dist < o.d + 150) { o.dicho = true; aviso3d(o.tipo === 'puerto' ? '⛰️ ' + o.nombre + ' · ' + o.ele.toLocaleString('es-ES') + ' m' : '📍 ' + o.nombre, 4500); }
+    else if (o.dicho && ruta.dist < o.d - 300) o.dicho = false; }
   const aqui = puntoVia(d), delante = puntoVia(d + 6);
   { // ir por la derecha de la vía (en carretera, cerca del borde); el cambio entre tramos es suave
     // con bots el grupo va centrado en la vía y, si es estrecha (carril bici), las tres filas se juntan para no pisar la hierba (20-nov)
