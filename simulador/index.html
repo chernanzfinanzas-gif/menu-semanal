@@ -333,7 +333,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v148 · ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v149 · 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2790,7 +2790,7 @@ function equiparCarretera(esc, via, conTramos, TEMA){
   const N = via.length, sup = i => (tramoEn(via[i].d) || {}).sup || 'carretera';
   const T = i => { const a = via[Math.max(0, i - 2)], b = via[Math.min(N - 1, i + 2)], L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [(b.x - a.x) / L, (b.z - a.z) / L]; };
   const giro = new Int8Array(N);                       // +1: la carretera gira a la derecha; -1: a la izquierda
-  for (let i = 3; i < N - 3; i++) { if (sup(i) !== 'carretera') continue;
+  for (let i = 3; i < N - 3; i++) { if (sup(i) !== 'carretera' || via[i].rep) continue;
     const t1 = T(i - 3), t2 = T(i + 3), cos = t1[0] * t2[0] + t1[1] * t2[1], d = t2[0] * (-t1[1]) + t2[1] * t1[0];
     if (Math.acos(Math.max(-1, Math.min(1, cos))) > 0.35) giro[i] = d > 0 ? 1 : -1; }
   const tramos = []; for (let i = 0; i < N; i++) if (giro[i]) { const s = giro[i]; let j = i; while (j + 1 < N && giro[j + 1] === s) j++; tramos.push([Math.max(1, i - 2), Math.min(N - 2, j + 2), s]); i = j; }
@@ -4001,6 +4001,25 @@ async function construir3D(){
         for (const c of [i, j]) { const dy = obj - via[c].y; for (let k = -6; k <= 6; k++) { const q = c + k; if (q < 0 || q >= via.length) continue; const w = 0.5 + 0.5 * Math.cos(Math.PI * k / 7); if (w > peso[q]) { peso[q] = w; corr[q] = dy * w; } } } }
       v3.cruces = parejas.map(([i, j]) => [Math.round(via[i].d), Math.round(via[j].d)]);
       if (parejas.length) { via.forEach((v, i) => { v.y += corr[i]; }); log('3D: ' + parejas.length + ' puntos de cruce de la ruta consigo misma igualados de altura.'); } }
+    // v149 (Carlos, Casa de Campo): la ruta que vuelve a pasar por el mismo sitio (vueltas, ida y vuelta) se pega a la primera pasada
+    // y esa carretera se dibuja una sola vez. Repetición = en paralelo (o en sentido contrario) a < 9 m durante 50 m o más; los cruces sueltos no cuentan.
+    { const CC = 10, rej = new Map(), clv = (x, z) => Math.floor(x / CC) + ',' + Math.floor(z / CC), N = via.length;
+      const dir = i => { const a = via[Math.max(0, i - 2)], b = via[Math.min(N - 1, i + 2)], L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [(b.x - a.x) / L, (b.z - a.z) / L]; };
+      const par = new Int32Array(N).fill(-1), GF = { 'carretera':'a', 'puente':'a', 'paso inferior':'a', 'carril bici':'c', 'paseo':'t', 'tierra':'t' }, firme = i => GF[((ruta.tramos && tramoEn(via[i].d)) || {}).sup || 'carretera'] || 'a';
+      for (let i = 0; i < N; i++) { const v = via[i], cx = Math.floor(v.x / CC), cz = Math.floor(v.z / CC), [ux, uz] = dir(i); let mejor = -1, md = 9;
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const j of (rej.get((cx + a) + ',' + (cz + b)) || [])) {
+          if (v.d - via[j].d < 150) continue; const dd = Math.hypot(via[j].x - v.x, via[j].z - v.z); if (dd >= md) continue;
+          const [wx, wz] = dir(j); if (Math.abs(ux * wx + uz * wz) < 0.85) continue; if (dd > 5 && firme(i) !== firme(j)) continue; md = dd; mejor = j; }   // firme distinto a más de 5 m: es otro camino paralelo de verdad
+        if (mejor >= 0) par[i] = par[mejor] >= 0 ? par[mejor] : mejor;   // siempre contra la PRIMERA pasada
+        const k = clv(v.x, v.z); if (!rej.has(k)) rej.set(k, []); rej.get(k).push(i); }
+      for (let i = 0; i < N; ) { if (par[i] < 0) { i++; continue; } let j = i; while (j + 1 < N && par[j + 1] >= 0) j++; if (j - i + 1 < 5) for (let q = i; q <= j; q++) par[q] = -1; i = j + 1; }   // menos de 50 m: cruces, fuera
+      const peso = new Float32Array(N); for (let i = 0; i < N; i++) if (par[i] >= 0) for (let k = -6; k <= 6; k++) { const q = i + k; if (q < 0 || q >= N) continue; const w = k === 0 ? 1 : 0.5 + 0.5 * Math.cos(Math.PI * k / 7); if (w > peso[q]) peso[q] = w; }
+      let nRep = 0; const nuevo = via.map((v, i) => { if (!peso[i]) return null; let r = par[i];
+        if (r < 0) { let best = -1, bd = 1e9; for (let k = -6; k <= 6; k++) { const q = i + k; if (q >= 0 && q < N && par[q] >= 0 && Math.abs(k) < bd) { bd = Math.abs(k); best = q; } } if (best < 0) return null;
+          let mdd = 1e9; const lo = Math.max(0, par[best] - 12), hi = Math.min(N - 1, par[best] + 12); for (let q = lo; q <= hi; q++) { const dd = Math.hypot(via[q].x - v.x, via[q].z - v.z); if (dd < mdd) { mdd = dd; r = q; } } }
+        const o = via[r], w = peso[i]; return { x: v.x + (o.x - v.x) * w, z: v.z + (o.z - v.z) * w, y: v.y + (o.y - v.y) * w }; });
+      nuevo.forEach((q, i) => { if (q) { via[i].x = q.x; via[i].z = q.z; via[i].y = q.y; } if (par[i] >= 0) { via[i].rep = true; nRep++; } });
+      if (nRep) log('3D: ' + (nRep / 100).toFixed(1) + ' km de la ruta repiten un trazado ya recorrido: se pegan a la primera pasada y su carretera se dibuja una sola vez.'); }
     v3.via = via;
     // índice espacial para la distancia a la carretera
     const CEL = 60, celdas = new Map(), clave = (x, z) => Math.floor(x / CEL) + ',' + Math.floor(z / CEL);
@@ -4184,9 +4203,9 @@ async function construir3D(){
       rp.push(v.x - tz * AN, v.y + 0.18, v.z + tx * AN, v.x + tz * AN, v.y + 0.18, v.z - tx * AN); ruv.push(conRayas ? 0 : 0.12, v.d / 12, conRayas ? 1 : 0.42, v.d / 12);
       if (conTramos) { const W2 = (SU === 'carretera' || SU === 'tierra') ? AN + 0.5 : AN + 0.05;
         ap.push(v.x - tz * W2, v.y + 0.1, v.z + tx * W2, v.x - tz * AN, v.y + 0.15, v.z + tx * AN, v.x + tz * AN, v.y + 0.15, v.z - tx * AN, v.x + tz * W2, v.y + 0.1, v.z - tx * W2);
-        if (i) { const q = (i - 1) * 4; ai.push(q, q + 4, q + 1, q + 1, q + 4, q + 5, q + 2, q + 6, q + 3, q + 3, q + 6, q + 7); } }
+        if (i && !(v.rep && via[i - 1].rep)) { const q = (i - 1) * 4; ai.push(q, q + 4, q + 1, q + 1, q + 4, q + 5, q + 2, q + 6, q + 3, q + 3, q + 6, q + 7); } }
       if (conTramos) { const t = tramoEn(v.d), su = t ? t.sup : 'carretera', c = (TEMA.montana && su === 'puente') ? SUP_COLOR.carretera : (SUP_COLOR[su] || SUP_COLOR.carretera); { const cc = c.map(x => x * 0.7); rc.push(...cc, ...cc); } }
-      if (i) { const q = (i - 1) * 2; ri.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } });
+      if (i && !(v.rep && via[i - 1].rep)) { const q = (i - 1) * 2; ri.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } });
     if (conTramos && TX.tierra && TX.grava) {   // v139: cada firme con su textura (asfalto con rayas, carril bici rojo, tierra batida, grava de paseo)
       const lienzoFirme = (img, conLineas, rojo) => { const c = document.createElement('canvas'); c.width = 256; c.height = 1024; const g = c.getContext('2d');
         const tw = 256 / 4.6 * 3, th = 1024 / 12 * 3; for (let y = 0; y < 1024; y += th) for (let x = 0; x < 256; x += tw) g.drawImage(img, x, y, tw, th);
@@ -4200,7 +4219,7 @@ async function construir3D(){
                     grava: { map: lienzoSuelto(TX.grava), color: 0xffffff, cuadro: true },
                     tierra: { map: lienzoSuelto(TX.tierra), color: 0xffffff, cuadro: true } };
       const G = {}; for (const k in MAT) G[k] = { p: [], uv: [], ix: [] };
-      for (let i = 1; i < via.length; i++) { const vm = via[i - 1], su = ((tramoEn((vm.d + via[i].d) / 2) || {}).sup) || 'carretera', k = GRUPO[su] || 'asf', g = G[k], q0 = (i - 1) * 2, n = g.p.length / 3;
+      for (let i = 1; i < via.length; i++) { if (via[i].rep && via[i - 1].rep) continue; const vm = via[i - 1], su = ((tramoEn((vm.d + via[i].d) / 2) || {}).sup) || 'carretera', k = GRUPO[su] || 'asf', g = G[k], q0 = (i - 1) * 2, n = g.p.length / 3;
         for (const qq of [q0, q0 + 1, q0 + 2, q0 + 3]) g.p.push(rp[qq * 3], rp[qq * 3 + 1], rp[qq * 3 + 2]);
         const an = ANCHO_SUP[su] || ANCHO, rep = MAT[k].cuadro ? 2 * an : 12, d0 = vm.d / rep, d1 = via[i].d / rep;
         g.uv.push(0, d0, 1, d0, 0, d1, 1, d1); g.ix.push(n, n + 1, n + 2, n + 1, n + 3, n + 2); }
