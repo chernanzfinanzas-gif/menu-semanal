@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v145 · 🚴 muñeco nuevo de Carlos y Susana (casco de verdad, cara, postura, manos en la maneta, barba, bici verde) · ⚡ bots con dos niveles de detalle: el pelotón pesa menos de la mitad</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v147 · 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -2610,7 +2610,7 @@ function componerGrabacion(){
 // ---- TECLAS (20-nov, Carlos): todo se maneja sin la bici ni los Zwift Play ----
 // Las del pedaleo simulado (Z X C V B, 0, + −, ↑ ↓, Espacio) no se tocan: solo valen mientras pedaleas con el teclado.
 const TECLAS = [
-  ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente'], ['I / U', 'Dron: acercar / alejar (también la rueda del ratón)']]],
+  ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente'], ['I / U', 'Dron: acercar / alejar (también la rueda del ratón)'], [',  .', 'Girar la vista a la izquierda / derecha, en cualquier cámara (15° cada vez; mantener para dar la vuelta)']]],
   ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +'], ['Re Pág  Av Pág', 'Grupeta: subir / bajar zona'], ['K', 'Grupeta: relevos contigo sí / no'], ['J', 'Grupeta: pasar el relevo']]],
   ['Pantalla', [['M', 'Menú ☰'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
   ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
@@ -2621,7 +2621,10 @@ function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !==
   if (A.hidden) $('ayudaCuerpo').innerHTML = TECLAS.map(([g, L]) => '<h3>' + g + '</h3>' + L.map(([k, t]) => '<div class="t"><kbd>' + k + '</kbd><span>' + t + '</span></div>').join('')).join('');
   A.hidden = !A.hidden; }
 // zoom de la cámara dron (20-nov, Carlos): rueda del ratón o RePág/AvPág; se recuerda
-let zoomDronV = null;
+let zoomDronV = null, giroCamV = 0;
+function giroCam(){ return giroCamV; }
+function girarCam(grados){ let g = Math.round((giroCamV * 180 / Math.PI + grados) / 15) * 15; g = ((g + 180) % 360 + 360) % 360 - 180; giroCamV = g * Math.PI / 180;   // 21-nov (Carlos): girar la vista a izquierda y derecha
+  aviso3d('🔄 Vista ' + (g === 0 ? 'normal' : Math.abs(g) === 180 ? 'dada la vuelta' : (g > 0 ? 'girada a la derecha ' : 'girada a la izquierda ') + Math.abs(g) + '°') + (g ? ' · al cambiar de cámara vuelve a normal' : '')); }
 function zoomDron(){ if (zoomDronV == null) { zoomDronV = +localStorage.getItem('simulador-zoom-dron') || 1; } return zoomDronV; }
 function cambiarZoomDron(f){ zoomDronV = Math.max(0.25, Math.min(2.5, zoomDron() * f)); try { localStorage.setItem('simulador-zoom-dron', zoomDronV); } catch(e) {}
   aviso3d('🔍 Dron ' + (zoomDronV < 0.95 ? 'más cerca' : zoomDronV > 1.05 ? 'más lejos' : 'normal') + ' · ×' + zoomDronV.toFixed(1).replace('.', ',')); }
@@ -2635,6 +2638,7 @@ document.addEventListener('keydown', e => {
   if (/^[1-6]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
   else if ((k === 'ArrowRight' || k === 'ArrowLeft') && en3d) cambiarCamara(k === 'ArrowRight' ? 1 : -1);
   else if ((k === 'PageUp' || k === 'PageDown' || kl === 'i' || kl === 'u') && en3d && $('camara3d').value === 'dron') cambiarZoomDron(k === 'PageDown' || kl === 'u' ? 1.35 : 1 / 1.35);
+  else if ((k === ',' || k === '.' || k === '<' || k === '>') && en3d) girarCam(k === '.' || k === '>' ? 15 : -15);
   else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
   else if (k === 'Escape') { for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; break; } } }
   else if (k === 'Enter') { if (!sesion.corriendo) { const b = en3d ? $('b3Empezar') : $('bEmpezar'); if (b && !b.disabled) b.click(); } else hecho = false; }
@@ -3137,13 +3141,13 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   // cabeza con forma: algo más alta que ancha, nuca con volumen, mandíbula que se estrecha y barbilla
   const RCAB = 0.105;
   const jawEn = dy => dy < -0.15 ? Math.pow(Math.min(1, (-dy - 0.15) / 0.85), 1.4) : 0;
-  const ALARGA = 1.15, altoCab = dy => RCAB * 1.1 * (dy < 0 ? ALARGA : 1);   // 21-nov: cara más alargada (solo de los ojos hacia abajo)
+  const ALARGA = 1.09, altoCab = dy => RCAB * 1.1 * (dy < 0 ? ALARGA : 1);   // 21-nov: cara más alargada (solo de los ojos hacia abajo)
   // 21-nov (fotos de Carlos): cabeza más estrecha (~16 cm), mandíbula que aguanta el ancho y se cierra en una barbilla marcada,
   // y algo hundido bajo los pómulos (sin mofletes)
   const anchoX = dy => { const t = dy < -0.15 ? Math.min(1, (-dy - 0.15) / 0.85) : 0, hueco = Math.exp(-Math.pow((dy + 0.3) / 0.14, 2));
     return 0.8 * (1 - 0.1 * t - 0.5 * t * t * t) * (1 - 0.05 * hueco); };
   const formaCab = (dx, dy, dz, k = 1) => { const j = jawEn(dy), sx = anchoX(dy), sz = dz < 0 ? 1.1 : 0.97 - 0.01 * j;   // 19-nov: mandíbula menos metida
-    const barb = dz > 0 && dy < -0.45 ? 0.032 * Math.min(1, (-dy - 0.45) / 0.3) * dz : 0;   // 19-nov: barbilla más hacia fuera
+    const barb = dz > 0 && dy < -0.45 ? 0.013 * Math.min(1, (-dy - 0.45) / 0.3) * dz : 0;   // 21-nov (Carlos: «barbilla muy prominente»): 0,032 → 0,013
     const q = V(dx * RCAB * sx, dy * altoCab(dy), dz * RCAB * sz + barb);
     // 21-nov: bajo la barbilla, línea que sube hacia el cuello algo metida hacia dentro (antes hacía papada)
     if (dy < -0.3 && q.z < 0.07) { const zB = 0.07, zC = -0.07, u = Math.max(0, Math.min(1, (zB - q.z) / (zB - zC))), yB = -altoCab(-1) * 0.93;
@@ -3185,7 +3189,7 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
     for (let i = 0; i < pos.count; i++) { d.fromBufferAttribute(pos, i).normalize(); const q = formaCab(d.x, d.y, d.z); q.z += rostro(d.x, d.y, d.z); pos.setXYZ(i, q.x, q.y, q.z);
       const k = colorRostro(d.x, d.y, d.z), c = k === 3 ? cL : k === 2 ? cB : cP; col.push(c.r, c.g, c.b); }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
-    const mat = piel.clone(); mat.vertexColors = true; if (op.barba) mat.map = texturaBarba(colorRostro); return pieza(geo, mat); })(); cabeza.position.copy(hombro).add(V(0, 0.175, 0.14));
+    const mat = piel.clone(); mat.vertexColors = true; if (op.barba) mat.map = texturaBarba(colorRostro); return pieza(geo, mat); })(); cabeza.position.copy(hombro).add(V(0, 0.15, 0.135));   // 21-nov (Carlos: «el cuello es muy largo»): 2,5 cm más abajo
   hueso(perfil([[0, 0.05], [0.25, 0.049], [0.6, 0.046], [1, 0.045]], pielP), hombro.clone().add(V(0, -0.02, -0.01)), cabeza.position.clone().add(V(0, -0.02, -0.03)));   // 21-nov: cuello de un solo tubo (sin la bola de antes)
   g.add(hacerCasco(K, cabeza.position, op.sencillo));
   { // correas: de delante y de detrás de la oreja, se juntan bajo la oreja y bajan a la barbilla
@@ -4519,8 +4523,16 @@ function bucle3D(t){
   else if (modo === 'dron') { const z = zoomDron(); camObj = P(d - 26 * z, 0); camObj.y = Math.max(camObj.y, aqui.y) + 18 * z; miraObj = P(d + 18 * Math.min(1, z), 0); }
   else if (modo === 'ojos') { camObj = aqui.clone().addScaledVector(f, 0.35); camObj.y += 1.55; miraObj = P(d + 22, 1.2); }
   else { const atras = puntoVia(d - 7); atras.x += v3.offYo.x; atras.z += v3.offYo.z; camObj = new THREE.Vector3(atras.x, Math.max(atras.y, aqui.y) + 2.3, atras.z); miraObj = P(d + 16, 1.1); }
+  { const a = giroCam(); if (a) {   // 21-nov (Carlos): «,» y «.» giran la vista alrededor del ciclista en cualquier cámara
+      const ca = Math.cos(a), sa = Math.sin(a), rot = (v, o) => { const x = v.x - o.x, z = v.z - o.z, atras = -(x * f.x + z * f.z), der = x * dcha.x + z * dcha.z, at2 = atras * ca - der * sa, de2 = atras * sa + der * ca;
+        v.x = o.x - f.x * at2 + dcha.x * de2; v.z = o.z - f.z * at2 + dcha.z * de2; };
+      if (modo === 'ojos') { const L = Math.hypot(miraObj.x - camObj.x, miraObj.z - camObj.z);   // la cabeza gira: mira a los lados
+        miraObj.x = camObj.x + (f.x * ca + dcha.x * sa) * L; miraObj.z = camObj.z + (f.z * ca + dcha.z * sa) * L; }
+      else { const c = aqui.clone(); c.x += v3.offYo.x; c.z += v3.offYo.z; rot(camObj, c);
+        if (v3.hSuelo) camObj.y = Math.max(camObj.y, v3.hSuelo(camObj.x, camObj.z) + 0.8);
+        const k = Math.min(1, Math.abs(sa) + Math.max(0, -ca)); miraObj.lerp(new THREE.Vector3(c.x, aqui.y + 1.0, c.z), k); } } }
   v3.ciclista.visible = modo !== 'ojos';
-  if (v3.modoCam !== modo) { v3.modoCam = modo; v3.camMira = null; }
+  if (v3.modoCam !== modo) { v3.modoCam = modo; v3.camMira = null; giroCamV = 0; }
   if (!v3.camMira) v3.camMira = miraObj.clone();
   if (!v3.camPos) { v3.camPos = camObj.clone(); v3.camMira = miraObj.clone(); }
   v3.camPos.copy(camObj); v3.camMira.copy(miraObj);
