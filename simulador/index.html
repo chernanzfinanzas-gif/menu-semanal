@@ -341,7 +341,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v158 · 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v159 · 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -1048,9 +1048,12 @@ function comentarioPara(clave, texto, prio){
 function sinEmojis(t){ return t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim(); }
 let vozEs = null, vocesEs = null; function hablar(t, quien){ if (!NARR.voz || !window.speechSynthesis || (sesion.demo && (demo.x || 1) > 1)) return;
   try { if (!vocesEs || !vocesEs.length) { const V = speechSynthesis.getVoices(); vocesEs = V.filter(v => /^es(-|_)ES/i.test(v.lang)).concat(V.filter(v => /^es/i.test(v.lang) && !/^es(-|_)ES/i.test(v.lang))); vozEs = vocesEs[0] || null; }
-    const c = quien === 'C', otra = vocesEs.length > 1, u = new SpeechSynthesisUtterance(sinEmojis(t)); u.lang = 'es-ES';
-    const v = c && otra ? vocesEs[1] : vocesEs[0]; if (v) { u.voice = v; u.lang = v.lang; }
-    u.rate = c ? 1.0 : 1.12; u.pitch = c && !otra ? 1.35 : c ? 1.05 : 0.95;
+    const c = quien === 'C', u = new SpeechSynthesisUtterance(sinEmojis(t)); u.lang = 'es-ES';
+    // v159 (Carlos: «Andrés tiene voz de mujer»): se eligen por nombre; si no hay voz de hombre, a Andrés se le baja el tono
+    const HOMBRE = /pablo|jorge|[aá]lvaro|ra[uú]l|diego|enrique|carlos|juan|antonio|jos[eé]|dar[ií]o|gonzalo|male|hombre|masculin/i, MUJER = /helena|laura|elvira|luc[ií]a|m[oó]nica|paulina|sabina|marisol|elena|isabel|ximena|dalia|female|mujer|femenin/i;
+    const vH = vocesEs.find(v => HOMBRE.test(v.name) && !MUJER.test(v.name)), vM = vocesEs.find(v => MUJER.test(v.name)) || vocesEs.find(v => v !== vH);
+    const v = c ? (vM || vocesEs[0]) : (vH || vocesEs.find(x => x !== vM) || vocesEs[0]); if (v) { u.voice = v; u.lang = v.lang; }
+    u.rate = c ? 1.0 : 1.1; u.pitch = c ? 1.08 : (vH ? 0.95 : 0.6);
     if (speechSynthesis.speaking) speechSynthesis.cancel(); speechSynthesis.speak(u); } catch(e) {} }
 // borde inferior de la barra de botones del 3D si está abierta (para no taparla)
 function bajoBarra(){ const B = document.querySelector('#zonaRuta.carretera #panelMapa .barra'); if (!B || document.body.classList.contains('barraOculta')) return 0; const r = B.getBoundingClientRect(); return r.height ? Math.round(r.bottom + 8) : 0; }
@@ -2350,6 +2353,8 @@ function empezarEspectador(){
   if (!ruta.activa) { avisar('Elige antes una ruta.'); return; }
   if (sesion.corriendo) { avisar(sesion.demo ? 'Para antes lo que está en marcha.' : 'Estás en una salida de verdad.'); return; }
   const c = carreraConf(); if (!c.activa || c.tipo === 'grupeta') { c.activa = true; c.tipo = 'carrera'; guardarCarrera(c); }
+  if ($('pantallaRutas') && !$('pantallaRutas').hidden) cerrarPantallaRutas();   /* v159: «sale la cuenta atrás pero no va al mundo 3D» */
+  if (!window.LIGERO && $('vistaRuta').value !== 'carretera') { $('vistaRuta').value = 'carretera'; ponerVista(); }
   sesion.espect = true; espect.sigue = 'carlos'; espect.fin = false; prepararRivales();
   sesion.demo = true; demo.x = 1; demo.manual = false; sesion.segReg = 0; const vivoT = () => { vivo.w = 1; vivo.c = 1; vivo.p = 0; vivo.tW = vivo.tP = Date.now(); }; vivoT(); demo.t = setInterval(vivoT, 500);
   empezar(); pintarEspect(); aviso3d('👀 Modo espectador: corren Carlos y Susana · tú solo miras · no se guarda nada', 4000); }
