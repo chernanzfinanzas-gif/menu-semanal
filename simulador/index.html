@@ -15,7 +15,7 @@ if (window.THREE) { (()=>{var be=Object.create;var pe=Object.defineProperty;var 
    Mapa 2D, perfil, datos, rivales y tramos funcionan igual; el 3D enseña un vídeo de demostración.
    Para probar: ?ligero=1 fuerza el modo ligero y ?3d=1 lo quita. */
 window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(location.search) && !matchMedia('(any-pointer: fine)').matches);
-if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','bici'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
+if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','bici','ambientes'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
 <script src="recursos/dispositivos.js"></script>
@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v139 · ☁️ cielo nuevo: cúmulos con volumen, cirros, sol con halo y atardecer anaranjado</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v140 · ❄️ nieve en la sierra según el mes · 🌾 trigo y granjas en el campo · 🌳 sauces y abedules en los ríos · 💧 ríos sin cortes · 🪨 hitos kilométricos de piedra</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -3749,18 +3749,37 @@ async function construir3D(){
         for (const lat of [-4, -2, 0, 2, 4]) { const x = x0 - tz * lat, z = z0 + tx * lat, ci = Math.floor((x - p0.x) / PASO), cj = Math.floor((z - p0.z) / PASO);
           for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const ii = ci + di, jj = cj + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= nz) continue; const k = jj * nx + ii;
             if (alt[k] > y0) { alt[k] = y0; pos[k * 3 + 1] = y0; } } } } }
+    // v139 (Carlos: «el río se ve cortado»): la cinta de agua iba posada sobre una rejilla de 20 m y entre vértice y vértice la ladera la tapaba.
+    // Como con la carretera, excavamos el cauce: a lo largo de cada río bajamos las esquinas de las celdas que pisa por debajo del nivel del agua.
+    if (TEMA.real && window.RECURSOS_SIM && RECURSOS_SIM.rios) { const x1 = p0.x + (nx - 1) * PASO, z1 = p0.z + (nz - 1) * PASO, AN = { r: 4.5, s: 1.4, c: 2.5 };
+      const alt0 = alt.slice();   // se mide siempre sobre el terreno original (si no, cada paso excava sobre lo ya excavado y salen cañones)
+      const hG = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
+        return (alt0[k] * (1 - a) + alt0[k + 1] * a) * (1 - b) + (alt0[k + nx] * (1 - a) + alt0[k + nx + 1] * a) * b; };
+      for (const [tipo, , pl] of RECURSOS_SIM.rios) { const W = AN[tipo] || 1.4; const pts = []; for (let k = 0; k < pl.length; k += 2) pts.push(aXZ(pl[k], pl[k + 1]));
+        if (!pts.some(q => q.x > p0.x && q.z > p0.z && q.x < x1 && q.z < z1)) continue;
+        for (let k = 0; k < pts.length - 1; k++) { const a = pts[k], b2 = pts[k + 1], L = Math.hypot(b2.x - a.x, b2.z - a.z) || 1, n = Math.max(1, Math.ceil(L / 3)), tx = (b2.x - a.x) / L, tz = (b2.z - a.z) / L;
+          for (let q = 0; q <= n; q++) { const x0 = a.x + (b2.x - a.x) * q / n, z0 = a.z + (b2.z - a.z) * q / n; if (x0 < p0.x || z0 < p0.z || x0 > x1 || z0 > z1) continue;
+            if (cercana(x0, z0).d < W + 6) continue;   // bajo la carretera manda el puente
+            const yW = Math.min(hG(x0, z0), hG(x0 - tz * W, z0 + tx * W), hG(x0 + tz * W, z0 - tx * W)) - 0.6;
+            for (const lat of [-W, 0, W]) { const x = x0 - tz * lat, z = z0 + tx * lat, ci = Math.floor((x - p0.x) / PASO), cj = Math.floor((z - p0.z) / PASO);
+              for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const ii = ci + di, jj = cj + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= nz) continue; const kk = jj * nx + ii;
+                const yk = Math.max(yW, alt0[kk] - 2.5); if (alt[kk] > yk) { alt[kk] = yk; pos[kk * 3 + 1] = yk; } } } } } } }
     const idx = []; for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, b, c, d); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
     const nor = geo.getAttribute('normal');
     const tmp = new THREE.Color(); let hMin = Infinity, hMax = -Infinity; for (const h of alt) { if (h < hMin) hMin = h; if (h > hMax) hMax = h; }
     const relAlt = h => (h - hMin) / Math.max(1, hMax - hMin), SECO = new THREE.Color(0xa59b62);
+    const COTA_NIEVE = [1600, 1600, 1650, 1800, 2000, 2500, 2500, 2500, 2500, 2200, 1800, 1600][new Date().getMonth()];   // v139: nieve por manchas según el mes (en verano, sin nieve)
+    v3.cotaNieve = COTA_NIEVE;
     for (let k = 0; k < nx * nz; k++) {
       const h = alt[k], ny = nor.getY(k);
       if (TEMA.real) { const x = pos[k * 3], z = pos[k * 3 + 2], amb = ambienteEn(x, z) || 'otro', dd = cercana(x, z).d; tmp.setHex(TEMA.montana && amb === 'bosque' ? 0x4f5a34 : (COLOR_AMB[amb] || COLOR_AMB.otro));
         if (dd > 350) { const lejos = TEMA.montana ? colorTerreno('sierra', h, relAlt(h), ny, new THREE.Color()) : new THREE.Color(0x938f7c); tmp.lerp(lejos, Math.min(1, (dd - 350) / 700)); }
         if (TEMA.montana && ny < 0.8) tmp.lerp(new THREE.Color(0x8b8577), Math.min(1, (0.8 - ny) * 3));
         if (TEMA.montana && h > 1620) { const t = Math.min(1, (h - 1620) / 180), gr = Math.sin(x * 0.045 + Math.cos(z * 0.03) * 2) * Math.cos(z * 0.05 + Math.sin(x * 0.02));
-          tmp.lerp(new THREE.Color(0x9a9455), t * 0.7); if (gr > 0.45) tmp.lerp(new THREE.Color(0x9b978d), Math.min(1, (gr - 0.45) * 3) * t); } }
+          tmp.lerp(new THREE.Color(0x9a9455), t * 0.7); if (gr > 0.45) tmp.lerp(new THREE.Color(0x9b978d), Math.min(1, (gr - 0.45) * 3) * t); }
+        if (TEMA.montana && h > COTA_NIEVE - 60) { const t = Math.min(1, (h - COTA_NIEVE + 60) / 220), mn = Math.sin(x * 0.031 + Math.cos(z * 0.021) * 2.2) * Math.cos(z * 0.027 + Math.sin(x * 0.017) * 1.8);
+          const umbral = 0.55 - t * 1.1; if (mn > umbral && ny > 0.62) tmp.lerp(new THREE.Color(0xeef2f6), Math.min(1, (mn - umbral) * 2.5) * Math.min(1, t * 1.4)); } }
       else colorTerreno(NOMBRE, h, relAlt(h), ny, tmp);
       { const x = pos[k * 3], z = pos[k * 3 + 2];
         const mancha = Math.sin(x * 0.013 + Math.sin(z * 0.007) * 2) * Math.cos(z * 0.011 + Math.sin(x * 0.006) * 2), fino = Math.sin(x * 0.07 + z * 0.05) * Math.sin(z * 0.09 - x * 0.03);
@@ -3915,6 +3934,52 @@ async function construir3D(){
       log('3D: montaña con ' + rocas.length + ' rocas, ' + matas.length + ' matas y hierba con viento.');
     } catch(e) { log('3D: montaña: ' + e.message); }
     construirExtras(esc, NOMBRE, TEMA, { via, cercana, alt, nx, nz, p0, PASO, nor, aXZ });
+    // v139 · piezas por ambiente (recursos/ambientes.js): nieve en alta montaña, campo con trigo y granjas, sauces y abedules en las orillas
+    if (window.RECURSOS_SIM && RECURSOS_SIM.ambientes && typeof GLTFLoaderSim !== 'undefined') { try { est('Nieve, campos y riberas…');
+      const RA = RECURSOS_SIM.ambientes, nQ = $('calidad3d') ? $('calidad3d').value : 'media', F = nQ === 'alta' ? 1.3 : nQ === 'baja' ? 0.4 : 1, cache = {}, colocadas = {};
+      const pieza = async k => { if (k in cache) return cache[k]; const d = RA[k]; if (!d) return cache[k] = null;
+        const gl = await new Promise((ok, mal) => new GLTFLoaderSim().parse(b64aBuffer(d.glb), '', ok, mal)); gl.scene.updateMatrixWorld(true);
+        const caja = new THREE.Box3().setFromObject(gl.scene), e = d.medida / Math.max(0.01, caja.max.y - caja.min.y), partes = [];
+        gl.scene.traverse(o => { if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); g.translate(0, -caja.min.y, 0); g.scale(e, e, e); partes.push({ g, m: o.material }); } });
+        return cache[k] = partes; };
+      const poner = (k, x, y, z, esc0, giro) => { (colocadas[k] = colocadas[k] || []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), giro == null ? Math.random() * 6.283 : giro), new THREE.Vector3(esc0, esc0, esc0))); };
+      const azar = a => a[Math.floor(Math.random() * a.length)];
+      const cerca = (rMin, rMax) => { const v = via[Math.floor(Math.random() * via.length)], a = Math.random() * Math.PI * 2, r = rMin + Math.pow(Math.random(), 1.4) * (rMax - rMin); return { x: v.x + Math.cos(a) * r, z: v.z + Math.sin(a) * r }; };
+      const libre = (x, z, m) => cercana(x, z).d > m;
+      const largo = Math.max(1, ruta.total / 25000);
+      // nieve: pinos, rocas y matas nevadas por encima de la cota (según el mes)
+      const COTA = v3.cotaNieve || 2500;
+      if (TEMA.montana && COTA < 2400) { let n = 0;
+        for (let t = 0; t < 16000 * F && n < 1100 * F * largo; t++) { const p = cerca(10, 420); if (!libre(p.x, p.z, 7)) continue; const h = hAqui(p.x, p.z); if (h < COTA) continue;
+          const r = Math.random(), sobre = (h - COTA) / 300;
+          if (r < 0.4 && h < 2150) poner(azar(['pino_nieve_1', 'pino_nieve_3', 'pino_nieve_5']), p.x, h - 0.3, p.z, 0.75 + Math.random() * 0.5);
+          else if (r < 0.75) poner(azar(['roca_nieve_2', 'roca_nieve_4', 'roca_nieve_6']), p.x, h - 0.4, p.z, 0.6 + Math.random() * 1.4 + Math.min(1, sobre));
+          else if (r < 0.82) poner('seco_nieve', p.x, h - 0.2, p.z, 0.7 + Math.random() * 0.5);
+          else poner('mata_nieve', p.x, h - 0.1, p.z, 0.7 + Math.random() * 0.7);
+          n++; } }
+      // campo: manchas de trigo y alguna granja (silo, molino o pozo) lejos de la carretera
+      if (TEMA.real) { const nManchas = Math.round(Math.min(70, 14 * largo) * F), nGranjas = Math.round(Math.min(14, 3 * largo));
+        let hechas = 0, granjas = 0;
+        for (let t = 0; t < 3000 && (hechas < nManchas || granjas < nGranjas); t++) { const p = cerca(hechas < nManchas ? 20 : 60, hechas < nManchas ? 110 : 170); if (!libre(p.x, p.z, 24)) continue; const h = hAqui(p.x, p.z); if (h > 1350) continue;
+          if (ambienteEn(p.x, p.z) !== 'campo') continue;
+          if (hechas < nManchas) { hechas++; const R = 10 + Math.random() * 14, nn = Math.round((140 + Math.random() * 120) * F);
+            for (let q = 0; q < nn; q++) { const a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * R, x = p.x + Math.cos(a) * rr, z = p.z + Math.sin(a) * rr; if (!libre(x, z, 12)) continue; poner('trigo', x, hAqui(x, z) - 0.05, z, 0.8 + Math.random() * 0.4); } }
+          else if (granjas < nGranjas && cercana(p.x, p.z).d > 60) { granjas++; const c = cercana(p.x, p.z), v = via[c.i], giro = Math.atan2(v.x - p.x, v.z - p.z);
+            poner(azar(['granero', 'granero_peq']), p.x, hAqui(p.x, p.z) - 0.3, p.z, 1, giro);
+            const o = azar([['silo', 9, 4], ['molino', -12, 6], ['pozo', 7, -8]]), x2 = p.x + Math.cos(giro) * o[1] + Math.sin(giro) * o[2], z2 = p.z - Math.sin(giro) * o[1] + Math.cos(giro) * o[2];
+            poner(o[0], x2, hAqui(x2, z2) - 0.3, z2, 1); } } }
+      // ribera: sauces y abedules a lo largo de los ríos (no en alta montaña ni pegados a la carretera)
+      if (TEMA.real && RECURSOS_SIM.rios) { const x1 = p0.x + (nx - 1) * PASO, z1 = p0.z + (nz - 1) * PASO, AN = { r: 4.5, s: 1.4, c: 2.5 }; let n = 0;
+        for (const [tipo, , pl] of RECURSOS_SIM.rios) { const W = AN[tipo] || 1.4; for (let k = 0; k < pl.length - 2 && n < 900 * F; k += 2) { const a = aXZ(pl[k], pl[k + 1]), b2 = aXZ(pl[k + 2], pl[k + 3]);
+            if (a.x < p0.x || a.z < p0.z || a.x > x1 || a.z > z1) continue; if (cercana(a.x, a.z).d > 450) continue;
+            const L = Math.hypot(b2.x - a.x, b2.z - a.z) || 1, tx = (b2.x - a.x) / L, tz = (b2.z - a.z) / L, cada = tipo === 'r' ? 14 : 24;
+            for (let d = 0; d < L; d += cada) { if (Math.random() > 0.75) continue; const lado = Math.random() < 0.5 ? -1 : 1, off = W + 3 + Math.random() * (tipo === 'r' ? 10 : 6), x = a.x + tx * d - tz * off * lado, z = a.z + tz * d + tx * off * lado;
+              if (!libre(x, z, 9)) continue; const h = hAqui(x, z); if (h > 1500) continue;
+              poner(Math.random() < 0.6 ? azar(['sauce_1', 'sauce_3', 'sauce_5']) : azar(['abedul_1', 'abedul_3']), x, h - 0.3, z, 0.8 + Math.random() * 0.45); n++; } } } }
+      let total = 0; for (const k in colocadas) { const P = await pieza(k); if (!P) continue; for (const { g, m } of P) instanciarPorZonas(esc, g, m, colocadas[k], Q.sombra && !k.startsWith('trigo')); total += colocadas[k].length; }
+      log('3D: piezas por ambiente: ' + total + ' (' + Object.keys(colocadas).map(k => k + ' ' + colocadas[k].length).join(', ') + ').');
+    } catch(e) { log('3D: piezas por ambiente: ' + e.message); } }
+
     v3.fauna = null; v3.huevo = null;
     if (TEMA.real) { est('Colocando edificios, animales y barandillas…');
       const hT = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
@@ -3965,8 +4030,18 @@ async function construir3D(){
     for (let km = 1000; km < ruta.total - 200; km += 1000) {
       const i = Math.round(km / 10), v = via[i], a = via[Math.max(0, i - 2)], b = via[Math.min(via.length - 1, i + 2)], L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
       const ox = -(b.z - a.z) / L * 5, oz = (b.x - a.x) / L * 5;
-      const poste = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.4, 0.25), blanco); poste.position.set(v.x + ox, v.y + 0.7, v.z + oz); esc.add(poste);
-      const c = cartel('km ' + km / 1000, '#da3633', 1.2); c.position.set(v.x + ox, v.y + 2.2, v.z + oz); esc.add(c);
+      // v139 (Carlos: «más pequeños y como los miliares de las carreteras antiguas»): hito de piedra blanco con cabeza verde, placa y número
+      const kmN = km / 1000, cara = textura(256, 280, (g, w, h) => { g.fillStyle = '#eeebe3'; g.fillRect(0, 0, w, h);
+          for (let n = 0; n < 500; n++) { g.fillStyle = 'rgba(90,80,60,' + (Math.random() * 0.08) + ')'; g.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 3, 2 + Math.random() * 3); }
+          const sucio = g.createLinearGradient(0, h * 0.7, 0, h); sucio.addColorStop(0, 'rgba(80,70,50,0)'); sucio.addColorStop(1, 'rgba(80,70,50,0.35)'); g.fillStyle = sucio; g.fillRect(0, 0, w, h);
+          g.fillStyle = '#2e8b4a'; g.fillRect(14, 14, w - 28, 74); g.strokeStyle = '#f4f4ee'; g.lineWidth = 5; g.strokeRect(20, 20, w - 40, 62);
+          g.fillStyle = '#f4f4ee'; g.font = 'bold 50px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('KhB', w / 2, 53);
+          g.fillStyle = '#151515'; g.font = 'bold ' + (kmN >= 100 ? 96 : 120) + 'px Arial'; g.fillText(String(kmN), w / 2, 180); });
+      const lado = new THREE.MeshLambertMaterial({ color: 0xebe7de }), verde = new THREE.MeshLambertMaterial({ color: 0x2e8b4a });
+      const hito = new THREE.Group(), cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), [lado, lado, lado, lado, new THREE.MeshLambertMaterial({ map: cara }), lado]); cuerpo.position.y = 0.31; hito.add(cuerpo);
+      const cabeza = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.3, 18, 1, false, 0, Math.PI), verde); cabeza.rotation.z = Math.PI / 2; cabeza.rotation.y = Math.PI / 2; cabeza.position.y = 0.62; hito.add(cabeza);
+      hito.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      const tx0 = (b.x - a.x) / L, tz0 = (b.z - a.z) / L; hito.position.set(v.x + ox * 0.86, v.y + 0.02, v.z + oz * 0.86); hito.rotation.y = Math.atan2(-tx0, -tz0) + 0.35; esc.add(hito);
     }
     { const iM = Math.min(via.length - 1, Math.round(dMeta() / 10)), v = via[iM], a = via[Math.max(0, iM - 4)], L = Math.hypot(v.x - a.x, v.z - a.z) || 1, ox = -(v.z - a.z) / L * 5, oz = (v.x - a.x) / L * 5;
       for (const sgn of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 0.4), rojo); p.position.set(v.x + ox * sgn, v.y + 3, v.z + oz * sgn); esc.add(p); }
