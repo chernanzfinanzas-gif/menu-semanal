@@ -1092,7 +1092,7 @@ window.DATOS_RECETAS = [
       "Los cherry partidos por la mitad, el hilo de aceite y la albahaca en hoja entera."
     ],
     trucos:["79 kcal, 0,36 g de sal y 4,3 g de proteína, SOLO LO DE ENCIMA. El pan va aparte.", "LA MISMA SAL QUE CON MOZZARELLA Y 47 KCAL MENOS: por eso es la de diario y la de búfala, la de capricho.", "LA SAL SE REPARTE entre el queso y el pesto del tarro, a partes casi iguales: 0,18 cada uno."],
-    nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Fría, cuatro minutos. Es la versión de la de mozzarella para cuando no hay bufala, o cuando la bufala hace falta en otro plato." },,
+    nota:"Una tosta: media pieza de pan y lo de encima. El pan no entra en la ficha, es el de la comida. Fría, cuatro minutos. Es la versión de la de mozzarella para cuando no hay bufala, o cuando la bufala hace falta en otro plato." },
   { id:"pesto_casero", n:"Pesto casero de albahaca y piñones", rev:4, tipo:["salsa"], grupo:"casero", raciones:12, min:14, tools:["sarten"],
     ing:[{i:"albahaca",c:20},{i:"pinones",c:15},{i:"ajo",c:0.5},{i:"aove",c:21},{i:"limon_exprimido",c:5},{i:"parmesano_rallado",c:10},{i:"pimienta",c:0.3}],
     pasos:[
