@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v144 · 🏠 casas con sus ventanas y colores (fuera la caja de colisiones) y apoyadas en zócalo de piedra en las cuestas · 🎡 la noria gira · 🚶 gente paseando y 🏃 corredores que se mueven</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v145 · 🚴 muñeco nuevo de Carlos y Susana (casco de verdad, cara, postura, manos en la maneta, barba, bici verde) · ⚡ bots con dos niveles de detalle: el pelotón pesa menos de la mitad</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -537,7 +537,7 @@ const $ = id => document.getElementById(id);
 // ===================== quién entrena =====================
 // Cada uno con su FTP, su dificultad, sus marchas y su muñeco. Los datos de Carlos conservan las claves de siempre.
 const USUARIOS = {
-  carlos: { nombre: 'Carlos', ftp: 182, op: { firma: 'KhB', dorsal: '22' } },
+  carlos: { nombre: 'Carlos', ftp: 182, colores: { biciCanyon: 0x2f6b47 }, op: { firma: 'KhB', dorsal: '22', barba: true } },
   susana: { nombre: 'Susana', ftp: 100,
             colores: { maillot: 0xc8a2e8, franja: 0xd4af37, casco: 0xf4f0fa, detalle: 0xd4af37 },
             op: { pelo: 0x5a3a24, coleta: true, gafas: ['#fff1a8', '#e8b93a', '#b07ad8', '#3d1f5c'] } }
@@ -1358,8 +1358,9 @@ function fusionarPorMaterial(g){ g.updateMatrixWorld(true); const grupos = new M
     if (!geo.attributes.normal) geo.computeVertexNormals(); if (!grupos.has(o.material)) grupos.set(o.material, []); grupos.get(o.material).push(geo); });
   const out = new THREE.Group();
   for (const [mat, L] of grupos) { const n = L.reduce((s, x) => s + x.attributes.position.count, 0), P = new Float32Array(n * 3), N = new Float32Array(n * 3); let i = 0;
-    for (const x of L) { P.set(x.attributes.position.array, i * 3); N.set(x.attributes.normal.array, i * 3); i += x.attributes.position.count; x.dispose(); }
-    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+    const conUV = (mat.alphaMap || mat.map || mat.bumpMap) && L.every(x => x.attributes.uv), UV = conUV ? new Float32Array(n * 2) : null;   // 21-nov: el casco necesita sus uv (agujeros)
+    for (const x of L) { P.set(x.attributes.position.array, i * 3); N.set(x.attributes.normal.array, i * 3); if (UV) UV.set(x.attributes.uv.array, i * 2); i += x.attributes.position.count; x.dispose(); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(N, 3)); if (UV) geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2));
     const m = new THREE.Mesh(geo, mat); m.castShadow = false; m.receiveShadow = false; out.add(m); }
   return out; }
 // rival ligero: lo que no se mueve (cuadro, cuerpo, brazos, cabeza) fundido en una pieza por material; piernas, bielas y ruedas sueltas para que pedalee
@@ -1380,6 +1381,25 @@ function cartelNombreNuevo(txt, color, estado){ const c = document.createElement
   if (estado) { x.fillStyle = estado; x.beginPath(); x.arc(232, 32, 10, 0, Math.PI * 2); x.fill(); }
   x.fillStyle = '#fff'; x.font = 'bold 28px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 134, 33);
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true })); s.scale.set(2.4, 0.6, 1); s.position.y = 2.45; s.material.sizeAttenuation = true; s.renderOrder = 10; return s; }
+// v145 · dos niveles de detalle para los bots (Carlos: «elige los cambios para un perfecto equilibrio visual/rendimiento»).
+// Con el muñeco nuevo cada bot son ~14.000 triángulos en 46 piezas; con 60 bots, ~2.800 piezas por fotograma (lo que más cuesta).
+// Cerca (40 m en calidad media, 60 en alta, 25 en baja) va el bot completo y pedaleando; más lejos, una silueta de UNA sola pieza (~3.000 triángulos)
+// con los mismos colores, que a esa distancia no se distingue. Así el pelotón entero pasa a unas 500 piezas.
+function siluetaRival(K){
+  const g = conPocoDetalle(() => conPocoDetalle(() => hacerCiclista(K, { sencillo: true }))); g.updateMatrixWorld(true);
+  const P = [], N = [], C = [];
+  g.traverse(o => { if (!o.isMesh || !o.visible) return; const m = [].concat(o.material)[0]; if (!m || m.transparent) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); const esc = new THREE.Vector3().setFromMatrixScale(o.matrixWorld); if (o.geometry.boundingSphere.radius * Math.max(esc.x, esc.y, esc.z) < 0.045) return;   // a 40 m no se ve: dedos, labios, rueda del casco, cremallera…
+    const geo = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()); geo.applyMatrix4(o.matrixWorld); if (!geo.attributes.normal) geo.computeVertexNormals();
+    const c = m.color || new THREE.Color(0x888888), n = geo.attributes.position.count; P.push(...geo.attributes.position.array); N.push(...geo.attributes.normal.array); for (let i = 0; i < n; i++) C.push(c.r, c.g, c.b); geo.dispose(); });
+  // simplificación por celdillas de 3 cm: se juntan los vértices de cada celdilla y se tiran los triángulos que quedan aplastados
+  const Q = 0.03, P2 = [], N2 = [], C2 = [], qz = v => Math.round(v / Q) * Q, vis = new Set();
+  for (let t = 0; t < P.length; t += 9) { const a = [qz(P[t]), qz(P[t + 1]), qz(P[t + 2])], b = [qz(P[t + 3]), qz(P[t + 4]), qz(P[t + 5])], c = [qz(P[t + 6]), qz(P[t + 7]), qz(P[t + 8])];
+    const ka = a.join(), kb = b.join(), kc = c.join(); if (ka === kb || kb === kc || ka === kc) continue; const kt = [ka, kb, kc].sort().join('|'); if (vis.has(kt)) continue; vis.add(kt);
+    P2.push(...a, ...b, ...c); for (let k = 0; k < 9; k++) { N2.push(N[t + k]); C2.push(C[t + k]); } }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P2, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C2, 3)); geo.computeVertexNormals();
+  const me = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); me.castShadow = true; me.name = 'silueta'; return me; }
+const UMBRAL_DETALLE = () => ({ alta: 60, media: 40, baja: 25 })[$('calidad3d') ? $('calidad3d').value : 'media'] || 40;
 function moverRivales3D(dt, dYo){
   // carteles (20-nov: «aquí molestan los nombres»): sin cartel a menos de 40 m; de cada grupo, solo el que va en cabeza
   const conCartel = new Set(); { let ultimo = null; for (const b of rivales.lista.filter(r => r.tipo === 'bot' && r.dVis != null).sort((a, b) => b.dVis - a.dVis)) {
@@ -1389,10 +1409,12 @@ function moverRivales3D(dt, dYo){
       const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: 0xffffff, casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
       r.g = r.tipo === 'bot' ? ciclistaLigero(K) : hacerCiclista(K, { sencillo: true });
       if (r.tipo === 'fantasma') r.g.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.42; o.material.depthWrite = false; o.castShadow = false; } });
+      if (r.tipo === 'bot') { r.detalle = r.g.children.slice(); r.sil = siluetaRival(K); r.sil.visible = false; r.g.add(r.sil); r.lejosNivel = false; }
       r.cartel = cartelNombre(r.nombre, r.color); r.g.add(r.cartel); v3.escena.add(r.g); r.esc = v3.escena; r.dVis = r.d; }
     r.dVis += (r.d - r.dVis) * Math.min(1, dt * 2.5);
     const lejos = Math.abs(r.dVis - dYo); r.g.visible = lejos < 700 && r.dVis > 2; if (!r.g.visible) return;
-    const cerca = lejos < 150;   // a más de 150 m no se ve pedalear: no se mueven piernas ni ruedas
+    if (r.sil) { const ln = lejos > UMBRAL_DETALLE(); if (ln !== r.lejosNivel) { r.lejosNivel = ln; r.sil.visible = ln; for (const c of r.detalle) c.visible = !ln; } }
+    const cerca = lejos < 150 && !r.lejosNivel;   // a más de 150 m (o con la silueta) no se ve pedalear: no se mueven piernas ni ruedas
     if (r.cartel) r.cartel.visible = lejos > 10 && (r.tipo !== 'bot' || (lejos < 250 && conCartel.has(r)));   // en el pelotón, sin carteles encima de la cámara
     const lat = r.tipo === 'bot' ? (v3.latBase ?? 0) + (r.lat ?? ((k % 3) - 1) * CARRIL) * (v3.kFilas ?? 1) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
     colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), lat, 1, 0.18);
@@ -2861,6 +2883,65 @@ function cartel(texto, fondo, tam){
   const t = textura(512, 128, (g, w, h) => { g.fillStyle = fondo; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = 'bold 64px system-ui, Segoe UI, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(texto, w / 2, h / 2 + 4); });
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: true })); s.scale.set(tam * 4, tam, 1); return s;
 }
+// Casco de carretera (21-nov): concha con forma de casco real —borde que sube en la frente, baja por las sienes y cae en la nuca,
+// cola alargada atrás, techo algo aplanado—, agujeros de ventilación de verdad con el relleno negro asomando, canto con grosor y rueda de ajuste.
+function hacerCasco(K, C, sencillo){
+  const g = new THREE.Group(); g.position.copy(C);
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const SX = 0.085, SY = 0.1155, SZF = 0.102, SZB = 0.1155;               // la cabeza (sin mandíbula)
+  const tabla = (T, x) => { for (let i = 1; i < T.length; i++) if (x <= T[i][0]) { const [x0, y0] = T[i - 1], [x1, y1] = T[i], t = (x - x0) / (x1 - x0), s = (1 - Math.cos(Math.PI * t)) / 2; return y0 + (y1 - y0) * s; } return T[T.length - 1][1]; };
+  // altura del borde (sobre el centro de la cabeza) según el ángulo: 0 delante, π detrás
+  const BORDE = [[0, 0.052], [0.55, 0.048], [0.95, 0.026], [1.3, 0.016], [1.6, 0.03], [2.05, 0.008], [2.6, -0.03], [Math.PI, -0.042]];
+  const sup = (a, v, extra = 0) => {
+    const yr = tabla(BORDE, Math.abs(a)), e0 = Math.asin(Math.max(-0.9, Math.min(0.9, yr / SY))), e = e0 + (Math.PI / 2 - e0) * Math.pow(v, 0.9);
+    const ce = Math.cos(e), dx = Math.sin(a) * ce, dz = Math.cos(a) * ce, dy = Math.sin(e), sz = dz > 0 ? SZF : SZB;
+    const p = V(dx * SX, dy * SY, dz * sz), n = V(p.x / (SX * SX), p.y / (SY * SY), p.z / (sz * sz)).normalize();
+    const atras = Math.max(0, -dz), cola = 0.042 * Math.pow(atras, 3) * Math.exp(-Math.pow((e - 0.3) / 0.38, 2));   // cola hacia atrás
+    const lados = 0.004 * Math.pow(Math.abs(dx), 2);                                                                  // algo más ancho en las sienes
+    p.addScaledVector(n, 0.023 + cola + lados + extra);
+    if (p.y > 0.085) p.y = 0.085 + (p.y - 0.085) * 0.86;                                                              // techo aplanado
+    return p; };
+  const NA = sencillo ? 28 : 120, NV = sencillo ? 7 : 44;
+  const malla = (v0, v1, extra, mat, uvs) => { const pos = [], uv = [], idx = [], nv = Math.max(2, Math.round(NV * (v1 - v0)));
+    for (let j = 0; j <= nv; j++) for (let i = 0; i <= NA; i++) { const a = -Math.PI + 2 * Math.PI * i / NA, p = sup(a, v0 + (v1 - v0) * j / nv, extra); pos.push(p.x, p.y, p.z);
+      uv.push(0.5 + p.x / 0.3, 0.5 + (p.z + 0.02) / 0.34); }
+    for (let j = 1; j <= nv; j++) for (let i = 1; i <= NA; i++) { const A = (j - 1) * (NA + 1) + i - 1, B = A + NA + 1; idx.push(A, A + 1, B, A + 1, B + 1, B); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, mat); m.castShadow = true; g.add(m); return m; };
+  // agujeros: dibujados en planta (u = lado, v = de atrás a delante); blanco = concha, negro = agujero
+  const lienzo = (desenfoque) => { const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 512, 512); if (desenfoque) x.filter = 'blur(' + desenfoque + 'px)';
+    const P = (px, pz) => [256 + px / 0.3 * 512, 512 - (0.5 + (pz + 0.02) / 0.34) * 512];   // del casco (m) al lienzo
+    const ranura = (pts, ancho) => { x.beginPath(); pts.forEach(([px, pz], k) => { const [X, Y] = P(px, pz); k ? x.lineTo(X, Y) : x.moveTo(X, Y); });
+      x.lineWidth = ancho / 0.3 * 512; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#000'; x.stroke(); };
+    for (const s of [-1, 1]) {
+      ranura([[0.021 * s, 0.098], [0.024 * s, 0.05]], 0.016);                     // tomas delanteras, grandes
+      ranura([[0.058 * s, 0.088], [0.066 * s, 0.045]], 0.014);
+      ranura([[0.085 * s, 0.066], [0.093 * s, 0.03]], 0.01);
+      ranura([[0.03 * s, 0.022], [0.034 * s, -0.035]], 0.013);                    // canales del centro
+      ranura([[0.07 * s, 0.012], [0.078 * s, -0.03]], 0.011);
+      ranura([[0.026 * s, -0.062], [0.034 * s, -0.105]], 0.012);                  // salidas de atrás, abiertas hacia fuera
+      ranura([[0.06 * s, -0.052], [0.076 * s, -0.09]], 0.011); }
+    ranura([[0, 0.012], [0, -0.04]], 0.009);
+    const t = new THREE.CanvasTexture(c); t.anisotropy = 8; return t; };
+  const conchaM = new THREE.MeshStandardMaterial({ color: K.casco, roughness: 0.28, metalness: 0.05, alphaMap: lienzo(0), alphaTest: 0.5, bumpMap: lienzo(5), bumpScale: 4, side: THREE.DoubleSide });
+  const foam = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.92, side: THREE.DoubleSide });
+  malla(0, 1, 0, conchaM);                                                                   // concha
+  malla(0, 1, -0.016, foam);                                                                 // relleno negro (se ve por los agujeros)
+  // canto: une la concha y el relleno por abajo
+  { const pos = [], idx = [];
+    for (let i = 0; i <= NA; i++) { const a = -Math.PI + 2 * Math.PI * i / NA, p = sup(a, 0, 0), q = sup(a, 0, -0.016); pos.push(p.x, p.y, p.z, q.x, q.y, q.z); if (i) { const A = (i - 1) * 2; idx.push(A, A + 1, A + 2, A + 1, A + 3, A + 2); } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); g.add(new THREE.Mesh(geo, foam)); }
+  // franja fina del color del equipo, justo encima del canto
+  malla(0.03, 0.075, 0.0025, new THREE.MeshStandardMaterial({ color: K.franja, roughness: 0.35, alphaMap: lienzo(0), alphaTest: 0.5 }));
+  // rueda de ajuste en la nuca, con su soporte
+  { const neg = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.5 }), rueda = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.012, 24), neg);
+    rueda.rotation.x = Math.PI / 2 + 0.35; rueda.position.set(0, -0.07, -0.13); g.add(rueda);
+    const cant = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.0025, 6, 24), new THREE.MeshStandardMaterial({ color: K.franja, roughness: 0.4 })); cant.rotation.copy(rueda.rotation); cant.position.copy(rueda.position).add(V(0, -0.002, -0.006)); g.add(cant);
+    for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.008, 0.006), neg); b.position.set(0.038 * s, -0.062, -0.12); b.rotation.set(0.35, 0.55 * s, -0.22 * s); g.add(b); } }
+  return g;
+}
+
 function hueso(m, a, b){ const d = new THREE.Vector3().subVectors(b, a), L = d.length() || 0.001; m.position.copy(a).addScaledVector(d, 0.5); m.scale.set(1, L, 1); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.multiplyScalar(1 / L)); }
 // Colores del ciclista propio: cámbialos aquí si quieres otro equipaje
 const COLORES_CICLISTA = { maillot: 0x1f6feb, franja: 0xf0883e, culotte: 0x15181c, piel: 0xe0b48a, casco: 0xf2f2f2, cuadro: 0xf2f2f2, detalle: 0xda3633, zapatilla: 0x16181b };
@@ -2881,6 +2962,13 @@ async function conCanyon(g){
     const der = new THREE.Vector3().crossVectors(up, f).normalize();
     env.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(der, up, f).transpose()); env.scale.setScalar(1.04 / largo);
     m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; if (o.isSkinnedMesh) { o.skeleton.update(); o.boundingBox = null; } } });
+    // 21-nov: color del cuadro por usuario (Carlos: el verde de «Menú» de la app; Susana sigue rosa). El rosa va en los colores de vértice.
+    { const K = coloresUsuario(); if (K.biciCanyon != null) { const obj = new THREE.Color(K.biciCanyon), oL = (obj.r + obj.g + obj.b) / 3;
+      m.traverse(o => { const c = o.isMesh && o.geometry.attributes.color; if (!c) return; const rosa = []; let suma = 0;
+        for (let i = 0; i < c.count; i++) { const r = c.getX(i), gg = c.getY(i), b = c.getZ(i); if (r - gg > 0.12 && r > b) { rosa.push(i); suma += (r + gg + b) / 3; } }
+        if (!rosa.length) return; const media = suma / rosa.length;
+        for (const i of rosa) { const v = (c.getX(i) + c.getY(i) + c.getZ(i)) / 3 / media; c.setXYZ(i, Math.min(1, obj.r * v), Math.min(1, obj.g * v), Math.min(1, obj.b * v)); }
+        c.needsUpdate = true; }); } }
     env.updateMatrixWorld(true); const caja = new THREE.Box3().setFromObject(env); pR = W(bR);
     env.position.set(-pR.x, -caja.min.y, -0.48 - pR.z); env.updateMatrixWorld(true);
     g.add(env);
@@ -2908,10 +2996,30 @@ const PIEL_TEX = (() => { if (!window.THREE) return null; const c = document.cre
   for (let j = 0; j < 128; j++) { const v = j / 127, b = 0.84 + 0.16 * Math.pow(Math.sin(Math.PI * v), 0.6); x.fillStyle = `rgb(${Math.round(255 * b)},${Math.round(250 * b)},${Math.round(246 * b)})`; x.fillRect(0, j, 4, 1); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
 const pielCon = color => new THREE.MeshPhysicalMaterial({ color, map: PIEL_TEX, roughness: 0.6, metalness: 0, sheen: 0.7, sheenColor: new THREE.Color(0xffc9ad), sheenRoughness: 0.45 });
+// 21-nov: barba de tres días (Carlos). Se pinta en la textura de la piel de la cabeza: puntitos oscuros sobre mandíbula,
+// barbilla, bigote y patillas; los labios quedan limpios. Misma luz de volumen que PIEL_TEX.
+function texturaBarba(colorRostro){
+  const W = 1024, H = 512, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), img = x.createImageData(W, H), d = img.data;
+  const suave = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+  let semilla = 7; const azar = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
+  for (let j = 0; j < H; j++) { const th = (j + 0.5) / H * Math.PI, dy = Math.cos(th), st = Math.sin(th), vol = 0.84 + 0.16 * Math.pow(Math.sin(Math.PI * (1 - j / H)), 0.6);
+    for (let i = 0; i < W; i++) { const ph = (i + 0.5) / W * Math.PI * 2, dx = -Math.cos(ph) * st, dz = Math.sin(ph) * st, k = (j * W + i) * 4;
+      // zona de barba: por debajo de una línea que baja desde la patilla (delante de la oreja) hasta el pómulo; por delante de la nuca
+      const ax = Math.abs(dx), limite = -0.02 - 0.3 * suave(0.35, 0.95, dz) + 0.06 * suave(0.6, 0.98, dz);
+      let dens = suave(limite + 0.04, limite - 0.06, dy) * suave(-0.35, -0.05, dz) * (ax > 0.97 && dy > -0.3 ? 0 : 1);
+      // bigote: encima del labio de arriba; la mejilla alta queda limpia
+      const bigote = suave(0.27, 0.2, ax) * suave(-0.25, -0.3, dy) * suave(-0.36, -0.33, dy) * suave(0.5, 0.75, dz);
+      dens = Math.max(dens, bigote); const labio = colorRostro(dx, dy, dz); if (labio === 3 || labio === 2) dens = 0;
+      const punto = azar(), pelo = dens * (punto < 0.55 ? 0.55 + 0.45 * azar() : 0.25 * azar());
+      const r = 255 * vol, g = 250 * vol, b = 246 * vol, o = 1 - 0.5 * pelo;           // oscurece hacia un gris azulado
+      d[k] = r * o * (1 - 0.06 * pelo); d[k + 1] = g * o * (1 - 0.03 * pelo); d[k + 2] = b * o; d[k + 3] = 255; } }
+  x.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+// 21-nov: licra mate con lustre suave de tejido (antes brillaba como plástico)
+const licra = (c, rugoso, lustre) => new THREE.MeshPhysicalMaterial({ color: c, roughness: rugoso, metalness: 0, sheen: lustre, sheenRoughness: 0.55, sheenColor: new THREE.Color(c).lerp(new THREE.Color(0xffffff), 0.45) });
 function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   const g = new THREE.Group(), M = (c, rugoso = 0.6, metal = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: rugoso, metalness: metal }), V = (x, y, z) => new THREE.Vector3(x, y, z);
   // licra con algo de reflejo, casco y cuadro lacados, piel y tela mates
-  const negro = M(0x16191d, 0.45), gris = M(0x9aa4ad, 0.35, 0.6), maillot = M(K.maillot, 0.48), franja = M(K.franja, 0.48), culotte = M(K.culotte, 0.38), piel = pielCon(K.piel), casco = M(K.casco, 0.5), cuadro = M(K.cuadro, 0.3, 0.15), detalle = M(K.detalle, 0.35), blanco = M(0xf4f4f4, 0.7), zapa = M(K.zapatilla, 0.35), guante = M(0x1c1f24, 0.85);
+  const negro = M(0x16191d, 0.45), gris = M(0x9aa4ad, 0.35, 0.6), maillot = licra(K.maillot, 0.66, 0.45), franja = licra(K.franja, 0.6, 0.4), culotte = licra(K.culotte, 0.72, 0.3), piel = pielCon(K.piel), pielP = (() => { const m = pielCon(K.piel); m.map = null; return m; })(), casco = M(K.casco, 0.5), cuadro = M(K.cuadro, 0.3, 0.15), detalle = M(K.detalle, 0.35), blanco = M(0xf4f4f4, 0.7), zapa = M(K.zapatilla, 0.35), guante = M(0x1c1f24, 0.85);
   // pieza torneada a lo largo de un hueso: pts = [[t, radio], …], t de 0 (inicio del hueso) a 1 (final)
   const perfil = (pts, mat, bulto) => { const v = [new THREE.Vector2(0, pts[0][0] - 0.5)].concat(pts.map(([t, r]) => new THREE.Vector2(r, t - 0.5)), [new THREE.Vector2(0, pts[pts.length - 1][0] - 0.5)]);
     const lg = new THREE.LatheGeometry(v, 32);
@@ -2937,10 +3045,10 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   for (const [a, b, r] of [[P.bb, P.sill, 0.024], [P.bb, P.dir, 0.03], [V(0, 0.88, -0.18), P.dir, 0.024]]) hueso(cil(r, cuadro), a, b);
   for (const [a, b] of [[P.bb, P.rTra], [V(0, 0.86, -0.17), P.rTra]]) hueso(cil(0.014, detalle), a, b);
   hueso(cil(0.018, detalle), P.dir, P.rDel);
-  hueso(cil(0.016, negro), P.sill.clone().add(V(0, -0.1, 0.02)), P.sill);
+  hueso(cil(0.016, negro), P.sill.clone().add(V(0, -0.1, 0.02)), P.sill.clone().add(V(0, 0.05, -0.01)));   // 21-nov: tija más alta (el culo apoya encima)
   hueso(cil(0.017, negro), P.dir, P.potencia);
   const bidon = cil(0.034, blanco); hueso(bidon, V(0, 0.42, 0.13), V(0, 0.62, 0.25));
-  const sillin = pieza(new THREE.BoxGeometry(0.1, 0.035, 0.26), negro); sillin.position.copy(P.sill).add(V(0, 0.02, 0.01));
+  const sillin = pieza(new THREE.BoxGeometry(0.1, 0.035, 0.26), negro); sillin.position.copy(P.sill).add(V(0, 0.068, -0.03));
   // manillar de carretera: barra, curvas hacia abajo y manetas
   { const barra = pieza(new THREE.CylinderGeometry(0.013, 0.013, 0.42, 10), negro); barra.rotation.z = Math.PI / 2; barra.position.copy(P.potencia);
     for (const x of [-0.21, 0.21]) {
@@ -2949,78 +3057,143 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
   const plato = pieza(new THREE.CylinderGeometry(0.105, 0.105, 0.012, 24), gris); plato.rotation.z = Math.PI / 2; plato.position.copy(P.bb).add(V(0.06, 0, 0));
   const nBici = g.children.length;   // lo añadido hasta aquí es la bici dibujada
   // cuerpo: postura agachada de carretera
-  const cadera = V(0, 0.99, -0.22), hombro = V(0, 1.29, 0.29);   // 19-nov: tronco algo más corto
+  const cadera = V(0, 1.09, -0.265), hombro = V(0, 1.40, 0.16);   // prueba 21-nov: cadera sobre el sillín, como en la foto   // 19-nov: tronco algo más corto
   // tronco con forma: espalda curva (redondeada arriba, como en la postura real), cintura estrecha y poco profunda, pecho ancho y más hondo
   const ejeT = new THREE.Vector3().subVectors(hombro, cadera).normalize(), qT = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), ejeT);
   const ini = cadera.clone().addScaledVector(ejeT, 0.05), lt = ini.distanceTo(hombro), R_ALTO = 0.158, R_BAJO = 0.118;
   const arribaT = V(0, ejeT.z, -ejeT.y);                                                       // perpendicular a la espalda, hacia arriba y atrás
   const enRecta = (t, sube) => ini.clone().lerp(hombro, t).addScaledVector(arribaT, sube);
   const ESPALDA = new THREE.CatmullRomCurve3([ini.clone(), enRecta(0.3, 0.022), enRecta(0.65, 0.052), enRecta(0.88, 0.038), hombro.clone()]);
-  const radioEn = t => R_BAJO + (R_ALTO - R_BAJO) * Math.pow(Math.max(0, t), 0.7);               // t: 0 en la cintura, 1 en los hombros
-  const PLANO = 0.8, hondo = t => 0.58 + 0.18 * Math.pow(Math.max(0, Math.min(1, t)), 1.3);                   // profundidad relativa (pecho-espalda)
+  // 21-nov: tronco rehecho. Sección plana (no redonda), ancho de hombros y estrecho de cintura; arriba, en vez de una cúpula,
+  // la caída del cuello a los hombros (trapecio). radioEn = media anchura; hondo = fondo de la espalda; frente = fondo del pecho.
+  const suave = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }, T_CAP = 0.17, W_CIN = 0.112, W_PEC = 0.156, W_HOM = 0.17, W_CUE = 0.056;
+  const radioEn = t => t <= 1 ? W_CIN + (W_PEC - W_CIN) * suave(t / 0.7) + (W_HOM - W_PEC) * suave((t - 0.7) / 0.3) + 0.026 * (1 - suave(t / 0.32))
+    : (() => { const s = (t - 1) / T_CAP; return s < 0.82 ? W_HOM - (W_HOM - W_CUE) * suave(s / 0.82) : W_CUE * Math.sqrt(Math.max(0, 1 - Math.pow((s - 0.82) / 0.18, 2))); })();
+  const hondo = t => t <= 1 ? 0.56 + 0.08 * suave(t) + 0.2 * (1 - suave(t / 0.42)) : (() => { const s = (t - 1) / T_CAP; return (0.64 * W_HOM * Math.pow(1 - suave(s / 0.9), 1.3) + 0.042 * suave(s / 0.9)) / Math.max(1e-3, radioEn(t)); })();
+  const frente = t => t <= 1 ? 0.5 + 0.22 * suave(t) : (() => { const s = (t - 1) / T_CAP; return (0.72 * W_HOM * Math.pow(1 - suave(s / 0.9), 0.9) + 0.04 * suave(s / 0.9)) / Math.max(1e-3, radioEn(t)); })();
+  const cuadrado = t => 2.15 + 0.5 * suave(t / 0.8) - 0.4 * suave((t - 1) / T_CAP);   // >2: sección más plana por delante y por detrás
   const dchaT = V(-1, 0, 0);
   const marco = t => { const tt = Math.max(0, Math.min(1, t)), c = ESPALDA.getPointAt(tt), tg = ESPALDA.getTangentAt(tt);
-    if (t < 0) c.addScaledVector(tg, t * lt);
+    if (t < 0) c.addScaledVector(tg, t * lt); if (t > 1) c.addScaledVector(tg, (t - 1) * lt);
     return { c, tg, fuera: new THREE.Vector3().crossVectors(dchaT, tg).normalize() }; };
-  const tubo = (t0, t1, extra, mat) => { const N = Math.max(2, Math.round((t1 - t0) * 24)), S = 28, pos = [], idx = [];
-    for (let i = 0; i <= N; i++) { const t = t0 + (t1 - t0) * i / N, { c, fuera } = marco(t), rx = radioEn(t) + extra, rd = radioEn(t) * hondo(t) + extra;
-      for (let k = 0; k <= S; k++) { const a = k / S * Math.PI * 2; const q = c.clone().addScaledVector(dchaT, Math.cos(a) * rx).addScaledVector(fuera, Math.sin(a) * rd); pos.push(q.x, q.y, q.z);
+  const tubo = (t0, t1, extra, mat) => { const N = Math.max(2, Math.round((t1 - t0) * (op.sencillo ? 14 : 40))), S = op.sencillo ? 16 : 40, pos = [], idx = [];
+    for (let i = 0; i <= N; i++) { const t = t0 + (t1 - t0) * i / N, { c, fuera } = marco(t), w = radioEn(t), rx = w + extra, rB = w * hondo(t) + extra, rF = w * frente(t) + extra, e = 2 / cuadrado(t);
+      for (let k = 0; k <= S; k++) { const a = k / S * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), px = Math.sign(ca) * Math.pow(Math.abs(ca), e), pz = Math.sign(sa) * Math.pow(Math.abs(sa), e);
+        const q = c.clone().addScaledVector(dchaT, px * rx).addScaledVector(fuera, pz * (sa > 0 ? rB : rF)); pos.push(q.x, q.y, q.z);
         if (i && k) { const A = (i - 1) * (S + 1) + k - 1, B = A + S + 1; idx.push(A, A + 1, B, A + 1, B + 1, B); } } }
     const gt = new THREE.BufferGeometry(); gt.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gt.setIndex(idx); gt.computeVertexNormals();
     const m = pieza(gt, mat); m.material.side = THREE.DoubleSide; return m; };
-  const torso = tubo(0, 1, 0, maillot);
-  { const fin = marco(1), hombros = pieza(new THREE.SphereGeometry(R_ALTO, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), maillot);
-    hombros.scale.set(1, 0.75, hondo(1)); hombros.quaternion.setFromUnitVectors(V(0, 1, 0), fin.tg); hombros.position.copy(fin.c); }
+  const torso = tubo(0, 1 + T_CAP, 0, maillot);
+  { // cremallera por el centro del pecho, hasta el cuello
+    const pts = []; for (let k = 0; k <= 24; k++) { const t = 0.42 + (1 + T_CAP * 0.78 - 0.42) * k / 24, { c, fuera } = marco(t); pts.push(c.clone().addScaledVector(fuera, -(radioEn(t) * frente(t) + 0.0025))); }
+    pieza(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.0032, 6, false), M(0x2a2d33, 0.4, 0.3));
+    const tir = pieza(new THREE.BoxGeometry(0.012, 0.004, 0.024), M(0xc9ced4, 0.3, 0.8)); tir.position.copy(pts[24]); tir.quaternion.setFromUnitVectors(V(0, 0, 1), marco(1.1).tg); }
   const banda = tubo(0.36, 0.43, 0.004, franja);   // 19-nov: franja y culote más bajos
   // parte baja negra (de la franja a la cintura) y culote: recogido sobre el sillín, sin sobresalir como una bola
-  const negroM = M(0x15171a, 0.4); tubo(-0.04, 0.36, 0.003, negroM);
-  { // caderas: pieza de culote de lado a lado que une tronco, glúteos y arranque de los muslos (sin la muesca de la cadera)
-    const cd = new THREE.SphereGeometry(1, 36, 24); cd.scale(0.15, 0.08, 0.1);   // una sola forma que envuelve el arranque de los dos muslos
-    const cad2 = pieza(cd, culotte); cad2.position.copy(cadera).add(V(0, -0.01, 0.06)); cad2.rotation.x = -0.3; }
-  const culo = pieza(new THREE.SphereGeometry(0.12, 24, 14), negroM); culo.scale.set(0.9, 0.6, 0.66); culo.position.copy(cadera).add(V(0, 0.015, 0.05));
+  const negroM = licra(0x15171a, 0.68, 0.3); tubo(-0.04, 0.36, 0.003, negroM);
+  // 21-nov: pelvis de una pieza (cintura, cadera, arranque de los muslos y dos glúteos con su surco), sentada SOBRE el sillín
+  // y tapándolo (antes el sillín de la Canyon entraba por debajo y asomaba por detrás). Superficie lisa: unión suave de elipsoides.
+  { const elip = (p, c, r) => { const q = [(p.x - c[0]) / r[0], (p.y - c[1]) / r[1], (p.z - c[2]) / r[2]], k = Math.hypot(...q); return (k - 1) * Math.min(...r); };
+    const smin = (a, b, k) => { const h = Math.max(0, Math.min(1, 0.5 + 0.5 * (b - a) / k)); return b + (a - b) * h - k * h * (1 - h); };
+    const H = cadera, P = (x, y, z) => [H.x + x, H.y + y, H.z + z], _q = new THREE.Vector3();
+    const LINEA = (() => { const t = 0.02, { c, fuera } = marco(t); return { p: c.clone().addScaledVector(fuera, radioEn(t) * hondo(t)), n: fuera.clone() }; })();
+    const piezas = [
+      [P(0, 0.025, 0.035), [0.122, 0.07, 0.085]],                // cintura y bajo vientre (se funde con el tronco)
+      [P(0, 0.035, -0.03), [0.124, 0.07, 0.075]],                // cadera
+      [P(0, 0.075, 0.0), [0.114, 0.055, 0.075]],                  // zona lumbar
+      [P(0, 0.045, -0.035), [0.13, 0.075, 0.09]],                 // unión cintura-glúteos (sin escalón ni esquinas)
+      [P(0.084, -0.01, 0.012), [0.062, 0.058, 0.066]],           // arranque del muslo derecho (más pequeño: lo cubre el muslo)
+      [P(-0.084, -0.01, 0.012), [0.062, 0.058, 0.066]]];         // arranque del muslo izquierdo
+    const sdf = p => { let d = 1e9; for (const [c, r] of piezas) d = smin(d, elip(p, c, r), 0.035);
+      // surco entre los glúteos, suave
+      const sx = Math.abs(p.x - H.x), atras = H.z - 0.05 - p.z; if (atras > 0) d += 0.006 * Math.exp(-Math.pow(sx / 0.012, 2)) * Math.min(1, atras / 0.05);
+      // 21-nov (Carlos: «eso no tiene sentido»): nada puede asomar por encima de la línea de la espalda; la espalda baja recta
+      // hasta el sillín y el glúteo es solo el final redondeado de esa línea
+      const dp = _q.copy(p).sub(LINEA.p).dot(LINEA.n); d = -smin(-d, -(dp + 0.01), 0.045);
+      return d; };
+    const centro = V(H.x, H.y + 0.01, H.z - 0.02), NU = op.sencillo ? 20 : 72, NV = op.sencillo ? 12 : 48, pos = [], idx = [], dir = new THREE.Vector3(), q = new THREE.Vector3();
+    for (let j = 0; j <= NV; j++) { const th = j / NV * Math.PI;
+      for (let i = 0; i <= NU; i++) { const ph = i / NU * Math.PI * 2; dir.set(Math.sin(th) * Math.cos(ph), Math.cos(th), Math.sin(th) * Math.sin(ph));
+        let lo = 0, hi = 0.3; for (let it = 0; it < 22; it++) { const m = (lo + hi) / 2; q.copy(centro).addScaledVector(dir, m); if (sdf(q) < 0) lo = m; else hi = m; }
+        q.copy(centro).addScaledVector(dir, lo); pos.push(q.x, q.y, q.z);
+        if (i && j) { const A = (j - 1) * (NU + 1) + i - 1, B = A + NU + 1; idx.push(A, B, A + 1, A + 1, B, B + 1); } } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const pelvis = pieza(geo, culotte); pelvis.material.side = THREE.DoubleSide; }
   // espalda del maillot: firma «KhB» encima de la franja y dorsal «22» debajo
   { const rotulo = (texto, fuente, ancho, alto, donde) => {
       const c = document.createElement('canvas'); c.width = 512; c.height = Math.round(512 * alto / ancho); const x = c.getContext('2d');
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round'; x.font = fuente; x.lineWidth = 14; x.strokeStyle = '#' + new THREE.Color(K.franja).getHexString();
       x.strokeText(texto, 256, c.height / 2); x.fillStyle = '#ffffff'; x.fillText(texto, 256, c.height / 2);
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
+      const m = new THREE.Mesh(curvar(new THREE.PlaneGeometry(ancho, alto, 32, 4), donde), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
       const { c: cc, tg, fuera } = marco(donde);
       m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(dchaT, tg, fuera));
-      m.position.copy(cc).addScaledVector(fuera, radioEn(donde) * hondo(donde) + 0.007); g.add(m); };
-    if (op.firma) rotulo(op.firma, 'italic bold 170px "Segoe Script", "Brush Script MT", cursive', 0.2, 0.09, 0.82);
-    if (op.dorsal) rotulo(op.dorsal, 'bold 230px "Arial Black", Arial, sans-serif', 0.18, 0.11, 0.56); }
-  const cuello = esf(0.055, piel, hombro.clone().add(V(0, 0.08, 0.065)));
+      m.position.copy(cc); g.add(m); };
+    // 21-nov: el rótulo se curva siguiendo la espalda (más grande ya no cabe plano)
+    function curvar(geo, t){ const rx = radioEn(t) + 0.006, rd = radioEn(t) * hondo(t) + 0.006, rr = (rx + rd) / 2, p = geo.attributes.position;
+      for (let k = 0; k < p.count; k++) { const x = p.getX(k), f = x / rr; p.setX(k, rx * Math.sin(f)); p.setZ(k, rd * Math.cos(f)); } geo.computeVertexNormals(); return geo; }
+    if (op.firma) rotulo(op.firma, 'italic bold 170px "Segoe Script", "Brush Script MT", cursive', 0.26, 0.115, 0.85);
+    if (op.dorsal) rotulo(op.dorsal, 'bold 230px "Arial Black", Arial, sans-serif', 0.26, 0.155, 0.575); }
   // cabeza con forma: algo más alta que ancha, nuca con volumen, mandíbula que se estrecha y barbilla
   const RCAB = 0.105;
   const jawEn = dy => dy < -0.15 ? Math.pow(Math.min(1, (-dy - 0.15) / 0.85), 1.4) : 0;
-  const formaCab = (dx, dy, dz, k = 1) => { const j = jawEn(dy), sx = 0.9 * (1 - 0.24 * j), sz = dz < 0 ? 1.1 : 0.97 - 0.01 * j;   // 19-nov: mandíbula menos metida
+  const ALARGA = 1.15, altoCab = dy => RCAB * 1.1 * (dy < 0 ? ALARGA : 1);   // 21-nov: cara más alargada (solo de los ojos hacia abajo)
+  // 21-nov (fotos de Carlos): cabeza más estrecha (~16 cm), mandíbula que aguanta el ancho y se cierra en una barbilla marcada,
+  // y algo hundido bajo los pómulos (sin mofletes)
+  const anchoX = dy => { const t = dy < -0.15 ? Math.min(1, (-dy - 0.15) / 0.85) : 0, hueco = Math.exp(-Math.pow((dy + 0.3) / 0.14, 2));
+    return 0.8 * (1 - 0.1 * t - 0.5 * t * t * t) * (1 - 0.05 * hueco); };
+  const formaCab = (dx, dy, dz, k = 1) => { const j = jawEn(dy), sx = anchoX(dy), sz = dz < 0 ? 1.1 : 0.97 - 0.01 * j;   // 19-nov: mandíbula menos metida
     const barb = dz > 0 && dy < -0.45 ? 0.032 * Math.min(1, (-dy - 0.45) / 0.3) * dz : 0;   // 19-nov: barbilla más hacia fuera
-    return V(dx * RCAB * sx * k, dy * RCAB * 1.1 * k, (dz * RCAB * sz + barb) * k); };
+    const q = V(dx * RCAB * sx, dy * altoCab(dy), dz * RCAB * sz + barb);
+    // 21-nov: bajo la barbilla, línea que sube hacia el cuello algo metida hacia dentro (antes hacía papada)
+    if (dy < -0.3 && q.z < 0.07) { const zB = 0.07, zC = -0.07, u = Math.max(0, Math.min(1, (zB - q.z) / (zB - zC))), yB = -altoCab(-1) * 0.93;
+      const linea = yB + (zB - q.z) * 0.62 + 0.007 * Math.sin(Math.PI * u); if (q.y < linea) q.y = linea + (q.y - linea) * 0.08; }
+    return q.multiplyScalar(k); };
+  // 21-nov: nariz y labios esculpidos en la propia cabeza (dx, dy: dirección normalizada; lo devuelto, metros hacia delante)
+  const campana = (u) => { u = Math.abs(u); return u >= 1 ? 0 : Math.pow(1 - u * u, 2); };
+  const rostro = (dx, dy, dz) => { if (dz < 0.5) return 0; let h = 0;
+    // nariz: tabique fino que arranca entre los ojos y crece hasta una punta redondeada; aletas a los lados
+    const sN = (0.1 - dy) / 0.32;                                                     // 0 entre los ojos, 1 en la punta
+    if (sN > -0.15 && sN < 1.3) { const alto = sN <= 1 ? 0.0025 + 0.0175 * Math.pow(Math.max(0, sN), 1.6) : 0.02 * campana((sN - 1) / 0.32),
+        ancho = 0.055 + 0.055 * Math.max(0, Math.min(1, sN)) + (sN > 0.85 ? 0.03 * campana((sN - 1) / 0.2) : 0);
+      h += alto * campana(dx / ancho) * (sN < 0 ? campana(-sN / 0.15) : 1); }
+    for (const s of [-1, 1]) h += 0.0055 * campana(Math.hypot((dx - 0.125 * s) / 0.07, (dy + 0.245) / 0.06));   // aletas
+    h -= 0.0012 * campana(Math.hypot(dx / 0.16, (dy + 0.285) / 0.025));                                               // hueco bajo la nariz
+    // labios: el de arriba con su «arco», el de abajo más carnoso; la línea de la boca hundida
+    const anchoB = 0.3, uB = Math.abs(dx) / anchoB;
+    if (uB < 1.15) { const lado = campana(Math.min(1, uB));
+      h += 0.004 * lado * campana(Math.abs(dy + 0.372) / 0.05);                                                    // labio superior
+      h += 0.0055 * lado * campana(Math.abs(dy + 0.445) / 0.055);                                                  // labio inferior
+      h -= 0.0028 * campana(uB / 1.1) * campana(Math.abs(dy + 0.405) / 0.018);                                    // comisura
+      h += 0.0018 * campana(Math.abs(dx) / 0.05) * campana(Math.abs(dy + 0.33) / 0.035) * 0;                       // (filtrum: sin relieve)
+    }
+    return h * Math.min(1, (dz - 0.5) / 0.25); };
+  const colorRostro = (dx, dy, dz) => { if (dz < 0.6) return 1; const u = Math.abs(dx) / 0.29; if (u >= 1) return 1;
+    const forma = Math.pow(1 - u * u, 0.55), arco = 0.008 * campana((Math.abs(dx) - 0.05) / 0.055) - 0.006 * campana(dx / 0.025);   // almendra y arco de Cupido
+    const linea = -0.405 + 0.006 * u * u;                                             // comisuras algo más altas: gesto neutro
+    if (Math.abs(dy - linea) < 0.0075 * (0.5 + 0.5 * forma) && u < 0.97) return 2;
+    if (dy > linea && dy < linea + 0.05 * forma + arco) return 3;
+    if (dy < linea && dy > linea - 0.062 * forma) return 3;
+    return 1; };
   const deformarCab = (geo, k = 1) => { const pos = geo.attributes.position, d = new THREE.Vector3();
     for (let i = 0; i < pos.count; i++) { d.fromBufferAttribute(pos, i).normalize(); const q = formaCab(d.x, d.y, d.z, k); pos.setXYZ(i, q.x, q.y, q.z); }
     geo.computeVertexNormals(); return geo; };
-  const zCara = (x, y) => { const dy = Math.max(-0.99, Math.min(0.99, y / (RCAB * 1.1))), dx = x / (RCAB * 0.9 * (1 - 0.24 * jawEn(dy)));
+  const zCara = (x, y) => { const dy = Math.max(-0.99, Math.min(0.99, y / altoCab(y))), dx = x / (RCAB * anchoX(dy));
     return formaCab(dx, dy, Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy))).z; };   // superficie de la cara en (x, y)
-  const cabeza = pieza(deformarCab(new THREE.SphereGeometry(RCAB, 36, 26)), piel); cabeza.position.copy(hombro).add(V(0, 0.175, 0.14));
-  hueso(perfil([[0, 0.062], [0.4, 0.05], [1, 0.047]], piel), hombro.clone().add(V(0, 0.02, 0.02)), cabeza.position.clone().add(V(0, -0.055, -0.035)));
-  // casco: cúpula alta y redondeada, algo alargada hacia atrás (sin tapa plana)
-  // casco ajustado: poco más grueso que la cabeza, bajo de cúpula, alargado hacia atrás y basculado (frente alta, nuca tapada)
-  const RC = 0.117, ESC_C = V(0.98, 0.95, 1.16), ANG_C = -0.22;
-  const cascoG = new THREE.SphereGeometry(RC, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cascoG.scale(ESC_C.x, ESC_C.y, ESC_C.z);
-  const cas = pieza(cascoG, casco); cas.position.copy(cabeza.position).add(V(0, 0.02, -0.012)); cas.rotation.x = ANG_C;
-  { // aireación: tres franjas longitudinales que siguen la cúpula del casco, de delante atrás
-    const resp = M(0x2a2d33), r = RC * 0.975, esc = ESC_C, q = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), ANG_C);
-    for (const x0 of [-0.042, 0, 0.042]) { const rr = Math.sqrt(r * r - x0 * x0), pts = [];
-      for (let k = 0; k <= 18; k++) { const a = 0.3 * Math.PI + k / 18 * 0.46 * Math.PI; pts.push(V(x0, rr * Math.sin(a), -rr * Math.cos(a)).multiply(esc).applyQuaternion(q).add(cas.position)); }
-      pieza(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 30, 0.006, 6, false), resp); } }
+  const cabeza = (() => { if (op.sencillo) return pieza(deformarCab(new THREE.SphereGeometry(RCAB, 36, 26)), piel);
+    const geo = new THREE.SphereGeometry(RCAB, 200, 150), pos = geo.attributes.position, d = new THREE.Vector3(), col = [], cP = new THREE.Color(1, 1, 1), cL = new THREE.Color(0.82, 0.58, 0.55), cB = new THREE.Color(0.5, 0.3, 0.28);
+    for (let i = 0; i < pos.count; i++) { d.fromBufferAttribute(pos, i).normalize(); const q = formaCab(d.x, d.y, d.z); q.z += rostro(d.x, d.y, d.z); pos.setXYZ(i, q.x, q.y, q.z);
+      const k = colorRostro(d.x, d.y, d.z), c = k === 3 ? cL : k === 2 ? cB : cP; col.push(c.r, c.g, c.b); }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
+    const mat = piel.clone(); mat.vertexColors = true; if (op.barba) mat.map = texturaBarba(colorRostro); return pieza(geo, mat); })(); cabeza.position.copy(hombro).add(V(0, 0.175, 0.14));
+  hueso(perfil([[0, 0.05], [0.25, 0.049], [0.6, 0.046], [1, 0.045]], pielP), hombro.clone().add(V(0, -0.02, -0.01)), cabeza.position.clone().add(V(0, -0.02, -0.03)));   // 21-nov: cuello de un solo tubo (sin la bola de antes)
+  g.add(hacerCasco(K, cabeza.position, op.sencillo));
   { // correas: de delante y de detrás de la oreja, se juntan bajo la oreja y bajan a la barbilla
     const C0 = cabeza.position, correa = M(0x1a1c20, 0.8);
-    for (const s of [-1, 1]) { const bajo = C0.clone().add(V(0.098 * s, -0.045, 0.02)), barbilla = C0.clone().add(V(0.035 * s, -0.098, 0.05));
-      hueso(cil(0.0035, correa), C0.clone().add(V(0.106 * s, 0.015, 0.05)), bajo); hueso(cil(0.0035, correa), C0.clone().add(V(0.104 * s, 0.0, -0.05)), bajo);
+    for (const s of [-1, 1]) { const bajo = C0.clone().add(V(0.086 * s, -0.045, 0.02)), barbilla = C0.clone().add(V(0.033 * s, -0.115, 0.05));
+      hueso(cil(0.0035, correa), C0.clone().add(V(0.095 * s, 0.015, 0.05)), bajo); hueso(cil(0.0035, correa), C0.clone().add(V(0.093 * s, 0.0, -0.05)), bajo);
       hueso(cil(0.0035, correa), bajo, barbilla); }
-    hueso(cil(0.0035, correa), C0.clone().add(V(-0.035, -0.098, 0.05)), C0.clone().add(V(0.035, -0.098, 0.05))); }
-  const ribete = pieza(new THREE.TorusGeometry(RC, 0.005, 6, 48), franja); ribete.rotation.x = Math.PI / 2 + ANG_C; ribete.scale.set(ESC_C.x, ESC_C.z, 1); ribete.position.copy(cas.position);
+    hueso(cil(0.0035, correa), C0.clone().add(V(-0.033, -0.115, 0.05)), C0.clone().add(V(0.033, -0.115, 0.05))); }
   // cara: ojos, cejas, nariz, boca y orejas; pelo castaño asomando bajo el casco; gafas subidas encima del casco
   if (!op.sencillo) { const C = cabeza.position, pelo = M(op.pelo || 0x4a3222), ojoB = M(0xf6f3ee), pupila = M(0x2b2420), labio = M(0x9c4a42), cejaM = M(0x3b2a1e);
     const cara = (geo, mat, x, y, z) => { const o = pieza(geo, mat); o.position.set(C.x + x, C.y + y, C.z + z); return o; };
@@ -3028,33 +3201,17 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
       if (op.sinGafas) { const ojo = cara(new THREE.SphereGeometry(0.017, 12, 8), ojoB, 0.036 * s, 0.012, zCara(0.036, 0.012) - 0.012); ojo.scale.set(1, 0.75, 0.6);
         cara(new THREE.SphereGeometry(0.0085, 10, 8), pupila, 0.036 * s, 0.011, zCara(0.036, 0.011) - 0.004); }   // con gafas espejadas no se ven
       const ceja = cara(new THREE.BoxGeometry(0.03, 0.006, 0.008), cejaM, 0.037 * s, 0.033, zCara(0.037, 0.033) - 0.002); ceja.rotation.z = -0.15 * s;
-      const oreja = cara(new THREE.SphereGeometry(0.022, 10, 8), piel, 0.095 * s, 0.0, -0.008); oreja.scale.set(0.45, 1.05, 0.75); }
+      const oreja = cara(new THREE.SphereGeometry(0.022, 10, 8), piel, 0.084 * s, 0.0, -0.008); oreja.scale.set(0.45, 1.05, 0.75); }
     // nariz discreta: tabique, punta redondeada y aletas
     const elip = (rx, ry, rz) => { const e = new THREE.SphereGeometry(0.5, 14, 10); e.scale(rx, ry, rz); return e; };
-    { // nariz recta y fina: tabique estrecho que baja y se ensancha hasta una punta; caras planas
-      const zc = (x, y) => zCara(x, y), P = [
-        [-0.005, 0.012, zc(0, 0.012) - 0.002], [0.005, 0.012, zc(0, 0.012) - 0.002],              // 0,1 arranque entre los ojos
-        [-0.0045, -0.025, zc(0, -0.025) + 0.016], [0.0045, -0.025, zc(0, -0.025) + 0.016],         // 2,3 punta (algo ancha)
-        [-0.016, -0.029, zc(0.016, -0.029) - 0.001], [0.016, -0.029, zc(0.016, -0.029) - 0.001],   // 4,5 aletas (metidas en la cara)
-        [0, -0.031, zc(0, -0.031) + 0.004]];                                                       // 6 bajo la punta
-      const T = [[0, 4, 2], [0, 2, 3], [0, 3, 1], [1, 3, 5], [4, 6, 2], [2, 6, 3], [3, 6, 5]], pos = [];
-      for (const t of T) for (const k of t) pos.push(P[k][0], P[k][1], P[k][2]);
-      const gn = new THREE.BufferGeometry(); gn.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gn.computeVertexNormals();
-      const nariz = cara(gn, M(K.piel, 0.7), 0, 0, 0); nariz.material.side = THREE.DoubleSide; }
-    // boca: labio de arriba, labio de abajo y la comisura oscura entre ellos, siguiendo la curva de la cara
-    const labioM = M(0xb0645a, 0.55), comisura = M(0x5a2a25, 0.8), zB = zCara(0, -0.046);
-    const lSup = cara(elip(0.042, 0.0065, 0.008), labioM, 0, -0.0428, zB - 0.0028);
-    const lInf = cara(elip(0.038, 0.0085, 0.009), labioM, 0, -0.0505, zCara(0, -0.0505) - 0.0032);
-    const linea = cara(elip(0.044, 0.0018, 0.007), comisura, 0, -0.0465, zB - 0.0015);
-    for (const o of [lSup, lInf, linea]) o.scale.set(1, 1, 1);
     // pelo: casquete trasero y patillas, un poco mayor que la cabeza
     const nuca = cara(deformarCab(new THREE.SphereGeometry(0.111, 20, 12, Math.PI * 1.02, Math.PI * 0.96, Math.PI * 0.28, Math.PI * 0.4), 1.055), pelo, 0, 0.0, -0.004); nuca.material.side = THREE.DoubleSide;
-    for (const s of [-1, 1]) cara(new THREE.BoxGeometry(0.006, op.coleta ? 0.06 : 0.03, 0.016), pelo, 0.087 * s, op.coleta ? 0.005 : 0.025, 0.03);
+    for (const s of [-1, 1]) cara(new THREE.BoxGeometry(0.006, op.coleta ? 0.06 : 0.03, 0.016), pelo, 0.077 * s, op.coleta ? 0.005 : 0.025, 0.03);
     if (op.coleta) { // coleta saliendo por debajo del casco, cayendo hacia la espalda
       const nudo = cara(new THREE.SphereGeometry(0.038, 12, 10), pelo, 0, 0.0, -0.125);
       const co = cara(new THREE.SphereGeometry(0.05, 12, 10), pelo, 0, -0.05, -0.175); co.scale.set(0.8, 2.0, 0.8); co.rotation.x = -1.0; }
     // gafas de pantalla envolvente: un solo cristal curvo espejado (degradado de color), montura fina arriba y patillas a las orejas
-    { const montura = M(0x121417, 0.4), R = 0.122, ALTO = 0.05, ABRE = 2.15, Y = C.y + 0.012;
+    { const montura = M(0x121417, 0.4), R = 0.108, ALTO = 0.047, ABRE = 2.0, Y = C.y + 0.012;
       const c = document.createElement('canvas'); c.width = 8; c.height = 64; const x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 64);
       const tono = op.gafas || ['#ffcf4a', '#ff6a1f', '#c8102e', '#5a0a1a'];
       tono.forEach((t, k) => gr.addColorStop(k / (tono.length - 1), t)); x.fillStyle = gr; x.fillRect(0, 0, 8, 64);
@@ -3068,56 +3225,90 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
       const arco = []; for (let k = 0; k <= 24; k++) { const a = -ABRE / 2 + k / 24 * ABRE; arco.push(V(C.x + Math.sin(a) * (R + 0.002), Y + ALTO / 2, C.z + Math.cos(a) * (R + 0.002))); }
       pieza(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arco), 30, 0.0035, 6, false), montura);
       for (const s of [-1, 1]) { const a = s * ABRE / 2, ext = V(C.x + Math.sin(a) * R, Y + ALTO / 2 - 0.004, C.z + Math.cos(a) * R);
-        hueso(cil(0.0028, montura), ext, V(C.x + 0.097 * s, C.y + 0.018, C.z - 0.035)); } } }   // fin de la cara
+        hueso(cil(0.0028, montura), ext, V(C.x + 0.087 * s, C.y + 0.018, C.z - 0.035)); } } }   // fin de la cara
   // brazos hasta las manetas, con codos algo flexionados
   // manos agarradas a las manetas: palma encima, cuatro dedos rodeando la maneta por fuera y pulgar por dentro
   const MANETA = V(0.218, 0.955, 0.585);   // centro de la maneta (coincide con la Canyon y con la bici dibujada)
+  // 21-nov: mano rehecha sobre la maneta de la Canyon (medida: 3 cm de ancho, arriba a ~2 cm del centro, palanca por delante).
+  // Guante sin dedos con palma y dorso de verdad; cuatro dedos de largo real que rodean la maneta por fuera y por debajo; pulgar por dentro.
   const manoAgarrada = s => { const m = new THREE.Group(); m.position.set(MANETA.x * s, MANETA.y, MANETA.z);
-    const add = (geo, px, py, pz) => { const o = new THREE.Mesh(geo, piel); o.position.set(px, py, pz); o.castShadow = true; m.add(o); return o; };
-    const pg = new THREE.SphereGeometry(0.5, 14, 10); pg.scale(0.046, 0.024, 0.078); add(pg, 0.003 * s, 0.027, -0.028).material = guante;   // palma y dorso (guante)
-    const nud = new THREE.CapsuleGeometry(0.0115, 0.05, 4, 8); nud.rotateX(Math.PI / 2); add(nud, 0.014 * s, 0.022, 0.0).material = guante;      // nudillos
-    for (let k = 0; k < 4; k++) { const dz = 0.026 - k * 0.017, r = 0.0205 - Math.abs(k - 1.5) * 0.001;
-      const dg = new THREE.TorusGeometry(r, 0.0066, 6, 12, Math.PI * 1.05); dg.rotateZ(s > 0 ? -Math.PI * 0.42 : Math.PI * 0.42 + Math.PI * 0.05);
-      if (s < 0) dg.rotateY(Math.PI);
-      add(dg, 0.002 * s, 0.004, dz); }
-    const pul = new THREE.CapsuleGeometry(0.0092, 0.026, 4, 8); pul.rotateX(Math.PI / 2 + 0.5); pul.rotateY(0.35 * s); add(pul, -0.02 * s, 0.006, -0.002);   // pulgar
+    const L = (x, y, z) => V((x - MANETA.x) * s, y - MANETA.y, z - MANETA.z);             // de coordenadas del lado derecho al grupo de la mano
+    const colorUna = M(0xe6b9a6, 0.35);
+    // dedo: tubo de grosor variable a lo largo de una curva; el primer tramo va dentro del guante
+    const dedo = (pts, r0, r1, guanteHasta) => { const curva = new THREE.CatmullRomCurve3(pts.map(p => L(...p))), N = op.sencillo ? 7 : 18, S = op.sencillo ? 6 : 12;
+      const hazTramo = (t0, t1, extra, mat) => { const pos = [], idx = [], n = Math.max(2, Math.round(N * (t1 - t0)));
+        for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n, c = curva.getPointAt(t), tg = curva.getTangentAt(t), a = new THREE.Vector3(0, 1, 0);
+          if (Math.abs(a.dot(tg)) > 0.9) a.set(1, 0, 0); const u = new THREE.Vector3().crossVectors(tg, a).normalize(), w = new THREE.Vector3().crossVectors(tg, u);
+          const r = (r0 + (r1 - r0) * t) * (1 - 0.1 * Math.sin(Math.PI * Math.min(1, t / 0.7) * 2) ** 2) + extra;     // se afina en las articulaciones
+          for (let k = 0; k <= S; k++) { const f = k / S * Math.PI * 2, q = c.clone().addScaledVector(u, Math.cos(f) * r).addScaledVector(w, Math.sin(f) * r * 0.9); pos.push(q.x, q.y, q.z);
+            if (i && k) { const A = (i - 1) * (S + 1) + k - 1, B = A + S + 1; idx.push(A, A + 1, B, A + 1, B + 1, B); } } }
+        const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+        const o = new THREE.Mesh(geo, mat); o.castShadow = true; m.add(o); return o; };
+      hazTramo(0, 1, 0, piel); hazTramo(0, guanteHasta, 0.0014, guante);
+      const punta = new THREE.Mesh(new THREE.SphereGeometry(r1, op.sencillo ? 6 : 12, op.sencillo ? 4 : 8), piel); punta.position.copy(curva.getPointAt(1)); m.add(punta);
+      // uña: lámina pequeña en el dorso de la última falange
+      const tU = 0.9, cU = curva.getPointAt(tU), tgU = curva.getTangentAt(tU), fuera = cU.clone().sub(L(0.22, 0.945, pts[0][2])).normalize();
+      const un = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), colorUna); un.scale.set(r1 * 0.85, r1 * 0.85, r1 * 1.3); un.position.copy(cU).addScaledVector(fuera, r1 * 0.55);
+      un.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tgU); if (!op.sencillo) m.add(un); };
+    // vuelta alrededor de la maneta: elipse centrada en el cuerpo de la maneta, de arriba-fuera a abajo-dentro
+    const vuelta = (z, desde, hasta, rx, ry, cy, n = 5) => { const P = []; for (let i = 0; i < n; i++) { const a = (desde + (hasta - desde) * i / (n - 1)) * Math.PI / 180;
+      P.push([0.22 + Math.cos(a) * rx, cy + Math.sin(a) * ry, z + (i / (n - 1)) * 0.006]); } return P; };
+    const DEDOS = [ // z, ángulo final (cuánto rodea), radio base, radio punta, centro y alto de la vuelta en ese punto
+      [0.603, -100, 0.0082, 0.007, 0.956, 0.035], [0.585, -108, 0.0086, 0.0072, 0.953, 0.034], [0.567, -100, 0.0082, 0.0069, 0.948, 0.031], [0.549, -80, 0.0073, 0.0063, 0.947, 0.029]];
+    for (const [z, fin, r0, r1, cy, ry] of DEDOS) dedo([[0.227, 0.986, z - 0.003]].concat(vuelta(z, 55, fin, 0.0235, ry, cy, 6)), r0, r1, 0.3);
+    // dorso y palma del guante: una pieza con forma (más ancha en los nudillos, más estrecha hacia la muñeca)
+    { const geo = new THREE.SphereGeometry(1, op.sencillo ? 12 : 28, op.sencillo ? 8 : 18), pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), ancho = 0.024 + 0.006 * (z + 1) / 2;
+        pos.setXYZ(i, x * ancho, y * (y > 0 ? 0.016 : 0.012), z * 0.047); }
+      geo.computeVertexNormals(); const dorso = new THREE.Mesh(geo, guante); dorso.castShadow = true;
+      dorso.position.copy(L(0.218, 0.988, 0.562)); dorso.rotation.set(-0.08, 0.12 * s, -0.35 * s); m.add(dorso);
+    }
+    // pulgar por dentro de la maneta, hacia delante
+    dedo([[0.204, 0.982, 0.538], [0.196, 0.97, 0.556], [0.197, 0.958, 0.576], [0.201, 0.952, 0.592]], 0.0108, 0.0088, 0.45);
     g.add(m); return m; };
   const codoHaciaCuerpo = (h, mano, L1, L2, x) => { const d = new THREE.Vector3().subVectors(mano, h); let D = d.length(); d.normalize(); D = Math.min(D, L1 + L2 - 0.005);
     const a = (L1 * L1 - L2 * L2 + D * D) / (2 * D), alto = Math.sqrt(Math.max(0, L1 * L1 - a * a));
     const perp = V(0, -d.z, d.y).normalize();                      // en el plano de la marcha, hacia atrás y abajo
     return h.clone().addScaledVector(d, a).addScaledVector(perp, alto).add(V(0.035 * x, 0, 0)); };
-  for (const x of [-1, 1]) { const h = V(0.165 * x, hombro.y - 0.01, hombro.z - 0.02), mano = V(0.214 * x, 0.99, 0.54), codo = codoHaciaCuerpo(h, mano, 0.215, 0.2, x);
-    esf(0.057, maillot, h).scale.set(1, 0.82, 1.05);
-    hueso(perfil([[0, 0.047], [0.45, 0.046], [1, 0.036]], piel), h, codo);                       // brazo
-    hueso(perfil([[0, 0.057], [0.5, 0.053], [0.56, 0.053]], maillot), h, codo);                   // manga hasta medio brazo
-    hueso(perfil([[0.53, 0.0545], [0.6, 0.0535]], franja), h, codo);                             // ribete de la manga
-    esf(0.036, piel, codo); hueso(perfil([[0, 0.035], [0.22, 0.04], [0.7, 0.03], [1, 0.026]], piel), codo, mano);   // antebrazo
-    hueso(perfil([[0.88, 0.0295], [1, 0.0285]], guante), codo, mano); hueso(perfil([[0.91, 0.0305], [0.97, 0.0302]], M(0x3a3d42, 0.7)), codo, mano);   // puño del guante y velcro
-    esf(0.03, guante, mano); if (!op.sencillo) manoAgarrada(x); }
+  for (const x of [-1, 1]) { const h = V(0.165 * x, hombro.y - 0.01, hombro.z - 0.02), mano = V(0.214 * x, 0.99, 0.54), codo = codoHaciaCuerpo(h, mano, 0.3, 0.285, x);
+    const h0 = h.clone().addScaledVector(new THREE.Vector3().subVectors(codo, h).normalize(), -0.04).add(V(-0.02 * x, 0, 0));   // 21-nov: la manga nace dentro del tronco (sin bola de hombro)
+                           // brazo
+    hueso(perfil([[0.15, 0.04], [0.55, 0.039], [1, 0.032]], piel), h0, codo);   // brazo, mismo eje que la manga
+    hueso(perfil([[0, 0.036], [0.1, 0.05], [0.22, 0.051], [0.58, 0.045], [0.63, 0.045]], maillot, t => -0.006 * Math.exp(-Math.pow((t - 0.2) / 0.12, 2))), h0, codo);                   // manga hasta medio brazo
+    hueso(perfil([[0.6, 0.0465], [0.66, 0.0455]], franja), h0, codo);                             // ribete de la manga
+    esf(0.032, piel, codo); hueso(perfil([[0, 0.031], [0.16, 0.0385], [0.36, 0.0365], [0.66, 0.028], [0.88, 0.0232], [1, 0.0228]], piel), codo, mano);   // antebrazo
+    hueso(perfil([[0.86, 0.0252], [1, 0.0258]], guante), codo, mano); hueso(perfil([[0.89, 0.0262], [0.95, 0.0262]], M(0x3a3d42, 0.7)), codo, mano);   // puño del guante y velcro
+    esf(0.026, guante, mano); manoAgarrada(x); }   // 21-nov: también los bots
   // zapatilla de carretera: cuerpo (talón y empeine), puntera más estrecha y redondeada, y suela fina
   const suelaM = M(0x3a3d42);
   const zapatilla = () => { const z = new THREE.Group();
     // silueta de perfil (z hacia la punta, y hacia arriba), extruida a lo ancho y estrechada hacia la punta
     const sp = new THREE.Shape(); sp.moveTo(-0.122, -0.03);
-    sp.bezierCurveTo(-0.136, -0.01, -0.136, 0.03, -0.118, 0.052);       // talón
-    sp.lineTo(-0.088, 0.06); sp.bezierCurveTo(-0.06, 0.05, -0.03, 0.046, 0.0, 0.04);   // tobillo y empeine
-    sp.bezierCurveTo(0.05, 0.03, 0.09, 0.02, 0.112, 0.004);             // empeine hacia la punta
-    sp.bezierCurveTo(0.128, -0.006, 0.128, -0.026, 0.11, -0.03);          // punta redondeada
+    sp.bezierCurveTo(-0.136, -0.01, -0.138, 0.04, -0.12, 0.072);       // talón alto que recoge el tobillo
+    sp.bezierCurveTo(-0.1, 0.078, -0.07, 0.074, -0.05, 0.062); sp.bezierCurveTo(-0.03, 0.05, -0.01, 0.04, 0.0, 0.034);   // boca alrededor del tobillo y empeine
+    sp.bezierCurveTo(0.05, 0.022, 0.095, 0.01, 0.122, -0.004);          // empeine hacia la punta
+    sp.bezierCurveTo(0.138, -0.01, 0.136, -0.026, 0.116, -0.03);         // punta afilada
     sp.lineTo(-0.122, -0.03);
-    const gz = new THREE.ExtrudeGeometry(sp, { depth: 0.062, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 3, curveSegments: 10 });
-    gz.translate(0, 0, -0.031); gz.rotateY(-Math.PI / 2);
-    { const pos = gz.attributes.position; for (let k = 0; k < pos.count; k++) { const zz = pos.getZ(k), f = zz > 0.03 ? 1 - Math.min(0.32, (zz - 0.03) * 3.6) : 1; pos.setX(k, pos.getX(k) * f); } gz.computeVertexNormals(); }
+    const gz = new THREE.ExtrudeGeometry(sp, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.009, bevelSize: 0.007, bevelSegments: 3, curveSegments: 10 });
+    gz.translate(0, 0, -0.025); gz.rotateY(-Math.PI / 2);
+    { const pos = gz.attributes.position; for (let k = 0; k < pos.count; k++) { const zz = pos.getZ(k), f = zz > 0.02 ? 1 - Math.min(0.45, (zz - 0.02) * 4.2) : 1; pos.setX(k, pos.getX(k) * f); } gz.computeVertexNormals(); }
     const cuerpo = new THREE.Mesh(gz, zapa);
     const sg = new THREE.ExtrudeGeometry((() => { const s = new THREE.Shape(); s.moveTo(-0.125, -0.042); s.lineTo(0.112, -0.042); s.bezierCurveTo(0.126, -0.04, 0.126, -0.03, 0.112, -0.028); s.lineTo(-0.125, -0.028); s.lineTo(-0.125, -0.042); return s; })(),
-      { depth: 0.07, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.003, bevelSegments: 2 });
-    sg.translate(0, 0, -0.035); sg.rotateY(-Math.PI / 2);
-    { const pos = sg.attributes.position; for (let k = 0; k < pos.count; k++) { const zz = pos.getZ(k), f = zz > 0.03 ? 1 - Math.min(0.3, (zz - 0.03) * 3.4) : 1; pos.setX(k, pos.getX(k) * f); } sg.computeVertexNormals(); }
+      { depth: 0.056, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.003, bevelSegments: 2 });
+    sg.translate(0, 0, -0.028); sg.rotateY(-Math.PI / 2);
+    { const pos = sg.attributes.position; for (let k = 0; k < pos.count; k++) { const zz = pos.getZ(k), f = zz > 0.02 ? 1 - Math.min(0.42, (zz - 0.02) * 4.0) : 1; pos.setX(k, pos.getX(k) * f); } sg.computeVertexNormals(); }
     const suela = new THREE.Mesh(sg, suelaM);
     const tira = M(0x5c626b, 0.5), rueda = M(0xe8ebee, 0.3, 0.3);
     const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.084, 0.006, 0.022), tira); t1.position.set(0, 0.047, 0.03); t1.rotation.x = 0.22; t1.scale.set(1.05, 1, 1);   // tira delantera
     const boa = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.01, 16), rueda); boa.position.set(0.024, 0.069, -0.03); boa.rotation.x = 0.2;  // rueda de cierre
     const cala = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.01, 0.05), M(0x5a5f66, 0.6)); cala.position.set(0, -0.048, 0.04);
-    for (const o of [cuerpo, suela, t1, boa, cala]) { o.castShadow = true; z.add(o); }
+    // 21-nov: dos franjas blancas finas a lo largo del costado (diseño propio), siguiendo la silueta de la zapatilla
+    const franjas = []; for (const s of [-1, 1]) for (const [y0, dy] of [[-0.012, 0], [0.0, 0.0]].slice(0, 1).concat([[0.004, 0]])) {
+      const pts = []; for (let k = 0; k <= 14; k++) { const zz = -0.115 + k / 14 * 0.225, alto = y0 - 0.004 * Math.pow((zz - 0.0) / 0.12, 2);
+        const ancho = 0.033 * (zz > 0.02 ? 1 - Math.min(0.45, (zz - 0.02) * 4.2) : 1) + 0.0035; pts.push(V(s * ancho, alto, zz)); }
+      const t = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), op.sencillo ? 10 : 28, 0.0026, op.sencillo ? 3 : 5, false), blanco); franjas.push(t); }
+    for (const o of [cuerpo, suela, t1, boa, cala, ...franjas]) { o.castShadow = true; z.add(o); }
+    z.scale.set(0.92, 1, 0.85);   // 21-nov: zapatilla más corta y algo más estrecha, a juego con el tobillo
     g.add(z); return z; };
   // rodilla: una sola pieza de piel que une muslo y pierna doblándose (se recalcula en posarPiernas), sin juntas visibles
   const rodillaPiel = mat => { const N = 14, S = 32, pos = new Float32Array((N + 1) * (S + 1) * 3), idx = [];
@@ -3125,10 +3316,10 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
     const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); gg.setIndex(idx);
     const m = pieza(gg, mat); m.frustumCulled = false; m.userData.barrido = { N, S }; return m; };
   // piernas (se mueven en posarPiernas)
-  const piernas = [-1, 1].map(lado => ({ lado, x: 0.088 * lado, muslo: perfil([[0, 0.05], [0.12, 0.074], [0.3, 0.081], [0.5, 0.076], [0.74, 0.068], [0.8, 0.065]], culotte),   // 19-nov: muslos más finos y más juntos (desde detrás salían dos bultos)
-    musloPiel: perfil([[0.76, 0.066], [0.84, 0.061]], piel), rodilla: rodillaPiel(piel),
-    tibia: perfil([[0.12, 0.0545], [0.22, 0.058], [0.36, 0.054], [0.55, 0.043], [0.75, 0.031], [0.9, 0.025], [1, 0.025]], piel, t => 0.022 * Math.exp(-Math.pow((t - 0.27) / 0.14, 2))),
-    calcetin: cil(0.028, blanco, 0.029), pie: zapatilla(), biela: pieza(new THREE.BoxGeometry(0.02, 1, 0.03), gris) }));
+  const piernas = [-1, 1].map(lado => ({ lado, x: 0.088 * lado, muslo: perfil([[-0.12, 0.0], [-0.1177, 0.0247], [-0.1109, 0.0409], [-0.0998, 0.0541], [-0.0849, 0.0648], [-0.0667, 0.0731], [-0.0459, 0.0792], [-0.0234, 0.0828], [0.0, 0.084], [0.12, 0.084], [0.26, 0.079], [0.42, 0.073], [0.62, 0.064], [0.78, 0.0575], [0.8, 0.0572]], culotte, t => 0.014 * Math.exp(-Math.pow((t - 0.15) / 0.15, 2))),   // 21-nov: el muslo nace por detrás de la cadera y forma el glúteo (gira con la pierna, sin costuras)   // 21-nov: se estrecha hacia la rodilla (antes un tubo)   // 19-nov: muslos más finos y más juntos (desde detrás salían dos bultos)
+    musloPiel: perfil([[0.77, 0.057], [0.86, 0.0548]], pielP), rodilla: rodillaPiel(pielP),
+    tibia: perfil([[0.0, 0.036], [0.07, 0.0499], [0.12, 0.0503], [0.22, 0.0515], [0.34, 0.0505], [0.48, 0.042], [0.64, 0.031], [0.8, 0.0245], [0.9, 0.0228], [1, 0.0232]], pielP, t => 0.034 * Math.exp(-Math.pow((t - 0.31) / 0.15, 2)) * Math.min(1, Math.max(0, (t - 0.1) / 0.14)) ** 2),   // 21-nov: el gemelo nace suave desde la rodilla (sin escalón)   // 21-nov: más gemelo, tobillo fino
+    calcetin: cil(0.0252, blanco, 0.029), pie: zapatilla(), biela: pieza(new THREE.BoxGeometry(0.02, 1, 0.03), gris) }));
   g.userData = { ruedas, piernas, cadera, bb: P.bb, giro: 0, biciDibujada: g.children.slice(0, nBici) };
   posarPiernas(g);
   return g;
@@ -3136,14 +3327,14 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
 const _rc = new THREE.Vector3(), _rt = new THREE.Vector3(), _rf = new THREE.Vector3(), _rq = new THREE.Vector3(), _rX = new THREE.Vector3(1, 0, 0);
 function actualizarRodilla(m, a, k, b){
   const { N, S } = m.userData.barrido, pos = m.geometry.attributes.position, curva = new THREE.QuadraticBezierCurve3(a, k, b);
-  const frente = k.clone().sub(a.clone().add(b).multiplyScalar(0.5)).normalize(), R0 = 0.061, R1 = 0.0545;
+  const frente = k.clone().sub(a.clone().add(b).multiplyScalar(0.5)).normalize(), R0 = 0.0552, R1 = 0.046;   // la rodilla se mete dentro de la pierna: la superficie de la pierna manda   // 21-nov: mismo grosor que muslo y espinilla
   for (let i = 0; i <= N; i++) { const t = i / N; curva.getPoint(t, _rc); curva.getTangent(t, _rt); _rf.crossVectors(_rt, _rX).normalize();
     const sg = Math.sign(_rf.dot(frente)) || 1, base = R0 + (R1 - R0) * t - 0.007 * Math.sin(Math.PI * t), rotula = 0.008 * Math.pow(Math.sin(Math.PI * t), 2);
     for (let j = 0; j <= S; j++) { const th = j / S * Math.PI * 2, r = base + rotula * Math.max(0, Math.sin(th) * sg);
       _rq.copy(_rc).addScaledVector(_rX, Math.cos(th) * r).addScaledVector(_rf, Math.sin(th) * r); pos.setXYZ(i * (S + 1) + j, _rq.x, _rq.y, _rq.z); } }
   pos.needsUpdate = true; m.geometry.computeVertexNormals(); m.geometry.computeBoundingSphere(); }
 function posarPiernas(g){
-  const u = g.userData, L = 0.46, BIELA = u.biela || 0.17, V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const u = g.userData, L = 0.5, BIELA = u.biela || 0.17, V = (x, y, z) => new THREE.Vector3(x, y, z);
   for (const p of u.piernas) {
     const a = u.giro + (p.lado > 0 ? 0 : Math.PI);
     const pedal = V(p.x, u.bb.y - Math.cos(a) * BIELA, u.bb.z - Math.sin(a) * BIELA);
@@ -3152,7 +3343,7 @@ function posarPiernas(g){
     const d = new THREE.Vector3().subVectors(pie, cad); let D = d.length(); d.multiplyScalar(1 / D);
     if (D > 2 * L - 0.001) { D = 2 * L - 0.001; pie.copy(cad).addScaledVector(d, D); }
     const h = Math.sqrt(L * L - (D / 2) * (D / 2)), rodilla = cad.clone().addScaledVector(d, D / 2).add(V(0, d.z * h, -d.y * h));
-    hueso(p.muslo, cad, rodilla); if (p.musloPiel) hueso(p.musloPiel, cad, rodilla); if (p.rodilla.userData.barrido) actualizarRodilla(p.rodilla, cad.clone().lerp(rodilla, 0.84), rodilla, rodilla.clone().lerp(pie, 0.12)); else p.rodilla.position.copy(rodilla); hueso(p.tibia, rodilla, pie);
+    hueso(p.muslo, cad, rodilla); if (p.musloPiel) hueso(p.musloPiel, cad, rodilla); if (p.rodilla.userData.barrido) actualizarRodilla(p.rodilla, cad.clone().lerp(rodilla, 0.84), rodilla, rodilla.clone().lerp(pie, 0.1)); else p.rodilla.position.copy(rodilla); hueso(p.tibia, rodilla, pie);
     if (p.calcetin) hueso(p.calcetin, pie.clone().lerp(rodilla, 0.22), pie);
     p.pie.position.copy(pie).add(V(0, -0.02, 0.05));
   }
