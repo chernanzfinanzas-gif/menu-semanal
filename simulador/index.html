@@ -332,7 +332,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v137 · ⛰ el suelo ya no tapa el camino · 🌉 barandillas de los puentes fuera del camino · 🔍 zoom del dron con I / U o la rueda</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v139 · ☁️ cielo nuevo: cúmulos con volumen, cirros, sol con halo y atardecer anaranjado</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -1958,7 +1958,9 @@ function abrirPantallaRutas(){
   P.querySelectorAll('.vistaElegir button').forEach(b => { b.classList.toggle('activo', b.dataset.v === vis); b.onclick = () => { P.querySelectorAll('.vistaElegir button').forEach(c => c.classList.toggle('activo', c === b)); try { localStorage.setItem('simulador-vista-elegida', b.dataset.v); } catch(e) {} }; });
   pintarListaRivales();
   const grupos = [['Madrid', r => /^anillo/.test(r.id)], ['Sierra de Guadarrama', r => !/^anillo/.test(r.id)]];
-  let html = '';
+  let html = '<h3>Tu mundo · diseña la ruta</h3><div class="tarjRuta" id="mundoTarj"><div id="mapaMundo" style="height:min(62vh,520px);border-radius:10px;background:#161b22"></div>'
+    + '<div class="datos" id="mundoInfo">Cargando el mundo…</div><canvas class="perfilMini" id="mundoPerfil"></canvas>'
+    + '<div class="sentidos"><button class="sec" id="mundoDeshacer">↶ Quitar el último punto</button><button class="sec" id="mundoVolver">⟲ Volver a la salida: no</button><button class="sec" id="mundoReves">⇄ Al revés</button><button class="sec" id="mundoBorrar">✕ Empezar de nuevo</button><button id="mundoRodar" disabled>▶ Rodar esta ruta</button></div></div>';
   for (const [titulo, f] of grupos) { const rs = (window.RUTAS_SIM ? RUTAS_SIM.rutas : []).filter(f); if (!rs.length) continue;
     html += '<h3>' + titulo + '</h3><div class="rejilla">';
     for (const r of rs) { const k0 = Object.keys(r.gpx)[0], m = desnivelGpx(r.gpx[k0]);
@@ -1970,7 +1972,8 @@ function abrirPantallaRutas(){
   if (window.RUTAS_STRAVA && RUTAS_STRAVA.length) html += '<h3>Tus salidas de Strava (' + RUTAS_STRAVA.length + ')</h3><div class="filtroStrava"><input id="buscaStrava" placeholder="Buscar por nombre…"><select id="ordenStrava"><option value="fecha">Más recientes</option><option value="km">Más largas</option><option value="sube">Más desnivel</option></select><select id="zonaStrava"><option value="">Todas las zonas</option><option>Comunidad de Madrid</option><option>Fuera de Madrid</option></select></div><div class="rejilla" id="listaStrava"></div>';
   html += '<h3>Tu ruta</h3><div class="rejilla"><div class="tarjRuta"><b>Cargar un .gpx</b><div class="datos">Una salida tuya de Strava o Garmin, o cualquier ruta con altitudes.</div><div class="sentidos"><button id="bGpxPropio" class="sec">Elegir fichero .gpx…</button></div></div></div>';
   L.innerHTML = html;
-  L.querySelectorAll('canvas.perfilMini').forEach(cv => { const r = RUTAS_SIM.rutas.find(x => x.id === cv.dataset.k); dibujarPerfilMini(cv, desnivelGpx(r.gpx[Object.keys(r.gpx)[0]]).perfil); });
+  iniciarMundo();
+  L.querySelectorAll('canvas.perfilMini[data-k]').forEach(cv => { const r = RUTAS_SIM.rutas.find(x => x.id === cv.dataset.k); dibujarPerfilMini(cv, desnivelGpx(r.gpx[Object.keys(r.gpx)[0]]).perfil); });
   L.querySelectorAll('.tarjRuta[data-id] .sentidos button').forEach(b => b.onclick = () => elegirRuta(b.closest('.tarjRuta').dataset.id, b.dataset.s));
   L.querySelectorAll('.bTramos').forEach(b => b.onclick = () => verTramosRuta(b.dataset.tr));
   $('bGpxPropio').onclick = () => { $('fichero').accept = '.gpx'; $('fichero').click(); };
@@ -2004,6 +2007,94 @@ async function elegirStrava(id, alReves){
   if (MAPA && window.RUTAS_SIM) {
     ruta.tramos = { ruta: { id: 'strava-' + id, strava: true, nombre: r.nombre, estilo: MAPA.estilo, inverso: 'al revés', tramos: { largo: MAPA.largo, runs: MAPA.runs }, calles: MAPA.calles || [] }, sentido: alReves ? 'al revés' : 'normal' };
     if ($('escenario3d').querySelector('option[value="real"]')) { $('escenario3d').value = 'real'; try { localStorage.setItem('simulador-escenario', 'real'); } catch(e) {} } }
+  $('vistaRuta').value = vistaElegida(); ponerVista();
+  setTimeout(() => $('zonaRuta').scrollIntoView({ behavior:'smooth', block:'start' }), 100); }
+// ===================== tu mundo (21-nov, Carlos): red de tramos y cruces; diseñar la ruta pinchando en el mapa =====================
+// recursos/mundo.js: cruces [lat,lon,alt] y tramos {a,b,L,p:[[lat,lon,alt]…] cada ~20 m, r: firme y entorno cada 10 m como en las rutas incluidas}
+const MUNDO = { red:null, mapa:null, puntos:[], cerrar:false, linea:null, marcas:[], camino:null };
+const distM = (a, b) => { const k = Math.PI / 180, x = (b[1] - a[1]) * k * Math.cos((a[0] + b[0]) / 2 * k), y = (b[0] - a[0]) * k; return Math.hypot(x, y) * 6371000; };
+async function cargarMundo(){
+  if (MUNDO.red) return MUNDO.red;
+  if (!window.MUNDO_SIM) await cargarScript('recursos/mundo.js');
+  const M = window.MUNDO_SIM, nodos = [], ady = [];
+  const nuevo = (p, t, d) => { nodos.push({ p, t, d }); ady.push([]); return nodos.length - 1; };
+  M.cruces.forEach(c => nuevo(c, -1, 0));
+  M.tramos.forEach((tr, ti) => { let prev = tr.a, dAcc = 0;
+    for (let k = 1; k < tr.p.length; k++) { const L = distM(tr.p[k - 1], tr.p[k]); dAcc += L;
+      const id = k === tr.p.length - 1 ? tr.b : nuevo(tr.p[k], ti, dAcc);
+      ady[prev].push([id, L, ti]); ady[id].push([prev, L, ti]); prev = id; } });
+  return MUNDO.red = { M, nodos, ady }; }
+function nodoCercano(lat, lon){ const { nodos } = MUNDO.red; let best = -1, bd = Infinity;
+  for (let i = 0; i < nodos.length; i++) { const d = distM([lat, lon], nodos[i].p); if (d < bd) { bd = d; best = i; } } return { i: best, d: bd }; }
+function caminoMundo(a, b){
+  const { nodos, ady } = MUNDO.red, n = nodos.length, D = new Float64Array(n).fill(Infinity), prev = new Int32Array(n).fill(-1), H = [[0, a]]; D[a] = 0;
+  const push = x => { H.push(x); let i = H.length - 1; while (i) { const p = (i - 1) >> 1; if (H[p][0] <= H[i][0]) break; [H[p], H[i]] = [H[i], H[p]]; i = p; } };
+  const pop = () => { const top = H[0], last = H.pop(); if (H.length) { H[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < H.length && H[l][0] < H[m][0]) m = l; if (r < H.length && H[r][0] < H[m][0]) m = r; if (m === i) break; [H[m], H[i]] = [H[i], H[m]]; i = m; } } return top; };
+  while (H.length) { const [d, u] = pop(); if (u === b) break; if (d > D[u]) continue;
+    for (const [v, L] of ady[u]) { const nd = d + L; if (nd < D[v]) { D[v] = nd; prev[v] = u; push([nd, v]); } } }
+  if (!isFinite(D[b])) return null; const out = []; for (let u = b; u !== -1; u = prev[u]) out.push(u); return out.reverse(); }
+function rutaMundo(){
+  const pts = MUNDO.puntos.slice(); if (MUNDO.cerrar && pts.length > 1) pts.push(pts[0]);
+  if (pts.length < 2) return null; let cam = [pts[0]];
+  for (let i = 1; i < pts.length; i++) { if (pts[i] === pts[i - 1]) continue; const c = caminoMundo(pts[i - 1], pts[i]); if (!c) return null; cam = cam.concat(c.slice(1)); }
+  return cam.length > 1 ? cam : null; }
+// lo que hay en el nodo u yendo hacia v: firme y entorno del tramo, con izquierda y derecha según el sentido
+function claseEn(u, v){
+  const { M, nodos, ady } = MUNDO.red, e = ady[u].find(x => x[0] === v); if (!e) return [1, 5, 5, 0];
+  const ti = e[2], tr = M.tramos[ti], dEn = x => nodos[x].t === ti ? nodos[x].d : (x === tr.a ? 0 : tr.L);
+  const du = dEn(u), dv = dEn(v), adelante = dv >= du, r = tr.r; let lo = 0, hi = r.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (r[m][0] <= du) lo = m; else hi = m - 1; }
+  const c = r[lo]; return adelante ? [c[1], c[2], c[3], c[4]] : [c[1], c[3], c[2], c[4]]; }
+function gpxMundo(cam){
+  const { nodos } = MUNDO.red; let d = 0, runs = [], arriba = 0;
+  const trk = cam.map((u, k) => { const p = nodos[u].p; if (k) d += distM(nodos[cam[k - 1]].p, p); if (p[2] > 1000) arriba++;
+    if (k < cam.length - 1) { const c = claseEn(u, cam[k + 1]); if (!runs.length || runs[runs.length - 1].slice(1).join() !== c.join()) runs.push([Math.round(d), ...c]); }
+    return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '"><ele>' + p[2] + '</ele></trkpt>'; }).join('');
+  return { gpx: '<gpx><trk><name>Mi ruta en el mundo</name><trkseg>' + trk + '</trkseg></trk></gpx>', largo: Math.round(d), runs, montana: arriba > cam.length / 2 }; }
+function pintarRutaMundo(){
+  const info = $('mundoInfo'), bR = $('mundoRodar'); if (!info) return;
+  if (MUNDO.linea) { MUNDO.mapa.removeLayer(MUNDO.linea); MUNDO.linea = null; }
+  MUNDO.marcas.forEach(m => MUNDO.mapa.removeLayer(m)); MUNDO.marcas = [];
+  const { nodos } = MUNDO.red;
+  MUNDO.puntos.forEach((u, i) => { const m = L.circleMarker([nodos[u].p[0], nodos[u].p[1]], { radius: i ? 6 : 9, color: '#fff', weight: 2, fillColor: i ? '#1f6feb' : '#2ea043', fillOpacity: 1 })
+    .bindTooltip(i ? 'Paso ' + i : 'Salida', { permanent: i === 0, direction: 'top' }).addTo(MUNDO.mapa); MUNDO.marcas.push(m); });
+  $('mundoVolver').textContent = '⟲ Volver a la salida: ' + (MUNDO.cerrar ? 'sí' : 'no');
+  try { localStorage.setItem('simulador-mundo-ruta', JSON.stringify({ p: MUNDO.puntos.map(u => nodos[u].p.slice(0, 2)), c: MUNDO.cerrar })); } catch(e) {}
+  const cam = rutaMundo(); MUNDO.camino = cam;
+  if (!cam) { bR.disabled = true; info.textContent = MUNDO.puntos.length ? 'Ahora pincha el siguiente sitio por donde quieres pasar.' : 'Pincha en el mapa el punto de salida y luego los sitios por donde quieres pasar. La ruta va sola por las carreteras de tu mundo.'; { const cv = $('mundoPerfil'); cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); } return; }
+  MUNDO.linea = L.polyline(cam.map(u => [nodos[u].p[0], nodos[u].p[1]]), { color: '#f0883e', weight: 5, opacity: .95 }).addTo(MUNDO.mapa);
+  const g = gpxMundo(cam), m = desnivelGpx(g.gpx); bR.disabled = false;
+  const tierra = g.runs.reduce((a, r, i) => a + (RUTAS_SIM.SUP[r[1]] === 'tierra' ? ((g.runs[i + 1] ? g.runs[i + 1][0] : g.largo) - r[0]) : 0), 0);
+  info.textContent = m.km.toFixed(1).replace('.', ',') + ' km · +' + Math.round(m.sube) + ' m' + (tierra > 500 ? ' · ' + (tierra / 1000).toFixed(1).replace('.', ',') + ' km de tierra' : '') + ' · ' + MUNDO.puntos.length + ' puntos';
+  dibujarPerfilMini($('mundoPerfil'), m.perfil); }
+async function iniciarMundo(){
+  const caja = $('mapaMundo'); if (!caja) return;
+  try { await cargarMundo(); } catch(e) { $('mundoInfo').textContent = 'No encuentro recursos/mundo.js.'; return; }
+  const { M, nodos } = MUNDO.red;
+  if (MUNDO.mapa) { MUNDO.mapa.remove(); MUNDO.mapa = null; MUNDO.linea = null; MUNDO.marcas = []; }
+  const c = CAPAS[$('capaMapa').value] || CAPAS[Object.keys(CAPAS)[0]];
+  const mp = MUNDO.mapa = L.map(caja, { zoomControl: true }); L.tileLayer(c.url, { maxZoom: c.max, maxNativeZoom: Math.min(c.max, 17), attribution: c.attr }).addTo(mp);
+  const red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#1f6feb', weight: 4, opacity: .55 }).addTo(mp));
+  mp.fitBounds(L.featureGroup(red).getBounds(), { padding: [10, 10] });
+  M.cruces.forEach(x => L.circleMarker([x[0], x[1]], { radius: 3, color: '#1f6feb', weight: 1, fillColor: '#fff', fillOpacity: 1 }).addTo(mp));
+  MUNDO.puntos = []; MUNDO.cerrar = false;
+  try { const g = JSON.parse(localStorage.getItem('simulador-mundo-ruta') || 'null'); if (g) { MUNDO.puntos = g.p.map(q => nodoCercano(q[0], q[1]).i); MUNDO.cerrar = !!g.c; } } catch(e) {}
+  mp.on('click', ev => { const n = nodoCercano(ev.latlng.lat, ev.latlng.lng);
+    if (n.d > 1500) { avisar('Ahí no pasa ninguna carretera de tu mundo: pincha más cerca de una línea azul.'); return; }
+    MUNDO.puntos.push(n.i); pintarRutaMundo(); });
+  $('mundoDeshacer').onclick = () => { MUNDO.puntos.pop(); pintarRutaMundo(); };
+  $('mundoBorrar').onclick = () => { MUNDO.puntos = []; MUNDO.cerrar = false; pintarRutaMundo(); };
+  $('mundoVolver').onclick = () => { MUNDO.cerrar = !MUNDO.cerrar; pintarRutaMundo(); };
+  $('mundoReves').onclick = () => { if (MUNDO.cerrar && MUNDO.puntos.length > 1) MUNDO.puntos = [MUNDO.puntos[0], ...MUNDO.puntos.slice(1).reverse()]; else MUNDO.puntos.reverse(); pintarRutaMundo(); };
+  $('mundoRodar').onclick = rodarMundo;
+  const encuadre = () => { mp.invalidateSize(); const g = MUNDO.puntos.length > 1 && MUNDO.linea ? MUNDO.linea.getBounds() : L.featureGroup(red).getBounds(); mp.fitBounds(g, { padding: [14, 14] }); };
+  pintarRutaMundo(); setTimeout(encuadre, 120); }
+function rodarMundo(){
+  const cam = MUNDO.camino; if (!cam) return;
+  const g = gpxMundo(cam), m = desnivelGpx(g.gpx), nombre = 'Mi ruta en el mundo · ' + m.km.toFixed(1).replace('.', ',') + ' km';
+  $('rutaIncluida').value = ''; copiarSentido(); cerrarPantallaRutas(); cargarRuta(g.gpx.replace('Mi ruta en el mundo', nombre));
+  ruta.tramos = { ruta: { id: 'mundo', mundo: true, nombre, estilo: g.montana ? 'montaña' : 'ciudad', inverso: 'al revés', tramos: { largo: g.largo, runs: g.runs }, calles: [] }, sentido: 'normal' };
+  if ($('escenario3d').querySelector('option[value="real"]')) { $('escenario3d').value = 'real'; try { localStorage.setItem('simulador-escenario', 'real'); } catch(e) {} }
   $('vistaRuta').value = vistaElegida(); ponerVista();
   setTimeout(() => $('zonaRuta').scrollIntoView({ behavior:'smooth', block:'start' }), 100); }
 function cerrarPantallaRutas(){ $('pantallaRutas').hidden = true; document.body.style.overflow = ''; }
@@ -3109,13 +3200,16 @@ function aplicarHora(){
   const arribaDia = C(v3.cieloTema[0]), horDia = C(v3.cieloTema[1]);
   const arriba = mezcla(mezcla(C(0x060a18), C(0x34497a), crep), arribaDia, dia);
   const hor = mezcla(mezcla(C(0x141b30), C(0xe9a173), crep), horDia, dia);
-  const p = v3.cieloBola.geometry.getAttribute('position'), cc = [];
-  for (let k = 0; k < p.count; k++) { const c = hor.clone().lerp(arriba, Math.pow(Math.max(0, p.getY(k) / 8000), 0.55)); cc.push(c.r, c.g, c.b); }
+  const sd = (() => { const e = Math.max(-10, elev) * Math.PI / 180; return new THREE.Vector3(Math.sin(az) * Math.cos(e), Math.sin(e), -Math.cos(az) * Math.cos(e)).normalize(); })();
+  const p = v3.cieloBola.geometry.getAttribute('position'), cc = [], vv = new THREE.Vector3(), naranja = C(0xffc27a), blanco = C(0xffffff), tarde = crep * (1 - dia);
+  for (let k = 0; k < p.count; k++) { const c = hor.clone().lerp(arriba, Math.pow(Math.max(0, p.getY(k) / 8000), 0.55)); vv.set(p.getX(k), p.getY(k), p.getZ(k)).normalize(); const dd = Math.max(0, vv.dot(sd));
+    if (tarde > 0.01) c.lerp(naranja, Math.pow(dd, 6) * 0.8 * tarde); if (dia > 0.01) c.lerp(blanco, Math.pow(dd, 40) * 0.5 * dia); cc.push(c.r, c.g, c.b); }
   v3.cieloBola.geometry.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3));
   const luzSil = 0.25 + 0.75 * crep;
   for (const s of v3.siluetas) { const a = s.base.map(x => x * luzSil); for (let k = 0; k < a.length; k += 3) { a[k] += (hor.r - a[k]) * 0.25; a[k + 1] += (hor.g - a[k + 1]) * 0.25; a[k + 2] += (hor.b - a[k + 2]) * 0.25; }
     s.m.geometry.setAttribute('color', new THREE.Float32BufferAttribute(a, 3)); }
-  const tintN = mezcla(mezcla(C(0x2a3046), C(0xffb48a), crep), C(0xffffff), dia); for (const n of v3.nubes.children) n.material.color.copy(tintN);
+  const tintN = mezcla(mezcla(C(0x2a3046), C(0xffb48a), crep), C(0xffffff), dia); const baseN = mezcla(mezcla(C(0x1c2438), C(0x8a6a80), crep), C(0xb9c4d6), dia); for (const n of v3.nubes.children) { n.material.color.copy(baseN).lerp(tintN, n.userData.luz == null ? 1 : n.userData.luz); n.material.opacity = 0.45 + 0.5 * crep; }
+  if (v3.solHalo) { v3.solHalo.visible = elev > -3; v3.solHalo.position.copy(sd).multiplyScalar(7200); const t = 1 - dia; v3.solHalo.scale.setScalar(1300 + 1300 * crep * t); v3.solHalo.material.color.copy(mezcla(C(0xffffff), C(0xffb070), crep * t)); }
   v3.escena.background = hor.clone(); v3.escena.fog.color.copy(hor);
   // sol (o luna de noche, fría y baja de intensidad, para que se siga viendo la carretera)
   if (elev > -4) { const e = Math.max(4, elev) * Math.PI / 180; v3.dirSol.set(Math.sin(az) * Math.cos(e), Math.sin(e), -Math.cos(az) * Math.cos(e)).normalize();
@@ -3600,11 +3694,21 @@ async function construir3D(){
           gr.addColorStop(0.42, 'rgba(200,210,255,0.35)'); gr.addColorStop(1, 'rgba(160,180,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, hh);
           g.fillStyle = 'rgba(190,188,175,0.55)'; for (const [x, y, r] of [[110, 100, 14], [150, 140, 10], [120, 150, 8], [140, 105, 6]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
         v3.luna = new THREE.Sprite(new THREE.SpriteMaterial({ map: tl, fog: false, depthWrite: false, transparent: true, toneMapped: false })); v3.luna.scale.set(520, 520, 1); v3.luna.renderOrder = -1.8; v3.luna.visible = false; v3.cielo.add(v3.luna); }
-      const tNube = textura(256, 128, (g, w, h) => { for (let n = 0; n < 14; n++) { const x = 40 + Math.random() * (w - 80), y = 50 + Math.random() * 40, r = 18 + Math.random() * 34, gr = g.createRadialGradient(x, y, 0, x, y, r);
-        gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); } });
-      for (let n = 0; n < (NOMBRE === 'desierto' ? 8 : 34); n++) { const nube = new THREE.Sprite(new THREE.SpriteMaterial({ map: tNube, fog: false, depthWrite: false, transparent: true, opacity: 0.6 + Math.random() * 0.35 }));
-        const ang = Math.random() * Math.PI * 2, r = 3800 + Math.random() * 3000, e = 900 + Math.random() * 1500;
-        nube.position.set(Math.cos(ang) * r, 700 + Math.random() * 1400, Math.sin(ang) * r); nube.scale.set(e, e / 2, 1); nube.renderOrder = -1; v3.nubes.add(nube); }
+      // nubes (v139): cúmulos de varias bolas con base plana (sombreadas abajo, iluminadas arriba) + cirros altos; sol con halo
+      const tNube = textura(256, 256, (g, w, h) => { for (let n = 0; n < 26; n++) { const a = Math.random() * 6.283, rr = Math.random() * w * 0.26, x = w / 2 + Math.cos(a) * rr, y = h / 2 + Math.sin(a) * rr * 0.6, r = w * (0.1 + Math.random() * 0.16), gr = g.createRadialGradient(x, y, 0, x, y, r);
+        gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+        g.globalCompositeOperation = 'destination-out'; const gb = g.createLinearGradient(0, h * 0.62, 0, h * 0.75); gb.addColorStop(0, 'rgba(0,0,0,0)'); gb.addColorStop(1, 'rgba(0,0,0,1)'); g.fillStyle = gb; g.fillRect(0, h * 0.62, w, h); });
+      const tCirro = textura(512, 64, (g, w, h) => { for (let i = 0; i < 40; i++) { const x = Math.random() * w, y = 20 + Math.random() * 24, l = 80 + Math.random() * 200, gr = g.createLinearGradient(x, 0, x + l, 0);
+        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.2)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x, y, l, 2 + Math.random() * 3); } });
+      const fN = Q.arb >= 1 ? 1 : Q.arb >= 0.5 ? 0.75 : 0.5, nCum = Math.round((NOMBRE === 'desierto' ? 6 : 26) * fN), nBol = Q.arb >= 0.5 ? 9 : 6;   // menos nubes en calidad media y baja
+      for (let n = 0; n < nCum; n++) { const ang = Math.random() * Math.PI * 2, dist = 3300 + Math.random() * 3200, cx = Math.cos(ang) * dist, cz = Math.sin(ang) * dist, cy = 650 + Math.random() * 900, tam = 180 + Math.random() * 300;
+        for (let b = 0; b < nBol; b++) { const ox = (Math.random() - 0.5) * tam * 2.2, oy = Math.max(0, Math.random() * tam * 0.5 - Math.abs(ox) * 0.15), oz = (Math.random() - 0.5) * tam * 0.8, e = tam * (1.1 + Math.random() * 0.7);
+          const nube = new THREE.Sprite(new THREE.SpriteMaterial({ map: tNube, fog: false, depthWrite: false, transparent: true, opacity: 0.95 }));
+          nube.position.set(cx + ox, cy + oy, cz + oz); nube.scale.set(e, e * 0.8, 1); nube.renderOrder = -1; nube.userData.luz = Math.min(1, 0.35 + oy / (tam * 0.5) * 0.65); v3.nubes.add(nube); } }
+      for (let n = 0; n < 7; n++) { const a = Math.random() * Math.PI * 2, nube = new THREE.Sprite(new THREE.SpriteMaterial({ map: tCirro, fog: false, depthWrite: false, transparent: true, opacity: 0.7 }));
+        nube.position.set(Math.cos(a) * 6200, 2300 + Math.random() * 1200, Math.sin(a) * 6200); nube.scale.set(4800, 560, 1); nube.renderOrder = -1.1; nube.userData.luz = 1; v3.nubes.add(nube); }
+      { const th = textura(256, 256, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,245,1)'); gr.addColorStop(0.08, 'rgba(255,250,225,1)'); gr.addColorStop(0.2, 'rgba(255,235,200,0.45)'); gr.addColorStop(1, 'rgba(255,220,180,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+        v3.solHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: th, fog: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending, toneMapped: false })); v3.solHalo.scale.set(1400, 1400, 1); v3.solHalo.renderOrder = -1.7; v3.cielo.add(v3.solHalo); }
       { // montañas en el horizonte: siluetas por capas, más azuladas cuanto más lejos
         const hor = new THREE.Color(TEMA.cielo[1]), base = new THREE.Color(TEMA.nieve ? 0x9aa6b4 : NOMBRE === 'desierto' ? 0xb79a78 : 0x6f8296);
         const ruido = (a, s) => Math.sin(a * 3 + s) * 0.5 + Math.sin(a * 7.3 + s * 2.1) * 0.3 + Math.sin(a * 17.1 + s * 0.7) * 0.15 + Math.sin(a * 41 + s * 3) * 0.05;
@@ -3705,8 +3809,29 @@ async function construir3D(){
         if (i) { const q = (i - 1) * 4; ai.push(q, q + 4, q + 1, q + 1, q + 4, q + 5, q + 2, q + 6, q + 3, q + 3, q + 6, q + 7); } }
       if (conTramos) { const t = tramoEn(v.d), su = t ? t.sup : 'carretera', c = (TEMA.montana && su === 'puente') ? SUP_COLOR.carretera : (SUP_COLOR[su] || SUP_COLOR.carretera); { const cc = c.map(x => x * 0.7); rc.push(...cc, ...cc); } }
       if (i) { const q = (i - 1) * 2; ri.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } });
+    if (conTramos && TX.tierra && TX.grava) {   // v139: cada firme con su textura (asfalto con rayas, carril bici rojo, tierra batida, grava de paseo)
+      const lienzoFirme = (img, conLineas, rojo) => { const c = document.createElement('canvas'); c.width = 256; c.height = 1024; const g = c.getContext('2d');
+        const tw = 256 / 4.6 * 3, th = 1024 / 12 * 3; for (let y = 0; y < 1024; y += th) for (let x = 0; x < 256; x += tw) g.drawImage(img, x, y, tw, th);
+        if (!rojo) { g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 0, 256, 1024); }
+        if (conLineas) { g.fillStyle = '#ececec'; g.fillRect(7, 0, 7, 1024); g.fillRect(256 - 14, 0, 7, 1024); g.fillStyle = '#f2f2f2'; g.fillRect(128 - 4, 0, 8, 1024 * 0.45); }
+        const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+      const lienzoSuelto = img => { const t = new THREE.Texture(img); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+      const GRUPO = { 'carretera': 'asf', 'puente': 'asf', 'paso inferior': 'asf', 'carril bici': 'cb', 'paseo': 'grava', 'tierra': 'tierra' };
+      const MAT = { asf: { map: lienzoFirme(TX.asfalto || TX.tierra, true, false), color: 0xffffff, cuadro: false },
+                    cb: { map: lienzoFirme(TX.carrilbici || TX.asfalto, true, true), color: 0xffffff, cuadro: false },
+                    grava: { map: lienzoSuelto(TX.grava), color: 0xffffff, cuadro: true },
+                    tierra: { map: lienzoSuelto(TX.tierra), color: 0xffffff, cuadro: true } };
+      const G = {}; for (const k in MAT) G[k] = { p: [], uv: [], ix: [] };
+      for (let i = 1; i < via.length; i++) { const vm = via[i - 1], su = ((tramoEn((vm.d + via[i].d) / 2) || {}).sup) || 'carretera', k = GRUPO[su] || 'asf', g = G[k], q0 = (i - 1) * 2, n = g.p.length / 3;
+        for (const qq of [q0, q0 + 1, q0 + 2, q0 + 3]) g.p.push(rp[qq * 3], rp[qq * 3 + 1], rp[qq * 3 + 2]);
+        const an = ANCHO_SUP[su] || ANCHO, rep = MAT[k].cuadro ? 2 * an : 12, d0 = vm.d / rep, d1 = via[i].d / rep;
+        g.uv.push(0, d0, 1, d0, 0, d1, 1, d1); g.ix.push(n, n + 1, n + 2, n + 1, n + 3, n + 2); }
+      for (const k in G) { const g = G[k]; if (!g.ix.length) continue; const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(g.p, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(g.uv, 2)); geo.setIndex(g.ix); geo.computeVertexNormals();
+        const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: MAT[k].map, color: MAT[k].color, polygonOffset: true, polygonOffsetFactor: -2, side: THREE.DoubleSide })); m.receiveShadow = true; esc.add(m); }
+    } else {
     const gr = new THREE.BufferGeometry(); gr.setAttribute('position', new THREE.Float32BufferAttribute(rp, 3)); gr.setAttribute('uv', new THREE.Float32BufferAttribute(ruv, 2)); if (conTramos) gr.setAttribute('color', new THREE.Float32BufferAttribute(rc, 3)); gr.setIndex(ri); gr.computeVertexNormals();
     { const carretera = new THREE.Mesh(gr, new THREE.MeshLambertMaterial({ map: tAsf, vertexColors: conTramos, polygonOffset: true, polygonOffsetFactor: -2, side: THREE.DoubleSide })); carretera.receiveShadow = true; esc.add(carretera); }
+    }
     if (ap.length) { const ga = new THREE.BufferGeometry(); ga.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3)); ga.setIndex(ai); ga.computeVertexNormals();
       const arcen = new THREE.Mesh(ga, new THREE.MeshLambertMaterial({ color: TEMA.montana ? 0x6f6a4c : 0x7e7c72, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })); arcen.receiveShadow = true; esc.add(arcen); }
     // árboles (instancias), fuera de la carretera y por debajo de 1.900 m
