@@ -224,6 +224,18 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
     #clasifPanel { font-size:12px; top:60px; } #zonaRuta.carretera #panelMapa .barra { padding:5px 7px; } #zonaRuta.carretera #panelMapa .barra button, #zonaRuta.carretera #panelMapa .barra select { font-size:12px; padding:4px 7px; }
     #zonaRuta.carretera #tablero .tv { font-size:18px; } #zonaRuta.carretera #tablero .vel .tv { font-size:34px; }
   }
+
+  /* v160 (Carlos, captura de la tablet 21-nov): en la tablet, columna de datos más estrecha y paneles más pequeños, cada uno encogido hacia su esquina */
+  body.tablet #zonaRuta.carretera { --colD: 300px; }
+  body.tablet #zonaRuta.carretera #panelPerfil { zoom:.7; width:calc(300px / .7); max-height:calc(58vh / .7); }
+  body.tablet #zonaRuta.carretera #panelMapa { top:58%; }
+  body.tablet #marcador, body.tablet #viento3d, body.tablet #mandoTeclado, body.tablet #clasifPanel { scale:.72; transform-origin:left top; }
+  body.tablet #rivales3d, body.tablet #camara { scale:.7; transform-origin:left bottom; }
+  body.tablet #colDer3d, body.tablet #ordenes3d, body.tablet #espect3d { scale:.7; transform-origin:right bottom; }
+  body.tablet #tramo3d { scale:.68; transform-origin:center top; top:56px; }
+  body.tablet #rotulo, body.tablet #aviso3d { scale:.8; transform-origin:center top; }
+  body.tablet #cuentaAtras { font-size:110px; }
+  body.tablet #zonaRuta.carretera #panelMapa .barra { scale:.8; transform-origin:left top; }
   #rivales3d { position:fixed; left:12px; bottom:34px; z-index:1002; display:none; flex-direction:column; gap:6px; }
   #mandoTeclado, #marcador, #rivales3d, #colDer3d, #tramo3d, #clasifPanel, #camara, #viento3d { cursor:grab; touch-action:none; } #rivales3d *, #colDer3d * { pointer-events:auto; }
   body.menuAbierto #zonaRuta.carretera #panelMapa .barra { top:56px; }
@@ -341,7 +353,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v159 · 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -993,19 +1005,22 @@ function frase(tipo, d){ const L = FRASES[tipo] || [tipo]; let t = L[Math.floor(
 const NARR = { cola: [], t: 0, ult: {}, ultimaAlguna: 0, nivel: 'normal', voz: true };
 try { NARR.nivel = localStorage.getItem('simulador-narracion') || 'normal'; NARR.voz = localStorage.getItem('simulador-voz') !== '0'; } catch(e) {}
 const PRIO = { alta: 3, media: 2, baja: 1 }, UMBRAL = { mucha: 1, normal: 2, poca: 3, nada: 9 };
+// v161 (Carlos: «los comentarios dicen tiran DEN y COL, no el país»): las siglas sueltas se dicen con el nombre del país; las de detrás de un nombre, «(ITA)», se quedan en el texto pero no se leen en voz
+function conPaises(t){ if (typeof SIGLA_PAIS === 'undefined') return t; const P = {}; for (const k in SIGLA_PAIS) P[SIGLA_PAIS[k]] = k;
+  return t.replace(/(^|[^(A-Za-zÁÉÍÓÚÑáéíóúñ])([A-Z]{3})(?![A-Za-z)])/g, (m, a, sg) => P[sg] ? a + P[sg] : m); }
 function narrar(prio, texto, clave){
   if (!texto || PRIO[prio] < (UMBRAL[NARR.nivel] || 2)) return;
   if (/^(esc|evo|caza|cazada|fugaSale|corte|ventaja|tranq|q\d+|desc|at|atk)/.test(clave || '') && typeof rivales !== 'undefined' && rivales.lista.some(r => r.tipo === 'bot' && r.llego)) return;   // v156: ya hay ganador
   if (sesion.demo && (demo.x || 1) > 1 && prio === 'baja') return;
   const k = clave || texto, ahora = Date.now(); if (NARR.ult[k] && ahora - NARR.ult[k] < (prio === 'baja' ? 60000 : 20000)) return; NARR.ult[k] = ahora;
-  NARR.cola.push({ prio: PRIO[prio], texto, quien: 'N' }); NARR.cola.sort((a, b) => b.prio - a.prio); if (NARR.cola.length > 5) NARR.cola.length = 5;
+  texto = conPaises(texto); NARR.cola.push({ prio: PRIO[prio], texto, quien: 'N' }); NARR.cola.sort((a, b) => b.prio - a.prio); if (NARR.cola.length > 5) NARR.cola.length = 5;
   try { comentarioPara(clave || '', texto, prio); } catch(e) {} }
 // v156: el comentarista (Marga) contesta al narrador (Andrés) con el porqué, datos de la ficha y consejos
 const LOC = { N: '🎙 Andrés · narrador', C: '💬 Marga · comentarista' };
 function comentar(prio, texto, clave, cada){ if (!texto || PRIO[prio] < (UMBRAL[NARR.nivel] || 2)) return; if (sesion.demo && (demo.x || 1) > 1) return;
   const k = 'C:' + (clave || texto), ahora = Date.now(); if (NARR.ult[k] && ahora - NARR.ult[k] < (cada || 60000)) return;
   if (prio !== 'alta' && ahora - (NARR.tCom || 0) < 20000) return; NARR.ult[k] = NARR.tCom = ahora;
-  NARR.cola.push({ prio: PRIO[prio], texto, quien: 'C' }); NARR.cola.sort((a, b) => b.prio - a.prio); if (NARR.cola.length > 5) NARR.cola.length = 5; }
+  texto = conPaises(texto); NARR.cola.push({ prio: PRIO[prio], texto, quien: 'C' }); NARR.cola.sort((a, b) => b.prio - a.prio); if (NARR.cola.length > 5) NARR.cola.length = 5; }
 function comentarioPara(clave, texto, prio){
   if (typeof rivales === 'undefined' || !carrera || !sesion.corriendo) return;
   const B = rivales.lista.filter(r => r.tipo === 'bot' && r.ficha); if (B.some(b => b.llego) && clave !== 'gana') return; if (sesion.espect && /^(incYo|chupa|cola|cabeza)$/.test(clave)) return;
@@ -1048,7 +1063,7 @@ function comentarioPara(clave, texto, prio){
 function sinEmojis(t){ return t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim(); }
 let vozEs = null, vocesEs = null; function hablar(t, quien){ if (!NARR.voz || !window.speechSynthesis || (sesion.demo && (demo.x || 1) > 1)) return;
   try { if (!vocesEs || !vocesEs.length) { const V = speechSynthesis.getVoices(); vocesEs = V.filter(v => /^es(-|_)ES/i.test(v.lang)).concat(V.filter(v => /^es/i.test(v.lang) && !/^es(-|_)ES/i.test(v.lang))); vozEs = vocesEs[0] || null; }
-    const c = quien === 'C', u = new SpeechSynthesisUtterance(sinEmojis(t)); u.lang = 'es-ES';
+    const c = quien === 'C', u = new SpeechSynthesisUtterance(sinEmojis(t).replace(/\s*\([A-Z]{3}\)/g, '')); u.lang = 'es-ES';
     // v159 (Carlos: «Andrés tiene voz de mujer»): se eligen por nombre; si no hay voz de hombre, a Andrés se le baja el tono
     const HOMBRE = /pablo|jorge|[aá]lvaro|ra[uú]l|diego|enrique|carlos|juan|antonio|jos[eé]|dar[ií]o|gonzalo|male|hombre|masculin/i, MUJER = /helena|laura|elvira|luc[ií]a|m[oó]nica|paulina|sabina|marisol|elena|isabel|ximena|dalia|female|mujer|femenin/i;
     const vH = vocesEs.find(v => HOMBRE.test(v.name) && !MUJER.test(v.name)), vM = vocesEs.find(v => MUJER.test(v.name)) || vocesEs.find(v => v !== vH);
@@ -1210,7 +1225,7 @@ function mulberry(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Mat
 // Con Carlos en la fuga la caza NO está calculada: el pelotón persigue con los gregarios que le quedan, y sus vatios deciden.
 function tacticaCarrera(bots, dt){
   const T = carrera.tac || (carrera.tac = { t: 2, m: 1, dCaza: null, relaja: 0, habiaFuga: false, pel: new Set(), tNarr: 0, gapAnt: null, tGap: 0, sinRelevo: 0, frus: 0, ventajas: [] });
-  for (const b of bots) if (T.pel.has(b) && b.vGrupo) b.vGrupo *= T.m;   // el ritmo del pelotón según la pizarra (cada paso)
+  for (const b of bots) if (T.pel.has(b) && b.vGrupo) b.vGrupo = pendAplicada(b.d) > 2.5 ? b.vGrupo * Math.min(T.m, 1.02) : Math.max(b.vGrupo * T.m, T.vCaza || 0);   // v162: persiguiendo, el pelotón va a la velocidad de caza; subiendo, a su ritmo   // el ritmo del pelotón según la pizarra (cada paso)
   pasoIncidentes(bots, dt);
   T.t += dt; if (T.t < 2) return; T.t = 0; pintarOrdenes();
   const vYo = Math.max(0, velocidadRuta() || 0), yo = { yo: true, d: ruta.dist, v: vYo };
@@ -1238,16 +1253,21 @@ function tacticaCarrera(bots, dt){
   else if (sinNeutra && !T.espera && fr > 0.02 && fr < 0.45 && !delante.some(x => !x.yo && (x.ataque > 0)) && (!delante.length || (delante.length < 4 && gapS < 25))) {
     const n0 = enPel.filter(b => b.ataque > 0).length; lanzar(delante.length ? 0.02 : (fr < 0.15 ? 0.03 : 0.012), Math.random() < 0.5 ? 1 : 2); if (enPel.filter(b => b.ataque > 0).length > n0) T.espera = 90; }
   // ritmo del pelotón
-  let m = 1;
+  let m = 1; T.vCaza = 0;
   if (delante.length && (gapS > 8 || (T.habiaFuga && gapS > 4))) {
     T.maxGap = Math.max(T.maxGap || 0, gapS);
     if (!T.habiaFuga) { T.habiaFuga = true; T.dCaza = Math.random() < 0.2 ? Infinity : dMeta() - Math.min(15000, dMeta() * (0.06 + Math.random() * 0.14)); T.gapAnt = null; }
     const gapPerm = Math.min(240, Math.max(30, dMeta() / 1000 * 3)) * (0.3 + 0.7 * Math.min(1, Math.max(0, (resta / dMeta() - 0.15) / 0.6)));   // proporcional a la carrera
-    if (yoFuga) m = gapS > 15 ? 1 + Math.min(0.05, 0.01 * (fr > 0.5 ? 1.5 : 1) * Math.min(5, cz.length)) : 1;   // pelea: persiguen con lo que tienen
-    else if (T.dCaza === Infinity) m = gapS > gapPerm ? 1.02 : 0.95;
-    else { const queda = T.dCaza - pel[0].d, tLeft = Math.max(60, queda / vPel); m = (gapS < gapPerm && pel[0].d < 0.55 * T.dCaza) ? 0.95 : Math.min(1.05, Math.max(0.97, 1 + gapS / tLeft)); }
-    if (!yoFuga) { if (!cz.length) m = Math.min(m, 1.0); else if (cz.length === 1) m = Math.min(m, 1.03); }
-    if (m > 1) cz.slice(0, 2).forEach(b => b.tirando = true);
+    // v162 (Carlos: «mi muñeco tiene mucha superioridad, se ha escapado al 97 % de FTP»): a ti te vigilan; te dejan la mitad de ventaja y, pasada, persiguen de verdad (hasta +10 %)
+    const aquiYo = yoFuga || (sesion.espect && delante.some(x => x.avatar));
+    if (aquiYo) { const perm = gapPerm * 0.5, queda = Math.max(2000, (T.dCaza === Infinity ? dMeta() : T.dCaza) - pel[0].d), tLeft = Math.max(60, queda / vPel);
+      m = gapS < perm * 0.6 ? 1 : Math.min(1.10, Math.max(1.02, 1 + 1.6 * gapS / tLeft + (gapS > perm ? 0.03 : 0))); if (cz.length < 2) m = Math.min(m, 1.05); }
+    else if (T.dCaza === Infinity) m = gapS > gapPerm ? 1.04 : 0.95;
+    else { const queda = T.dCaza - pel[0].d, tLeft = Math.max(60, queda / vPel); m = (gapS < gapPerm && pel[0].d < 0.55 * T.dCaza) ? 0.95 : Math.min(1.08, Math.max(0.97, 1 + gapS / tLeft)); }
+    if (!aquiYo) { if (!cz.length) m = Math.min(m, 1.0); else if (cz.length === 1) m = Math.min(m, 1.03); }
+    if (m > 1) cz.slice(0, aquiYo ? 4 : 2).forEach(b => b.tirando = true);
+    // v162: velocidad de caza = la de la fuga más lo que haga falta para cerrar el hueco (antes solo tiraban fuerte a menos de 300 m)
+    { const vEsc = delante.reduce((s2, x) => s2 + (x.v || vPel), 0) / delante.length; T.vCaza = m > 1 ? vEsc * Math.min(1.10, Math.max(1.02, m)) : 0; }
     // lo que ves: ventaja, quién tira y, si vas escapado, a qué ritmo os recortan
     T.tGap += 2; if (T.tGap >= 60 && T.maxGap >= 15) { T.tGap = 0; const eqs = [...new Set(cz.slice(0, 2).map(b => b.sigla || b.pais))].join(' y ');
       let txt = (yoFuga ? 'Vuestra ventaja: ' : 'La fuga tiene ') + hms(gapS) + (m > 1 && eqs ? ' · tiran ' + eqs : ' · el pelotón la deja ir');
@@ -1358,6 +1378,7 @@ function moverBotCalc(b, dt, todos){
   if (!(b.ataque > 0) && b.wp > 0.5 * b.wpMax && !b.cerca.some(o => o.d - b.d > 0.3 && o.d - b.d < 3)) {
     let esc = null; for (const o of b.lejanos || []) if (o.d - b.d >= 30 && o.d - b.d < 300) { esc = o; break; }
     if (esc && (!b.ficha || b.tirando)) obj = Math.max(obj, F * (b.ficha ? (g > 2 ? 0.95 : 0.9) : (g > 2 ? 1.0 : 0.92))); }   // v151: con fichas, persigue quien manda la pizarra
+  if (b.ficha && b.tirando && carrera.tac && carrera.tac.vCaza && !(b.ataque > 0)) obj = Math.max(obj, Math.min(F * (g > 2.5 ? 0.95 : 1.05), potenciaPara(carrera.tac.vCaza, g, 0, b.q)));   // v162: a cualquier distancia
   // final: último km fuerte; el sprint lo lanzan los esprínters a 300 m y el resto a 200 m, con lo que dé su curva de 15 s
   if (resta < 1000) obj = Math.max(obj, F * 1.05); if (resta < (b.lanzado ? 250 : b.perfil === 'sprinter' ? 300 : 200)) obj = curvaPot(b, 15);
   if (b.vacia) obj = Math.min(obj, F * 0.85);
@@ -1411,6 +1432,7 @@ function vigilarCarrera(dt){
   // tendencia: cómo era la diferencia hace 30 s
   for (const g of G) { const h = VIG.hist[g.clave] || (VIG.hist[g.clave] = []); h.push([ahora, g.dif]); while (h.length && ahora - h[0][0] > 45) h.shift(); const ant = h.find(e => ahora - e[0] <= 32 && ahora - e[0] >= 26) || h[0]; g.tend = Math.abs(g.dif) - Math.abs(ant[1]); }
   // escapada: grupo pequeño por delante del grupo más grande, con 8 s o más
+  if (!G.length) return;   // v162: ya han llegado todos
   const iMax = G.reduce((m, g, i) => g.n > G[m].n ? i : m, 0), pelo = G[iMax], esc = !grupeta && iMax > 0 && G[0].n <= 6 && (G[0].cab.d - pelo.cab.d) / pelo.v >= 8 ? G[0] : null;
   const fmt = t => hms(Math.round(Math.abs(t))), nombres = g => g.m.map(x => x.yo ? 'tú' : x.nombre).join(', ');
   // (solo cuenta lo que dura: una escapada o un corte se anuncian si siguen ahí al menos 10 s)
@@ -1542,7 +1564,7 @@ function pintarClasif(forzar){ const P = $('clasifPanel'); if (!P || P.hidden) r
   const vG = Math.max(2, velocidadRuta() || 6), cabDe = []; C.forEach((x, i) => { const prev = C[i - 1]; cabDe[i] = i && !x.llego && !prev.llego && (prev.d - x.d) / vG < 2 ? cabDe[i - 1] : x; });
   P.innerHTML = '<div class="cab">🏁 ' + (grupeta ? 'Grupeta' : 'Clasificación') + ' <small>' + (sig && !grupeta ? 'próximo: ' + (sig.tipo === 'puerto' ? '⛰ ' : sig.tipo === 'sprint' ? '⚡ ' : '🏁 ') + sig.nombre + ' a ' + f1((sig.d - ruta.dist) / 1000) + ' km' : '') + '</small><button class="mini" onclick="alternarClasif()">✕</button></div>'
     + '<table><tr><th></th><th>Corredor</th><th>Dif.</th>' + (grupeta ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => { const dt = difTiempo(cabDe[i], lid);
-      return '<tr' + (x.yo ? ' class="yo"' : '') + '><td>' + (i + 1) + '</td><td>' + (x.yo ? 'Tú' : '<span style="color:' + x.color + '">●</span> ' + x.nombre) + (x.llego ? ' 🏁' : '') + '</td><td>' + (i === 0 ? '—' : cabDe[i] === lid ? 'mismo t.' : dt != null ? '+' + hms(Math.max(0, dt)) : '+' + Math.round(lid.d - x.d) + ' m') + '</td>'
+      return '<tr' + (x.yo ? ' class="yo"' : '') + '><td>' + (i + 1) + '</td><td>' + (x.yo ? 'Tú' : '<span style="color:' + x.color + '">●</span> ' + x.nombre + (x.sigla ? ' <small>(' + x.sigla + ')</small>' : '')) + (x.llego ? ' 🏁' : '') + '</td><td>' + (i === 0 ? '—' : cabDe[i] === lid ? 'mismo t.' : dt != null ? '+' + hms(Math.max(0, dt)) : '+' + Math.round(lid.d - x.d) + ' m') + '</td>'
         + (grupeta ? '' : '<td>' + (x.mont || '') + '</td><td>' + (x.regu || '') + '</td>') + '</tr>'; }).join('') + '</table>'; }
 function alternarClasif(){ const P = $('clasifPanel'); if (P.parentNode !== document.body) document.body.appendChild(P); P.hidden = !P.hidden; pintarClasif(true); pintarRivales(); }
 // En carrera la meta está 200 m antes del final del recorrido: se cruza y se sigue rodando
@@ -1630,16 +1652,16 @@ function moverRivales(dt){
     { const fr = gg => gg > 2 ? 0.92 : gg < -2 ? 0.45 : 0.82, ord = bots.filter(b => !b.llego).sort((a, b) => b.d - a.d), G = [];
       for (const x of ord) { const gr = G[G.length - 1]; if (gr && gr[gr.length - 1].d - x.d <= 20) gr.push(x); else G.push([x]); }
       G.forEach((gr, k) => { const mb = gr.filter(x => !(x.ataque > 0)); if (mb.length < 2) { gr.forEach(x => x.vGrupo = null); return; }
-        const gg = pendAplicada(mb[0].d), vs = mb.map(x => velocidadFisica(fr(gg) * x.ftp * x.forma * (x.fStam || 1), gg, 0, x.q)).sort((a, b) => a - b);
+        const gg = pendAplicada(mb[0].d), vs = mb.map(x => velocidadFisica(fr(gg) * x.ftp * x.forma * (x.fStam || 1), gg, 0, x.q, vientoCara(mb[0].d))).sort((a, b) => a - b);   /* v162: con el viento que hay ahí */
         let vG = vs[Math.floor(vs.length * 0.15)];
         // con otro grupo delante a menos de 200 m (y no es una fuga consentida de 1–4): aprietan para enlazar, como la cola del pelotón
-        const del = G[k - 1]; if (del && del[del.length - 1].d - gr[0].d < 200 && del.length >= 3) vG *= 1.06;
+        const del = G[k - 1]; if (del && del[del.length - 1].d - gr[0].d < 200 && del.length >= 3) vG *= gg > 2 ? 1.02 : 1.06;   /* v162: subiendo, sin rebufo, enlazar cuesta de verdad */
         gr.forEach(x => x.vGrupo = vG); });
       // v151 · grupeta de cortados: los grupos que van a más de 40 s del pelotón ruedan juntos y tranquilos; el que va solo espera al grupo que le viene detrás
       if (bots[0] && bots[0].ficha && G.length > 1) { const ip = G.reduce((a, g, k) => g.length > G[a].length ? k : a, 0), pel = G[ip];
         G.forEach((gr, k) => { if (k <= ip) return; const gapS = (pel[pel.length - 1].d - gr[0].d) / Math.max(3, gr[0].v || 3); if (gapS < 40) return;
-          const det = G[k + 1]; if (gr.length === 1 && det && gr[0].d - det[0].d < 300 && !(gr[0].vacia)) { const x = gr[0]; x.vGrupo = velocidadFisica(0.65 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q); x.cortado = true; return; }
-          if (gr.length >= 2) { const vs = gr.map(x => velocidadFisica(0.8 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q)).sort((a, b) => a - b); const vG = vs[Math.floor(vs.length * 0.5)] * 0.98; gr.forEach(x => { x.vGrupo = Math.min(x.vGrupo || vG, vG); x.cortado = true; }); } }); }
+          const det = G[k + 1]; if (gr.length === 1 && det && gr[0].d - det[0].d < 300 && !(gr[0].vacia)) { const x = gr[0]; x.vGrupo = velocidadFisica(0.65 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q, vientoCara(x.d)); x.cortado = true; return; }
+          if (gr.length >= 2) { const vs = gr.map(x => velocidadFisica(0.8 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q, vientoCara(x.d))).sort((a, b) => a - b); const vG = vs[Math.floor(vs.length * 0.5)] * 0.98; gr.forEach(x => { x.vGrupo = Math.min(x.vGrupo || vG, vG); x.cortado = true; }); } }); }
       if (bots[0] && bots[0].ficha) tacticaCarrera(bots, dt); }
     for (const b of bots) { b.lejanos = todos.filter(o => o !== b && o.d - b.d >= 30 && o.d - b.d < 300); b.cercaLejos = todos.filter(o => o !== b && o.d - b.d > -15 && o.d - b.d < 30); b.cerca = b.cercaLejos.filter(o => Math.abs(o.d - b.d) < 15); moverBot(b, dt, b.cerca);
       b.tCarril = (b.tCarril || 0) - dt; if (b.tCarril <= 0) { b.tCarril = 2 + 3 * Math.random();
@@ -1801,8 +1823,8 @@ function pintarListaRivales(){
       + '<span class="confCarrera"><select id="cTipo"><option value="carrera"' + (gr ? '' : ' selected') + '>Carrera</option><option value="grupeta"' + (gr ? ' selected' : '') + '>Grupeta tranquila</option></select>'
       + ' Corredores <select id="cN">' + [6, 24, 36, 48, 60].map(n => '<option' + (n === ([6, 24, 36, 48, 60].reduce((a, b) => Math.abs(b - c.n) < Math.abs(a - c.n) ? b : a)) ? ' selected' : '') + ' value="' + n + '">' + (n === 6 ? '6 · tú + 5 (corta)' : n === 60 ? '60 · todos' : n + ' · ' + n / 12 + ' por equipo') + '</option>').join('') + '</select>'
       + (gr ? ' Zona <select id="cZona">' + ZONAS.map(z => '<option value="' + z.n + '"' + (z === zonaActual() ? ' selected' : '') + '>' + z.n + ' · ' + z.txt + ' · ' + n2(wkgZona(z)) + ' w/kg</option>').join('') + '</select>'
-            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + (gr ? '' : ' <label title="Pinchazos, cadena o averías: 1–2 por carrera"><input type="checkbox" id="cInc"' + (c.incidentes !== false ? ' checked' : '') + '> Incidentes</label> <button id="bEspect" type="button" title="Corren Carlos y Susana; tú solo miras">👀 Ver como espectador</button>') + '</span>'; })();
-  if ($('bEspect')) $('bEspect').onclick = e => { e.stopPropagation(); empezarEspectador(); };
+            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + (gr ? '' : ' <label title="Pinchazos, cadena o averías: 1–2 por carrera"><input type="checkbox" id="cInc"' + (c.incidentes !== false ? ' checked' : '') + '> Incidentes</label> <label title="Corren Carlos y Susana; tú solo miras. El botón de empezar de siempre arranca la carrera sin ti"><input type="checkbox" id="cEsp"' + (c.espectador ? ' checked' : '') + '> 👀 Solo miro</label>') + '</span>'; })();
+  if ($('cEsp')) { $('cEsp').onclick = e => e.stopPropagation(); $('cEsp').onchange = () => { const c = carreraConf(); c.espectador = $('cEsp').checked; guardarCarrera(c); }; }
   L.querySelectorAll('.chipRival').forEach(c => c.onclick = e => { if (e.target.closest('.mini')) return; const id = c.dataset.id;
     if (id === 'fantasma') { try { localStorage.setItem(CLAVE('simulador-fantasma-activo'), fantasmaActivo() ? '0' : '1'); } catch(e) {} }
     else if (id === 'carrera') { const c = carreraConf(); c.activa = !c.activa; guardarCarrera(c); if (typeof prepararRivales === 'function' && ruta.activa && !sesion.corriendo) prepararRivales(); }
@@ -2036,7 +2058,7 @@ function mostrarResumen(){
     const gr = rivales.lista.some(r => r.tipo === 'bot' && r.grupeta), nom = x => x.yo ? 'Tú' : x.nombre;
     const rey = k => { const m = C.reduce((a, x) => (x[k] || 0) > (a[k] || 0) ? x : a, C[0]); return m[k] ? nom(m) + ' (' + m[k] + ' pts)' : '—'; };
     cla = '<h3>' + (gr ? 'Grupeta' : 'Carrera') + '</h3>' + (gr ? '' : '<p>🏆 Gana: <b>' + nom(C[0]) + '</b> · ⛰ Montaña: <b>' + rey('mont') + '</b> · ⚡ Regularidad: <b>' + rey('regu') + '</b></p>')
-      + '<table><tr><th>Puesto</th><th>Corredor</th><th>Tiempo</th><th>Diferencia</th>' + (gr ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => '<tr' + (x.yo ? ' style="font-weight:bold;color:#ffd33d"' : '') + '><td>' + (i + 1) + 'º</td><td>' + (x.yo ? 'Tú' : (gr ? '' : (x.ico || '') + ' ') + (x.dorsal ? x.dorsal + ' ' : '') + x.nombre + (x.sigla ? ' · ' + x.sigla : '')) + '</td><td>'
+      + '<table><tr><th>Puesto</th><th>Corredor</th><th>Tiempo</th><th>Diferencia</th>' + (gr ? '' : '<th>⛰</th><th>⚡</th>') + '</tr>' + C.map((x, i) => '<tr' + (x.yo ? ' style="font-weight:bold;color:#ffd33d"' : '') + '><td>' + (i + 1) + 'º</td><td>' + (x.yo ? 'Tú' : (gr ? '' : (x.ico || '') + ' ') + (x.dorsal ? x.dorsal + ' ' : '') + x.nombre + (x.sigla ? ' (' + x.sigla + ')' : '')) + '</td><td>'
       + (x.llego ? hms(x.tLlegada) : 'a ' + f((ruta.total - x.d) / 1000, 2) + ' km') + '</td><td>' + (x.llego && t0 != null && i ? '+' + hms(x.tLlegada - t0) + (x.tLlegada - t0 > limiteFC() * t0 ? ' ⛔ fuera de control' : '') : '') + '</td>' + (gr ? '' : '<td>' + (x.mont || '') + '</td><td>' + (x.regu || '') + '</td>') + '</tr>').join('') + '</table>'; }
   $('resRivales').innerHTML = cla + (rv ? '<h3>Rivales</h3><div class="rivRes">' + rv + '</div>' : '');
   const ORDS = { puerto:0, subida:1, repecho:2, sprint:3, llano:4, bajada:5, recorrido:6 }, ORD = x => x.segTipo ? ORDS[x.segTipo] ?? 6 : /^Subida|^Repecho/.test(x.nombre) ? 7 : /^Últimos/.test(x.nombre) ? 8 : /–/.test(x.nombre) ? 9 : 10;
@@ -2347,16 +2369,21 @@ function espColocar(){ const S = espSeguido(); if (!S) return; ruta.dist = Math.
     narrar('alta', '🏁 Fin de la carrera' + (pc ? ' · Carlos ' + pc + 'º' : '') + (ps ? ' · Susana ' + ps + 'ª' : ''), 'finEsp'); } }
 function pintarEspect(){ let P = $('espect3d'); if (!P) { P = document.createElement('div'); P.id = 'espect3d'; document.body.appendChild(P); }
   const op = [['carlos', '🚴 Carlos'], ['susana', '🚴‍♀️ Susana'], ['cabeza', '🥇 Cabeza'], ['peloton', '👥 Pelotón']];
-  P.hidden = false; P.innerHTML = '<span class="tt">👀 Espectador · N cambia</span>' + op.map(([k, t]) => '<button data-s="' + k + '"' + (espect.sigue === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '<button data-s="fin">⏹ Salir</button>';
-  P.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.s === 'fin') { terminar(false); return; } espect.sigue = b.dataset.s; const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } pintarEspect(); }); }
+  P.hidden = false; P.innerHTML = '<span class="tt">👀 Espectador · N cambia</span>' + op.map(([k, t]) => '<button data-s="' + k + '"' + (espect.sigue === k ? ' class="on"' : '') + '>' + t + '</button>').join('')
+    + '<span class="tt">Velocidad · R</span><span style="display:flex;gap:3px">' + [1, 2, 5].map(x => '<button data-x="' + x + '"' + ((demo.x || 1) === x ? ' class="on"' : '') + ' style="flex:1;text-align:center">×' + x + '</button>').join('') + '</span>'
+    + '<button data-s="fin">⏹ Salir</button>';
+  P.querySelectorAll('button[data-x]').forEach(b => b.onclick = () => espVel(+b.dataset.x));
+  P.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { if (b.dataset.s === 'fin') { terminar(false); return; } espect.sigue = b.dataset.s; const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } pintarEspect(); }); }
+function espVel(x){ demo.x = x; if ($('b3Tester')) $('b3Tester').textContent = x === 1 ? '▶ Tiempo real' : '⏩ ×' + x; aviso3d(x === 1 ? '▶ Velocidad real' : '⏩ ×' + x + ' · los locutores solo hablan a velocidad real', 1800); pintarEspect(); }
 function empezarEspectador(){
   if (!ruta.activa) { avisar('Elige antes una ruta.'); return; }
   if (sesion.corriendo) { avisar(sesion.demo ? 'Para antes lo que está en marcha.' : 'Estás en una salida de verdad.'); return; }
   const c = carreraConf(); if (!c.activa || c.tipo === 'grupeta') { c.activa = true; c.tipo = 'carrera'; guardarCarrera(c); }
+  if (demo.x !== 1 && demo.x !== 2 && demo.x !== 5) demo.x = 1;
   if ($('pantallaRutas') && !$('pantallaRutas').hidden) cerrarPantallaRutas();   /* v159: «sale la cuenta atrás pero no va al mundo 3D» */
   if (!window.LIGERO && $('vistaRuta').value !== 'carretera') { $('vistaRuta').value = 'carretera'; ponerVista(); }
   sesion.espect = true; espect.sigue = 'carlos'; espect.fin = false; prepararRivales();
-  sesion.demo = true; demo.x = 1; demo.manual = false; sesion.segReg = 0; const vivoT = () => { vivo.w = 1; vivo.c = 1; vivo.p = 0; vivo.tW = vivo.tP = Date.now(); }; vivoT(); demo.t = setInterval(vivoT, 500);
+  sesion.demo = true; demo.manual = false; sesion.segReg = 0; const vivoT = () => { vivo.w = 1; vivo.c = 1; vivo.p = 0; vivo.tW = vivo.tP = Date.now(); }; vivoT(); demo.t = setInterval(vivoT, 500);
   empezar(); pintarEspect(); aviso3d('👀 Modo espectador: corren Carlos y Susana · tú solo miras · no se guarda nada', 4000); }
 document.addEventListener('keydown', e => { if (!sesion.espect || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   if (e.key.toLowerCase() === 'n') { const o = ['carlos', 'susana', 'cabeza', 'peloton']; espect.sigue = o[(o.indexOf(espect.sigue) + 1) % o.length]; { const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } } pintarEspect(); e.preventDefault(); } });
@@ -3113,6 +3140,7 @@ const VEL_TESTER = [0, 50, 200, 600];
 $('b3Tester').onclick = () => {
   $('b3Tester').blur();
   if (sesion.corriendo && !sesion.demo) { avisar('Recorrer es una salida simulada: termina antes la de verdad.'); return; }
+  if (sesion.espect) { const Y = [1, 2, 5]; espVel(Y[(Y.indexOf(demo.x || 1) + 1) % Y.length]); return; }   // v162: de espectador, solo cambia la velocidad
   const X = [0, 1, 5, 20, 60], sig = X[(X.indexOf(demo.x || 0) + 1) % X.length];
   if (!sig) { terminar(false); return; }                      // parar: sale el resumen (sin guardar)
   demo.x = sig; $('b3Tester').textContent = sig === 1 ? '▶ Tiempo real' : '⏩ ×' + sig;
@@ -5068,6 +5096,7 @@ function iniciarCuenta(){ if (cuenta.activa) return; cuenta.activa = true;
   if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { vozEs = null; }; }
 function empezar(){
   if (!sesion.bloques.length) return;
+  if (!sesion.corriendo && !sesion.espect && !cuenta.activa && !cuenta.hecha && ruta.activa && carreraConf().activa && carreraConf().espectador && carreraConf().tipo !== 'grupeta') { empezarEspectador(); return; }   // v162: «👀 Solo miro»
   if (cuenta.activa) return;
   if (!controlBici && !sesion.demo && !cuenta.hecha && !confirm('La bici no está conectada: la sesión correrá pero sin poner vatios. ¿Seguir?')) return;
   if (ruta.activa && !sesion.tTotal && !sesion.corriendo && !cuenta.hecha) { iniciarCuenta(); return; }
@@ -5356,5 +5385,8 @@ $('bSaltar').onclick = () => { if (confirm('¿Saltar al siguiente bloque?')) sal
 $('bTerminar').onclick = () => terminar(false);
 window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.preventDefault(); e.returnValue = ''; } });
 </script>
+<script>/* v160: tablet = pantalla táctil con el lado corto de menos de 900 px */
+(function(){ const marcar = () => { try { const t = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 900 && Math.max(screen.width, screen.height) >= 900; document.body.classList.toggle('tablet', t); } catch(e) {} };
+  if (document.body) marcar(); else document.addEventListener('DOMContentLoaded', marcar); addEventListener('resize', marcar); })();</script>
 </body>
 </html>
