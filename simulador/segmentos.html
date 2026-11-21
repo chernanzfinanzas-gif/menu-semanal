@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="recursos/rutas.js"></script>
+<script src="recursos/strava-indice.js"></script>
 <script src="recursos/segmentos.js"></script>
 <style>
   * { box-sizing:border-box; }
@@ -59,7 +60,8 @@ const coma = x => String(x).replace('.', ',');
 const REC = {}; for (const u of Object.keys(USU)) { let G = {}; try { G = JSON.parse(localStorage.getItem(u === 'carlos' ? 'simulador-segmentos' : 'simulador-segmentos-' + u) || '{}'); } catch(e) {}
   for (const k of Object.keys(G)) { if (k.includes('#')) continue; const id = k.replace(/^seg-/, ''), H = G[k]; if (!H.length) continue; const m = Math.min(...H.map(x => x.t));
     REC[id] = REC[id] || {}; REC[id][u] = { t: m, n: H.length }; } }
-const NOMBRE_RUTA = {}; for (const r of (window.RUTAS_SIM ? RUTAS_SIM.rutas : [])) NOMBRE_RUTA[r.id] = r.nombre;
+const NOMBRE_RUTA = {}; for (const r of (window.RUTAS_SIM ? RUTAS_SIM.rutas : [])) if (!r.strava) NOMBRE_RUTA[r.id] = r.nombre;
+for (const r of (window.RUTAS_STRAVA || [])) NOMBRE_RUTA['strava-' + r.id] = '🟧 ' + r.nombre + ' · ' + r.fecha.split(',')[0];
 let filtro = new Set(Object.keys(TIPOS).filter(t => t !== 'recorrido')), orden = 'tipo', asc = true, sel = null;
 const mapa = L.map('mapa', { preferCanvas: true }).setView([40.75, -3.85], 9);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(mapa);
@@ -70,9 +72,10 @@ for (const g of S) LINEAS[g.id] = L.polyline(g.traza.map(p => [p[0], p[1]]), { c
 const F = document.getElementById('filtros');
 for (const [t, [ico, nom]] of Object.entries(TIPOS)) { const b = document.createElement('button'); b.dataset.t = t; b.innerHTML = ico + ' ' + nom + ' <span class="sub">' + S.filter(g => g.tipo === t).length + '</span>';
   b.className = filtro.has(t) ? 'on' : ''; b.onclick = () => { filtro.has(t) ? filtro.delete(t) : filtro.add(t); b.className = filtro.has(t) ? 'on' : ''; pintar(); }; F.appendChild(b); }
-const SR = document.getElementById('ruta'); SR.innerHTML = '<option value="">Todas las rutas</option>' + Object.keys(NOMBRE_RUTA).filter(id => S.some(g => g.rutas.some(r => r[0] === id))).map(id => '<option value="' + id + '">' + NOMBRE_RUTA[id] + '</option>').join('');
+const SR = document.getElementById('ruta'); const opc = ids => ids.filter(id => S.some(g => g.rutas.some(r => r[0] === id))).map(id => '<option value="' + id + '">' + NOMBRE_RUTA[id] + '</option>').join('');
+SR.innerHTML = '<option value="">Todas las rutas y salidas</option><optgroup label="Rutas del simulador">' + opc(Object.keys(NOMBRE_RUTA).filter(id => !id.startsWith('strava-'))) + '</optgroup><optgroup label="Mis salidas de Strava">' + opc(Object.keys(NOMBRE_RUTA).filter(id => id.startsWith('strava-'))) + '</optgroup>';
 SR.onchange = pintar; document.getElementById('busca').oninput = pintar;
-document.getElementById('resumen').textContent = S.length + ' segmentos en ' + (SR.options.length - 1) + ' rutas · el récord de cada uno vale en cualquier ruta que pase por él';
+document.getElementById('resumen').textContent = S.length + ' segmentos en ' + (SR.options.length - 1) + ' rutas y salidas · el récord de cada uno vale en cualquier ruta que pase por él';
 function visibles(){ const q = document.getElementById('busca').value.trim().toLowerCase(), r = SR.value;
   return S.filter(g => filtro.has(g.tipo) && (!q || g.nombre.toLowerCase().includes(q)) && (!r || g.rutas.some(x => x[0] === r))); }
 const CLAVES = { tipo: g => Object.keys(TIPOS).indexOf(g.tipo) * 1e6 + (1e5 - g.dist), nombre: g => g.nombre, dist: g => g.dist, desn: g => g.desn, pend: g => g.pend, cat: g => ({ HC:0, '1':1, '2':2, '3':3, '4':4 })[g.cat] ?? 9, rp: g => REC[g.id] && REC[g.id].carlos ? REC[g.id].carlos.t : 1e9 };
