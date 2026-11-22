@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probar mandos · KHB</title>
+<style>
+  :root { --fondo:#0d1014; --caja:#151a20; --borde:#232a33; --texto:#e9edf1; --gris:#9aa6b2; --lima:#c6f432; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.4 Inter, system-ui, Segoe UI, sans-serif; }
+  header { display:flex; align-items:center; gap:18px; padding:18px 28px; border-bottom:1px solid #1f252d; }
+  h1 { margin:0; font:800 28px/1 'Barlow Condensed', system-ui, sans-serif; text-transform:uppercase; letter-spacing:.02em; }
+  header .sub { color:var(--gris); font-size:14px; }
+  header .der { margin-left:auto; display:flex; gap:8px; }
+  main { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:18px; padding:20px 28px; }
+  @media (max-width: 1100px) { main { grid-template-columns:1fr; } }
+  .caja { background:var(--caja); border:1px solid var(--borde); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .caja h2 { margin:0; font:800 22px/1 'Barlow Condensed', system-ui, sans-serif; text-transform:uppercase; }
+  .estado { font-size:13px; color:var(--gris); }
+  .estado.ok { color:#8be3a0; }
+  button { font:600 14px Inter, system-ui, sans-serif; color:var(--texto); background:#1f262e; border:1px solid #39434e; border-radius:10px; padding:9px 14px; cursor:pointer; }
+  button.prin { background:var(--lima); color:#11160a; border-color:var(--lima); font-weight:800; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; font-size:11px; letter-spacing:.1em; color:var(--gris); font-weight:700; padding:4px 6px; border-bottom:1px solid var(--borde); }
+  td { padding:6px; border-bottom:1px solid #1b2128; vertical-align:middle; }
+  tr.pulsado td { background:rgba(198,244,50,.16); }
+  tr.pulsado td:first-child { box-shadow:inset 3px 0 0 var(--lima); }
+  .cod { font-family:ui-monospace, Consolas, monospace; font-size:12px; color:var(--gris); }
+  .barra { height:8px; border-radius:5px; background:#222a33; min-width:80px; }
+  .barra > div { height:100%; border-radius:5px; background:#ff8a3d; width:0; }
+  .crudo { font-family:ui-monospace, Consolas, monospace; font-size:12px; color:var(--gris); word-break:break-all; background:#0f1317; border-radius:8px; padding:8px; min-height:36px; }
+  .nota { font-size:13px; color:var(--gris); }
+  .vacio { color:#6b7785; font-size:13px; padding:8px 6px; }
+  .ayuda { margin:0 28px; padding:12px 16px; border-radius:12px; background:#12161b; border:1px solid var(--borde); font-size:14px; color:#c5ccd3; }
+  .ayuda b { color:var(--texto); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Probar mandos</h1>
+  <span class="sub">Qué botones llegan de verdad desde los Zwift Play y la bici</span>
+  <div class="der">
+    <button id="bCopiar" class="prin">Copiar resultado</button>
+    <button id="bBorrar">Empezar de nuevo</button>
+  </div>
+</header>
+<p class="ayuda"><b>Nuevo:</b> usa la <b>prueba guiada</b> de arriba: te pide un botón cada vez. Conecta cada aparato. Luego aprieta <b>cada botón de uno en uno</b>, despacio. La paleta o freno del Play: apriétala <b>poco a poco hasta el fondo</b> y suéltala. Cada cosa que llegue aparece en su lista con las veces que se ha pulsado. Al acabar, pulsa <b>Copiar resultado</b> y pégalo en el chat.</p>
+<section id="guia" style="margin:14px 28px 0; padding:16px 20px; border-radius:16px; background:#12161b; border:2px solid #c6f432; display:flex; align-items:center; gap:18px; flex-wrap:wrap">
+  <div style="display:flex; flex-direction:column; gap:4px; min-width:340px">
+    <span style="font-size:11px; font-weight:700; letter-spacing:.12em; color:#9aa6b2">PRUEBA GUIADA · <span id="gN">conecta los tres aparatos y pulsa Empezar</span></span>
+    <span id="gTxt" style="font:800 30px/1.1 'Barlow Condensed', system-ui, sans-serif; text-transform:uppercase">—</span>
+    <span id="gSub" style="font-size:13px; color:#9aa6b2"></span>
+  </div>
+  <div style="display:flex; gap:8px; margin-left:auto">
+    <button id="gEmp" class="prin">Empezar prueba guiada</button>
+    <button id="gNo">No lo tengo</button>
+    <button id="gAtras">‹ Repetir el anterior</button>
+  </div>
+</section>
+<main>
+  <section class="caja" id="cajaI">
+    <h2>Play izquierdo</h2>
+    <div class="estado" id="estI">sin conectar · elige el que acaba en 9C</div>
+    <div><button id="bI">Conectar</button></div>
+    <table><thead><tr><th>BOTÓN</th><th>CÓDIGO</th><th>VECES</th><th>VALOR</th></tr></thead><tbody id="tI"><tr><td colspan="4" class="vacio">Aún no ha llegado nada</td></tr></tbody></table>
+    <div class="nota">Último mensaje recibido</div>
+    <div class="crudo" id="rI"></div>
+  </section>
+  <section class="caja" id="cajaD">
+    <h2>Play derecho</h2>
+    <div class="estado" id="estD">sin conectar · elige el que acaba en FB</div>
+    <div><button id="bD">Conectar</button></div>
+    <table><thead><tr><th>BOTÓN</th><th>CÓDIGO</th><th>VECES</th><th>VALOR</th></tr></thead><tbody id="tD"><tr><td colspan="4" class="vacio">Aún no ha llegado nada</td></tr></tbody></table>
+    <div class="nota">Último mensaje recibido</div>
+    <div class="crudo" id="rD"></div>
+  </section>
+  <section class="caja" id="cajaB">
+    <h2>Bici · KICKR</h2>
+    <div class="estado" id="estB">sin conectar</div>
+    <div><button id="bB">Conectar</button></div>
+    <table><thead><tr><th>BOTÓN</th><th>CÓDIGO</th><th>VECES</th><th>ESTADO</th></tr></thead><tbody id="tB"><tr><td colspan="4" class="vacio">Aún no ha llegado nada</td></tr></tbody></table>
+    <div class="nota">Último mensaje recibido</div>
+    <div class="crudo" id="rB"></div>
+  </section>
+</main>
+<script>
+// 22-nov (Carlos): «monta solo eso, para ver de qué botones disponemos».
+// Página suelta: no guarda nada ni toca el simulador. Solo escucha los mandos y lo enseña.
+const $ = id => document.getElementById(id);
+const ZW_SVC2 = '0000fc82-0000-1000-8000-00805f9b34fb', ZW_SVC = '00000001-19ca-4651-86e5-fa29dcdd09d1';
+const ZW_ASYNC = '00000002-19ca-4651-86e5-fa29dcdd09d1', ZW_RX = '00000003-19ca-4651-86e5-fa29dcdd09d1', ZW_TX = '00000004-19ca-4651-86e5-fa29dcdd09d1';
+const BOT_SVC = 'a026ee0d-0a7d-4ab3-97fa-f1500f9feb8b', BOT_CHR = 'a026e03c-0a7d-4ab3-97fa-f1500f9feb8b';
+// Lo que ya sabemos (medido el 17-nov en sus mandos)
+const NOMBRE_PLAY = {
+  I: { 1:'Izquierda', 2:'Arriba', 4:'Derecha', 8:'Abajo', 256:'Botón lateral' },
+  D: { 16:'A', 32:'B', 64:'Y', 128:'Z' }
+};
+const NOMBRE_BICI = { '0200':'Arriba izq.', '0001':'Arriba dcha.', '0008':'Interno (dif +)', '2000':'Interno (dif −)',
+  '0004':'Leva (+)', '1000':'Leva (+)', '0002':'Leva (−)', '0800':'Leva (−)', '0100':'Freno', '4000':'Freno' };
+const hex = a => Array.from(a).map(x => x.toString(16).padStart(2, '0')).join(' ');
+const datos = { I: { bits:{}, campos:{}, tipos:{} }, D: { bits:{}, campos:{}, tipos:{} }, B: { cods:{} } };
+
+function protobuf(bytes){
+  const out = []; let i = 0;
+  const varint = () => { let r = 0, m = 1, b; do { b = bytes[i++]; r += (b & 0x7f) * m; m *= 128; } while (b & 0x80 && i < bytes.length); return r; };
+  while (i < bytes.length) {
+    const tag = varint(), f = Math.floor(tag / 8), wt = tag & 7;
+    if (wt === 0) out.push([f, 'v', varint()]);
+    else if (wt === 2) { const n = varint(); out.push([f, 'b', bytes.slice(i, i + n)]); i += n; }
+    else if (wt === 5) { out.push([f, 'f', new DataView(bytes.buffer, bytes.byteOffset + i, 4).getUint32(0, true)]); i += 4; }
+    else if (wt === 1) { i += 8; }
+    else break;
+  }
+  return out;
+}
+// Todos los campos numéricos, también los que van dentro de otros («3.1», etc.)
+function aplanar(bytes, pre, sal){
+  let campos; try { campos = protobuf(bytes); } catch(e) { return; }
+  const vistos = {};
+  for (const [f, t, v] of campos) {
+    const n = vistos[f] = (vistos[f] || 0) + 1;            // campos repetidos: 3, 3#2, 3#3…
+    const base = n > 1 ? f + '#' + n : String(f), k = pre ? pre + '.' + base : base;
+    if (t === 'b') { if (v.length) aplanar(v, k, sal); }
+    else sal[k] = v;
+  }
+}
+
+function pintarPlay(L){
+  const D = datos[L], filas = [];
+  for (const [bit, o] of Object.entries(D.bits).sort((a, b) => a[0] - b[0]))
+    filas.push(`<tr class="${o.pulsado ? 'pulsado' : ''}"><td>${NOMBRE_PLAY[L][bit] || '<b>¿nuevo?</b>'}</td><td class="cod">bit ${bit}</td><td>${o.veces}</td><td>${o.pulsado ? 'pulsado' : '—'}</td></tr>`);
+  for (const [k, o] of Object.entries(D.campos).sort()) {
+    const rango = o.max - o.min, pc = rango ? Math.round((o.v - o.min) / rango * 100) : 0;
+    filas.push(`<tr class="${o.v !== o.reposo ? 'pulsado' : ''}"><td><b>Valor que cambia</b></td><td class="cod">campo ${k}</td><td>${o.distintos.size} valores</td><td><div style="display:flex;align-items:center;gap:8px"><span class="cod">${o.v} (${o.min}…${o.max})</span><div class="barra"><div style="width:${pc}%"></div></div></div></td></tr>`);
+  }
+  for (const [t, n] of Object.entries(D.tipos)) if (t !== '35')
+    filas.push(`<tr><td>Mensaje de otro tipo</td><td class="cod">tipo ${t}</td><td>${n}</td><td class="cod">${D.ultimoTipo && D.ultimoTipo[t] || ''}</td></tr>`);
+  $('t' + L).innerHTML = filas.join('') || '<tr><td colspan="4" class="vacio">Aún no ha llegado nada</td></tr>';
+}
+
+async function conectarPlay(L){
+  const est = $('est' + L);
+  try {
+    est.textContent = 'buscando… elige el que acaba en ' + (L === 'I' ? '9C' : 'FB'); est.className = 'estado';
+    const dev = await navigator.bluetooth.requestDevice({ filters:[{ namePrefix:'Zwift Play' }], optionalServices:[ZW_SVC2, ZW_SVC] });
+    const srv = await dev.gatt.connect();
+    let svc = null; for (const u of [ZW_SVC2, ZW_SVC]) { try { svc = await srv.getPrimaryService(u); break; } catch(e) {} }
+    if (!svc) throw new Error('el mando no muestra su servicio');
+    const D = datos[L]; D.ultimoTipo = {}; let previo = null, primeros = null;
+    const alRecibir = ev => {
+      const b = new Uint8Array(ev.target.value.buffer.slice(0));
+      $('r' + L).textContent = hex(b);
+      D.tipos[b[0]] = (D.tipos[b[0]] || 0) + 1; D.ultimoTipo[b[0]] = hex(b.slice(0, 24));
+      if (b[0] === 35) {
+        const sal = {}; aplanar(b.slice(1), '', sal);
+        const mapa = sal['1'] >>> 0;
+        if (previo !== null) for (let bit = 1; bit < (1 << 20); bit <<= 1) {
+          const antes = (previo & bit) === 0, ahora = (mapa & bit) === 0;   // 0 = pulsado
+          if (antes !== ahora) { const o = D.bits[bit] = D.bits[bit] || { veces:0, pulsado:false }; o.pulsado = ahora; if (ahora) { o.veces++; evento(L, 'bit ' + bit); } }
+        }
+        previo = mapa;
+        if (!primeros) primeros = Object.assign({}, sal);
+        for (const [k, v] of Object.entries(sal)) {
+          if (k === '1') continue;
+          const o = D.campos[k];
+          if (!o) { if (v !== primeros[k]) { evento(L, 'campo ' + k); } if (v !== primeros[k]) D.campos[k] = { v, min:Math.min(v, primeros[k] ?? v), max:Math.max(v, primeros[k] ?? v), reposo:primeros[k], distintos:new Set([v, primeros[k]]) }; continue; }
+          o.v = v; o.min = Math.min(o.min, v); o.max = Math.max(o.max, v); o.distintos.add(v); if (v !== o.reposo) evento(L, 'campo ' + k, 'valor ' + o.min + '…' + o.max);
+        }
+      }
+      pintarPlay(L);
+    };
+    const asy = await svc.getCharacteristic(ZW_ASYNC), tx = await svc.getCharacteristic(ZW_TX), rx = await svc.getCharacteristic(ZW_RX);
+    await asy.startNotifications(); asy.addEventListener('characteristicvaluechanged', alRecibir);
+    await tx.startNotifications(); tx.addEventListener('characteristicvaluechanged', alRecibir);
+    await rx.writeValueWithoutResponse(new Uint8Array([0x52,0x69,0x64,0x65,0x4f,0x6e]));   // «RideOn»
+    dev.addEventListener('gattserverdisconnected', () => { est.textContent = 'se desconectó'; est.className = 'estado'; });
+    est.textContent = 'conectado · ' + (dev.name || 'Zwift Play'); est.className = 'estado ok'; datos[L].conectado = true; pintarGuia();
+  } catch(e) { est.textContent = e.name === 'NotFoundError' ? 'cancelado' : 'error: ' + e.message; est.className = 'estado'; }
+}
+
+function pintarBici(){
+  const filas = Object.entries(datos.B.cods).map(([c, o]) =>
+    `<tr class="${o.pulsado ? 'pulsado' : ''}"><td>${NOMBRE_BICI[c] || '<b>¿nuevo?</b>'}</td><td class="cod">${c}</td><td>${o.veces}</td><td>${o.pulsado ? 'pulsado' : '—'}${o.largo ? ' · mantenido ' + (o.largo / 1000).toFixed(1) + ' s' : ''}</td></tr>`);
+  $('tB').innerHTML = filas.join('') || '<tr><td colspan="4" class="vacio">Aún no ha llegado nada</td></tr>';
+}
+async function conectarBici(){
+  const est = $('estB');
+  try {
+    est.textContent = 'buscando…'; est.className = 'estado';
+    const dev = await navigator.bluetooth.requestDevice({ filters:[{ services:[0x1826] }, { namePrefix:'KICKR' }], optionalServices:[0x1826, BOT_SVC] });
+    const srv = await dev.gatt.connect();
+    const svc = await srv.getPrimaryService(BOT_SVC), ch = await svc.getCharacteristic(BOT_CHR);
+    await ch.startNotifications();
+    ch.addEventListener('characteristicvaluechanged', ev => {
+      const b = new Uint8Array(ev.target.value.buffer.slice(0)); $('rB').textContent = hex(b);
+      const c = b.length >= 2 ? hex(b.slice(0, 2)).replace(' ', '').toUpperCase() : hex(b);
+      const o = datos.B.cods[c] = datos.B.cods[c] || { veces:0, pulsado:false, t0:0, largo:0, crudos:new Set() };
+      o.crudos.add(hex(b));
+      const pulsado = b.length === 3 ? (b[2] & 0x80) !== 0 : true;
+      if (pulsado && !o.pulsado) { o.veces++; o.t0 = Date.now(); if (c !== 'FF0F') evento('B', c); }
+      if (!pulsado && o.pulsado && o.t0) o.largo = Date.now() - o.t0;
+      o.pulsado = pulsado; pintarBici();
+    });
+    dev.addEventListener('gattserverdisconnected', () => { est.textContent = 'se desconectó'; est.className = 'estado'; });
+    est.textContent = 'conectada · ' + (dev.name || 'KICKR'); est.className = 'estado ok'; datos.B.conectado = true; pintarGuia();
+  } catch(e) { est.textContent = e.name === 'NotFoundError' ? 'cancelado' : 'error: ' + e.message; est.className = 'estado'; }
+}
+
+function resultado(){
+  const r = { fecha:new Date().toISOString(), playI:{}, playD:{}, bici:{} };
+  for (const L of ['I', 'D']) { const D = datos[L], o = r['play' + L];
+    o.botones = Object.entries(D.bits).map(([bit, x]) => ({ bit:+bit, nombre:NOMBRE_PLAY[L][bit] || 'NUEVO', veces:x.veces }));
+    o.valores = Object.entries(D.campos).map(([k, x]) => ({ campo:k, min:x.min, max:x.max, reposo:x.reposo, distintos:x.distintos.size }));
+    o.tipos = D.tipos; }
+  r.bici = Object.entries(datos.B.cods).map(([c, x]) => ({ codigo:c, nombre:NOMBRE_BICI[c] || 'NUEVO', veces:x.veces, mantenidoMs:x.largo, crudos:[...x.crudos].slice(0, 4) }));
+  r.guiada = guia.resp.filter(Boolean);
+  return JSON.stringify(r, null, 1);
+}
+
+// ---- prueba guiada (22-nov): un botón cada vez, se apunta el primer código que llega ----
+const PASOS = [
+  ['I','Play izq. · flecha ARRIBA'],['I','Play izq. · flecha ABAJO'],['I','Play izq. · flecha IZQUIERDA'],['I','Play izq. · flecha DERECHA'],
+  ['I','Play izq. · botón LATERAL (en el costado)'],['I','Play izq. · FRENO / paleta: apriétala hasta el fondo y suelta'],['I','Play izq. · botón pequeño de ENCENDIDO (si lo hay)'],['I','Play izq. · cualquier OTRO botón que veas'],
+  ['D','Play dcho. · A'],['D','Play dcho. · B'],['D','Play dcho. · Y'],['D','Play dcho. · Z'],
+  ['D','Play dcho. · botón LATERAL (en el costado)'],['D','Play dcho. · FRENO / paleta: apriétala hasta el fondo y suelta'],['D','Play dcho. · botón pequeño de ENCENDIDO (si lo hay)'],['D','Play dcho. · cualquier OTRO botón que veas'],
+  ['B','Bici · botón de ARRIBA de la maneta IZQUIERDA'],['B','Bici · botón de ARRIBA de la maneta DERECHA'],['B','Bici · botón INTERNO IZQUIERDO'],['B','Bici · botón INTERNO DERECHO'],
+  ['B','Bici · leva IZQUIERDA: cambio hacia un lado'],['B','Bici · leva IZQUIERDA: cambio hacia el otro lado'],['B','Bici · leva DERECHA: cambio hacia un lado'],['B','Bici · leva DERECHA: cambio hacia el otro lado'],
+  ['B','Bici · FRENO IZQUIERDO'],['B','Bici · FRENO DERECHO'],['B','Bici · cualquier OTRO botón que veas']
+];
+const guia = { i:-1, resp:[] };
+function evento(L, codigo, extra){
+  if (guia.i < 0 || guia.i >= PASOS.length || PASOS[guia.i][0] !== L) return;
+  const r = guia.resp[guia.i];
+  if (!r) { guia.resp[guia.i] = { boton:PASOS[guia.i][1], codigos:[codigo], extra:extra || null }; pintarGuia(); setTimeout(() => { if (guia.resp[guia.i] && guia.resp[guia.i].codigos[0] === codigo) { guia.i++; pintarGuia(); } }, 1200); }
+  else if (!r.codigos.includes(codigo)) { r.codigos.push(codigo); if (extra) r.extra = extra; pintarGuia(); }
+  else if (extra) r.extra = extra;
+}
+function pintarGuia(){
+  if (guia.i < 0) return;
+  if (guia.i >= PASOS.length) { $('gN').textContent = 'terminada'; $('gTxt').textContent = '¡Hecho! Pulsa «Copiar resultado»'; $('gSub').textContent = ''; return; }
+  const [L, t] = PASOS[guia.i], r = guia.resp[guia.i];
+  $('gN').textContent = 'paso ' + (guia.i + 1) + ' de ' + PASOS.length;
+  $('gTxt').textContent = t;
+  $('gSub').textContent = r ? 'Recibido: ' + r.codigos.join(', ') + (r.extra ? ' · ' + r.extra : '') + ' — pasa al siguiente solo' : (datos[L].conectado ? 'Esperando…' : 'Ese aparato no está conectado: conéctalo o pulsa «No lo tengo»');
+}
+$('gEmp').onclick = () => { guia.i = 0; guia.resp = []; pintarGuia(); };
+$('gNo').onclick = () => { if (guia.i < 0 || guia.i >= PASOS.length) return; guia.resp[guia.i] = { boton:PASOS[guia.i][1], codigos:['NO LO TIENE'] }; guia.i++; pintarGuia(); };
+$('gAtras').onclick = () => { if (guia.i > 0) { guia.i--; delete guia.resp[guia.i]; pintarGuia(); } };
+
+$('bI').onclick = () => conectarPlay('I');
+$('bD').onclick = () => conectarPlay('D');
+$('bB').onclick = conectarBici;
+$('bCopiar').onclick = async () => { const t = resultado(); try { await navigator.clipboard.writeText(t); $('bCopiar').textContent = 'Copiado ✓'; } catch(e) { prompt('Copia esto:', t); } setTimeout(() => $('bCopiar').textContent = 'Copiar resultado', 2000); };
+$('bBorrar').onclick = () => { for (const L of ['I', 'D']) { datos[L].bits = {}; datos[L].campos = {}; datos[L].tipos = {}; pintarPlay(L); } datos.B.cods = {}; pintarBici(); };
+if (!navigator.bluetooth) document.querySelector('.ayuda').innerHTML = '<b>Este navegador no tiene Bluetooth.</b> Ábrela en Chrome en el ordenador de la bici.';
+</script>
+</body>
+</html>

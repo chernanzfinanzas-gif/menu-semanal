@@ -360,10 +360,16 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #recordatorioMandos li > div { display:block; } #recordatorioMandos .fx { display:inline; font-size:14px; color:#c9d1d9; }
   #recordatorioMandos .nb { width:20px !important; height:20px !important; min-width:20px; font-size:12px !important; line-height:20px !important; }
   #rivalesFila { display:none; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  /* v167: órdenes con el Play y pantalla limpia */
+  #capaOrdenes { position:fixed; left:20px; top:180px; z-index:9000; width:360px; background:rgba(13,16,20,.95); border:2px solid #c6f432; border-radius:14px; padding:12px; color:#e9edf1; font:15px system-ui,sans-serif; }
+  #capaOrdenes .tt { font-size:12px; color:#9aa6b2; margin-bottom:8px; }
+  #capaOrdenes .op { padding:9px 10px; border-radius:9px; border:2px solid transparent; }
+  #capaOrdenes .op.foco { background:#1f2730; border-color:#c6f432; }
+  body.limpia #rivales3d, body.limpia #colDer3d, body.limpia #tramo3d, body.limpia #clasifPanel, body.limpia #ordenes3d, body.limpia #espect3d, body.limpia #viento3d, body.limpia #recordatorioMandos, body.limpia #rotulo { visibility:hidden !important; }
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -785,7 +791,7 @@ async function conectarPulso(previo){
 // ===================== botones =====================
 // Los frenos (0100, 4000) NO se usan: la leva de cambio va en la misma maneta y los disparaba sin querer (prueba del 17-nov).
 // Bici = la bici y la salida. Play = la pantalla. (18-nov)
-const BICI = { '0004':'mas', '1000':'mas', '0002':'menos', '0800':'menos', '0200':'pausa', '0001':'saltar', '0008':'dif+', '2000':'dif-' };
+const BICI = { '0004':'mas', '1000':'mas', '0002':'menos', '0800':'menos', '0200':'pausa', '0001':'saltar', '0008':'dif+', '2000':'dif-', '8000':'abajoI', '0400':'abajoD' };   // v167: botones de abajo (medidos el 22-nov)
 const pulsadoDesde = {};
 // Freno (19-nov): en ruta, mantenerlo medio segundo enseña o esconde la barra de botones.
 // Para que no se dispare al cambiar (la leva va en la misma maneta), no cuenta si hay un cambio de marcha cerca.
@@ -826,16 +832,25 @@ function botonBici(dv){
 }
 function pulsarAccion(accion, pulsado, origen){
   const clave = origen + accion;
+  if (accion === 'saltar' && ruta.activa && origen === 'bici') { if (!pulsado) pulsarAccion('grabar', true, origen); return; }   // v167: en ruta, arriba dcha. = grabar / parar
+  if (accion === 'abajoI' || accion === 'abajoD') {   // v167: corto y mantener 2 s
+    if (pulsado) { pulsadoDesde[clave] = Date.now(); clearTimeout(pulsadoDesde['t' + clave]);
+      pulsadoDesde['t' + clave] = setTimeout(() => { pulsadoDesde['largo' + clave] = true;
+        if (accion === 'abajoD') camaraNormal(); else { if (rivales.lista.some(r => r.grupeta)) alternarRelevosYo(); else aviso3d('Relevos: solo en grupeta'); } }, 2000); return; }
+    clearTimeout(pulsadoDesde['t' + clave]); if (pulsadoDesde['largo' + clave]) { pulsadoDesde['largo' + clave] = false; return; }
+    if (accion === 'abajoD') { if (v3 && v3.activo) cambiarCamara(1); else pulsarAccion('mapa', true, origen); }
+    else pasarRelevo();
+    return; }
   if (accion === 'saltar') {                       // mantener 2 s para que no se salte sin querer
     if (pulsado) pulsadoDesde[clave] = Date.now();
     else if (pulsadoDesde[clave] && Date.now() - pulsadoDesde[clave] >= 1800) { saltarBloque(); delete pulsadoDesde[clave]; }
     else { delete pulsadoDesde[clave]; if (sesion.corriendo) avisar('Para saltar el bloque, mantén el botón 2 segundos.'); }
     return;
   }
-  if (accion === 'pausa' && origen === 'bici') {   // corto: empezar / pausa / seguir · mantener 3 s: terminar y guardar
+  if (accion === 'pausa' && origen === 'bici') {   // corto: empezar / pausa / seguir · mantener 2 s (v167): terminar y guardar
     if (pulsado) { clearTimeout(pulsadoDesde.tTerminar); pulsadoDesde.pausaLarga = false;
-      if (sesion.corriendo) { pulsadoDesde.tTerminar = setTimeout(() => { pulsadoDesde.pausaLarga = true; avisar('Terminando y guardando…'); terminar(true); }, 3000);
-        pulsadoDesde.tAviso = setTimeout(() => { if (!pulsadoDesde.pausaLarga) aviso3d('Sigue pulsando para terminar…', 1800); }, 1000); } }
+      if (sesion.corriendo) { pulsadoDesde.tTerminar = setTimeout(() => { pulsadoDesde.pausaLarga = true; avisar('✓ Terminando y guardando…'); terminar(true); }, 2000);
+        pulsadoDesde.tAviso = setTimeout(() => { if (!pulsadoDesde.pausaLarga) aviso3d('■ Sigue pulsando para terminar y guardar · suelta para seguir', 1500); }, 500); } }
     else { clearTimeout(pulsadoDesde.tTerminar); clearTimeout(pulsadoDesde.tAviso);
       if (pulsadoDesde.pausaLarga) { pulsadoDesde.pausaLarga = false; return; }
       if (!sesion.corriendo) { if (sesion.bloques.length && !$('bEmpezar').disabled) { if (v3.tester) while (v3.tester) $('b3Tester').click(); empezar(); avisar('¡A rodar!'); } }
@@ -844,7 +859,8 @@ function pulsarAccion(accion, pulsado, origen){
   }
   if (!pulsado) return;
   if (accion === 'dif+' || accion === 'dif-') { const s = accion === 'dif+' ? 1 : -1;
-    if (ruta.activa) { cambiaDif(DIF() + 10 * s); avisar('Dificultad ' + DIF() + ' %'); } else cambiarIntensidad(2 * s); return; }
+    if (ruta.activa) { if (origen === 'bici') { aviso3d('Botones internos: girar en cruces y colocarte en el grupo (próximamente) · la dificultad se elige antes de salir'); return; }
+      cambiaDif(DIF() + 10 * s); avisar('Dificultad ' + DIF() + ' %'); } else cambiarIntensidad(2 * s); return; }
   if (accion === 'grabar') { if (v3.activo) $('b3Grabar').click(); else avisar('La grabación funciona en la vista carretera 3D.'); return; }   // con el menú recogido el botón no se ve, pero graba igual
   if (accion === 'recorrer') { if (sesion.corriendo) { avisar('Recorrer es solo para mirar, sin entrenar.'); return; } if ($('bRecorrer') && !$('bRecorrer').disabled && !v3.activo) $('bRecorrer').click(); else $('b3Tester').click(); return; }
   if (accion === 'calidad') { const c = $('calidad3d'), n = c.options.length; c.selectedIndex = (c.selectedIndex + 1) % n; c.onchange(); return; }
@@ -865,10 +881,46 @@ function pulsarAccion(accion, pulsado, origen){
 // Zwift Play (firmware 2) con el mapa medido el 17-nov en SUS mandos
 const ZW_SVC2 = '0000fc82-0000-1000-8000-00805f9b34fb', ZW_SVC = '00000001-19ca-4651-86e5-fa29dcdd09d1';
 const ZW_ASYNC = '00000002-19ca-4651-86e5-fa29dcdd09d1', ZW_RX = '00000003-19ca-4651-86e5-fa29dcdd09d1', ZW_TX = '00000004-19ca-4651-86e5-fa29dcdd09d1';
+// v167 (22-nov): reparto nuevo, medido con probar-mandos.html. Los botones de encendido (2048, 32768) quedan reservados (comer / beber).
 const MAPA_PLAY = {
-  I: { mapa:2, datos:8, 'camara+':4, 'camara-':1, ciclista:256 },        // Arriba, Abajo, Derecha, Izquierda, Lateral
-  D: { grabar:16, recorrer:32, calidad:64, escenario:128 }               // A, B, Y, Z
+  I: { izq:1, arr:2, der:4, ab:8, latI:256 },                 // flechas y botón lateral izquierdo
+  D: { A:16, B:32, Y:64, Z:128, latD:4096 }                   // A, B, Y, Z y botón lateral derecho
 };
+const pala = { I: 0, D: 0, t: null };   // frenos del Play: graduales (0 … 1)
+// v167: lo que hace cada botón «de pantalla» (Play o teclado), según lo que haya abierto
+const capa = { ordenes: false, iOrden: 0, limpia: false };
+const ORDENES_LISTA = ['venid', 'tirad', 'esperadme', 'tren', 'libres'];
+function pintarCapaOrdenes(){ let P = $('capaOrdenes'); if (!capa.ordenes) { if (P) P.remove(); return; }
+  if (!P) { P = document.createElement('div'); P.id = 'capaOrdenes'; document.body.appendChild(P); }
+  P.innerHTML = '<div class="tt">📣 Órdenes · ↑ ↓ elegir · A dar la orden · Z salir</div>' + ORDENES_LISTA.map((o, i) => '<div class="op' + (i === capa.iOrden ? ' foco' : '') + '">' + ORDEN_TXT[o] + (carrera.orden === o ? ' <b>· ahora</b>' : '') + '</div>').join(''); }
+function abrirOrdenes(){ if (!hayEquipo()) { aviso3d('Órdenes: solo en carrera, con tu equipo'); return; } capa.ordenes = !capa.ordenes; capa.iOrden = Math.max(0, ORDENES_LISTA.indexOf(carrera.orden)); pintarCapaOrdenes(); }
+function pantallaLimpia(){ capa.limpia = !capa.limpia; document.body.classList.toggle('limpia', capa.limpia); aviso3d(capa.limpia ? 'Pantalla limpia · Z para volver' : 'Ventanas de vuelta'); }
+function camaraNormal(){ giroCamV = 0; inclCamV = 0; const c = $('camara3d'), Z = zoomesCam(); Z[c.value] = 1; try { localStorage.setItem('simulador-zoom-cam', JSON.stringify(Z)); } catch(e) {}
+  c.selectedIndex = 0; if (c.onchange) c.onchange(); aviso3d('🎥 Cámara normal'); }
+function mando(b){   // b: izq der arr ab A B Y Z latI latD · devuelve true si lo ha usado
+  const en3d = !!(v3 && v3.activo);
+  if (capa.ordenes) { if (b === 'arr' || b === 'ab') { capa.iOrden = (capa.iOrden + (b === 'ab' ? 1 : -1) + 5) % 5; pintarCapaOrdenes(); }
+    else if (b === 'A') { darOrden(ORDENES_LISTA[capa.iOrden]); capa.ordenes = false; pintarCapaOrdenes(); }
+    else if (b === 'Z') { capa.ordenes = false; pintarCapaOrdenes(); }
+    return true; }
+  const P = $('clasifPanel'), clasAbierta = P && !P.hidden;
+  if (clasAbierta && (b === 'arr' || b === 'ab')) { P.scrollBy({ top: b === 'ab' ? 120 : -120, behavior: 'smooth' }); return true; }
+  if (b === 'Y') { if (!en3d) return false; ponerMenu(!menu3d.abierto); return true; }
+  if (menu3d.abierto || !en3d) return false;      // con el menú abierto manda el menú (parte 2: recorrerlo con las flechas)
+  if (b === 'izq' || b === 'der') { girarCam(b === 'der' ? 15 : -15); return true; }
+  if (b === 'arr' || b === 'ab') { inclinarCam(b === 'arr' ? 10 : -10); return true; }
+  if (b === 'A') { if (sesion.espect) alternarPausa(); else abrirOrdenes(); return true; }
+  if (b === 'B') { if (sesion.espect) { const X = [1, 2, 5, 10]; espVel(X[(X.indexOf(demo.x || 1) + 1) % X.length]); } return true; }
+  if (b === 'Z') { pantallaLimpia(); return true; }
+  if (b === 'latD') { alternarClasif(); return true; }
+  if (b === 'latI') { if (sesion.espect) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'v' })); else aviso3d('«Seguir a…»: llega en la próxima versión'); return true; }
+  return false; }
+// frenos del Play = zoom gradual: el izquierdo aleja, el derecho acerca; cuanto más se aprietan, más rápido
+setInterval(() => { const ahora = performance.now(), dt = Math.min(0.3, (ahora - (pala.tUlt || ahora)) / 1000); pala.tUlt = ahora;
+  if (!(v3 && v3.activo) || menu3d.abierto) return; const d = pala.I - pala.D; if (Math.abs(d) < 0.01) return;
+  const f = Math.pow(d > 0 ? 2 : 0.5, Math.abs(d) * dt);   // a fondo: dobla (o reduce a la mitad) la distancia en 1 s
+  const modo = $('camara3d').value, Z = zoomesCam(); Z[modo] = Math.max(0.3, Math.min(2.5, zoomCam(modo) * f));
+  clearTimeout(pala.t); pala.t = setTimeout(() => { try { localStorage.setItem('simulador-zoom-cam', JSON.stringify(Z)); } catch(e) {} }, 800); }, 60);
 function protobuf(bytes){
   const out = {}; let i = 0;
   const varint = () => { let r = 0, m = 1, b; do { b = bytes[i++]; r += (b & 0x7f) * m; m *= 128; } while (b & 0x80 && i < bytes.length); return r; };
@@ -920,10 +972,11 @@ async function conectarPlay(L, recordado){
     const alRecibir = ev => {
       const b = new Uint8Array(ev.target.value.buffer); if (b[0] !== 35) return;
       const p = protobuf(b.slice(1)); if (!p[1]) return;
+      if (p[3]) { let mx = 0; for (const e of p[3]) { if (!(e instanceof Uint8Array)) continue; const q = protobuf(e); if (q[2]) mx = Math.max(mx, q[2][0]); } const v = Math.min(1, mx / 200); pala[L] = v < 0.12 ? 0 : v; }   // v167: frenos graduales
       const mapa = p[1][0] >>> 0;
       for (const [accion, bit] of Object.entries(MAPA_PLAY[L])) {
         const antes = (previo.mapa & bit) === 0, ahora = (mapa & bit) === 0;   // 0 = pulsado
-        if (antes !== ahora) { if (ahora) log('Botón Play ' + L + ' → ' + accion); pulsarAccion(accion, ahora, 'play' + L); }
+        if (antes !== ahora && ahora) { log('Botón Play ' + L + ' → ' + accion); mando(accion); }
       }
       previo.mapa = mapa;
     };
@@ -1202,8 +1255,12 @@ function pasarRelevo(){ if (carrera.turnoYo > 0) acabarTurno('Pasas el relevo: e
 function alternarRelevosYo(){ carrera.relevosYo = !carrera.relevosYo; if (!carrera.relevosYo && carrera.turnoYo > 0) carrera.turnoYo = 0;
   aviso3d(carrera.relevosYo ? '🔄 Relevos contigo: te tocará tirar de vez en cuando (J para pasar)' : '🔄 Relevos sin ti: solo ruedas a rueda'); }
 function carreraConf(){ let c = null; try { c = JSON.parse(localStorage.getItem(CLAVE('simulador-carrera')) || 'null'); } catch(e) {}
-  const kg = pesoCiclista(), nivel = Math.round(FTP() / kg * 10) / 10;
-  return Object.assign({ activa: false, n: 24, nivel: nivel || 2.2, tipo: 'carrera', ritmo: 1.8, zona: 'Z2' }, c || {}); }
+  const nivel = miNivel();
+  const r = Object.assign({ activa: false, n: 24, nivel: nivel || 2.2, tipo: 'carrera', ritmo: 1.8, zona: 'Z2' }, c || {});
+  // v166 (Carlos, 22-nov): el nivel sigue a tu ficha (FTP / peso) salvo que lo hayas puesto a mano
+  if (!r.nivelManual && nivel) r.nivel = nivel;
+  return r; }
+function miNivel(){ const kg = pesoCiclista(); return kg ? Math.round(FTP() / kg * 10) / 10 : null; }
 function guardarCarrera(c){ try { localStorage.setItem(CLAVE('simulador-carrera'), JSON.stringify(c)); } catch(e) {} }
 // v150 (21-nov, Carlos): 60 corredores con ficha (recursos/bots.js), 12 selecciones con dorsales y papeles. Niveles estrechos para carreras igualadas:
 // líder +3 %, outsider 0, gregario −3 % sobre el nivel elegido, talento ±1,5 % y forma del día ±1,5 %. Carrera corta (6) = tú + 5 al azar.
@@ -1846,7 +1903,8 @@ function pintarListaRivales(){
       + '<span class="confCarrera"><select id="cTipo"><option value="carrera"' + (gr ? '' : ' selected') + '>Carrera</option><option value="grupeta"' + (gr ? ' selected' : '') + '>Grupeta tranquila</option></select>'
       + ' Corredores <select id="cN">' + [6, 24, 36, 48, 60].map(n => '<option' + (n === ([6, 24, 36, 48, 60].reduce((a, b) => Math.abs(b - c.n) < Math.abs(a - c.n) ? b : a)) ? ' selected' : '') + ' value="' + n + '">' + (n === 6 ? '6 · tú + 5 (corta)' : n === 60 ? '60 · todos' : n + ' · ' + n / 12 + ' por equipo') + '</option>').join('') + '</select>'
       + (gr ? ' Zona <select id="cZona">' + ZONAS.map(z => '<option value="' + z.n + '"' + (z === zonaActual() ? ' selected' : '') + '>' + z.n + ' · ' + z.txt + ' · ' + n2(wkgZona(z)) + ' w/kg</option>').join('') + '</select>'
-            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + (gr ? '' : ' <label title="Pinchazos, cadena o averías: 1–2 por carrera"><input type="checkbox" id="cInc"' + (c.incidentes !== false ? ' checked' : '') + '> Incidentes</label> <span class="modoC" title="Solo miro: corren Carlos y Susana y tú miras; el botón de empezar arranca la carrera sin ti"><button type="button" data-m="0"' + (c.espectador ? '' : ' class="on"') + '>🚴 Corro yo</button><button type="button" data-m="1"' + (c.espectador ? ' class="on"' : '') + '>👀 Solo miro</button></span>') + '</span>'; })();
+            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg'
+              + (c.nivelManual ? ' <small style="color:#d29922">a mano · el tuyo es ' + n2(miNivel() || c.nivel) + '</small> <button id="cNivelMio" class="sec" style="padding:2px 8px">↺ mi nivel</button>' : ' <small style="color:#8b949e">el tuyo (FTP / peso)</small>')) + (gr ? '' : ' <label title="Pinchazos, cadena o averías: 1–2 por carrera"><input type="checkbox" id="cInc"' + (c.incidentes !== false ? ' checked' : '') + '> Incidentes</label> <span class="modoC" title="Solo miro: corren Carlos y Susana y tú miras; el botón de empezar arranca la carrera sin ti"><button type="button" data-m="0"' + (c.espectador ? '' : ' class="on"') + '>🚴 Corro yo</button><button type="button" data-m="1"' + (c.espectador ? ' class="on"' : '') + '>👀 Solo miro</button></span>') + '</span>'; })();
   L.querySelectorAll('.modoC button').forEach(b => b.onclick = e => { e.stopPropagation(); const c = carreraConf(); c.espectador = b.dataset.m === '1'; guardarCarrera(c); pintarListaRivales(); });
   modoBotonEmpezar();
   L.querySelectorAll('.chipRival').forEach(c => c.onclick = e => { if (e.target.closest('.mini')) return; const id = c.dataset.id;
@@ -1858,9 +1916,10 @@ function pintarListaRivales(){
   L.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => abrirFormLiebre(liebres.find(x => x.id === b.dataset.ed)));
   $('bNuevaLiebre').onclick = () => abrirFormLiebre(null);
   const cambia = () => { const c = carreraConf(); c.n = +$('cN').value; c.tipo = $('cTipo').value;
-    if ($('cNivel')) c.nivel = Math.max(1, Math.min(5, +$('cNivel').value || c.nivel)); if ($('cInc')) c.incidentes = $('cInc').checked; if ($('cZona')) c.zona = $('cZona').value;
+    if ($('cNivel')) { const v = Math.max(1, Math.min(5, +$('cNivel').value || c.nivel)), mi = miNivel(); c.nivel = v; c.nivelManual = !mi || Math.abs(v - mi) > 0.05; } if ($('cInc')) c.incidentes = $('cInc').checked; if ($('cZona')) c.zona = $('cZona').value;
     guardarCarrera(c); pintarListaRivales(); if (ruta.activa && !sesion.corriendo) prepararRivales(); };
   $('cN').onchange = cambia; $('cTipo').onchange = cambia; if ($('cNivel')) $('cNivel').onchange = cambia; if ($('cZona')) $('cZona').onchange = cambia; if ($('cInc')) $('cInc').onchange = cambia;
+  if ($('cNivelMio')) $('cNivelMio').onclick = () => { const c = carreraConf(); c.nivelManual = false; c.nivel = miNivel() || c.nivel; guardarCarrera(c); pintarListaRivales(); if (ruta.activa && !sesion.corriendo) prepararRivales(); };
 }
 function abrirFormLiebre(l){ const F = $('formLiebre'); F.hidden = false; F.dataset.id = l ? l.id : '';
   $('lNombre').value = l ? l.nombre : 'Liebre ' + (liebres.length + 1); $('lMedia').value = l ? l.media : 1.7; $('lMax').value = l ? l.max : 3.0; $('lMin').value = l ? l.min : 1.3; $('lColor').value = l ? l.color : '#f0883e'; $('lAviso').textContent = ''; $('lNombre').focus(); }
@@ -3083,13 +3142,14 @@ function componerGrabacion(){
 // ---- TECLAS (20-nov, Carlos): todo se maneja sin la bici ni los Zwift Play ----
 // Las del pedaleo simulado (Z X C V B, 0, + −, ↑ ↓, Espacio) no se tocan: solo valen mientras pedaleas con el teclado.
 const TECLAS = [
-  ['Tu equipo (carreras)', [['7', 'Venid conmigo: tus outsiders saltan contigo'], ['8', 'Tirad: tus gregarios a la cabeza'], ['9', 'Esperadme: tus gregarios te esperan y te devuelven al grupo'], ['B', 'Tren: os ponéis en fila para tu final'], ['X', 'Libres: cada uno su carrera']]],
-  ['Cámaras', [['1 … 5', 'Cámara 1 a 5 (detrás, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente'], ['I / U', 'Acercar / alejar, en cualquier cámara (también la rueda del ratón; en el dron, RePág/AvPág)'], [',  .', 'Girar la vista a la izquierda / derecha (15° cada vez)'], [';  :', 'Mirar más desde abajo / desde arriba (Mayús + , .)']]],
+  ['Como el Zwift Play (v167)', [['← →', 'Girar la cámara'], ['↑ ↓', 'Inclinar la cámara (con la clasificación abierta, recorrerla)'], ['A', 'Órdenes al equipo (↑ ↓ elegir, A dar, Z salir) · de espectador: pausa'], ['B', 'De espectador: velocidad ×1 · ×2 · ×5 · ×10'], ['Y', 'Menú'], ['Z', 'Pantalla limpia: quitar / poner las ventanas'], ['L', 'Clasificación (lateral derecho del Play)']]],
+  ['Tu equipo (carreras)', [['7', 'Venid conmigo: tus outsiders saltan contigo'], ['8', 'Tirad: tus gregarios a la cabeza'], ['9', 'Esperadme: tus gregarios te esperan y te devuelven al grupo'], ['6', 'Tren: os ponéis en fila para tu final'], ['X', 'Libres: cada uno su carrera']]],
+  ['Cámaras', [['1 … 5', 'Cámara 1 a 5 (detrás, de lado, de frente, dron, ojos)'], ['C', 'Cámara siguiente'], ['I / U', 'Acercar / alejar, en cualquier cámara (también la rueda del ratón; en el dron, RePág/AvPág)'], [',  .', 'Girar la vista a la izquierda / derecha (15° cada vez)'], [';  :', 'Mirar más desde abajo / desde arriba (Mayús + , .)']]],
   ['Espectador (👀 Solo miro)', [['V', 'A quién sigue la cámara: Carlos, Susana, cabeza, pelotón'], ['R', 'Velocidad ×1 · ×2 · ×5 · ×10']]],
   ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +'], ['Re Pág  Av Pág', 'Grupeta: subir / bajar zona'], ['K', 'Grupeta: relevos contigo sí / no'], ['J', 'Grupeta: pasar el relevo']]],
-  ['Pantalla', [['M', 'Menú ☰ · luego 1 a 5: App, TV, Actividad, Carrera, Mundo'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
+  ['Pantalla', [['M', 'Menú ☰ · luego 1 a 5: App, TV, Actividad, Carrera, Mundo'], ['D', '3D a pantalla completa / con datos y mapa'], ['K', 'Mapa: ruta entera / te sigue (en grupeta, K son los relevos)'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
   ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
-  ['Grabar y sonido', [['G', 'Grabar la pantalla entera (con micrófono)'], ['T', 'Grabar solo el 3D (con micrófono)'], ['Y', 'Voz de la narración']]],
+  ['Grabar y sonido', [['G', 'Grabar la pantalla entera (con micrófono)'], ['T', 'Grabar solo el 3D (con micrófono)']]],
   ['Pedaleo simulado (⌨ en el menú)', [['↑ ↓  + −', '±10 W (con Mayús ±50 W)'], ['Z X C V B', '55 · 70 · 88 · 100 · 120 % de tu FTP'], ['Espacio', 'A tope mientras lo mantienes'], ['0', 'Dejar de pedalear']]],
   ['Ayuda', [['H  F1  ?', 'Esta ventana']]]];
 function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !== document.body) document.body.appendChild(A);
@@ -3118,8 +3178,10 @@ document.addEventListener('keydown', e => {
   if (pedaleo && (/^[zxcvb0+\- ]$/.test(kl) || k === 'ArrowUp' || k === 'ArrowDown')) return;   // son del pedaleo simulado
   if (kl === 'r' || kl === 'g' || kl === 'm') return;   // ya tienen su propio manejo
   const en3d = !!(v3 && v3.activo); let hecho = true;
+  { const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', a:'A', b:'B', y:'Y', z:'Z', l:'latD' }[kl];   // v167: el teclado hace lo mismo que el Play
+    if (T && mando(T)) { e.preventDefault(); return; } }
   if (/^[1-5]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
-  else if ((k === 'ArrowRight' || k === 'ArrowLeft') && en3d) cambiarCamara(k === 'ArrowRight' ? 1 : -1);
+  else if (kl === 'c' && en3d) cambiarCamara(1);   // v167: cámara siguiente (las flechas giran la vista)
   else if ((kl === 'i' || kl === 'u' || ((k === 'PageUp' || k === 'PageDown') && $('camara3d').value === 'dron')) && en3d) cambiarZoomCam(k === 'PageDown' || kl === 'u' ? 1.25 : 1 / 1.25);
   else if ((k === ';' || k === ':') && en3d) inclinarCam(k === ';' ? -10 : 10);   // v165: Mayúsculas + , . en el teclado español
   else if ((k === ',' || k === '.' || k === '<' || k === '>') && en3d) girarCam(k === '.' || k === '>' ? 15 : -15);
@@ -3130,11 +3192,11 @@ document.addEventListener('keydown', e => {
   else if (k === 'End') { if (sesion.corriendo && !$('bTerminar').disabled) $('bTerminar').click(); }
   else if (kl === 's') { if (sesion.corriendo && !ruta.activa) saltarBloque(); }
   else if (k === ']' || k === '[') pulsarAccion(k === ']' ? 'dif+' : 'dif-', true, 'teclado');
-  else if ((k === '7' || k === '8' || k === '9' || kl === 'b' || kl === 'x') && en3d && hayEquipo()) darOrden({ '7': 'venid', '8': 'tirad', '9': 'esperadme', b: 'tren', x: 'libres' }[kl]);
+  else if ((k === '6' || k === '7' || k === '8' || k === '9' || kl === 'x') && en3d && hayEquipo()) darOrden({ '7': 'venid', '8': 'tirad', '9': 'esperadme', '6': 'tren', x: 'libres' }[kl]);
   else if (kl === 'j') pasarRelevo();
   else if (kl === 'k') { if (rivales.lista.some(r => r.grupeta)) alternarRelevosYo(); }
   else if (k === 'PageUp' || k === 'PageDown') { if (rivales.lista.some(r => r.grupeta)) cambiarZona(k === 'PageUp' ? 1 : -1); }
-  else if (kl === 'a') pulsarAccion('mapa', true, 'teclado');
+  else if (kl === 'k' && !rivales.lista.some(r => r.grupeta)) pulsarAccion('mapa', true, 'teclado');
   else if (kl === 'd') pulsarAccion('datos', true, 'teclado');
   else if (kl === 'q' && en3d) pulsarAccion('calidad', true, 'teclado');
   else if (kl === 'e' && en3d) pulsarAccion('escenario', true, 'teclado');
@@ -3144,7 +3206,6 @@ document.addEventListener('keydown', e => {
   else if (kl === 'l') alternarClasif();
   else if (kl === 'o') recolocarVentanas();
   else if (kl === 'f') { $('pantallaFicha').hidden ? abrirFicha() : ($('pantallaFicha').hidden = true); }
-  else if (kl === 'y') $('b3Voz').click();
   else hecho = false;
   if (hecho) e.preventDefault(); });
 // ---- webcam (20-nov, Carlos): ventanita siempre visible mientras esté encendida; sale en las grabaciones de pantalla entera ----
