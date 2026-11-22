@@ -85,6 +85,16 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #zonaRuta.carretera #ciclista3d, #zonaRuta.carretera #camara3d, #zonaRuta.carretera #escenario3d, #zonaRuta.carretera #b3Pausa, #zonaRuta.carretera #b3Terminar, #zonaRuta.carretera #b3Tester, #zonaRuta.carretera #kmTester, #zonaRuta.carretera #kmTesterTxt, #zonaRuta.carretera #b3Empezar, #zonaRuta.carretera #calidad3d, #zonaRuta.carretera #hora3d, #zonaRuta.carretera #b3Grabar, #zonaRuta.carretera #b3Camara { display:inline-block; }
   #zonaRuta.carretera #bPausaMapa { display:none; }
   #ordenes3d { position:fixed; right:14px; bottom:120px; z-index:1006; display:flex; flex-direction:column; gap:4px; background:rgba(13,17,23,.72); border:1px solid #30363d; border-radius:10px; padding:6px; }
+  #cronica3d { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1010; width:min(820px, 92vw); max-height:84vh; overflow:auto; background:rgba(13,17,23,.97); border:1px solid #30363d; border-radius:12px; padding:10px 14px; color:#e6edf3; font-size:14px; }
+  #cronica3d .cab { font-weight:700; font-size:16px; display:flex; justify-content:space-between; margin-bottom:6px; } #cronica3d .pod { color:#ffd33d; margin-bottom:8px; } #cronica3d td { padding:2px 6px; vertical-align:top; } #cronica3d td:nth-child(-n+2) { color:#8b949e; white-space:nowrap; } #cronica3d tr.C td:last-child { color:#58a6ff; font-style:italic; }
+  .modoC { display:inline-flex; border:1px solid #30363d; border-radius:9px; overflow:hidden; margin-left:6px; vertical-align:middle; } .modoC button { font:700 14px system-ui; background:#161b22; color:#9aa4ad; border:0; padding:6px 12px; cursor:pointer; } .modoC button.on { background:#1f6feb; color:#fff; }
+  /* v165 (Carlos): el menú ☰ por grupos — App, TV, Actividad, Carrera, Mundo */
+  #panelMapa .barra > .gNav, #panelMapa .barra > .gVolver, #panelMapa .barra > [data-vista], #b3Cronica, #b3InstrCarrera, #b3ConfCarrera { display:none; }
+  body.menuAbierto #panelMapa .barra > :not(.gNav):not(.gOn) { display:none !important; }
+  body.menuAbierto #panelMapa .barra > .gOn { display:inline-block !important; }
+  body.menuAbierto:not(.gSel) #panelMapa .barra > .gNav { display:inline-flex !important; flex-direction:column; align-items:center; gap:2px; font:700 15px system-ui; padding:10px 16px; min-width:118px; }
+  .gNav small { font:600 11px system-ui; color:#9aa4ad; }
+  body.menuAbierto.gSel #panelMapa .barra > .gVolver { display:inline-block !important; }
   #espect3d { position:fixed; right:14px; bottom:120px; z-index:1006; display:flex; flex-direction:column; gap:4px; background:rgba(13,17,23,.78); border:1px solid #30363d; border-radius:10px; padding:6px; }
   #espect3d[hidden] { display:none; } #espect3d .tt { font:700 11px system-ui; color:#9aa4ad; text-align:center; } #espect3d button { font:600 13px system-ui; color:#e8eaed; background:#161b22; border:1px solid #30363d; border-radius:7px; padding:5px 9px; text-align:left; cursor:pointer; } #espect3d button.on { background:#1f6feb; border-color:#1f6feb; }
   #ordenes3d[hidden] { display:none; } #ordenes3d .tt { font:700 11px system-ui; color:#9aa4ad; text-align:center; } #ordenes3d button { font:600 12px system-ui; color:#e8eaed; background:#161b22; border:1px solid #30363d; border-radius:7px; padding:4px 8px; text-align:left; cursor:pointer; } #ordenes3d button.on { background:#c60b1e; border-color:#c60b1e; }
@@ -353,7 +363,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</span></h1>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
 <div id="filaInicio">
@@ -466,7 +476,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   <div class="cabRutas"><button class="sec" id="bVolverRutas">← Volver</button><button class="sec" onclick="abrirFicha()">🪪 Mi ficha</button><a class="sec" href="segmentos.html" style="text-decoration:none;display:inline-block;padding:6px 12px;border-radius:8px;border:1px solid #30363d;color:#e8eaed">⏱ Segmentos</a><h2>Simulador de rutas</h2>
     <span class="sub">Recorrer en</span>
     <div class="vistaElegir"><button data-v="dos">Mapa 2D</button><button data-v="carretera">Escenario 3D</button></div></div>
-  <div id="cajaRivales"><h3>Rivales <button class="sec mini" style="font-size:13px;margin-left:8px" onclick="mostrarDemo('carrera')" title="Vídeo de la primera carrera con bots">🎬 Ver una carrera</button></h3><div id="listaRivales"></div>
+  <div id="cajaRivales"><h3>Rivales <button class="sec mini" style="font-size:13px;margin-left:8px" onclick="mostrarDemo('carrera')" title="Vídeo de la primera carrera con bots">🎬 Vídeo de ejemplo</button></h3><div id="listaRivales"></div>
     <div id="formLiebre" hidden>
       <label>Nombre <input id="lNombre" maxlength="24" placeholder="Liebre"></label>
       <label>Media <input id="lMedia" type="number" step="0.1" min="0.5" max="6" value="1.7"> w/kg</label>
@@ -490,8 +500,8 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
       <option value="propio">Ciclista: de carretera</option><option value="jo">Ciclista: Jo (descargado)</option>
     </select>
     <select id="camara3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Cámara">
-      <option value="detras">Cámara 1: detrás</option><option value="cerca">Cámara 2: detrás cerca</option><option value="lado">Cámara 3: de lado</option>
-      <option value="frente">Cámara 4: de frente</option><option value="dron">Cámara 5: dron</option><option value="ojos">Cámara 6: ojos del ciclista</option>
+      <option value="detras">Cámara 1: detrás</option><option value="lado">Cámara 2: de lado</option>
+      <option value="frente">Cámara 3: de frente</option><option value="dron">Cámara 4: dron</option><option value="ojos">Cámara 5: ojos del ciclista</option>
     </select>
     <select id="escenario3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Escenario">
       <option value="sierra">Escenario: sierra</option><option value="nieve">Escenario: montaña nevada</option><option value="desierto">Escenario: desierto</option>
@@ -521,6 +531,12 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
       <option value="ignTopo">IGN topográfico</option><option value="ignOrto">IGN ortofoto</option><option value="hike">HIKE (mundial)</option>
     </select>
     <button class="sec" id="bSeguir">Ver la ruta entera</button>
+    <button class="sec" id="b3Cronica" onclick="this.blur(); verCronica()" title="Lo que han dicho los locutores, con minuto y kilómetro">📜 Crónica</button>
+    <button class="sec" id="b3InstrCarrera" onclick="this.blur(); instruccionesCarrera()" title="Órdenes a tu equipo y teclas de la carrera">❓ Instrucciones</button>
+    <button class="sec" id="b3ConfCarrera" onclick="this.blur(); ponerMenu(false); abrirPantallaRutas()" title="Corredores, nivel, Corro yo / Solo miro">⚙ Configurar carrera</button>
+    <button class="sec" data-vista="carretera" onclick="this.blur(); cambiarVista(this.dataset.vista)">🛣 Carretera 3D</button>
+    <button class="sec" data-vista="dos" onclick="this.blur(); cambiarVista(this.dataset.vista)">▤ Mapa y perfil</button>
+    <button class="sec" data-vista="completa" onclick="this.blur(); cambiarVista(this.dataset.vista)">🗺 Mapa 2D a pantalla completa</button>
     <span class="sub" id="mapaEstado"></span>
   </div>
   <div id="mapa"></div>
@@ -1008,7 +1024,10 @@ const PRIO = { alta: 3, media: 2, baja: 1 }, UMBRAL = { mucha: 1, normal: 2, poc
 // v161 (Carlos: «los comentarios dicen tiran DEN y COL, no el país»): las siglas sueltas se dicen con el nombre del país; las de detrás de un nombre, «(ITA)», se quedan en el texto pero no se leen en voz
 function conPaises(t){ if (typeof SIGLA_PAIS === 'undefined') return t; const P = {}; for (const k in SIGLA_PAIS) P[SIGLA_PAIS[k]] = k;
   return t.replace(/(^|[^(A-Za-zÁÉÍÓÚÑáéíóúñ])([A-Z]{3})(?![A-Za-z)])/g, (m, a, sg) => P[sg] ? a + P[sg] : m); }
+function apuntarCronica(quien, texto){ try { if (!texto || !sesion.corriendo || typeof carrera === 'undefined' || !carrera) return; const C = carrera.cronica || (carrera.cronica = []);
+  const t = conPaises(texto), ult = C[C.length - 1]; if (ult && ult.texto === t) return; C.push({ t: sesion.tTotal || 0, km: (sesion.espect && espSeguido() ? espSeguido().d : ruta.dist) / 1000, quien, texto: t }); if (C.length > 1500) C.shift(); } catch(e) {} }
 function narrar(prio, texto, clave){
+  if (texto && prio !== 'baja') apuntarCronica('N', texto);   // v162: la crónica se apunta aunque vayas acelerado
   if (!texto || PRIO[prio] < (UMBRAL[NARR.nivel] || 2)) return;
   if (/^(esc|evo|caza|cazada|fugaSale|corte|ventaja|tranq|q\d+|desc|at|atk)/.test(clave || '') && typeof rivales !== 'undefined' && rivales.lista.some(r => r.tipo === 'bot' && r.llego)) return;   // v156: ya hay ganador
   if (sesion.demo && (demo.x || 1) > 1 && prio === 'baja') return;
@@ -1017,9 +1036,10 @@ function narrar(prio, texto, clave){
   try { comentarioPara(clave || '', texto, prio); } catch(e) {} }
 // v156: el comentarista (Marga) contesta al narrador (Andrés) con el porqué, datos de la ficha y consejos
 const LOC = { N: '🎙 Andrés · narrador', C: '💬 Marga · comentarista' };
-function comentar(prio, texto, clave, cada){ if (!texto || PRIO[prio] < (UMBRAL[NARR.nivel] || 2)) return; if (sesion.demo && (demo.x || 1) > 1) return;
+function comentar(prio, texto, clave, cada){ if (!texto || PRIO[prio] < (UMBRAL[NARR.nivel] || 2)) return;
+  if (sesion.demo && (demo.x || 1) > 1) { const k = 'CR:' + (clave || texto), a = sesion.tTotal || 0; NARR.ultC = NARR.ultC || {}; if (!(NARR.ultC[k] != null && a - NARR.ultC[k] < 120)) { NARR.ultC[k] = a; apuntarCronica('C', texto); } return; }
   const k = 'C:' + (clave || texto), ahora = Date.now(); if (NARR.ult[k] && ahora - NARR.ult[k] < (cada || 60000)) return;
-  if (prio !== 'alta' && ahora - (NARR.tCom || 0) < 20000) return; NARR.ult[k] = NARR.tCom = ahora;
+  if (prio !== 'alta' && ahora - (NARR.tCom || 0) < 20000) return; NARR.ult[k] = NARR.tCom = ahora; apuntarCronica('C', texto);
   texto = conPaises(texto); NARR.cola.push({ prio: PRIO[prio], texto, quien: 'C' }); NARR.cola.sort((a, b) => b.prio - a.prio); if (NARR.cola.length > 5) NARR.cola.length = 5; }
 function comentarioPara(clave, texto, prio){
   if (typeof rivales === 'undefined' || !carrera || !sesion.corriendo) return;
@@ -1187,6 +1207,8 @@ function carreraConf(){ let c = null; try { c = JSON.parse(localStorage.getItem(
 function guardarCarrera(c){ try { localStorage.setItem(CLAVE('simulador-carrera'), JSON.stringify(c)); } catch(e) {} }
 // v150 (21-nov, Carlos): 60 corredores con ficha (recursos/bots.js), 12 selecciones con dorsales y papeles. Niveles estrechos para carreras igualadas:
 // líder +3 %, outsider 0, gregario −3 % sobre el nivel elegido, talento ±1,5 % y forma del día ±1,5 %. Carrera corta (6) = tú + 5 al azar.
+// v164 (Carlos: «los maillots podrían tener unas rayas, algún rasgo distintivo que no ocupara mucho»): franja de cada equipo con un segundo color de su bandera
+const FRANJA_EQUIPO = { ESP: 0xffc400, ITA: 0xffffff, FRA: 0xe4002b, BEL: 0xffd400, NED: 0xffffff, COL: 0x1f3a93, GBR: 0xe4002b, GER: 0x111111, DEN: 0xffffff, SLO: 0xe4002b, USA: 0xffffff, AUS: 0x0b6e4f };
 const SIGLA_PAIS = { 'Italia': 'ITA', 'España': 'ESP', 'Francia': 'FRA', 'Bélgica': 'BEL', 'Países Bajos': 'NED', 'Colombia': 'COL', 'Reino Unido': 'GBR', 'Alemania': 'GER', 'Dinamarca': 'DEN', 'Eslovenia': 'SLO', 'Australia': 'AUS', 'Estados Unidos': 'USA' };
 const ROL_NIVEL = { lider: 0.03, outsider: 0, gregario: -0.03 }, ROL_TXT = { lider: 'líder', outsider: 'outsider', gregario: 'gregario' };
 const apellidoCorto = a => { const p = a.split(' '); return /^(van|de|der|den|del|da|di|le|la|mc)$/i.test(p[0]) && p[1] ? p[0] + ' ' + p[1] : p[0]; };
@@ -1231,6 +1253,7 @@ function tacticaCarrera(bots, dt){
   const vYo = Math.max(0, velocidadRuta() || 0), yo = { yo: true, d: ruta.dist, v: vYo };
   const todos = [...(sesion.espect ? [] : [yo]), ...bots.filter(b => !b.llego)].sort((a, b) => b.d - a.d), G = [];
   for (const x of todos) { const g = G[G.length - 1]; if (g && g[g.length - 1].d - x.d <= 25) g.push(x); else G.push([x]); }
+  if (!G.length) return;   // v163: ya han llegado todos
   const ip = G.reduce((a, g, k) => g.length > G[a].length ? k : a, 0), pel = G[ip], delante = G.slice(0, ip).flat(), yoFuga = delante.some(x => x.yo);
   const vPel = Math.max(3, pel.reduce((s, x) => s + (x.v || 0), 0) / pel.length), fr = Math.min(1, pel[0].d / Math.max(1, dMeta())), resta = dMeta() - pel[0].d;
   const gapS = delante.length ? (delante[delante.length - 1].d - pel[0].d) / vPel : 0, eqFuga = new Set(delante.filter(x => !x.yo).map(x => x.equipo)); if (yoFuga) eqFuga.add(2);
@@ -1483,7 +1506,7 @@ function pintarBocadillos(){ if (!mapa.m || !VIG.G) return; if (VIG.mapa) mapa.m
   for (const g of VIG.G) { if (g.yo) continue; const p = puntoEn(Math.min(ruta.total, g.cab.d));
     L.circleMarker([p.lat, p.lon], { radius: 4, color: '#ffd33d', weight: 1, fillOpacity: 0.9 }).bindTooltip((g.dif > 0 ? '▲ ' : '▼ ') + hms(Math.round(Math.abs(g.dif))) + ' · ' + g.n, { permanent: true, direction: 'top', className: 'bocaGrupo', offset: [0, -4] }).addTo(VIG.mapa); } }
 // radar de tu grupo: puntos de delante (derecha) a detrás (izquierda); tú en amarillo
-function radarHtml(){ const G = VIG.G; if (!G) return ''; const W = 300, H = 34;
+function radarHtml(){ const G = VIG.G; if (!G || !G[VIG.iy]) return '';   /* v163: ya no queda nadie en carrera */ const W = 300, H = 34;
   // posiciones de este instante (el grupo se calcula cada 2 s, pero tú y ellos os movéis entre medias)
   const m = G[VIG.iy].m.map(x => ({ x, d: x.yo ? ruta.dist : x.d })).sort((a, b) => b.d - a.d), g = { m: m.map(e => Object.assign(Object.create(e.x), { d: e.d, yo: e.x.yo })) };
   const ds = m.map(e => e.d), dMax = Math.max(...ds), dMin = Math.min(...ds), span = Math.max(20, dMax - dMin), pos = g.m.findIndex(x => x.yo), n = g.m.length;
@@ -1779,7 +1802,7 @@ function moverRivales3D(dt, dYo){
     if (Math.abs(b.dVis - dYo) < 40) { ultimo = b; continue; } if (!ultimo || ultimo.dVis - b.dVis > 15) conCartel.add(b); ultimo = b; } }
   rivales.lista.forEach((r, k) => {
     if (!r.g || r.esc !== v3.escena) { const col = new THREE.Color(r.color).getHex();
-      const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: 0xffffff, casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
+      const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: (r.sigla && FRANJA_EQUIPO[r.sigla] != null) ? FRANJA_EQUIPO[r.sigla] : 0xffffff, franjaAncha: r.tipo === 'bot', casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
       const AV = r.avatar && USUARIOS[r.avatar], KA = AV && Object.assign({}, COLORES_CICLISTA, AV.colores || {}), opA = AV && Object.assign({}, AV.op || {}, { dorsal: String(r.dorsal) });
       r.g = AV ? hacerCiclista(KA, opA) : r.tipo === 'bot' ? ciclistaLigero(K) : hacerCiclista(K, { sencillo: true });
       if (AV) conCanyon(hacerCiclista(KA, opA), KA).then(g2 => { if (!g2 || !r.g || r.esc !== v3.escena) return; const viejo = r.g; if (r.cartel) { viejo.remove(r.cartel); g2.add(r.cartel); } v3.escena.remove(viejo); v3.escena.add(g2); r.g = g2; }).catch(() => {});
@@ -1819,12 +1842,13 @@ function pintarListaRivales(){
     + liebres.map(l => chip(l.id, l.activa, l.color, '🐇 ' + l.nombre, String(l.media).replace('.', ',') + ' w/kg · ' + String(l.min).replace('.', ',') + '–' + String(l.max).replace('.', ','), true)).join('')
     + '<button class="sec" id="bNuevaLiebre">+ Nueva liebre</button>'
     + (() => { const c = carreraConf(), gr = c.tipo === 'grupeta', n2 = x => String(x).replace('.', ',');
-      return chip('carrera', c.activa, '#ffd33d', gr ? '🚴 Grupeta con bots' : '🏁 Carrera con bots', c.n + ' corredores · ' + (gr ? 'en ' + zonaActual().n + ' (' + n2(wkgZona(zonaActual())) + ' w/kg), te esperan y aflojan si te pasas de pulso' : 'nivel ' + n2(c.nivel) + ' w/kg · puertos, metas volantes y meta'), false)
+      return chip('carrera', c.activa, '#ffd33d', gr ? '🚴 Grupeta con bots' : '🏁 Carrera con bots', c.n + ' corredores · ' + (gr ? 'en ' + zonaActual().n + ' (' + n2(wkgZona(zonaActual())) + ' w/kg), te esperan y aflojan si te pasas de pulso' : 'nivel ' + n2(c.nivel) + ' w/kg · puertos, metas volantes y meta' + (c.espectador ? ' · 👀 SOLO MIRAS: corren Carlos y Susana' : '')), false)
       + '<span class="confCarrera"><select id="cTipo"><option value="carrera"' + (gr ? '' : ' selected') + '>Carrera</option><option value="grupeta"' + (gr ? ' selected' : '') + '>Grupeta tranquila</option></select>'
       + ' Corredores <select id="cN">' + [6, 24, 36, 48, 60].map(n => '<option' + (n === ([6, 24, 36, 48, 60].reduce((a, b) => Math.abs(b - c.n) < Math.abs(a - c.n) ? b : a)) ? ' selected' : '') + ' value="' + n + '">' + (n === 6 ? '6 · tú + 5 (corta)' : n === 60 ? '60 · todos' : n + ' · ' + n / 12 + ' por equipo') + '</option>').join('') + '</select>'
       + (gr ? ' Zona <select id="cZona">' + ZONAS.map(z => '<option value="' + z.n + '"' + (z === zonaActual() ? ' selected' : '') + '>' + z.n + ' · ' + z.txt + ' · ' + n2(wkgZona(z)) + ' w/kg</option>').join('') + '</select>'
-            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + (gr ? '' : ' <label title="Pinchazos, cadena o averías: 1–2 por carrera"><input type="checkbox" id="cInc"' + (c.incidentes !== false ? ' checked' : '') + '> Incidentes</label> <label title="Corren Carlos y Susana; tú solo miras. El botón de empezar de siempre arranca la carrera sin ti"><input type="checkbox" id="cEsp"' + (c.espectador ? ' checked' : '') + '> 👀 Solo miro</label>') + '</span>'; })();
-  if ($('cEsp')) { $('cEsp').onclick = e => e.stopPropagation(); $('cEsp').onchange = () => { const c = carreraConf(); c.espectador = $('cEsp').checked; guardarCarrera(c); }; }
+            : ' Nivel <input id="cNivel" type="number" step="0.1" min="1" max="5" value="' + c.nivel + '" style="width:4.5em"> w/kg') + (gr ? '' : ' <label title="Pinchazos, cadena o averías: 1–2 por carrera"><input type="checkbox" id="cInc"' + (c.incidentes !== false ? ' checked' : '') + '> Incidentes</label> <span class="modoC" title="Solo miro: corren Carlos y Susana y tú miras; el botón de empezar arranca la carrera sin ti"><button type="button" data-m="0"' + (c.espectador ? '' : ' class="on"') + '>🚴 Corro yo</button><button type="button" data-m="1"' + (c.espectador ? ' class="on"' : '') + '>👀 Solo miro</button></span>') + '</span>'; })();
+  L.querySelectorAll('.modoC button').forEach(b => b.onclick = e => { e.stopPropagation(); const c = carreraConf(); c.espectador = b.dataset.m === '1'; guardarCarrera(c); pintarListaRivales(); });
+  modoBotonEmpezar();
   L.querySelectorAll('.chipRival').forEach(c => c.onclick = e => { if (e.target.closest('.mini')) return; const id = c.dataset.id;
     if (id === 'fantasma') { try { localStorage.setItem(CLAVE('simulador-fantasma-activo'), fantasmaActivo() ? '0' : '1'); } catch(e) {} }
     else if (id === 'carrera') { const c = carreraConf(); c.activa = !c.activa; guardarCarrera(c); if (typeof prepararRivales === 'function' && ruta.activa && !sesion.corriendo) prepararRivales(); }
@@ -2366,27 +2390,35 @@ function espSeguido(){ const B = rivales.lista.filter(r => r.tipo === 'bot'); if
   return B.find(b => b.avatar === espect.sigue) || L[0]; }
 function espColocar(){ const S = espSeguido(); if (!S) return; ruta.dist = Math.min(ruta.total, S.d); if (S.lat != null) { carrera.yoLat = S.lat; carrera.yoLatObj = S.lat; }
   if (rivales.lista.filter(r => r.tipo === 'bot').every(b => b.llego) && !espect.fin) { espect.fin = true; const C = clasificacion(), pc = C.findIndex(b => b.avatar === 'carlos') + 1, ps = C.findIndex(b => b.avatar === 'susana') + 1;
-    narrar('alta', '🏁 Fin de la carrera' + (pc ? ' · Carlos ' + pc + 'º' : '') + (ps ? ' · Susana ' + ps + 'ª' : ''), 'finEsp'); } }
+    narrar('alta', '🏁 Fin de la carrera' + (pc ? ' · Carlos ' + pc + 'º' : '') + (ps ? ' · Susana ' + ps + 'ª' : ''), 'finEsp'); pintarEspect(); espect.tFin = sesion.tTotal; }
+  if (espect.fin && !espect.cronAbierta && sesion.tTotal - (espect.tFin || 0) >= 3) { espect.cronAbierta = true; verCronica(); } }
 function pintarEspect(){ let P = $('espect3d'); if (!P) { P = document.createElement('div'); P.id = 'espect3d'; document.body.appendChild(P); }
   const op = [['carlos', '🚴 Carlos'], ['susana', '🚴‍♀️ Susana'], ['cabeza', '🥇 Cabeza'], ['peloton', '👥 Pelotón']];
-  P.hidden = false; P.innerHTML = '<span class="tt">👀 Espectador · N cambia</span>' + op.map(([k, t]) => '<button data-s="' + k + '"' + (espect.sigue === k ? ' class="on"' : '') + '>' + t + '</button>').join('')
-    + '<span class="tt">Velocidad · R</span><span style="display:flex;gap:3px">' + [1, 2, 5].map(x => '<button data-x="' + x + '"' + ((demo.x || 1) === x ? ' class="on"' : '') + ' style="flex:1;text-align:center">×' + x + '</button>').join('') + '</span>'
-    + '<button data-s="fin">⏹ Salir</button>';
+  P.hidden = false; P.innerHTML = '<span class="tt">👀 Espectador · V cambia</span>' + op.map(([k, t]) => '<button data-s="' + k + '"' + (espect.sigue === k ? ' class="on"' : '') + '>' + t + '</button>').join('')
+    + '<span class="tt">Velocidad · R</span><span style="display:flex;gap:3px">' + [1, 2, 5, 10].map(x => '<button data-x="' + x + '"' + ((demo.x || 1) === x ? ' class="on"' : '') + ' style="flex:1;text-align:center">×' + x + '</button>').join('') + '</span>'
+    + ((carrera.cronica || []).length ? '<button data-s="cron">📜 Crónica</button>' : '') + '<button data-s="fin">⏹ Salir</button>';
   P.querySelectorAll('button[data-x]').forEach(b => b.onclick = () => espVel(+b.dataset.x));
-  P.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { if (b.dataset.s === 'fin') { terminar(false); return; } espect.sigue = b.dataset.s; const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } pintarEspect(); }); }
+  P.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { if (b.dataset.s === 'fin') { terminar(false); return; } if (b.dataset.s === 'cron') { verCronica(); return; } espect.sigue = b.dataset.s; const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } pintarEspect(); }); }
+function modoBotonEmpezar(){ const c = carreraConf(), esp = c.activa && c.espectador && c.tipo !== 'grupeta';
+  for (const id of ['bEmpezar', 'b3Empezar']) { const B = $(id); if (B) B.textContent = esp ? '👀 Ver la carrera' : '▶ Empezar'; } }
+function verCronica(){ let V = $('cronica3d'); if (!V) { V = document.createElement('div'); V.id = 'cronica3d'; document.body.appendChild(V); }
+  const C = carrera.cronica || [], cl = clasificacion().filter(x => x.llego && !x.yo).slice(0, 10), esc = t => String(t).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
+  V.innerHTML = '<div class="cab">📜 Crónica · ' + esc(ruta.nombre || '') + '<button onclick="this.closest(\'#cronica3d\').remove()">Cerrar</button></div>'
+    + (cl.length ? '<div class="pod">' + cl.map((x, i) => (i + 1) + '. ' + esc(x.nombre) + (x.sigla ? ' (' + x.sigla + ')' : '') + ' ' + hms(x.tLlegada)).join(' · ') + '</div>' : '')
+    + '<table>' + C.map(e => '<tr class="' + e.quien + '"><td>' + hms(Math.round(e.t)) + '</td><td>km ' + e.km.toFixed(1).replace('.', ',') + '</td><td>' + (e.quien === 'C' ? '💬 ' : '🎙 ') + esc(e.texto) + '</td></tr>').join('') + '</table>'; }
 function espVel(x){ demo.x = x; if ($('b3Tester')) $('b3Tester').textContent = x === 1 ? '▶ Tiempo real' : '⏩ ×' + x; aviso3d(x === 1 ? '▶ Velocidad real' : '⏩ ×' + x + ' · los locutores solo hablan a velocidad real', 1800); pintarEspect(); }
 function empezarEspectador(){
   if (!ruta.activa) { avisar('Elige antes una ruta.'); return; }
   if (sesion.corriendo) { avisar(sesion.demo ? 'Para antes lo que está en marcha.' : 'Estás en una salida de verdad.'); return; }
   const c = carreraConf(); if (!c.activa || c.tipo === 'grupeta') { c.activa = true; c.tipo = 'carrera'; guardarCarrera(c); }
-  if (demo.x !== 1 && demo.x !== 2 && demo.x !== 5) demo.x = 1;
+  if (![1, 2, 5, 10].includes(demo.x)) demo.x = 1;
   if ($('pantallaRutas') && !$('pantallaRutas').hidden) cerrarPantallaRutas();   /* v159: «sale la cuenta atrás pero no va al mundo 3D» */
   if (!window.LIGERO && $('vistaRuta').value !== 'carretera') { $('vistaRuta').value = 'carretera'; ponerVista(); }
-  sesion.espect = true; espect.sigue = 'carlos'; espect.fin = false; prepararRivales();
+  sesion.espect = true; espect.sigue = 'carlos'; espect.fin = false; espect.cronAbierta = false; prepararRivales(); carrera.cronica = [];
   sesion.demo = true; demo.manual = false; sesion.segReg = 0; const vivoT = () => { vivo.w = 1; vivo.c = 1; vivo.p = 0; vivo.tW = vivo.tP = Date.now(); }; vivoT(); demo.t = setInterval(vivoT, 500);
   empezar(); pintarEspect(); aviso3d('👀 Modo espectador: corren Carlos y Susana · tú solo miras · no se guarda nada', 4000); }
 document.addEventListener('keydown', e => { if (!sesion.espect || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
-  if (e.key.toLowerCase() === 'n') { const o = ['carlos', 'susana', 'cabeza', 'peloton']; espect.sigue = o[(o.indexOf(espect.sigue) + 1) % o.length]; { const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } } pintarEspect(); e.preventDefault(); } });
+  if (e.key.toLowerCase() === 'v') { const o = ['carlos', 'susana', 'cabeza', 'peloton']; espect.sigue = o[(o.indexOf(espect.sigue) + 1) % o.length]; { const S = espSeguido(); if (S) { ruta.dist = S.d; v3.dVis = S.d; v3.camPos = null; } } pintarEspect(); e.preventDefault(); } });
 function empezarDemo(){
   if (!ruta.activa) return;
   if (sesion.corriendo) { if (sesion.demo) terminar(false); else avisar('Estás en una salida de verdad: la demostración, cuando termines.'); return; }
@@ -2966,12 +2998,13 @@ function ajustarLienzo(){
 }
 try { const v = localStorage.getItem('simulador-vista'); if (v) $('vistaRuta').value = v; } catch(e) {}
 try { const c = localStorage.getItem('simulador-ciclista'); if (c) $('ciclista3d').value = c; } catch(e) {}
-try { const c = localStorage.getItem('simulador-camara'); if (c) $('camara3d').value = c; } catch(e) {}
+try { let c = localStorage.getItem('simulador-camara'); if (c === 'cerca') { c = 'detras'; const Z = JSON.parse(localStorage.getItem('simulador-zoom-cam') || '{}'); if (Z.detras == null) { Z.detras = 0.55; localStorage.setItem('simulador-zoom-cam', JSON.stringify(Z)); } }   /* v165: «detrás cerca» = detrás acercada */
+  if (c && [...$('camara3d').options].some(o => o.value === c)) $('camara3d').value = c; } catch(e) {}
 $('camara3d').onchange = () => { try { localStorage.setItem('simulador-camara', $('camara3d').value); } catch(e) {} $('camara3d').blur(); };
 // teclas 1 a 6 cambian de cámara en la vista 3D
 document.addEventListener('keydown', e => {
   if (!v3.activo || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA/.test((e.target || {}).tagName || '')) return;
-  const n = '123456'.indexOf(e.key); if (n < 0) return;
+  const n = '12345'.indexOf(e.key); if (n < 0) return;
   $('camara3d').selectedIndex = n; $('camara3d').onchange(); e.preventDefault();
 });
 function cambiarCamara(paso){ const c = $('camara3d'), n = c.options.length; c.selectedIndex = (c.selectedIndex + paso + n) % n; c.onchange(); aviso3d(c.options[c.selectedIndex].text); }
@@ -3051,9 +3084,10 @@ function componerGrabacion(){
 // Las del pedaleo simulado (Z X C V B, 0, + −, ↑ ↓, Espacio) no se tocan: solo valen mientras pedaleas con el teclado.
 const TECLAS = [
   ['Tu equipo (carreras)', [['7', 'Venid conmigo: tus outsiders saltan contigo'], ['8', 'Tirad: tus gregarios a la cabeza'], ['9', 'Esperadme: tus gregarios te esperan y te devuelven al grupo'], ['B', 'Tren: os ponéis en fila para tu final'], ['X', 'Libres: cada uno su carrera']]],
-  ['Cámaras', [['1 … 6', 'Cámara 1 a 6 (detrás, cerca, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente'], ['I / U', 'Dron: acercar / alejar (también la rueda del ratón)'], [',  .', 'Girar la vista a la izquierda / derecha, en cualquier cámara (15° cada vez; mantener para dar la vuelta)']]],
+  ['Cámaras', [['1 … 5', 'Cámara 1 a 5 (detrás, de lado, de frente, dron, ojos)'], ['← →', 'Cámara anterior / siguiente'], ['I / U', 'Acercar / alejar, en cualquier cámara (también la rueda del ratón; en el dron, RePág/AvPág)'], [',  .', 'Girar la vista a la izquierda / derecha (15° cada vez)'], [';  :', 'Mirar más desde abajo / desde arriba (Mayús + , .)']]],
+  ['Espectador (👀 Solo miro)', [['V', 'A quién sigue la cámara: Carlos, Susana, cabeza, pelotón'], ['R', 'Velocidad ×1 · ×2 · ×5 · ×10']]],
   ['Salida', [['Enter', 'Empezar'], ['P', 'Pausa / seguir'], ['Fin', 'Terminar y guardar'], ['S', 'Saltar bloque (sesiones)'], ['[  ]', 'Dificultad (ruta) o intensidad (sesión) − / +'], ['Re Pág  Av Pág', 'Grupeta: subir / bajar zona'], ['K', 'Grupeta: relevos contigo sí / no'], ['J', 'Grupeta: pasar el relevo']]],
-  ['Pantalla', [['M', 'Menú ☰'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
+  ['Pantalla', [['M', 'Menú ☰ · luego 1 a 5: App, TV, Actividad, Carrera, Mundo'], ['D', '3D a pantalla completa / con datos y mapa'], ['A', 'Mapa: ruta entera / te sigue'], ['L', 'Clasificación'], ['O', 'Recolocar las ventanas'], ['F', 'Mi ficha'], ['Esc', 'Cerrar la ventana abierta']]],
   ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
   ['Grabar y sonido', [['G', 'Grabar la pantalla entera (con micrófono)'], ['T', 'Grabar solo el 3D (con micrófono)'], ['Y', 'Voz de la narración']]],
   ['Pedaleo simulado (⌨ en el menú)', [['↑ ↓  + −', '±10 W (con Mayús ±50 W)'], ['Z X C V B', '55 · 70 · 88 · 100 · 120 % de tu FTP'], ['Espacio', 'A tope mientras lo mantienes'], ['0', 'Dejar de pedalear']]],
@@ -3062,23 +3096,32 @@ function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !==
   if (A.hidden) $('ayudaCuerpo').innerHTML = TECLAS.map(([g, L]) => '<h3>' + g + '</h3>' + L.map(([k, t]) => '<div class="t"><kbd>' + k + '</kbd><span>' + t + '</span></div>').join('')).join('');
   A.hidden = !A.hidden; }
 // zoom de la cámara dron (20-nov, Carlos): rueda del ratón o RePág/AvPág; se recuerda
-let zoomDronV = null, giroCamV = 0;
-function giroCam(){ return giroCamV; }
+let zoomDronV = null, giroCamV = 0, inclCamV = 0;
+// v165 (Carlos): acercar/alejar en todas las cámaras (cada una recuerda la suya), mirar arriba/abajo, y todo con transición suave
+const camVis = { giro: 0, incl: 0, zoom: {} };
+function zoomesCam(){ if (!camVis.Z) { try { camVis.Z = JSON.parse(localStorage.getItem('simulador-zoom-cam') || '{}') || {}; } catch(e) { camVis.Z = {}; } if (camVis.Z.dron == null) camVis.Z.dron = +localStorage.getItem('simulador-zoom-dron') || 1; } return camVis.Z; }
+function zoomCam(modo){ const z = zoomesCam()[modo]; return z > 0 ? z : 1; }
+function cambiarZoomCam(f){ const modo = $('camara3d').value, Z = zoomesCam(); Z[modo] = Math.max(0.3, Math.min(2.5, zoomCam(modo) * f)); try { localStorage.setItem('simulador-zoom-cam', JSON.stringify(Z)); } catch(e) {}
+  const z = Z[modo]; aviso3d('🔍 ' + (modo === 'ojos' ? 'Zoom ' : 'Cámara ') + (z < 0.95 ? (modo === 'ojos' ? 'más cerca' : 'más cerca') : z > 1.05 ? 'más lejos' : 'normal') + ' · ×' + z.toFixed(1).replace('.', ',')); }
+function inclinarCam(grados){ let g = Math.round(inclCamV * 180 / Math.PI + grados); g = Math.max(-30, Math.min(60, g)); inclCamV = g * Math.PI / 180;
+  aviso3d('↕ Vista ' + (g === 0 ? 'a la altura normal' : g > 0 ? 'más desde arriba ' + g + '°' : 'más desde abajo ' + (-g) + '°')); }
+function giroCam(){ return camVis.giro; }
 function girarCam(grados){ let g = Math.round((giroCamV * 180 / Math.PI + grados) / 15) * 15; g = ((g + 180) % 360 + 360) % 360 - 180; giroCamV = g * Math.PI / 180;   // 21-nov (Carlos): girar la vista a izquierda y derecha
   aviso3d('🔄 Vista ' + (g === 0 ? 'normal' : Math.abs(g) === 180 ? 'dada la vuelta' : (g > 0 ? 'girada a la derecha ' : 'girada a la izquierda ') + Math.abs(g) + '°') + (g ? ' · al cambiar de cámara vuelve a normal' : '')); }
-function zoomDron(){ if (zoomDronV == null) { zoomDronV = +localStorage.getItem('simulador-zoom-dron') || 1; } return zoomDronV; }
+function zoomDron(){ return camVis.zoom.dron || zoomCam('dron'); }
 function cambiarZoomDron(f){ zoomDronV = Math.max(0.25, Math.min(2.5, zoomDron() * f)); try { localStorage.setItem('simulador-zoom-dron', zoomDronV); } catch(e) {}
   aviso3d('🔍 Dron ' + (zoomDronV < 0.95 ? 'más cerca' : zoomDronV > 1.05 ? 'más lejos' : 'normal') + ' · ×' + zoomDronV.toFixed(1).replace('.', ',')); }
-document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || $('camara3d').value !== 'dron' || !v3.r || e.target !== v3.r.domElement) return; e.preventDefault(); cambiarZoomDron(e.deltaY > 0 ? 1.2 : 1 / 1.2); }, { passive: false });
+document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || !v3.r || e.target !== v3.r.domElement) return; e.preventDefault(); cambiarZoomCam(e.deltaY > 0 ? 1.15 : 1 / 1.15); }, { passive: false });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
   if (pedaleo && (/^[zxcvb0+\- ]$/.test(kl) || k === 'ArrowUp' || k === 'ArrowDown')) return;   // son del pedaleo simulado
   if (kl === 'r' || kl === 'g' || kl === 'm') return;   // ya tienen su propio manejo
   const en3d = !!(v3 && v3.activo); let hecho = true;
-  if (/^[1-6]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
+  if (/^[1-5]$/.test(k) && en3d) { const c = $('camara3d'); if (c.options[+k - 1]) { c.selectedIndex = +k - 1; if (c.onchange) c.onchange(); aviso3d(c.options[c.selectedIndex].text); } }
   else if ((k === 'ArrowRight' || k === 'ArrowLeft') && en3d) cambiarCamara(k === 'ArrowRight' ? 1 : -1);
-  else if ((k === 'PageUp' || k === 'PageDown' || kl === 'i' || kl === 'u') && en3d && $('camara3d').value === 'dron') cambiarZoomDron(k === 'PageDown' || kl === 'u' ? 1.35 : 1 / 1.35);
+  else if ((kl === 'i' || kl === 'u' || ((k === 'PageUp' || k === 'PageDown') && $('camara3d').value === 'dron')) && en3d) cambiarZoomCam(k === 'PageDown' || kl === 'u' ? 1.25 : 1 / 1.25);
+  else if ((k === ';' || k === ':') && en3d) inclinarCam(k === ';' ? -10 : 10);   // v165: Mayúsculas + , . en el teclado español
   else if ((k === ',' || k === '.' || k === '<' || k === '>') && en3d) girarCam(k === '.' || k === '>' ? 15 : -15);
   else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
   else if (k === 'Escape') { for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; break; } } }
@@ -3140,7 +3183,7 @@ const VEL_TESTER = [0, 50, 200, 600];
 $('b3Tester').onclick = () => {
   $('b3Tester').blur();
   if (sesion.corriendo && !sesion.demo) { avisar('Recorrer es una salida simulada: termina antes la de verdad.'); return; }
-  if (sesion.espect) { const Y = [1, 2, 5]; espVel(Y[(Y.indexOf(demo.x || 1) + 1) % Y.length]); return; }   // v162: de espectador, solo cambia la velocidad
+  if (sesion.espect) { const Y = [1, 2, 5, 10]; espVel(Y[(Y.indexOf(demo.x || 1) + 1) % Y.length]); return; }   // v162: de espectador, solo cambia la velocidad
   const X = [0, 1, 5, 20, 60], sig = X[(X.indexOf(demo.x || 0) + 1) % X.length];
   if (!sig) { terminar(false); return; }                      // parar: sale el resumen (sin guardar)
   demo.x = sig; $('b3Tester').textContent = sig === 1 ? '▶ Tiempo real' : '⏩ ×' + sig;
@@ -3535,7 +3578,7 @@ function hacerCiclista(K = coloresUsuario(), op = U.op || {}){
     const pts = []; for (let k = 0; k <= 24; k++) { const t = 0.42 + (1 + T_CAP * 0.78 - 0.42) * k / 24, { c, fuera } = marco(t); pts.push(c.clone().addScaledVector(fuera, -(radioEn(t) * frente(t) + 0.0025))); }
     pieza(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.0032, 6, false), M(0x2a2d33, 0.4, 0.3));
     const tir = pieza(new THREE.BoxGeometry(0.012, 0.004, 0.024), M(0xc9ced4, 0.3, 0.8)); tir.position.copy(pts[24]); tir.quaternion.setFromUnitVectors(V(0, 0, 1), marco(1.1).tg); }
-  const banda = tubo(0.36, 0.43, 0.004, franja);   // 19-nov: franja y culote más bajos
+  const banda = K.franjaAncha ? tubo(0.335, 0.455, 0.005, franja) : tubo(0.36, 0.43, 0.004, franja);   // v164: en los bots, más ancha para distinguir el equipo   // 19-nov: franja y culote más bajos
   // parte baja negra (de la franja a la cintura) y culote: recogido sobre el sillín, sin sobresalir como una bola
   const negroM = licra(0x15171a, 0.68, 0.3); tubo(-0.04, 0.36, 0.003, negroM);
   // 21-nov: pelvis de una pieza (cintura, cadera, arranque de los muslos y dos glúteos con su surco), sentada SOBRE el sillín
@@ -5004,13 +5047,22 @@ function bucle3D(t){
   const modo = $('camara3d').value, f = new THREE.Vector3(delante.x - aqui.x, 0, delante.z - aqui.z).normalize(), dcha = new THREE.Vector3(-f.z, 0, f.x);
   const P = (dd, alto) => { const q = puntoVia(dd); q.y += alto; q.x += v3.offYo.x; q.z += v3.offYo.z; return q; };
   let camObj, miraObj;
-  if (modo === 'cerca') { camObj = P(d - 3.4, 1.55); camObj.y = Math.max(camObj.y, aqui.y + 1.55); miraObj = P(d + 12, 0.9); }
-  else if (modo === 'lado') { camObj = aqui.clone().addScaledVector(dcha, 4.2).addScaledVector(f, 0.6); camObj.y += 1.2; miraObj = aqui.clone().addScaledVector(f, 0.6); miraObj.y += 0.9; }
+  { const kk = 1 - Math.exp(-dt * 5); const zt = zoomCam(modo); camVis.zoom[modo] = camVis.zoom[modo] == null ? zt : camVis.zoom[modo] + (zt - camVis.zoom[modo]) * kk;
+    let dg = giroCamV - camVis.giro; dg = Math.atan2(Math.sin(dg), Math.cos(dg)); camVis.giro += dg * kk; camVis.incl += (inclCamV - camVis.incl) * kk; }
+  const zv = camVis.zoom[modo] || 1;
+  if (modo === 'lado') { camObj = aqui.clone().addScaledVector(dcha, 4.2).addScaledVector(f, 0.6); camObj.y += 1.2; miraObj = aqui.clone().addScaledVector(f, 0.6); miraObj.y += 0.9; }
   else if (modo === 'frente') { camObj = P(d + 6.5, 1.4); miraObj = aqui.clone(); miraObj.y += 1.0; }
   else if (modo === 'dron') { const z = zoomDron(); camObj = P(d - 26 * z, 0); camObj.y = Math.max(camObj.y, aqui.y) + 18 * z; miraObj = P(d + 18 * Math.min(1, z), 0); }
   else if (modo === 'ojos') { camObj = aqui.clone().addScaledVector(f, 0.35); camObj.y += 1.55; miraObj = P(d + 22, 1.2); }
   else { const atras = puntoVia(d - 7); atras.x += v3.offYo.x; atras.z += v3.offYo.z; camObj = new THREE.Vector3(atras.x, Math.max(atras.y, aqui.y) + 2.3, atras.z); miraObj = P(d + 16, 1.1); }
-  { const a = giroCam(); if (a) {   // 21-nov (Carlos): «,» y «.» giran la vista alrededor del ciclista en cualquier cámara
+  { const c = aqui.clone(); c.x += v3.offYo.x; c.z += v3.offYo.z; c.y = aqui.y + 1.0;
+    if (modo === 'ojos') { const fov = Math.max(18, Math.min(80, 56 * zv)); if (Math.abs(v3.cam.fov - fov) > 0.05) { v3.cam.fov = fov; v3.cam.updateProjectionMatrix(); }
+      if (Math.abs(camVis.incl) > 0.001) { const L = Math.hypot(miraObj.x - camObj.x, miraObj.z - camObj.z); miraObj.y = camObj.y + Math.tan(Math.max(-0.6, Math.min(0.9, camVis.incl))) * L; } }
+    else { if (Math.abs(v3.cam.fov - 56) > 0.05) { v3.cam.fov = 56; v3.cam.updateProjectionMatrix(); }
+      if (modo !== 'dron' && Math.abs(zv - 1) > 0.001) camObj.sub(c).multiplyScalar(zv).add(c);
+      if (Math.abs(camVis.incl) > 0.001) { const vx = camObj.x - c.x, vy = camObj.y - c.y, vz = camObj.z - c.z, h = Math.hypot(vx, vz) || 0.001, r = Math.hypot(h, vy);
+        const a2 = Math.max(-0.12, Math.min(1.45, Math.atan2(vy, h) + camVis.incl)), h2 = Math.cos(a2) * r; camObj.x = c.x + vx / h * h2; camObj.z = c.z + vz / h * h2; camObj.y = c.y + Math.sin(a2) * r; } } }
+  { const a = giroCam(); if (Math.abs(a) > 0.0005) {   // 21-nov (Carlos): «,» y «.» giran la vista alrededor del ciclista en cualquier cámara
       const ca = Math.cos(a), sa = Math.sin(a), rot = (v, o) => { const x = v.x - o.x, z = v.z - o.z, atras = -(x * f.x + z * f.z), der = x * dcha.x + z * dcha.z, at2 = atras * ca - der * sa, de2 = atras * sa + der * ca;
         v.x = o.x - f.x * at2 + dcha.x * de2; v.z = o.z - f.z * at2 + dcha.z * de2; };
       if (modo === 'ojos') { const L = Math.hypot(miraObj.x - camObj.x, miraObj.z - camObj.z);   // la cabeza gira: mira a los lados
@@ -5019,8 +5071,11 @@ function bucle3D(t){
         if (v3.hSuelo) camObj.y = Math.max(camObj.y, v3.hSuelo(camObj.x, camObj.z) + 0.8);
         const k = Math.min(1, Math.abs(sa) + Math.max(0, -ca)); miraObj.lerp(new THREE.Vector3(c.x, aqui.y + 1.0, c.z), k); } } }
   v3.ciclista.visible = modo !== 'ojos' && !sesion.espect;
-  if (v3.modoCam !== modo) { v3.modoCam = modo; v3.camMira = null; giroCamV = 0; }
-  if (!v3.camMira) v3.camMira = miraObj.clone();
+  if (v3.camPos && v3.camMira && v3.modoCam && v3.modoCam !== modo) v3.trans = { t: 0, pos: v3.camPos.clone().sub(aqui), mira: v3.camMira.clone().sub(aqui) };   // v165: de una cámara a otra, deslizando
+  if (v3.modoCam !== modo) { v3.modoCam = modo; giroCamV = 0; inclCamV = 0; }
+  if (v3.hSuelo) camObj.y = Math.max(camObj.y, v3.hSuelo(camObj.x, camObj.z) + 0.6);
+  if (v3.trans) { v3.trans.t += dt / 0.9; const s = Math.min(1, v3.trans.t), e = s * s * (3 - 2 * s);
+    camObj.lerpVectors(aqui.clone().add(v3.trans.pos), camObj, e); miraObj.lerpVectors(aqui.clone().add(v3.trans.mira), miraObj, e); if (s >= 1) v3.trans = null; }
   if (!v3.camPos) { v3.camPos = camObj.clone(); v3.camMira = miraObj.clone(); }
   v3.camPos.copy(camObj); v3.camMira.copy(miraObj);
   v3.cam.position.copy(v3.camPos); v3.cam.lookAt(v3.camMira); v3.cielo.position.copy(v3.camPos);
@@ -5035,8 +5090,30 @@ reconectarAparatos();
 let tick = null, ultimoTick = 0, quietoDesde = null, mensajeHasta = 0;
 // Menú ☰ (20-nov, Carlos): en el 3D la barra de botones va siempre recogida y arriba a la izquierda solo queda «☰ Menú»;
 // al abrirla se esconden las ventanas de información y al cerrarla vuelven. La tecla M la abre y la cierra.
-const menu3d = { abierto: false };
-function ponerMenu(abrir){ menu3d.abierto = !!abrir; const en3d = !!(v3 && v3.activo);
+const menu3d = { abierto: false, grupo: '' };
+const GRUPOS_MENU = [
+  ['app', '⚙ App', 'calidad, ventanas, teclas', ['ciclista3d', 'calidad3d', 'b3Teclas', 'b3Recolocar', 'bSalirCompleta']],
+  ['tv', '📺 TV', 'cámara y narración', ['camara3d', 'narracion3d', 'b3Voz', 'b3Grabar', 'b3Camara']],
+  ['act', '▶ Actividad', 'empezar, pausa, terminar', ['b3Empezar', 'b3Pausa', 'b3Terminar', 'b3Tester', 'b3Teclado', 'kmTester', 'kmTesterTxt', 'bOtraRuta', 'sentido3d']],
+  ['carrera', '🏁 Carrera', 'clasificación, órdenes', ['b3Clasif', 'b3Cronica', 'b3InstrCarrera', 'b3ConfCarrera']],
+  ['mundo', '🌍 Mundo', 'escenario, hora, viento, mapa', ['escenario3d', 'hora3d', 'vientoFuerza', 'vientoDir', 'b3Viento', 'capaMapa', 'bSeguir', '@vista']]];
+function montarGruposMenu(){ const B = document.querySelector('#panelMapa .barra'); if (!B || B.dataset.grupos) return; B.dataset.grupos = '1';
+  const vol = document.createElement('button'); vol.className = 'sec gVolver'; vol.textContent = '‹ Volver'; vol.onclick = e => { e.stopPropagation(); vol.blur(); elegirGrupoMenu(''); }; B.prepend(vol);
+  GRUPOS_MENU.slice().reverse().forEach(([k, t, sub], i) => { const b = document.createElement('button'); b.className = 'sec gNav'; b.dataset.g = k; b.innerHTML = '<span>' + (GRUPOS_MENU.length - i) + ' · ' + t + '</span><small>' + sub + '</small>'; b.onclick = e => { e.stopPropagation(); b.blur(); elegirGrupoMenu(k); }; B.prepend(b); }); }
+function elegirGrupoMenu(k){ menu3d.grupo = k; montarGruposMenu(); document.body.classList.toggle('gSel', !!k);
+  const ids = new Set(((GRUPOS_MENU.find(g => g[0] === k) || [])[3]) || []);
+  document.querySelectorAll('#panelMapa .barra > *').forEach(el => { if (el.classList.contains('gNav') || el.classList.contains('gVolver')) return;
+    el.classList.toggle('gOn', !!k && (ids.has(el.id) || (ids.has('@vista') && el.dataset.vista != null))); });
+  if (k === 'carrera' && $('b3Cronica')) $('b3Cronica').disabled = !(typeof carrera !== 'undefined' && carrera && (carrera.cronica || []).length); }
+function cambiarVista(v){ const S = $('vistaRuta'); if (!S) return; S.value = v; if (S.onchange) S.onchange(); else ponerVista(); }
+function instruccionesCarrera(){ const A = $('ayudaTeclas'); if (A.parentNode !== document.body) document.body.appendChild(A);
+  $('ayudaCuerpo').innerHTML = TECLAS.filter(([g]) => /equipo|Espectador|Salida/.test(g)).map(([g, L]) => '<h3>' + g + '</h3>' + L.map(([k, t]) => '<div class="t"><kbd>' + k + '</kbd><span>' + t + '</span></div>').join('')).join('')
+    + '<h3>En carrera</h3><div class="t"><kbd>🎙</kbd><span>Andrés narra lo que pasa y Marga lo comenta; al acabar, la crónica lo recoge todo</span></div><div class="t"><kbd>3 km</kbd><span>En los últimos 3 km, un pinchazo o una avería no te quitan tiempo: te dan el de tu grupo</span></div>';
+  A.hidden = false; }
+document.addEventListener('keydown', e => { if (!menu3d.abierto || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+  if (/^[1-5]$/.test(e.key) && !menu3d.grupo) { e.preventDefault(); e.stopImmediatePropagation(); elegirGrupoMenu(GRUPOS_MENU[+e.key - 1][0]); }
+  else if ((e.key === 'Backspace' || e.key === 'Escape') && menu3d.grupo) { e.preventDefault(); e.stopImmediatePropagation(); elegirGrupoMenu(''); } }, true);
+function ponerMenu(abrir){ if (!!abrir !== menu3d.abierto) elegirGrupoMenu(''); menu3d.abierto = !!abrir; const en3d = !!(v3 && v3.activo);
   document.body.classList.toggle('barraOculta', en3d && !menu3d.abierto); document.body.classList.toggle('menuAbierto', en3d && menu3d.abierto);
   const b = $('bMenu3d'); if (b) { if (b.parentNode !== document.body) document.body.appendChild(b); b.style.display = en3d ? 'block' : 'none'; b.textContent = menu3d.abierto ? '✕ Cerrar menú' : '☰ Menú'; }
   let t = $('bTerm3d'); if (!t) { t = document.createElement('button'); t.id = 'bTerm3d'; t.textContent = '⏹ Terminar y guardar'; t.title = 'Termina la salida y la guarda (también con el botón A del mando, 3 s)';
@@ -5113,7 +5190,7 @@ function paso(){
   const ahora = Date.now(), dt = (ahora - ultimoTick) / 1000 * (sesion.demo ? (demo.x || 1) : 1); ultimoTick = ahora;
   // pausa automática: sin pedalear 4 s
   const pedaleando = (ahora - vivo.tW < 3000) && (vivo.c > 0 || vivo.w > 0);
-  if (!pedaleando) { quietoDesde = quietoDesde || ahora; if (!sesion.pausa && ahora - quietoDesde > 4000) pausar('auto'); }
+  if (!pedaleando && !sesion.espect) { quietoDesde = quietoDesde || ahora; if (!sesion.pausa && ahora - quietoDesde > 4000) pausar('auto'); }   // v163: de espectador nadie pedalea; no hay pausa automática
   else { quietoDesde = null; if (sesion.pausa && sesion.pausaAuto) seguir(); }
   if (ruta.activa && sesion.corriendo && !sesion.pausa) {
     const avanzar = h => { sesion.tTotal += h;
@@ -5131,7 +5208,7 @@ function paso(){
     moverMapa(); pintarTramo(); if (!v3.activo && Math.floor(sesion.tTotal) !== Math.floor(sesion.tTotal - dt)) pintarCerca();
     if (Math.floor(sesion.tTotal / 30) !== Math.floor((sesion.tTotal - dt) / 30) && Date.now() - vivo.tW < 3000)
       log('Comparación · pendiente ' + pendAplicada(ruta.dist).toFixed(1) + ' % · ' + vivo.w + ' W · bici ' + vivo.v.toFixed(1) + ' km/h · física con ' + PESO_TOTAL().toFixed(0) + ' kg ' + (velocidadFisica(vivo.w, pendAplicada(ruta.dist)) * 3.6).toFixed(1) + ' km/h');
-    if (ruta.dist >= ruta.total) { avisar('¡Arriba! Ruta completada.'); terminar(true); }
+    if (ruta.dist >= ruta.total && !sesion.espect) { avisar('¡Arriba! Ruta completada.'); terminar(true); }
   } else if (sesion.corriendo && !sesion.pausa) {
     sesion.tBloque += dt; sesion.tTotal += dt;
     const b = sesion.bloques[sesion.idx];
@@ -5286,7 +5363,7 @@ function terminar(fin){
   estado('eSesion', fin ? 'sesión completada' : 'sesión terminada');
   avisar(fin ? 'Sesión completada. Guardando…' : 'Sesión terminada. Guardando…');
   sesion.completada = !!fin; if (typeof pintarTramo === 'function') { $('tramo3d').style.display = $('tramoFila').style.display = 'none'; }
-  if (sesion.demo) { pararDemo(); mostrarResumen(); reiniciarTrasDemo(); return; }
+  if (sesion.demo) { const esp = sesion.espect; if (esp && (carrera.cronica || []).length) verCronica(); pararDemo(); if (!esp) mostrarResumen(); reiniciarTrasDemo(); return; }   // v163: de espectador, crónica y clasificación; nada de resumen de demostración
   guardarFit(); mostrarResumen(); guardarFantasma();
 }
 function guardarFit(){
