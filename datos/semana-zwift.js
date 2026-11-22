@@ -10,18 +10,18 @@
 (function (global) {
   "use strict";
   global.SEMANA_ZWIFT = {
-    "semana": 9,
-    "nombre": "Rampa a 238",
-    "desde": "2026-11-16",
-    "hasta": "2026-11-22",
-    "generado": "2026-11-16",
-    "total": 235,
+    "semana": 10,
+    "nombre": "Rampa a 268",
+    "desde": "2026-11-23",
+    "hasta": "2026-11-29",
+    "generado": "2026-11-22",
+    "total": 260,
     "sesiones": [
       {
         "id": "rod-1",
         "t": "Rodillo 1 de 4",
-        "min": 40,
-        "pts": 30,
+        "min": 50,
+        "pts": 34,
         "fam": "bici",
         "largo": false,
         "hueco": 1,
@@ -129,33 +129,83 @@
           ],
           [
             60,
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
             47,
             47
           ],
           [
             60,
-            72,
-            72
+            69,
+            69
           ],
           [
             60,
-            80,
-            80
+            69,
+            69
           ],
           [
             60,
-            88,
-            88
+            69,
+            69
           ],
           [
             60,
-            96,
-            96
+            69,
+            69
           ],
           [
             60,
-            100,
-            100
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
+            47,
+            47
+          ],
+          [
+            60,
+            69,
+            69
+          ],
+          [
+            60,
+            69,
+            69
           ],
           [
             300,
@@ -166,226 +216,266 @@
         "w": 126,
         "pct": 69,
         "persigue": "Base aeróbica: que el corazón haga menos esfuerzo por cada vatio.",
-        "pulso": "en los lisos el pulso manda hasta 135; en el apreton manda el vatio",
-        "nota": "126 W: el centro de tu zona 2, no el borde. LO QUE SE MIRA HOY ES LA DERIVA: por debajo del 5 % se queda; por encima del 6 % bajas con el boton - y me lo dices."
+        "pulso": "el pulso manda hasta 135",
+        "nota": "EL MAS FLOJO DE LA SEMANA, a proposito: vienes del 109 % con el reposo en 50 y dos noches malas. 125 W, el centro de tu Z2. Y LISO, sin rampa, por la analitica. SI AMANECES CON EL REPOSO EN 49 O MAS, O LA VFC POR DEBAJO DE 55: bajas a 114 W con el boton - y me lo dices."
       },
       {
         "id": "rod-2",
-        "t": "Techo 5x2",
-        "min": 48,
-        "pts": 50,
+        "t": "Rodillo 2 de 4",
+        "min": 60,
+        "pts": 49,
         "fam": "bici",
         "largo": false,
         "hueco": 2,
         "ftp": 182,
         "perfil": [
           [
-            420,
+            600,
             45,
-            65
+            62
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            78,
-            78
+            47,
+            47
           ],
           [
             60,
-            78,
-            78
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            47,
+            47
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            47,
+            47
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            50,
-            50
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
             60,
-            110,
-            110
+            75,
+            75
           ],
           [
-            240,
-            52,
+            60,
+            75,
+            75
+          ],
+          [
+            60,
+            75,
+            75
+          ],
+          [
+            60,
+            75,
+            75
+          ],
+          [
+            60,
+            75,
+            75
+          ],
+          [
+            60,
+            75,
+            75
+          ],
+          [
+            60,
+            75,
+            75
+          ],
+          [
+            60,
+            47,
+            47
+          ],
+          [
+            60,
+            75,
+            75
+          ],
+          [
+            300,
+            55,
             40
           ]
         ],
-        "w": 200,
-        "pct": 110,
-        "persigue": "Tocar el techo de oxígeno: cinco series de 2 minutos a 200 W.",
-        "pulso": "en las series manda el vatio; el pulso ira a 150-170 y ahi tiene que estar",
-        "nota": "PRIMERA SESION DE INTENSIDAD EN DOS MESES. Cinco series de 2 minutos a 200 W. La forma es la de la sesion 1 del plan de vuelta a la forma de Zwift, que la mete el primer dia; van cinco y no tres porque llevas ocho semanas de base. El objetivo no es apretar mas: es que la QUINTA salga a los mismos vatios que la primera. Si en la cuarta ya no puedes, baja a 190 y acabalas. Dejala con un dia suave por delante y por detras."
+        "w": 136,
+        "pct": 75,
+        "persigue": "Base aeróbica: que el corazón haga menos esfuerzo por cada vatio.",
+        "pulso": "el pulso manda hasta 137",
+        "nota": "EL BLOQUE GRANDE DE Z2 DE LA SEMANA: 60 minutos a 136 W, el techo de tu Z2. Liso, sin rampa, por la analitica. Su deriva se compara con el 4,0 % del 22-nov a estos mismos vatios: si pasa del 6 %, bajas con el boton - y me lo dices."
       },
       {
         "id": "rod-3",
         "t": "Rodillo 3 de 4",
-        "min": 50,
-        "pts": 37,
+        "min": 55,
+        "pts": 41,
         "fam": "bici",
         "largo": false,
         "hueco": 3,
@@ -572,6 +662,31 @@
             72
           ],
           [
+            60,
+            72,
+            72
+          ],
+          [
+            60,
+            72,
+            72
+          ],
+          [
+            60,
+            72,
+            72
+          ],
+          [
+            60,
+            72,
+            72
+          ],
+          [
+            60,
+            72,
+            72
+          ],
+          [
             300,
             55,
             40
@@ -580,17 +695,229 @@
         "w": 131,
         "pct": 72,
         "persigue": "Base aeróbica: que el corazón haga menos esfuerzo por cada vatio.",
-        "pulso": "en los lisos el pulso manda hasta 135",
-        "nota": "131 W y LISO, SIN RAMPA, a proposito: es el que cae antes del largo, y la deriva del largo es la medida limpia de la semana."
+        "pulso": "el pulso manda hasta 135",
+        "nota": "131 W y liso. Mas corto que el de ayer a proposito: manana van las series y pasado el largo. Es la antesala, no un dia de trabajo."
       },
       {
         "id": "rod-4",
-        "t": "Rodillo largo",
-        "min": 105,
-        "pts": 72,
+        "t": "Techo 5x2 a 210",
+        "min": 48,
+        "pts": 54,
         "fam": "bici",
         "largo": false,
         "hueco": 4,
+        "ftp": 182,
+        "perfil": [
+          [
+            420,
+            45,
+            65
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            78,
+            78
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            50,
+            50
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            60,
+            115,
+            115
+          ],
+          [
+            240,
+            52,
+            40
+          ]
+        ],
+        "w": 209,
+        "pct": 115,
+        "persigue": "Tocar el techo de oxígeno: cinco series de 2 minutos a 200 W.",
+        "pulso": "en las series manda el vatio; el pulso ira a 155-165 y ahi tiene que estar",
+        "nota": "SEGUNDA SESION DE SERIES, y sube de 200 a 210 W. Tu decision del 17-nov: las de 200 fueron exigentes pero las sacaste faciles y el pulso se quedo en 145-152, en lo bajo del rango. Se sube el vatio y no el numero de series: una cosa nueva por semana. HAZLA DESPUES DE LA ANALITICA, no antes. El objetivo sigue siendo que la QUINTA salga a los mismos vatios que la primera; si en la cuarta no puedes, baja a 200 y acabalas."
+      },
+      {
+        "id": "rod-5",
+        "t": "Rodillo largo",
+        "min": 118,
+        "pts": 82,
+        "fam": "bici",
+        "largo": false,
+        "hueco": 5,
         "ftp": 182,
         "perfil": [
           [
@@ -1037,6 +1364,71 @@
             60,
             47,
             47
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            47,
+            47
+          ],
+          [
+            60,
+            67,
+            67
+          ],
+          [
+            60,
+            67,
+            67
           ],
           [
             60,
@@ -1058,234 +1450,7 @@
         "pct": 67,
         "persigue": "Base aeróbica: que el corazón haga menos esfuerzo por cada vatio.",
         "pulso": "por debajo de 135 ppm",
-        "nota": "121 W, doce mas que el largo de la semana pasada, y quince minutos mas. Es el unico sitio donde he metido minutos: los rodillos ya estan en el techo de tu Z2 y de ahi no suben sin salirse de zona. Su deriva se compara con el 0,7 % del largo del 13-nov. Bebe cada 15 minutos."
-      },
-      {
-        "id": "rod-5",
-        "t": "Rodillo corto",
-        "min": 55,
-        "pts": 46,
-        "fam": "bici",
-        "largo": false,
-        "hueco": 5,
-        "ftp": 182,
-        "perfil": [
-          [
-            600,
-            45,
-            62
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            47,
-            47
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            47,
-            47
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            47,
-            47
-          ],
-          [
-            60,
-            75,
-            75
-          ],
-          [
-            60,
-            47,
-            47
-          ],
-          [
-            60,
-            72,
-            72
-          ],
-          [
-            60,
-            80,
-            80
-          ],
-          [
-            60,
-            88,
-            88
-          ],
-          [
-            60,
-            96,
-            96
-          ],
-          [
-            60,
-            100,
-            100
-          ],
-          [
-            300,
-            55,
-            40
-          ]
-        ],
-        "w": 136,
-        "pct": 75,
-        "persigue": "Base aeróbica: que el corazón haga menos esfuerzo por cada vatio.",
-        "pulso": "en los lisos el pulso manda hasta 137; en el apreton manda el vatio",
-        "nota": "136 W: el techo de tu zona 2. El del domingo, para cerrar la semana con la rampa final."
+        "nota": "EL QUE FALTO LA SEMANA PASADA, y cinco minutos mas largo. 121 W durante 110 minutos. Su deriva es la medida limpia de la semana y viene con el miercoles liso por delante a proposito. Bebe cada 15 minutos. Si el jueves las series salieron caras, este se puede acortar a 90 minutos sin romper nada: es el unico de la semana con ese margen."
       }
     ]
   };

@@ -211,9 +211,9 @@
       { n: 7, desde: "2026-11-02", hasta: "2026-11-08", carga: 213, cargaAntes: 250, talla: "A" },
       { n: 8, desde: "2026-11-09", hasta: "2026-11-15", carga: 149, cargaAntes: 175, talla: "B", nota: "DESCARGA, no se negocia. Noviembre es su mes de parón histórico" },
       { n: 9, desde: "2026-11-16", hasta: "2026-11-22", carga: 238, cargaAntes: 280, talla: "A" },
-      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 268, cargaAntes: 315, talla: "A", nota: "Segundo test, el jueves", notaFecha: "El jueves es el 26" },
+      { n: 10, desde: "2026-11-23", hasta: "2026-11-29", carga: 268, cargaAntes: 315, talla: "A", nota: "Analíticas: martes y miércoles sin intensidad", notaFecha: "22-nov (Carlos, pase del domingo): el test se va a la semana 12, la de descarga, para llegar fresco. Lunes 23 descanso —la 9 cerró al 109 % con la VFC en 58 y el reposo en 50—, así que los 268 obligan a usar el sábado. Martes y miércoles lisos por las analíticas; el Techo sube a 210 W y va el jueves, DESPUÉS de la analítica" },
       { n: 11, desde: "2026-11-30", hasta: "2026-12-06", carga: 302, cargaAntes: 355, talla: "A", nota: "Entra un día de intensidad" },
-      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 213, cargaAntes: 250, talla: "A", nota: "DESCARGA, no se negocia. Talla A escalada a la baja, no B: a este nivel la B se queda corta" },
+      { n: 12, desde: "2026-12-07", hasta: "2026-12-13", carga: 213, cargaAntes: 250, talla: "A", nota: "DESCARGA + SEGUNDO TEST DE FTP. No se negocia la descarga. Talla A escalada a la baja, no B: a este nivel la B se queda corta", notaFecha: "22-nov: el test se trae aquí desde la semana 10. Se hace al principio de la semana y con dos noches de 6 h o más detrás; si no, se mueve dentro de la propia semana" },
       { n: 13, desde: "2026-12-14", hasta: "2026-12-20", carga: 340, cargaAntes: 400, talla: "A", nota: "Crucero: tres semanas y la cuarta de descarga" },
     ],
 
