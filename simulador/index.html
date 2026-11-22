@@ -369,7 +369,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -862,6 +862,7 @@ function pulsarAccion(accion, pulsado, origen){
   if (accion === 'dif+' || accion === 'dif-') { const s = accion === 'dif+' ? 1 : -1;
     if (ruta.activa) { if (origen === 'bici') { aviso3d('Botones internos: girar en cruces y colocarte en el grupo (próximamente) · la dificultad se elige antes de salir'); return; }
       cambiaDif(DIF() + 10 * s); avisar('Dificultad ' + DIF() + ' %'); } else cambiarIntensidad(2 * s); return; }
+  if (accion === 'grabar' && OBS.conf() && OBS.conf().host) { obsGrabar(); return; }   // v177: con OBS configurado, graba OBS
   if (accion === 'grabar') { if (v3.activo) $('b3Grabar').click(); else avisar('La grabación funciona en la vista carretera 3D.'); return; }   // con el menú recogido el botón no se ve, pero graba igual
   if (accion === 'recorrer') { if (sesion.corriendo) { avisar('Recorrer es solo para mirar, sin entrenar.'); return; } if ($('bRecorrer') && !$('bRecorrer').disabled && !v3.activo) $('bRecorrer').click(); else $('b3Tester').click(); return; }
   if (accion === 'calidad') { const c = $('calidad3d'), n = c.options.length; c.selectedIndex = (c.selectedIndex + 1) % n; c.onchange(); return; }
@@ -900,6 +901,8 @@ function camaraNormal(){ giroCamV = 0; inclCamV = 0; const c = $('camara3d'), Z 
   c.selectedIndex = 0; if (c.onchange) c.onchange(); aviso3d('🎥 Cámara normal'); }
 function mando(b){   // b: izq der arr ab A B Y Z latI latD · devuelve true si lo ha usado
   if (window.portada && portada.abierta) return portadaMando(b);   // v168: pantallas de inicio
+  if (window.pAjustes && pAjustes.abierta) return ajustesMando(b);
+  if (window.pDisenar && pDisenar.abierta) return disenarMando(b);
   if (window.pElegir && pElegir.abierta) return elegirMando(b);   // v172: elegir ruta y modo
   const en3d = !!(v3 && v3.activo);
   if (capa.ordenes) { if (b === 'arr' || b === 'ab') { capa.iOrden = (capa.iOrden + (b === 'ab' ? 1 : -1) + 5) % 5; pintarCapaOrdenes(); }
@@ -5443,7 +5446,7 @@ function guardarFit(){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type:'application/octet-stream' })); a.download = nombre; a.click();
   log('Guardado en Descargas: ' + nombre + ' (' + bytes.length + ' bytes, ' + reg.length + ' segundos)');
   avisar('Guardado en tu carpeta de Descargas: «' + nombre + '»');
-  if (!sesion.demo && USUARIO === 'carlos') subirIntervals(bytes, nombre);   // v158 (Carlos): a Intervals solo subo yo
+  if (!sesion.demo && USUARIO === 'carlos' && (() => { try { return localStorage.getItem(CLAVE('simulador-icu-subir')) !== 'no'; } catch(e) { return true; } })()) subirIntervals(bytes, nombre);   // v158 (Carlos): a Intervals solo subo yo
 }
 // ---- subida a intervals.icu (20-nov, Carlos): al terminar y guardar, el .fit va a intervals con tu clave de API ----
 // La clave se guarda SOLO en este navegador (localStorage, por usuario); nunca en el fichero publicado. Lo de teclado no se sube (es juego o prueba).
@@ -5550,6 +5553,10 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
 <script>
 (function(){
   const PL = {"p1": "<div style=\"width: 1440px; height: 900px; box-sizing: border-box; background: #0d1014; color: #e9edf1; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column\">\n  <header style=\"display: flex; align-items: center; gap: 24px; padding: 20px 40px; border-bottom: 1px solid #1f252d\">\n    <img src=\"recursos/logo-khb.jpg\" alt=\"KhB\" style=\"height: 110px; width: auto; display: block; border-radius: 10px\">\n    <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; letter-spacing: 0.04em; text-transform: uppercase\">Simulador<\/span>\n    <div style=\"flex: 1\"><\/div>\n    {{chips}}\n    <button type=\"button\" data-acc=\"ajustes\" aria-label=\"Ajustes (A)\" style=\"border: 1px solid #2a323c; background: transparent; color: #e9edf1; border-radius: 8px; height: 38px; padding: 0 8px 0 10px; display: flex; align-items: center; justify-content: center\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1\"/><\/svg><kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">A<\/kbd><\/button>\n  <\/header>\n  <main style=\"flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 44px; padding: 0 40px\">\n    <h1 style=\"margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 72px; letter-spacing: 0.01em; text-transform: uppercase\">¿Quién corre hoy?<\/h1>\n    <div style=\"display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; width: 1040px\">\n      <a data-acc=\"usuario\" data-u=\"carlos\" style=\"text-decoration: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-start; gap: 22px; padding: 36px; border-radius: 20px; background: #151a20; border: 3px solid #232a33; color: #e9edf1; text-align: left; font-family: Inter, sans-serif; cursor: pointer\">\n        <div style=\"display: flex; align-items: center; gap: 20px\">\n          <span style=\"width: 96px; height: 96px; border-radius: 50%; background: #1d3b6e; border: 4px solid #3b82f6; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-size: 52px; font-weight: 800; color: #fff\">C<\/span>\n          <div style=\"display: flex; flex-direction: column; gap: 4px\">\n            <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 56px; line-height: 1; text-transform: uppercase\">Carlos<\/span>\n            <span style=\"font-size: 15px; color: #9aa6b2\">Dorsal 22 · España · KICKR verde<\/span>\n          <\/div>\n        <\/div>\n        <div style=\"display: flex; gap: 32px\">\n          <div style=\"display: flex; flex-direction: column; gap: 2px\"><span style=\"font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8b96a1\">FTP<\/span><span style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 700\">{{ftpC}}<\/span><\/div>\n          <div style=\"display: flex; flex-direction: column; gap: 2px\"><span style=\"font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8b96a1\">ÚLTIMA SALIDA<\/span><span style=\"font-size: 17px; font-weight: 600; padding-top: 8px\">{{ultC}}<\/span><\/div>\n        <\/div>\n        <span style=\"font-size: 14px; font-weight: 700; color: {{accent}}\">B · elegir<\/span>\n      <\/a>\n      <a data-acc=\"usuario\" data-u=\"susana\" style=\"text-decoration: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-start; gap: 22px; padding: 36px; border-radius: 20px; background: #151a20; border: 3px solid #232a33; color: #e9edf1; text-align: left; font-family: Inter, sans-serif; cursor: pointer\">\n        <div style=\"display: flex; align-items: center; gap: 20px\">\n          <span style=\"width: 96px; height: 96px; border-radius: 50%; background: #3d2b5c; border: 4px solid #b48ee6; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-size: 52px; font-weight: 800; color: #fff\">S<\/span>\n          <div style=\"display: flex; flex-direction: column; gap: 4px\">\n            <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 56px; line-height: 1; text-transform: uppercase\">Susana<\/span>\n            <span style=\"font-size: 15px; color: #9aa6b2\">Dorsal 21 · España · Canyon rosa<\/span>\n          <\/div>\n        <\/div>\n        <div style=\"display: flex; gap: 32px\">\n          <div style=\"display: flex; flex-direction: column; gap: 2px\"><span style=\"font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8b96a1\">FTP<\/span><span style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 700\">{{ftpS}}<\/span><\/div>\n          <div style=\"display: flex; flex-direction: column; gap: 2px\"><span style=\"font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8b96a1\">ÚLTIMA SALIDA<\/span><span style=\"font-size: 17px; font-weight: 600; padding-top: 8px\">{{ultS}}<\/span><\/div>\n        <\/div>\n        <span style=\"font-size: 14px; font-weight: 700; color: #9aa6b2\">B · elegir<\/span>\n      <\/a>\n    <\/div>\n  <\/main>\n  <footer style=\"display: flex; justify-content: center; gap: 28px; padding: 0 40px 34px; font-size: 14px; color: #c5ccd3\">\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">← →<\/kbd>cambiar<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33; color: {{accent}}\">B<\/kbd>elegir<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">A<\/kbd>ajustes<\/span>\n  <\/footer>\n<\/div>", "p2": "<div style=\"width: 1440px; height: 900px; box-sizing: border-box; position: relative; background: #0d1014; color: #e9edf1; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column\">\n  <img src=\"recursos/logo-khb.jpg\" alt=\"KhB\" style=\"position: absolute; right: 14px; bottom: 12px; height: 30px; width: auto; opacity: 0.85; border-radius: 4px; pointer-events: none\">\n  <header style=\"display: flex; align-items: center; gap: 20px; padding: 20px 40px; border-bottom: 1px solid #1f252d\">\n    <div style=\"display: flex; align-items: baseline; gap: 10px\">\n      <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 30px; letter-spacing: 0.02em; color: {{accent}}\">KHB<\/span>\n      <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; letter-spacing: 0.04em; text-transform: uppercase\">Simulador<\/span>\n    <\/div>\n    <a data-acc=\"volver\" style=\"text-decoration: none; display: flex; align-items: center; gap: 10px; border: 1px solid #2a323c; border-radius: 999px; padding: 6px 14px 6px 6px; background: #161b21; color: #e9edf1; font: 600 15px Inter, sans-serif\"><span style=\"width: 28px; height: 28px; border-radius: 50%; background: #1d3b6e; border: 2px solid #3b82f6; display: flex; align-items: center; justify-content: center; font: 800 16px 'Barlow Condensed', sans-serif\">C<\/span>Carlos <span style=\"color: #8b96a1; font-weight: 500\">· cambiar<\/span><kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">Z<\/kbd><\/a>\n    <div style=\"flex: 1\"><\/div>\n    <span style=\"font-size: 14px; color: #8b96a1\">Paso 2 de 3<\/span>\n  <\/header>\n  <main style=\"flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 34px; padding: 0 40px\">\n    <div style=\"display: flex; flex-direction: column; gap: 10px\">\n      <h1 style=\"margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 64px; text-transform: uppercase; line-height: 1\">Conecta tus aparatos<\/h1>\n      <p style=\"margin: 0; font-size: 17px; color: #9aa6b2\">Los que ya conectaste otras veces se conectan solos al entrar.<\/p>\n    <\/div>\n    {{aparatos}}\n    <div style=\"display: flex; align-items: center; gap: 16px\">\n      <a data-acc=\"seguir\" style=\"text-decoration: none; border: 0; background: {{accent}}; color: #11160a; border-radius: 12px; padding: 16px 34px; font: 800 20px 'Barlow Condensed', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center\">Continuar ›<kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: rgba(0,0,0,0.22); color: inherit; margin-left: 8px\">Y<\/kbd><\/a>\n      <a data-acc=\"sinbici\" style=\"text-decoration: none; border: 1px solid #2a323c; background: transparent; color: #c5ccd3; border-radius: 12px; padding: 15px 22px; font: 600 15px Inter, sans-serif\">Seguir sin bici · teclado o recorrer<kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">A<\/kbd><\/a>\n      <span style=\"font-size: 14px; color: #8b96a1; margin-left: 8px\">Emparejar un aparato nuevo: la primera vez, con ratón o tocando la pantalla (ventana de Chrome). Después, todo con el mando.<\/span>\n    <\/div>\n  <\/main>\n  <footer style=\"display: flex; justify-content: center; gap: 28px; padding: 0 40px 30px; font-size: 14px; color: #c5ccd3\">\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">← →<\/kbd>elegir aparato<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33; color: {{accent}}\">Y<\/kbd>continuar<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33; color: {{accent}}\">B<\/kbd>pulsar el botón elegido<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">A<\/kbd>seguir sin bici<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">Z<\/kbd>volver a quién corre<\/span>\n  <\/footer>\n<\/div>", "p3": "<div style=\"width: 1440px; height: 900px; box-sizing: border-box; position: relative; background: #0d1014; color: #e9edf1; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column\">\n  <img src=\"recursos/logo-khb.jpg\" alt=\"KhB\" style=\"position: absolute; right: 14px; bottom: 12px; height: 30px; width: auto; opacity: 0.85; border-radius: 4px; pointer-events: none\">\n  <header style=\"display: flex; align-items: center; gap: 20px; padding: 20px 40px; border-bottom: 1px solid #1f252d\">\n    <div style=\"display: flex; align-items: baseline; gap: 10px\">\n      <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 30px; letter-spacing: 0.02em; color: {{accent}}\">KHB<\/span>\n      <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; letter-spacing: 0.04em; text-transform: uppercase\">Simulador<\/span>\n    <\/div>\n    <a data-acc=\"volver1\" style=\"text-decoration: none; display: flex; align-items: center; gap: 10px; border: 1px solid #2a323c; border-radius: 999px; padding: 6px 14px 6px 6px; background: #161b21; color: #e9edf1; font: 600 15px Inter, sans-serif\"><span style=\"width: 28px; height: 28px; border-radius: 50%; background: #1d3b6e; border: 2px solid #3b82f6; display: flex; align-items: center; justify-content: center; font: 800 16px 'Barlow Condensed', sans-serif\">C<\/span>Carlos <span style=\"color: #8b96a1; font-weight: 500\">· cambiar<\/span><kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">Z<\/kbd><\/a>\n    <div style=\"flex: 1\"><\/div>\n    {{chips}}\n    <button type=\"button\" data-acc=\"ajustes\" aria-label=\"Ajustes (A)\" style=\"border: 1px solid #2a323c; background: transparent; color: #e9edf1; border-radius: 8px; height: 38px; padding: 0 8px 0 10px; display: flex; align-items: center; justify-content: center\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1\"/><\/svg><kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">A<\/kbd><\/button>\n  <\/header>\n  <div style=\"flex: 1; display: grid; grid-template-columns: 500px minmax(0, 1fr); gap: 24px; padding: 28px 40px 20px; min-height: 0\">\n    <section style=\"display: flex; flex-direction: column; gap: 18px; padding: 28px; border-radius: 18px; background: #12161b; border: 1px solid #1f252d\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center\">\n        <span style=\"font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #9aa6b2\">FICHA<\/span>\n        <span style=\"display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: #8be3a0\"><span style=\"width: 8px; height: 8px; border-radius: 50%; background: #3ddc6b\"><\/span>Intervals conectado · sube solo<\/span>\n      <\/div>\n      <div style=\"display: flex; align-items: baseline; gap: 12px\">\n        <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 84px; line-height: 0.9\">182<\/span>\n        <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; color: #9aa6b2\">W · FTP<\/span>\n      <\/div>\n      <div style=\"display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px\">\n        <div style=\"padding: 12px 14px; border-radius: 10px; background: #181e25\"><div style=\"font-size: 12px; font-weight: 600; color: #8b96a1\">Altura<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700\">[—] cm<\/div><\/div>\n        <div style=\"padding: 12px 14px; border-radius: 10px; background: #181e25\"><div style=\"font-size: 12px; font-weight: 600; color: #8b96a1\">Peso<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700\">[—] kg<\/div><\/div>\n        <div style=\"padding: 12px 14px; border-radius: 10px; background: #181e25\"><div style=\"font-size: 12px; font-weight: 600; color: #8b96a1\">Techo pulso<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700\">[—] ppm<\/div><\/div>\n      <\/div>\n      <div style=\"display: flex; flex-direction: column; gap: 8px\">\n        <span style=\"font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8b96a1\">MEJORES MARCAS · 90 DÍAS<\/span>\n        <svg width=\"100%\" height=\"110\" viewBox=\"0 0 440 110\" preserveAspectRatio=\"none\" role=\"img\" aria-label=\"Curva de potencia: 586 W en 5 s, 211 en 1 min, 198 en 5 min, 192 en 20 min y 132 en 60 min\"><path d=\"M0 6 C30 70, 70 78, 130 80 S300 84, 440 100\" fill=\"none\" stroke=\"{{accent}}\" stroke-width=\"3\"/><line x1=\"0\" y1=\"109\" x2=\"440\" y2=\"109\" stroke=\"#262d36\"/><\/svg>\n        <div style=\"display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px\">\n          <div><div style=\"font-size: 11px; color: #8b96a1; font-weight: 600\">5 s<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700\">586<\/div><\/div>\n          <div><div style=\"font-size: 11px; color: #8b96a1; font-weight: 600\">1 min<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700\">211<\/div><\/div>\n          <div><div style=\"font-size: 11px; color: #8b96a1; font-weight: 600\">5 min<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700\">198<\/div><\/div>\n          <div><div style=\"font-size: 11px; color: #8b96a1; font-weight: 600\">20 min<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700\">192<\/div><\/div>\n          <div><div style=\"font-size: 11px; color: #8b96a1; font-weight: 600\">60 min<\/div><div style=\"font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700\">132<\/div><\/div>\n        <\/div>\n      <\/div>\n      <div style=\"display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1px solid #1f252d\">\n        <span style=\"font-size: 14px; color: #c5ccd3\">Tipo: <b>puncheur<\/b> · reserva [—] kJ<\/span>\n        <a data-acc=\"ficha\" style=\"font-size: 14px; font-weight: 700; text-decoration: none; display: flex; align-items: center\">Ficha completa ›<kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">Y<\/kbd><\/a>\n      <\/div>\n    <\/section>\n    <section style=\"display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 16px; min-height: 0\">\n      <a data-acc=\"zwo\" style=\"text-decoration: none; color: inherit; display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 28px; padding: 0 32px; border-radius: 18px; background: #151a20; border: 2px solid {{accent}}\">\n        <div style=\"display: flex; flex-direction: column; gap: 8px\">\n          <span style=\"font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: {{accent}}\">1 · ENTRENAMIENTO<kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">B<\/kbd><\/span>\n          <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 46px; line-height: 0.95; text-transform: uppercase\">Sesión .zwo<\/span>\n          <span style=\"font-size: 15px; color: #9aa6b2\">[ÚLTIMA SESIÓN] · o carga una nueva<\/span>\n        <\/div>\n        <div style=\"display: flex; align-items: flex-end; gap: 4px; height: 70px\" aria-hidden=\"true\"><span style=\"flex: 1; height: 30%; background: #2b3540; border-radius: 3px\"><\/span><span style=\"flex: 2; height: 85%; background: {{accent}}; border-radius: 3px\"><\/span><span style=\"flex: 1; height: 40%; background: #2b3540; border-radius: 3px\"><\/span><span style=\"flex: 2; height: 85%; background: {{accent}}; border-radius: 3px\"><\/span><span style=\"flex: 1; height: 40%; background: #2b3540; border-radius: 3px\"><\/span><span style=\"flex: 2; height: 85%; background: {{accent}}; border-radius: 3px\"><\/span><span style=\"flex: 1; height: 30%; background: #2b3540; border-radius: 3px\"><\/span><\/div>\n      <\/a>\n      <a data-acc=\"rodar\" style=\"text-decoration: none; color: inherit; display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 28px; padding: 0 32px; border-radius: 18px; background: #151a20; border: 2px solid #232a33\">\n        <div style=\"display: flex; flex-direction: column; gap: 8px\">\n          <span style=\"font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #9aa6b2\">2 · RUTA<kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">B<\/kbd><\/span>\n          <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 46px; line-height: 0.95; text-transform: uppercase\">Rodar en 3D / 2D<\/span>\n          <span style=\"font-size: 15px; color: #9aa6b2\">Libre · liebres · grupeta · carrera · última: Fuenfría desde Cercedilla<\/span>\n        <\/div>\n        <div style=\"display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px\">\n          <span style=\"display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border-radius: 10px; background: #1f262e; border: 1px solid #39434e; font: 700 15px Inter, sans-serif\">🛣<span>Mundo 3D<\/span><\/span>\n          <span style=\"display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border-radius: 10px; background: #1f262e; border: 1px solid #39434e; font: 700 15px Inter, sans-serif\">🗺<span>Mapa 2D<\/span><\/span>\n        <\/div>\n      <\/a>\n      <a data-acc=\"ver\" style=\"text-decoration: none; color: inherit; display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 28px; padding: 0 32px; border-radius: 18px; background: #151a20; border: 2px solid #232a33\">\n        <div style=\"display: flex; flex-direction: column; gap: 8px\">\n          <span style=\"font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #9aa6b2\">3 · ESPECTADOR<kbd style=\"font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px\">B<\/kbd><\/span>\n          <span style=\"font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 46px; line-height: 0.95; text-transform: uppercase\">Ver una carrera<\/span>\n          <span style=\"font-size: 15px; color: #9aa6b2\">Corren Carlos y Susana con los bots · crónica al acabar<\/span>\n        <\/div>\n        <div style=\"justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 8px\"><span style=\"font: 700 15px Inter, sans-serif; padding: 8px 12px; border-radius: 8px; background: #1f262e\">×1 ×2 ×5 ×10<\/span><span style=\"font: 600 13px Inter, sans-serif; padding: 6px 10px; border-radius: 8px; border: 1px dashed #4a5563; color: #9aa6b2\">Futuro: juego de mánager<\/span><\/div>\n      <\/a>\n    <\/section>\n  <\/div>\n  <footer style=\"display: flex; justify-content: center; gap: 28px; padding: 6px 40px 26px; font-size: 14px; color: #c5ccd3\">\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">↑ ↓<\/kbd>elegir<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33; color: {{accent}}\">B<\/kbd>entrar<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">Z<\/kbd>cambiar de corredor<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">Y<\/kbd>ficha completa<\/span>\n    <span style=\"display: flex; align-items: center; gap: 8px\"><kbd style=\"font: 700 13px Inter, sans-serif; padding: 4px 9px; border-radius: 5px; background: #222a33\">A<\/kbd>ajustes<\/span>\n  <\/footer>\n<\/div>", "svgs": ["<svg width=\"54\" height=\"54\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#e9edf1\" stroke-width=\"1.6\" aria-hidden=\"true\"><circle cx=\"5.5\" cy=\"17\" r=\"3.5\"/><circle cx=\"18.5\" cy=\"17\" r=\"3.5\"/><path d=\"M5.5 17l4-8h6l3 8M9.5 9L8 6h3M15.5 9l1-3h2\"/><\/svg>", "<svg width=\"54\" height=\"54\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#e9edf1\" stroke-width=\"1.6\" aria-hidden=\"true\"><path d=\"M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z\"/><path d=\"M7 12h3l1.5-2.5L13 14l1.5-2H17\"/><\/svg>", "<svg width=\"54\" height=\"54\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#e9edf1\" stroke-width=\"1.6\" aria-hidden=\"true\"><rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"5\"/><path d=\"M12 7v3M10.5 8.5h3\"/><\/svg>", "<svg width=\"54\" height=\"54\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#e9edf1\" stroke-width=\"1.6\" aria-hidden=\"true\"><rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"5\"/><circle cx=\"10.5\" cy=\"8\" r=\"0.9\"/><circle cx=\"13.5\" cy=\"8\" r=\"0.9\"/><circle cx=\"12\" cy=\"10.5\" r=\"0.9\"/><\/svg>"]};
+  // v175: en «qué hacer» se puede volver atrás (a los aparatos) con Z, como en las demás pantallas
+  PL.p3 = PL.p3.replace('data-acc="zwo" style="text-decoration: none; color: inherit; display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 28px; padding: 0 32px; border-radius: 18px; background: #151a20; border: 2px solid {{accent}}', 'data-acc="zwo" style="text-decoration: none; color: inherit; display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 28px; padding: 0 32px; border-radius: 18px; background: #151a20; border: 2px solid #232a33');   // v177: el verde solo lo pone el foco
+  PL.p3 = PL.p3.replace(/(· cambiar<\/span>)<kbd[^>]*>Z<\/kbd>/, '$1').replace('Z</kbd>cambiar de corredor', 'Z</kbd>volver a aparatos')
+    .replace(/(<header[^>]*>)/, '$1<a data-acc="atras" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;margin-right:6px">‹ Volver<kbd style="font:800 12px Inter, sans-serif;padding:2px 7px;border-radius:5px;background:#2b3540;color:inherit;margin-left:8px">Z</kbd></a>');
   const AC = '#c6f432', P = $('portada'), por = { paso: 1, foco: 0, abierta: false };
   window.portada = por;
   const esc = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
@@ -5607,8 +5614,9 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   window.abrirPortada = abrir;
   function accion(el){ const a = el.dataset.acc;
     if (a === 'clasica') { cerrar(); try { sessionStorage.setItem('portada-off', '1'); } catch(e) {} return; }
-    if (a === 'ajustes') { cerrar(); const d = $('panelIntervals'); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } avisar('Ajustes: de momento están en esta pantalla (Intervals, desarrollo, datos).'); return; }
+    if (a === 'ajustes') { const p = por.paso; cerrar(); abrirAjustes(() => abrir(p)); return; }
     if (a === 'volver') { ir(1); return; }
+    if (a === 'atras') { ir(2); return; }
     if (a === 'volver1') { ir(1); return; }
     if (a === 'usuario') { if (el.dataset.u === USUARIO) { ir(2); return; } try { sessionStorage.setItem('portada-paso', '2'); } catch(e) {} const b = document.querySelector('.bUsu[data-u="' + el.dataset.u + '"]'); if (b) b.click(); return; }
     if (a === 'conectar') { const b = $(el.dataset.b); if (b) b.click(); return; }
@@ -5621,7 +5629,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (b === 'izq' || b === 'arr') { por.foco = (por.foco - 1 + n) % n; marcar(); }
     else if (b === 'der' || b === 'ab') { por.foco = (por.foco + 1) % n; marcar(); }
     else if (b === 'B') { if (O[por.foco]) accion(O[por.foco]); }
-    else if (b === 'Z') { if (por.paso > 1) ir(1); }
+    else if (b === 'Z') { if (por.paso === 3) ir(2); else if (por.paso > 1) ir(1); }
     else if (b === 'Y') { if (por.paso === 2) ir(3); else if (por.paso === 3) accion({ dataset: { acc: 'ficha' } }); }
     else if (b === 'A') { if (por.paso === 2) ir(3); else accion({ dataset: { acc: 'ajustes' } }); }
     return true; };
@@ -5680,9 +5688,13 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (el.cat === 'anillos') return RS.filter(r => /^anillo/.test(r.id)).map(r => ({ tipo: 'r', r }));
     if (el.cat === 'cx') return RS.filter(r => /^cx-/.test(r.id)).map(r => ({ tipo: 'r', r }));
     if (el.cat === 'rutas') return RS.filter(r => !/^anillo|^cx-/.test(r.id) && !PUERTOS.includes(r.id)).map(r => ({ tipo: 'r', r }));
-    if (el.cat === 'salidas') return (window.RUTAS_STRAVA || []).slice().sort((a, b) => fechaStrava(b.fecha) - fechaStrava(a.fecha)).slice(0, 40).map(s => ({ tipo: 's', s }));
+    if (el.cat === 'mimapa') return el.mapaItem ? [{ tipo: 'm', x: el.mapaItem }] : [];
+    if (el.cat === 'salidas') return (window.misRutas ? misRutas() : []).map(x => ({ tipo: 'm', x })).concat((window.RUTAS_STRAVA || []).slice().sort((a, b) => fechaStrava(b.fecha) - fechaStrava(a.fecha)).slice(0, 40).map(s => ({ tipo: 's', s })));
     return []; }
   function datos(it){ if (!it) return null;
+    if (it.tipo === 'm') { const x = it.x, ck = 'm|' + (x.id || x.nombre); if (!el.cache[ck]) { const m = desnivelGpx(x.g.gpx);
+      el.cache[ck] = { titulo: x.nombre.replace(/\s*·.*$/, ''), sub: x.fecha ? 'guardada el ' + new Date(x.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : 'diseñada en el mapa', nombre: x.nombre, km: m.km, sube: m.sube, perfil: m.perfil,
+        pts: [...x.g.gpx.matchAll(/lat="([-\d.]+)" lon="([-\d.]+)"/g)].map(q => [+q[1], +q[2]]), sentidos: ['ida'], mejor: null, tramos: [] }; } return el.cache[ck]; }
     if (it.tipo === 's') { const s = it.s, ck = 's|' + s.id; if (el.cache[ck]) { ptsStrava(el.cache[ck], s); return el.cache[ck]; } return (el.cache[ck] = { titulo: s.nombre, sub: fechaStrava(s.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }), tramos: [], nombre: s.nombre + ' · ' + fechaStrava(s.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }), km: s.km, sube: s.sube, perfil: s.perfil, pts: null, sentidos: ['ida'], mejor: null }); }
     const r = it.r, k = el.sentido && r.gpx[el.sentido] ? el.sentido : Object.keys(r.gpx)[0], clave = r.id + '|' + k;
     if (!el.cache[clave]) { const m = desnivelGpx(r.gpx[k]), pts = [...r.gpx[k].matchAll(/lat="([-\d.]+)" lon="([-\d.]+)"/g)].map(x => [+x[1], +x[2]]);
@@ -5713,11 +5725,11 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
       + '<span style="font-size:14px;color:#9aa6b2">' + esc(U.nombre) + ' · FTP ' + FTP() + ' W</span><span data-a="clasica" style="border:1px solid #39434e;border-radius:9px;padding:6px 12px;font-size:13px;color:#9aa6b2;cursor:pointer">Pantalla clásica de rutas</span></header>';
     h += '<div style="flex:1;display:grid;grid-template-columns:430px minmax(0,1fr) 330px;gap:22px;padding:22px 40px 14px;min-height:0">';
     // columna 1: rutas
-    h += '<section class="col" data-col="0"><span class="h">1 · RUTA</span><div class="chips">' + CATS.map(([k, t]) => '<span data-cat="' + k + '"' + (k === el.cat ? ' class="on"' : '') + (el.col === 0 && el.f[0] === 0 && CATS[el.chip][0] === k ? ' data-fc="1"' : '') + (k === 'disenar' ? ' style="border:1px dashed #4a5563;color:#e9edf1;margin-right:6px"' : '') + '>' + t + '</span>').join('') + '</div>';
+    h += '<section class="col" data-col="0"><span class="h">1 · RUTA</span><div class="chips">' + CATS.map(([k, t]) => '<span data-cat="' + k + '"' + (k === el.cat || (k === 'disenar' && el.cat === 'mimapa') ? ' class="on"' : '') + (el.col === 0 && el.f[0] === 0 && CATS[el.chip][0] === k ? ' data-fc="1"' : '') + (k === 'disenar' ? ' style="border:1px dashed #4a5563;color:#e9edf1;margin-right:6px"' : '') + '>' + t + '</span>').join('') + '</div>';
     if (!L.length) h += '<div style="color:#8b96a1;font-size:14px;padding:10px">' + (el.cat === 'salidas' ? 'No encuentro tus salidas de Strava.' : 'Nada en esta categoría.') + '</div>';
-    L.forEach((it, i) => { const x = it.tipo === 'r' ? datos(it) : { nombre: it.s.nombre, km: it.s.km, sube: it.s.sube }; const on = i === el.iRuta;
+    L.forEach((it, i) => { const x = it.tipo === 'r' ? datos(it) : it.tipo === 'm' ? { nombre: '✎ ' + it.x.nombre.replace(/\s*·.*$/, ''), km: it.x.km, sube: it.x.sube } : { nombre: it.s.nombre, km: it.s.km, sube: it.s.sube }; const on = i === el.iRuta;
       h += '<div class="fila' + fc(0, i + 1) + '" data-ruta="' + i + '" style="' + (on ? 'background:#1a2128;' : '') + '"><span style="font-weight:' + (on ? 700 : 600) + '">' + esc(it.tipo === 's' ? x.nombre : x.nombre) + '</span><span style="text-align:right;color:#c5ccd3">' + n1(x.km) + ' km</span><span style="text-align:right;color:#c5ccd3">' + n1(x.km ? x.sube / (x.km * 10) : 0) + ' %</span></div>'; });
-    h += '<span style="font-size:13px;color:#8b96a1">Cargar un .gpx o diseñar en el mapa: en la pantalla clásica de rutas</span></section>';
+    h += '<span style="font-size:13px;color:#8b96a1">Cargar un .gpx propio: en la pantalla clásica de rutas</span></section>';
     // columna 2: ficha
     h += '<section style="padding:22px 26px;border-radius:18px;background:#12161b;border:1px solid #1f252d;display:flex;flex-direction:column;gap:14px;min-height:0">';
     if (d) { h += '<div><div class="bc" style="font-weight:800;font-size:40px;line-height:0.92;text-transform:uppercase">' + esc(d.titulo) + '</div>' + (d.sub ? '<div class="bc" style="font-weight:700;font-size:28px;color:#8b96a1;text-transform:uppercase;margin-top:4px">' + esc(d.sub) + '</div>' : '') + '</div>'
@@ -5780,7 +5792,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
       x.fillStyle = '#c5ccd3'; x.font = '22px Inter, sans-serif'; x.textAlign = 'right'; x.fillText(Math.round(hi) + ' m', W - 10, 34); } }
   function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
   addEventListener('resize', () => { if (el.abierta) escalar(); });
-  function cambiarCat(k){ if (k === 'disenar') { cerrar(); abrirPantallaRutas(); setTimeout(() => { const m = $('mundoTarj'); if (m) m.scrollIntoView({ block: 'start' }); }, 300); avisar('Diseña la ruta poniendo puntos en el mapa y pulsa «Rodar esta ruta».'); return; }
+  function cambiarCat(k){ if (k === 'disenar') { cerrar(); abrirDisenar(); return; }
     el.cat = k; el.chip = Math.max(0, CATS.findIndex(c => c[0] === k)); el.iRuta = 0; el.sentido = null; pintar(); }
   function ciclarSel(id){ const s = $(id); if (!s) return; s.selectedIndex = (s.selectedIndex + 1) % s.options.length; if (s.onchange) s.onchange(); else s.dispatchEvent(new Event('change')); }
   function pulsarB(){
@@ -5814,6 +5826,11 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     document.querySelectorAll('#pantallaRutas .vistaElegir button').forEach(b => b.classList.toggle('activo', b.dataset.v === el.vista));
     cerrar();
     if (it.tipo === 's') { await elegirStrava(it.s.id, false); $('vistaRuta').value = el.vista; ponerVista(); }
+    else if (it.tipo === 'm') { const g = it.x.g, nombre = it.x.nombre;
+      $('rutaIncluida').value = ''; copiarSentido(); cerrarPantallaRutas(); cargarRuta(g.gpx.replace('Mi ruta en el mundo', nombre));
+      ruta.tramos = { ruta: { id: 'mundo', mundo: true, nombre, estilo: g.montana ? 'montaña' : 'ciudad', inverso: 'al revés', tramos: { largo: g.largo, runs: g.runs }, calles: [] }, sentido: 'normal' };
+      if ($('escenario3d').querySelector('option[value="real"]')) { $('escenario3d').value = 'real'; try { localStorage.setItem('simulador-escenario', 'real'); } catch(e) {} }
+      $('vistaRuta').value = el.vista; ponerVista(); }
     else elegirRuta(it.r.id, d.sentido);
     pintarListaRivales(); modoBotonEmpezar && modoBotonEmpezar();
     avisar(el.espect ? '👀 Carrera lista: pulsa «Ver la carrera» o espera la cuenta atrás.' : '¡Lista! Empieza con el botón de arriba de la maneta izquierda (o Enter).'); }
@@ -5826,6 +5843,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     el.espect = !!espect; el.modo = modoInicial(); try { el.vista = localStorage.getItem('simulador-vista-elegida') || 'carretera'; } catch(e) {} if (el.vista !== 'carretera') el.vista = 'dos';
     if (window.LIGERO) el.vista = 'dos';
     el.col = 0; el.f = [1, 0, 0]; el.chip = Math.max(0, CATS.findIndex(c => c[0] === el.cat)); el.iRuta = 0; el.sentido = null; R.hidden = false; el.abierta = true; pintar(); };
+  window.abrirElegirMapa = function(x){ abrirElegir(false); el.mapaItem = x; el.cat = 'mimapa'; el.chip = 0; el.iRuta = 0; el.cache = {}; el.col = 2; el.f[2] = 0; pintar(); };
   window.elegirMando = function(b){ if (!el.abierta) return false; const n = itemsCol(el.col);
     if (el.col === 0 && el.f[0] === 0 && (b === 'izq' || b === 'der')) {
       if (b === 'der' && el.chip === CATS.length - 1) { el.col = 2; if (el.f[2] >= itemsCol(2)) el.f[2] = 0; pintar(); return true; }
@@ -5843,6 +5861,291 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   document.addEventListener('keydown', e => { if (!el.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
     const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z', y:'Y', Y:'Y' }[e.key];
     if (T) { e.preventDefault(); e.stopImmediatePropagation(); elegirMando(T); } }, true);
+})();
+</script>
+
+<!-- v176 (22-nov): «Diseñar ruta en el mapa» con el diseño del lienzo: mira en el centro, flechas mueven, B pone punto, Z quita, A opciones, Y rodar -->
+<style>
+  #disenarR { position:fixed; inset:0; z-index:7950; background:#0d1014; overflow:hidden; font-family:Inter, system-ui, sans-serif; color:#e9edf1; }
+  #disenarR[hidden] { display:none; }
+  #disenarR .lz { position:absolute; left:0; top:0; width:1440px; height:900px; transform-origin:0 0; display:flex; flex-direction:column; box-sizing:border-box; }
+  #disenarR .bc { font-family:'Barlow Condensed', 'Arial Narrow', sans-serif; }
+  #disenarR .h { font-size:13px; font-weight:700; letter-spacing:.12em; color:#9aa6b2; }
+  #disenarR kbd { font:800 12px Inter, sans-serif; padding:2px 7px; border-radius:5px; background:#2b3540; color:inherit; }
+  #disenarR .bt { display:flex; justify-content:space-between; align-items:center; padding:13px 14px; border-radius:10px; border:1px solid #2a323c; background:#151a20; font-weight:600; font-size:15px; cursor:pointer; }
+  #disenarR .op { display:flex; justify-content:space-between; align-items:center; padding:9px 14px; border-radius:8px; border:2px solid transparent; font-size:15px; cursor:pointer; }
+  #disenarR .op span:last-child { color:#9aa6b2; }
+  #disenarR .op.foco { border-color:#c6f432; background:#1a2128; }
+  #disenarR .leaflet-tile-pane { filter:grayscale(1) brightness(.62) contrast(1.15); }
+  #disenarR .leaflet-container { background:#1b2128; cursor:crosshair; font-family:Inter, sans-serif; }
+  #disenarR .mira { position:absolute; left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border:3px solid #fff; border-radius:50%; box-shadow:0 0 0 2px #000; pointer-events:none; z-index:600; }
+  #disenarR .mira:after { content:''; position:absolute; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:#fff; }
+  #disenarR .etq { position:absolute; z-index:600; background:rgba(13,16,20,.85); color:#e9edf1; font-size:13px; font-weight:600; padding:5px 10px; border-radius:7px; pointer-events:none; }
+</style>
+<div id="disenarR" hidden><div class="lz"></div></div>
+<script>
+(function(){
+  const R = $('disenarR'), Z = R.querySelector('.lz'), AC = '#c6f432';
+  const ds = { abierta: false, opc: false, iOp: 0, mapa: null, red: null, linea: null, marcas: [], g: null, m: null };
+  window.pDisenar = ds;
+  const n1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
+  const OPS = [['cerrar', 'Volver a la salida'], ['reves', 'Al revés'], ['borrar', 'Empezar de nuevo'], ['guardar', 'Guardar en mis rutas']];
+  function esqueleto(){
+    Z.innerHTML = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-d="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver <kbd>Z</kbd></span>'
+      + '<span class="bc" style="font-weight:800;font-size:30px;text-transform:uppercase">Diseñar ruta en el mapa</span><div style="flex:1"></div><span style="font-size:14px;color:#9aa6b2">Pon puntos: la ruta va por carreteras y caminos</span></header>'
+      + '<div style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) 338px;gap:22px;padding:20px 40px 10px;min-height:0">'
+      + '<div style="display:flex;flex-direction:column;gap:16px;min-height:0"><div id="dsCaja" style="flex:1;position:relative;border-radius:14px;overflow:hidden;background:#1b2128">'
+      + '<div id="dsMapa" style="position:absolute;inset:0"></div><div class="mira"></div>'
+      + '<div class="etq" style="left:14px;top:14px">Cursores: mover el punto de mira</div><div class="etq" style="left:14px;top:48px">Mayús + ↑ ↓ (o frenos del Play): acercar y alejar</div>'
+      + '<div class="etq" style="left:calc(50% + 30px);top:calc(50% - 14px)">B · poner punto aquí</div></div>'
+      + '<div style="height:170px;flex:none;border-radius:14px;background:#161c22;position:relative;overflow:hidden"><span id="dsPerfT" style="position:absolute;left:14px;top:12px;font-size:12px;font-weight:700;color:#8b96a1">PERFIL</span><canvas id="dsPerfil" style="width:100%;height:100%;display:block"></canvas></div></div>'
+      + '<section id="dsDer" style="display:flex;flex-direction:column;gap:10px;min-height:0"></section></div>'
+      + '<footer style="display:flex;justify-content:center;align-items:center;gap:26px;padding:4px 40px 18px;font-size:14px;color:#c5ccd3">'
+      + [['← → ↑ ↓', 'mover'], ['B', 'punto'], ['Z', 'quitar / volver'], ['A', 'opciones'], ['Y', 'rodar']].map(([k, t]) => '<span><kbd style="margin-right:8px">' + k + '</kbd>' + t + '</span>').join('')
+      + '<span style="color:#8b96a1">También con ratón: clic pone punto</span></footer>'
+      + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:14px;bottom:12px;height:30px;opacity:.85;border-radius:4px">';
+    Z.querySelector('[data-d="volver"]').onclick = () => salir(); }
+  function derecha(){
+    const N = MUNDO.puntos.length, m = ds.m;
+    let h = '<span class="h">TU RUTA</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      + [['DISTANCIA', m ? n1(m.km) : '—', 'km'], ['DESNIVEL', m ? '+' + Math.round(m.sube) : '—', 'm']].map(([a, b, c]) => '<div style="padding:12px 14px;border-radius:12px;background:#151a20;border:1px solid #232a33"><div style="font-size:12px;color:#8b96a1;font-weight:600">' + a + '</div><div class="bc" style="font-size:34px;font-weight:700">' + b + ' <span style="font-size:18px;color:#9aa6b2">' + c + '</span></div></div>').join('') + '</div>'
+      + '<span style="font-size:14px;color:#9aa6b2">' + (N ? (N === 1 ? 'Salida puesta · ahora el siguiente sitio' : N + ' puntos' + (ds.tierra > 500 ? ' · ' + n1(ds.tierra / 1000) + ' km de tierra' : '')) : 'Pon la salida con B (o un clic)') + '</span>'
+      + '<div class="bt" data-d="punto">Poner punto <kbd>B</kbd></div><div class="bt" data-d="quitar">' + (N ? 'Quitar el último punto' : 'Volver') + ' <kbd>Z</kbd></div>'
+      + '<span style="font-size:12px;color:#8b96a1">' + (N ? N + (N === 1 ? ' punto' : ' puntos') + ' · Z quita el último' : 'Sin puntos, Z vuelve atrás') + '</span>'
+      + '<span class="h" style="margin-top:6px">OPCIONES <kbd style="margin-left:6px">A</kbd></span><div style="padding:6px;border-radius:12px;background:#151a20;border:1px solid ' + (ds.opc ? AC : '#232a33') + '">'
+      + OPS.map(([k, t], i) => '<div class="op' + (ds.opc && ds.iOp === i ? ' foco' : '') + '" data-op="' + k + '"><span>' + t + '</span><span>' + (k === 'cerrar' ? (MUNDO.cerrar ? 'sí' : 'no') : k === 'reves' ? '⇄' : k === 'borrar' ? '✕' : '+') + '</span></div>').join('') + '</div>'
+      + (ds.opc ? '<span style="font-size:12px;color:#8b96a1">↑ ↓ elegir · B hacer · A o Z cerrar opciones</span>' : '')
+      + '<div style="flex:1"></div><div class="bt" data-d="rodar" style="justify-content:center;gap:12px;padding:16px;background:' + (ds.g ? AC : '#1a2128') + ';color:' + (ds.g ? '#11160a' : '#5b6672') + ';border-color:' + (ds.g ? AC : '#232a33') + ';font-size:19px;font-weight:800">▶ Rodar esta ruta <kbd style="background:rgba(0,0,0,.22)">Y</kbd></div>'
+      + '<span style="font-size:12px;color:#8b96a1">Luego eliges modo (libre, liebres, grupeta, carrera) y vista</span>';
+    const D = $('dsDer'); D.innerHTML = h;
+    D.querySelector('[data-d="punto"]').onclick = ponerPunto; D.querySelector('[data-d="quitar"]').onclick = quitar; D.querySelector('[data-d="rodar"]').onclick = rodar;
+    D.querySelectorAll('[data-op]').forEach((o, i) => o.onclick = () => { ds.iOp = i; opcion(o.dataset.op); }); }
+  function perfil(){ const cv = $('dsPerfil'); if (!cv) return; const W = cv.width = cv.clientWidth * 2, H = cv.height = cv.clientHeight * 2, x = cv.getContext('2d'); x.clearRect(0, 0, W, H);
+    $('dsPerfT').textContent = 'PERFIL' + (ds.m ? ' · ' + n1(ds.m.km) + ' km' : '');
+    const P = ds.m && ds.m.perfil; if (!P || P.length < 2) return;
+    const D = P[P.length - 1][0] || 1, lo = Math.min(...P.map(q => q[1])), hi = Math.max(...P.map(q => q[1])), r = Math.max(30, hi - lo), Y = e => H - 8 - (e - lo) / r * (H - 60);
+    x.beginPath(); x.moveTo(0, H); P.forEach(([d, e]) => x.lineTo(d / D * W, Y(e))); x.lineTo(W, H); x.closePath(); x.fillStyle = 'rgba(198,244,50,.22)'; x.fill();
+    x.beginPath(); P.forEach(([d, e], i) => i ? x.lineTo(d / D * W, Y(e)) : x.moveTo(0, Y(e))); x.strokeStyle = AC; x.lineWidth = 4; x.stroke();
+    x.fillStyle = '#c5ccd3'; x.font = '22px Inter, sans-serif'; x.textAlign = 'right'; x.fillText(Math.round(hi) + ' m · ' + Math.round(lo) + ' m', W - 12, 34); }
+  function repintar(){ const mp = ds.mapa, { nodos } = MUNDO.red;
+    if (ds.linea) { ds.linea.forEach(l => l.remove()); ds.linea = null; } ds.marcas.forEach(m => m.remove()); ds.marcas = [];
+    MUNDO.puntos.forEach((u, i) => ds.marcas.push(L.circleMarker([nodos[u].p[0], nodos[u].p[1]], { radius: i ? 6 : 9, color: '#fff', weight: 2, fillColor: i ? '#58a6ff' : '#3ddc6b', fillOpacity: 1 })
+      .bindTooltip(i ? 'Paso ' + i : 'Salida', { permanent: i === 0, direction: 'top' }).addTo(mp)));
+    try { localStorage.setItem('simulador-mundo-ruta', JSON.stringify({ p: MUNDO.puntos.map(u => nodos[u].p.slice(0, 2)), c: MUNDO.cerrar })); } catch(e) {}
+    const cam = rutaMundo(); MUNDO.camino = cam; ds.g = null; ds.m = null; ds.tierra = 0;
+    if (cam) { const ll = cam.map(u => [nodos[u].p[0], nodos[u].p[1]]);
+      ds.linea = [L.polyline(ll, { color: '#0d1014', weight: 10, opacity: .9 }).addTo(mp), L.polyline(ll, { color: AC, weight: 5, opacity: 1 }).addTo(mp)];
+      ds.g = gpxMundo(cam); ds.m = desnivelGpx(ds.g.gpx);
+      ds.tierra = ds.g.runs.reduce((a, r, i) => a + (RUTAS_SIM.SUP[r[1]] === 'tierra' ? ((ds.g.runs[i + 1] ? ds.g.runs[i + 1][0] : ds.g.largo) - r[0]) : 0), 0); }
+    derecha(); perfil(); }
+  function puntoEnLatLng(lat, lon){ const n = nodoCercano(lat, lon);
+    if (n.d > 1500) { avisar('Ahí no pasa ninguna carretera de tu mundo: acércate a una línea azul.'); return; }
+    if (MUNDO.puntos[MUNDO.puntos.length - 1] === n.i) return; MUNDO.puntos.push(n.i); repintar(); }
+  function ponerPunto(){ if (!ds.mapa) return; const c = ds.mapa.getCenter(), n = nodoCercano(c.lat, c.lng);
+    if (n.d > 1500) { const p = MUNDO.red.nodos[n.i].p; ds.mapa.setView([p[0], p[1]], Math.max(ds.mapa.getZoom(), 13), { animate: false }); avisar('Ahí no hay carretera: te llevo a la más cercana. Pulsa B otra vez.'); return; }
+    puntoEnLatLng(c.lat, c.lng); }
+  function quitar(){ if (!MUNDO.puntos.length) { salir(); return; } MUNDO.puntos.pop(); repintar(); }
+  function opcion(k){
+    if (k === 'cerrar') MUNDO.cerrar = !MUNDO.cerrar;
+    else if (k === 'reves') { if (MUNDO.cerrar && MUNDO.puntos.length > 1) MUNDO.puntos = [MUNDO.puntos[0], ...MUNDO.puntos.slice(1).reverse()]; else MUNDO.puntos.reverse(); }
+    else if (k === 'borrar') { MUNDO.puntos = []; MUNDO.cerrar = false; }
+    else if (k === 'guardar') { if (!ds.g) { avisar('Primero pon al menos dos puntos.'); return; } guardar(); return; }
+    repintar(); }
+  function guardar(){ const L0 = misRutas(), n = 'Mi ruta ' + (L0.length + 1) + ' · ' + n1(ds.m.km) + ' km';
+    L0.unshift({ id: 'm' + Date.now(), nombre: n, fecha: Date.now(), km: ds.m.km, sube: ds.m.sube, g: ds.g });
+    try { localStorage.setItem(CLAVE('simulador-mis-rutas'), JSON.stringify(L0.slice(0, 30))); avisar('💾 Guardada como «' + n + '»: la tienes en «Mis salidas».'); }
+    catch(e) { avisar('No he podido guardarla: no queda sitio en el navegador.'); } }
+  window.misRutas = function(){ try { return JSON.parse(localStorage.getItem(CLAVE('simulador-mis-rutas')) || '[]'); } catch(e) { return []; } };
+  function rodar(){ if (!ds.g) { avisar('Pon al menos dos puntos para tener ruta.'); return; }
+    const nombre = 'Mi ruta en el mapa · ' + n1(ds.m.km) + ' km';
+    cerrar(); abrirElegirMapa({ nombre, km: ds.m.km, sube: ds.m.sube, g: ds.g }); }
+  function salir(){ cerrar(); if (window.abrirElegir) abrirElegir(false); }
+  function cerrar(){ R.hidden = true; ds.abierta = false; ds.opc = false; }
+  function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
+  addEventListener('resize', () => { if (ds.abierta) { escalar(); ds.mapa && ds.mapa.invalidateSize(); } });
+  window.abrirDisenar = async function(){
+    R.hidden = false; ds.abierta = true; ds.opc = false; escalar(); esqueleto(); derecha();
+    try { await cargarMundo(); } catch(e) { avisar('No encuentro recursos/mundo.js.'); return; }
+    const { M, nodos } = MUNDO.red;
+    if (ds.mapa) { ds.mapa.remove(); ds.mapa = null; } ds.linea = null; ds.marcas = [];
+    const c = CAPAS[$('capaMapa').value] || CAPAS[Object.keys(CAPAS)[0]];
+    const mp = ds.mapa = L.map($('dsMapa'), { zoomControl: false, keyboard: false, zoomSnap: 0.25, attributionControl: true });
+    L.tileLayer(c.url, { maxZoom: c.max, maxNativeZoom: Math.min(c.max, 17), attribution: c.attr }).addTo(mp);
+    ds.red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#58a6ff', weight: 3, opacity: .6, interactive: false }).addTo(mp));
+    MUNDO.puntos = []; MUNDO.cerrar = false;
+    try { const g = JSON.parse(localStorage.getItem('simulador-mundo-ruta') || 'null'); if (g) { MUNDO.puntos = g.p.map(q => nodoCercano(q[0], q[1]).i); MUNDO.cerrar = !!g.c; } } catch(e) {}
+    mp.on('click', ev => puntoEnLatLng(ev.latlng.lat, ev.latlng.lng));
+    mp.invalidateSize(); repintar();
+    const b = ds.linea ? ds.linea[0].getBounds() : L.featureGroup(ds.red).getBounds(); mp.fitBounds(b, { padding: [30, 30], animate: false });
+    if (!MUNDO.puntos.length) { const c = mp.getCenter(), n = nodoCercano(c.lat, c.lng), p = nodos[n.i].p; mp.setView([p[0], p[1]], Math.max(mp.getZoom(), 12), { animate: false }); } };
+  // mando y teclado
+  window.disenarMando = function(b, mayus){ if (!ds.abierta) return false; const mp = ds.mapa;
+    if (ds.opc) { if (b === 'arr') ds.iOp = (ds.iOp + OPS.length - 1) % OPS.length; else if (b === 'ab') ds.iOp = (ds.iOp + 1) % OPS.length;
+      else if (b === 'B') { opcion(OPS[ds.iOp][0]); return true; } else if (b === 'A' || b === 'Z') ds.opc = false; else return true; derecha(); return true; }
+    if (!mp) { if (b === 'Z') salir(); return true; }
+    const P = 110;
+    if (mayus && (b === 'arr' || b === 'ab')) mp.setZoom(mp.getZoom() + (b === 'arr' ? 0.5 : -0.5), { animate: false });
+    else if (b === 'izq') mp.panBy([-P, 0], { animate: false }); else if (b === 'der') mp.panBy([P, 0], { animate: false });
+    else if (b === 'arr') mp.panBy([0, -P], { animate: false }); else if (b === 'ab') mp.panBy([0, P], { animate: false });
+    else if (b === 'B') ponerPunto(); else if (b === 'Z') quitar(); else if (b === 'Y') rodar();
+    else if (b === 'A') { ds.opc = true; ds.iOp = 0; derecha(); }
+    return true; };
+  document.addEventListener('keydown', e => { if (!ds.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+    const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z', y:'Y', Y:'Y', a:'A', A:'A', '+':'mas', '-':'menos' }[e.key];
+    if (!T) return; e.preventDefault(); e.stopImmediatePropagation();
+    if (T === 'mas' || T === 'menos') { ds.mapa && ds.mapa.setZoom(ds.mapa.getZoom() + (T === 'mas' ? 0.5 : -0.5), { animate: false }); return; }
+    disenarMando(T, e.shiftKey); }, true);
+  // frenos del Play: el derecho acerca, el izquierdo aleja (como en el 3D)
+  let tU = 0; setInterval(() => { const ahora = performance.now(), dt = Math.min(0.3, (ahora - (tU || ahora)) / 1000); tU = ahora;
+    if (!ds.abierta || !ds.mapa || typeof pala === 'undefined') return; const d = pala.D - pala.I; if (Math.abs(d) < 0.05) return;
+    ds.mapa.setZoom(ds.mapa.getZoom() + d * dt * 1.5, { animate: false }); }, 60);
+})();
+</script>
+
+<!-- v177 (22-nov): «Ajustes» con el diseño del lienzo (A en las pantallas de inicio) · OBS por WebSocket -->
+<style>
+  #ajustesR { position:fixed; inset:0; z-index:7960; background:#0d1014; overflow:hidden; font-family:Inter, system-ui, sans-serif; color:#e9edf1; }
+  #ajustesR[hidden] { display:none; }
+  #ajustesR .lz { position:absolute; left:0; top:0; width:1440px; height:900px; transform-origin:0 0; display:flex; flex-direction:column; box-sizing:border-box; }
+  #ajustesR .bc { font-family:'Barlow Condensed', 'Arial Narrow', sans-serif; }
+  #ajustesR kbd { font:800 12px Inter, sans-serif; padding:2px 7px; border-radius:5px; background:#2b3540; color:inherit; }
+  #ajustesR .tj { padding:18px 16px 16px; border-radius:16px; background:#12161b; border:1px solid #1f252d; display:flex; flex-direction:column; gap:8px; }
+  #ajustesR .tj > b { font-size:12px; font-weight:700; letter-spacing:.12em; color:#9aa6b2; }
+  #ajustesR .tj > i { font-style:normal; font-size:12px; color:#8b96a1; margin:-4px 0 2px; }
+  #ajustesR .fl { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 13px; border-radius:9px; background:#161c22; border:2px solid transparent; font-size:15px; cursor:pointer; }
+  #ajustesR .fl > span:last-child { font-weight:700; text-align:right; }
+  #ajustesR .fl.foco { border-color:#c6f432; background:#1a2128; }
+  #ajustesR .ok { color:#3ddc6b; font-size:13px; font-weight:700; } #ajustesR .ok:before { content:'● '; }
+  #ajustesR .no { color:#ff6b6b; font-size:13px; font-weight:700; } #ajustesR .no:before { content:'● '; }
+  #ajustesR .gr { color:#8b96a1; font-size:13px; font-weight:700; } #ajustesR .gr:before { content:'● '; }
+  #ajustesR input { font:600 14px Inter, sans-serif; padding:8px 10px; border-radius:8px; border:1px solid #39434e; background:#0d1014; color:#e9edf1; width:100%; box-sizing:border-box; }
+  #ajustesR .form { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:9px; background:#1a2128; border:1px solid #c6f432; font-size:12px; color:#9aa6b2; }
+  #ajustesR .form button { font:700 14px Inter, sans-serif; padding:8px; border-radius:8px; border:none; background:#c6f432; color:#11160a; cursor:pointer; }
+</style>
+<div id="ajustesR" hidden><div class="lz"></div></div>
+<script>
+// OBS: grabar por su WebSocket (OBS 28 o más: Herramientas → Ajustes del servidor WebSocket). La contraseña se queda solo en este navegador.
+const OBS = { conf(){ try { return JSON.parse(localStorage.getItem('simulador-obs') || 'null'); } catch(e) { return null; } }, estado: '' };
+async function obsPedir(tipo, datos){ const c = OBS.conf(); if (!c || !c.host) throw new Error('sin configurar');
+  const sha = async s => btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))));
+  return new Promise((ok, mal) => { let ws; const fin = (f, x) => { clearTimeout(tm); try { ws.close(); } catch(e) {} f(x); };
+    const tm = setTimeout(() => fin(mal, new Error('OBS no contesta (¿está abierto?)')), 5000);
+    try { ws = new WebSocket('ws://' + c.host.replace(/^wss?:\/\//, '')); } catch(e) { fin(mal, e); return; }
+    ws.onerror = () => fin(mal, new Error('no conecta con ' + c.host + ' (¿OBS abierto y WebSocket activado?)'));
+    ws.onmessage = async ev => { const m = JSON.parse(ev.data);
+      if (m.op === 0) { const id = { rpcVersion: 1 }; if (m.d.authentication) { if (!c.clave) { fin(mal, new Error('OBS pide contraseña')); return; } id.authentication = await sha(await sha(c.clave + m.d.authentication.salt) + m.d.authentication.challenge); } ws.send(JSON.stringify({ op: 1, d: id })); }
+      else if (m.op === 2) ws.send(JSON.stringify({ op: 6, d: { requestType: tipo, requestId: 'k' + Date.now(), requestData: datos || {} } }));
+      else if (m.op === 7) { if (m.d.requestStatus && m.d.requestStatus.result) fin(ok, m.d.responseData || {}); else fin(mal, new Error((m.d.requestStatus && m.d.requestStatus.comment) || 'OBS dijo que no')); } };
+    ws.onclose = e => { if (e.code === 4009) fin(mal, new Error('contraseña de OBS incorrecta')); }; }); }
+async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avisar(r.outputActive ? '⏺ OBS grabando' : '⏹ OBS: grabación parada y guardada'); }
+  catch(e) { avisar('OBS: ' + e.message, true); } }
+(function(){
+  const R = $('ajustesR'), Z = R.querySelector('.lz');
+  const aj = { abierta: false, i: 0, editar: null, vuelta: null, cams: [] };
+  window.pAjustes = aj;
+  const est = id => { const t = (($(id) || {}).textContent || '').trim(); return /^sin|^–|^-$|^$/.test(t) ? ['gr', 'sin conectar'] : /conect|ppm|W|%|\d/.test(t) ? ['ok', 'conectado'] : ['gr', t]; };
+  const dot = ([c, t]) => '<span class="' + c + '">' + esc2(t) + '</span>';
+  const esc2 = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
+  const SUBIR = () => { try { return localStorage.getItem(CLAVE('simulador-icu-subir')) === 'no' ? 'no' : 'sí'; } catch(e) { return 'sí'; } };
+  const camId = () => { try { return localStorage.getItem('simulador-camara-id') || ''; } catch(e) { return ''; } };
+  const camOn = () => { try { return !!localStorage.getItem('simulador-camara'); } catch(e) { return false; } };
+  function camTexto(){ if (!camOn()) return 'apagada'; const c = aj.cams.find(d => d.deviceId === camId()); return c ? (c.label || 'cámara').replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)/i, '') : 'encendida'; }
+  function filas(){ const ic = icuConf(), ob = OBS.conf(), f = ficha();
+    return [
+      [0, 'Intervals', 'La clave solo se guarda en este navegador. Solo Carlos sube.', [
+        ['icu', 'Clave de la API', ic ? dot(['ok', 'conectado' + (ic.nombre ? ' · ' + ic.nombre : '')]) + ' ••••••••' : dot(['gr', 'sin conectar']) + ' <span style="color:#9aa6b2">B para ponerla</span>'],
+        ['subir', 'Subir al terminar', '‹ ' + SUBIR() + ' ›', 1]]],
+      [1, 'Sincronización', 'Tu ficha y la de Susana en todos los aparatos (repositorio privado)', [
+        ['syncE', 'Estado', '<span style="font-weight:600;color:#c5ccd3;font-size:13px">' + esc2((typeof SYNC_SIM !== 'undefined' && SYNC_SIM.estado) || '—') + '</span>'],
+        ['sync', 'Sincronizar ahora', 'B']]],
+      [2, 'Grabar con OBS', 'OBS tiene que estar abierto. Contraseña solo en este navegador.', [
+        ['obsHost', 'Servidor WebSocket', (OBS.estado ? dot(OBS.estado === 'ok' ? ['ok', 'conectado'] : ['no', OBS.estado]) : ob && ob.host ? dot(['gr', 'sin probar']) : dot(['no', 'sin configurar'])) + ' ' + esc2((ob && ob.host) || 'localhost:4455')],
+        ['obsClave', 'Contraseña', ob && ob.clave ? '••••••••' : '—'],
+        ['obsProbar', 'Probar conexión', 'B']]],
+      [0, 'Mandos', 'Los conocidos se conectan solos al abrir', [
+        ['bici', 'Bici KICKR', dot(est('eBici'))],
+        ['play', 'Play izquierdo · derecho', dot(est('ePlayI')) + ' ' + dot(est('ePlayD'))],
+        ['pulso', 'Pulsómetro', dot(est('ePulso'))],
+        ['probar', 'Probar mandos', 'abre la página']]],
+      [1, 'Pantalla y sonido', '', [
+        ['calidad', 'Calidad gráfica', '‹ ' + (($('calidad3d') || {}).value || 'media') + ' ›', 1],
+        ['tamano', 'Tamaño', '‹ ' + (window.LIGERO ? 'tablet' : 'ordenador') + ' ›', 1],
+        ['webcam', 'Webcam', '‹ ' + esc2(camTexto()) + ' ›', 1],
+        ['voz', 'Voz de los locutores', '‹ ' + (NARR.voz ? 'sí' : 'no') + ' ›', 1]]],
+      [2, 'Tu ficha', 'Se cambia en la ficha completa', [
+        ['fichaD', 'FTP · peso · techo de pulso', f],
+        ['nivel', 'Nivel de carrera', (() => { const c = carreraConf(); return String(c.nivel).replace('.', ',') + ' w/kg · ' + (c.nivelManual ? 'a mano (B: el tuyo)' : 'sigue a tu ficha'); })()]]]]; }
+  function ficha(){ const kg = parseFloat(($('pesoUsu') || {}).value) || null, tp = parseInt(($('techoPulso') || {}).value) || null;
+    return FTP() + ' W · ' + (kg ? String(kg).replace('.', ',') + ' kg' : '—') + ' · ' + (tp ? tp + ' ppm' : '—'); }
+  function lista(){ const L = []; filas().forEach(c => c[3].forEach(x => L.push(x[0]))); return L; }
+  function pintar(){ const F = filas(), ids = lista(); aj.i = Math.max(0, Math.min(ids.length - 1, aj.i)); const foco = ids[aj.i];
+    let h = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-x="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver <kbd>Z</kbd></span>'
+      + '<span class="bc" style="font-weight:800;font-size:30px;text-transform:uppercase">Ajustes</span><span style="font-size:14px;color:#9aa6b2">se abren con <kbd>A</kbd> en las pantallas de inicio</span><div style="flex:1"></div><span data-x="clasico" style="border:1px solid #39434e;border-radius:9px;padding:6px 12px;font-size:13px;color:#9aa6b2;cursor:pointer">Más ajustes (pantalla clásica)</span></header>'
+      + '<div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;align-content:start;gap:20px;padding:22px 40px;min-height:0">';
+    F.forEach(([col, tit, sub, rows]) => { h += '<div class="tj"><b>' + tit.toUpperCase() + '</b>' + (sub ? '<i>' + sub + '</i>' : '');
+      rows.forEach(([id, t, v]) => { h += '<div class="fl' + (id === foco ? ' foco' : '') + '" data-id="' + id + '"><span>' + t + '</span><span>' + v + '</span></div>';
+        if (aj.editar === id) h += formulario(id); });
+      h += '</div>'; });
+    h += '</div><footer style="display:flex;justify-content:center;align-items:center;gap:26px;padding:0 40px 22px;font-size:14px;color:#c5ccd3">'
+      + [['↑ ↓', 'moverse'], ['B', 'cambiar / abrir'], ['← →', 'en ‹ › cambia el valor'], ['Z', 'volver']].map(([k, t]) => '<span><kbd style="margin-right:8px">' + k + '</kbd>' + t + '</span>').join('')
+      + '<span style="color:#8b96a1">Claves y contraseñas: con el teclado (o ratón), solo la primera vez</span></footer>'
+      + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:14px;bottom:12px;height:30px;opacity:.85;border-radius:4px">';
+    Z.innerHTML = h;
+    Z.querySelectorAll('[data-id]').forEach(n => n.onclick = () => { aj.i = lista().indexOf(n.dataset.id); pulsar('B'); });
+    Z.querySelector('[data-x="volver"]').onclick = salir; Z.querySelector('[data-x="clasico"]').onclick = () => { cerrar(); const d = $('panelIntervals'); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } };
+    const fm = Z.querySelector('.form'); if (fm) { const a = fm.querySelector('input'); if (a) a.focus();
+      fm.querySelector('button').onclick = guardarForm; fm.querySelectorAll('input').forEach(x => x.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); guardarForm(); } else if (e.key === 'Escape') { e.preventDefault(); aj.editar = null; pintar(); } }); }
+    escalar(); }
+  function formulario(id){ const ic = icuConf() || {}, ob = OBS.conf() || {};
+    if (id === 'icu') return '<div class="form">Nº de atleta (intervals.icu → Settings → Developer)<input id="ajA" value="' + esc2(ic.atleta || '') + '" placeholder="i123456">Clave de la API<input id="ajB" type="password" value="' + esc2(ic.clave || '') + '" autocomplete="off"><button>Guardar y probar</button></div>';
+    if (id === 'obsHost') return '<div class="form">Servidor (en OBS: Herramientas → Ajustes del servidor WebSocket)<input id="ajA" value="' + esc2(ob.host || 'localhost:4455') + '"><button>Guardar</button></div>';
+    if (id === 'obsClave') return '<div class="form">Contraseña del servidor WebSocket de OBS<input id="ajA" type="password" value="' + esc2(ob.clave || '') + '" autocomplete="off"><button>Guardar</button></div>';
+    return ''; }
+  async function guardarForm(){ const id = aj.editar, a = ($('ajA') || {}).value || '', b = ($('ajB') || {}).value || '';
+    if (id === 'icu') { $('icuAtleta').value = a.trim(); $('icuClave').value = b.trim(); aj.editar = null; await $('bIcuGuardar').onclick(); }
+    else { const ob = OBS.conf() || {}; if (id === 'obsHost') ob.host = a.trim() || 'localhost:4455'; else ob.clave = a; try { localStorage.setItem('simulador-obs', JSON.stringify(ob)); } catch(e) {} OBS.estado = ''; aj.editar = null; }
+    pintar(); }
+  function ciclar(id, d){
+    if (id === 'subir') { try { localStorage.setItem(CLAVE('simulador-icu-subir'), SUBIR() === 'sí' ? 'no' : 'si'); } catch(e) {} }
+    else if (id === 'calidad') { const s = $('calidad3d'); s.selectedIndex = (s.selectedIndex + d + s.options.length) % s.options.length; s.dispatchEvent(new Event('change')); if (s.onchange) s.onchange(); }
+    else if (id === 'tamano') { if (confirm2()) { const u = new URL(location.href); u.searchParams.delete('ligero'); u.searchParams.delete('3d'); u.searchParams.set(window.LIGERO ? '3d' : 'ligero', '1'); location.href = u.href; } return; }
+    else if (id === 'webcam') { camCiclo(d); return; }
+    else if (id === 'voz') { const bv = $('b3Voz'); if (bv) bv.click(); else NARR.voz = !NARR.voz; }
+    pintar(); }
+  function confirm2(){ if (aj.avisoTam && Date.now() - aj.avisoTam < 4000) return true; aj.avisoTam = Date.now(); avisar('Cambiar el tamaño recarga la página: pulsa otra vez para confirmar.'); return false; }
+  async function camCiclo(d){ try { aj.cams = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind === 'videoinput'); } catch(e) { aj.cams = []; }
+    const op = [null].concat(aj.cams), act = camOn() ? Math.max(1, op.findIndex(x => x && x.deviceId === camId())) : 0, sig = op[(act + d + op.length) % op.length];
+    try { if (!sig) localStorage.removeItem('simulador-camara'); else { localStorage.setItem('simulador-camara', '1'); localStorage.setItem('simulador-camara-id', sig.deviceId); } } catch(e) {}
+    if (!sig && typeof apagarCamara === 'function' && cam.flujo) apagarCamara();
+    avisar(sig ? '📷 Webcam: ' + (sig.label || 'cámara') + ' · sale en el 3D, arriba a la derecha' : '📷 Webcam apagada'); pintar(); }
+  async function pulsar(b){ const id = lista()[aj.i];
+    if (b === 'izq' || b === 'der') { const row = filas().flatMap(c => c[3]).find(x => x[0] === id); if (row && row[3]) ciclar(id, b === 'der' ? 1 : -1); return; }
+    if (b !== 'B') return;
+    if (['icu', 'obsHost', 'obsClave'].includes(id)) { aj.editar = aj.editar === id ? null : id; pintar(); return; }
+    if (id === 'sync') { avisar('☁ Sincronizando…'); try { await sincronizarSim(false); } catch(e) {} pintar(); return; }
+    if (id === 'obsProbar') { try { const r = await obsPedir('GetRecordStatus'); OBS.estado = 'ok'; avisar('OBS conectado' + (r.outputActive ? ' · está grabando' : ' · listo para grabar')); } catch(e) { OBS.estado = e.message.slice(0, 26); avisar('OBS: ' + e.message, true); } pintar(); return; }
+    if (id === 'bici') { $('bBici').click(); setTimeout(pintar, 1500); return; }
+    if (id === 'play') { $('bPlayI').click(); setTimeout(() => $('bPlayD').click(), 400); setTimeout(pintar, 2000); return; }
+    if (id === 'pulso') { $('bPulso').click(); setTimeout(pintar, 1500); return; }
+    if (id === 'probar') { window.open('probar-mandos.html', '_blank'); return; }
+    if (id === 'fichaD') { cerrar(); $('bFicha').click(); return; }
+    if (id === 'nivel') { const c = carreraConf(), mi = miNivel(); if (mi) { c.nivel = mi; c.nivelManual = false; guardarCarrera(c); } pintar(); return; }
+    const row = filas().flatMap(c => c[3]).find(x => x[0] === id); if (row && row[3]) ciclar(id, 1); }
+  function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
+  addEventListener('resize', () => { if (aj.abierta) escalar(); });
+  function cerrar(){ R.hidden = true; aj.abierta = false; aj.editar = null; }
+  function salir(){ const v = aj.vuelta; cerrar(); if (v) v(); }
+  window.abrirAjustes = async function(vuelta){ aj.vuelta = vuelta || null; aj.abierta = true; aj.i = 0; aj.editar = null; R.hidden = false; pintar();
+    try { aj.cams = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind === 'videoinput'); } catch(e) {} if (aj.abierta) pintar(); };
+  window.ajustesMando = function(b){ if (!aj.abierta) return false; const n = lista().length;
+    if (aj.editar) { if (b === 'Z') { aj.editar = null; pintar(); } return true; }
+    if (b === 'arr') aj.i = (aj.i - 1 + n) % n; else if (b === 'ab') aj.i = (aj.i + 1) % n;
+    else if (b === 'Z') { salir(); return true; } else { pulsar(b); return true; }
+    pintar(); return true; };
+  document.addEventListener('keydown', e => { if (!aj.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+    const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z' }[e.key];
+    if (T) { e.preventDefault(); e.stopImmediatePropagation(); ajustesMando(T); } }, true);
+  setInterval(() => { if (aj.abierta && !aj.editar) pintar(); }, 2000);   // estados de los aparatos al día
 })();
 </script>
 
