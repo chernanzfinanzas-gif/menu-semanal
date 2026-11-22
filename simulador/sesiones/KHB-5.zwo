@@ -8,148 +8,73 @@
     <Warmup Duration="600" PowerLow="0.45" PowerHigh="0.62">
       <textevent timeoffset="0" message="Si notas presion en el oido, zumbido nuevo o inestabilidad: para. Se repite otro dia."/>
     </Warmup>
-    <SteadyState Duration="60" Power="0.67" Cadence="86">
+    <SteadyState Duration="540" Power="0.67" Cadence="90">
       <textevent timeoffset="0" message="Z2: ritmo de poder hablar. El pulso manda: si pasa del techo, baja la intensidad con el boton -."/>
-      <textevent timeoffset="30" message="Cadencia 86 rpm o mas en todo el bloque, no solo en los minutos a 100. Cuesta un par de pulsaciones: es lo que se busca."/>
+      <textevent timeoffset="30" message="Cadencia 90 rpm o mas en todo el bloque, no solo en los minutos a 100. Cuesta un par de pulsaciones: es lo que se busca."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="540" Power="0.67" Cadence="90"/>
     <SteadyState Duration="60" Power="0.67" Cadence="100">
       <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.47" Cadence="86">
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
       <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.67" Cadence="86"/>
+    <SteadyState Duration="240" Power="0.67" Cadence="90"/>
     <Cooldown Duration="300" PowerLow="0.55" PowerHigh="0.40"/>
   </workout>
 </workout_file>

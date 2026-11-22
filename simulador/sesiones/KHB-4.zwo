@@ -8,67 +8,42 @@
     <Warmup Duration="420" PowerLow="0.45" PowerHigh="0.65">
       <textevent timeoffset="0" message="Si notas presion en el oido, zumbido nuevo o inestabilidad: para. Se repite otro dia."/>
     </Warmup>
-    <SteadyState Duration="60" Power="0.50" Cadence="86">
+    <SteadyState Duration="120" Power="0.50" Cadence="90">
       <textevent timeoffset="0" message="Suelto. Ahora vienen 10 minutos de rodar fuerte y luego lo de verdad."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86">
+    <SteadyState Duration="600" Power="0.78" Cadence="90">
       <textevent timeoffset="0" message="Bloque de 10 minutos a 142 W. Incomodo pero hablable: esto es la antesala."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.78" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86">
+    <SteadyState Duration="180" Power="0.50" Cadence="90">
       <textevent timeoffset="0" message="Tres minutos sueltos. Bebe. Lo que viene son 2 minutos a 209 W, cinco veces."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="1.15" Cadence="86">
+    <SteadyState Duration="120" Power="1.15" Cadence="90">
       <textevent timeoffset="0" message="SERIE 1 de 5. 209 W, dos minutos. Los primeros 40 segundos enganan de lo faciles que son; el ultimo minuto es el que cuenta. Manda el VATIO."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="1.15" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86">
+    <SteadyState Duration="180" Power="0.50" Cadence="90">
       <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="1.15" Cadence="86">
+    <SteadyState Duration="120" Power="1.15" Cadence="90">
       <textevent timeoffset="0" message="Serie 2 de 5. Mismo vatio. No la mejores: REPITELA."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="1.15" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86">
+    <SteadyState Duration="180" Power="0.50" Cadence="90">
       <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="1.15" Cadence="86">
+    <SteadyState Duration="120" Power="1.15" Cadence="90">
       <textevent timeoffset="0" message="Serie 3 de 5. Mismo vatio. No la mejores: REPITELA."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="1.15" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86">
+    <SteadyState Duration="180" Power="0.50" Cadence="90">
       <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="1.15" Cadence="86">
+    <SteadyState Duration="120" Power="1.15" Cadence="90">
       <textevent timeoffset="0" message="Serie 4 de 5. Mismo vatio. No la mejores: REPITELA."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="1.15" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86">
+    <SteadyState Duration="180" Power="0.50" Cadence="90">
       <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="0.50" Cadence="86"/>
-    <SteadyState Duration="60" Power="1.15" Cadence="86">
+    <SteadyState Duration="120" Power="1.15" Cadence="90">
       <textevent timeoffset="0" message="ULTIMA. Si sale a los mismos vatios que la primera, la sesion ha salido redonda."/>
     </SteadyState>
-    <SteadyState Duration="60" Power="1.15" Cadence="86"/>
     <Cooldown Duration="240" PowerLow="0.52" PowerHigh="0.40"/>
   </workout>
 </workout_file>
