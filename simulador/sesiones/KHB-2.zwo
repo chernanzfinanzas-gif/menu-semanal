@@ -1,0 +1,74 @@
+<workout_file>
+  <author>KH&amp;Claude</author>
+  <name>KHB S09 · Techo 5x2 · 48'</name>
+  <description>Semana 9 (Rampa a 238). Potencia principal 110 % de la FTP. Pulso en las series manda el vatio; el pulso ira a 150-170 y ahi tiene que estar: si se pasa, baja con el boton -. Carga prevista 50 (objetivo de la app 50). PRIMERA SESION DE INTENSIDAD EN DOS MESES. Cinco series de 2 minutos a 200 W. La forma es la de la sesion 1 del plan de vuelta a la forma de Zwift, que la mete el primer dia; van cinco y no tres porque llevas ocho semanas de base. El objetivo no es apretar mas: es que la QUINTA salga a los mismos vatios que la primera. Si en la cuarta ya no puedes, baja a 190 y acabalas. Dejala con un dia suave por delante y por detras. QUE PERSIGUE: tocar el techo de oxigeno y empezar a acostumbrar al cuerpo a 200 W. Es la forma de la sesion 1 del plan de vuelta a la forma de Zwift, con CINCO series en vez de tres porque llevas ocho semanas de base: lo que llevas a cero es la intensidad. COMO: 10 minutos a 142 W para abrir, y despues cinco veces 2 minutos a 200 W con 3 de recuperacion. En las series manda el VATIO, no el pulso; ira a 150-165 y ahi tiene que ir. Lo que se mira despues: si la quinta sale a los mismos vatios que la primera. Si en la cuarta ya no puedes, bajala a 190 y acaba las cinco: cinco iguales valen mas que dos buenas y tres rotas.</description>
+  <sportType>bike</sportType>
+  <tags><tag name="KHB"/></tags>
+  <workout>
+    <Warmup Duration="420" PowerLow="0.45" PowerHigh="0.65">
+      <textevent timeoffset="0" message="Si notas presion en el oido, zumbido nuevo o inestabilidad: para. Se repite otro dia."/>
+    </Warmup>
+    <SteadyState Duration="60" Power="0.50" Cadence="90">
+      <textevent timeoffset="0" message="Suelto. Ahora vienen 10 minutos de rodar fuerte y luego lo de verdad."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90">
+      <textevent timeoffset="0" message="Bloque de 10 minutos a 142 W. Incomodo pero hablable: esto es la antesala."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.78" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90">
+      <textevent timeoffset="0" message="Tres minutos sueltos. Bebe. Lo que viene son 2 minutos a 200 W, cinco veces."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="1.10" Cadence="90">
+      <textevent timeoffset="0" message="SERIE 1 de 5. 200 W, dos minutos. Los primeros 40 segundos enganan de lo faciles que son; el ultimo minuto es el que cuenta. Manda el VATIO."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="1.10" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90">
+      <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="1.10" Cadence="90">
+      <textevent timeoffset="0" message="Serie 2 de 5. Mismo vatio. No la mejores: REPITELA."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="1.10" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90">
+      <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="1.10" Cadence="90">
+      <textevent timeoffset="0" message="Serie 3 de 5. Mismo vatio. No la mejores: REPITELA."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="1.10" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90">
+      <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="1.10" Cadence="90">
+      <textevent timeoffset="0" message="Serie 4 de 5. Mismo vatio. No la mejores: REPITELA."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="1.10" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90">
+      <textevent timeoffset="0" message="Recuperacion, 3 minutos. Respira hondo y no mires el pulso."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.50" Cadence="90"/>
+    <SteadyState Duration="60" Power="1.10" Cadence="90">
+      <textevent timeoffset="0" message="ULTIMA. Si sale a los mismos vatios que la primera, la sesion ha salido redonda."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="1.10" Cadence="90"/>
+    <Cooldown Duration="240" PowerLow="0.52" PowerHigh="0.40"/>
+  </workout>
+</workout_file>

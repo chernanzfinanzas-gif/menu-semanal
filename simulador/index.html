@@ -369,7 +369,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v180 · ✎ diseñar en el mapa empieza vacío (la anterior, en Opciones) · v179 · ✎ diseñar en el mapa: la mira se mueve más fino (y acelera si insistes) · v178 · 🏋 «Sesión .zwo» nueva: el plan de la semana y la sesión en marcha con el diseño del lienzo · v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -902,6 +902,7 @@ function camaraNormal(){ giroCamV = 0; inclCamV = 0; const c = $('camara3d'), Z 
 function mando(b){   // b: izq der arr ab A B Y Z latI latD · devuelve true si lo ha usado
   if (window.portada && portada.abierta) return portadaMando(b);   // v168: pantallas de inicio
   if (window.pAjustes && pAjustes.abierta) return ajustesMando(b);
+  if (window.pZwo && pZwo.abierta) return zwoMando(b);
   if (window.pDisenar && pDisenar.abierta) return disenarMando(b);
   if (window.pElegir && pElegir.abierta) return elegirMando(b);   // v172: elegir ruta y modo
   const en3d = !!(v3 && v3.activo);
@@ -5427,7 +5428,7 @@ function terminar(fin){
   if (!sesion.corriendo) return;
   setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300);   // la grabación se guarda y se cierra la captura
   if (!fin && !sesion.demo && !confirm('¿Terminar la sesión y guardar lo hecho?')) return;
-  clearInterval(tick); sesion.corriendo = false;
+  clearInterval(tick); sesion.corriendo = false; if (window.zwoCerrar) zwoCerrar();
 
   enviarBici([0x05, 50, 0], 'fin: 50 W para soltar piernas');
   ['bPausa','bMenos','bMas','bSaltar','bTerminar'].forEach(i => $(i).disabled = true);
@@ -5621,7 +5622,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (a === 'usuario') { if (el.dataset.u === USUARIO) { ir(2); return; } try { sessionStorage.setItem('portada-paso', '2'); } catch(e) {} const b = document.querySelector('.bUsu[data-u="' + el.dataset.u + '"]'); if (b) b.click(); return; }
     if (a === 'conectar') { const b = $(el.dataset.b); if (b) b.click(); return; }
     if (a === 'seguir' || a === 'sinbici') { ir(3); return; }
-    if (a === 'zwo') { cerrar(); $('bZwo').click(); return; }
+    if (a === 'zwo') { const p = por.paso; cerrar(); abrirZwo(() => abrir(p)); return; }
     if (a === 'rodar') { cerrar(); { const c = carreraConf(); if (c.espectador) { c.espectador = false; guardarCarrera(c); } } abrirElegir(false); return; }
     if (a === 'ver') { cerrar(); abrirElegir(true); return; }
     if (a === 'ficha') { cerrar(); $('bFicha').click(); return; } }
@@ -5889,7 +5890,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   const ds = { abierta: false, opc: false, iOp: 0, mapa: null, red: null, linea: null, marcas: [], g: null, m: null };
   window.pDisenar = ds;
   const n1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
-  const OPS = [['cerrar', 'Volver a la salida'], ['reves', 'Al revés'], ['borrar', 'Empezar de nuevo'], ['guardar', 'Guardar en mis rutas']];
+  const OPS = [['cerrar', 'Volver a la salida'], ['reves', 'Al revés'], ['borrar', 'Empezar de nuevo'], ['guardar', 'Guardar en mis rutas'], ['anterior', 'Recuperar la anterior']];
   function esqueleto(){
     Z.innerHTML = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-d="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver <kbd>Z</kbd></span>'
       + '<span class="bc" style="font-weight:800;font-size:30px;text-transform:uppercase">Diseñar ruta en el mapa</span><div style="flex:1"></div><span style="font-size:14px;color:#9aa6b2">Pon puntos: la ruta va por carreteras y caminos</span></header>'
@@ -5913,7 +5914,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
       + '<div class="bt" data-d="punto">Poner punto <kbd>B</kbd></div><div class="bt" data-d="quitar">' + (N ? 'Quitar el último punto' : 'Volver') + ' <kbd>Z</kbd></div>'
       + '<span style="font-size:12px;color:#8b96a1">' + (N ? N + (N === 1 ? ' punto' : ' puntos') + ' · Z quita el último' : 'Sin puntos, Z vuelve atrás') + '</span>'
       + '<span class="h" style="margin-top:6px">OPCIONES <kbd style="margin-left:6px">A</kbd></span><div style="padding:6px;border-radius:12px;background:#151a20;border:1px solid ' + (ds.opc ? AC : '#232a33') + '">'
-      + OPS.map(([k, t], i) => '<div class="op' + (ds.opc && ds.iOp === i ? ' foco' : '') + '" data-op="' + k + '"><span>' + t + '</span><span>' + (k === 'cerrar' ? (MUNDO.cerrar ? 'sí' : 'no') : k === 'reves' ? '⇄' : k === 'borrar' ? '✕' : '+') + '</span></div>').join('') + '</div>'
+      + OPS.map(([k, t], i) => '<div class="op' + (ds.opc && ds.iOp === i ? ' foco' : '') + '" data-op="' + k + '"><span>' + t + '</span><span>' + (k === 'cerrar' ? (MUNDO.cerrar ? 'sí' : 'no') : k === 'reves' ? '⇄' : k === 'borrar' ? '✕' : k === 'anterior' ? (ds.prev && ds.prev.p.length ? ds.prev.p.length + ' puntos' : '—') : '+') + '</span></div>').join('') + '</div>'
       + (ds.opc ? '<span style="font-size:12px;color:#8b96a1">↑ ↓ elegir · B hacer · A o Z cerrar opciones</span>' : '')
       + '<div style="flex:1"></div><div class="bt" data-d="rodar" style="justify-content:center;gap:12px;padding:16px;background:' + (ds.g ? AC : '#1a2128') + ';color:' + (ds.g ? '#11160a' : '#5b6672') + ';border-color:' + (ds.g ? AC : '#232a33') + ';font-size:19px;font-weight:800">▶ Rodar esta ruta <kbd style="background:rgba(0,0,0,.22)">Y</kbd></div>'
       + '<span style="font-size:12px;color:#8b96a1">Luego eliges modo (libre, liebres, grupeta, carrera) y vista</span>';
@@ -5931,7 +5932,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (ds.linea) { ds.linea.forEach(l => l.remove()); ds.linea = null; } ds.marcas.forEach(m => m.remove()); ds.marcas = [];
     MUNDO.puntos.forEach((u, i) => ds.marcas.push(L.circleMarker([nodos[u].p[0], nodos[u].p[1]], { radius: i ? 6 : 9, color: '#fff', weight: 2, fillColor: i ? '#58a6ff' : '#3ddc6b', fillOpacity: 1 })
       .bindTooltip(i ? 'Paso ' + i : 'Salida', { permanent: i === 0, direction: 'top' }).addTo(mp)));
-    try { localStorage.setItem('simulador-mundo-ruta', JSON.stringify({ p: MUNDO.puntos.map(u => nodos[u].p.slice(0, 2)), c: MUNDO.cerrar })); } catch(e) {}
+    if (MUNDO.puntos.length) try { localStorage.setItem('simulador-mundo-ruta', JSON.stringify({ p: MUNDO.puntos.map(u => nodos[u].p.slice(0, 2)), c: MUNDO.cerrar })); } catch(e) {}   // vacía no pisa la anterior
     const cam = rutaMundo(); MUNDO.camino = cam; ds.g = null; ds.m = null; ds.tierra = 0;
     if (cam) { const ll = cam.map(u => [nodos[u].p[0], nodos[u].p[1]]);
       ds.linea = [L.polyline(ll, { color: '#0d1014', weight: 10, opacity: .9 }).addTo(mp), L.polyline(ll, { color: AC, weight: 5, opacity: 1 }).addTo(mp)];
@@ -5949,6 +5950,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (k === 'cerrar') MUNDO.cerrar = !MUNDO.cerrar;
     else if (k === 'reves') { if (MUNDO.cerrar && MUNDO.puntos.length > 1) MUNDO.puntos = [MUNDO.puntos[0], ...MUNDO.puntos.slice(1).reverse()]; else MUNDO.puntos.reverse(); }
     else if (k === 'borrar') { MUNDO.puntos = []; MUNDO.cerrar = false; }
+    else if (k === 'anterior') { if (!ds.prev || !ds.prev.p.length) { avisar('No hay ruta anterior.'); return; } MUNDO.puntos = ds.prev.p.map(q => nodoCercano(q[0], q[1]).i); MUNDO.cerrar = !!ds.prev.c; repintar(); if (ds.linea) ds.mapa.fitBounds(ds.linea[0].getBounds(), { padding: [30, 30], animate: false }); ds.opc = false; derecha(); return; }
     else if (k === 'guardar') { if (!ds.g) { avisar('Primero pon al menos dos puntos.'); return; } guardar(); return; }
     repintar(); }
   function guardar(){ const L0 = misRutas(), n = 'Mi ruta ' + (L0.length + 1) + ' · ' + n1(ds.m.km) + ' km';
@@ -5973,7 +5975,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     L.tileLayer(c.url, { maxZoom: c.max, maxNativeZoom: Math.min(c.max, 17), attribution: c.attr }).addTo(mp);
     ds.red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#58a6ff', weight: 3, opacity: .6, interactive: false }).addTo(mp));
     MUNDO.puntos = []; MUNDO.cerrar = false;
-    try { const g = JSON.parse(localStorage.getItem('simulador-mundo-ruta') || 'null'); if (g) { MUNDO.puntos = g.p.map(q => nodoCercano(q[0], q[1]).i); MUNDO.cerrar = !!g.c; } } catch(e) {}
+    // v180: se abre vacía; la última queda en Opciones → «Recuperar la anterior»
+    ds.prev = null; try { ds.prev = JSON.parse(localStorage.getItem('simulador-mundo-ruta') || 'null'); } catch(e) {}
     mp.on('click', ev => puntoEnLatLng(ev.latlng.lat, ev.latlng.lng));
     mp.invalidateSize(); repintar();
     const b = ds.linea ? ds.linea[0].getBounds() : L.featureGroup(ds.red).getBounds(); mp.fitBounds(b, { padding: [30, 30], animate: false });
@@ -5983,7 +5986,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (ds.opc) { if (b === 'arr') ds.iOp = (ds.iOp + OPS.length - 1) % OPS.length; else if (b === 'ab') ds.iOp = (ds.iOp + 1) % OPS.length;
       else if (b === 'B') { opcion(OPS[ds.iOp][0]); return true; } else if (b === 'A' || b === 'Z') ds.opc = false; else return true; derecha(); return true; }
     if (!mp) { if (b === 'Z') salir(); return true; }
-    const P = 110;
+    // v179: paso fino (35 px); si repites la misma flecha seguida, acelera hasta 160
+    const ahora = performance.now(); ds.paso = (b === ds.ultB && ahora - (ds.ultT || 0) < 350) ? Math.min(160, (ds.paso || 35) * 1.35) : 35; ds.ultB = b; ds.ultT = ahora; const P = Math.round(ds.paso);
     if (mayus && (b === 'arr' || b === 'ab')) mp.setZoom(mp.getZoom() + (b === 'arr' ? 0.5 : -0.5), { animate: false });
     else if (b === 'izq') mp.panBy([-P, 0], { animate: false }); else if (b === 'der') mp.panBy([P, 0], { animate: false });
     else if (b === 'arr') mp.panBy([0, -P], { animate: false }); else if (b === 'ab') mp.panBy([0, P], { animate: false });
@@ -6064,7 +6068,8 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
         ['obsProbar', 'Probar conexión', 'B']]],
       [0, 'Mandos', 'Los conocidos se conectan solos al abrir', [
         ['bici', 'Bici KICKR', dot(est('eBici'))],
-        ['play', 'Play izquierdo · derecho', dot(est('ePlayI')) + ' ' + dot(est('ePlayD'))],
+        ['playI', 'Play izquierdo', dot(est('ePlayI'))],
+        ['playD', 'Play derecho', dot(est('ePlayD'))],
         ['pulso', 'Pulsómetro', dot(est('ePulso'))],
         ['probar', 'Probar mandos', 'abre la página']]],
       [1, 'Pantalla y sonido', '', [
@@ -6076,7 +6081,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
         ['fichaD', 'FTP · peso · techo de pulso', f],
         ['nivel', 'Nivel de carrera', (() => { const c = carreraConf(); return String(c.nivel).replace('.', ',') + ' w/kg · ' + (c.nivelManual ? 'a mano (B: el tuyo)' : 'sigue a tu ficha'); })()]]]]; }
   function ficha(){ const kg = parseFloat(($('pesoUsu') || {}).value) || null, tp = parseInt(($('techoPulso') || {}).value) || null;
-    return FTP() + ' W · ' + (kg ? String(kg).replace('.', ',') + ' kg' : '—') + ' · ' + (tp ? tp + ' ppm' : '—'); }
+    return FTP() + ' W · ' + (kg ? String(kg).replace('.', ',') + ' kg' : 'peso: lo da la bici') + ' · ' + (tp ? tp + ' ppm' : '—'); }
   function lista(){ const L = []; filas().forEach(c => c[3].forEach(x => L.push(x[0]))); return L; }
   function pintar(){ const F = filas(), ids = lista(); aj.i = Math.max(0, Math.min(ids.length - 1, aj.i)); const foco = ids[aj.i];
     let h = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-x="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver <kbd>Z</kbd></span>'
@@ -6123,9 +6128,9 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     if (b !== 'B') return;
     if (['icu', 'obsHost', 'obsClave'].includes(id)) { aj.editar = aj.editar === id ? null : id; pintar(); return; }
     if (id === 'sync') { avisar('☁ Sincronizando…'); try { await sincronizarSim(false); } catch(e) {} pintar(); return; }
-    if (id === 'obsProbar') { try { const r = await obsPedir('GetRecordStatus'); OBS.estado = 'ok'; avisar('OBS conectado' + (r.outputActive ? ' · está grabando' : ' · listo para grabar')); } catch(e) { OBS.estado = e.message.slice(0, 26); avisar('OBS: ' + e.message, true); } pintar(); return; }
+    if (id === 'obsProbar') { try { const r = await obsPedir('GetRecordStatus'); OBS.estado = 'ok'; avisar('OBS conectado' + (r.outputActive ? ' · está grabando' : ' · listo para grabar')); } catch(e) { OBS.estado = /contraseña/.test(e.message) ? 'contraseña mal' : /contesta/.test(e.message) ? 'no contesta' : 'no conecta'; avisar('OBS: ' + e.message, true); } pintar(); return; }
     if (id === 'bici') { $('bBici').click(); setTimeout(pintar, 1500); return; }
-    if (id === 'play') { $('bPlayI').click(); setTimeout(() => $('bPlayD').click(), 400); setTimeout(pintar, 2000); return; }
+    if (id === 'playI' || id === 'playD') { $(id === 'playI' ? 'bPlayI' : 'bPlayD').click(); setTimeout(pintar, 1500); return; }   // v178: de uno en uno (Chrome solo abre una ventana de emparejar)
     if (id === 'pulso') { $('bPulso').click(); setTimeout(pintar, 1500); return; }
     if (id === 'probar') { window.open('probar-mandos.html', '_blank'); return; }
     if (id === 'fichaD') { cerrar(); $('bFicha').click(); return; }
@@ -6146,6 +6151,162 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z' }[e.key];
     if (T) { e.preventDefault(); e.stopImmediatePropagation(); ajustesMando(T); } }, true);
   setInterval(() => { if (aj.abierta && !aj.editar) pintar(); }, 2000);   // estados de los aparatos al día
+})();
+</script>
+
+<!-- v178 (22-nov): «Sesión .zwo» (elegir del plan de la semana) y la sesión en marcha, con el diseño del lienzo -->
+<style>
+  .zwoR { position:fixed; inset:0; z-index:7940; background:#0d1014; overflow:hidden; font-family:Inter, system-ui, sans-serif; color:#e9edf1; }
+  .zwoR[hidden] { display:none; }
+  .zwoR .lz { position:absolute; left:0; top:0; width:1440px; height:900px; transform-origin:0 0; display:flex; flex-direction:column; box-sizing:border-box; }
+  .zwoR .bc { font-family:'Barlow Condensed', 'Arial Narrow', sans-serif; }
+  .zwoR kbd { font:800 12px Inter, sans-serif; padding:2px 7px; border-radius:5px; background:#2b3540; color:inherit; }
+  .zwoR .ses { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; padding:14px 20px; border-radius:12px; border:2px solid #232a33; background:#151a20; cursor:pointer; }
+  .zwoR .ses.foco { border-color:#c6f432; background:#1c2416; }
+  .zwoR .ses b { font:800 26px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; text-transform:uppercase; }
+  .zwoR .tar { padding:20px 24px; border-radius:16px; background:#151a20; border:1px solid #232a33; display:flex; flex-direction:column; gap:6px; }
+  .zwoR .tar > span:first-child { font-size:12px; font-weight:700; letter-spacing:.12em; color:#9aa6b2; }
+  .zwoR .bot { display:flex; flex-direction:column; align-items:center; gap:3px; padding:12px; border-radius:12px; border:1px solid #2a323c; background:#151a20; font-weight:700; font-size:17px; cursor:pointer; }
+  .zwoR .bot span { font-size:12px; font-weight:500; color:#9aa6b2; }
+</style>
+<div id="zwoElegir" class="zwoR" hidden><div class="lz"></div></div>
+<div id="zwoRod" class="zwoR" hidden><div class="lz"></div></div>
+<script>
+(function(){
+  const RE = $('zwoElegir'), ZE = RE.querySelector('.lz'), RR = $('zwoRod'), ZR = RR.querySelector('.lz'), AC = '#c6f432';
+  const ze = { abierta: false, i: 0, lista: [], semana: '', cargando: false, vuelta: null };
+  const zr = { abierta: false, pulso: [], tUlt: -1 };
+  window.pZwo = ze; window.pZwoRod = zr;
+  const esc = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
+  const min = s => Math.round(s / 60) + '′';
+  function escalar(Z){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
+  addEventListener('resize', () => { if (ze.abierta) escalar(ZE); if (zr.abierta) { escalar(ZR); } });
+  // tus .zwo van en bloques de 1 minuto: se juntan los seguidos al mismo vatio en un solo tramo, y las series son los tramos altos
+  function fundir(B){ const G = []; let t = 0;
+    B.forEach((b, i) => { const g = G[G.length - 1], llano = Math.abs(b.p0 - b.p1) < 0.006;
+      if (g && llano && g.llano && !b.libre && !g.libre && Math.abs(g.p0 - b.p0) < 0.006 && !(/^Serie|^Recuperación/.test(b.tipo) && b.tipo !== g.tipo0)) { g.dur += b.dur; g.i1 = i; }
+      else G.push({ tipo0: b.tipo, tipo: b.tipo, dur: b.dur, p0: b.p0, p1: b.p1, llano, libre: b.libre, i0: i, i1: i, t0: t });
+      t += b.dur; });
+    const pM = Math.max(0, ...G.filter(g => !g.libre).map(g => Math.max(g.p0, g.p1)));
+    const altas = G.filter((g, k) => g.llano && !g.libre && g.p0 >= 0.98 * pM && g.p0 >= 0.9 && !(G[k - 1] && G[k - 1].p0 >= 0.9 && G[k - 1].p0 < g.p0));   // una rampa que sube minuto a minuto no son series
+    if (altas.length >= 2) altas.forEach((g, k) => { g.serie = k + 1; g.nSer = altas.length; });
+    G.forEach((g, k) => { if (!g.serie && g.llano && G[k - 1] && G[k - 1].serie && G[k + 1] && G[k + 1].serie) g.rec = true; });
+    return G; }
+  window.fundirZwo = fundir;
+  function resumen(z, fich, n){ const F = FTP(), dur = z.bloques.reduce((a, b) => a + b.dur, 0);
+    const G = fundir(z.bloques), series = G.filter(g => g.serie), pMax = Math.round(Math.max(...z.bloques.map(b => Math.max(b.p0, b.p1))) * F);
+    const media = Math.round(z.bloques.reduce((a, b) => a + (b.p0 + b.p1) / 2 * b.dur, 0) / Math.max(1, dur) * F);
+    const carga = (z.desc.match(/[Cc]arga prevista (\d+)/) || [])[1] || '';
+    const persigue = ((z.desc.match(/QU[EÉ] PERSIGUE:\s*(.*?)(?:\s+C[OÓ]MO:|$)/s) || [])[1] || z.desc.split('.').slice(0, 2).join('.') || '').trim();
+    const sem = (z.nombre.match(/\bS(\d+)\b/) || [])[1];
+    return { z, G, fich, dur, pMax, media, carga, persigue, series: series.length,
+      titulo: z.nombre.replace(/^KHB\s*/, '').replace(/^S\d+\s*·\s*/, '').replace(/\s*·\s*\d+['′]?\s*$/, ''),
+      cod: sem ? 'S' + sem.padStart(2, '0') + '-' + n : (fich || '').replace(/\.zwo$/i, ''),
+      sub: (series.length ? 'series a ' + pMax + ' W' : media + ' W') + (carga ? ' · carga ' + carga : '') }; }
+  const leerTexto = u => fetch(u + (/^http/.test(location.protocol) ? '?' + Date.now() : '')).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); }).catch(() => new Promise((ok, mal) => { const x = new XMLHttpRequest(); x.open('GET', u); x.onload = () => (x.status === 200 || x.status === 0) && x.responseText ? ok(x.responseText) : mal(new Error('no está ' + u)); x.onerror = () => mal(new Error('no está ' + u)); x.send(); }));
+  async function cargarPlan(){ ze.cargando = true; ze.lista = []; ze.semana = ''; pintarE();
+    try { const P = JSON.parse(await leerTexto('sesiones/plan.json')); ze.semana = P.semana || '';
+      for (let k = 0; k < P.sesiones.length; k++) { try { const t = await leerTexto('sesiones/' + P.sesiones[k]); ze.lista.push(Object.assign(resumen(leerZwo(t), P.sesiones[k], k + 1), { texto: t })); } catch(e) {} } }
+    catch(e) { ze.error = 'No encuentro el plan de la semana (sesiones/plan.json).'; }
+    ze.cargando = false; if (ze.abierta) pintarE(); }
+  function barras(x, W, H, bloques, F, opt){ bloques = fundir(bloques); const dur = bloques.reduce((a, b) => a + b.dur, 0) || 1, pM = Math.max(1.2, ...bloques.map(b => Math.max(b.p0, b.p1))) * 1.08; let t = 0;
+    bloques.forEach((b, i) => { const x0 = t / dur * W, w = b.dur / dur * W, h0 = (b.libre ? 0.5 : b.p0) / pM * H, h1 = (b.libre ? 0.5 : b.p1) / pM * H;
+      const hecho = opt && opt.hasta != null && t + b.dur <= opt.hasta, alta = Math.max(b.p0, b.p1) >= 1.0;
+      x.fillStyle = opt && opt.hasta != null ? (hecho ? '#243039' : (alta ? '#3a4856' : '#2f3a45')) : (alta ? '#55687a' : '#384756');
+      x.beginPath(); x.moveTo(x0 + 1.5, H); x.lineTo(x0 + 1.5, H - h0); x.lineTo(x0 + w - 1.5, H - h1); x.lineTo(x0 + w - 1.5, H); x.closePath(); x.fill(); t += b.dur; }); return dur; }
+  function pintarE(){ const s = ze.lista[ze.i];
+    let h = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-z="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver <kbd>Z</kbd></span>'
+      + '<span class="bc" style="font-weight:800;font-size:30px;text-transform:uppercase">Sesión .zwo</span><div style="flex:1"></div><span style="font-size:15px;font-weight:600">' + esc(U.nombre) + ' · FTP ' + FTP() + ' W</span></header>'
+      + '<div style="flex:1;display:grid;grid-template-columns:440px minmax(0,1fr);gap:26px;padding:24px 40px 14px;min-height:0">'
+      + '<section style="display:flex;flex-direction:column;gap:12px;min-height:0"><span style="font-size:13px;font-weight:700;letter-spacing:.12em;color:#9aa6b2">PLAN DE LA SEMANA' + (ze.semana ? ' ' + esc(ze.semana) : '') + ' · DE LA REVISIÓN DEL DOMINGO</span>'
+      + (ze.cargando ? '<div style="color:#9aa6b2;padding:12px">Cargando el plan…</div>' : '')
+      + (!ze.cargando && !ze.lista.length ? '<div style="color:#9aa6b2;padding:12px;font-size:14px">' + esc(ze.error || 'No hay sesiones en el plan.') + '</div>' : '')
+      + ze.lista.map((x, i) => '<div class="ses' + (i === ze.i ? ' foco' : '') + '" data-i="' + i + '"><div><b>' + esc(x.titulo) + ' · ' + min(x.dur) + '</b><div style="font-size:13px;color:#9aa6b2;margin-top:6px">' + esc(x.sub) + '</div></div><span style="font-size:12px;font-weight:700;color:#9aa6b2">' + esc(x.cod) + '</span></div>').join('')
+      + '<div style="flex:1"></div><div data-z="otro" style="display:flex;justify-content:center;align-items:center;gap:10px;padding:16px;border-radius:12px;border:2px dashed #39434e;font-size:16px;font-weight:600;cursor:pointer">⤒ Cargar otro .zwo <span style="font-size:12px;color:#9aa6b2;font-weight:500">(con ratón)</span></div></section>'
+      + '<section style="padding:28px 30px;border-radius:18px;background:#12161b;border:1px solid #1f252d;display:flex;flex-direction:column;gap:12px;min-height:0">';
+    if (s) h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px"><div><div class="bc" style="font-weight:800;font-size:56px;line-height:.95;text-transform:uppercase">' + esc(s.titulo) + '</div><div style="font-size:15px;color:#9aa6b2;line-height:1.55;margin-top:12px;max-height:120px;overflow:hidden">' + esc(s.persigue) + '</div></div>'
+      + '<div style="display:flex;gap:28px">' + [['DURACIÓN', min(s.dur)], [s.series ? 'SERIES' : 'MEDIA', (s.series ? s.pMax : s.media) + ' W'], ['CARGA', s.carga || '—']].map(([a, b]) => '<div><div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9aa6b2">' + a + '</div><div class="bc" style="font-size:38px;font-weight:700">' + b + '</div></div>').join('') + '</div></div>'
+      + '<div style="flex:1;position:relative;min-height:0"><canvas id="zeBarras" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:13px;color:#9aa6b2">' + tramosTexto(s).map(t => '<span>' + esc(t) + '</span>').join('') + '</div>'
+      + '<div style="display:flex;align-items:center;gap:26px;margin-top:6px"><div data-z="empezar" style="padding:15px 30px;border-radius:12px;background:' + AC + ';color:#11160a;font:800 20px Inter, sans-serif;cursor:pointer">▶ EMPEZAR <kbd style="background:rgba(0,0,0,.22);margin-left:8px">B</kbd></div>'
+      + '<span style="font-size:14px;color:#9aa6b2">Intensidad de partida 100 % · la bici pone los vatios (ERG)</span></div>';
+    h += '</section></div><footer style="display:flex;justify-content:center;gap:28px;padding:0 40px 20px;font-size:14px;color:#c5ccd3">' + [['↑ ↓', 'elegir sesión'], ['B', 'empezar'], ['Z', 'volver']].map(([k, t]) => '<span><kbd style="margin-right:8px">' + k + '</kbd>' + t + '</span>').join('') + '</footer>'
+      + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:14px;bottom:12px;height:30px;opacity:.85;border-radius:4px">';
+    ZE.innerHTML = h; escalar(ZE);
+    ZE.querySelectorAll('[data-i]').forEach(n => n.onclick = () => { ze.i = +n.dataset.i; pintarE(); });
+    ZE.querySelectorAll('[data-z]').forEach(n => n.onclick = () => accionE(n.dataset.z));
+    const cv = $('zeBarras'); if (cv && s) { const W = cv.width = cv.clientWidth * 2, H = cv.height = cv.clientHeight * 2, x = cv.getContext('2d'); barras(x, W, H, s.z.bloques, FTP()); x.fillStyle = '#2a323c'; x.fillRect(0, H - 2, W, 2); } }
+  function tramosTexto(s){ const B = s.z.bloques, G = s.G, F = FTP(), T = [], ser = G.filter(g => g.serie);
+    const cal = B.filter(b => b.tipo === 'Calentamiento').reduce((a, b) => a + b.dur, 0); if (cal) T.push('Calentamiento ' + min(cal));
+    if (ser.length) { const k = G.indexOf(ser[0]), pre = G.slice(0, k).filter(g => g.llano && g.tipo0 !== 'Calentamiento' && g.dur >= 300);
+      if (pre.length) T.push(pre.map(g => min(g.dur) + ' a ' + Math.round(g.p0 * F) + ' W').join(' + '));
+      const rec = G.find(g => g.rec); T.push(ser.length + ' × (' + min(ser[0].dur) + ' a ' + Math.round(ser[0].p0 * F) + ' W' + (rec ? ' + ' + min(rec.dur) + ' a ' + Math.round(rec.p0 * F) + ' W' : '') + ')'); }
+    else { const f = G.filter(g => g.llano && g.tipo0 !== 'Calentamiento' && g.tipo0 !== 'Vuelta a la calma'); if (f.length) T.push(f.length + (f.length === 1 ? ' tramo' : ' tramos') + ' · ' + s.media + ' W de media'); }
+    const vc = B.filter(b => b.tipo === 'Vuelta a la calma').reduce((a, b) => a + b.dur, 0); if (vc) T.push('Vuelta a la calma ' + min(vc));
+    return T; }
+  async function accionE(a){
+    if (a === 'volver') { cerrarE(); if (ze.vuelta) ze.vuelta(); return; }
+    if (a === 'otro') { cerrarE(); $('fichero').accept = '.zwo'; ze.esperaFichero = true; $('fichero').click(); return; }
+    if (a === 'empezar') { const s = ze.lista[ze.i]; if (!s) return; cerrarE();
+      await $('fichero').onchange({ target: { files: [{ name: s.fich || 'sesion.zwo', text: async () => s.texto }], value: '' } });
+      abrirRod(); empezar(); } }
+  function cerrarE(){ RE.hidden = true; ze.abierta = false; }
+  window.abrirZwo = function(vuelta){ ze.vuelta = vuelta || null; ze.abierta = true; ze.i = 0; RE.hidden = false; pintarE(); if (!ze.lista.length) cargarPlan(); };
+  window.zwoMando = function(b){ if (zr.abierta) return false; if (!ze.abierta) return false; const n = ze.lista.length || 1;
+    if (b === 'arr' || b === 'izq') ze.i = (ze.i - 1 + n) % n; else if (b === 'ab' || b === 'der') ze.i = (ze.i + 1) % n;
+    else if (b === 'B' || b === 'Y') { accionE('empezar'); return true; } else if (b === 'Z') { accionE('volver'); return true; } else return true;
+    pintarE(); return true; };
+  document.addEventListener('keydown', e => { if (!ze.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+    const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z' }[e.key];
+    if (T) { e.preventDefault(); e.stopImmediatePropagation(); zwoMando(T); } }, true);
+  // un .zwo cargado a mano desde esta pantalla: también se ve con el diseño nuevo
+  $('fichero').addEventListener('change', () => { if (ze.esperaFichero) { ze.esperaFichero = false; setTimeout(() => { if (sesion.bloques.length && !ruta.activa) abrirRod(); }, 400); } });
+
+  // ---------- la sesión en marcha ----------
+  function abrirRod(){ zr.G = null; zr.abierta = true; zr.pulso = []; zr.tUlt = -1; RR.hidden = false; esqueletoR(); escalar(ZR); pintarR(); }
+  window.zwoCerrar = function(){ RR.hidden = true; zr.abierta = false; };
+  function esqueletoR(){
+    ZR.innerHTML = '<header style="display:flex;align-items:center;gap:18px;padding:18px 40px;border-bottom:1px solid #1f252d"><span class="bc" id="zrNom" style="font-weight:800;font-size:30px;text-transform:uppercase"></span><span id="zrSerie" style="font-size:15px;color:#9aa6b2"></span><div style="flex:1"></div>'
+      + '<span id="zrT" class="bc" style="font-size:30px;font-weight:700"></span><span id="zrErg" style="font-size:13px;font-weight:700;padding:6px 10px;border-radius:8px;background:#1c2a1a"></span><span data-r="clasica" style="font-size:12px;color:#8b96a1;border:1px solid #39434e;border-radius:8px;padding:5px 9px;cursor:pointer">pantalla clásica</span></header>'
+      + '<div style="display:grid;grid-template-columns:336px repeat(4,minmax(0,1fr));gap:16px;padding:24px 40px 0">'
+      + '<div class="tar" style="background:#1a2412;border-color:#2b3a1c"><span>OBJETIVO</span><div><span id="zrObj" class="bc" style="font-size:92px;font-weight:700;line-height:.9"></span><span style="font-size:30px;color:#c5ccd3;font-weight:700"> W</span></div><span id="zrQueda" style="font-size:15px;color:#c5ccd3"></span></div>'
+      + '<div class="tar"><span>TUS VATIOS</span><span id="zrW" class="bc" style="font-size:72px;font-weight:700;line-height:1"></span><span id="zrWx" style="font-size:14px"></span></div>'
+      + '<div class="tar"><span>CADENCIA</span><span id="zrC" class="bc" style="font-size:72px;font-weight:700;line-height:1"></span><span style="font-size:14px;color:#9aa6b2">rpm</span></div>'
+      + '<div class="tar"><span>PULSO</span><span id="zrP" class="bc" style="font-size:72px;font-weight:700;line-height:1;color:#ff7b7b"></span><span id="zrPx" style="font-size:14px;color:#9aa6b2">ppm</span></div>'
+      + '<div class="tar"><span>SIGUIENTE</span><span id="zrSig" style="font-size:28px;font-weight:700;line-height:1.15"></span><span id="zrSigx" style="font-size:14px;color:#9aa6b2"></span></div></div>'
+      + '<div style="flex:1;position:relative;margin:20px 40px 0;min-height:0"><canvas id="zrGraf" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>'
+      + '<div style="display:flex;justify-content:space-between;padding:10px 40px;font-size:13px;color:#9aa6b2"><span>Gris: lo que pide la sesión · blanco: dónde vas · rojo: tu pulso</span><span>Intensidad <b id="zrInt" style="color:#e9edf1"></b></span></div>'
+      + '<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;padding:0 40px 24px">'
+      + [['pausa', '<b id="zrPausaT" style="font-weight:700">∎ Pausa</b>', 'maneta izq. · corto'], ['menos', '− 2 % intensidad', 'botón interno · leva'], ['mas', '+ 2 % intensidad', 'botón interno · leva'], ['saltar', 'Saltar bloque ⏭', 'maneta dcha. · 2 s'], ['terminar', 'Terminar y guardar', 'maneta izq. · 3 s']]
+        .map(([k, t, s]) => '<div class="bot" data-r="' + k + '"' + (k === 'terminar' ? ' style="background:#2a1416;border-color:#4a2026;color:#ff8f8f"' : '') + '>' + t + '<span>' + s + '</span></div>').join('') + '</div>'
+      + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:14px;bottom:12px;height:30px;opacity:.85;border-radius:4px">';
+    ZR.querySelectorAll('[data-r]').forEach(n => n.onclick = () => { const k = n.dataset.r;
+      if (k === 'clasica') zwoCerrar(); else if (k === 'pausa') alternarPausa(); else if (k === 'menos') cambiarIntensidad(-2); else if (k === 'mas') cambiarIntensidad(2);
+      else if (k === 'saltar') saltarBloque(); else if (k === 'terminar') terminar(false); pintarR(); }); }
+  const mmss2 = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  function pintarR(){ if (!zr.abierta) return; const B = sesion.bloques, b = B[sesion.idx], F = FTP(); if (!b) return;
+    $('zrNom').textContent = sesion.nombre.replace(/^KHB\s*/, '').replace(/^S\d+\s*·\s*/, '').replace(/\s*·\s*\d+['′]?\s*$/, '');
+    const G = zr.G || (zr.G = fundir(B)), k = Math.max(0, G.findIndex(g => sesion.idx >= g.i0 && sesion.idx <= g.i1)), g = G[k];
+    const pos = B.slice(0, sesion.idx).reduce((a, x) => a + x.dur, 0) + sesion.tBloque, queda = g.t0 + g.dur - pos;
+    const m = g.serie ? [0, g.serie, g.nSer] : null; $('zrSerie').textContent = m ? 'Serie ' + m[1] + ' de ' + m[2] : g.rec ? 'Recuperación' : g.tipo0 === 'Fijo' ? '' : g.tipo0;
+    $('zrT').innerHTML = mmss2(sesion.tTotal) + ' <span style="color:#8b96a1;font-size:22px">/ ' + mmss2(sesion.duracion) + '</span>';
+    $('zrErg').textContent = controlBici ? '● ERG' : '● sin bici'; $('zrErg').style.color = controlBici ? '#3ddc6b' : '#8b96a1';
+    const obj = Math.round(objetivoAhora()); $('zrObj').textContent = b.libre ? 'libre' : obj;
+    $('zrQueda').innerHTML = 'Quedan <b style="font-size:24px;color:#fff">' + mmss2(queda) + '</b> de ' + (m ? 'serie' : g.rec ? 'recuperación' : 'tramo');
+    const fresco = Date.now() - vivo.tW < 3000, w = fresco ? Math.round(vivo.w) : null; $('zrW').textContent = w == null ? '—' : w;
+    const d = w == null || !obj ? null : (w - obj) / obj; $('zrWx').textContent = d == null ? '' : Math.abs(d) <= 0.05 ? 'en objetivo' : d < 0 ? 'por debajo' : 'por encima'; $('zrWx').style.color = d != null && Math.abs(d) <= 0.05 ? '#3ddc6b' : '#e6b450';
+    $('zrC').textContent = fresco && vivo.c ? Math.round(vivo.c) : '—'; $('zrP').textContent = Date.now() - vivo.tP < 5000 && vivo.p ? Math.round(vivo.p) : '—';
+    const s2 = G[k + 1]; $('zrSig').innerHTML = s2 ? (s2.serie ? 'Serie ' + s2.serie : s2.rec ? 'Suave' : s2.tipo0 === 'Vuelta a la calma' ? 'Calma' : s2.p0 < g.p0 ? 'Baja' : 'Sube') + ' ' + Math.round(s2.dur / 60) + '′<br>' + (s2.libre ? 'libre' : Math.round(s2.p0 * F * sesion.sesgo / 100) + ' W') : 'Fin'; $('zrSigx').textContent = s2 ? (s2.rec ? 'recuperación' : s2.serie ? 'de ' + s2.nSer : '') : 'última';
+    $('zrInt').textContent = sesion.sesgo + ' %'; $('zrPausaT').textContent = sesion.pausa ? '▶ Seguir' : '∎ Pausa';
+    // gráfico
+    const cv = $('zrGraf'), W = cv.width = cv.clientWidth * 2, H = cv.height = cv.clientHeight * 2, x = cv.getContext('2d');
+    const dur = barras(x, W, H, B, F, { hasta: sesion.tTotal }); x.fillStyle = '#2a323c'; x.fillRect(0, H - 2, W, 2);
+    if (zr.pulso.length > 1) { x.beginPath(); zr.pulso.forEach(([t, p], i) => { const X = t / dur * W, Y = H - (p - 60) / 140 * H; i ? x.lineTo(X, Y) : x.moveTo(X, Y); }); x.strokeStyle = '#e5534b'; x.lineWidth = 2.5; x.stroke(); }
+    const X = sesion.tTotal / dur * W; x.fillStyle = '#fff'; x.fillRect(X - 2, 0, 4, H); }
+  setInterval(() => { if (!zr.abierta) return;
+    if (!sesion.bloques.length || ruta.activa) { zwoCerrar(); return; }
+    if (sesion.corriendo && Math.floor(sesion.tTotal) !== zr.tUlt && Date.now() - vivo.tP < 5000 && vivo.p) { zr.tUlt = Math.floor(sesion.tTotal); zr.pulso.push([sesion.tTotal, vivo.p]); }
+    pintarR(); }, 500);
 })();
 </script>
 

@@ -1,0 +1,51 @@
+<workout_file>
+  <author>KH&amp;Claude</author>
+  <name>KHB S09 · Rodillo 1 de 4 · 40'</name>
+  <description>Semana 9 (Rampa a 238). Potencia principal 69 % de la FTP. Pulso en los lisos el pulso manda hasta 135; en el apreton manda el vatio: si se pasa, baja con el boton -. Carga prevista 30 (objetivo de la app 30). 126 W: el centro de tu zona 2, no el borde. LO QUE SE MIRA HOY ES LA DERIVA: por debajo del 5 % se queda; por encima del 6 % bajas con el boton - y me lo dices. QUE PERSIGUE: base aerobica, que el corazon haga menos esfuerzo por cada vatio. COMO: vatios fijos en zona 2 con ERG, largos y constantes; los minutos a 100 rpm son tecnica, con los mismos vatios. Lo que se mira despues: la deriva (pulso de la 2a mitad contra la 1a) por debajo del 5 %.</description>
+  <sportType>bike</sportType>
+  <tags><tag name="KHB"/></tags>
+  <workout>
+    <Warmup Duration="600" PowerLow="0.45" PowerHigh="0.62">
+      <textevent timeoffset="0" message="Si notas presion en el oido, zumbido nuevo o inestabilidad: para. Se repite otro dia."/>
+    </Warmup>
+    <SteadyState Duration="60" Power="0.69" Cadence="90">
+      <textevent timeoffset="0" message="Z2: ritmo de poder hablar. El pulso manda: si pasa del techo, baja la intensidad con el boton -."/>
+      <textevent timeoffset="30" message="Cadencia 90 rpm o mas en todo el bloque, no solo en los minutos a 100. Cuesta un par de pulsaciones: es lo que se busca."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="100">
+      <textevent timeoffset="0" message="Un minuto a 95-100 rpm con la misma potencia. Piernas sueltas, sin apretar."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
+      <textevent timeoffset="0" message="Un minuto suave para que el pulso baje despues de la cadencia. Respira."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.69" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.47" Cadence="90">
+      <textevent timeoffset="0" message="Un minuto suave y llega el apreton: cinco minutos subiendo. Aqui manda el VATIO, no el pulso."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.72" Cadence="90">
+      <textevent timeoffset="0" message="Apreton. Cinco minutos de rampa. Respira hondo y no bloquees la respiracion en ningun momento."/>
+    </SteadyState>
+    <SteadyState Duration="60" Power="0.80" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.88" Cadence="90"/>
+    <SteadyState Duration="60" Power="0.96" Cadence="90"/>
+    <SteadyState Duration="60" Power="1.00" Cadence="90">
+      <textevent timeoffset="0" message="Ultimo minuto, y es tuyo: esta es la base. Si te queda, sube con el boton +."/>
+    </SteadyState>
+    <Cooldown Duration="300" PowerLow="0.55" PowerHigh="0.40"/>
+  </workout>
+</workout_file>
