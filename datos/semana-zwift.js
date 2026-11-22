@@ -351,12 +351,12 @@
         "nota": "SEGUNDA SESION DE SERIES, y sube de 200 a 210 W. Tu decision del 17-nov: las de 200 fueron exigentes pero las sacaste faciles y el pulso se quedo en 145-152, en lo bajo del rango. Se sube el vatio y no el numero de series: una cosa nueva por semana. HAZLA DESPUES DE LA ANALITICA, no antes. El objetivo sigue siendo que la QUINTA salga a los mismos vatios que la primera; si en la cuarta no puedes, baja a 200 y acabalas."
       },
       {
-        "id": "rod-5",
+        "id": "largo",
         "t": "Rodillo largo",
         "min": 118,
         "pts": 82,
         "fam": "bici",
-        "largo": false,
+        "largo": true,
         "hueco": 5,
         "ftp": 182,
         "perfil": [
