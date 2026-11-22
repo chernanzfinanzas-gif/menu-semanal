@@ -369,7 +369,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -900,6 +900,7 @@ function camaraNormal(){ giroCamV = 0; inclCamV = 0; const c = $('camara3d'), Z 
   c.selectedIndex = 0; if (c.onchange) c.onchange(); aviso3d('🎥 Cámara normal'); }
 function mando(b){   // b: izq der arr ab A B Y Z latI latD · devuelve true si lo ha usado
   if (window.portada && portada.abierta) return portadaMando(b);   // v168: pantallas de inicio
+  if (window.pElegir && pElegir.abierta) return elegirMando(b);   // v172: elegir ruta y modo
   const en3d = !!(v3 && v3.activo);
   if (capa.ordenes) { if (b === 'arr' || b === 'ab') { capa.iOrden = (capa.iOrden + (b === 'ab' ? 1 : -1) + 5) % 5; pintarCapaOrdenes(); }
     else if (b === 'A') { darOrden(ORDENES_LISTA[capa.iOrden]); capa.ordenes = false; pintarCapaOrdenes(); }
@@ -5597,7 +5598,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   function escalar(){ const L = P.querySelector('.lienzo'); if (!L) return; const s = Math.min(innerWidth / 1440, innerHeight / 900); L.style.transform = 'scale(' + s + ')'; L.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; L.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
   addEventListener('resize', () => { if (por.abierta) escalar(); });
   const FOCO = { 1: '[data-acc="usuario"]', 2: '[data-acc="conectar"],[data-acc="seguir"],[data-acc="sinbici"]', 3: '[data-acc="zwo"],[data-acc="rodar"],[data-acc="ver"],[data-acc="ficha"]' };
-  function opciones(){ return [...P.querySelectorAll(FOCO[por.paso])]; }
+  function opciones(){ return FOCO[por.paso].split(',').flatMap(s => [...P.querySelectorAll(s)]); }   // v172: en el orden en que se ven
   function marcar(){ const O = opciones(); if (!O.length) return; por.foco = Math.max(0, Math.min(O.length - 1, por.foco));
     O.forEach((o, i) => { const si = i === por.foco; if (o.dataset.borde) { o.style.border = si ? o.dataset.borde.replace(/#[0-9a-f]{3,6}|rgba?\([^)]*\)/i, AC).replace('dashed', 'solid') : o.dataset.borde; } o.style.boxShadow = si ? '0 0 0 4px rgba(198,244,50,.18)' : ''; }); }
   function ir(p){ por.paso = p; por.foco = p === 1 ? Math.max(0, ['carlos', 'susana'].indexOf(USUARIO)) : 0; pintar(); }
@@ -5613,8 +5614,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (a === 'conectar') { const b = $(el.dataset.b); if (b) b.click(); return; }
     if (a === 'seguir' || a === 'sinbici') { ir(3); return; }
     if (a === 'zwo') { cerrar(); $('bZwo').click(); return; }
-    if (a === 'rodar') { cerrar(); { const c = carreraConf(); if (c.espectador) { c.espectador = false; guardarCarrera(c); } } $('bSimulador').click(); return; }
-    if (a === 'ver') { cerrar(); { const c = carreraConf(); c.activa = true; c.tipo = 'carrera'; c.espectador = true; guardarCarrera(c); } $('bSimulador').click(); avisar('👀 Solo miro: elige la ruta y pulsa «Ver la carrera».'); return; }
+    if (a === 'rodar') { cerrar(); { const c = carreraConf(); if (c.espectador) { c.espectador = false; guardarCarrera(c); } } abrirElegir(false); return; }
+    if (a === 'ver') { cerrar(); abrirElegir(true); return; }
     if (a === 'ficha') { cerrar(); $('bFicha').click(); return; } }
   window.portadaMando = function(b){ if (!por.abierta) return false; const O = opciones(), n = O.length || 1;
     if (b === 'izq' || b === 'arr') { por.foco = (por.foco - 1 + n) % n; marcar(); }
@@ -5633,6 +5634,194 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   let off = null; try { off = sessionStorage.getItem('portada-off'); } catch(e) {}
   let paso = null; try { paso = sessionStorage.getItem('portada-paso'); } catch(e) {}
   if (!off || paso) abrir(); })();
+</script>
+
+<!-- v172 (22-nov): «Rodar en 3D / 2D» y «Ver una carrera» con el diseño del lienzo, enganchadas a lo de siempre (rutas, rivales, carrera, escenario…) -->
+<style>
+  #elegirR { position:fixed; inset:0; z-index:7900; background:#0d1014; overflow:hidden; font-family:Inter, system-ui, sans-serif; color:#e9edf1; }
+  #elegirR[hidden] { display:none; }
+  #elegirR .lz { position:absolute; left:0; top:0; width:1440px; height:900px; transform-origin:0 0; display:flex; flex-direction:column; box-sizing:border-box; }
+  #elegirR .bc { font-family:'Barlow Condensed', 'Arial Narrow', sans-serif; }
+  #elegirR .h { font-size:13px; font-weight:700; letter-spacing:.12em; color:#9aa6b2; }
+  #elegirR kbd { font:800 12px Inter, sans-serif; padding:2px 7px; border-radius:5px; background:#2b3540; color:inherit; margin-left:8px; }
+  #elegirR .col { display:flex; flex-direction:column; gap:6px; min-height:0; overflow:auto; scrollbar-width:none; }
+  #elegirR .fila { display:grid; grid-template-columns:minmax(0,1fr) 62px 56px; gap:10px; align-items:center; padding:11px 14px; border-radius:12px; border:2px solid transparent; background:#151a20; cursor:pointer; font-size:15px; }
+  #elegirR .chips { display:flex; flex-wrap:wrap; gap:4px; font-size:13px; font-weight:600; padding:4px; border-radius:12px; border:2px solid transparent; }
+  #elegirR .chips span { padding:6px 11px; border-radius:8px; color:#8b96a1; cursor:pointer; }
+  #elegirR .chips span.on { background:#26303b; color:#e9edf1; }
+  #elegirR .modo { padding:6px 16px; border-radius:12px; border:2px solid #232a33; background:#151a20; display:flex; flex-direction:column; gap:3px; cursor:pointer; }
+  #elegirR .modo b { font:800 22px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; text-transform:uppercase; }
+  #elegirR .modo.sel { background:#1a2128; }
+  #elegirR .modo.sel b { color:#c6f432; }
+  #elegirR .aj { display:flex; justify-content:space-between; align-items:center; padding:6px 12px; border-radius:9px; border:2px solid transparent; background:#151a20; font-size:14px; cursor:pointer; }
+  #elegirR .aj span:first-child { color:#9aa6b2; }
+  #elegirR .aj b { font-weight:700; }
+  #elegirR .foco { border-color:#c6f432 !important; box-shadow:0 0 0 4px rgba(198,244,50,.15); }
+  #elegirR .emp { display:flex; flex:none; align-items:center; justify-content:center; padding:13px; border-radius:12px; background:#c6f432; color:#11160a; font:800 20px Inter, sans-serif; border:2px solid #c6f432; cursor:pointer; }
+  #elegirR .emp.foco { box-shadow:0 0 0 4px rgba(198,244,50,.35); border-color:#fff !important; }
+  #elegirR .caja { border-radius:12px; background:#161c22; position:relative; overflow:hidden; }
+  #elegirR .caja canvas { width:100%; height:100%; display:block; }
+  #elegirR .caja .t { position:absolute; left:12px; top:10px; font-size:12px; font-weight:700; color:#8b96a1; }
+</style>
+<div id="elegirR" hidden><div class="lz"></div></div>
+<script>
+(function(){
+  const R = $('elegirR'), Z = R.querySelector('.lz'), AC = '#c6f432';
+  const el = { abierta: false, espect: false, cat: 'puertos', iRuta: 0, col: 0, f: [0, 0, 0], modo: 'libre', sentido: null, vista: 'carretera', cache: {} };
+  window.pElegir = el;
+  const CATS = [['disenar', '✎ Diseñar en el mapa'], ['puertos', 'Puertos'], ['rutas', 'Rutas'], ['anillos', 'Anillos'], ['cx', 'Ciclocrós'], ['salidas', 'Mis salidas']];
+  const PUERTOS = ['fuenfria', 'morcuera', 'morcuera-norte', 'canencia', 'canencia-sur'];
+  const esc = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
+  const n1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
+  function lista(){ const RS = (window.RUTAS_SIM ? RUTAS_SIM.rutas : []);
+    if (el.cat === 'puertos') return PUERTOS.map(id => RS.find(r => r.id === id)).filter(Boolean).map(r => ({ tipo: 'r', r }));
+    if (el.cat === 'anillos') return RS.filter(r => /^anillo/.test(r.id)).map(r => ({ tipo: 'r', r }));
+    if (el.cat === 'cx') return RS.filter(r => /^cx-/.test(r.id)).map(r => ({ tipo: 'r', r }));
+    if (el.cat === 'rutas') return RS.filter(r => !/^anillo|^cx-/.test(r.id) && !PUERTOS.includes(r.id)).map(r => ({ tipo: 'r', r }));
+    if (el.cat === 'salidas') return (window.RUTAS_STRAVA || []).slice().sort((a, b) => fechaStrava(b.fecha) - fechaStrava(a.fecha)).slice(0, 40).map(s => ({ tipo: 's', s }));
+    return []; }
+  function datos(it){ if (!it) return null;
+    if (it.tipo === 's') { const s = it.s; return { titulo: s.nombre, sub: fechaStrava(s.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }), tramos: [], nombre: s.nombre + ' · ' + fechaStrava(s.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }), km: s.km, sube: s.sube, perfil: s.perfil, pts: null, sentidos: ['ida'], mejor: null }; }
+    const r = it.r, k = el.sentido && r.gpx[el.sentido] ? el.sentido : Object.keys(r.gpx)[0], clave = r.id + '|' + k;
+    if (!el.cache[clave]) { const m = desnivelGpx(r.gpx[k]), pts = [...r.gpx[k].matchAll(/lat="([-\d.]+)" lon="([-\d.]+)"/g)].map(x => [+x[1], +x[2]]);
+      let mejor = null; try { const f = leerFantasma(claveRutaDe(r.id, k)); if (f && f.completa) mejor = hms(f.t); } catch(e) {}
+      const t = (r.nombre.match(/^(.*?)\s*\(([^)]*)\)\s*(.*)$/) || []); if (t[2] && PUERTOS.includes(r.id) && !/^desde /i.test(t[2])) t[2] = 'desde ' + t[2];
+      let tramos = []; try { const g = leerGpx(r.gpx[k]), cb = 'simulador-tramos|' + r.id + '|' + k, G = leerDe(cb);
+        tramos = calcularTramos(g.pts, g.total).filter(x => !x.oculto).map(x => { const H = (x.clave ? leerDe(x.clave) : G)[x.id] || [], T = recordTotal(x.clave || cb, x.id);
+          return { nombre: x.nombre.replace(/\s*\(km [^)]*\)/, ''), km: n1((x.b - x.a) / 1000) + ' km', yo: H.length ? hms(Math.min(...H.map(h => h.t))) : '—', total: T ? hms(T.t) : '—' }; }); } catch(e) {}
+      el.cache[clave] = { nombre: r.nombre, titulo: t[1] ? t[1] + (t[3] ? ' ' + t[3] : '') : r.nombre, sub: t[2] || '', km: m.km, sube: m.sube, perfil: m.perfil, pts, sentidos: Object.keys(r.gpx), sentido: k, mejor, tramos }; }
+    return el.cache[clave]; }
+  function modoInicial(){ const c = carreraConf(); if (el.espect) return 'carrera'; if (c.activa) return c.tipo === 'grupeta' ? 'grupeta' : 'carrera';
+    return (fantasmaActivo() || liebres.some(l => l.activa)) ? 'liebres' : 'libre'; }
+  function sel(id){ const s = $(id); return s && s.options[s.selectedIndex] ? s.options[s.selectedIndex].text.replace(/^[^:]*:\s*/, '') : '—'; }
+  function ajustes(){ const d = datos(lista()[el.iRuta]), A = [];
+    if (d && d.sentidos.length > 1) A.push(['sentido', 'Sentido', (NOMBRE_SENTIDO[d.sentido] || d.sentido)]);
+    if (el.modo === 'carrera' || el.modo === 'grupeta') { const c = carreraConf(); A.push(['corredores', 'Corredores', c.n]); if (el.modo === 'carrera') A.push(['nivel', 'Nivel', String(c.nivel).replace('.', ',') + ' w/kg' + (c.nivelManual ? ' (a mano)' : '')]); }
+    if (el.modo === 'liebres') { const on = liebres.filter(l => l.activa); A.push(['liebre', 'Liebre', on.length ? on.map(l => l.nombre.replace(/^Liebre\s*/i, '')).join(' y ') + ' W/kg' : 'ninguna'], ['fantasma', 'Tu mejor vuelta', fantasmaActivo() ? 'sí' : 'no']); }
+    A.push(['escenario', 'Escenario', sel('escenario3d')], ['hora', 'Hora', sel('hora3d')], ['viento', 'Clima', ({ no: 'sin viento' })[sel('vientoFuerza')] || 'viento ' + sel('vientoFuerza').replace(/\s*\(\d+\)/, '')]);
+    if (!el.espect) A.push(['dif', 'Dificultad', DIF() + ' %']);
+    return A; }
+  function itemsCol(c){ if (c === 0) return 1 + lista().length; if (c === 1) return 0; return (el.espect ? 0 : 4) + 1 + ajustes().length + 1; }
+  function pintar(){
+    const L = lista(); el.iRuta = Math.max(0, Math.min(L.length - 1, el.iRuta)); const d = datos(L[el.iRuta]);
+    const fc = (c, i) => el.col === c && el.f[c] === i ? ' foco' : '';
+    const pend = d && d.km ? d.sube / (d.km * 1000) * 100 : 0;
+    let h = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-a="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver<kbd>Z</kbd></span>'
+      + '<span class="bc" style="font-weight:800;font-size:30px;text-transform:uppercase">' + (el.espect ? 'Ver una carrera' : 'Rodar en 3D / 2D') + '</span><div style="flex:1"></div>'
+      + '<span style="font-size:14px;color:#9aa6b2">' + esc(U.nombre) + ' · FTP ' + FTP() + ' W</span><span data-a="clasica" style="border:1px solid #39434e;border-radius:9px;padding:6px 12px;font-size:13px;color:#9aa6b2;cursor:pointer">Pantalla clásica de rutas</span></header>';
+    h += '<div style="flex:1;display:grid;grid-template-columns:430px minmax(0,1fr) 330px;gap:22px;padding:22px 40px 14px;min-height:0">';
+    // columna 1: rutas
+    h += '<section class="col" data-col="0"><span class="h">1 · RUTA</span><div class="chips' + fc(0, 0) + '">' + CATS.map(([k, t]) => '<span data-cat="' + k + '"' + (k === el.cat ? ' class="on"' : '') + (k === 'disenar' ? ' style="border:1px dashed #4a5563;color:#e9edf1;margin-right:6px"' : '') + '>' + t + '</span>').join('') + '</div>';
+    if (!L.length) h += '<div style="color:#8b96a1;font-size:14px;padding:10px">' + (el.cat === 'salidas' ? 'No encuentro tus salidas de Strava.' : 'Nada en esta categoría.') + '</div>';
+    L.forEach((it, i) => { const x = it.tipo === 'r' ? datos(it) : { nombre: it.s.nombre, km: it.s.km, sube: it.s.sube }; const on = i === el.iRuta;
+      h += '<div class="fila' + fc(0, i + 1) + '" data-ruta="' + i + '" style="' + (on ? 'background:#1a2128;' : '') + '"><span style="font-weight:' + (on ? 700 : 600) + '">' + esc(it.tipo === 's' ? x.nombre : x.nombre) + '</span><span style="text-align:right;color:#c5ccd3">' + n1(x.km) + ' km</span><span style="text-align:right;color:#c5ccd3">' + n1(x.km ? x.sube / (x.km * 10) : 0) + ' %</span></div>'; });
+    h += '<span style="font-size:13px;color:#8b96a1">Cargar un .gpx o diseñar en el mapa: en la pantalla clásica de rutas</span></section>';
+    // columna 2: ficha
+    h += '<section style="padding:22px 26px;border-radius:18px;background:#12161b;border:1px solid #1f252d;display:flex;flex-direction:column;gap:14px;min-height:0">';
+    if (d) { h += '<div><div class="bc" style="font-weight:800;font-size:40px;line-height:0.92;text-transform:uppercase">' + esc(d.titulo) + '</div>' + (d.sub ? '<div class="bc" style="font-weight:700;font-size:28px;color:#8b96a1;text-transform:uppercase;margin-top:4px">' + esc(d.sub) + '</div>' : '') + '</div>'
+      + '<div style="display:flex;gap:30px">' + [['DISTANCIA', n1(d.km), 'km'], ['DESNIVEL', '+' + Math.round(d.sube), 'm'], ['PENDIENTE MEDIA', n1(pend), '%'], ['TU MEJOR', d.mejor || '—', '']].map(([a, b, c]) => '<div><div style="font-size:12px;color:#8b96a1;font-weight:600">' + a + '</div><div class="bc" style="font-size:34px;font-weight:700">' + b + ' <span style="font-size:18px;color:#9aa6b2">' + c + '</span></div></div>').join('') + '</div>'
+      + (d.tramos.length ? '<div data-a="tramos" style="padding:10px 14px;border-radius:12px;background:#161c22;font-size:14px;cursor:pointer"><div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 90px 90px;gap:8px;font-size:11px;font-weight:700;letter-spacing:.1em;color:#8b96a1;margin-bottom:4px"><span>⏱ TRAMOS</span><span></span><span style="text-align:right">TU RÉCORD</span><span style="text-align:right">TOTAL</span></div>'
+        + d.tramos.slice(0, 3).map(t => '<div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 90px 90px;gap:8px;padding:2px 0"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(t.nombre) + '</span><span style="text-align:right;color:#9aa6b2">' + t.km + '</span><span style="text-align:right">' + t.yo + '</span><span style="text-align:right;color:#9aa6b2">' + t.total + '</span></div>').join('')
+        + (d.tramos.length > 3 ? '<div style="color:#8b96a1;font-size:12px;margin-top:2px">y ' + (d.tramos.length - 3) + ' más ›</div>' : '') + '</div>' : '')
+      + '<div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0"><div class="caja"><span class="t">MAPA 2D</span><canvas id="elMapa"></canvas></div><div class="caja"><span class="t">PERFIL</span><canvas id="elPerfil"></canvas></div></div>'
+; }
+    h += '</section>';
+    // columna 3: modo, ajustes, empezar
+    h += '<section class="col" data-col="2">';
+    let k = 0;
+    if (!el.espect) { h += '<span class="h">2 · MODO</span>';
+      [['libre', 'Libre', 'A tu aire, sin nadie'], ['liebres', 'Liebres', 'De 1,7 a 3 W/kg · o contra tu mejor vuelta'], ['grupeta', 'Grupeta', 'Un grupo a tu nivel'], ['carrera', 'Carrera', carreraConf().n + ' corredores · cámbialo en ajustes']].forEach(([m, t, s]) => { h += '<div class="modo' + (el.modo === m ? ' sel' : '') + fc(2, k) + '" data-modo="' + m + '" data-k="' + k + '"><b>' + t + '</b><span style="font-size:13px;color:#9aa6b2">' + s + '</span></div>'; k++; }); }
+    else h += '<span class="h">2 · LA CARRERA</span><div style="padding:10px 12px;border-radius:10px;background:#151a20;font-size:13px;color:#c5ccd3">🚴 Carlos (22) y 🚴‍♀️ Susana (21) corren con España · tu muñeco, con los datos del líder de reserva</div>';
+    h += '<span class="h" style="margin-top:6px">3 · VISTA</span><div data-aj="vista" data-k="' + k + '" class="' + fc(2, k).trim() + '" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border:2px solid transparent;border-radius:12px;padding:2px;cursor:pointer">'
+      + [['carretera', 'Mundo 3D'], ['dos', 'Mapa 2D']].map(([v, t]) => '<span style="text-align:center;padding:11px;border-radius:10px;font-weight:700;font-size:16px;' + (el.vista === v ? 'background:#26303b;color:#e9edf1' : 'border:1px solid #39434e;color:#9aa6b2') + '">' + t + '</span>').join('') + '</div>'; k++;
+    h += '<span class="h" style="margin-top:6px">4 · AJUSTES</span>';
+    ajustes().forEach(([id, t, v]) => { h += '<div class="aj' + fc(2, k) + '" data-aj="' + id + '" data-k="' + k + '"><span>' + esc(t) + '</span><b>‹ ' + esc(v) + ' ›</b></div>'; k++; });
+    h += '<div style="flex:1;min-height:8px"></div><div class="emp' + fc(2, k) + '" data-a="empezar" data-k="' + k + '">▶ ' + (el.espect ? 'Ver la carrera' : 'Empezar') + '<kbd style="background:rgba(0,0,0,.22);color:#11160a">B</kbd></div></section></div>';
+    h += '<footer style="display:flex;justify-content:center;gap:28px;padding:0 40px 20px;font-size:14px;color:#c5ccd3"><span><kbd style="margin:0 8px 0 0">← →</kbd>ruta · modo y ajustes</span><span><kbd style="margin:0 8px 0 0">↑ ↓</kbd>elegir</span><span><kbd style="margin:0 8px 0 0">B</kbd>elegir · cambiar valor · empezar</span><span><kbd style="margin:0 8px 0 0">Z</kbd>volver</span></footer>'
+      + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:14px;bottom:12px;height:30px;opacity:.85;border-radius:4px">';
+    Z.innerHTML = h;
+    // ratón
+    Z.querySelectorAll('[data-cat]').forEach(s => s.onclick = () => { el.col = 0; el.f[0] = 0; cambiarCat(s.dataset.cat); });
+    Z.querySelectorAll('[data-ruta]').forEach(s => s.onclick = () => { el.col = 0; el.iRuta = +s.dataset.ruta; el.f[0] = el.iRuta + 1; el.sentido = null; pintar(); });
+    Z.querySelectorAll('[data-k]').forEach(s => s.onclick = () => { el.col = 2; el.f[2] = +s.dataset.k; pulsarB(); });
+    Z.querySelectorAll('[data-a]').forEach(s => { if (!s.dataset.k) s.onclick = () => accion(s.dataset.a); });
+    dibujar(d); escalar();
+    const f = Z.querySelector('.foco'); if (f) f.scrollIntoView({ block: 'nearest' }); }
+  function dibujar(d){ if (!d) return;
+    const cm = $('elMapa'), cp = $('elPerfil');
+    if (cm) { const W = cm.width = cm.clientWidth * 2, H = cm.height = cm.clientHeight * 2, x = cm.getContext('2d');
+      if (d.pts && d.pts.length > 1) { const la = d.pts.map(p => p[0]), lo = d.pts.map(p => p[1]), k = Math.cos((Math.min(...la) + Math.max(...la)) / 2 * Math.PI / 180);
+        const minX = Math.min(...lo) * k, maxX = Math.max(...lo) * k, minY = Math.min(...la), maxY = Math.max(...la), s = Math.min((W - 60) / Math.max(1e-6, maxX - minX), (H - 80) / Math.max(1e-6, maxY - minY));
+        const X = p => 30 + (p[1] * k - minX) * s + ((W - 60) - (maxX - minX) * s) / 2, Y = p => H - 30 - (p[0] - minY) * s - ((H - 80) - (maxY - minY) * s) / 2;
+        x.lineWidth = 5; x.strokeStyle = AC; x.lineJoin = 'round'; x.beginPath(); d.pts.forEach((p, i) => i ? x.lineTo(X(p), Y(p)) : x.moveTo(X(p), Y(p))); x.stroke();
+        const a = d.pts[0], b = d.pts[d.pts.length - 1]; x.fillStyle = '#3ddc6b'; x.beginPath(); x.arc(X(a), Y(a), 9, 0, 7); x.fill(); x.fillStyle = '#e5534b'; x.beginPath(); x.arc(X(b), Y(b), 9, 0, 7); x.fill(); }
+      else { x.fillStyle = '#8b96a1'; x.font = '24px Inter, sans-serif'; x.textAlign = 'center'; x.fillText('El mapa sale al cargar la salida', W / 2, H / 2); } }
+    if (cp && d.perfil && d.perfil.length > 1) { const W = cp.width = cp.clientWidth * 2, H = cp.height = cp.clientHeight * 2, x = cp.getContext('2d'), P = d.perfil;
+      const D = P[P.length - 1][0] || 1, lo = Math.min(...P.map(q => q[1])), hi = Math.max(...P.map(q => q[1])), r = Math.max(30, hi - lo);
+      x.beginPath(); x.moveTo(0, H); P.forEach(([dd, e]) => x.lineTo(dd / D * W, H - 8 - (e - lo) / r * (H - 70))); x.lineTo(W, H); x.closePath(); x.fillStyle = 'rgba(198,244,50,.22)'; x.fill();
+      x.beginPath(); P.forEach(([dd, e], i) => i ? x.lineTo(dd / D * W, H - 8 - (e - lo) / r * (H - 70)) : x.moveTo(0, H - 8 - (e - lo) / r * (H - 70))); x.strokeStyle = AC; x.lineWidth = 4; x.stroke();
+      x.fillStyle = '#c5ccd3'; x.font = '22px Inter, sans-serif'; x.textAlign = 'right'; x.fillText(Math.round(hi) + ' m', W - 10, 34); } }
+  function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
+  addEventListener('resize', () => { if (el.abierta) escalar(); });
+  function cambiarCat(k){ if (k === 'disenar') { cerrar(); abrirPantallaRutas(); setTimeout(() => { const m = $('mundoTarj'); if (m) m.scrollIntoView({ block: 'start' }); }, 300); avisar('Diseña la ruta poniendo puntos en el mapa y pulsa «Rodar esta ruta».'); return; }
+    el.cat = k; el.iRuta = 0; el.sentido = null; pintar(); }
+  function ciclarSel(id){ const s = $(id); if (!s) return; s.selectedIndex = (s.selectedIndex + 1) % s.options.length; if (s.onchange) s.onchange(); else s.dispatchEvent(new Event('change')); }
+  function pulsarB(){
+    if (el.col === 0) { if (el.f[0] === 0) { const i = CATS.findIndex(c => c[0] === el.cat), sig = CATS[(i + 1) % CATS.length][0]; cambiarCat(sig === 'disenar' ? 'puertos' : sig); return; }
+      el.iRuta = el.f[0] - 1; el.sentido = null; el.col = 2; el.f[2] = itemsCol(2) - 1; pintar(); return; }   // elegida la ruta: salta a «Empezar»
+    if (el.col !== 2) return;
+    const nodo = Z.querySelector('[data-col="2"] [data-k="' + el.f[2] + '"]'); if (!nodo) return;
+    if (nodo.dataset.modo) { el.modo = nodo.dataset.modo; pintar(); return; }
+    if (nodo.dataset.a === 'empezar') { empezarYa(); return; }
+    const a = nodo.dataset.aj, d = datos(lista()[el.iRuta]);
+    if (a === 'vista') el.vista = el.vista === 'carretera' ? 'dos' : 'carretera';
+    else if (a === 'sentido' && d) { const S = d.sentidos; el.sentido = S[(S.indexOf(d.sentido) + 1) % S.length]; }
+    else if (a === 'corredores') { const c = carreraConf(), N = [6, 24, 36, 48, 60]; c.n = N[(N.indexOf(N.reduce((x, y) => Math.abs(y - c.n) < Math.abs(x - c.n) ? y : x)) + 1) % N.length]; guardarCarrera(c); }
+    else if (a === 'nivel') { const c = carreraConf(), mi = miNivel() || c.nivel; let v = Math.round((c.nivel + 0.1) * 10) / 10; if (v > mi + 0.5) v = Math.round((mi - 0.5) * 10) / 10; c.nivel = v; c.nivelManual = Math.abs(v - mi) > 0.05; guardarCarrera(c); }
+    else if (a === 'fantasma') { try { localStorage.setItem(CLAVE('simulador-fantasma-activo'), fantasmaActivo() ? '0' : '1'); } catch(e) {} }
+    else if (a === 'liebre') { const i = liebres.findIndex(l => l.activa), sig = liebres.filter(l => l.activa).length > 1 ? -1 : i; liebres.forEach((l, j) => l.activa = j === sig + 1); guardarLiebres(); }
+    else if (a === 'escenario') ciclarSel('escenario3d');
+    else if (a === 'hora') ciclarSel('hora3d');
+    else if (a === 'viento') ciclarSel('vientoFuerza');
+    else if (a === 'dif') cambiaDif((DIF() + 10) % 110);
+    pintar(); }
+  async function empezarYa(){ const it = lista()[el.iRuta]; if (!it) return; const d = datos(it);
+    const c = carreraConf();
+    if (el.espect) { c.activa = true; c.tipo = 'carrera'; c.espectador = true; }
+    else if (el.modo === 'carrera') { c.activa = true; c.tipo = 'carrera'; c.espectador = false; }
+    else if (el.modo === 'grupeta') { c.activa = true; c.tipo = 'grupeta'; c.espectador = false; }
+    else { c.activa = false; c.espectador = false;
+      if (el.modo === 'libre') { try { localStorage.setItem(CLAVE('simulador-fantasma-activo'), '0'); } catch(e) {} liebres.forEach(l => l.activa = false); guardarLiebres(); } }
+    guardarCarrera(c);
+    try { localStorage.setItem('simulador-vista-elegida', el.vista); } catch(e) {}
+    document.querySelectorAll('#pantallaRutas .vistaElegir button').forEach(b => b.classList.toggle('activo', b.dataset.v === el.vista));
+    cerrar();
+    if (it.tipo === 's') { await elegirStrava(it.s.id, false); $('vistaRuta').value = el.vista; ponerVista(); }
+    else elegirRuta(it.r.id, d.sentido);
+    pintarListaRivales(); modoBotonEmpezar && modoBotonEmpezar();
+    avisar(el.espect ? '👀 Carrera lista: pulsa «Ver la carrera» o espera la cuenta atrás.' : '¡Lista! Empieza con el botón de arriba de la maneta izquierda (o Enter).'); }
+  function accion(a){ if (a === 'volver') { cerrar(); if (window.abrirPortada) abrirPortada(3); return; }
+    if (a === 'clasica') { cerrar(); abrirPantallaRutas(); return; }
+    if (a === 'tramos') { const it = lista()[el.iRuta]; if (it && it.tipo === 'r') verTramosRuta(it.r.id); return; }
+    if (a === 'empezar') empezarYa(); }
+  function cerrar(){ R.hidden = true; el.abierta = false; }
+  window.abrirElegir = function(espect){ if (window.portada && portada.abierta) { const P = $('portada'); if (P) P.hidden = true; portada.abierta = false; }
+    el.espect = !!espect; el.modo = modoInicial(); try { el.vista = localStorage.getItem('simulador-vista-elegida') || 'carretera'; } catch(e) {} if (el.vista !== 'carretera') el.vista = 'dos';
+    if (window.LIGERO) el.vista = 'dos';
+    el.col = 0; el.f = [1, 0, 0]; el.iRuta = 0; el.sentido = null; R.hidden = false; el.abierta = true; pintar(); };
+  window.elegirMando = function(b){ if (!el.abierta) return false; const n = itemsCol(el.col);
+    if (b === 'izq') { el.col = 0; } else if (b === 'der') { el.col = 2; if (el.f[2] >= itemsCol(2)) el.f[2] = 0; }
+    else if (b === 'arr') { el.f[el.col] = (el.f[el.col] - 1 + n) % n; if (el.col === 0 && el.f[0] > 0) { el.iRuta = el.f[0] - 1; el.sentido = null; } }
+    else if (b === 'ab') { el.f[el.col] = (el.f[el.col] + 1) % n; if (el.col === 0 && el.f[0] > 0) { el.iRuta = el.f[0] - 1; el.sentido = null; } }
+    else if (b === 'B') { pulsarB(); return true; }
+    else if (b === 'Z') { accion('volver'); return true; }
+    else if (b === 'Y') { empezarYa(); return true; }
+    else return true;
+    pintar(); return true; };
+  document.addEventListener('keydown', e => { if (!el.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+    const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z', y:'Y', Y:'Y' }[e.key];
+    if (T) { e.preventDefault(); e.stopImmediatePropagation(); elegirMando(T); } }, true);
+})();
 </script>
 
 </body>
