@@ -85,7 +85,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #zonaRuta.carretera #ciclista3d, #zonaRuta.carretera #camara3d, #zonaRuta.carretera #escenario3d, #zonaRuta.carretera #b3Pausa, #zonaRuta.carretera #b3Terminar, #zonaRuta.carretera #b3Tester, #zonaRuta.carretera #kmTester, #zonaRuta.carretera #kmTesterTxt, #zonaRuta.carretera #b3Empezar, #zonaRuta.carretera #calidad3d, #zonaRuta.carretera #hora3d, #zonaRuta.carretera #b3Grabar, #zonaRuta.carretera #b3Camara { display:inline-block; }
   #zonaRuta.carretera #bPausaMapa { display:none; }
   #ordenes3d { position:fixed; right:14px; bottom:120px; z-index:1006; display:flex; flex-direction:column; gap:4px; background:rgba(13,17,23,.72); border:1px solid #30363d; border-radius:10px; padding:6px; }
-  #cronica3d { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1010; width:min(820px, 92vw); max-height:84vh; overflow:auto; background:rgba(13,17,23,.97); border:1px solid #30363d; border-radius:12px; padding:10px 14px; color:#e6edf3; font-size:14px; }
+  #cronica3d { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9000; width:min(820px, 92vw); max-height:84vh; overflow:auto; background:rgba(13,17,23,.97); border:1px solid #30363d; border-radius:12px; padding:10px 14px; color:#e6edf3; font-size:14px; }
   #cronica3d .cab { font-weight:700; font-size:16px; display:flex; justify-content:space-between; margin-bottom:6px; } #cronica3d .pod { color:#ffd33d; margin-bottom:8px; } #cronica3d td { padding:2px 6px; vertical-align:top; } #cronica3d td:nth-child(-n+2) { color:#8b949e; white-space:nowrap; } #cronica3d tr.C td:last-child { color:#58a6ff; font-style:italic; }
   .modoC { display:inline-flex; border:1px solid #30363d; border-radius:9px; overflow:hidden; margin-left:6px; vertical-align:middle; } .modoC button { font:700 14px system-ui; background:#161b22; color:#9aa4ad; border:0; padding:6px 12px; cursor:pointer; } .modoC button.on { background:#1f6feb; color:#fff; }
   /* v165 (Carlos): el menú ☰ por grupos — App, TV, Actividad, Carrera, Mundo */
@@ -190,6 +190,13 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #formLiebre { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; font-size:14px; }
   #formLiebre input[type=number] { width:62px; } #formLiebre #lNombre { width:120px; }
   #pantallaRutas .mejor { color:#d2a8ff; font-size:13px; }
+  body.hud3dOn #camara, body.hud2d #camara { left:auto; right:22px; top:20px; bottom:auto; transform-origin:right top; }   /* v217: por defecto, arriba a la derecha (como lo tiene Carlos) */
+  body.hud3dOn #mandoTeclado, body.hud2d #mandoTeclado { left:21vw; top:auto; bottom:8.5vh; width:250px; background:rgba(17,22,29,.86); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px 14px; backdrop-filter:blur(6px); font-family:Inter, system-ui, sans-serif; }
+  body.hud3dOn #mandoTeclado .cab, body.hud2d #mandoTeclado .cab { font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#9aa6b2; }
+  body.hud3dOn #mandoTeclado .fila button, body.hud2d #mandoTeclado .fila button { background:#1b2129; border:1px solid #39434e; border-radius:12px; }
+  body.hud3dOn #mandoTeclado .w b, body.hud2d #mandoTeclado .w b { font-family:'Barlow Condensed', Inter, sans-serif; font-size:32px; font-weight:800; }
+  body.hud3dOn #mandoTeclado .barra, body.hud2d #mandoTeclado .barra { background:#2a323c; height:8px; }
+  body.hud3dOn #mandoTeclado .tope, body.hud2d #mandoTeclado .tope { background:#2a1416; border-color:#4a2026; color:#ff8f8f; border-radius:10px; }
   #mandoTeclado { position:fixed; left:12px; top:215px; z-index:1005; width:270px; background:rgba(13,17,23,.93); border:1px solid #30363d; border-radius:12px; padding:8px 10px; color:#e6edf3; font-size:13px; user-select:none; }
   #mandoTeclado .cab { cursor:move; font-weight:bold; margin-bottom:6px; } #mandoTeclado .cab small { font-weight:normal; color:#8b949e; margin-left:6px; }
   #mandoTeclado .fila { display:flex; align-items:center; gap:8px; } #mandoTeclado .fila button { width:44px; height:44px; font-size:26px; border-radius:10px; background:#21262d; color:#fff; border:1px solid #30363d; cursor:pointer; }
@@ -224,6 +231,9 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   body.barraOculta #zonaRuta.carretera #panelMapa .barra { display:none; }
   body.barraOculta #zonaRuta.carretera ~ #bMenu3d, body.barraOculta #bMenu3d.en3d { display:block; }
   body.barraOculta #tramo3d { top:12px; } body.barraOculta #aviso3d { top:64px; }
+  /* v216 (Carlos: «el mensaje de comer sale arriba y queda escondido por vatios/pulso…»): con la pantalla nueva, a un tercio de alto y por encima de los paneles */
+  body #aviso3d.enHud { position:fixed; transform:none !important; box-sizing:border-box; text-align:center; z-index:1700 !important; font-size:calc(20px * var(--sHud, 1)) !important; padding:calc(9px * var(--sHud, 1)) calc(14px * var(--sHud, 1)) !important; }
+  body.hud3dOn #aviso3d:not(.enHud), body.hud2d #aviso3d:not(.enHud) { top:34vh; left:50vw; z-index:1700; font-size:26px; padding:12px 26px; box-shadow:0 6px 24px rgba(0,0,0,.45); }
   /* pantallas pequeñas (tablet, portátil): recuadros más compactos */
   @media (max-height: 900px), (max-width: 1500px) {
     #zonaRuta.carretera { --colD: clamp(340px, 30vw, 520px); }
@@ -365,11 +375,11 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
   #capaOrdenes .tt { font-size:12px; color:#9aa6b2; margin-bottom:8px; }
   #capaOrdenes .op { padding:9px 10px; border-radius:9px; border:2px solid transparent; }
   #capaOrdenes .op.foco { background:#1f2730; border-color:#c6f432; }
-  body.limpia #rivales3d, body.limpia #colDer3d, body.limpia #tramo3d, body.limpia #clasifPanel, body.limpia #ordenes3d, body.limpia #espect3d, body.limpia #viento3d, body.limpia #recordatorioMandos, body.limpia #rotulo { visibility:hidden !important; }
+  body.limpia #mandoTeclado, body.limpia #rivales3d, body.limpia #colDer3d, body.limpia #tramo3d, body.limpia #clasifPanel, body.limpia #ordenes3d, body.limpia #espect3d, body.limpia #viento3d, body.limpia #recordatorioMandos, body.limpia #rotulo { visibility:hidden !important; }
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v215 · ↪️ aviso de curva peligrosa a 150 m (cartel y narrador) · v214 · abanicos y bajadas · v190 · 🔔 avisos de cadencia baja y potencia por debajo (pantalla y voz) · mapa de verdad en «Mapa · Etapa» · viento dentro de la tarjeta · v189 · 🏋 sesión en el mundo 3D: esquema de la sesión en grande en vez de tramo, mapa y próximo km; sin «salida real» ni locutores de carrera · v188 · 🏋 la sesión para el mundo 3D se elige en la presentación del plan · v187 · 🏋 sesión .zwo rodando en el mundo 3D: modo «Sesión .zwo» en Rodar 3D/2D, bici en ERG, avanzas según la pendiente · v186 · 🗺 libre (rivales: liebres y tu mejor vuelta) y mapa 2D a pantalla completa con las ventanas del lienzo · v185 · 👀 «Ver una carrera» con el diseño del lienzo · v184 · 🪪 ficha completa nueva: resumen, actividades, curva y reserva · v183 · ☰ menú nuevo (Y), «Seguir a…» (lateral izq.), clasificación con pestañas (lateral dcho.) y órdenes (A) con el diseño del lienzo · v182 · ∎ pausa, círculo de terminar y resumen nuevos · v181 · 🎥 3D a pantalla completa con las ventanas del lienzo (vuelta a la clásica con la tecla de datos) · v180 · ✎ diseñar en el mapa empieza vacío (la anterior, en Opciones) · v179 · ✎ diseñar en el mapa: la mira se mueve más fino (y acelera si insistes) · v178 · 🏋 «Sesión .zwo» nueva: el plan de la semana y la sesión en marcha con el diseño del lienzo · v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v218 · «Venid conmigo»: vacíos se descuelgan · la Crónica (Y) se ve en el resumen · v217 · tus ventanas por defecto, «Esperadme» para todo el equipo, menos diferencias en los puertos · v190 · 🔔 avisos de cadencia baja y potencia por debajo (pantalla y voz) · mapa de verdad en «Mapa · Etapa» · viento dentro de la tarjeta · v189 · 🏋 sesión en el mundo 3D: esquema de la sesión en grande en vez de tramo, mapa y próximo km; sin «salida real» ni locutores de carrera · v188 · 🏋 la sesión para el mundo 3D se elige en la presentación del plan · v187 · 🏋 sesión .zwo rodando en el mundo 3D: modo «Sesión .zwo» en Rodar 3D/2D, bici en ERG, avanzas según la pendiente · v186 · 🗺 libre (rivales: liebres y tu mejor vuelta) y mapa 2D a pantalla completa con las ventanas del lienzo · v185 · 👀 «Ver una carrera» con el diseño del lienzo · v184 · 🪪 ficha completa nueva: resumen, actividades, curva y reserva · v183 · ☰ menú nuevo (Y), «Seguir a…» (lateral izq.), clasificación con pestañas (lateral dcho.) y órdenes (A) con el diseño del lienzo · v182 · ∎ pausa, círculo de terminar y resumen nuevos · v181 · 🎥 3D a pantalla completa con las ventanas del lienzo (vuelta a la clásica con la tecla de datos) · v180 · ✎ diseñar en el mapa empieza vacío (la anterior, en Opciones) · v179 · ✎ diseñar en el mapa: la mira se mueve más fino (y acelera si insistes) · v178 · 🏋 «Sesión .zwo» nueva: el plan de la semana y la sesión en marcha con el diseño del lienzo · v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -906,12 +916,12 @@ const ZW_ASYNC = '00000002-19ca-4651-86e5-fa29dcdd09d1', ZW_RX = '00000003-19ca-
 // v167 (22-nov): reparto nuevo, medido con probar-mandos.html. Los botones de encendido (2048, 32768) quedan reservados (comer / beber).
 const MAPA_PLAY = {
   I: { izq:1, arr:2, der:4, ab:8, latI:256, encI:2048 },   // v213: encendido izq. = beber                 // flechas y botón lateral izquierdo
-  D: { A:16, B:32, Y:64, Z:128, latD:4096, encD:32768 }   // v213: encendido dcho. = barrita · dos toques = gel                   // A, B, Y, Z y botón lateral derecho
+  D: { A:16, B:32, Y:64, Z:128, latD:4096, encD:32768 }   // v213: encendido dcho. = barrita · dos toques = gel   // v213: encendido dcho. = barrita · dos toques = gel                   // A, B, Y, Z y botón lateral derecho
 };
 const pala = { I: 0, D: 0, t: null };   // frenos del Play: graduales (0 … 1)
 // v167: lo que hace cada botón «de pantalla» (Play o teclado), según lo que haya abierto
 const capa = { ordenes: false, iOrden: 0, limpia: false };
-const ORDENES_LISTA = ['venid', 'tirad', 'esperadme', 'tren', 'libres'];
+const ORDENES_LISTA = ['venid', 'tirad', 'esperadme', 'tren', 'libres', 'comed'];
 function pintarCapaOrdenes(){ let P = $('capaOrdenes'); if (!capa.ordenes) { if (P) P.remove(); return; }
   if (!P) { P = document.createElement('div'); P.id = 'capaOrdenes'; document.body.appendChild(P); }
   P.innerHTML = '<div class="tt">📣 Órdenes · ↑ ↓ elegir · A dar la orden · Z salir</div>' + ORDENES_LISTA.map((o, i) => '<div class="op' + (i === capa.iOrden ? ' foco' : '') + '">' + ORDEN_TXT[o] + (carrera.orden === o ? ' <b>· ahora</b>' : '') + '</div>').join(''); }
@@ -1015,8 +1025,9 @@ async function conectarPlay(L, recordado){
       const mapa = p[1][0] >>> 0;
       for (const [accion, bit] of Object.entries(MAPA_PLAY[L])) {
         const antes = (previo.mapa & bit) === 0, ahora = (mapa & bit) === 0;   // 0 = pulsado
-        if (antes !== ahora && ahora) { log('Botón Play ' + L + ' → ' + accion); mando(accion); }
+        if (antes !== ahora && ahora) { log('Botón Play ' + L + ' → ' + accion); mando(accion === 'encD2' ? 'encD' : accion); }
       }
+      { const conocidos = Object.values(MAPA_PLAY[L]).reduce((s, x) => s | x, 0), nuevos = (~mapa & previo.mapa) & ~conocidos & 0x3ffff; if (nuevos) { log('Play ' + L + ': bit sin asignar pulsado ' + nuevos + ' (mapa ' + mapa + ')'); aviso3d('🎮 Play ' + (L === 'I' ? 'izquierdo' : 'derecho') + ': botón sin asignar (código ' + nuevos + ')', 2500); } }   // v216: para saber qué manda
       previo.mapa = mapa;
     };
     const asy = await svc.getCharacteristic(ZW_ASYNC), tx = await svc.getCharacteristic(ZW_TX), rx = await svc.getCharacteristic(ZW_RX);
@@ -1175,7 +1186,7 @@ function comentarioPara(clave, texto, prio){
 function sinEmojis(t){ return t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim(); }
 let vozEs = null, vocesEs = null; function hablar(t, quien){ if (!NARR.voz || !window.speechSynthesis || (sesion.demo && (demo.x || 1) > 1)) return;
   try { if (!vocesEs || !vocesEs.length) { const V = speechSynthesis.getVoices(); vocesEs = V.filter(v => /^es(-|_)ES/i.test(v.lang)).concat(V.filter(v => /^es/i.test(v.lang) && !/^es(-|_)ES/i.test(v.lang))); vozEs = vocesEs[0] || null; }
-    const c = quien === 'C', u = new SpeechSynthesisUtterance(sinEmojis(t).replace(/\s*\([A-Z]{3}\)/g, '')); u.lang = 'es-ES';
+    const c = quien === 'C', u = new SpeechSynthesisUtterance(tiemposHablados(sinEmojis(t).replace(/\s*\([A-Z]{3}\)/g, ''))); u.lang = 'es-ES';
     // v159 (Carlos: «Andrés tiene voz de mujer»): se eligen por nombre; si no hay voz de hombre, a Andrés se le baja el tono
     const HOMBRE = /pablo|jorge|[aá]lvaro|ra[uú]l|diego|enrique|carlos|juan|antonio|jos[eé]|dar[ií]o|gonzalo|male|hombre|masculin/i, MUJER = /helena|laura|elvira|luc[ií]a|m[oó]nica|paulina|sabina|marisol|elena|isabel|ximena|dalia|female|mujer|femenin/i;
     const vH = vocesEs.find(v => HOMBRE.test(v.name) && !MUJER.test(v.name)), vM = vocesEs.find(v => MUJER.test(v.name)) || vocesEs.find(v => v !== vH);
@@ -1329,7 +1340,7 @@ function guardarCarrera(c){ try { localStorage.setItem(CLAVE('simulador-carrera'
 // v164 (Carlos: «los maillots podrían tener unas rayas, algún rasgo distintivo que no ocupara mucho»): franja de cada equipo con un segundo color de su bandera
 const FRANJA_EQUIPO = { ESP: 0xffc400, ITA: 0xffffff, FRA: 0xe4002b, BEL: 0xffd400, NED: 0xffffff, COL: 0x1f3a93, GBR: 0xe4002b, GER: 0x111111, DEN: 0xffffff, SLO: 0xe4002b, USA: 0xffffff, AUS: 0x0b6e4f };
 const SIGLA_PAIS = { 'Italia': 'ITA', 'España': 'ESP', 'Francia': 'FRA', 'Bélgica': 'BEL', 'Países Bajos': 'NED', 'Colombia': 'COL', 'Reino Unido': 'GBR', 'Alemania': 'GER', 'Dinamarca': 'DEN', 'Eslovenia': 'SLO', 'Australia': 'AUS', 'Estados Unidos': 'USA' };
-const ROL_NIVEL = { lider: 0.03, outsider: 0, gregario: -0.03 }, ROL_TXT = { lider: 'líder', outsider: 'outsider', gregario: 'gregario' };
+const ROL_NIVEL = { lider: 0.015, outsider: 0, gregario: -0.015 } /* v217 (Carlos: «en 7 km de puerto han perdido 3:41… me parece mucha pérdida»): antes ±0,03 */, ROL_TXT = { lider: 'líder', outsider: 'outsider', gregario: 'gregario' };
 const apellidoCorto = a => { const p = a.split(' '); return /^(van|de|der|den|del|da|di|le|la|mc)$/i.test(p[0]) && p[1] ? p[0] + ' ' + p[1] : p[0]; };
 function crearBotsFichas(c){
   const FB = RECURSOS_SIM.fichasBots, azar = mulberry(Date.now() & 0xffffffff), n2 = x => x.toFixed(1).replace('.', ',');
@@ -1344,7 +1355,7 @@ function crearBotsFichas(c){
     if (esp) { elegidos = elegidos.filter(f => f.equipo !== 2 || f.dorsal > 22); if (c.n <= 6) elegidos = elegidos.filter(f => f.equipo !== 2).slice(0, 4);
       const porEq = c.n <= 6 ? 0 : Math.max(1, Math.min(5, Math.round(c.n / 12))); elegidos = [sus, car, ...elegidos.filter(f => f.equipo === 2).slice(0, Math.max(0, porEq - 2)), ...elegidos.filter(f => f.equipo !== 2)]; }
     else elegidos = elegidos.map(f => f.dorsal !== 21 ? f : USUARIO === 'susana' ? car : sus); }
-  return elegidos.map((f, i) => { const P = PERFILES[f.tipo], kg = f.peso, fw = 1 + (P.fw - 1) * 0.5;
+  return elegidos.map((f, i) => { const P = PERFILES[f.tipo], kg = f.peso, fw = 1 + (P.fw - 1) * 0.3;   // v217: antes 0,5
     const ftp = c.nivel * kg * (1 + (ROL_NIVEL[f.rol] || 0) + f.talento) * fw, wpMax = Math.round(1.15 * ftp * Math.max((P.c[3] - 1) * 60, (P.c[4] - 1) * 240));
     return { tipo: 'bot', ficha: f, dorsal: f.dorsal, equipo: f.equipo, pais: f.pais, bandera: f.bandera, sigla: SIGLA_PAIS[f.pais] || '', rol: f.rol, agresividad: f.agresividad, fondo: f.fondo, punta: f.punta,
       nombre: f.apellido ? f.nombre + ' ' + apellidoCorto(f.apellido) : f.nombre, avatar: f.avatar || null, color: f.color, tipoP: f.tipo, perfil: P.clase, ico: P.ico, kg, q: { m: kg + 8, cda: cdaDe(f.altura / 100, kg) },
@@ -1381,10 +1392,24 @@ function tacticaCarrera(bots, dt){
   const gapS = delante.length ? (delante[delante.length - 1].d - pel[0].d) / vPel : 0, eqFuga = new Set(delante.filter(x => !x.yo).map(x => x.equipo)); if (yoFuga) eqFuga.add(2);
   { const antes = T.pel || new Set(); T.pel = new Set(pel.filter(x => !x.yo));   // v214: el mal bajador que se descuelga bajando
     for (const b of antes) if (!T.pel.has(b) && !b.llego && (b.bajador || 1) < 0.9 && pendReal(b.d) < -4 && !b.avBaj && (b.rol === 'lider' || Math.abs(b.d - ruta.dist) < 400 || b.equipo === 2)) { b.avBaj = true; narrar('media', '⬇️ ' + b.nombre + ' pierde terreno en la bajada: no es buen bajador', 'baj' + b.dorsal); } }
+  // v216 (arreglo 13: «bots flojos en la Fuenfría»): subiendo, si alguien se va del pelotón (tú o un bot) a menos de 120 m,
+  // los del pelotón que tienen fuerza para ese ritmo cogen su rueda (como mucho 6); el resto sigue a su ritmo → selección de verdad
+  if ((pendReal(pel[0].d) + pendReal(pel[0].d + 200) + pendReal(pel[0].d + 400)) / 3 > 4 && resta > 300) { const cab = G[0] === pel ? null : G[0]; T.ruedaT = Math.max(0, (T.ruedaT || 0) - 2);
+    if (cab && cab.length <= 6 && !T.ruedaT && cab.some(x => x.yo || x.rol === 'lider')) { const lider = cab[cab.length - 1], gapM = lider.d - pel[0].d;
+      if (gapM > 4 && gapM < 120) { const wkg = x => x.yo ? (vivo.w || 0) / Math.max(45, pesoUsuario() || pesoBiciKg || 80) : (x.w || 0) / x.kg, req = Math.max(...cab.map(wkg));
+        const yaVan = rivales.lista.filter(b => b.rueda > 0).length;
+        const pueden = pel.filter(b => !b.yo && !(b.rueda > 0) && !b.tren && !b.tirad && !conOrden(b) && b.wp > 0.35 * b.wpMax && b.ftp * b.forma * (b.fStam || 1) / b.kg * (b.perfil === 'escalador' ? 1.08 : 1.02) >= req * 0.97)
+          .sort((a, b) => b.ftp * b.forma * (b.fStam || 1) / b.kg - a.ftp * a.forma * (a.fStam || 1) / a.kg).slice(0, Math.max(0, 4 - yaVan));
+        pueden.forEach(b => { if (Math.random() < (b.rol === 'lider' ? 0.9 : b.perfil === 'escalador' ? 0.7 : 0.45)) { b.rueda = 60; b.ruedaDe = lider; } });
+        T.ruedaT = 6; } } }
+  // v217: «Esperadme» se acaba sola cuando vuelves al grupo grande (y ya no estás parado)
+  if (carrera.orden === 'esperadme' && !sesion.espect) { carrera.tEspera = (carrera.tEspera || 0) + 2; const mioG = G.find(g => g.some(x => x.yo));
+    if (!sesion.incid && carrera.tEspera > 30 && mioG === pel) { rivales.lista.forEach(b => { if (b.equipo === 2) b.espera = false; }); carrera.orden = null; carrera.esperaAuto = false; pintarOrdenes();
+      narrar('media', '👍 Ya estás en el grupo: los tuyos vuelven a su sitio', 'finEspera'); } }
   // v214: viento de lado fuerte en un tramo largo → el equipo mejor colocado (con líder) pone a sus gregarios y rodadores a tirar: abanico
   if (viento.kmh && pel.length >= 10 && resta > 5000 && pel[0].d > 3000) { const A = abanicoEn(pel[0].d), A2 = abanicoEn(pel[0].d + 800); T.abT = Math.max(0, (T.abT || 0) - 2);
     if (A.c > 0.6 && A2.c > 0.5 && !T.abT) { const cab = pel.filter(x => !x.yo).slice(0, A.K), cuenta = {}; cab.forEach(x => cuenta[x.equipo] = (cuenta[x.equipo] || 0) + 1);
-      const puede = e => pel.filter(x => !x.yo && x.equipo === e && x.rol !== 'lider' && (x.fStam || 1) > 0.6 && x.wp > 0.5 * x.wpMax).sort((a, b) => ((b.rol === 'gregario') + (b.perfil === 'rodador')) - ((a.rol === 'gregario') + (a.perfil === 'rodador')));
+      const puede = e => pel.filter(x => !x.yo && x.equipo === e && x.rol !== 'lider' && !conOrden(x) && (x.fStam || 1) > 0.6 && x.wp > 0.5 * x.wpMax).sort((a, b) => ((b.rol === 'gregario') + (b.perfil === 'rodador')) - ((a.rol === 'gregario') + (a.perfil === 'rodador')));
       const eq = [...new Set(pel.filter(x => !x.yo && x.rol === 'lider').map(x => x.equipo))].filter(e => puede(e).length >= 2).sort((a, b) => (cuenta[b] || 0) - (cuenta[a] || 0) || puede(b).length - puede(a).length)[0];
       const tiran = eq == null ? [] : puede(eq).slice(0, 4);
       if (tiran.length >= 2 && Math.random() < 0.7) { T.abT = 240; tiran.forEach(x => x.abanico = 90 + Math.random() * 60); const E = ((window.RECURSOS_SIM && RECURSOS_SIM.equipos) || []).find(x => +x.n === +eq) || {};
@@ -1459,30 +1484,42 @@ function tacticaCarrera(bots, dt){
     pu.forEach(b => { if (Math.random() < 0.7) b.ataque = 25 + Math.random() * 20; }); if (pu.length && Math.abs(pel[0].d - ruta.dist) < 2000) narrar('alta', '💥 Los puncheurs atacan en el repecho final', 'repFinal'); }
   T.m = m;
   // chuparruedas: si vas en la fuga y no das relevos, los demás se hartan: dejan de tirar o te atacan para descolgarte
-  if (yoFuga) { const mio = G.find(g => g.some(x => x.yo)), otros = mio.filter(x => !x.yo);
-    if (otros.length) { const cab = mio[0].yo; if (cab) { T.sinRelevo = Math.max(0, T.sinRelevo - 6); if (T.sinRelevo === 0) T.frus = Math.max(0, T.frus - 2); } else T.sinRelevo += 2;
+  if (yoFuga) { const mio = G.find(g => g.some(x => x.yo)), otros = mio.filter(x => !x.yo && x.equipo !== 2);   // v217: los de tu equipo no te piden relevos (te están esperando o ayudando)
+    if (otros.length) { const cab = mio[0].yo || mio[0].equipo === 2; if (cab) { T.sinRelevo = Math.max(0, T.sinRelevo - 6); if (T.sinRelevo === 0) T.frus = Math.max(0, T.frus - 2); } else T.sinRelevo += 2;
       if (T.sinRelevo > 60) { T.frus += 2; if (T.frus === 2) narrar('alta', 'Tus compañeros de fuga se quejan: no das relevos', 'chupa');
         if (T.frus >= 20) { T.frus = 0; T.sinRelevo = 30; const fuerte = otros.filter(b => b.wp > 0.5 * b.wpMax).sort((a, b) => b.wp - a.wp)[0];
           if (fuerte && Math.random() < 0.6) { fuerte.ataque = 25; narrar('alta', fuerte.nombre + ' te ataca para descolgarte', 'chupaAt'); } else { otros.forEach(b => b.noTira = 40); narrar('alta', 'La fuga se para: nadie tira si tú no tiras', 'chupaPara'); } } } } }
 }
 // v154 · fase 4 (Carlos): órdenes a tu equipo (España). 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres
-const ORDEN_TXT = { venid: '🚀 Venid conmigo: los outsiders saltan contigo', tirad: '💪 Tirad: los gregarios a la cabeza', esperadme: '⏸ Esperadme: los gregarios te esperan', tren: '🚂 Tren: os ponéis en fila para tu final', libres: '🕊 Libres: cada uno su carrera' };
+const ORDEN_TXT = { venid: '🚀 Venid conmigo: los outsiders saltan contigo', tirad: '💪 Tirad: los gregarios a la cabeza', esperadme: '⏸ Esperadme: todo tu equipo te espera', tren: '🚂 Tren: os ponéis en fila para tu final', libres: '🕊 Libres: cada uno su carrera', comed: '🍌 Comed: los tuyos comen en el próximo rato tranquilo' };
 const hayEquipo = () => !sesion.espect && rivales.lista.some(r => r.tipo === 'bot' && r.equipo === 2 && !r.llego);
-function darOrden(o){ if (!hayEquipo()) return; carrera.orden = o; const mios = rivales.lista.filter(r => r.tipo === 'bot' && r.equipo === 2);
+function darOrden(o){ if (!hayEquipo()) return;
+  // v216 (Carlos: «los outsider y otros comen? hay que mandarles... Susana se ha quedado sin gasolina»): «Comed» no quita las otras órdenes
+  if (o === 'comed') { if (!comidaActiva()) { aviso3d('🍌 Esta carrera es sin comer ni beber (ajustes de la carrera)'); return; } const mios = rivales.lista.filter(r => r.tipo === 'bot' && r.equipo === 2 && !r.llego);
+    mios.forEach(b => { if (!b.gl) return; b.gl.olvido = 0; b.gl.mandado = 600; }); narrar('alta', '🍌 Orden al equipo: comed. Los tuyos comerán en cuanto la carrera se calme', 'ordComed'); return; }
+  carrera.orden = o; const mios = rivales.lista.filter(r => r.tipo === 'bot' && r.equipo === 2);
   for (const b of mios) { b.conmigo = false; b.tirad = false; b.espera = false; if (b.trenMio) { b.tren = false; b.trenMio = false; } }
   const cerca = b => Math.abs(b.d - ruta.dist) < 150;
   if (o === 'venid') mios.filter(b => b.rol === 'outsider' && cerca(b)).forEach(b => b.conmigo = true);
   if (o === 'tirad') mios.filter(b => b.rol === 'gregario' && cerca(b) && (b.fStam || 1) > 0.35).forEach(b => b.tirad = true);
-  if (o === 'esperadme') mios.filter(b => b.rol === 'gregario').forEach(b => b.espera = true);
+  if (o === 'esperadme') { mios.filter(b => !b.llego).forEach(b => b.espera = true); carrera.tEspera = 0; }   // v217 (Carlos): espera todo tu equipo, no solo los gregarios
   if (o === 'tren') mios.filter(b => cerca(b) && (b.fStam || 1) > 0.35).forEach(b => { b.tren = true; b.trenMio = true; });
   const n = mios.filter(b => b.conmigo || b.tirad || b.espera || b.trenMio).length;
   aviso3d(ORDEN_TXT[o] + (o !== 'libres' ? ' (' + n + ')' : ''), 3500); narrar('alta', ORDEN_TXT[o].replace(/^\S+\s/, '') + (o !== 'libres' && !n ? '… pero no tienes a nadie cerca' : ''), 'orden');
   pintarOrdenes(); }
 function pintarOrdenes(){ const P = $('ordenes3d'); if (!P) return; const ver = typeof v3 !== 'undefined' && v3.activo && hayEquipo(); P.hidden = !ver; if (!ver) return;
   P.querySelectorAll('button').forEach(b => { b.classList.toggle('on', carrera.orden === b.dataset.o); b.onclick = () => darOrden(b.dataset.o); }); }
+// v217 (Carlos: «he roto la cadena y los gregarios no me han esperado tras dar la orden»): con una orden tuya, mandan sobre el latigazo, colocarse, abanico, rueda y ataques en bajada
+const conOrden = b => b.equipo === 2 && !!(b.espera || b.conmigo || b.tirad || b.trenMio);
+// v217 (Carlos: «habla de ventaja 0:49 como las doce y 49, no como 49 segundos»): los tiempos se dicen en palabras
+function tiemposHablados(s){ const u = (n, uno, var_) => n === 1 ? (uno === 'hora' ? 'una ' : 'un ') + uno : n + ' ' + var_;
+  return s.replace(/([+−-]?)\b(\d{1,2}):(\d{2}):(\d{2})\b/g, (_, sg, h, m, x) => (sg ? (sg === '+' ? 'más ' : 'menos ') : '') + [+h ? u(+h, 'hora', 'horas') : '', +m ? u(+m, 'minuto', 'minutos') : '', +x ? u(+x, 'segundo', 'segundos') : ''].filter(Boolean).join(' y '))
+          .replace(/([+−-]?)\b(\d{1,2}):(\d{2})\b(?!\s*h\b)/g, (_, sg, m, x) => (sg ? (sg === '+' ? 'más ' : 'menos ') : '') + ([+m ? u(+m, 'minuto', 'minutos') : '', +x ? u(+x, 'segundo', 'segundos') : ''].filter(Boolean).join(' y ') || 'cero segundos')); }
 function ordenEnBot(b, obj, F, g, resta){
   const yoD = ruta.dist, gap = yoD - b.d, vYo = Math.max(1, velocidadRuta() || 1);
-  if (b.conmigo) { if (gap > 2) return Math.max(obj, F * 1.18); if (gap > -8) return Math.max(obj, potenciaPara(vYo * 1.0, g, 0.3, b.q)); }   // a tu rueda o dando relevo a tu lado
+  // v218 (Carlos: «hemos ganado los tres españoles… la instrucción seguidme les ha hecho estar delante a pesar de no tener energía»): vacíos, se descuelgan
+  if (b.conmigo && (b.vacia || b.wp < 0.08 * b.wpMax || (b.gl && b.gl.paj) || (b.fStam || 1) < 0.35)) { b.conmigo = false; b.noSigue = 90; if (Math.abs(gap) < 400) narrar('media', '😮‍💨 ' + b.nombre + ' no puede seguirte: se ha quedado sin fuerzas', 'noSigue' + b.dorsal); }
+  if (b.conmigo) { if (gap > 2) return Math.max(obj, Math.min(F * 1.18, curvaPot(b, Math.max(5, b.esf)))); if (gap > -8) return Math.max(obj, Math.min(F * 1.3, potenciaPara(vYo * 1.0, g, 0.3, b.q))); }   // a tu rueda o dando relevo a tu lado (como mucho el 130 % de su FTP)
   if (b.tirad) { if ((b.fStam || 1) < 0.35 || b.wp < 0.12 * b.wpMax) { b.tirad = false; b.noTira = 60; if (Math.abs(gap) < 300) narrar('media', b.nombre + ' se aparta: ha tirado todo lo que tenía', 'aparta' + b.dorsal); } else return Math.max(obj, F * (g > 2 ? 1.0 : 0.95)); }
   if (b.espera) { if (gap < -20) return Math.min(obj, F * 0.35); if (gap < -2) return potenciaPara(Math.max(2, vYo * 1.03), g, 0, b.q); }   // te esperan y, cuando llegas, te hacen de liebre
   return obj; }
@@ -1493,9 +1530,10 @@ function quitarCoche(c){ if (c && c.g && c.g.parent) c.g.parent.remove(c.g); }
 function pasoIncidentes(bots, dt){ dt = dt || 1; if (!carrera.incid) return;
   for (const I of carrera.incid) { if (I.hecho) continue; const yo = I.quien === 'yo', d = yo ? ruta.dist : I.quien.d; if (d < I.d || (!yo && I.quien.llego)) continue; I.hecho = true;
     const [ico, txt, a, b] = INC[I.tipo], dur = a + Math.random() * (b - a), resta = dMeta() - d;
-    if (yo) { sesion.incid = { hasta: sesion.tTotal + dur, tipo: I.tipo, latAnt: carrera.yoLatObj || 0 }; carrera.yoLatObj = 2.2; sesion.incid.coche = cocheEquipo(ruta.dist - 7, 3.4, 0xc60b1e);
+    if (yo) { if (resta >= 3000 && hayEquipo() && carrera.orden !== 'esperadme') { darOrden('esperadme'); carrera.esperaAuto = true; }   // v217 (Carlos: «al romper la cadena no me han esperado»): tu equipo se para solo a esperarte
+      sesion.incid = { hasta: sesion.tTotal + dur, tipo: I.tipo, latAnt: carrera.yoLatObj || 0 }; carrera.yoLatObj = 2.2; sesion.incid.coche = cocheEquipo(ruta.dist - 7, 3.4, 0xc60b1e);
       if (resta < 3000) { const ref = bots.filter(x => !x.llego && x.d >= ruta.dist - 5 && x.d - ruta.dist < 30).sort((p, q) => p.d - q.d)[0]; sesion.neutralRef = ref || null; }
-      narrar('alta', ico + ' ¡' + txt + '! Te paras ' + Math.round(dur) + ' s' + (resta < 3000 ? ' · últimos 3 km: te dan el tiempo de tu grupo' : (carrera.orden === 'esperadme' ? ' · tus gregarios te esperan' : ' · da la orden 9 si quieres que te esperen')), 'incYo'); }
+      narrar('alta', ico + ' ¡' + txt + '! Te paras ' + Math.round(dur) + ' s' + (resta < 3000 ? ' · últimos 3 km: te dan el tiempo de tu grupo' : (carrera.orden === 'esperadme' ? ' · tu equipo te espera' : ' · da la orden 9 si quieres que te esperen')), 'incYo'); }
     else { const x = I.quien; x.parado = dur; x.coche = cocheEquipo(x.d - 7, 3.4, x.color);
       if (resta < 3000) x.neutralRef = bots.filter(o => o !== x && !o.llego && o.d >= x.d - 5 && o.d - x.d < 30).sort((p, q) => p.d - q.d)[0] || (ruta.dist >= x.d - 5 && ruta.dist - x.d < 30 ? 'yo' : null);
       if (x.rol === 'lider' && x.equipo !== 2) bots.filter(o => o.equipo === x.equipo && o.rol === 'gregario' && Math.abs(o.d - x.d) < 120).forEach(o => o.esperaA = x);
@@ -1517,8 +1555,13 @@ function moverBotCalc(b, dt, todos){
   if (b.tren && b.ficha) { if ((b.fStam || 1) < 0.35 || b.wp < 0.12 * b.wpMax) { b.tren = false; b.noTira = 60; } else if (resta < 3200 || g > 2 || b.trenMio) obj = Math.max(obj, F * (g > 2 ? 1.05 : (b.trenMio && resta > 3200 ? 1.0 : 1.12))); }
   if (b.ficha && b.equipo === 2 && (b.conmigo || b.tirad || b.espera)) { obj = ordenEnBot(b, obj, F, g, resta); }
   if (b.vuelta > 0) b.vuelta -= dt;
+  if (b.rueda > 0 && conOrden(b)) b.rueda = 0;
+  if (b.rueda > 0) { b.rueda -= dt; const o = b.ruedaDe, od = o ? (o.yo ? ruta.dist : o.d) : null, gap = od != null ? od - b.d : 999;   // v216: a la rueda del que se fue
+    if (!o || gap > 150 || gap < -20 || b.wp < 0.12 * b.wpMax || pendReal(b.d) < 1 || (o.llego)) b.rueda = 0;
+    else { const vo = o.yo ? velocidadRuta() : (o.v || 0); obj = Math.max(obj, Math.min(F * 1.15, potenciaPara(gap > 3 ? vo * 1.06 + 0.2 : vo, g, gap > 3 ? 0.05 : 0.2, b.q))); } }
+  if (b.abanico > 0 && conOrden(b)) b.abanico = 0;
   if (b.abanico > 0) { b.abanico -= dt; if (b.wp < 0.15 * b.wpMax) b.abanico = 0; else obj = Math.max(obj, F * 1.08); }   // v214: tirando en el abanico
-  if (b.ficha && b.vGrupo && !b.escapado && !b.tren && !b.conmigo && !b.tirad && !b.espera && !(b.abanico > 0) && !(b.vuelta > 0) && !b.esperaA && resta > 1000 && velocidadFisica(obj, g, 0, b.q) > b.vGrupo) obj = Math.min(obj, potenciaPara(b.vGrupo, g, 0, b.q));   // v150: al ritmo del grupo
+  if (b.ficha && b.vGrupo && !b.escapado && !b.tren && !b.conmigo && !b.tirad && !b.espera && !(b.abanico > 0) && !(b.rueda > 0) && !(b.vuelta > 0) && !b.esperaA && resta > 1000 && velocidadFisica(obj, g, 0, b.q) > b.vGrupo) obj = Math.min(obj, potenciaPara(b.vGrupo, g, 0, b.q));   // v150: al ritmo del grupo
   if (b.ficha && carrera.metas && resta > 1500 && !b.cortado) { const mt = carrera.metas.find(x => x.d > b.d && x.tipo !== 'meta');   // v151: a por los puntos intermedios
     if (mt) { const dd = mt.d - b.d, va = mt.tipo === 'sprint' ? (b.perfil === 'sprinter' && b.rol !== 'gregario') || b.escapado : (b.perfil === 'escalador' && b.rol === 'outsider') || b.escapado;
       if (va && b.wp > 0.45 * b.wpMax && mt.pasados.length < 2) { if (mt.tipo === 'sprint' && dd < 260) obj = Math.max(obj, curvaPot(b, 15)); else if (mt.tipo === 'puerto' && dd < 350) obj = Math.max(obj, curvaPot(b, 40)); } } }
@@ -1529,7 +1572,7 @@ function moverBotCalc(b, dt, todos){
   // sale a tu rueda si atacas
   if (b.persigue > 0) { b.persigue -= dt; if (ruta.dist - b.d > 2.5) obj = Math.max(obj, F * 1.25); }
   // v214: ataque en bajada: los buenos bajadores con fuerzas, en una bajada larga con curvas
-  if (!(b.ataque > 0) && b.ficha && pendReal(b.d) < -4 && baj >= 1.08 && b.wp > 0.6 * b.wpMax && resta > 3000 && !b.cortado && !b.escapado && pendReal(b.d + 600) < -4 && curvaDelante(b.d, 1500) && !(carrera.tAtB > sesion.tTotal) && Math.random() < dt / 600 * (0.4 + (b.agresividad || 0.4))) { carrera.tAtB = sesion.tTotal + 90;   // como mucho uno cada minuto y medio
+  if (!(b.ataque > 0) && b.ficha && !conOrden(b) && pendReal(b.d) < -4 && baj >= 1.08 && b.wp > 0.6 * b.wpMax && resta > 3000 && !b.cortado && !b.escapado && pendReal(b.d + 600) < -4 && curvaDelante(b.d, 1500) && !(carrera.tAtB > sesion.tTotal) && Math.random() < dt / 600 * (0.4 + (b.agresividad || 0.4))) { carrera.tAtB = sesion.tTotal + 90;   // como mucho uno cada minuto y medio
     b.ataque = 40 + Math.random() * 40; b.ataqueBajada = true; b.nAtB = (b.nAtB || 0) + 1; if (Math.abs(b.d - ruta.dist) < 500 || b.rol === 'lider' || sesion.espect) narrar('alta', '⬇️ ¡' + b.nombre + ' ataca en la bajada! Es de los que mejor bajan y arriesga en las curvas', 'atB' + b.dorsal); }
   if (b.ataque > 0) { b.ataque -= dt; obj = F * (b.ataqueBajada && pendReal(b.d) < -3 ? 0.9 : b.perfil === 'sprinter' ? 1.3 : 1.2); if (b.ataque <= 0) b.ataqueBajada = false; }
   else if (b.wp > 0.7 * b.wpMax && resta > 1500 && Math.random() < dt / (g > 3 && b.perfil === 'escalador' ? 260 : g > 3 ? 900 : 2400) * (b.ficha ? (0.3 + (b.agresividad || 0.4)) * (b.d / Math.max(1, dMeta()) < 0.6 ? 0 : 1) * (b.fStam < 0.97 ? 0.5 : 1) * Math.min(1, 8 / Math.max(1, rivales.lista.length)) : 1)) {   // v150: los ataques son del pelotón, no de cada uno (con 48 bots no sale uno por minuto)
@@ -1566,12 +1609,12 @@ function moverBotCalc(b, dt, todos){
   if (b.recupera > 0 && !neutralizada()) { const vt = velocidadFisica(F * 0.95, g, Math.max(reb, 0.25), b.q) * 1.03; if (vt > v) { v = vt; w = potenciaPara(v, g, Math.max(reb, 0.25), b.q); } b.vuelta = 6; }   // el líder, a rueda de los suyos y del coche   // a su rueda: tiran fuerte para devolverle al grupo
   if (b.ficha && (b.equipo === 2 || b.tren) && !neutralizada()) {   // v154: la orden (y el tren) manda sobre «ir a rueda»
     const gapYo = ruta.dist - b.d, vYo = Math.max(1, velocidadRuta() || 1);
-    if (b.espera && gapYo < -20) { v = Math.min(v, velocidadFisica(F * 0.35, g, 0, b.q)); w = potenciaPara(v, g, 0, b.q); }
+    if (b.espera && gapYo < -20) { v = Math.min(v, velocidadFisica(F * 0.35, g, 0, b.q), Math.max(1.5, vYo * 0.75)); w = potenciaPara(v, g, 0, b.q); }   // v217: siempre más despacio que tú (bajando también), para que llegues
     else if (b.espera && gapYo < 3) { v = Math.max(1.5, vYo + Math.max(-1.5, Math.min(1.5, (1.5 + gapYo) * 0.25))); w = potenciaPara(v, g, 0, b.q); }   // 1,5 m delante de ti: te hacen de liebre
     else if ((b.tirad || b.tren) && !(b.ataque > 0)) { const vt = velocidadFisica(F * (b.tren ? (g > 2 ? 1.05 : (b.trenMio && resta > 3200 ? 1.0 : 1.12)) : (g > 2 ? 1.0 : 0.95)), g, reb, b.q); if (vt > v) { v = vt; w = potenciaPara(v, g, reb, b.q); } }
-    else if (b.conmigo && gapYo > 2) { const vm = velocidadFisica(Math.min(F * 1.18, curvaPot(b, Math.max(5, b.esf))), g, reb, b.q); if (vm > v) { v = vm; w = potenciaPara(v, g, reb, b.q); } } }
+    else if (b.conmigo && gapYo > 2 && !b.vacia) { const vm = velocidadFisica(Math.min(F * 1.18, curvaPot(b, Math.max(5, b.esf))), g, reb, b.q); if (vm > v) { v = vm; w = potenciaPara(v, g, reb, b.q); } } }
   // v211 latigazo: se frena para entrar en la curva (los de cola algo más: el acordeón); al salir, los de atrás aprietan para cerrar el hueco
-  if (!b.grupeta && !neutralizada() && b.lat != null) { let C = curvaDelante(b.d, 120); const fg = b.fGrupo || 0; if (C && C.giro < 150 && pendReal(C.d) > -4) C = null;   // v214: en llano solo frenan horquillas y rotondas; bajando, todas las curvas
+  if (!b.grupeta && !neutralizada() && b.lat != null && !conOrden(b)) { let C = curvaDelante(b.d, 120); const fg = b.fGrupo || 0; if (C && C.giro < 150 && pendReal(C.d) > -4) C = null;   // v214: en llano solo frenan horquillas y rotondas; bajando, todas las curvas
     if (pendReal(b.d) < -5) { const vTope = 16.5 * Math.pow(baj, 1.5); if (v > vTope) { v = vTope; w = Math.min(w, potenciaPara(v, g, reb, b.q)); } }   // v214: recta de bajada: el mal bajador frena antes
     if (C) { const vc = C.vMax * (pendReal(C.d) < -4 ? baj : 1) * (1 - 0.04 * fg), dist = Math.max(0, C.d - b.d - 5), vl = Math.sqrt(vc * vc + 2 * 2.5 * dist); if (v > vl) { if (v > vl + 0.5) b.frenoCurva = true; v = vl; w = Math.min(w, potenciaPara(v, g, reb, b.q)); } if (dist < 5 && b.frenoCurva && !(b.latigo > 0)) { b.frenoCurva = false; b.latigo = 14; b.nLatigos = (b.nLatigos || 0) + 1; } }
     if (b.latigo > 0) { b.latigo -= dt; let del = null; for (const o of (b.cercaLejos || [])) { const gp = o.d - b.d; if (gp > 2.5 && gp < 30 && !(o.ataque > 0) && (!del || o.d < del.d)) del = o; }
@@ -1734,7 +1777,7 @@ function comerYo(que){ const o = glucYo(); if (!o) { aviso3d(sesion.corriendo ? 
 let encD = { t: 0, tm: null };
 function nutriBoton(b){ if (b === 'encI') { comerYo('trago'); return true; }
   const ahora = Date.now(); if (encD.tm && ahora - encD.t < 450) { clearTimeout(encD.tm); encD.tm = null; comerYo('gel'); return true; }
-  encD.t = ahora; encD.tm = setTimeout(() => { encD.tm = null; comerYo('barrita'); }, 450); return true; }
+  encD.t = ahora; aviso3d('🍫 Barrita… (toca otra vez rápido para gel)', 600); encD.tm = setTimeout(() => { encD.tm = null; comerYo('barrita'); }, 450); return true; }
 document.addEventListener('keydown', e => { const m = { F2: 'trago', F3: 'barrita', F4: 'gel' }[e.key]; if (!m) return; e.preventDefault(); comerYo(m); });
 function colorGluc(o){ const f = o.g / o.C; return o.paj ? '#a371f7' : f > 0.5 ? '#e3b341' : f > NUTRI.aviso ? '#f0883e' : '#f85149'; }
 function glucCelda(sola){ const o = glucYo(); if (!o) return ''; const f = o.g / o.C, c = colorGluc(o), est = o.estom.reduce((s, e) => s + e.g, 0);
@@ -1756,6 +1799,7 @@ function nutriBot(b, w, F, g, resta, dt){ if (!b.ficha || !comidaActiva()) retur
     // despiste: entre 15 y 40 min sin acordarse de comer; más probable cuanto más dura va la carrera y menos disciplinado es
     if (!(o.olvido > 0) && Math.random() < 0.012 * (1.4 - o.disc) * (1 + 2 * inten)) o.olvido = 900 + 1500 * Math.random();
     const umbral = 0.5 + 0.35 * o.disc;
+    if (o.mandado > 0) { o.mandado -= o.tDec; if (!o.toma && f < 0.97) { if (g < 5 && w < 0.98 * F && !(b.ataque > 0) && resta > 800 ? comer(o, o.desp.barrita ? 'barrita' : o.desp.trago ? 'trago' : 'gel') : f < 0.4 && comer(o, 'gel')) { o.tUlt = 0; if (f > 0.75) o.mandado = 0; } } }
     if (!(o.olvido > 0) && f < NUTRI.aviso + 0.05 && o.desp.gel) comer(o, 'gel');
     else if (o.olvido > 0) {}
     else if (tranquilo && f < umbral && o.tUlt > 900 * (1.3 - o.disc)) { if (comer(o, o.desp.barrita ? 'barrita' : 'trago')) o.tUlt = 0; }
@@ -1922,7 +1966,9 @@ function moverRivales(dt){
       for (const x of ord) { const gr = G[G.length - 1]; if (gr && gr[gr.length - 1].d - x.d <= 20) gr.push(x); else G.push([x]); }
       G.forEach((gr, k) => { const mb = gr.filter(x => !(x.ataque > 0)); if (mb.length < 2) { gr.forEach(x => x.vGrupo = null); return; }
         const gg = pendAplicada(mb[0].d), vs = mb.map(x => velocidadFisica(fr(gg) * x.ftp * x.forma * (x.fStam || 1), gg, 0, x.q, vientoCara(mb[0].d))).sort((a, b) => a - b);   /* v162: con el viento que hay ahí */
-        let vG = vs[Math.floor(vs.length * 0.15)];
+        // v216 (arreglo 13: «bots flojos en la Fuenfría»): subiendo, el grupo de cabeza aprieta según avanza la carrera (percentil 15 → 35 → 50 del ritmo de cada uno)
+        const prog = mb[0].d / Math.max(1, dMeta()), pc = gg > 2 && k === 0 && bots[0] && bots[0].ficha ? (prog > 0.6 ? 0.3 : prog > 0.25 ? 0.25 : 0.15) : 0.15;
+        let vG = vs[Math.min(vs.length - 1, Math.floor(vs.length * pc))];
         // con otro grupo delante a menos de 200 m (y no es una fuga consentida de 1–4): aprietan para enlazar, como la cola del pelotón
         const del = G[k - 1]; if (del && del[del.length - 1].d - gr[0].d < 200 && del.length >= 3) vG *= gg > 2 ? 1.02 : 1.06;   /* v162: subiendo, sin rebufo, enlazar cuesta de verdad */
         gr.forEach(x => x.vGrupo = vG); });
@@ -1930,7 +1976,11 @@ function moverRivales(dt){
       if (bots[0] && bots[0].ficha && G.length > 1) { const ip = G.reduce((a, g, k) => g.length > G[a].length ? k : a, 0), pel = G[ip];
         G.forEach((gr, k) => { if (k <= ip) return; const gapS = (pel[pel.length - 1].d - gr[0].d) / Math.max(3, gr[0].v || 3); if (gapS < 40) return;
           const det = G[k + 1]; if (gr.length === 1 && det && gr[0].d - det[0].d < 300 && !(gr[0].vacia)) { const x = gr[0]; x.vGrupo = velocidadFisica(0.65 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q, vientoCara(x.d)); x.cortado = true; return; }
-          if (gr.length >= 2) { const vs = gr.map(x => velocidadFisica(0.8 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q, vientoCara(x.d))).sort((a, b) => a - b); const vG = vs[Math.floor(vs.length * 0.5)] * 0.98; gr.forEach(x => { x.vGrupo = Math.min(x.vGrupo || vG, vG); x.cortado = true; }); } }); }
+          if (gr.length >= 2) { const vs = gr.map(x => velocidadFisica(0.8 * x.ftp * x.forma * (x.fStam || 1), pendAplicada(x.d), 0, x.q, vientoCara(x.d))).sort((a, b) => a - b); const vG = vs[Math.floor(vs.length * 0.5)] * 0.98; gr.forEach(x => { x.vGrupo = Math.min(x.vGrupo || vG, vG); x.cortado = true; }); } });
+        // v216 (arreglo 13: «el pelotón se rompe demasiado al coronar»): sueltos o en 2–3, con un grupo de 4 o más detrás a menos de 15 s → se dejan coger (ahorran)
+        G.forEach((gr, k) => { if (k <= ip || gr.length > 3) return; const det = G.slice(k + 1).find(g => g.length >= 4); if (!det) return; const vd = Math.max(3, det[0].v || 3), gs = (gr[gr.length - 1].d - det[0].d) / vd; if (gs > 15) return;
+          gr.forEach(x => { if (x.ataque > 0 || x.escapado) return; x.vGrupo = Math.min(x.vGrupo || 99, vd * 0.9); }); });
+      }
       if (bots[0] && bots[0].ficha) tacticaCarrera(bots, dt); }
     for (const b of bots) { b.lejanos = todos.filter(o => o !== b && o.d - b.d >= 30 && o.d - b.d < 300); b.cercaLejos = todos.filter(o => o !== b && o.d - b.d > -15 && o.d - b.d < 30); b.cerca = b.cercaLejos.filter(o => Math.abs(o.d - b.d) < 15); moverBot(b, dt, b.cerca);
       const fP = formaPeloton(b.d, b.v || 8), abOn = viento.kmh && b.nGrupo > 3 && abanicoEn(b.d).c > 0.5, fuera = b.lane != null && Math.abs(b.lane) > Math.max(...fP.carriles) + 0.05 && !abOn;   // v211: la vía se estrecha o el grupo se estira → a su sitio ya
@@ -2055,6 +2105,9 @@ function moverRivales3D(dt, dYo){
   // carteles (20-nov: «aquí molestan los nombres»): sin cartel a menos de 40 m; de cada grupo, solo el que va en cabeza
   const conCartel = new Set(); { let ultimo = null; for (const b of rivales.lista.filter(r => r.tipo === 'bot' && r.dVis != null).sort((a, b) => b.dVis - a.dVis)) {
     if (Math.abs(b.dVis - dYo) < 40) { ultimo = b; continue; } if (!ultimo || ultimo.dVis - b.dVis > 15) conCartel.add(b); ultimo = b; } }
+  // v216 (Carlos: «hay ciclistas mezclados… no deberían solaparse tanto»): solo en el dibujo, el de detrás de la misma fila se dibuja como poco 1,6 m más atrás (la carrera no cambia)
+  { const B = rivales.lista.filter(r => r.tipo === 'bot' && r.dVis != null && !r.llego).sort((a, b) => b.dVis - a.dVis), hechos = [];
+    for (const r of B) { let d = r.dVis; const la = r.lat || 0; for (let i = hechos.length - 1; i >= 0 && i >= hechos.length - 12; i--) { const o = hechos[i]; if (Math.abs((o.lat || 0) - la) < 0.5 && o.dDib - d < 1.6) d = o.dDib - 1.6; } r.dDib = d; hechos.push(r); } }
   rivales.lista.forEach((r, k) => {
     if (!r.g || r.esc !== v3.escena) { const col = new THREE.Color(r.color).getHex();
       const K = Object.assign({}, COLORES_CICLISTA, { maillot: col, franja: (r.sigla && FRANJA_EQUIPO[r.sigla] != null) ? FRANJA_EQUIPO[r.sigla] : 0xffffff, franjaAncha: r.tipo === 'bot', casco: col, cuadro: r.tipo === 'fantasma' ? 0xf2f2f2 : 0x222222, detalle: col });
@@ -2070,7 +2123,7 @@ function moverRivales3D(dt, dYo){
     const cerca = lejos < 150 && !r.lejosNivel;   // a más de 150 m (o con la silueta) no se ve pedalear: no se mueven piernas ni ruedas
     if (r.cartel) r.cartel.visible = lejos > 10 && (r.tipo !== 'bot' || (lejos < 250 && conCartel.has(r)));   // en el pelotón, sin carteles encima de la cámara
     const anV = anchoEn(r.dVis ?? r.d), lat = r.tipo === 'bot' ? Math.max(-anV + 0.35, Math.min(anV - 0.35, (v3.latBase ?? 0) + (r.lat ?? ((k % 3) - 1) * CARRIL) * (v3.kFilas ?? 1))) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
-    colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.dVis)), r.parado > 0 ? Math.max(lat, 2.2) : lat, 1, 0.18);
+    colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.tipo === 'bot' && r.dDib != null ? r.dDib : r.dVis)), r.parado > 0 ? Math.max(lat, 2.2) : lat, 1, 0.18);
     if (r.coche && r.coche.g) colocarEnVia(r.coche.g, Math.max(3, r.dVis - 7), 3.4, 1, 0);
     if (r.tipo === 'bot' && !r.grupeta && sesion.corriendo) { const est = colorRes(r);
       if (r.cartel && r.cartelEst !== est) { r.g.remove(r.cartel); r.cartel = cartelNombre((r.dorsal ? r.dorsal + ' ' : '') + r.nombre + (r.sigla ? ' · ' + r.sigla : ''), r.color, est); r.g.add(r.cartel); r.cartelEst = est; }
@@ -2193,7 +2246,12 @@ const fichaUI = { pest: 'resumen' };
 function abrirFicha(){ $('pantallaFicha').hidden = false; const L = $('fiLienzo'), V = $('fiVisor'); if (L && V && L.parentElement !== V) { L.style.cssText = ''; V.insertBefore(L, V.firstChild); } pintarFicha(); montarVisor(); }
 // ---- tu muñeco en la ficha (20-nov, Carlos): el de Hugging Face DE PIE (TRELLIS.2, recursos/munecos-pie.js), girando con el ratón ----
 const visor = { u: null, r: null, esc: null, cam: null, mod: null, mez: null, rotY: 0.6, arr: null, t: 0, tPrev: 0 };
+// v217 (Carlos: «el muñeco 3D que gira se veía peor, luego dejó de aparecer»): si el navegador le quita el contexto 3D (memoria de vídeo con el mundo 3D u OBS),
+// se rehace solo con un lienzo nuevo y se vuelve a cargar
+function reiniciarVisor(){ try { if (visor.r) visor.r.dispose(); } catch(e) {} const old = $('fiLienzo'); if (old) { const n = old.cloneNode(false); old.replaceWith(n); }
+  Object.assign(visor, { r: null, u: null, mod: null, mez: null, esc: null, cam: null, perdido: false, gen: (visor.gen || 0) + 1 }); log('Ficha: el muñeco 3D perdió su contexto; se rehace'); }
 async function montarVisor(){ const V = $('fiVisor');
+  if (visor.r && (visor.perdido || visor.r.getContext().isContextLost())) reiniciarVisor();
   if (!window.THREE || typeof GLTFLoaderSim === 'undefined') { V.hidden = true; return; }
   V.hidden = fichaUI.pest !== 'resumen';
   try { if (!(window.RECURSOS_SIM && RECURSOS_SIM.munecosPie)) { $('fiCredito').textContent = 'Cargando tu muñeco…'; await cargarScript('recursos/munecos-pie.js'); } }
@@ -2202,11 +2260,12 @@ async function montarVisor(){ const V = $('fiVisor');
   if (!visor.r) { visor.r = new THREE.WebGLRenderer({ canvas: $('fiLienzo'), antialias: true, alpha: true }); visor.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); visor.r.setSize(300, 360, false);
     visor.esc = new THREE.Scene(); visor.cam = new THREE.PerspectiveCamera(30, 300 / 360, 0.1, 50); visor.cam.position.set(0, 0.95, 4.4); visor.cam.lookAt(0, 0.85, 0);
     visor.esc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.8)); const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(2, 4, 3); visor.esc.add(sol); const contra = new THREE.DirectionalLight(0xbfd4ff, 0.8); contra.position.set(-3, 2, -3); visor.esc.add(contra);
-    const L = $('fiLienzo');
+    const L = $('fiLienzo'), gen = visor.gen || 0;
+    L.addEventListener('webglcontextlost', e => { e.preventDefault(); visor.perdido = true; setTimeout(() => { if (visor.perdido && window.montarVisor) montarVisor().then(() => { if (window.fiNueva && fiNueva.abierta) { const FF = $('fiFoto'), L2 = $('fiLienzo'); if (FF && L2 && L2.parentNode !== FF) { L2.style.cssText = 'width:236px;height:283px;cursor:grab;display:block;margin-top:auto'; FF.insertBefore(L2, $('fiFotoT')); } } }).catch(() => {}); }, 300); });
     L.addEventListener('pointerdown', e => { visor.arr = { x: e.clientX, r: visor.rotY }; L.setPointerCapture(e.pointerId); L.style.cursor = 'grabbing'; });
     L.addEventListener('pointermove', e => { if (visor.arr) visor.rotY = visor.arr.r + (e.clientX - visor.arr.x) * 0.012; });
     L.addEventListener('pointerup', () => { visor.arr = null; L.style.cursor = 'grab'; visor.tSuelto = performance.now(); });
-    const bucle = now => { requestAnimationFrame(bucle); const enNueva = !!(window.fiNueva && fiNueva.abierta && document.getElementById('fiFoto')); if ((!enNueva && ($('pantallaFicha').hidden || $('fiVisor').hidden)) || !visor.mod) return;
+    const bucle = now => { if ((visor.gen || 0) !== gen) return; requestAnimationFrame(bucle); const enNueva = !!(window.fiNueva && fiNueva.abierta && document.getElementById('fiFoto')); if ((!enNueva && ($('pantallaFicha').hidden || $('fiVisor').hidden)) || !visor.mod) return;
       const dt = Math.min(0.05, (now - (visor.tPrev || now)) / 1000); visor.tPrev = now;
       if (!visor.arr && now - (visor.tSuelto || 0) > 2500) visor.rotY += dt * 0.35;   // gira solo si no lo tocas
       visor.mod.rotation.y = visor.rotY; if (visor.mez) visor.mez.update(dt); visor.r.render(visor.esc, visor.cam); };
@@ -3341,9 +3400,10 @@ function iniciarMapa(){
   setTimeout(prepararRivales, 0);
   setTimeout(() => mapa.m.invalidateSize(), 100);
 }
+function pintarMapaSeg(){ const b = $('hMapaSeg'); if (b) b.textContent = (mapa.seguir ? '🗺 Ruta entera' : '🧭 Seguirme') + ' (K)'; }   // v217: con la tecla
 function alternarSeguir(){
-  mapa.seguir = !mapa.seguir;
-  $('bSeguir').textContent = mapa.seguir ? 'Ver la ruta entera' : 'Seguirme';
+  mapa.seguir = !mapa.seguir; pintarMapaSeg();
+  if ($('bSeguir')) $('bSeguir').textContent = mapa.seguir ? 'Ver la ruta entera' : 'Seguirme';
   if (!mapa.m) return;
   if (mapa.seguir) { const p = puntoEn(ruta.dist); mapa.m.setView([p.lat, p.lon], 15); }
   else mapa.m.fitBounds(mapa.total.getBounds(), { padding:[20, 20] });
@@ -5641,7 +5701,9 @@ function alternarPausa(){ if (!sesion.corriendo) return; sesion.pausa ? seguir()
 function cambiarIntensidad(d){ if (!sesion.corriendo) return;
   const b = sesion.bloques[sesion.idx];
   if (b && b.libre) { log('Bloque libre · leva = cambio de marcha (' + (d > 0 ? 'más dura' : 'más blanda') + ') · ' + (Date.now() - vivo.tW < 4000 ? vivo.w + ' W a ' + vivo.c + ' rpm' : 'sin datos')); return; } sesion.sesgo = Math.min(130, Math.max(60, sesion.sesgo + d)); enviarObjetivo(true); avisar('Intensidad ' + sesion.sesgo + ' %'); }
-function aviso3d(texto, ms){ const a = $('aviso3d'); if (!a) return; a.textContent = texto; a.style.display = 'block'; clearTimeout(aviso3d.t); aviso3d.t = setTimeout(() => a.style.display = 'none', ms || 2500); }
+function aviso3d(texto, ms){ const a = $('aviso3d'); if (!a) return; if (a.parentNode !== document.body) document.body.appendChild(a);   // v216: fuera de la caja del 3D; v217: con la pantalla nueva lo coloca colocarAviso() bajo los banners
+  a.classList.toggle('enHud', !!(window.hudLZ && hudLZ.isConnected && (document.body.classList.contains('hud3dOn') || document.body.classList.contains('hud2d')))); if (window.colocarAviso) setTimeout(colocarAviso, 0);   // v216: fuera de la caja del 3D, si no quedaba debajo de los paneles
+  a.textContent = texto; a.style.display = 'block'; clearTimeout(aviso3d.t); aviso3d.t = setTimeout(() => a.style.display = 'none', ms || 2500); }
 function avisar(texto, importante){
   if (typeof v3 !== 'undefined' && v3.activo) aviso3d(texto);
   const m = $('mensaje'); m.textContent = texto; m.style.display = 'block';
@@ -5751,6 +5813,12 @@ function dibujar(){
 }
 
 // ===================== terminar y guardar (.fit) =====================
+// v217 (Carlos: «esta pantalla debe dar la opción de volver atrás sin usar terminar y guardar; descartar un test o entreno»)
+function descartarSesion(){ if (sesion.corriendo && !confirm('¿Descartar esta sesión? No se guarda nada: ni el .fit, ni Intervals, ni tu ficha.')) return;
+  if (sesion.corriendo) { setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300); clearInterval(tick); sesion.corriendo = false; enviarBici([0x05, 50, 0], 'descartada: 50 W para soltar piernas'); log('Sesión descartada: no se guarda nada'); }
+  if (window.zwoCerrar) zwoCerrar(); try { pararDemo(); } catch(e) {} try { reiniciarTrasDemo(); } catch(e) {}
+  avisar('Sesión descartada · no se ha guardado nada'); if (window.abrirPortada) abrirPortada(3); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && window.zwoAbierta && zwoAbierta() && !sesion.espect) { e.preventDefault(); descartarSesion(); } });
 function terminar(fin){
   if (!sesion.corriendo) return;
   setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300);   // la grabación se guarda y se cierra la captura
@@ -5992,7 +6060,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   #elegirR .modo b { font:800 22px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; text-transform:uppercase; }
   #elegirR .modo.sel { background:#1a2128; }
   #elegirR .modo.sel b { color:#c6f432; }
-  #elegirR .aj { display:flex; justify-content:space-between; align-items:center; padding:6px 12px; border-radius:9px; border:2px solid transparent; background:#151a20; font-size:14px; cursor:pointer; }
+  #elegirR .ajLista { display:flex; flex-direction:column; gap:6px; flex:1 1 0; min-height:70px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#39434e transparent; padding-right:2px; }
+  #elegirR .aj { flex:0 0 auto; display:flex; justify-content:space-between; align-items:center; padding:6px 12px; border-radius:9px; border:2px solid transparent; background:#151a20; font-size:14px; cursor:pointer; }
   #elegirR .aj span:first-child { color:#9aa6b2; }
   #elegirR .aj b { font-weight:700; }
   #elegirR .foco { border-color:#c6f432 !important; box-shadow:0 0 0 4px rgba(198,244,50,.15); }
@@ -6089,8 +6158,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     h += '<span class="h" style="margin-top:6px">3 · VISTA</span><div data-aj="vista" data-k="' + k + '" class="' + fc(2, k).trim() + '" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border:2px solid transparent;border-radius:12px;padding:2px;cursor:pointer">'
       + [['carretera', 'Mundo 3D'], ['dos', 'Mapa 2D']].map(([v, t]) => '<span style="text-align:center;padding:11px;border-radius:10px;font-weight:700;font-size:16px;' + (el.vista === v ? 'background:#26303b;color:#e9edf1' : 'border:1px solid #39434e;color:#9aa6b2') + '">' + t + '</span>').join('') + '</div>'; k++;
     h += '<span class="h" style="margin-top:6px">4 · AJUSTES</span>';
-    ajustes().forEach(([id, t, v]) => { h += '<div class="aj' + fc(2, k) + '" data-aj="' + id + '" data-k="' + k + '"><span>' + esc(t) + '</span><b>‹ ' + esc(v) + ' ›</b></div>'; k++; });
-    h += '<div style="flex:1;min-height:8px"></div><div class="emp' + fc(2, k) + '" data-a="empezar" data-k="' + k + '">▶ ' + (el.espect ? 'Ver la carrera' : 'Empezar') + '<kbd style="background:rgba(0,0,0,.22);color:#11160a">B</kbd></div></section></div>';
+    h += '<div class="ajLista">'; ajustes().forEach(([id, t, v]) => { h += '<div class="aj' + fc(2, k) + '" data-aj="' + id + '" data-k="' + k + '"><span>' + esc(t) + '</span><b>‹ ' + esc(v) + ' ›</b></div>'; k++; }); h += '</div>';   // v217 (Carlos: «los ajustes de carrera son tantos que se tapa el botón de empezar»): la lista se desplaza; Empezar siempre a la vista
+    h += '<div style="min-height:8px"></div><div class="emp' + fc(2, k) + '" data-a="empezar" data-k="' + k + '">▶ ' + (el.espect ? 'Ver la carrera' : 'Empezar') + '<kbd style="background:rgba(0,0,0,.22);color:#11160a">B</kbd></div></section></div>';
     h += '<footer style="display:flex;justify-content:center;gap:28px;padding:0 40px 20px;font-size:14px;color:#c5ccd3"><span><kbd style="margin:0 8px 0 0">← →</kbd>ruta · modo y ajustes</span><span><kbd style="margin:0 8px 0 0">↑ ↓</kbd>elegir</span><span><kbd style="margin:0 8px 0 0">B</kbd>elegir · cambiar valor · empezar</span><span><kbd style="margin:0 8px 0 0">Z</kbd>volver</span></footer>'
       + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:6px;bottom:6px;height:46px;opacity:.95;border-radius:7px;z-index:2">';
     Z.innerHTML = h;
@@ -6511,6 +6580,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
   .zwoR .ses b { font:800 26px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; text-transform:uppercase; }
   .zwoR .tar { padding:20px 24px; border-radius:16px; background:#151a20; border:1px solid #232a33; display:flex; flex-direction:column; gap:6px; }
   .zwoR .tar > span:first-child { font-size:12px; font-weight:700; letter-spacing:.12em; color:#9aa6b2; }
+  .zwoR, .zwoR * { -webkit-user-select:none; user-select:none; }   /* v217: sin selección de texto (salía la burbuja «Buscar» de Chrome encima de −2 %) */
   .zwoR .bot { display:flex; flex-direction:column; align-items:center; gap:3px; padding:12px; border-radius:12px; border:1px solid #2a323c; background:#151a20; font-weight:700; font-size:17px; cursor:pointer; }
   .zwoR .bot span { font-size:12px; font-weight:500; color:#9aa6b2; }
 </style>
@@ -6631,6 +6701,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
   // ---------- la sesión en marcha ----------
   function abrirRod(){ zr.G = null; zr.pot = []; zr.abierta = true; zr.pulso = []; zr.tUlt = -1; RR.hidden = false; esqueletoR(); escalar(ZR); pintarR(); }
   window.zwoCerrar = function(){ RR.hidden = true; zr.abierta = false; };
+  window.zwoAbierta = () => !!zr.abierta;   // v217: para Esc = descartar
   function esqueletoR(){
     ZR.innerHTML = '<header style="display:flex;align-items:center;gap:18px;padding:18px 40px;border-bottom:1px solid #1f252d"><span class="bc" id="zrNom" style="font-weight:800;font-size:30px;text-transform:uppercase"></span><span id="zrSerie" style="font-size:15px;color:#9aa6b2"></span><div style="flex:1"></div>'
       + '<span id="zrT" class="bc" style="font-size:30px;font-weight:700"></span><span id="zrErg" style="font-size:13px;font-weight:700;padding:6px 10px;border-radius:8px;background:#1c2a1a"></span></header>'
@@ -6643,13 +6714,13 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
       + '<div class="tar"><span>SIGUIENTE</span><span id="zrSig" style="font-size:28px;font-weight:700;line-height:1.15"></span><span id="zrSigx" style="font-size:14px;color:#9aa6b2"></span></div></div>'
       + '<div style="flex:1;position:relative;margin:20px 40px 0;min-height:0"><canvas id="zrGraf" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>'
       + '<div style="display:flex;justify-content:space-between;padding:10px 40px;font-size:13px;color:#9aa6b2"><span>Barras: lo que pide la sesión · blanco: dónde vas · <span style="color:#c6f432">lima: tu potencia</span> · <span style="color:#ff7b7b">rojo: tu pulso</span></span><span>Intensidad <b id="zrInt" style="color:#e9edf1"></b></span></div>'
-      + '<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;padding:0 110px 24px 40px">'
-      + [['pausa', '<b id="zrPausaT" style="font-weight:700">∎ Pausa</b>', 'maneta izq. · corto'], ['menos', '− 2 % intensidad', 'botón interno · leva'], ['mas', '+ 2 % intensidad', 'botón interno · leva'], ['saltar', 'Saltar bloque ⏭', 'maneta dcha. · 2 s'], ['terminar', 'Terminar y guardar', 'maneta izq. · 3 s']]
-        .map(([k, t, s]) => '<div class="bot" data-r="' + k + '"' + (k === 'terminar' ? ' style="background:#2a1416;border-color:#4a2026;color:#ff8f8f"' : '') + '>' + t + '<span>' + s + '</span></div>').join('') + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:0 110px 24px 40px">'
+      + [['descartar', '✕ Descartar', 'Esc · no se guarda'], ['pausa', '<b id="zrPausaT" style="font-weight:700">∎ Pausa</b>', 'maneta izq. · corto'], ['menos', '− 2 % intensidad', 'botón interno · leva'], ['mas', '+ 2 % intensidad', 'botón interno · leva'], ['saltar', 'Saltar bloque ⏭', 'maneta dcha. · 2 s'], ['terminar', 'Terminar y guardar', 'maneta izq. · 3 s']]
+        .map(([k, t, s]) => '<div class="bot" data-r="' + k + '"' + (k === 'descartar' ? ' style="background:#1b1f25;border-color:#39434e;color:#c5ccd3"' : '') + (k === 'terminar' ? ' style="background:#2a1416;border-color:#4a2026;color:#ff8f8f"' : '') + '>' + t + '<span>' + s + '</span></div>').join('') + '</div>'
       + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:6px;bottom:6px;height:46px;opacity:.95;border-radius:7px;z-index:2">';
     ZR.querySelectorAll('[data-r]').forEach(n => n.onclick = () => { const k = n.dataset.r;
       if (k === 'clasica') zwoCerrar(); else if (k === 'pausa') alternarPausa(); else if (k === 'menos') cambiarIntensidad(-2); else if (k === 'mas') cambiarIntensidad(2);
-      else if (k === 'saltar') saltarBloque(); else if (k === 'terminar') terminar(false); pintarR(); }); }
+      else if (k === 'saltar') saltarBloque(); else if (k === 'terminar') terminar(false); else if (k === 'descartar') { descartarSesion(); return; } pintarR(); }); }
   const mmss2 = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   function pintarR(){ if (!zr.abierta) return; const B = sesion.bloques, b = B[sesion.idx], F = FTP(); if (!b) return;
     $('zrNom').textContent = sesion.nombre.replace(/^KHB\s*/, '').replace(/^S\d+\s*·\s*/, '').replace(/\s*·\s*\d+['′]?\s*$/, '');
@@ -6705,7 +6776,10 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
 <div id="hud3d" hidden><div class="lz"></div></div>
 <script>
 (function(){
-  const H = $('hud3d'), Z = H.querySelector('.lz'), OR = '#f0883e';
+  const H = $('hud3d'), Z = H.querySelector('.lz'), OR = '#f0883e'; window.hudLZ = Z;
+  // v217: el aviso que aparece y desaparece, en pantalla real pero alineado con la columna central de los paneles, justo bajo los banners
+  window.colocarAviso = () => { const a = $('aviso3d'); if (!a || !a.classList.contains('enHud') || !Z.isConnected) return; const r = Z.getBoundingClientRect(), s = r.width / (Z.offsetWidth || 1440);
+    document.documentElement.style.setProperty('--sHud', s.toFixed(3)); a.style.left = (r.left + 362 * s) + 'px'; a.style.width = (646 * s) + 'px'; a.style.top = (r.top + 192 * s) + 'px'; };
   const hud = { msgs: [], cacheSube: { t: 0, v: 0, d: -1 } };
   window.hud3d = hud;
   const quiere = () => { try { return localStorage.getItem('simulador-hud-clasico') !== '1'; } catch(e) { return true; } };
@@ -6718,19 +6792,19 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     Z.innerHTML =
       '<div class="v" id="hInfo" style="left:20px;top:18px;width:334px;padding:16px 18px"></div>'
       + '<div class="v" id="hDatos" data-al="c" data-x="360" style="left:360px;top:18px;width:720px;height:98px;display:flex;align-items:stretch;padding:10px 6px"></div>'
-      + '<div class="v" id="hTramo" data-al="c" data-x="424" style="left:424px;top:128px;width:592px;padding:12px 16px;display:none"></div>'
+      + '<div class="v" id="hTramo" data-al="r" data-x="1018" style="left:1018px;top:196px;width:402px;box-sizing:border-box;padding:12px 16px;display:none"></div>'
       + '<div class="v" id="hPuesto" style="left:20px;top:196px;width:334px;padding:14px 18px;display:none"></div>'
-      + '<div class="v" id="hMapa" data-al="r" data-x="1018" style="left:1018px;top:206px;width:402px;height:300px;padding:12px 14px;overflow:hidden"><div id="hMapaL" style="position:absolute;inset:0;border-radius:16px;z-index:0;overflow:hidden"></div><div class="et" style="position:relative;z-index:2;display:inline-block;background:rgba(17,22,29,.8);padding:2px 6px;border-radius:5px">MAPA · ETAPA</div><canvas id="hMapaC" style="position:absolute;left:0;top:0;width:100%;height:100%;z-index:1"></canvas></div>'
-      + '<div class="v" id="hCerca" data-al="r" data-x="1078" style="left:1078px;top:738px;width:342px;height:152px;padding:12px 14px"><div style="display:flex;justify-content:space-between"><span class="et">PRÓXIMO KM</span><span id="hCercaT" style="font-size:13px;color:#c5ccd3"></span></div><canvas id="hCercaC" style="position:absolute;left:8px;right:8px;bottom:8px;width:calc(100% - 16px);height:104px"></canvas></div>'
+      + '<div class="v" id="hMapa" data-al="r" data-x="1018" style="left:1018px;top:430px;width:402px;height:300px;padding:12px 14px;overflow:hidden"><div id="hMapaL" style="position:absolute;inset:0;border-radius:16px;z-index:0;overflow:hidden"></div><div class="et" style="position:relative;z-index:2;display:inline-block;background:rgba(17,22,29,.8);padding:2px 6px;border-radius:5px">MAPA · ETAPA</div><button id="hMapaSeg" onclick="alternarSeguir(); pintarMapaSeg()" style="position:absolute;right:12px;top:10px;z-index:3;background:rgba(17,22,29,.85);color:#e9edf1;border:1px solid #3a4450;border-radius:7px;padding:3px 9px;font:600 12px Inter,sans-serif;cursor:pointer">🧭 Seguirme (K)</button><canvas id="hMapaC" style="position:absolute;left:0;top:0;width:100%;height:100%;z-index:1"></canvas></div>'
+      + '<div class="v" id="hCerca" data-al="r" data-x="1018" style="left:1018px;top:738px;width:402px;height:152px;padding:12px 14px"><div style="display:flex;justify-content:space-between"><span class="et">PRÓXIMO KM</span><span id="hCercaT" style="font-size:13px;color:#c5ccd3"></span></div><canvas id="hCercaC" style="position:absolute;left:8px;right:8px;bottom:8px;width:calc(100% - 16px);height:104px"></canvas></div>'
       + '<div class="v" id="hSig" data-al="r" data-x="1120" style="left:1120px;top:18px;width:300px;height:168px;padding:16px 18px;display:none"></div>'
       + '<div class="v" id="hEsq" data-al="c" data-x="360" style="left:360px;top:712px;width:720px;height:116px;padding:9px 14px;display:none"><div style="display:flex;justify-content:space-between"><span class="et">SESIÓN</span><span id="hEsqT" style="font-size:12px;color:#c5ccd3"></span></div><canvas id="hEsqC" style="position:absolute;left:14px;right:14px;bottom:9px;width:calc(100% - 28px);height:78px"></canvas></div>'
       + '<div class="com" id="hCom0" data-al="c" data-x="412" style="top:698px;left:412px"></div><div class="com" id="hCom1" data-al="c" data-x="412" style="top:760px;left:412px"></div>'
       + '<div class="v" id="hMed" data-al="c" data-x="362" style="left:362px;top:124px;width:752px;height:58px;display:none;align-items:stretch;padding:6px 6px"></div>'
-      + '<div class="v" id="hTeclas" data-al="w" data-x="362" data-fin="1072" style="left:362px;top:auto;bottom:10px;width:1050px;box-sizing:border-box;border-radius:10px;padding:4px 12px;font-size:11.5px;color:#c5ccd3;line-height:16px">'
+      + '<div class="v" id="hTeclas" data-al="w" data-x="362" data-fin="1008" style="left:362px;top:auto;bottom:10px;width:646px;box-sizing:border-box;border-radius:10px;padding:4px 10px;font-size:11px;color:#c5ccd3;line-height:16px">'
       + (sesion.espect ? '<div><b class="et" style="display:inline-block;width:52px">PLAY</b>← → girar &nbsp; ↑ ↓ inclinar &nbsp; frenos: zoom &nbsp; lateral izq.: seguir a… &nbsp; lateral dcho.: clasificación &nbsp; B velocidad ×1·×2·×5·×10 &nbsp; A pausa &nbsp; Z pantalla limpia &nbsp; Y menú</div><div><b class="et" style="display:inline-block;width:52px">BICI</b>no hace falta: se mira sin pedalear · al acabar sale la crónica &nbsp; <b>salir: Y menú → Actividad → Salir de la carrera</b> (o Esc)</div></div>' : '')
       + (sesion.zwoRuta ? '<div><b class="et" style="display:inline-block;width:52px">BICI</b>internos y levas: <b>− / + 2 % de intensidad</b> &nbsp; arriba izq.: pausa · 2 s: terminar &nbsp; arriba dcha.: grabar · <b>2 s: saltar bloque</b> &nbsp; abajo dcha.: cámara</div><div><b class="et" style="display:inline-block;width:52px">PLAY</b>← → girar cámara &nbsp; ↑ ↓ inclinar &nbsp; frenos: zoom − / + &nbsp; Z pantalla limpia &nbsp; Y menú</div></div>' : '')
       + (sesion.espect || sesion.zwoRuta ? '' : document.body.classList.contains('hud2d') ? '<div><b class="et" style="display:inline-block;width:52px">BICI</b>arriba izq.: empezar / pausa · 2 s: terminar &nbsp; arriba dcha.: grabar &nbsp; frenos: frenar &nbsp; abajo dcha.: mapa te sigue / ruta entera &nbsp; internos: girar / colocarte</div><div><b class="et" style="display:inline-block;width:52px">PLAY</b>← → ↑ ↓ mover el mapa &nbsp; frenos: zoom del mapa &nbsp; Z pantalla limpia &nbsp; Y menú</div></div>' : '<div><b class="et" style="display:inline-block;width:52px">BICI</b>arriba izq.: pausa (2 s: terminar) &nbsp; arriba dcha.: grabar &nbsp; abajo: relevo · cámara &nbsp; frenos: frenar &nbsp; internos: girar</div><div><b class="et" style="display:inline-block;width:52px">COMER</b>encendido del Play: izq. beber &nbsp; dcho. barrita &nbsp; dos toques dcho. gel &nbsp; · &nbsp; teclado F2 beber &nbsp; F3 barrita &nbsp; F4 gel</div>'
-      + '<div><b class="et" style="display:inline-block;width:52px">PLAY</b>← → ↑ ↓ cámara &nbsp; frenos: zoom &nbsp; lateral izq.: seguir a &nbsp; lateral dcho.: clasificación &nbsp; A órdenes &nbsp; Z limpiar &nbsp; Y menú</div></div>'); }
+      + '<div><b class="et" style="display:inline-block;width:52px">PLAY</b>←→↑↓ cámara &nbsp; frenos: zoom &nbsp; lat. izq.: seguir a &nbsp; lat. dcho.: clasificación &nbsp; A órdenes &nbsp; Z limpiar &nbsp; Y menú</div></div>'); }
   function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900), Wl = Math.max(1440, innerWidth / s), x = Math.max(0, (innerWidth - Wl * s) / 2), y = Math.max(0, (innerHeight - 900 * s) / 2);
     Z.style.transform = 'scale(' + s + ')'; Z.style.left = x + 'px'; Z.style.top = y + 'px'; Z.style.width = Wl + 'px'; hud.extra = Wl - 1440; anclar();   // v195: pantalla ancha: izquierda a la izquierda, derecha a la derecha
     const R = document.documentElement.style; R.setProperty('--hudS', s); R.setProperty('--hudX', x + 'px'); R.setProperty('--hudY', y + 'px'); }
@@ -6856,7 +6930,9 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     if (window.L && LD) { if (!hud.lm || hud.lmEl !== LD) { try { if (hud.lm) hud.lm.remove(); } catch(e) {} hud.lmEl = LD; hud.lm = L.map(LD, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, zoomSnap: 0.1 });
         const c = CAPAS[$('capaMapa').value] || CAPAS[Object.keys(CAPAS)[0]]; L.tileLayer(c.url, { maxZoom: c.max, maxNativeZoom: Math.min(c.max, 17) }).addTo(hud.lm); hud.lmN = null; }
       const tam = LD.clientWidth + 'x' + LD.clientHeight;   // v196: si el mapa nació oculto (entreno .zwo), al verse se recoloca y carga la zona
-      if (LD.clientWidth > 10 && hud.lmN !== ruta.nombre + J.n + tam) { hud.lmN = ruta.nombre + J.n + tam; hud.lm.invalidateSize(false); hud.lm.fitBounds(L.latLngBounds(J.S.map(p => [p.lat, p.lon])), { paddingTopLeft: [24, 40], paddingBottomRight: [24, 70], animate: false }); }
+      const modo = mapa.seguir ? 'sigue' : 'entera';   // v216 (Carlos: «en el mapa, algo para pasar de mapa completo / seguirme»)
+      if (LD.clientWidth > 10 && hud.lmN !== ruta.nombre + J.n + tam + modo) { hud.lmN = ruta.nombre + J.n + tam + modo; hud.lm.invalidateSize(false); if (modo === 'entera') hud.lm.fitBounds(L.latLngBounds(J.S.map(p => [p.lat, p.lon])), { paddingTopLeft: [24, 40], paddingBottomRight: [24, 70], animate: false }); hud.lmSeg = null; pintarMapaSeg(); }
+      if (modo === 'sigue' && LD.clientWidth > 10) { const q = puntoEn(sesion.espect && espSeguido() ? espSeguido().d : ruta.dist); if (!hud.lmSeg || Math.abs(hud.lmSeg - ruta.dist) > 15) { hud.lmSeg = ruta.dist || 1; hud.lm.setView([q.lat, q.lon], 15, { animate: false }); } }
       const k2 = W / Math.max(1, LD.clientWidth); X = p => hud.lm.latLngToContainerPoint([p.lat, p.lon]).x * k2; Y = p => hud.lm.latLngToContainerPoint([p.lat, p.lon]).y * k2; }
     else { const pad = 70, s = Math.min((W - 2 * pad) / Math.max(1e-6, J.Mx - J.mx), (Hh - 2 * pad - 40) / Math.max(1e-6, J.My - J.my));
       X = p => pad + (p.lon * J.k - J.mx) * s + ((W - 2 * pad) - (J.Mx - J.mx) * s) / 2; Y = p => Hh - pad - (p.lat - J.my) * s - ((Hh - 2 * pad - 40) - (J.My - J.my) * s) / 2; }
@@ -6894,7 +6970,9 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
       const mm = M.length === 1 ? (i === 1 ? M[0] : null) : M[i];
       if (!mm) { E.style.opacity = 0; return; } E.style.opacity = 1;
       E.innerHTML = '<i style="color:' + (mm.quien === 'C' ? OR : '#58a6ff') + '">' + (mm.quien ? esc(LOC[mm.quien]) : '📣') + '</i>' + esc(mm.t); });
-    { const A = $('hCom0'), B = $('hCom1'); if (A && B) { const T = $('hTeclas'), lim = T && T.offsetHeight ? T.offsetTop - 10 : 826, b = lim - B.offsetHeight; B.style.top = b + 'px'; A.style.top = (b - 8 - A.offsetHeight) + 'px'; } } }   // v201: apiladas de abajo arriba, nunca una encima de otra
+    // v217 (Carlos: «TRAMO debería estar abajo y los mensajes que aparecen y desaparecen arriba, bajo los banners… y los de los narradores»)
+    { let y = 192; const AV = $('aviso3d'), s = (Z.getBoundingClientRect().width / Z.offsetWidth) || 1; if (AV && AV.classList.contains('enHud') && AV.style.display !== 'none' && AV.offsetHeight) { colocarAviso(); y += AV.offsetHeight / s + 8; }
+      const A = $('hCom0'), B = $('hCom1'); if (A && B) { A.style.top = y + 'px'; B.style.top = (y + (+A.style.opacity === 0 ? 0 : A.offsetHeight + 8)) + 'px'; } } }   // v201: apiladas de abajo arriba, nunca una encima de otra
   let ok = false;
   setInterval(() => {
     const vista = ($('vistaRuta') || {}).value, en2d = ruta.activa && !(typeof v3 !== 'undefined' && v3.activo) && (vista === 'dos' || vista === 'completa') && quiere();
@@ -7031,6 +7109,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     const Wd = suav('w', 0.08), Pd = suav('p', 0.2), mW = Math.max(100, ...Wd.filter(v => v != null)) * 1.1, mP = 200;
     linea(Wd, mW, '#e9edf1', 2.5); linea(Pd, mP, '#ff7b7b', 3); }
   function accionR(k){
+    if ($('cronica3d') && (k === 'cronica' || k === 'inicio')) { $('cronica3d').remove(); return; }   // v218 (Carlos: «la crónica no sale con la Y»): salía debajo del resumen; Y o Z la cierran
     if (k === 'cronica') { if (typeof verCronica === 'function') verCronica(); return; }
     if (k === 'fit') { const reg = sesion.registro.filter(r => !r.pausa); if (reg.length < 10) { avisar('No hay datos para el .fit.'); return; } const bytes = crearFit(reg, sesion.nombre), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' })); a.download = 'Simulador - ' + sesion.nombre.replace(/[\\/:*?"<>|]/g, '') + '.fit'; a.click(); return; }
     if (k === 'clasica') { RS.hidden = true; return; }
@@ -7235,7 +7314,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
   setInterval(() => { if (cl.abierta) { if (!conHud()) { cl.abierta = false; } pintarClas(); } }, 1000);
 
   // ---------- órdenes (A) ----------
-  const ORD = { venid: ['🚀', 'Venid conmigo', 'Los outsiders saltan contigo'], tirad: ['💪', 'Tirad', 'Los gregarios se ponen a la cabeza'], esperadme: ['⏸', 'Esperadme', 'Los gregarios te esperan'], tren: ['🚂', 'Tren', 'En fila para tu final · los que vayan cerca'], libres: ['🕊', 'Libres', 'Cada uno hace su carrera · todo el equipo'] };
+  const ORD = { venid: ['🚀', 'Venid conmigo', 'Los outsiders saltan contigo'], tirad: ['💪', 'Tirad', 'Los gregarios se ponen a la cabeza'], esperadme: ['⏸', 'Esperadme', 'Todo tu equipo te espera (y se acaba sola al volver al grupo)'], tren: ['🚂', 'Tren', 'En fila para tu final · los que vayan cerca'], libres: ['🕊', 'Libres', 'Cada uno hace su carrera · todo el equipo'], comed: ['🍌', 'Comed', 'Comen en el próximo rato tranquilo (sin despistes)'] };
   setInterval(() => { let E = $('hOrd'); const Z = $('hud3d') && $('hud3d').querySelector('.lz');
     if (!conHud() || typeof capa === 'undefined' || !capa.ordenes || !Z) { if (E) E.remove(); return; }
     if (!E) { E = document.createElement('div'); E.id = 'hOrd'; E.className = 'lista'; E.style.top = '196px'; Z.appendChild(E); }
