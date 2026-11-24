@@ -380,7 +380,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v234d · ⛪ iglesias y ermitas reales de OpenStreetMap junto a tus rutas, cada una distinta (torre o espadaña, ábside, pórtico) · 🏛️ edificios públicos en castellano · ⛺ campamentos</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v234g · 🚴 los ciclistas de la carretera, la liebre y el fantasma van pegados al arcén y los coches los pasan sin tocarlos · 🪪 muñeco de la ficha · 🚜 granjas · 🛣️ quitamiedos · ⛪ iglesias</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -2265,7 +2265,7 @@ function moverRivales3D(dt, dYo){
     if (r.sil) { const ln = lejos > UMBRAL_DETALLE(); if (ln !== r.lejosNivel) { r.lejosNivel = ln; r.sil.visible = ln; for (const c of r.detalle) c.visible = !ln; } }
     const cerca = lejos < 150 && !r.lejosNivel;   // a más de 150 m (o con la silueta) no se ve pedalear: no se mueven piernas ni ruedas
     if (r.cartel) r.cartel.visible = lejos > 10 && (r.tipo !== 'bot' || (lejos < 250 && conCartel.has(r)));   // en el pelotón, sin carteles encima de la cámara
-    const anV = anchoEn(r.dVis ?? r.d), lat = r.tipo === 'bot' ? Math.max(-anV + 0.35, Math.min(anV - 0.35, (v3.latBase ?? 0) + (r.latDib ?? r.lat ?? ((k % 3) - 1) * CARRIL) * (v3.kFilas ?? 1))) : (v3.latYo ?? 0.5) - 1.0 - 0.8 * k;
+    const anV = anchoEn(r.dVis ?? r.d), lat = r.tipo === 'bot' ? Math.max(-anV + 0.35, Math.min(anV - 0.35, (v3.latBase ?? 0) + (r.latDib ?? r.lat ?? ((k % 3) - 1) * CARRIL) * (v3.kFilas ?? 1))) : r.avatar ? (v3.latYo ?? 0.5) - 1.0 - 0.8 * k : Math.max(0.6, anV - 0.55);   /* v234: liebre y fantasma, pegados al arcén; Susana y tú (con muñeco propio), por el centro */
     colocarEnVia(r.g, Math.max(3, Math.min(ruta.total - 3, r.tipo === 'bot' && r.dDib != null ? r.dDib : r.dVis)), r.parado > 0 ? Math.max(lat, 2.2) : lat, 1, 0.18);
     if (r.coche && r.coche.g) colocarEnVia(r.coche.g, Math.max(3, r.dVis - 7), 3.4, 1, 0);
     if (r.tipo === 'bot' && !r.grupeta && sesion.corriendo) { const est = colorRes(r);
@@ -2426,13 +2426,19 @@ function dibujarEvo(cv){ const H = historialFicha().filter(x => x.ftp || x.eftp 
   g.font = 'bold 22px Inter, sans-serif'; g.fillStyle = '#e9edf1'; g.fillText('FTP', 46, 28); g.fillStyle = '#58a6ff'; g.fillText('FTP estimado', 110, 28); g.fillStyle = '#3ddc6b'; g.fillText('reserva', 290, 28);
   g.fillStyle = '#8b96a1'; g.font = '20px Inter, sans-serif'; H.forEach((x, i) => { if (H.length <= 14 || i % 2 === 0) g.fillText(x.mes.slice(5, 7) + '/' + x.mes.slice(2, 4), X(i) - 26, Hh - 2); }); }
 const fichaUI = { pest: 'resumen' };
-function abrirFicha(){ $('pantallaFicha').hidden = false; const L = $('fiLienzo'), V = $('fiVisor'); if (L && V && L.parentElement !== V) { L.style.cssText = ''; V.insertBefore(L, V.firstChild); } pintarFicha(); montarVisor(); }
+function abrirFicha(){ soltarVisor(); $('pantallaFicha').hidden = false; const L = $('fiLienzo'), V = $('fiVisor'); if (L && V && L.parentElement !== V) { L.style.cssText = ''; V.insertBefore(L, V.firstChild); } pintarFicha(); montarVisor(); }
 // ---- tu muñeco en la ficha (20-nov, Carlos): el de Hugging Face DE PIE (TRELLIS.2, recursos/munecos-pie.js), girando con el ratón ----
 const visor = { u: null, r: null, esc: null, cam: null, mod: null, mez: null, rotY: 0.6, arr: null, t: 0, tPrev: 0 };
 // v217 (Carlos: «el muñeco 3D que gira se veía peor, luego dejó de aparecer»): si el navegador le quita el contexto 3D (memoria de vídeo con el mundo 3D u OBS),
 // se rehace solo con un lienzo nuevo y se vuelve a cargar
 function reiniciarVisor(){ try { if (visor.r) visor.r.dispose(); } catch(e) {} const old = $('fiLienzo'); if (old) { const n = old.cloneNode(false); old.replaceWith(n); }
   Object.assign(visor, { r: null, u: null, mod: null, mez: null, esc: null, cam: null, perdido: false, gen: (visor.gen || 0) + 1 }); log('Ficha: el muñeco 3D perdió su contexto; se rehace'); }
+// v234 (Carlos: «el muñeco de la ficha deja de salir en algún momento y ya no vuelve, igual hay que cargarlo cada vez que entre a la página»):
+// al salir de la ficha se suelta su contexto 3D (el navegador tiene pocos y el mundo 3D los necesita) y al entrar se monta de cero
+// el lienzo del muñeco vive en #fiVisor; la ficha nueva lo toma prestado y, al redibujarse entera, lo borraba para siempre: aquí se pone a salvo o se crea de nuevo
+function guardarLienzoVisor(){ const L = $('fiLienzo'), V = $('fiVisor'); if (L && V && L.parentElement !== V) { L.style.cssText = ''; V.insertBefore(L, V.firstChild); } }
+function soltarVisor(){ const r = visor.r; Object.assign(visor, { gen: (visor.gen || 0) + 1, r: null, u: null, mod: null, mez: null, esc: null, cam: null, perdido: false });
+  if (r) { try { r.dispose(); r.forceContextLoss(); } catch(e) {} } const old = $('fiLienzo'); if (old) old.remove(); const n = document.createElement('canvas'); n.id = 'fiLienzo'; n.width = 300; n.height = 360; const V = $('fiVisor'); if (V) V.insertBefore(n, V.firstChild); }
 async function montarVisor(){ const V = $('fiVisor');
   if (visor.r && (visor.perdido || visor.r.getContext().isContextLost())) reiniciarVisor();
   if (!window.THREE || typeof GLTFLoaderSim === 'undefined') { V.hidden = true; return; }
@@ -2440,11 +2446,12 @@ async function montarVisor(){ const V = $('fiVisor');
   try { if (!(window.RECURSOS_SIM && RECURSOS_SIM.munecosPie)) { $('fiCredito').textContent = 'Cargando tu muñeco…'; await cargarScript('recursos/munecos-pie.js'); } }
   catch(e) { $('fiCredito').textContent = 'No se ha podido cargar el muñeco.'; return; }
   const R = RECURSOS_SIM.munecosPie, d = R[USUARIO] || R.carlos; if (!d) return;
-  if (!visor.r) { visor.r = new THREE.WebGLRenderer({ canvas: $('fiLienzo'), antialias: true, alpha: true }); visor.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); visor.r.setSize(300, 360, false);
+  if (!visor.r) { if (!$('fiLienzo')) { soltarVisor(); }
+    visor.r = new THREE.WebGLRenderer({ canvas: $('fiLienzo'), antialias: true, alpha: true }); visor.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); visor.r.setSize(300, 360, false);
     visor.esc = new THREE.Scene(); visor.cam = new THREE.PerspectiveCamera(30, 300 / 360, 0.1, 50); visor.cam.position.set(0, 0.95, 4.4); visor.cam.lookAt(0, 0.85, 0);
     visor.esc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.8)); const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(2, 4, 3); visor.esc.add(sol); const contra = new THREE.DirectionalLight(0xbfd4ff, 0.8); contra.position.set(-3, 2, -3); visor.esc.add(contra);
     const L = $('fiLienzo'), gen = visor.gen || 0;
-    L.addEventListener('webglcontextlost', e => { e.preventDefault(); visor.perdido = true; setTimeout(() => { if (visor.perdido && window.montarVisor) montarVisor().then(() => { if (window.fiNueva && fiNueva.abierta) { const FF = $('fiFoto'), L2 = $('fiLienzo'); if (FF && L2 && L2.parentNode !== FF) { L2.style.cssText = 'width:236px;height:283px;cursor:grab;display:block;margin-top:auto'; FF.insertBefore(L2, $('fiFotoT')); } } }).catch(() => {}); }, 300); });
+    L.addEventListener('webglcontextlost', e => { e.preventDefault(); if ((visor.gen || 0) !== gen) return; visor.perdido = true; setTimeout(() => { if (visor.perdido && window.montarVisor) montarVisor().then(() => { if (window.fiNueva && fiNueva.abierta) { const FF = $('fiFoto'), L2 = $('fiLienzo'); if (FF && L2 && L2.parentNode !== FF) { L2.style.cssText = 'width:236px;height:283px;cursor:grab;display:block;margin-top:auto'; FF.insertBefore(L2, $('fiFotoT')); } } }).catch(() => {}); }, 300); });
     L.addEventListener('pointerdown', e => { visor.arr = { x: e.clientX, r: visor.rotY }; L.setPointerCapture(e.pointerId); L.style.cursor = 'grabbing'; });
     L.addEventListener('pointermove', e => { if (visor.arr) visor.rotY = visor.arr.r + (e.clientX - visor.arr.x) * 0.012; });
     L.addEventListener('pointerup', () => { visor.arr = null; L.style.cursor = 'grab'; visor.tSuelto = performance.now(); });
@@ -2530,7 +2537,7 @@ function pintarFicha(){
   $('bImportarFit').onclick = () => $('ficheroFit').click();
 }
 $('ficheroFit').onchange = e => { const F = [...e.target.files]; e.target.value = ''; if (F.length) importarFits(F); };
-$('bCerrarFicha').onclick = () => $('pantallaFicha').hidden = true;
+$('bCerrarFicha').onclick = () => { $('pantallaFicha').hidden = true; soltarVisor(); };
 $('bFicha').onclick = abrirFicha;
 
 // ===================== resumen al terminar y progreso =====================
@@ -3788,7 +3795,7 @@ document.addEventListener('keydown', e => {
   else if (kl === 'w' && en3d) $('b3Camara').click();
   else if (kl === 'l') alternarClasif();
   else if (kl === 'o') recolocarVentanas();
-  else if (kl === 'f') { $('pantallaFicha').hidden ? abrirFicha() : ($('pantallaFicha').hidden = true); }
+  else if (kl === 'f') { if ($('pantallaFicha').hidden) abrirFicha(); else { $('pantallaFicha').hidden = true; soltarVisor(); } }
   else hecho = false;
   if (hecho) e.preventDefault(); });
 // ---- webcam (20-nov, Carlos): ventanita siempre visible mientras esté encendida; sale en las grabaciones de pantalla entera ----
@@ -3896,11 +3903,16 @@ function equiparCarretera(esc, via, conTramos, TEMA){
   const tramos = []; for (let i = 0; i < N; i++) if (giro[i]) { const s = giro[i]; let j = i; while (j + 1 < N && giro[j + 1] === s) j++; tramos.push([Math.max(1, i - 2), Math.min(N - 2, j + 2), s]); i = j; }
   // quitamiedos: bionda metálica en el lado de fuera de la curva, con postes cada 5 m
   const bp = [], bi = [], postes = [], AN = 3.0 + 0.6;
-  for (const [a, b, s] of tramos) { const lado = -s, base = bp.length / 3;
-    for (let i = a, k = 0; i <= b; i++, k++) { const [tx, tz] = T(i), v = via[i], x = v.x + (-tz) * AN * lado, z = v.z + tx * AN * lado;
+  // v234 (Carlos: «hay una valla que atraviesa la que sigue recto»): donde la ruta vuelve a pasar (cruces, bifurcaciones), la bionda se corta: ni valla ni postes encima de la otra calzada
+  const CR = 10, rejV = new Map(); via.forEach((v, j) => { const kk = Math.floor(v.x / CR) + ',' + Math.floor(v.z / CR); if (!rejV.has(kk)) rejV.set(kk, []); rejV.get(kk).push(j); });
+  const pisa = (x, z, i) => { const cx = Math.floor(x / CR), cz = Math.floor(z / CR); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const j of (rejV.get((cx + a) + ',' + (cz + b)) || [])) { if (Math.abs(via[j].d - via[i].d) < 80) continue; if (Math.hypot(via[j].x - x, via[j].z - z) < AN + 2.2) return true; } return false; };
+  v3.cortesBionda = [];
+  for (const [a, b, s] of tramos) { const lado = -s; let base = bp.length / 3, k = 0;
+    for (let i = a; i <= b; i++) { const [tx, tz] = T(i), v = via[i], x = v.x + (-tz) * AN * lado, z = v.z + tx * AN * lado;
+      if (pisa(x, z, i)) { if (k) v3.cortesBionda.push(Math.round(v.d)); base = bp.length / 3; k = 0; continue; }   /* hueco: aquí empieza o pasa otra carretera */
       bp.push(x, v.y + 0.18 + 0.48, z, x, v.y + 0.18 + 0.8, z);
-      if (k) { const q = base + (k - 1) * 2; bi.push(q, q + 2, q + 1, q + 1, q + 2, q + 3); }
-      postes.push([x, v.y + 0.18, z]); if (i < b) { const w = via[i + 1], [ux, uz] = T(i + 1); postes.push([(x + w.x + (-uz) * AN * lado) / 2, (v.y + w.y) / 2 + 0.18, (z + w.z + ux * AN * lado) / 2]); } } }
+      if (k) { const q = base + (k - 1) * 2; bi.push(q, q + 2, q + 1, q + 1, q + 2, q + 3); } k++;
+      postes.push([x, v.y + 0.18, z]); if (i < b) { const w = via[i + 1], [ux, uz] = T(i + 1), mx = (x + w.x + (-uz) * AN * lado) / 2, mz = (z + w.z + ux * AN * lado) / 2; if (!pisa(mx, mz, i)) postes.push([mx, (v.y + w.y) / 2 + 0.18, mz]); } } }
   if (bp.length) { const gb = new THREE.BufferGeometry(); gb.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); gb.setIndex(bi); gb.computeVertexNormals();
     const bionda = new THREE.Mesh(gb, new THREE.MeshStandardMaterial({ color: 0xc3c8cd, metalness: 0.55, roughness: 0.38, side: THREE.DoubleSide })); bionda.castShadow = true; esc.add(bionda);
     const ip = new THREE.InstancedMesh(new THREE.BoxGeometry(0.1, 0.85, 0.1), new THREE.MeshStandardMaterial({ color: 0x8a9096, metalness: 0.4, roughness: 0.5 }), postes.length), m = new THREE.Matrix4();
@@ -5067,9 +5079,12 @@ async function modeloEdificio(k){
   const d = RECURSOS_SIM.edificios[k];
   const gl = await new Promise((ok, mal) => new GLTFLoaderSim().parse(b64aBuffer(d.glb), '', ok, mal));
   const raiz = gl.scene; raiz.scale.setScalar(d.escala || 1); raiz.updateMatrixWorld(true);
-  { const fuera = []; raiz.traverse(o => { if (o.isMesh && /collider|colision/i.test(o.name + ' ' + (o.parent ? o.parent.name : ''))) fuera.push(o); }); for (const o of fuera) o.parent.remove(o); raiz.updateMatrixWorld(true); }
+  // v234 (Carlos: «las granjas siguen saliendo elevadas»): la granja es una maqueta montada sobre un bloque de tierra de 10 m; fuera el bloque y se apoya por su suelo (5,4 m sobre el fondo)
+  const QUITA = { granja: /Ground_05/ }, SUELO_M = { granja: 5.35 };
+  { const fuera = []; raiz.traverse(o => { if (o.isMesh && (/collider|colision/i.test(o.name + ' ' + (o.parent ? o.parent.name : '')) || (QUITA[k] && QUITA[k].test(o.name + ' ' + (o.parent ? o.parent.name : ''))))) fuera.push(o); }); for (const o of fuera) o.parent.remove(o); raiz.updateMatrixWorld(true); }
   const caja = new THREE.Box3().setFromObject(raiz), c = caja.getCenter(new THREE.Vector3()), t = caja.getSize(new THREE.Vector3());
-  const mover = new THREE.Matrix4().makeTranslation(-c.x, -caja.min.y, -c.z), partes = [];
+  const base = SUELO_M[k] != null ? SUELO_M[k] * (d.escala || 1) : caja.min.y; if (SUELO_M[k] != null) t.y = caja.max.y - base;
+  const mover = new THREE.Matrix4().makeTranslation(-c.x, -base, -c.z), partes = [];
   const esColision = o => { for (let p = o; p; p = p.parent) if (/collider|colision/i.test(p.name || '')) return true; return false; };
   raiz.traverse(o => { if (!o.isMesh) return; if (esColision(o)) return;   // v144 (Carlos: «casas sin ventanas, de un solo color»): la caja de colisiones del modelo se pintaba encima de la casa
     const g = o.geometry.clone(); g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(mover, o.matrixWorld));
@@ -5192,6 +5207,7 @@ async function decorarReal(esc, D){
       const grande = (Math.max(M.ancho, M.fondo) > 20 && hilera !== 'hito' && !/^(ayuntamiento|policia)$/.test(k)) || hilera === 'suelo', dif = yMax - yMin; if (dif > (hilera === 'suelo' ? 1.2 : grande ? (/^(colegio|burger)$/.test(k) ? 1.5 : 0.8) : 5)) return false;   // ladera demasiado empinada: ahí no se construye · v233 (Carlos: «las granjas salen elevadas»): las piezas grandes (granjas con su parcela) solo en llano
       const y = hilera === 'suelo' ? (yMin + yMax) / 2 - 0.04 : grande ? (yMin + yMax) / 2 - 0.25 : dif < 0.35 ? yMin - 0.1 : yMax - 0.12;   /* v233 (Carlos: «las granjas siguen saliendo elevadas»): las grandes con parcela, hundidas un poco y sin zócalo */
       libre(x, z, M.ancho, M.fondo, ang, true);
+      if (k === 'granja') (v3.granjas = v3.granjas || []).push([Math.round(x), Math.round(z), cercana(x, z).i]);
       { const ex = ALTOS_POCOS[k] ? 1 : 0.92 + Math.random() * 0.16, ey = ALTOS_POCOS[k] ? 1 : 0.94 + Math.random() * 0.14; (sitios[k] = sitios[k] || []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(ex, ey, ex))); }   /* v233: cada casa un poco distinta de tamaño */
       if (dif >= 0.35 && !grande) cimientos.push(new THREE.Matrix4().compose(new THREE.Vector3(x, yMin - 0.5, z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(M.ancho * 0.97, y - yMin + 0.6, M.fondo * 0.97)));
       return M; };
@@ -5395,7 +5411,7 @@ function moverTrafico(dt, dYo){
     o.d += v * dt * o.sentido;
     const lejos = Math.abs(o.d - dYo); o.g.visible = lejos < 700;
     if (!o.g.visible) continue;
-    const an = anchoEn(o.d), lat = o.sentido > 0 ? (v3.latYo ?? 0.5) - 0.9 : -Math.max(0.6, an - 0.5);
+    const an = anchoEn(o.d), lat = (o.sentido > 0 ? 1 : -1) * Math.max(0.6, an - 0.55);   /* v234 (Carlos: «podrían ir los ciclistas pegados al arcén»): cada uno pegado al arcén de su sentido */
     colocarEnVia(o.g, o.d, lat, o.sentido, 0.18);
     if (lejos < 200) { const u = o.g.userData; u.giro += (60 + v * 3) / 60 * Math.PI * 2 * dt; posarPiernas(o.g); for (const r of u.ruedas) r.rotation.x += v * dt / 0.335; } }
   for (const c of v3.coches || []) {
@@ -5410,12 +5426,14 @@ function moverTrafico(dt, dYo){
     // v221 (Carlos: «los coches siempre van por el carril izquierdo y se solapan al cruzarse; los de tu sentido, por el derecho, al pasarte invaden el izquierdo sin chocar si viene alguien, y luego vuelven»)
     { const an = anchoEn(c.d), carril = Math.max(1.2, an / 2), ly = v3.latYo ?? 0.5; let obj, v = c.vBase || c.v;
       if (c.sentido < 0) obj = -carril;
-      else { let gap = c.d - dYo, adelantando = gap > -45 && gap < 18;
+      else { let gap = c.d - dYo, adelantando = gap > -45 && gap < 18, conSusana = false;
         if (grupetaT) { let lo = dYo, hi = dYo; for (const r of rivales.lista) if (r.tipo === 'bot' && !r.llego) { if (r.d < lo) lo = r.d; if (r.d > hi) hi = r.d; } adelantando = c.d > lo - 45 && c.d < hi + 18; gap = c.d > hi ? c.d - hi : c.d - lo; }   /* toda la grupeta, no solo tú */
+        else { let lo = dYo, hi = dYo; for (const r of rivales.lista) if (r.avatar && !r.llego && r.tipo !== 'bot' && Math.abs((r.dVis ?? r.d) - dYo) < 60) { const rd = r.dVis ?? r.d; if (rd < lo) lo = rd; if (rd > hi) hi = rd; }   /* v234: Susana a tu lado cuenta como tú */
+          if (lo < dYo || hi > dYo) { adelantando = c.d > lo - 45 && c.d < hi + 18; gap = c.d > hi ? c.d - hi : c.d - lo; conSusana = true; } }
         const deFrente = (v3.coches || []).some(o => o !== c && o.vivo && o.sentido < 0 && o.d - c.d > -12 && o.d - c.d < 260);
         c.pasando = adelantando && (c.pasando || !deFrente);
         if (adelantando && !c.pasando) { obj = carril; if (gap > -28) v = Math.min(v, vYo); }   // espera detrás, a tu ritmo
-        else obj = c.pasando && (grupetaT || gap < 14) ? (grupetaT ? -carril : Math.min(-0.6, ly - 2.3)) : carril;
+        else obj = c.pasando && (grupetaT || gap < 14) ? (grupetaT ? -carril : Math.max(-an + 0.95, Math.min(-0.6, ly - 2.3 - (conSusana ? 1.0 : 0)))) : carril;
         if (!adelantando) c.pasando = false; }
       c.v = v; c.lat = c.lat == null ? obj : c.lat + (obj - c.lat) * Math.min(1, dt * 0.9); }
     c.d += c.v * dt * c.sentido;
@@ -5966,6 +5984,7 @@ async function construir3D(){
     v3.suelo = hAqui;
     // v234 (Carlos: «del camping podemos tomar tiendas y otros objetos para montar campamentos en la montaña»): claros llanos en campo o bosque, uno cada 4 km como mucho; se reservan antes de plantar árboles
     v3.acampadas = [];
+    v3.granjas = [];
     if (TEMA.real && !CX && window.RECURSOS_SIM && RECURSOS_SIM.edificios && RECURSOS_SIM.edificios.campamento) { let ult = -2500;
       for (let i = 4; i < via.length - 4; i += 3) { const v = via[i]; if (v.d - ult < 6000) continue;
         const a = via[i - 2], b = via[i + 2], L = Math.hypot(b.x - a.x, b.z - a.z) || 1, tx = (b.x - a.x) / L, tz = (b.z - a.z) / L;
@@ -8291,6 +8310,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
         + (L.length ? L.slice(-6).reverse().map(x => '<div class="tl" style="display:flex;justify-content:space-between;margin-bottom:6px"><span>' + fechaCorta(x.fecha) + ' · ' + esc(x.motivo) + '</span><span style="font-weight:700">' + f1(x.de / 1000) + ' → ' + f1(x.a / 1000) + ' kJ</span></div>').join('') : '<div style="color:#9aa6b2">Todavía no ha cambiado.</div>') + '</div>'; }
     h += '<footer style="position:absolute;left:0;right:0;top:852px;display:flex;justify-content:center;gap:28px;font-size:14px;color:#c5ccd3">' + [['← →', 'pestañas'], ['↑ ↓', fi.tab === 1 || fi.tab === 4 ? 'recorrer' : fi.tab === 3 ? '—' : 'periodo'], ['B', fi.tab === 1 ? 'ver la ficha' : '—'], ['A', fi.tab === 1 ? 'filtro' : '—'], ['Z', 'volver']].filter(x => x[1] !== '—').map(([k, t]) => '<span><kbd style="margin-right:8px">' + k + '</kbd>' + t + '</span>').join('') + '</footer>'
       + '<img src="recursos/logo-khb.jpg" alt="" style="position:absolute;right:6px;bottom:6px;height:46px;opacity:.95;border-radius:7px;z-index:2">';
+    if (typeof guardarLienzoVisor === 'function') guardarLienzoVisor();   /* v234: que el redibujado no se lleve el lienzo del muñeco */
     Z.innerHTML = h; escalar();
     Z.querySelectorAll('[data-t]').forEach(n => n.onclick = () => { fi.tab = +n.dataset.t; pintar(); });
     Z.querySelectorAll('[data-act]').forEach(n => n.onclick = () => { fi.iAct = +n.dataset.act; pintar(); const a = (fi.listaAct || [])[fi.iAct]; if (a && a.fecha) verFichaGuardada(a.fecha); });
@@ -8303,9 +8323,9 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
   function accion(k){ if (k === 'volver') { cerrar(); if (fi.vuelta) fi.vuelta(); return; }
     if (k === 'clasica') { cerrar(); abrirFicha(); return; }
     if (k === 'fit') { $('ficheroFit').click(); setTimeout(() => { if (fi.abierta) pintar(); }, 3000); } }
-  function cerrar(){ R.hidden = true; fi.abierta = false; }
+  function cerrar(){ R.hidden = true; fi.abierta = false; if (typeof soltarVisor === 'function') soltarVisor(); }
   window.fiNueva = fi;
-  window.abrirFichaNueva = function(vuelta){ fi.vuelta = vuelta || null; fi.abierta = true; fi.tab = 0; R.hidden = false; pintar(); };
+  window.abrirFichaNueva = function(vuelta){ if (typeof soltarVisor === 'function') soltarVisor(); fi.vuelta = vuelta || null; fi.abierta = true; fi.tab = 0; R.hidden = false; pintar(); };
   window.fichaMando = function(b){ if (window.fichaVisor) { if (b === 'B' || b === 'Z') cerrarFichaGuardada(); return true; } if (!fi.abierta) return false;
     if (b === 'izq') fi.tab = (fi.tab + TABS.length - 1) % TABS.length; else if (b === 'der') fi.tab = (fi.tab + 1) % TABS.length;
     else if (b === 'arr' || b === 'ab') { const d = b === 'ab' ? 1 : -1; if (fi.tab === 0) fi.per = (fi.per + d + 4) % 4; else if (fi.tab === 1) fi.iAct += d; else if (fi.tab === 2) fi.cur = (fi.cur + d + 3) % 3; else if (fi.tab === 4) fi.iEvo = Math.max(0, fi.iEvo + d); }
