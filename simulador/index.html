@@ -15,7 +15,7 @@ if (window.THREE) { (()=>{var be=Object.create;var pe=Object.defineProperty;var 
    Mapa 2D, perfil, datos, rivales y tramos funcionan igual; el 3D enseña un vídeo de demostración.
    Para probar: ?ligero=1 fuerza el modo ligero y ?3d=1 lo quita. */
 window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(location.search) && !matchMedia('(any-pointer: fine)').matches);
-if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','vias','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
+if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','animales','huevos','coches','rios','vias','modelos-extra','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
 <script src="recursos/circuitos.js"></script>
@@ -247,6 +247,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 
   /* v160 (Carlos, captura de la tablet 21-nov): en la tablet, columna de datos más estrecha y paneles más pequeños, cada uno encogido hacia su esquina */
   body.tablet #zonaRuta.carretera { --colD: 300px; }
+  body.tablet #zonaRuta.carretera.sinDatos { --colD: 0px; }   /* v227 (Carlos, tablet: el 3D no llegaba al borde y asomaba la pantalla de debajo) */
   body.tablet #zonaRuta.carretera #panelPerfil { zoom:.7; width:calc(300px / .7); max-height:calc(58vh / .7); }
   body.tablet #zonaRuta.carretera #panelMapa { top:58%; }
   body.tablet #marcador, body.tablet #viento3d, body.tablet #mandoTeclado, body.tablet #clasifPanel { scale:.72; transform-origin:left top; }
@@ -379,7 +380,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','anim
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v226 · 🚆 vías de tren reales con Cercanías pasando · ⛰️ talud de la pista más suave · v225 · 👀 los corredores ya no desaparecen ni saltan en el dibujo · v224 · 🚵 ciclocrós: los corredores ya no se paran ni retroceden donde la ruta repite camino · salir del 3D pregunta (B sí · Z no) · v223 · ⎋ desde el 3D parado, Esc o B del Play: a elegir sesión · v222 · 🚗 coches por su carril: los de tu sentido por la derecha, te adelantan por la izquierda si no viene nadie y vuelven · v221 · 🎮 el lateral del Play izquierdo funciona aunque llegue por el derecho · 👀 «Seguir a…» con todos los grupos y corredores · K mapa entero / seguirme · v220 · ventanas: el mapa ya no se monta sobre «Próximo km» · v219 · ficha: pestaña «Evolución» (mes a mes y por temporadas) · ciclocrós sin carreteras de raya · v218 · «Venid conmigo» con fuerzas, Crónica (Y) · v190 · 🔔 avisos de cadencia baja y potencia por debajo (pantalla y voz) · mapa de verdad en «Mapa · Etapa» · viento dentro de la tarjeta · v189 · 🏋 sesión en el mundo 3D: esquema de la sesión en grande en vez de tramo, mapa y próximo km; sin «salida real» ni locutores de carrera · v188 · 🏋 la sesión para el mundo 3D se elige en la presentación del plan · v187 · 🏋 sesión .zwo rodando en el mundo 3D: modo «Sesión .zwo» en Rodar 3D/2D, bici en ERG, avanzas según la pendiente · v186 · 🗺 libre (rivales: liebres y tu mejor vuelta) y mapa 2D a pantalla completa con las ventanas del lienzo · v185 · 👀 «Ver una carrera» con el diseño del lienzo · v184 · 🪪 ficha completa nueva: resumen, actividades, curva y reserva · v183 · ☰ menú nuevo (Y), «Seguir a…» (lateral izq.), clasificación con pestañas (lateral dcho.) y órdenes (A) con el diseño del lienzo · v182 · ∎ pausa, círculo de terminar y resumen nuevos · v181 · 🎥 3D a pantalla completa con las ventanas del lienzo (vuelta a la clásica con la tecla de datos) · v180 · ✎ diseñar en el mapa empieza vacío (la anterior, en Opciones) · v179 · ✎ diseñar en el mapa: la mira se mueve más fino (y acelera si insistes) · v178 · 🏋 «Sesión .zwo» nueva: el plan de la semana y la sesión en marcha con el diseño del lienzo · v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v227 · 🚂 tren de vapor en la sierra y tranvía en el metro ligero · 👥 público en puertos, cimas y curvas de ciclocrós · v226 · 🚆 vías de tren reales con Cercanías pasando · ⛰️ talud de la pista más suave · v225 · 👀 los corredores ya no desaparecen ni saltan en el dibujo · v224 · 🚵 ciclocrós: los corredores ya no se paran ni retroceden donde la ruta repite camino · salir del 3D pregunta (B sí · Z no) · v223 · ⎋ desde el 3D parado, Esc o B del Play: a elegir sesión · v222 · 🚗 coches por su carril: los de tu sentido por la derecha, te adelantan por la izquierda si no viene nadie y vuelven · v221 · 🎮 el lateral del Play izquierdo funciona aunque llegue por el derecho · 👀 «Seguir a…» con todos los grupos y corredores · K mapa entero / seguirme · v220 · ventanas: el mapa ya no se monta sobre «Próximo km» · v219 · ficha: pestaña «Evolución» (mes a mes y por temporadas) · ciclocrós sin carreteras de raya · v218 · «Venid conmigo» con fuerzas, Crónica (Y) · v190 · 🔔 avisos de cadencia baja y potencia por debajo (pantalla y voz) · mapa de verdad en «Mapa · Etapa» · viento dentro de la tarjeta · v189 · 🏋 sesión en el mundo 3D: esquema de la sesión en grande en vez de tramo, mapa y próximo km; sin «salida real» ni locutores de carrera · v188 · 🏋 la sesión para el mundo 3D se elige en la presentación del plan · v187 · 🏋 sesión .zwo rodando en el mundo 3D: modo «Sesión .zwo» en Rodar 3D/2D, bici en ERG, avanzas según la pendiente · v186 · 🗺 libre (rivales: liebres y tu mejor vuelta) y mapa 2D a pantalla completa con las ventanas del lienzo · v185 · 👀 «Ver una carrera» con el diseño del lienzo · v184 · 🪪 ficha completa nueva: resumen, actividades, curva y reserva · v183 · ☰ menú nuevo (Y), «Seguir a…» (lateral izq.), clasificación con pestañas (lateral dcho.) y órdenes (A) con el diseño del lienzo · v182 · ∎ pausa, círculo de terminar y resumen nuevos · v181 · 🎥 3D a pantalla completa con las ventanas del lienzo (vuelta a la clásica con la tecla de datos) · v180 · ✎ diseñar en el mapa empieza vacío (la anterior, en Opciones) · v179 · ✎ diseñar en el mapa: la mira se mueve más fino (y acelera si insistes) · v178 · 🏋 «Sesión .zwo» nueva: el plan de la semana y la sesión en marcha con el diseño del lienzo · v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -4493,7 +4494,7 @@ function aplicarHora(){
 }
 // v226 (Carlos: «algún tren circulando en paralelo al pelotón»): vías reales de OpenStreetMap (recursos/vias.js) y un Cercanías que pasa de vez en cuando
 function dibujarVias(esc, TEMA, D){
-  v3.vias = []; v3.tren = null; v3.trenEspera = 20 + Math.random() * 40;
+  v3.vias = []; v3.tren = null; v3.trenD = null; v3.trenEspera = 20 + Math.random() * 40;
   const R = window.RECURSOS_SIM && RECURSOS_SIM.vias; if (!R || !D.aXZ || !TEMA.real) return;
   const { nx, nz, p0, PASO, alt, cercana } = D, aXZ = D.aXZ, x1 = p0.x + (nx - 1) * PASO, z1 = p0.z + (nz - 1) * PASO;
   const hT = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
@@ -4503,14 +4504,25 @@ function dibujarVias(esc, TEMA, D){
   for (const co of R) { let run = [];
     const cerrar = () => { if (run.length > 1) { const P = [], L0 = []; let s = 0;
         for (let k = 0; k < run.length - 1; k++) { const a = run[k], b = run[k + 1], L = Math.hypot(b.x - a.x, b.z - a.z); if (L < 0.01) continue; const n = Math.max(1, Math.ceil(L / 5));
-          for (let q = 0; q < n; q++) { const f = q / n; P.push({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f, tun: !!(a.f & 1), pte: !!(a.f & 2), ele: !!(a.f & 4), s: s + L * f }); } s += L; }
+          for (let q = 0; q < n; q++) { const f = q / n; P.push({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f, tun: !!(a.f & 1), pte: !!(a.f & 2), ele: !!(a.f & 4), lig: !!(a.f & 8), s: s + L * f }); } s += L; }
         const u = run[run.length - 1]; P.push({ x: u.x, z: u.z, tun: !!(u.f & 1), pte: !!(u.f & 2), ele: !!(u.f & 4), s });
         if (s > 150) { const y0 = P.map(p => hT(p.x, p.z)); P.forEach((p, i) => { let m = 0, c = 0; for (let j = Math.max(0, i - 8); j <= Math.min(P.length - 1, i + 8); j++) { m += y0[j]; c++; } p.y = Math.max(m / c, y0[i] - 0.6) + 0.35; });   // rasante suave (±40 m), sin hundirse
-          v3.vias.push({ P, L: s }); } }
+          v3.vias.push({ P, L: s, monte: P.reduce((m, p) => m + p.y, 0) / P.length > 1150, ligero: P.filter(p => p.lig).length > P.length / 2 }); } }   /* v227: de montaña (>1.150 m de media) → vapor; metro ligero → tranvía */
       run = []; };
     for (let k = 0; k < co.length; k += 3) { const p = aXZ(co[k], co[k + 1]); p.f = co[k + 2]; if (dentro(p) && cercana(p.x, p.z).d < 700) run.push(p); else cerrar(); }
     cerrar(); }
   if (!v3.vias.length) return;
+  // v227 (vista en la prueba: pinos plantados encima de la vía): fuera árboles, rocas y matas a menos de 5,5 m de un raíl
+  { const H = new Map(), C = 8, k = (x, z) => Math.floor(x / C) + ',' + Math.floor(z / C); for (const V of v3.vias) for (const p of V.P) if (!p.tun) { const kk = k(p.x, p.z); if (!H.has(kk)) H.set(kk, []); H.get(kk).push(p); }
+    const cerca = (x, z) => { const cx = Math.floor(x / C), cz = Math.floor(z / C); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const p of (H.get((cx + i) + ',' + (cz + j)) || [])) if ((p.x - x) ** 2 + (p.z - z) ** 2 < 30) return true; return false; };
+    const m = new THREE.Matrix4(), v = new THREE.Vector3(), cero = new THREE.Matrix4().makeScale(0, 0, 0); let n = 0;
+    esc.traverse(o => { if (!o.isInstancedMesh || o.userData.publico) return; let toc = false; for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m); v.setFromMatrixPosition(m); if (cerca(v.x, v.z)) { o.setMatrixAt(i, cero); toc = true; n++; } } if (toc) o.instanceMatrix.needsUpdate = true; });
+    if (n) log('3D: quitados ' + n + ' árboles, rocas o matas que caían sobre la vía.');
+    // v227 (Carlos: «en zonas sin mucho bosque»): cuántos árboles hay a menos de 40 m de cada punto de la vía
+    const A = new Map(), CA = 20, ka = (x, z) => Math.floor(x / CA) + ',' + Math.floor(z / CA);
+    esc.traverse(o => { if (!o.isInstancedMesh || o.userData.publico) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); if (o.geometry.boundingBox.max.y - o.geometry.boundingBox.min.y < 2.5) return;
+      for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m); v.setFromMatrixPosition(m); if (m.elements[0] === 0 && m.elements[5] === 0) continue; const kk = ka(v.x, v.z); A.set(kk, (A.get(kk) || 0) + 1); } });
+    for (const V of v3.vias) for (const p of V.P) { const cx = Math.floor(p.x / CA), cz = Math.floor(p.z / CA); let c = 0; for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) c += A.get((cx + i) + ',' + (cz + j)) || 0; p.bosque = c; } }
   // balasto con traviesas y raíles (textura), sin dibujar en los túneles
   const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
   g.fillStyle = '#7d766c'; g.fillRect(0, 0, 64, 128); for (let i = 0; i < 700; i++) { g.fillStyle = 'rgba(' + (60 + Math.random() * 90 | 0) + ',' + (55 + Math.random() * 80 | 0) + ',' + (50 + Math.random() * 70 | 0) + ',0.7)'; g.fillRect(Math.random() * 64, Math.random() * 128, 2, 2); }
@@ -4547,23 +4559,127 @@ function moverTren(dt, aqui, dRuta){
   if (!v3.vias || !v3.vias.length || !v3.trenCoches || !aqui) return;
   let T = v3.tren;
   if (!T) { v3.trenEspera -= dt; if (v3.trenEspera > 0) return;
-    // la vía más cercana a ti (a menos de 450 m); llega a tu altura en unos 30–40 s, en tu sentido o de frente
     const rumbo = (() => { try { const a = puntoVia(Math.max(0, dRuta - 5)), b = puntoVia(dRuta + 5), L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return { x: (b.x - a.x) / L, z: (b.z - a.z) / L }; } catch(e) { return null; } })();
-    // la vía más cercana, mejor si va en paralelo a tu ruta (un cruce cuenta como si estuviera 3 veces más lejos)
-    let mejor = null; for (const V of v3.vias) for (let i = 0; i < V.P.length; i += 4) { const p = V.P[i], d = Math.hypot(p.x - aqui.x, p.z - aqui.z); if (d >= 450) continue; const par = rumbo ? Math.abs(p.tx * rumbo.x + p.tz * rumbo.z) : 1, nota = d * (par > 0.8 ? 1 : 3); if (!mejor || nota < mejor.nota) mejor = { V, i, d, nota }; }
-    if (!mejor) { v3.trenEspera = 15; return; }
-    const V = mejor.V, p = V.P[mejor.i], sC = p.s, v = 22 + Math.random() * 8, mismo = rumbo ? (p.tx * rumbo.x + p.tz * rumbo.z > 0) : true, dir = Math.random() < 0.6 ? (mismo ? 1 : -1) : (mismo ? -1 : 1);
-    let dd = dir, t0 = 30 + Math.random() * 10, s0 = sC - dd * v * t0; if (s0 < 0 || s0 > V.L) { dd = -dd; s0 = sC - dd * v * t0; }   /* si no cabe, por el otro lado; y si tampoco, desde el extremo */
-    s0 = Math.max(0, Math.min(V.L, s0)); if (Math.abs(s0 - sC) < 150) { v3.trenEspera = 20; return; }
-    T = v3.tren = { V, s: s0, dir: dd, v }; }
-  T.s += T.dir * T.v * dt; let alguno = false;
-  v3.trenCoches.forEach((cc, k) => { const s = T.s - T.dir * k * 20.4, a = puntoVia3(T.V, s - 9 * T.dir), b = puntoVia3(T.V, s + 9 * T.dir), fuera = s < 0 || s > T.V.L, c = puntoVia3(T.V, s);
-    cc.visible = !fuera && !c.tun; if (cc.visible) { alguno = true; cc.position.set(c.x, c.y, c.z); cc.lookAt(b.x, b.y, b.z); } });
-  const pc = puntoVia3(T.V, T.s); if ((!alguno && (T.s < -200 || T.s > T.V.L + 200)) || Math.hypot(pc.x - aqui.x, pc.z - aqui.z) > 1800) { v3.trenCoches.forEach(cc => cc.visible = false); v3.tren = null; v3.trenEspera = 50 + Math.random() * 90; }
+    // v227 (Carlos: «que aparezca a 500 m desde un lateral, vaya paralelo a la carretera y se separe otra vez, en zonas sin mucho bosque; no todo el puerto»)
+    // solo junto a un tramo de vía paralelo (a menos de 250 m) y con poco bosque; sale a unos 500 m y no vuelve a salir hasta 2 km después
+    if (v3.trenD != null && Math.abs(dRuta - v3.trenD) < 2000) { v3.trenEspera = 10; return; }
+    let mejor = null; for (const V of v3.vias) for (let i = 0; i < V.P.length; i += 4) { const p = V.P[i]; if (p.tun) continue; const d = Math.hypot(p.x - aqui.x, p.z - aqui.z); if (d >= 250 || d < 12) continue;
+      const par = rumbo ? Math.abs(p.tx * rumbo.x + p.tz * rumbo.z) : 1; if (par < 0.85 || (p.bosque || 0) > 45) continue; if (!mejor || d < mejor.d) mejor = { V, i, d }; }
+    if (!mejor) { v3.trenEspera = 8; return; }
+    const V = mejor.V, p = V.P[mejor.i], sC = p.s, tipo = (V.ligero && v3.tranviaObj) ? 'tranvia' : (V.monte && v3.vaporObj) ? 'vapor' : 'cercanias', v = tipo === 'tranvia' ? 12 + Math.random() * 4 : tipo === 'vapor' ? 9 + Math.random() * 3 : 22 + Math.random() * 8, mismo = rumbo ? (p.tx * rumbo.x + p.tz * rumbo.z > 0) : true;
+    // sentido: el 60 % en el tuyo (te alcanza por detrás), si no de frente; arranca donde la vía queda a unos 500 m de ti
+    let dd = Math.random() < 0.6 ? (mismo ? 1 : -1) : (mismo ? -1 : 1), s0 = null;
+    for (const sg of [dd, -dd]) { let s1 = sC; for (let k = 0; k < 400; k++) { s1 -= sg * 5; if (s1 <= 0 || s1 >= V.L) break; const q = puntoVia3(V, s1); if (Math.hypot(q.x - aqui.x, q.z - aqui.z) >= 500) break; }
+      s1 = Math.max(0, Math.min(V.L, s1)); if (Math.abs(s1 - sC) > 250) { dd = sg; s0 = s1; break; } }
+    if (s0 == null) { v3.trenEspera = 15; return; }
+    v3.trenD = dRuta;
+    const piezas = tipo === 'tranvia' ? [{ o: v3.tranviaObj, L: v3.tranviaObj.userData.largo + 0.5 }] : tipo === 'vapor' ? [{ o: v3.vaporObj, L: v3.vaporObj.userData.largo + 0.6 }, ...v3.coVapor.map(o => ({ o, L: 13.6 }))] : v3.trenCoches.map(o => ({ o, L: 20.4 }));
+    T = v3.tren = { V, s: s0, dir: dd, v, tipo, piezas }; }
+  T.s += T.dir * T.v * dt; let alguno = false, acc = 0;
+  for (const pz of T.piezas) { const s = T.s - T.dir * (acc + pz.L / 2), c = puntoVia3(T.V, s), b = puntoVia3(T.V, s + 6 * T.dir), fuera = s < 0 || s > T.V.L; acc += pz.L;
+    pz.o.visible = !fuera && !c.tun; if (pz.o.visible) { alguno = true; pz.o.position.set(c.x, c.y, c.z); pz.o.lookAt(b.x, b.y, b.z); } }
+  if (T.tipo === 'vapor' && v3.vaporObj.visible) { const U = v3.vaporObj.userData; if (U.mixer) U.mixer.update(dt * T.v / 6);
+    v3.humoT = (v3.humoT || 0) - dt; if (v3.humoT <= 0 && v3.humo) { v3.humoT = 0.14; const h = v3.humo[v3.humoI = ((v3.humoI || 0) + 1) % v3.humo.length]; v3.vaporObj.updateMatrixWorld(); h.position.copy(U.chimenea).applyMatrix4(v3.vaporObj.matrixWorld); h.userData.t = 0; h.visible = true; } }
+  if (v3.humo) for (const h of v3.humo) if (h.visible) { const t = (h.userData.t += dt); h.position.y += dt * 1.6; h.scale.setScalar(0.6 + t * 1.3); h.material.opacity = Math.max(0, 0.55 * (1 - t / 3.2)); if (t > 3.2) h.visible = false; }
+  const pc = puntoVia3(T.V, T.s); if ((!alguno && (T.s < -200 || T.s > T.V.L + 200)) || Math.hypot(pc.x - aqui.x, pc.z - aqui.z) > 900) {   /* se ha separado: fuera */ for (const pz of T.piezas) pz.o.visible = false; v3.tren = null; v3.trenEspera = 50 + Math.random() * 90; }
+}
+
+// v227 (Carlos: modelos de Sketchfab que trajo él): tranvía CAF Urbos, locomotora de vapor y personas low poly (recursos/modelos-extra.js)
+async function cargarModelosExtra(){
+  if (window._mExtra) return window._mExtra; const R = window.RECURSOS_SIM && RECURSOS_SIM.extra; if (!R || typeof GLTFLoaderSim === 'undefined') return null;
+  const leer = async k => (await new Promise((ok, mal) => new GLTFLoaderSim().parse(b64aBuffer(R[k].glb), '', ok, mal)));
+  const M = {};
+  // un modelo largo, tumbado a lo largo de +z, centrado y con las ruedas en y = 0
+  const enderezar = (o, frente) => { o.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(o), s = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3());
+    const g = new THREE.Group(), w = new THREE.Group(); w.add(o); o.position.sub(new THREE.Vector3(c.x, b.min.y, c.z));
+    if (s.x > s.z) w.rotation.y = frente < 0 ? Math.PI / 2 : -Math.PI / 2; g.add(w); g.userData.largo = Math.max(s.x, s.z); g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.frustumCulled = false; } }); return g; };
+  try { const gl = await leer('tranvia'); M.tranvia = enderezar(gl.scene, 1); } catch(e) { log('3D: tranvía: ' + e.message); }
+  try { const gl = await leer('vapor'); const o = gl.scene; o.updateMatrixWorld(true);
+      // el frente es el lado contrario al ténder
+      const bT = new THREE.Box3(), bA = new THREE.Box3().setFromObject(o); o.traverse(m => { if (m.isMesh && /tender/i.test((m.material && m.material.name) || '')) bT.expandByObject(m); });
+      const largoX = (bA.max.x - bA.min.x) > (bA.max.z - bA.min.z), cA = bA.getCenter(new THREE.Vector3()), cT = bT.isEmpty() ? cA : bT.getCenter(new THREE.Vector3()), fr = largoX ? Math.sign(cA.x - cT.x) || 1 : Math.sign(cA.z - cT.z) || 1;
+      const g = enderezar(o, largoX ? fr : 1); if (!largoX && fr < 0) g.children[0].rotation.y = Math.PI;
+      g.updateMatrixWorld(true); let ch = null; const v = new THREE.Vector3(), L = g.userData.largo;
+      g.traverse(m => { if (!m.isMesh) return; const p = m.geometry.attributes.position; for (let i = 0; i < p.count; i += 3) { v.fromBufferAttribute(p, i).applyMatrix4(m.matrixWorld); if (v.z > L * 0.18 && Math.abs(v.x) < 0.5 && (!ch || v.y > ch.y)) ch = v.clone(); } });
+      g.userData.chimenea = ch || new THREE.Vector3(0, 4.6, L * 0.35);
+      if (gl.animations && gl.animations.length) { g.userData.mixer = new THREE.AnimationMixer(o); g.userData.mixer.clipAction(gl.animations[0]).play(); }
+      M.vapor = g; } catch(e) { log('3D: locomotora: ' + e.message); }
+  try { const gl = await leer('gente'); const o = gl.scene; o.updateMatrixWorld(true); o.traverse(m => { if (m.isSkinnedMesh) { m.skeleton.update(); } });
+      // cada persona fija en su postura y en una sola pieza por material; se agrupan por dónde están en la escena
+      const piezas = [], v = new THREE.Vector3();
+      o.traverse(m => { if (!m.isMesh) return; const p = m.geometry.attributes.position, pos = new Float32Array(p.count * 3), b = new THREE.Box3();
+        for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); if (m.isSkinnedMesh) m.applyBoneTransform(i, v); v.applyMatrix4(m.matrixWorld); pos.set([v.x, v.y, v.z], i * 3); b.expandByPoint(v); }
+        const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); { const U = m.geometry.attributes.uv; if (U) { const uv = new Float32Array(p.count * 2); for (let i = 0; i < p.count; i++) { uv[i * 2] = U.getX(i); uv[i * 2 + 1] = U.getY(i); } geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); } }   /* vienen entrelazadas: se leen vértice a vértice */
+        if (m.geometry.index) geo.setIndex(Array.from(m.geometry.index.array)); geo.computeVertexNormals();
+        piezas.push({ geo, mat: m.material, c: b.getCenter(new THREE.Vector3()), b }); });
+      const grupos = []; for (const pz of piezas) { let g2 = grupos.find(g3 => Math.hypot(g3.c.x - pz.c.x, g3.c.z - pz.c.z) < 0.45); if (!g2) { g2 = { c: pz.c.clone(), piezas: [], b: new THREE.Box3() }; grupos.push(g2); } g2.piezas.push(pz); g2.b.union(pz.b); }
+      const vale = grupos.filter(g2 => g2.b.max.y - g2.b.min.y > 0.6), adulto = Math.max(...vale.map(g2 => g2.b.max.y - g2.b.min.y)), esc2 = 1.72 / adulto;   // una sola escala: el adulto más alto, 1,72 m
+      M.gente = vale.map(g2 => { const porMat = new Map(); const pie = new THREE.Vector3((g2.b.min.x + g2.b.max.x) / 2, g2.b.min.y, (g2.b.min.z + g2.b.max.z) / 2);
+        for (const pz of g2.piezas) { pz.geo.translate(-pie.x, -pie.y, -pie.z); const k = pz.mat.uuid; if (!porMat.has(k)) porMat.set(k, { mat: pz.mat, geos: [] }); porMat.get(k).geos.push(pz.geo); }
+        return { alto: (g2.b.max.y - g2.b.min.y) * esc2, partes: [...porMat.values()].map(x => { const mt = x.mat.clone(); mt.side = THREE.DoubleSide; return { mats: variantesRopa(mt, 2), geo: unirGeos(x.geos).scale(esc2, esc2, esc2) }; }) }; });   /* por las dos caras; y 3 colores de ropa por persona */
+    } catch(e) { log('3D: personas: ' + e.message); }
+  window._mExtra = M; return M;
+}
+function variantesRopa(mat, n){ const out = [mat]; const img = mat.map && mat.map.image; if (!img || !img.width) return out;
+  for (let k = 1; k <= n; k++) { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, c.width, c.height), a = d.data, giro = k * 120 / 360;
+    for (let i = 0; i < a.length; i += 4) { let r = a[i] / 255, gg = a[i + 1] / 255, b = a[i + 2] / 255; const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2, dd = mx - mn; if (dd < 0.12) continue;   /* grises, blancos y negros, igual */
+      let h = mx === r ? ((gg - b) / dd + 6) % 6 : mx === gg ? (b - r) / dd + 2 : (r - gg) / dd + 4; h /= 6; const sat = dd / (1 - Math.abs(2 * l - 1));
+      if (h < 50 / 360 || h > 345 / 360) continue;   /* piel, pelo, marrones y rojos de pelo: igual */
+      h = (h + giro) % 1; const C = (1 - Math.abs(2 * l - 1)) * sat, X = C * (1 - Math.abs((h * 6) % 2 - 1)), m = l - C / 2, s6 = Math.floor(h * 6);
+      const [r1, g1, b1] = [[C, X, 0], [X, C, 0], [0, C, X], [0, X, C], [X, 0, C], [C, 0, X]][s6]; a[i] = (r1 + m) * 255; a[i + 1] = (g1 + m) * 255; a[i + 2] = (b1 + m) * 255; }
+    g.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = mat.map.colorSpace; t.flipY = mat.map.flipY; t.wrapS = mat.map.wrapS; t.wrapT = mat.map.wrapT; t.magFilter = mat.map.magFilter; t.minFilter = mat.map.minFilter;
+    const m2 = mat.clone(); m2.map = t; out.push(m2); }
+  return out; }
+function unirGeos(gs){ const po = [], uv = [], ix = []; let n = 0; for (const g of gs) { const p = g.attributes.position.array, u = g.attributes.uv ? g.attributes.uv.array : null; po.push(...p); if (u) uv.push(...u); else for (let i = 0; i < p.length / 3; i++) uv.push(0, 0);
+    if (g.index) for (const i of g.index.array) ix.push(i + n); else for (let i = 0; i < p.length / 3; i++) ix.push(i + n); n += p.length / 3; }
+  const r = new THREE.BufferGeometry(); r.setAttribute('position', new THREE.Float32BufferAttribute(po, 3)); r.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); r.setIndex(ix); r.computeVertexNormals(); return r; }
+// público: en los últimos 1.500 m de cada puerto (más cerca de la cima, más gente), en la cima y en las curvas de los ciclocrós
+function ponerPublico(esc, D, M){
+  if (!M || !M.gente || !M.gente.length || esc.userData.publico) return 0; esc.userData.publico = true; const { via, cercana, alt, nx, nz, p0, PASO } = D;   /* una sola vez por escena */
+  const hT = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
+    return (alt[k] * (1 - a) + alt[k + 1] * a) * (1 - b) + (alt[k + nx] * (1 - a) + alt[k + nx + 1] * a) * b; };
+  const nQ = $('calidad3d') ? $('calidad3d').value : 'media', MAX = nQ === 'alta' ? 1400 : nQ === 'baja' ? 220 : 800, N = via.length, sitios = [];
+  let sem = 7; const rnd = () => { sem = (sem * 16807) % 2147483647; return sem / 2147483647; };
+  // cimas: punto más alto en ±1.500 m con al menos 120 m de subida en los 4 km anteriores
+  const paso = Math.max(1, Math.round(10 / ((via[N - 1].d - via[0].d) / N || 10)));
+  for (let i = 0; i < N; i += paso) { const v = via[i]; let es = true, mn = v.y;
+    for (let j = i - 1; j >= 0 && v.d - via[j].d < 1500; j--) if (via[j].y > v.y) { es = false; break; }
+    if (!es) continue; for (let j = i + 1; j < N && via[j].d - v.d < 1500; j++) if (via[j].y > v.y) { es = false; break; }
+    if (!es) continue; for (let j = i - 1; j >= 0 && v.d - via[j].d < 4000; j--) mn = Math.min(mn, via[j].y);
+    if (v.y - mn >= 120) { for (let j = i; j >= 0 && v.d - via[j].d < 1500; j--) { const f = 1 - (v.d - via[j].d) / 1500; if (rnd() < (0.06 + 0.45 * f * f) * paso) sitios.push({ i: j, n: 1 + Math.floor(rnd() * (1 + 4 * f)) }); }
+      for (let j = i; j < N && via[j].d - v.d < 120; j += 2) if (rnd() < 0.4) sitios.push({ i: j, n: 2 + Math.floor(rnd() * 3) }); } }
+  // curvas de ciclocrós (más de 50° en 30 m), del lado de fuera
+  if (/^cx-/.test((ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.id) || ruta.id || '') || (ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.cx)) {
+    for (let i = 3; i < N - 3; i += 2) { const a = via[i - 3], b = via[i], c = via[i + 3]; let g = Math.atan2(c.x - b.x, c.z - b.z) - Math.atan2(b.x - a.x, b.z - a.z); g = Math.atan2(Math.sin(g), Math.cos(g));
+      if (Math.abs(g) > 0.87 && rnd() < 0.5) sitios.push({ i, n: 3 + Math.floor(rnd() * 4), fuera: -Math.sign(g) }); } }
+  if (!sitios.length) return 0;
+  const NV = 3, porTipo = M.gente.flatMap(() => [[], [], []]), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(); let total = 0;
+  for (const st of sitios) { if (total >= MAX) break; const v = via[st.i], a = via[Math.max(0, st.i - 2)], b = via[Math.min(N - 1, st.i + 2)]; let tx = b.x - a.x, tz = b.z - a.z; const L = Math.hypot(tx, tz) || 1; tx /= L; tz /= L;
+    const an = (typeof anchoEn === 'function' ? anchoEn(v.d) : 4) + 0.5, lado = st.fuera || (rnd() < 0.5 ? -1 : 1);
+    for (let k = 0; k < st.n && total < MAX; k++) { const off = an + 1.0 + rnd() * 2.2 + (k % 2) * 0.9, adel = (k - st.n / 2) * 0.85 + (rnd() - 0.5) * 0.4;
+      const x = v.x - tz * off * lado + tx * adel, z = v.z + tx * off * lado + tz * adel, c2 = cercana(x, z);
+      if (c2.d < an + 0.6) continue;   // nunca encima de la pista (ni de otro tramo de la ruta)
+      const yT = hT(x, z), y = v.y > yT ? Math.max(yT, v.y + 0.05 - (off - an) / 1.8) : yT;   // sobre el talud si la pista va por encima
+      const tp = Math.floor(rnd() * M.gente.length) * NV + Math.floor(rnd() * NV); e.set(0, Math.atan2(v.x - x, v.z - z) + (rnd() - 0.5) * 0.7, 0); q.setFromEuler(e); const s = 0.94 + rnd() * 0.12;
+      m4.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(s, s, s)); porTipo[tp].push(m4.clone()); total++; } }
+  porTipo.forEach((lista, tv) => { if (!lista.length) return; const tp = Math.floor(tv / NV), va = tv % NV; for (const pt of M.gente[tp].partes) { const im = new THREE.InstancedMesh(pt.geo, pt.mats[va] || pt.mats[0], lista.length); lista.forEach((mm, i) => im.setMatrixAt(i, mm)); im.castShadow = true; im.receiveShadow = true; im.userData.publico = true; im.computeBoundingSphere(); esc.add(im); } });
+  return total;
+}
+function montarTrenesExtra(esc, M){
+  v3.tranviaObj = null; v3.vaporObj = null; v3.coVapor = []; v3.humo = null; if (!M) return;
+  if (M.tranvia) { v3.tranviaObj = M.tranvia; M.tranvia.visible = false; esc.add(M.tranvia); }
+  if (M.vapor) { v3.vaporObj = M.vapor; M.vapor.visible = false; esc.add(M.vapor);
+    const verde = new THREE.MeshLambertMaterial({ color: 0x2f5a3a }), madera = new THREE.MeshLambertMaterial({ color: 0x6b4a2b }), negro = new THREE.MeshLambertMaterial({ color: 0x1d2024 }), crema = new THREE.MeshLambertMaterial({ color: 0xd9cfae });
+    const caja = (w, h, l, y, mat) => { const m2 = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), mat); m2.position.y = y; m2.castShadow = true; return m2; };
+    for (let k = 0; k < 3; k++) { const g = new THREE.Group(); g.add(caja(2.6, 1.0, 13, 1.45, madera), caja(2.6, 1.5, 13, 2.7, verde), caja(2.64, 0.7, 11.8, 2.75, negro), caja(2.62, 0.12, 13.02, 3.48, crema), caja(2.75, 0.3, 13.3, 3.62, negro), caja(2.0, 0.7, 2.2, 0.6, negro));
+      g.children[g.children.length - 1].position.z = 4.5; const b2 = caja(2.0, 0.7, 2.2, 0.6, negro); b2.position.z = -4.5; g.add(b2); g.visible = false; esc.add(g); v3.coVapor.push(g); }
+    v3.humo = []; const mh = () => new THREE.MeshLambertMaterial({ color: 0xd8d8d8, transparent: true, opacity: 0.5, depthWrite: false }), gh = new THREE.IcosahedronGeometry(0.7, 1);
+    for (let k = 0; k < 26; k++) { const h = new THREE.Mesh(gh, mh()); h.visible = false; h.userData.t = 9; esc.add(h); v3.humo.push(h); } }
 }
 function construirExtras(esc, NOMBRE, TEMA, D){
   const { via, cercana, alt, nx, nz, p0, PASO, nor } = D;
   try { dibujarRios(esc, TEMA, D); } catch(e) { log('3D: ríos: ' + e.message); }
+  try { const escE = esc; v3.tranviaObj = v3.vaporObj = null; v3.coVapor = []; v3.humo = null; cargarModelosExtra().then(M => { if (v3.escena !== escE && v3.escena) return; try { if (!escE.userData.trenesExtra) { escE.userData.trenesExtra = true; montarTrenesExtra(escE, TEMA.real ? M : null); } const n = ponerPublico(escE, D, M); if (n) log('3D: público: ' + n + ' personas en puertos, cimas y curvas.'); } catch(e) { log('3D: modelos extra: ' + e.message); } }); } catch(e) {}
   try { dibujarVias(esc, TEMA, D); if (v3.vias && v3.vias.length) log('3D: ' + v3.vias.length + ' tramos de vía de tren cerca de la ruta (' + (v3.vias.reduce((a, V) => a + V.L, 0) / 1000).toFixed(1) + ' km).'); } catch(e) { log('3D: vías: ' + e.message); }
   const hT = (x, z) => { const fi = Math.max(0, Math.min(nx - 1.001, (x - p0.x) / PASO)), fj = Math.max(0, Math.min(nz - 1.001, (z - p0.z) / PASO)), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * nx + i;
     return (alt[k] * (1 - a) + alt[k + 1] * a) * (1 - b) + (alt[k + nx] * (1 - a) + alt[k + nx + 1] * a) * b; };
