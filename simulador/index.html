@@ -5108,7 +5108,7 @@ async function decorarReal(esc, D){
   if (window.RECURSOS_SIM && RECURSOS_SIM.edificios) {
     const E = RECURSOS_SIM.edificios, porTipo = {};
     for (const [k, d] of Object.entries(E)) (porTipo[d.tipo] = porTipo[d.tipo] || []).push(k);
-    const sitios = {}, ocup = new Set(), CO = 8, cimientos = [];
+    const sitios = {}, ocup = new Set(), CO = 8, cimientos = [], ALTOS_POCOS = {};   /* (sin variar: ninguno de momento) */
     const libre = (x, z, ancho, fondo, ang, marca) => { const r = Math.max(ancho, fondo) / 2 + 2, ks = [];
       for (let a = Math.floor((x - r) / CO); a <= Math.floor((x + r) / CO); a++) for (let b = Math.floor((z - r) / CO); b <= Math.floor((z + r) / CO); b++) { const k = a + ',' + b; if (ocup.has(k)) return false; ks.push(k); }
       if (marca) ks.forEach(k => ocup.add(k)); return true; };
@@ -5123,7 +5123,7 @@ async function decorarReal(esc, D){
       const dif = yMax - yMin; if (dif > (Math.max(M.ancho, M.fondo) > 20 ? 1.5 : 5)) return false;   // ladera demasiado empinada: ahí no se construye · v233 (Carlos: «las granjas salen elevadas»): las piezas grandes (granjas con su parcela) solo en llano
       const y = dif < 0.35 ? yMin - 0.1 : yMax - 0.12;
       libre(x, z, M.ancho, M.fondo, ang, true);
-      (sitios[k] = sitios[k] || []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(1, 1, 1)));
+      { const ex = ALTOS_POCOS[k] ? 1 : 0.92 + Math.random() * 0.16, ey = ALTOS_POCOS[k] ? 1 : 0.94 + Math.random() * 0.14; (sitios[k] = sitios[k] || []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(ex, ey, ex))); }   /* v233: cada casa un poco distinta de tamaño */
       if (dif >= 0.35) cimientos.push(new THREE.Matrix4().compose(new THREE.Vector3(x, yMin - 0.5, z), q.setFromAxisAngle(eje, ang), new THREE.Vector3(M.ancho * 0.97, y - yMin + 0.6, M.fondo * 0.97)));
       return M; };
     // qué se construye junto a la vía según el entorno: [tipo, probabilidad, separación de la vía]
@@ -5159,7 +5159,7 @@ async function decorarReal(esc, D){
           if (k) { const b = base + (k - 1) * 2; idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3); } } }
       if (idx.length) { const gc = new THREE.BufferGeometry(); gc.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gc.setIndex(idx); gc.computeVertexNormals();
         const mc = new THREE.Mesh(gc, matC); mc.material.side = THREE.DoubleSide; mc.receiveShadow = true; esc.add(mc); log('3D: ' + (idx.length / 96 | 0) + ' calles.'); } }
-    const cursor = { '-1': 0, '1': 0 };
+    const cursor = { '-1': 0, '1': 0 }, recientes = {};
     for (let i = 0; i < via.length; i += 2) {
       const v = via[i], { tx, tz } = lado(i);
       for (const s of [-1, 1]) {
@@ -5169,7 +5169,8 @@ async function decorarReal(esc, D){
         let r = Math.random(), op = null; for (const o of menu) { if (r < o[1]) { op = o; break; } r -= o[1]; }
         if (op && ALTOS[op[0]] && !esGrande(v.x, v.z)) op = ['chalé', op[1], Math.min(op[2], 9)];   // pueblo pequeño: casa baja en lugar de bloque u oficina
         if (!op || !porTipo[op[0]] || Math.random() > calidad().edif * DENS) { cursor[s] = v.d + 15 + Math.random() * 25; continue; }
-        const k = elige(porTipo[op[0]]), M = await modeloEdificio(k), off = op[2] + M.fondo / 2 + Math.random() * 6;
+        const rec = recientes[s] || (recientes[s] = []), lista = porTipo[op[0]], libres = lista.filter(x => !rec.includes(x)), k = elige(libres.length ? libres : lista); rec.push(k); if (rec.length > 5) rec.shift();   /* v233 (Carlos: «bastantes casas iguales juntas»): no se repite entre las 5 últimas */
+        const M = await modeloEdificio(k), off = op[2] + M.fondo / 2 + Math.random() * 6;
         const ok = await poner(k, v.x + nx * off, v.z + nz * off, -nx, -nz, op[2] - 2);
         cursor[s] = v.d + (ok ? M.ancho + 4 + Math.random() * 12 : 12);
         // segunda fila en barrio: bloques detrás

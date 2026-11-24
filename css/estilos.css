@@ -1656,3 +1656,10 @@ button.enlace {
   color:var(--tinta-3,#6b7a73); font-weight:600; text-transform:uppercase;
   letter-spacing:.04em; font-size:.72rem;
 }
+
+/* El cotejo del ticket contra la lista (24-nov-2026) */
+.cotejo-lista{list-style:none;margin:4px 0 12px;padding:0}
+.cotejo-lista li{padding:6px 0;border-bottom:1px solid var(--linea,#e6ecf2)}
+.cotejo-lista li:last-child{border-bottom:0}
+.cotejo-lista b{display:block;font-weight:600;font-size:.92rem}
+.cotejo-lista small{color:var(--gris,#6b7f92);font-size:.8rem}

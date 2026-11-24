@@ -10543,6 +10543,105 @@ function pintarTodo() {
     var ya = (Almacen.estado.config && Almacen.estado.config.comprasCargadas) || {};
     return ya[c.ref] ? null : c;
   }
+  /* EL TICKET CONTRA LA LISTA  ·  24-nov-2026
+     Carlos, el día que no le dio tiempo a modificar el pedido: «lo que quiero
+     es comparar la lista que hay ahora, que es la que tenía que haber venido,
+     con lo que ha llegado… puede la app ver qué ha faltado y qué he pedido de
+     más». Hasta hoy el botón cargaba el ticket a ciegas y el cotejo lo hacía
+     él, línea a línea. Ahora se enseña antes de confirmar y en tres bloques:
+     lo que la lista pide y el ticket no trae, lo que trae y la lista no pedía,
+     y dónde las cantidades no coinciden. Cargar sigue siendo un botón; lo que
+     cambia es que ya sabes qué estás cargando. */
+  function cotejarTicket(c) {
+    var datos = compraActual;
+    if (!datos) {
+      try {
+        var rg = Almacen.rangoCompra(UI.cuandoCompra);
+        datos = Almacen.generarCompra(rg.desde, rg.dias, { saltarComido: true });
+      } catch (e) { datos = null; }
+    }
+    var lista = {};
+    var meter = function (l) { if (l && l.id && !lista[l.id]) lista[l.id] = l; };
+    if (datos) {
+      (datos.secciones || []).forEach(function (s) { (s.lineas || []).forEach(meter); });
+      (datos.basicos || []).forEach(meter);
+    }
+    var enTicket = {};
+    (c.lineas || []).forEach(function (l) { if (l && l.i) enTicket[l.i] = (l.p > 0 ? l.p : 1); });
+    var falta = [], sobra = [], distinto = [];
+    Object.keys(lista).forEach(function (id) {
+      if (enTicket[id] === undefined) {
+        falta.push({ n: lista[id].producto || lista[id].nombre || id,
+                     env: lista[id].texto || ((lista[id].envases || 1) + "") });
+      }
+    });
+    Object.keys(enTicket).forEach(function (id) {
+      var g = Almacen.ingrediente(id);
+      var nom = (g && g.n) || id;
+      if (lista[id] === undefined) { sobra.push({ n: nom, env: enTicket[id] }); return; }
+      var pide = lista[id].envases || 1;
+      if (pide !== enTicket[id]) {
+        distinto.push({ n: nom, pide: lista[id].texto || (pide + ""), llega: enTicket[id],
+                        env: pide });
+      }
+    });
+    var orden = function (a, b) { return a.n < b.n ? -1 : 1; };
+    return { falta: falta.sort(orden), sobra: sobra.sort(orden), distinto: distinto.sort(orden),
+             lineas: (c.lineas || []).length, sinLista: !datos };
+  }
+
+  function abrirCotejoTicket(c) {
+    var r = cotejarTicket(c);
+    var bloque = function (tit, ayuda, filas) {
+      if (!filas.length) return "";
+      return '<p class="aviso-grupo">' + esc(tit) + " \u00b7 " + filas.length + "</p>" +
+        '<p class="nota-peque">' + esc(ayuda) + '</p><ul class="cotejo-lista">' + filas.join("") + "</ul>";
+    };
+    var h = "<header><h2>" + esc(c.n || "Compra recibida") + '</h2>' +
+      '<button class="cerrar" data-cerrar>\u00d7</button></header>' +
+      '<p class="nota-peque">' + r.lineas + " l\u00edneas en el ticket, contra la lista de ahora mismo.</p>";
+    h += bloque("No ha llegado",
+      "Estaba en la lista y el ticket no lo trae. Se queda en la lista para la pr\u00f3xima compra.",
+      r.falta.map(function (x) {
+        return "<li><b>" + esc(x.n) + "</b><small>la lista pide " + esc(x.env) +
+               "</small></li>"; }));
+    h += bloque("Cantidad distinta",
+      "Ha llegado, pero no la cantidad que ped\u00eda la lista. Entra en la despensa lo del ticket.",
+      r.distinto.map(function (x) {
+        return "<li><b>" + esc(x.n) + "</b><small>la lista ped\u00eda " + esc(x.pide) +
+               " \u00b7 llegan " + x.llega + (x.llega === 1 ? " envase" : " envases") +
+               "</small></li>"; }));
+    h += bloque("No estaba en la lista",
+      "Lo trae el ticket y la lista de ahora no lo pide. Entra igual en la despensa.",
+      r.sobra.map(function (x) {
+        return "<li><b>" + esc(x.n) + "</b><small>llegan " + x.env +
+               (x.env === 1 ? " envase" : " envases") + "</small></li>"; }));
+    if (!r.falta.length && !r.distinto.length && !r.sobra.length) {
+      h += '<p class="nota-peque">El ticket y la lista coinciden en todo.</p>';
+    }
+    h += '<div class="fila" style="margin-top:14px">' +
+         '<button class="btn principal" id="cot-ok">Cargar el ticket</button>' +
+         '<button class="btn" data-cerrar>Ahora no</button></div>';
+    abrirModal(h);
+    $("#cot-ok").addEventListener("click", function () { cerrarModal(); cargarCompraRecibida(c); });
+  }
+
+  function cargarCompraRecibida(c) {
+    /* A5 + A6 · 10-oct-2026: el mismo camino de siempre —a la lista, ya
+       marcado, y «Comprado» para desmarcar lo que no llegó—, con los envases
+       bien contados y sin sumarse a lo que pedía el menú. Ver
+       `Almacen.cargarTicketEnLista`. */
+    var res = Almacen.cargarTicketEnLista(c.lineas, { ref: c.ref, fecha: c.fecha, n: c.n,
+                                                      tienda: c.tienda || "Mercadona", extra: c.extra });
+    if (!Almacen.estado.config.comprasCargadas) Almacen.estado.config.comprasCargadas = {};
+    Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
+    Almacen.guardar("config");
+    pintarCompra();
+    Util.toast(res.puestas + " productos del ticket en la lista. Ahora abre " + (c.tienda || "Mercadona") +
+               " y pulsa \u00abPedido recibido\u00bb" +
+               (res.sinFicha.length ? " \u00b7 " + res.sinFicha.length + " sin ficha, fuera" : ""));
+  }
+
   function refrescarBotonRecibida() {
     var b = $("#compra-recibida");
     if (!b) return;
@@ -12062,18 +12161,7 @@ function pintarTodo() {
     $("#compra-recibida").addEventListener("click", function () {
       var c = compraRecibidaPendiente();
       if (!c) return;
-      /* A5 + A6 · 10-oct-2026: el mismo camino de siempre —a la lista, ya
-         marcado, y «Comprado» para desmarcar lo que no llegó—, con los envases
-         bien contados y sin sumarse a lo que pedía el menú. Ver
-         `Almacen.cargarTicketEnLista`. */
-      var res = Almacen.cargarTicketEnLista(c.lineas, { ref: c.ref, fecha: c.fecha, n: c.n,
-                                                        tienda: c.tienda || "Mercadona", extra: c.extra });
-      if (!Almacen.estado.config.comprasCargadas) Almacen.estado.config.comprasCargadas = {};
-      Almacen.estado.config.comprasCargadas[c.ref] = Util.hoyISO();
-      Almacen.guardar("config");
-      pintarCompra();
-      Util.toast(res.puestas + " productos del ticket en la lista. Ahora abre " + (c.tienda || "Mercadona") + " y pulsa \u00abPedido recibido\u00bb" +
-                 (res.sinFicha.length ? " \u00b7 " + res.sinFicha.length + " sin ficha, fuera" : ""));
+      abrirCotejoTicket(c);        /* 24-nov-2026: primero el cotejo, luego cargar */
     });
     var bp = $("#compra-pasada");
     if (bp) bp.addEventListener("click", abrirPasada);
