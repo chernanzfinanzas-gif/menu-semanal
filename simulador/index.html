@@ -382,7 +382,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v253 · tiempos entre grupos («Seguir a…», mapa de carrera) y ventaja del narrador iguales que la clasificación · panel con W/kg y medias</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v255 · ayuntamiento, policía local, farmacia, colegio, gasolinera y bar de carretera hechos por código · y todos los monumentos de la v254</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -5500,10 +5500,63 @@ function geoBloque(seed, plantasMin, plantasMax){
   O.caja(conLadrillo ? 'ladrillo' : 'revoco', -2, H, z0 + 1.5, 2, H + 2.6, z0 + 4.5, pared, 1, 1); O.caja('liso', -2.1, H + 2.6, z0 + 1.4, 2.1, H + 2.7, z0 + 4.6, banda);
   for (let k = 0; k < 2 + rnd() * 4; k++) { const x = x0 + 1 + rnd() * (L - 2), z = z0 + 1 + rnd() * (W - 2); O.caja('liso', x - 0.02, H, z - 0.02, x + 0.02, H + 2.5 + rnd() * 1.5, z + 0.02, C(0x8a8a8a)); O.caja('liso', x - 0.6, H + 2.2, z - 0.01, x + 0.6, H + 2.23, z + 0.01, C(0x8a8a8a)); }
   return { partes: O.cerrar(mats), ancho: L + 0.5, fondo: W + 3, alto: H + 1, tipo: plantasMax <= 4 ? 'tienda/oficina' : 'bloques' }; }
+/* v255 (Carlos: «ve haciendo modelos 3d de los que faltan»): edificios públicos y de carretera hechos por código, al estilo de aquí y sin marcas */
+function matRotulo(txt, fondo, letra){ const k = 'rot:' + txt + fondo + letra; if (TEX_EDIF[k]) return TEX_EDIF[k];
+  const t = texEdif('t' + k, 512, 96, (g, w, h) => { g.fillStyle = fondo; g.fillRect(0, 0, w, h); g.fillStyle = letra; g.font = 'bold 62px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, w / 2, h / 2 + 3, w - 30); });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return TEX_EDIF[k] = new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide }); }
+function geoPublico(tipo, seed){ const rnd = azarEdif(seed * 31 + tipo.length), C = h => new THREE.Color(h), el = l => l[Math.floor(rnd() * l.length)], O = obraEdif(), mats = Object.assign({}, matsCasa()), B0 = new THREE.Color(0xffffff);
+  const rot = (txt, fondo, letra, x0, x1, y0, y1, z) => { const k = 'r' + Object.keys(mats).length; mats[k] = matRotulo(txt, fondo, letra); O.quad(k, [x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], B0, x1 - x0, y1 - y0); };
+  const teja = C(0xffffff), carp = C(el([0x6b4a2f, 0xf2f2ee, 0x4f5559]));
+  if (tipo === 'ayuntamiento') { const L = 22, W = 12, H = 8.2, x0 = -L / 2, x1 = L / 2, z1 = W / 2, pared = C(el([0xead9b8, 0xe4cfa6, 0xf1e6cf]));
+    const Bc = cuerpoCasa(O, null, x0, -W / 2, x1, z1, H, { pared: rnd() < 0.5 ? 'ladrillo' : 'revoco', col: pared, su: 1.5, zoc: { k: 'piedra', h: 3.6, col: C(0xffffff), su: 2 }, tejado: 'cuatro', teja, pend: 0.35 });
+    // soportal de arcos en planta baja (5 arcos de piedra) y balcón corrido con banderas
+    for (let i = 0; i <= 5; i++) { const x = x0 + 1.2 + i * (L - 2.4) / 5; O.caja('piedra', x - 0.45, -0.5, z1 + 2.6, x + 0.45, 3.6, z1 + 3.4, C(0xffffff), 1, 1); }
+    O.caja('piedra', x0 + 0.8, 3.6, z1 - 0.1, x1 - 0.8, 4.3, z1 + 3.4, C(0xffffff), 2, 2); O.quad('liso', [x0 + 1, -0.02, z1 + 3.4], [x1 - 1, -0.02, z1 + 3.4], [x1 - 1, -0.02, z1], [x0 + 1, -0.02, z1], C(0x9d968a));
+    huecosCasa(O, Bc, Bc.muros[0], 2, 4.2, rnd, { carp, balcones: 1, paso: 3.4 }); for (const m of Bc.muros.slice(1)) huecosCasa(O, Bc, m, 2, 4.2, rnd, { carp, paso: 3.4 });
+    for (const [x, c] of [[-1.2, 0xc60b1e], [0, 0xffc400], [1.2, 0x0039a6]]) { O.caja('liso', x - 0.03, 6.2, z1 + 0.6, x + 0.03, 8.4, z1 + 0.66, C(0x777777)); O.quad('liso', [x, 7.2, z1 + 0.62], [x + 0.9, 7.2, z1 + 0.62], [x + 0.9, 8.3, z1 + 0.62], [x, 8.3, z1 + 0.62], C(c)); }
+    // espadaña con reloj y campana sobre la fachada
+    O.caja('piedra', -2, H, z1 - 0.6, 2, H + 4.4, z1, C(0xffffff), 1, 1); O.caja('liso', -0.8, H + 1.0, z1 + 0.01, 0.8, H + 2.6, z1 + 0.05, C(0xf2efe6)); O.caja('liso', -0.5, H + 3.0, z1 - 0.4, 0.5, H + 4.0, z1 + 0.02, C(0x2a2520));
+    rot('AYUNTAMIENTO', '#f2ede2', '#3b2f22', -4, 4, 4.4, 5.2, z1 + 3.42); }
+  else if (tipo === 'policia') { const L = 18, W = 12, H = 7, z1 = W / 2;
+    const Bc = cuerpoCasa(O, null, -L / 2, -W / 2, L / 2, z1, H, { pared: 'revoco', col: C(0xeeeeea), su: 1.5, zoc: { k: 'piedra', h: 0.9, col: C(0xd9d9d9), su: 2 }, tejado: 'plano' });
+    for (const m of Bc.muros) huecosCasa(O, Bc, m, 2, 3.4, rnd, { carp: C(0x4f5559), paso: 2.8, puerta: m === Bc.muros[0] ? { i: 2 } : null });
+    O.caja('liso', -L / 2, 3.0, z1, L / 2, 3.5, z1 + 0.12, C(0x1d4f9c)); O.caja('liso', -L / 2, 3.5, z1, L / 2, 3.65, z1 + 0.12, C(0xf2f2f2));   /* franja azul y blanca */
+    O.caja('puerta', -1.5, 0, z1, 1.5, 2.8, z1 + 0.1, C(0xb8c4cf), 3, 2.8); rot('POLICÍA LOCAL', '#1d4f9c', '#ffffff', -4.5, 4.5, 3.9, 4.8, z1 + 0.14);
+    O.quad('liso', [-L / 2 - 2, 0.02, z1 + 8], [L / 2 + 2, 0.02, z1 + 8], [L / 2 + 2, 0.02, z1], [-L / 2 - 2, 0.02, z1], C(0x6d6f72)); }
+  else if (tipo === 'farmacia') { const L = 10, W = 10, H = 6.2, z1 = W / 2;
+    const Bc = cuerpoCasa(O, null, -L / 2, -W / 2, L / 2, z1, H, { pared: rnd() < 0.5 ? 'ladrillo' : 'revoco', col: C(el([0xffffff, 0xf0e2cf])), su: 1.2, zoc: { k: 'piedra', h: 3.0, col: C(0xd9d9d9), su: 2 }, tejado: 'cuatro', teja, pend: 0.4 });
+    huecosCasa(O, Bc, Bc.muros[0], 2, 3.1, rnd, { carp, balcones: 0.7 }); Bc.cara('escaparate', Bc.muros[0], 1.0, L - 1.0, 0.05, 2.8, C(0xffffff), L - 2, 2.75, 0.06);
+    rot('FARMACIA', '#14853a', '#ffffff', -3.4, 3.4, 2.95, 3.65, z1 + 0.1);
+    { const x = L / 2 + 0.4, y = 3.6, g2 = C(0x22c55e); O.caja('liso', x - 0.05, y - 0.6, z1 - 0.8, x + 0.05, y + 0.6, z1 - 0.4, g2); O.caja('liso', x - 0.05, y - 0.2, z1 - 1.2, x + 0.05, y + 0.2, z1 + 0.0, g2); O.caja('liso', L / 2, y - 0.04, z1 - 0.65, x, y + 0.04, z1 - 0.55, C(0x777777)); } }
+  else if (tipo === 'colegio') { const L = 36, W = 13, H = 10.5, z1 = W / 2;
+    const Bc = cuerpoCasa(O, null, -L / 2, -W / 2, L / 2, z1, H, { pared: 'ladrillo', col: C(el([0xffffff, 0xf3e3c8])), su: 1, zoc: { k: 'revoco', h: 1.0, col: C(0xc9c3b6), su: 1 }, tejado: 'plano' });
+    for (const m of Bc.muros) { const n = Math.max(2, Math.floor(m.L / 3.6)); for (let pl = 0; pl < 3; pl++) for (let i = 0; i < n; i++) { const s0 = (i + 0.5) * m.L / n; Bc.cara('ventana', m, s0 - 1.2, s0 + 1.2, pl * 3.4 + 1.0, pl * 3.4 + 2.8, C(0xd9d0bf), 2.4, 1.8, 0.04); } }
+    rot('COLEGIO PÚBLICO', '#f2ede2', '#2b4a7a', -6, 6, H - 1.3, H - 0.4, z1 + 0.06); O.caja('puerta', -1.6, 0, z1, 1.6, 2.6, z1 + 0.1, C(0x2b4a7a), 3.2, 2.6);
+    // patio con pista de baloncesto y valla
+    const zp = z1 + 2, zq = z1 + 26; O.quad('liso', [-L / 2, 0.03, zq], [L / 2, 0.03, zq], [L / 2, 0.03, zp], [-L / 2, 0.03, zp], C(0xb0504a)); O.quad('liso', [-7, 0.05, zq - 4], [7, 0.05, zq - 4], [7, 0.05, zp + 4], [-7, 0.05, zp + 4], C(0x2f6db3));
+    for (const x of [-6.5, 6.5]) { O.caja('liso', x - 0.08, 0, (zp + zq) / 2 - 0.08, x + 0.08, 3.4, (zp + zq) / 2 + 0.08, C(0x333333)); O.caja('liso', x - 0.05, 2.9, (zp + zq) / 2 - 0.9, x + 0.05, 3.9, (zp + zq) / 2 + 0.9, C(0xf2f2f2)); }
+    for (let x = -L / 2; x <= L / 2; x += 0.22) O.caja('liso', x, 0, zq, x + 0.03, 1.8, zq + 0.03, C(0x2e5d3a)); O.caja('liso', -L / 2, 1.8, zq, L / 2, 1.86, zq + 0.05, C(0x2e5d3a)); }
+  else if (tipo === 'gasolinera') { const z1 = 4, cubo = C(el([0xd83a1c, 0x1f5fa8, 0x2e7d32, 0xf2a900]));
+    // tienda al fondo, marquesina con 6 pilares y 3 islas de surtidores, todo sobre losa de hormigón
+    O.quad('horm', [-18, 0.03, 16], [18, 0.03, 16], [18, 0.03, -12], [-18, 0.03, -12], C(0xd5d3cd), 2, 2);
+    const Bc = cuerpoCasa(O, null, -9, -11, 9, -3, 4.2, { pared: 'revoco', col: C(0xf2f2f0), su: 1.5, tejado: 'plano' }); Bc.cara('escaparate', Bc.muros[0], 1, 17, 0.05, 2.9, C(0xffffff), 16, 2.85, 0.06); rot('TIENDA · CAFÉ', '#ffffff', '#333333', -4, 4, 3.1, 3.8, -2.92);
+    for (const x of [-10, 0, 10]) for (const z of [2, 10]) O.caja('liso', x - 0.3, 0, z - 0.3, x + 0.3, 5.4, z + 0.3, C(0xe8e8e6));
+    O.caja('liso', -13, 5.4, -1, 13, 6.4, 13, C(0xf4f4f2)); O.caja('liso', -13.05, 5.5, 12.95, 13.05, 6.3, 13.05, cubo); O.caja('liso', -13.05, 5.5, -1.05, 13.05, 6.3, -0.95, cubo); O.caja('liso', -13.05, 5.5, -1, -12.95, 6.3, 13, cubo); O.caja('liso', 12.95, 5.5, -1, 13.05, 6.3, 13, cubo);
+    for (const x of [-10, 0, 10]) { O.caja('horm', x - 0.8, 0, 4.5, x + 0.8, 0.25, 7.5, C(0xbdbab2), 1, 1); O.caja('liso', x - 0.4, 0.25, 5.4, x + 0.4, 2.0, 6.6, C(0xf2f2f2)); O.caja('liso', x - 0.42, 1.2, 5.38, x + 0.42, 1.7, 6.62, cubo); }
+    O.caja('liso', 15, 0, 13, 15.3, 7.5, 13.3, C(0xcccccc)); O.caja('liso', 14.2, 7.5, 12.9, 16.1, 10.5, 13.4, C(0xf4f4f2)); O.caja('liso', 14.2, 9.2, 13.38, 16.1, 10.5, 13.42, cubo);
+    rot('1,59  1,49  1,69', '#1d1d1d', '#ffd400', 14.25, 16.05, 7.7, 9.0, 13.43); }
+  else { // bar de carretera (sustituye a la hamburguesería): casa baja con porche, toldo, mesas y rótulo
+    const L = 16, W = 11, H = 3.6, z1 = W / 2; const Bc = cuerpoCasa(O, null, -L / 2, -W / 2, L / 2, z1, H, { pared: 'revoco', col: C(el([0xf3ede2, 0xead8b5, 0xf6f1e6])), su: 1.5, zoc: { k: 'piedra', h: 0.8, col: C(0xd9d9d9), su: 2 }, tejado: 'dos', teja, pend: 0.35 });
+    for (const m of Bc.muros) huecosCasa(O, Bc, m, 1, 3, rnd, { carp: C(0x6b4a2f), rejas: m !== Bc.muros[0], puerta: m === Bc.muros[0] ? { i: 1 } : null });
+    const tc = C(el([0x1f7a3a, 0xb02a2a, 0x1f5fa8])); O.quad('liso', [-L / 2, 3.0, z1 + 0.05], [L / 2, 3.0, z1 + 0.05], [L / 2, 2.4, z1 + 2.6], [-L / 2, 2.4, z1 + 2.6], tc); for (const x of [-L / 2 + 0.2, L / 2 - 0.2]) O.caja('liso', x - 0.05, 0, z1 + 2.5, x + 0.05, 2.45, z1 + 2.6, C(0x444444));
+    for (let i = 0; i < 4; i++) { const x = -6 + i * 4; O.caja('liso', x - 0.04, 0, z1 + 4, x + 0.04, 0.72, z1 + 4.08, C(0x8a8a8a)); O.caja('liso', x - 0.4, 0.72, z1 + 3.64, x + 0.4, 0.76, z1 + 4.44, C(0xf2f2f2)); }
+    rot('BAR · RESTAURANTE', '#b02a2a', '#ffffff', -5, 5, 3.6, 4.6, z1 + 0.08); O.quad('liso', [-L / 2 - 6, 0.03, z1 + 14], [L / 2 + 6, 0.03, z1 + 14], [L / 2 + 6, 0.03, z1], [-L / 2 - 6, 0.03, z1], C(0x6d6f72)); }
+  const M = { partes: O.cerrar(mats), tipo };
+  return M; }
 async function modeloEdificio(k){
   if (cacheModelos['e:' + k]) return cacheModelos['e:' + k];
   const d = RECURSOS_SIM.edificios[k];
-  if (d.gen) { const M = d.gen === 'nave' ? geoNave(d.seed) : d.gen === 'casa' ? geoCasa(d.seed, d.estilo) : geoBloque(d.seed, d.min, d.max);   /* v246: hechos por código, centrados en su huella */
+  if (d.gen) { const M = d.gen === 'nave' ? geoNave(d.seed) : d.gen === 'casa' ? geoCasa(d.seed, d.estilo) : d.gen === 'publico' ? geoPublico(d.clase, d.seed) : geoBloque(d.seed, d.min, d.max);   /* v246: hechos por código, centrados en su huella */
     const bb = new THREE.Box3(); for (const pt of M.partes) { pt.geo.computeBoundingBox(); bb.union(pt.geo.boundingBox); }
     const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2; for (const pt of M.partes) { pt.geo.translate(-cx, 0, -cz); pt.geo.computeBoundingSphere(); }
     M.ancho = bb.max.x - bb.min.x; M.fondo = bb.max.z - bb.min.z; M.alto = bb.max.y; return cacheModelos['e:' + k] = M; }
@@ -5684,7 +5737,8 @@ async function decorarReal(esc, D){
       if (i <= 12 && !E['casa_cha_' + i]) E['casa_cha_' + i] = { gen: 'casa', seed: i, estilo: 'chalé', tipo: 'chalé', titulo: 'Chalé ' + i };
       if (i <= 8 && !E['bloque_cod_' + i]) E['bloque_cod_' + i] = { gen: 'bloque', seed: i, min: 5, max: 9, tipo: 'bloques', titulo: 'Bloque de pisos ' + i };
       if (i <= 8 && !E['comercio_cod_' + i]) E['comercio_cod_' + i] = { gen: 'bloque', seed: i + 50, min: 2, max: 4, tipo: 'tienda/oficina', titulo: 'Edificio con bajos comerciales ' + i }; }
-    const DIBUJO = /^(k_building-type-|k_building-[a-n]$|casa_sagar$|casa_crunched$|bloques_1$)/;   /* v247: bloques_1 (torre con la parte de arriba desplazada, Carlos: «no me gusta») */   /* v246: los de dibujo animado y los de un solo color dejan de salir */
+    for (const [cl, tp, n] of [['ayuntamiento', 'ayuntamiento', 2], ['policia', 'policia', 2], ['farmacia', 'farmacia', 3], ['colegio', 'colegio', 2], ['gasolinera', 'gasolinera', 3], ['bar', 'burger', 3]]) for (let i = 1; i <= n; i++) if (!E['pub_' + cl + '_' + i]) E['pub_' + cl + '_' + i] = { gen: 'publico', clase: cl, seed: i, tipo: tp, titulo: cl + ' ' + i };   /* v255 */
+    const DIBUJO = /^(k_building-type-|k_building-[a-n]$|casa_sagar$|casa_crunched$|bloques_1$|ayuntamiento$|policia$|farmacia$|colegio$|gasolinera$|burger$)/;   /* v247: bloques_1 (torre con la parte de arriba desplazada, Carlos: «no me gusta») */   /* v246: los de dibujo animado y los de un solo color dejan de salir */
     for (const [k, d] of Object.entries(E)) if (!DIBUJO.test(k)) (porTipo[d.tipo] = porTipo[d.tipo] || []).push(k);
     const sitios = {}, ocup = new Set(), CO = 8, cimientos = [], ALTOS_POCOS = {};   /* (sin variar: ninguno de momento) */
     const libre = (x, z, ancho, fondo, ang, marca) => { const r = Math.max(ancho, fondo) / 2 + 2, ks = [];
@@ -6171,6 +6225,72 @@ function geoRuinas(o){ const O = obraLocal((o.rumbo || 0) * Math.PI / 180), L = 
   O.caja(-L / 2 - 1, -L / 2 + 5, -d, 8.5, -W / 2 - 1, -W / 2 + 5, tono(0xafa591)); O.caja(-L / 2 - 1, -L / 2 + 2.5, 8.5, 10.5, -W / 2 - 1, -W / 2 + 5, tono(0xafa591, -0.03));
   for (let k = 0; k < 26; k++) { const u = (rnd() - 0.5) * (L + 8), v = (rnd() - 0.5) * (W + 8), s = 0.3 + rnd() * 0.7; O.caja(u - s, u + s, -0.2, s * 0.8, v - s * 0.8, v + s * 0.8, tono(0xa89e8a, (rnd() - 0.5) * 0.1)); }
   return geoFin(O.out); }
+/* v254: muralla de Buitrago (sigue el terreno, almenas y cubos), Plaza Mayor de Chinchón (casas con galerías de madera) y Torre del Reloj de Chinchón.
+   hR(x, z): altura del suelo en ese punto, relativa a la base de la malla */
+function geoMuralla(lineas, hR){ const O = obraLocal(0), piedra = tono(0xb59f7f), piedra2 = tono(0xa58f70), H = 8, e = 2.4; let k = 0;
+  for (const L of lineas) { let acc = 0;
+    for (let i = 1; i < L.length; i++) { const [x1, z1] = L[i - 1], [x2, z2] = L[i], len = Math.hypot(x2 - x1, z2 - z1); if (len < 0.3) continue; const n = Math.max(1, Math.ceil(len / 3)), ux = (x2 - x1) / len, uz = (z2 - z1) / len, px = -uz * e / 2, pz = ux * e / 2;
+      for (let j = 0; j < n; j++) { const a = j / n, b = (j + 1) / n, xa = x1 + (x2 - x1) * a, za = z1 + (z2 - z1) * a, xb = x1 + (x2 - x1) * b, zb = z1 + (z2 - z1) * b, ya = hR(xa, za), yb = hR(xb, zb), y0 = Math.min(ya, yb) - 1.5, top = (ya + yb) / 2 + H, col = (k++ % 3) ? piedra : piedra2;
+        const A = [xa + px, za + pz], B = [xb + px, zb + pz], Cc = [xb - px, zb - pz], D = [xa - px, za - pz], ref = [(xa + xb) / 2, top - 3, (za + zb) / 2];
+        O.quad([A[0], y0, A[1]], [B[0], y0, B[1]], [B[0], top, B[1]], [A[0], top, A[1]], col, ref); O.quad([Cc[0], y0, Cc[1]], [D[0], y0, D[1]], [D[0], top, D[1]], [Cc[0], top, Cc[1]], col, ref);
+        O.quad([A[0], top, A[1]], [B[0], top, B[1]], [Cc[0], top, Cc[1]], [D[0], top, D[1]], piedra2, [ref[0], top - 2, ref[2]]);
+        // almenas a los dos lados del adarve
+        for (const sg of [-1, 1]) { const mx = (xa + xb) / 2 + sg * px * 0.8, mz = (za + zb) / 2 + sg * pz * 0.8; O.caja(mx - 0.55, mx + 0.55, top, top + 1.3, mz - 0.35, mz + 0.35, piedra); } }
+      // cubos (torres semicirculares) cada ~35 m
+      acc += len; if (acc > 35 || i === 1) { acc = acc > 35 ? 0 : acc; const tx = x1, tz = z1, y = hR(tx, tz); for (let s2 = 0; s2 < 10; s2++) { const a0 = s2 / 10 * Math.PI * 2, a1 = (s2 + 1) / 10 * Math.PI * 2, r = 3.4;
+          O.quad([tx + Math.cos(a0) * r, y - 1.5, tz + Math.sin(a0) * r], [tx + Math.cos(a1) * r, y - 1.5, tz + Math.sin(a1) * r], [tx + Math.cos(a1) * r, y + H + 2, tz + Math.sin(a1) * r], [tx + Math.cos(a0) * r, y + H + 2, tz + Math.sin(a0) * r], piedra2, [tx, y + H / 2, tz]);
+          O.tri([tx, y + H + 2, tz], [tx + Math.cos(a0) * r, y + H + 2, tz + Math.sin(a0) * r], [tx + Math.cos(a1) * r, y + H + 2, tz + Math.sin(a1) * r], piedra, [tx, y, tz]);
+          if (s2 % 2) { const am = (a0 + a1) / 2; O.caja(tx + Math.cos(am) * (r - 0.4) - 0.5, tx + Math.cos(am) * (r - 0.4) + 0.5, y + H + 2, y + H + 3.2, tz + Math.sin(am) * (r - 0.4) - 0.5, tz + Math.sin(am) * (r - 0.4) + 0.5, piedra); } } } } }
+  return geoFin(O.out); }
+function geoPlazaMayor(P, hR){ const O = obraLocal(0); let cx = 0, cz = 0; for (const [x, z] of P) { cx += x; cz += z; } cx /= P.length; cz /= P.length;
+  const ref = [cx, 0, cz], revoco = [tono(0xe9dcc0), tono(0xf0e6d2), tono(0xe3cfa8), tono(0xebe0c9)], madera = tono(0x3f5f3a), madera2 = tono(0x2f4a2c), teja = tono(0xa4553b), soportal = tono(0xc9bba0), osc = tono(0x2a2520); let k = 0;
+  // casas en el borde de la plaza: fachada hacia dentro, 3 plantas; en cada planta, galería corrida de madera (los «claros» de Chinchón)
+  for (let i = 0; i < P.length; i++) { const [x1, z1] = P[i], [x2, z2] = P[(i + 1) % P.length], len = Math.hypot(x2 - x1, z2 - z1); if (len < 1.5) continue;
+    let nx = -(z2 - z1) / len, nz = (x2 - x1) / len; if (nx * (cx - (x1 + x2) / 2) + nz * (cz - (z1 + z2) / 2) > 0) { nx = -nx; nz = -nz; }   /* n: hacia fuera de la plaza */
+    const nCasas = Math.max(1, Math.round(len / 6));
+    for (let j = 0; j < nCasas; j++) { const a = j / nCasas, b = (j + 1) / nCasas, xa = x1 + (x2 - x1) * a, za = z1 + (z2 - z1) * a, xb = x1 + (x2 - x1) * b, zb = z1 + (z2 - z1) * b, y = Math.min(hR(xa, za), hR(xb, zb)), H = 9.5 + ((k * 7) % 3) * 0.6, col = revoco[k++ % 4], F = 9;
+      const A = [xa, za], B = [xb, zb], Ba = [xb + nx * F, zb + nz * F], Aa = [xa + nx * F, za + nz * F], rf = [(xa + xb) / 2 + nx * F / 2, y + H / 2, (za + zb) / 2 + nz * F / 2];
+      O.quad([A[0], y - 2, A[1]], [B[0], y - 2, B[1]], [B[0], y + H, B[1]], [A[0], y + H, A[1]], col, rf); for (const [U, V] of [[B, Ba], [Ba, Aa], [Aa, A]]) O.quad([U[0], y - 2, U[1]], [V[0], y - 2, V[1]], [V[0], y + H, V[1]], [U[0], y + H, U[1]], col, rf);
+      O.quad([A[0] - nx * 0.6, y + H, A[1] - nz * 0.6], [B[0] - nx * 0.6, y + H, B[1] - nz * 0.6], [Ba[0], y + H + 2.4, Ba[1]], [Aa[0], y + H + 2.4, Aa[1]], teja, [rf[0], y, rf[2]]);
+      // soportal en planta baja: pies derechos y hueco oscuro
+      const fx = (u, off) => [xa + (xb - xa) * u - nx * off, za + (zb - za) * u - nz * off];
+      for (let u = 0; u <= 1.001; u += 0.25) { const [px, pz] = fx(u, 1.6); O.caja(px - 0.15, px + 0.15, y, y + 3.2, pz - 0.15, pz + 0.15, madera2); }
+      O.quad([A[0] - nx * 0.02, y, A[1] - nz * 0.02], [B[0] - nx * 0.02, y, B[1] - nz * 0.02], [B[0] - nx * 0.02, y + 2.9, B[1] - nz * 0.02], [A[0] - nx * 0.02, y + 2.9, A[1] - nz * 0.02], osc, [rf[0], y, rf[2]]);
+      // galerías de la 1.ª y 2.ª planta: balcón corrido verde con pies y barandilla
+      for (const yy of [y + 3.4, y + 6.4]) { const [p1x, p1z] = fx(0, 1.6), [p2x, p2z] = fx(1, 1.6);
+        O.quad([xa - nx * 0.02, yy, za - nz * 0.02], [p1x, yy, p1z], [p2x, yy, p2z], [xb - nx * 0.02, yy, zb - nz * 0.02], madera, [rf[0], yy - 3, rf[2]]);
+        O.quad([p1x, yy, p1z], [p2x, yy, p2z], [p2x, yy + 1.0, p2z], [p1x, yy + 1.0, p1z], madera2, [rf[0], yy, rf[2]]);
+        for (let u = 0; u <= 1.001; u += 1 / 6) { const [px, pz] = fx(u, 1.55); O.caja(px - 0.06, px + 0.06, yy + 1.0, yy + 2.9, pz - 0.06, pz + 0.06, madera); }
+        O.quad([xa - nx * 0.03, yy + 0.2, za - nz * 0.03], [xb - nx * 0.03, yy + 0.2, zb - nz * 0.03], [xb - nx * 0.03, yy + 2.4, zb - nz * 0.03], [xa - nx * 0.03, yy + 2.4, za - nz * 0.03], tono(0x4a3a2c), [rf[0], yy, rf[2]]); } } }
+  return geoFin(O.out); }
+function geoTorreReloj(P, hR){ let cx = 0, cz = 0; for (const [x, z] of P) { cx += x; cz += z; } cx /= P.length; cz /= P.length; let r = 0; for (const [x, z] of P) r = Math.max(r, Math.hypot(x - cx, z - cz));
+  const a = Math.max(3.2, Math.min(5.5, r * 0.72)), O = obraLocal(0), y = hR(cx, cz), piedra = tono(0xc8b48e), piedra2 = tono(0xb59f7a), osc = tono(0x2a2520), H = 24;
+  O.caja(cx - a, cx + a, y - 2, y + H, cz - a, cz + a, piedra); O.caja(cx - a - 0.2, cx + a + 0.2, y + H - 6.2, y + H - 5.8, cz - a - 0.2, cz + a + 0.2, piedra2); O.caja(cx - a - 0.25, cx + a + 0.25, y + H - 0.4, y + H, cz - a - 0.25, cz + a + 0.25, piedra2);
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const fx = cx + dx * (a + 0.02), fz = cz + dz * (a + 0.02), w = a * 0.4, ux = dz, uz = -dx;
+    O.caja(Math.min(fx - ux * w, fx + ux * w) - (dx ? 0.04 : 0), Math.max(fx - ux * w, fx + ux * w) + (dx ? 0.04 : 0), y + H - 5.2, y + H - 1.2, Math.min(fz - uz * w, fz + uz * w) - (dz ? 0.04 : 0), Math.max(fz - uz * w, fz + uz * w) + (dz ? 0.04 : 0), osc);   /* vanos del campanario */
+    const rc = a * 0.38, ccy = y + H - 9; for (let s2 = 0; s2 < 16; s2++) { const t0 = s2 / 16 * Math.PI * 2, t1 = (s2 + 1) / 16 * Math.PI * 2, P0 = [fx + ux * Math.cos(t0) * rc + dx * 0.06, ccy + Math.sin(t0) * rc, fz + uz * Math.cos(t0) * rc + dz * 0.06], P1 = [fx + ux * Math.cos(t1) * rc + dx * 0.06, ccy + Math.sin(t1) * rc, fz + uz * Math.cos(t1) * rc + dz * 0.06];
+      O.tri([fx + dx * 0.06, ccy, fz + dz * 0.06], P0, P1, tono(0xf2efe6), [cx, ccy, cz]); } }   /* esfera del reloj */
+  // chapitel de pizarra con bola y veleta
+  const top = y + H, ap = [cx, top + a * 2.6, cz], c4 = [[cx - a, top, cz - a], [cx + a, top, cz - a], [cx + a, top, cz + a], [cx - a, top, cz + a]];
+  for (let i = 0; i < 4; i++) O.tri(c4[i], c4[(i + 1) % 4], ap, tono(0x4a5058), [cx, top, cz]); O.caja(cx - 0.06, cx + 0.06, ap[1], ap[1] + 2.2, cz - 0.06, cz + 0.06, tono(0x2a2a2a)); O.caja(cx - 0.25, cx + 0.25, ap[1] + 0.3, ap[1] + 0.8, cz - 0.25, cz + 0.25, tono(0xd8ae5a));
+  return geoFin(O.out); }
+/* v254: plaza de toros de pueblo: ruedo de arena, barrera roja, tendidos de piedra y muro blanco encalado con arcos y franja albero */
+function geoPlazaToros(P, drop){ let cx = 0, cz = 0; for (const [x, z] of P) { cx += x; cz += z; } cx /= P.length; cz /= P.length; let R = 0; for (const [x, z] of P) R += Math.hypot(x - cx, z - cz); R = Math.max(12, R / P.length);
+  const O = obraLocal(0), n = 40, pt = (r, t, y) => [cx + r * Math.cos(t), y, cz + r * Math.sin(t)], arena = tono(0xd8b87a), rojo = tono(0x9e2a22), blanco = tono(0xf4f1ea), albero = tono(0xd9a441), piedra = tono(0xb0a898), osc = tono(0x3a3530), Rr = R * 0.62, H = 7.5;
+  for (let i = 0; i < n; i++) { const t0 = i / n * Math.PI * 2, t1 = (i + 1) / n * Math.PI * 2, ref = [cx, H / 2, cz];
+    O.tri(pt(0, t0, 0.15), pt(Rr, t1, 0.15), pt(Rr, t0, 0.15), arena, [cx, -5, cz]);
+    O.quad(pt(Rr, t0, 0), pt(Rr, t1, 0), pt(Rr, t1, 1.4), pt(Rr, t0, 1.4), rojo, [cx, 0.7, cz]);   /* barrera */
+    O.quad(pt(Rr + 1.2, t0, 1.6), pt(Rr + 1.2, t1, 1.6), pt(R * 0.97, t1, H - 1), pt(R * 0.97, t0, H - 1), i % 2 ? piedra : tono(0xa69e8e), [cx, -5, cz]);   /* tendido */
+    O.quad(pt(Rr, t0, 1.4), pt(Rr, t1, 1.4), pt(Rr + 1.2, t1, 1.6), pt(Rr + 1.2, t0, 1.6), tono(0x8a8478), [cx, -5, cz]);
+    O.quad(pt(R, t1, -drop), pt(R, t0, -drop), pt(R, t0, H), pt(R, t1, H), blanco, ref);   /* muro exterior encalado */
+    O.quad(pt(R + 0.02, t1, H - 1.4), pt(R + 0.02, t0, H - 1.4), pt(R + 0.02, t0, H - 0.6), pt(R + 0.02, t1, H - 0.6), albero, ref);
+    O.quad(pt(R * 0.97, t0, H - 1), pt(R * 0.97, t1, H - 1), pt(R, t1, H), pt(R, t0, H), blanco, [cx, -5, cz]);
+    if (i % 2 === 0) { const tm = (t0 + t1) / 2, w = 0.06; O.quad(pt(R + 0.03, tm + w, 0.6), pt(R + 0.03, tm - w, 0.6), pt(R + 0.03, tm - w, 3.4), pt(R + 0.03, tm + w, 3.4), osc, ref);   /* arcos */
+      O.quad(pt(R + 0.03, tm + w, 3.4), pt(R + 0.03, tm - w, 3.4), pt(R + 0.03, tm - w * 0.5, 3.9), pt(R + 0.03, tm + w * 0.5, 3.9), osc, ref); } }
+  // puerta grande con su frontón
+  { const t = 0, A = pt(R + 0.05, t - 0.09, 0), B = pt(R + 0.05, t + 0.09, 0); O.quad([A[0], 0, A[2]], [B[0], 0, B[2]], [B[0], 4.6, B[2]], [A[0], 4.6, A[2]], osc, [cx, 2, cz]);
+    O.caja(A[0] - 0.4, A[0] + 0.6, H, H + 2.2, Math.min(A[2], B[2]) - 0.6, Math.max(A[2], B[2]) + 0.6, blanco); }
+  return geoFin(O.out); }
 function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L = []; C.hitos = { lista: L, vivos: new Map(), mat: new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }) };
   if (!v3.aXZ || !(v3.tema && v3.tema.real)) return C.hitos;
   // el acueducto de Segovia
@@ -6194,6 +6314,9 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L
         me.position.set(g_.x, hi - 0.15, g_.z); me.rotation.y = g_.ang; me.castShadow = me.receiveShadow = calidad().sombra; return me; } }); } }
   // puntos que diga Carlos (recursos/hitos.js): { nombre, lat, lon, tipo } — de momento iglesias con tipo «iglesia»/«ermita»
   for (const h of (window.RECURSOS_SIM && RECURSOS_SIM.hitos) || []) { const q = v3.aXZ(h.lat, h.lon); if (!C.dentro(q.x, q.z)) continue;
+    if (h.tipo === 'toros' && h.planta) { const P = h.planta.map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), r = Math.max(...P.map(([x, z]) => Math.hypot(x, z)));
+      L.push({ k: 'toros', x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
+        const me = new THREE.Mesh(geoPlazaToros(P, hi - lo_ + 1), C.hitos.mat); me.position.set(q.x, hi - 0.2, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if ((h.tipo === 'castillo' || h.tipo === 'estadio') && h.planta) { const loc = arr => (arr || []).map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), P = loc(h.planta), pa = loc(h.patio);
       const r = Math.max(...P.map(([x, z]) => Math.hypot(x, z)));
       L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
@@ -6204,6 +6327,11 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L
         let g; if (h.tipo === 'puerta') g = geoPuerta(P); else { const alto = Math.max(h.estilo === 'rey' ? 6 : 8, hi - lo_), r = (h.eje || 0) * Math.PI / 180;   /* eje: rumbo en grados (0 norte, 90 este) */
           g = geoPuente(P, { arcos: h.arcos, estilo: h.estilo, alto, drop: 2, eje: h.eje == null ? null : Math.atan2(-Math.cos(r), Math.sin(r)) }); }
         const me = new THREE.Mesh(g, C.hitos.mat); me.position.set(q.x, h.tipo === 'puerta' ? C.hTile(q.x, q.z) : Math.max(lo_, hi - Math.max(h.estilo === 'rey' ? 6 : 8, hi - lo_)), q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
+    if (h.tipo === 'muralla' || h.tipo === 'plaza' || h.tipo === 'torre') { const loc = arr => arr.map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; });
+      const lineas = (h.lineas || [h.planta]).map(loc), todos = [].concat(...lineas), r = Math.max(20, ...todos.map(([x, z]) => Math.hypot(x, z)));
+      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { const base = C.hTile(q.x, q.z), hR = (x, z) => C.hTile(q.x + x, q.z + z) - base;
+        const g = h.tipo === 'muralla' ? geoMuralla(lineas, hR) : h.tipo === 'plaza' ? geoPlazaMayor(lineas[0], hR) : geoTorreReloj(lineas[0], hR);
+        const me = new THREE.Mesh(g, C.hitos.mat); me.position.set(q.x, base, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if (h.tipo === 'ruinas') { L.push({ k: 'ruinas', x: q.x, z: q.z, r: 25, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of [[-15, -11], [15, -11], [15, 11], [-15, 11], [0, 0]]) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         const me = new THREE.Mesh(geoRuinas({ largo: h.largo, ancho: h.ancho, rumbo: h.rumbo, drop: hi - lo_ + 1 }), C.hitos.mat); me.position.set(q.x, hi - 0.3, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if (h.tipo === 'cocheras' && h.recinto) { const loc = arr => (arr || []).map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), Rc = loc(h.recinto), V = (h.vias || []).map(v => ({ p: loc(v.p), c: v.c })), Nv = (h.naves || []).map(n => ({ p: loc(n.p), n: n.n, tipo: n.tipo }));
@@ -6741,6 +6869,9 @@ async function construir3D(){
     const pinos = [], frondosos = [], m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eje = new THREE.Vector3(0, 1, 0);
     const CX = ruta.tramos && ruta.tramos.ruta.cx;
     const HUECOS = (CX && CX.hitos && typeof aXZ === 'function') ? CX.hitos.map(h => { const p = aXZ(h.lat, h.lon); return { x: p.x, z: p.z, r: h.r || 17 }; }) : [];   /* v234: parcela de la iglesia (y demás hitos) sin árboles */
+    /* v254 (cocheras, plaza de toros…): sin árboles dentro de los sitios fijos de recursos/hitos.js (su planta o recinto) */
+    if (TEMA.real && typeof aXZ === 'function' && window.RECURSOS_SIM && RECURSOS_SIM.hitos) for (const h of RECURSOS_SIM.hitos) { if (h.tipo === 'muralla') continue; const P = h.recinto || h.planta; if (!P || !P.length) continue;
+      const q = aXZ(h.lat, h.lon); let r = 0; for (const [la, lo] of P) { const p = aXZ(la, lo); r = Math.max(r, Math.hypot(p.x - q.x, p.z - q.z)); } if (r > 0 && r < 700) HUECOS.push({ x: q.x, z: q.z, r: r * 1.05 + 4 }); }
     // v234: iglesias y ermitas reales de OpenStreetMap junto a la ruta (no en ciudades grandes, no donde ya hay un hito como la iglesia de Prádena)
     v3.iglesias = [];
     if (TEMA.real && typeof aXZ === 'function') { const A = ACUEDUCTO.map(([la, lo]) => aXZ(la, lo)); for (let i = 1; i < A.length; i++) { const L = Math.hypot(A[i].x - A[i - 1].x, A[i].z - A[i - 1].z); for (let d = 0; d < L; d += 8) HUECOS.push({ x: A[i - 1].x + (A[i].x - A[i - 1].x) * d / L, z: A[i - 1].z + (A[i].z - A[i - 1].z) * d / L, r: 7 }); } }   /* v237: sin árboles bajo el acueducto */
