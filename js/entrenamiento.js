@@ -4464,6 +4464,7 @@
     var d = U.desdeISO(iso);
     if (m.desde && iso < m.desde) return false;
     if (m.diaDelMes) return d.getDate() === m.diaDelMes;
+    if (m.id === "ecg") return tocaEcgDia(iso);   // v689: cupo de ECG Analysis
     if (m.diariaHasta) return iso <= m.diariaHasta || (m.diasDespues || []).indexOf(d.getDay()) >= 0;
     return (m.dias || []).indexOf(d.getDay()) >= 0;
   }
@@ -5177,8 +5178,8 @@
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
         "<b>Sensor Logger</b> sentado, espalda apoyada, sin hablar y respirando normal: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. De esta grabación salen el pulso, el QRS, el QTc y los latidos adelantados: es el ECG del día. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
         "<b>ECG Analysis ya no hace falta</b> (desde el 11-oct). Si aún te deja grabar y quieres seguir comparando unos días, hazlo antes, mándalo por correo y ciérralo del todo (Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>) antes de abrir Sensor Logger, o se queda con la banda.",
-        "Los <b>miércoles</b> (desde el 21-oct), primero la prueba ortostática en la cama y después, en la oficina, este Sensor Logger sentado como cualquier día: hacen falta las dos.",
-        "El primer mes, <b>todos los días</b>, para tener tu línea base. Después, lunes, miércoles y viernes."
+        "<b>Desde el 11-nov el ECG se graba con ECG Analysis</b> (Sensor Logger dejó de grabar): mismos 3 minutos sentado y se manda por correo igual. Su cuenta gratuita da <b>8 ECG al mes</b>.",
+        "<b>Cuándo (desde el 26-nov):</b> todos los <b>lunes</b>, y un <b>viernes de cada dos</b> (el primero, el 4-dic). Son 6 o 7 al mes: lo que sobra de los 8 queda para un síntoma o para repetir uno con ruido. Si un día ya no queda cupo, no pasa nada: sale «sin cupo». La prueba ortostática de los miércoles ya no se hace (la última, el 25-nov)."
       ],
       fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen latidos de forma rara que no son del corazón, y ese ECG queda marcado con ruido. " +
         "Un ECG suelto no dice nada: lo que se mira es la serie. Si notas palpitaciones, mareo o un vuelco, haz uno en ese momento aunque no toque. " +
@@ -6057,6 +6058,44 @@
   function diaDeSalud(f) { var D = DiarioSalud.datos; return (D && D.dias && D.dias[f]) || {}; }
   var ECG_DIARIO_HASTA = "2026-10-27";   // primer mes a diario; después lunes y viernes (el miércoles lo trae la ortostática)
 
+  /* v689 · 25-nov-2026 (Carlos) — EL CUPO DE ECG ANALYSIS. La cuenta gratuita da
+     8 ECG al mes. Desde el 26-nov: LUNES fijo cada semana y VIERNES cada dos semanas
+     (el primero, el 4-dic). El plan da 6 o 7 al mes; lo que sobra queda para un
+     síntoma o repetir uno con ruido. Sin tope (Carlos, 25-nov: «ese tercer viernes
+     será a final de mes… si se han gastado antes pues se dirá, no hubo cupo»): si
+     un día ya no queda cupo, la recogida lo marca «sin cupo» y no es falta.
+     La PRUEBA ORTOSTÁTICA de los miércoles se deja: la última fue el 25-nov
+     (7 pruebas, sin nada que no dieran ya los datos de la noche). Si un día llega
+     un ECG que no toca, se enseña como opcional y no cuenta como falta.
+     La MISMA regla está en recoger-ecg.py (toca_ecg_dia). */
+  var ECG_CUPO_DESDE = "2026-11-26", ECG_VIERNES_ANCLA = "2026-12-04";
+  var ORTO_HASTA = "2026-11-25";
+  function ecgDiasDelMes(iso) {                 // [lunes, viernes quincenales] del mes, en orden
+    var y = +iso.slice(0, 4), m = +iso.slice(5, 7), lun = [], vie = [];
+    var d = new Date(y, m - 1, 1, 12);
+    while (d.getMonth() === m - 1) {
+      var f = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      if (d.getDay() === 1) lun.push(f);
+      if (d.getDay() === 5) {
+        var dif = Math.round((new Date(f + "T12:00:00") - new Date(ECG_VIERNES_ANCLA + "T12:00:00")) / 864e5);
+        if (((dif % 14) + 14) % 14 === 0) vie.push(f);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return { lunes: lun, viernes: vie };
+  }
+  function tocaEcgDia(iso) {
+    var dSem = new Date(iso + "T12:00:00").getDay();
+    if (iso <= ECG_DIARIO_HASTA) return true;
+    if (iso < ECG_CUPO_DESDE) return dSem === 1 || dSem === 5;
+    if (dSem === 1) return true;
+    if (dSem !== 5) return false;
+    return ecgDiasDelMes(iso).viernes.indexOf(iso) >= 0;
+  }
+  function tocaOrto(iso) {
+    return new Date(iso + "T12:00:00").getDay() === 3 && iso >= ORTO_DESDE && iso <= ORTO_HASTA;
+  }
+
   /* Días que aún no han llegado: qué tocará medir y, si es mañana, la prueba
      que dejó la revisión de hoy. Carlos, 29-sep: «los hoy toca de mañana y
      días siguientes no se ven».
@@ -6064,6 +6103,7 @@
        lunes:    peso (subida) · músculo/agua/hueso · ECG
        martes:   tensión
        miércoles: peso (recuperación) · músculo/agua/hueso · prueba ortostática (con su ECG sentado al final)
+     25-nov-2026 (Carlos, v689): sin ortostática; ECG los lunes y un viernes de cada dos (tocaEcgDia).
        jueves:   tensión
        viernes:  peso (limpio) · cintura/cuello/tobillo/muslo/brazo/gemelo · músculo/agua/hueso · ECG
   */
@@ -6072,8 +6112,8 @@
     var toca = [];
     if (dSem === 2 || dSem === 4) toca.push("Tensión");
     if (dSem === 1 || dSem === 3 || dSem === 5) toca.push("Báscula");
-    if (dSem === 3 && dia >= ORTO_DESDE) toca.push("Prueba ortostática (tumbado + de pie + sentado; el sentado cuenta como el ECG)");
-    if (dia <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 5) toca.push("ECG (Sensor Logger sentado)");
+    if (tocaOrto(dia)) toca.push("Prueba ortostática (tumbado + de pie + sentado; el sentado cuenta como el ECG)");
+    if (tocaEcgDia(dia)) toca.push(dia >= ECG_CUPO_DESDE ? "ECG sentado (ECG Analysis)" : "ECG (Sensor Logger sentado)");
     if (dSem === 1 || dSem === 3 || dSem === 5) toca.push("Músculo, agua y masa ósea");
     if (dSem === 5) toca.push("Medidas del viernes (cintura, cuello, tobillo, muslo, brazo y gemelo)");
     return toca;
@@ -6117,9 +6157,10 @@
       items = [];
       if (dSem === 2 || dSem === 4) items.push({ n: "Tensión", ok: false });
       if (dSem === 1 || dSem === 3 || dSem === 5) items.push({ n: "Báscula", ok: false });
-      if (dSem === 3 && hoy >= ORTO_DESDE) items.push({ n: "Prueba ortostática (con el ECG al final)", ok: false });
-      if (hoy <= ECG_DIARIO_HASTA || dSem === 1 || dSem === 5)
-        if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger sentado)", ok: false });
+      if (tocaOrto(hoy)) items.push({ n: "Prueba ortostática (con el ECG al final)", ok: false });
+      if (tocaEcgDia(hoy))
+        if (hoy >= ECG_CUPO_DESDE) items.push({ n: "ECG sentado (ECG Analysis)", ok: false });
+        else if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger sentado)", ok: false });
         else items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
       if (dSem === 1 || dSem === 3 || dSem === 5) items.push({ n: "Músculo, agua y masa ósea", ok: false });
     }
