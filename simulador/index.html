@@ -15,7 +15,7 @@ if (window.THREE) { (()=>{var be=Object.create;var pe=Object.defineProperty;var 
    Mapa 2D, perfil, datos, rivales y tramos funcionan igual; el 3D enseña un vídeo de demostración.
    Para probar: ?ligero=1 fuerza el modo ligero y ?3d=1 lo quita. */
 window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(location.search) && !matchMedia('(any-pointer: fine)').matches);
-if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edificios-extra','iglesias','animales','huevos','coches','rios','vias','modelos-extra','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
+if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edificios-extra','iglesias','animales','huevos','coches','rios','riberas','vias','modelos-extra','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
 <script src="recursos/circuitos.js"></script>
@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v261 · El ECG se dibuja en directo mientras se graba (como un monitor), con el pulso al lado</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v264 · árboles por cuadrados fijos al mapa (pinar, roble, encina, olivar, chopos de ribera, arbustos) y estación elegible · v262 · casas y sitios fijos asentados en el suelo que se ve (Palazuelos ya no sale hundido) · v261 · El ECG se dibuja en directo mientras se graba (como un monitor), con el pulso al lado</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -540,6 +540,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
     </select>
     <select id="calidad3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Calidad"><option value="alta">Calidad: alta</option><option value="media" selected>Calidad: media</option><option value="baja">Calidad: baja</option></select>
     <select id="hora3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Hora"><option value="ahora">Hora: ahora</option><option value="7">Hora: 7:00</option><option value="8">Hora: 8:00</option><option value="9">Hora: 9:00</option><option value="10">Hora: 10:00</option><option value="12">Hora: 12:00</option><option value="14">Hora: 14:00</option><option value="16">Hora: 16:00</option><option value="17">Hora: 17:00</option><option value="18">Hora: 18:00</option><option value="19">Hora: 19:00</option><option value="20">Hora: 20:00</option><option value="22">Hora: 22:00</option></select>
+    <select id="estacion3d" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d" aria-label="Estación"><option value="auto">Estación: la de hoy</option><option value="primavera">Estación: primavera</option><option value="verano">Estación: verano</option><option value="otoño">Estación: otoño</option><option value="invierno">Estación: invierno</option></select>
     <select id="vientoFuerza" title="Viento" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="0">Viento: no</option><option value="10">Viento: suave (10)</option><option value="20">Viento: moderado (20)</option><option value="30">Viento: fuerte (30)</option></select>
     <select id="vientoDir" title="De dónde sopla" style="font-size:14px;padding:5px;border-radius:7px;background:#0d1117;color:#e8eaed;border:1px solid #30363d"><option value="azar">del: al azar</option><option value="0">del N</option><option value="45">del NE</option><option value="90">del E</option><option value="135">del SE</option><option value="180">del S</option><option value="225">del SO</option><option value="270">del O</option><option value="315">del NO</option></select>
     <button id="b3Empezar">▶ Empezar</button>
@@ -4179,6 +4180,12 @@ $('ciclista3d').onchange = async () => {
 };
 $('vistaRuta').onchange = ponerVista;
 try { const hh = localStorage.getItem('simulador-hora'); if (hh) $('hora3d').value = hh; } catch(e) {}
+/* v264 (Carlos: «la estación sale la que hay pero se puede cambiar en la definición de la actividad»): hojas, colores y nieve según la estación */
+try { const ee = localStorage.getItem('simulador-estacion'); if (ee && $('estacion3d')) $('estacion3d').value = ee; } catch(e) {}
+if ($('estacion3d')) $('estacion3d').onchange = () => { try { localStorage.setItem('simulador-estacion', $('estacion3d').value); } catch(e) {} $('estacion3d').blur(); avisar('🍂 Estación: ' + estacionElegida() + ' (se aplica al montar el paisaje de la próxima salida)'); };
+function estacionElegida(){ let v = 'auto'; try { v = ($('estacion3d') && $('estacion3d').value) || localStorage.getItem('simulador-estacion') || 'auto'; } catch(e) {}
+  if (v !== 'auto') return v; const m = new Date().getMonth(); return m === 11 || m < 2 ? 'invierno' : m < 5 ? 'primavera' : m < 8 ? 'verano' : 'otoño'; }
+function mesDeEstacion(){ let v = 'auto'; try { v = ($('estacion3d') && $('estacion3d').value) || 'auto'; } catch(e) {} return v === 'auto' ? new Date().getMonth() : ({ invierno: 0, primavera: 3, verano: 6, 'otoño': 9 })[v]; }
 $('hora3d').onchange = () => { try { localStorage.setItem('simulador-hora', $('hora3d').value); } catch(e) {} if (v3) v3.horaAplicada = null; aplicarHora(); $('hora3d').blur(); };
 $('bSalirCompleta').onclick = () => { $('vistaRuta').value = 'dos'; ponerVista(); };
 $('bPausaMapa').onclick = () => alternarPausa();
@@ -6486,7 +6493,7 @@ function geoBarrio(edif, hR){ const O = obraEdif(), mats = matsCasa(), C = h => 
       if (arriba) O.tri('teja', [P[a][0], yt, P[a][1]], [P[b][0], yt, P[b][1]], [P[c][0], yt, P[c][1]], teja, 1); else O.tri('teja', [P[a][0], yt, P[a][1]], [P[c][0], yt, P[c][1]], [P[b][0], yt, P[b][1]], teja, 1); }
     k++; }
   const G = new THREE.Group(); for (const pt of O.cerrar(mats)) { const m = new THREE.Mesh(pt.geo, pt.mat); m.castShadow = m.receiveShadow = calidad().sombra; G.add(m); } G.userData.n = k; return G; }
-function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L = []; C.hitos = { lista: L, vivos: new Map(), mat: new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }) };
+function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const hVis = (x, z) => (v3.suelo || C.hTile)(x, z);   /* v262 (Carlos: «¿están un poco hundidas las casas en Palazuelos?»): la altura que SE VE; la de las baldosas está rebajada junto a la carretera, debajo de la franja */ const L = []; C.hitos = { lista: L, vivos: new Map(), mat: new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }) };
   if (!v3.aXZ || !(v3.tema && v3.tema.real)) return C.hitos;
   // el acueducto de Segovia
   { const pts = ACUEDUCTO.map(([la, lo]) => v3.aXZ(la, lo)), cx = pts.reduce((a, p) => a + p.x, 0) / pts.length, cz = pts.reduce((a, p) => a + p.z, 0) / pts.length;
@@ -6503,7 +6510,7 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L
         let Lg = Math.max(tp ? 8 : 14, Math.min(45, L0 || (tp ? 14 : 24))), Wg = Math.max(tp ? 5 : 8, Math.min(25, W0 || (tp ? 8 : 13))); if (Wg > Lg * 0.8) Wg = Lg * 0.8;
         const b = (rb == null ? 90 : rb) * Math.PI / 180; ig = { x: q.x, z: q.z, L: Lg, W: Wg, ang: Math.atan2(Math.cos(b), Math.sin(b)), tipo: tp, seed }; }
       const g_ = ig; L.push({ k: 'iglesia', x: g_.x, z: g_.z, r: 30, hacer: () => { const cs = Math.cos(g_.ang), sn = Math.sin(g_.ang); let lo_ = Infinity, hi = -Infinity;
-        for (const [a, b] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [0, 0]]) { const lx = a * g_.L, lz = b * g_.W, h = C.hTile(g_.x + lx * cs + lz * sn, g_.z - lx * sn + lz * cs); lo_ = Math.min(lo_, h); hi = Math.max(hi, h); }
+        for (const [a, b] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [0, 0]]) { const lx = a * g_.L, lz = b * g_.W, h = hVis(g_.x + lx * cs + lz * sn, g_.z - lx * sn + lz * cs); lo_ = Math.min(lo_, h); hi = Math.max(hi, h); }
         if (hi - lo_ > 9) return null;   /* barranco: ahí no */
         const { g } = geoIglesia({ L: g_.L, W: g_.W, tipo: g_.tipo, seed: g_.seed, drop: hi - lo_ + 0.6 }), me = new THREE.Mesh(g, C.hitos.mat);
         me.position.set(g_.x, hi - 0.15, g_.z); me.rotation.y = g_.ang; me.castShadow = me.receiveShadow = calidad().sombra; return me; } }); } }
@@ -6514,33 +6521,33 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L
     for (const [k, L2] of M) { const [a, b] = k.split(',').map(Number); PUEBLOS.push({ nombre: p.n + (M.size > 1 ? ' (' + (PUEBLOS.length + 1) + ')' : ''), tipo: 'barrio', lat: p.lat + (a + 0.5) * 2700 / 1e6, lon: p.lon + (b + 0.5) * 3600 / 1e6, lat0: p.lat, lon0: p.lon, r: 260, edif: L2, mudo: true }); } }
   for (const h of ((window.RECURSOS_SIM && RECURSOS_SIM.hitos) || []).concat(PUEBLOS)) { const q = v3.aXZ(h.lat, h.lon); if (!C.dentro(q.x, q.z)) continue;
     if (h.tipo === 'barrio' && h.edif) { const la0 = h.lat0 ?? h.lat, lo0 = h.lon0 ?? h.lon, ed = h.edif.map(([lv, f]) => { const P = []; for (let i = 0; i < f.length; i += 2) { const p = v3.aXZ(la0 + f[i] / 1e6, lo0 + f[i + 1] / 1e6); P.push([p.x - q.x, p.z - q.z]); } return [lv, P]; });
-      L.push({ k: 'barrio', x: q.x, z: q.z, r: h.r || 600, nombre: h.mudo ? null : h.nombre, hacer: () => { const base = C.hTile(q.x, q.z), G = geoBarrio(ed, (x, z) => C.hTile(q.x + x, q.z + z) - base); G.position.set(q.x, base, q.z); if (!h.mudo) log('3D: ' + h.nombre + ': ' + G.userData.n + ' edificios.'); return G; } }); continue; }
+      L.push({ k: 'barrio', x: q.x, z: q.z, r: h.r || 600, nombre: h.mudo ? null : h.nombre, hacer: () => { const base = hVis(q.x, q.z), G = geoBarrio(ed, (x, z) => hVis(q.x + x, q.z + z) - base); G.position.set(q.x, base, q.z); if (!h.mudo) log('3D: ' + h.nombre + ': ' + G.userData.n + ' edificios.'); return G; } }); continue; }
     if (h.tipo === 'toros' && h.planta) { const P = h.planta.map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), r = Math.max(...P.map(([x, z]) => Math.hypot(x, z)));
-      L.push({ k: 'toros', x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
+      L.push({ k: 'toros', x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = hVis(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         const me = new THREE.Mesh(geoPlazaToros(P, hi - lo_ + 1), C.hitos.mat); me.position.set(q.x, hi - 0.2, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if ((h.tipo === 'castillo' || h.tipo === 'estadio') && h.planta) { const loc = arr => (arr || []).map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), P = loc(h.planta), pa = loc(h.patio);
       const r = Math.max(...P.map(([x, z]) => Math.hypot(x, z)));
-      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
+      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = hVis(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         const g = h.tipo === 'castillo' ? geoCastillo(P, pa, hi - lo_ + 1) : geoEstadio(P, hi - lo_ + 1), me = new THREE.Mesh(g, C.hitos.mat); me.position.set(q.x, hi, q.z); me.castShadow = me.receiveShadow = calidad().sombra;
         log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if ((h.tipo === 'puente' || h.tipo === 'puerta') && h.planta) { const P = h.planta.map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), r = Math.max(...P.map(([x, z]) => Math.hypot(x, z)));
-      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
+      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = hVis(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         let g; if (h.tipo === 'puerta') g = geoPuerta(P); else { const alto = Math.max(h.estilo === 'rey' ? 6 : 8, hi - lo_), r = (h.eje || 0) * Math.PI / 180;   /* eje: rumbo en grados (0 norte, 90 este) */
           g = geoPuente(P, { arcos: h.arcos, estilo: h.estilo, alto, drop: 2, eje: h.eje == null ? null : Math.atan2(-Math.cos(r), Math.sin(r)) }); }
-        const me = new THREE.Mesh(g, C.hitos.mat); me.position.set(q.x, h.tipo === 'puerta' ? C.hTile(q.x, q.z) : Math.max(lo_, hi - Math.max(h.estilo === 'rey' ? 6 : 8, hi - lo_)), q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
+        const me = new THREE.Mesh(g, C.hitos.mat); me.position.set(q.x, h.tipo === 'puerta' ? hVis(q.x, q.z) : Math.max(lo_, hi - Math.max(h.estilo === 'rey' ? 6 : 8, hi - lo_)), q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if (h.tipo === 'muralla' || h.tipo === 'plaza' || h.tipo === 'torre') { const loc = arr => arr.map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; });
       const lineas = (h.lineas || [h.planta]).map(loc), todos = [].concat(...lineas), r = Math.max(20, ...todos.map(([x, z]) => Math.hypot(x, z)));
-      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { const base = C.hTile(q.x, q.z), hR = (x, z) => C.hTile(q.x + x, q.z + z) - base;
+      L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { const base = hVis(q.x, q.z), hR = (x, z) => hVis(q.x + x, q.z + z) - base;
         const g = h.tipo === 'muralla' ? geoMuralla(lineas, hR) : h.tipo === 'plaza' ? geoPlazaMayor(lineas[0], hR) : geoTorreReloj(lineas[0], hR);
         const me = new THREE.Mesh(g, C.hitos.mat); me.position.set(q.x, base, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
-    if (h.tipo === 'ruinas') { L.push({ k: 'ruinas', x: q.x, z: q.z, r: 25, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of [[-15, -11], [15, -11], [15, 11], [-15, 11], [0, 0]]) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
+    if (h.tipo === 'ruinas') { L.push({ k: 'ruinas', x: q.x, z: q.z, r: 25, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of [[-15, -11], [15, -11], [15, 11], [-15, 11], [0, 0]]) { const hh = hVis(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         const me = new THREE.Mesh(geoRuinas({ largo: h.largo, ancho: h.ancho, rumbo: h.rumbo, drop: hi - lo_ + 1 }), C.hitos.mat); me.position.set(q.x, hi - 0.3, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if (h.tipo === 'cocheras' && h.recinto) { const loc = arr => (arr || []).map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), Rc = loc(h.recinto), V = (h.vias || []).map(v => ({ p: loc(v.p), c: v.c })), Nv = (h.naves || []).map(n => ({ p: loc(n.p), n: n.n, tipo: n.tipo }));
       const r = Math.max(...Rc.map(([x, z]) => Math.hypot(x, z)));
-      L.push({ k: 'cocheras', x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of Rc.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
+      L.push({ k: 'cocheras', x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of Rc.concat([[0, 0]])) { const hh = hVis(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         const me = new THREE.Mesh(geoCocheras(Rc, V, Nv, hi - lo_ + 1), C.hitos.mat); me.position.set(q.x, (hi + lo_) / 2, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if (h.tipo === 'iglesia' || h.tipo === 'ermita') { const tp = h.tipo === 'ermita' ? 1 : 0, Lg = h.largo || (tp ? 14 : 24), Wg = h.ancho || (tp ? 8 : 13), b = (h.rumbo == null ? 90 : h.rumbo) * Math.PI / 180;
-      L.push({ k: 'hito', x: q.x, z: q.z, r: 30, hacer: () => { const hh = C.hTile(q.x, q.z), { g } = geoIglesia({ L: Lg, W: Wg, tipo: tp, seed: Math.round(Math.abs(h.lat * 1e5 + h.lon * 7e4)), drop: 1.2 }), me = new THREE.Mesh(g, C.hitos.mat);
+      L.push({ k: 'hito', x: q.x, z: q.z, r: 30, hacer: () => { const hh = hVis(q.x, q.z), { g } = geoIglesia({ L: Lg, W: Wg, tipo: tp, seed: Math.round(Math.abs(h.lat * 1e5 + h.lon * 7e4)), drop: 1.2 }), me = new THREE.Mesh(g, C.hitos.mat);
         me.position.set(q.x, hh - 0.15, q.z); me.rotation.y = Math.atan2(Math.cos(b), Math.sin(b)); me.castShadow = me.receiveShadow = calidad().sombra; return me; } }); } }
   log('3D: sitios fijos en esta zona: ' + L.length + ' (' + L.filter(x => x.k === 'iglesia').length + ' iglesias' + (L.some(x => x.k === 'acueducto') ? ', el acueducto' : '') + L.filter(x => x.nombre).map(x => ', ' + x.nombre).join('') + ').');
   return C.hitos; }
@@ -6855,7 +6862,7 @@ async function construir3D(){
     const nor = geo.getAttribute('normal');
     const tmp = new THREE.Color(); let hMin = Infinity, hMax = -Infinity; for (const h of alt) { if (h < hMin) hMin = h; if (h > hMax) hMax = h; }
     const relAlt = h => (h - hMin) / Math.max(1, hMax - hMin), SECO = new THREE.Color(0xa59b62);
-    const COTA_NIEVE = [1600, 1600, 1650, 1800, 2000, 2500, 2500, 2500, 2500, 2200, 1800, 1600][new Date().getMonth()];   // v139: nieve por manchas según el mes (en verano, sin nieve)
+    const COTA_NIEVE = [1600, 1600, 1650, 1800, 2000, 2500, 2500, 2500, 2500, 2200, 1800, 1600][mesDeEstacion()];   // v139: nieve por manchas según el mes (en verano, sin nieve)
     v3.cotaNieve = COTA_NIEVE;
     // v143 (el trigo apenas se veía): campos rectangulares decididos antes de pintar el terreno, con el suelo dorado y surcos debajo de las espigas
     v3.campos = [];
@@ -7110,8 +7117,60 @@ async function construir3D(){
       m4.compose(new THREE.Vector3(x, h - 0.4, z), q.setFromAxisAngle(eje, Math.random() * 6.28), new THREE.Vector3(e, e * (0.8 + Math.random() * 0.5), e));
       ((TEMA.frond === null ? (TEMA.montana ? Math.random() < Math.max(0.04, Math.min(0.85, (1480 - h) / 260)) : (h < 1450 && Math.random() < 0.2)) : Math.random() < TEMA.frond) ? frondosos : pinos).push(m4.clone()); };
     const arbolAqui = (h, k, pend) => TEMA.arboles > 0 && nor.getY(k) >= pend && (NOMBRE === 'sierra' ? h <= 1900 : NOMBRE === 'nieve' ? relAlt(h) < 0.8 : true);
+    /* v264 (Carlos, 25-nov: «diseñamos el terreno por cuadrantes, se hacen fijos para que salgan siempre igual» y «zonas muy altas algún arbusto, zonas altas pinar,
+       zonas más bajas bosque caducifolio, en otoño-invierno sin hojas, ríos con arboleda densa de ribera», «la encina en zonas como Las Vegas, y mucho olivo»):
+       árboles por cuadrados de ~650 m FIJOS AL MAPA (lat/lon), cada uno con su propia semilla: el mismo sitio sale igual vengas por la ruta que vengas. */
+    const ESTACION = estacionElegida(), ESP = { pino: pinos, roble: frondosos, encina: [], olivo: [], chopo: [], arbusto: [], desnudo: [], chopoDesnudo: [] };
+    let porCeldas = false;
+    if (TEMA.real && !(CX && CX.almendros) && typeof aLatLon === 'function' && TEMA.arboles > 0) { porCeldas = true; const t0Arb = performance.now();
+      const DLA = 0.006, DLO = 0.008, R = 360, celdasB = new Set();
+      for (let i = 0; i < via.length; i += 5) { const g = aLatLon(via[i].x, via[i].z), ci = Math.floor(g.lat / DLA), cj = Math.floor(g.lon / DLO); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) celdasB.add((ci + a) + ',' + (cj + b)); }
+      // ríos: tramos en metros, en una rejilla de 200 m para buscar rápido
+      const RG = new Map(), RC = 200; let xmin = Infinity, xmax = -Infinity, zmin = Infinity, zmax = -Infinity; for (const v of via) { xmin = Math.min(xmin, v.x); xmax = Math.max(xmax, v.x); zmin = Math.min(zmin, v.z); zmax = Math.max(zmax, v.z); }
+      for (const rr of (((window.RECURSOS_SIM && RECURSOS_SIM.rios) || []).filter(x => x[0] === 'r').concat(((window.RECURSOS_SIM && RECURSOS_SIM.riberas) || []).map(x => ['r', x[0], x[1]])))) { const f = rr[2]; let ant = null;   /* v264: + recursos/riberas.js (ríos de OpenStreetMap, solo para la arboleda) */
+        for (let k = 0; k < f.length; k += 2) { const p = aXZ(f[k], f[k + 1]); if (ant && p.x > xmin - 900 && p.x < xmax + 900 && p.z > zmin - 900 && p.z < zmax + 900) { const kk = Math.floor(p.x / RC) + ',' + Math.floor(p.z / RC); if (!RG.has(kk)) RG.set(kk, []); RG.get(kk).push([ant.x, ant.z, p.x, p.z]); } ant = p; } }
+      const dRio = (x, z) => { let m = 1e9; const i0 = Math.floor(x / RC), j0 = Math.floor(z / RC); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const L = RG.get((i0 + a) + ',' + (j0 + b)); if (!L) continue;
+          for (const [ax, az, bx, bz] of L) { const ux = bx - ax, uz = bz - az, L2 = ux * ux + uz * uz || 1, t = Math.max(0, Math.min(1, ((x - ax) * ux + (z - az) * uz) / L2)); m = Math.min(m, Math.hypot(x - ax - ux * t, z - az - uz * t)); } } return m; };
+      const DENS_KM2 = { bosque: 2400, parque: 1800, deporte: 500, otro: 1100, descampado: 800, campo: 700, barrio: 450, poligono: 120, roca: 260, agua: 0 };
+      const VEGAS = (la, lo) => la < 40.42 && la > 39.9 && lo > -3.75 && lo < -2.95;   /* Las Vegas, Chinchón, Morata: olivar y encina */
+      const hojas = ESTACION === 'primavera' || ESTACION === 'verano', otonoTardio = ESTACION === 'otoño' && new Date().getMonth() >= 10;
+      const poner = (sp, x, z, e, r3, r4) => { const h = Math.min(hAqui(x, z), hAqui(x + 0.8, z), hAqui(x - 0.8, z), hAqui(x, z + 0.8), hAqui(x, z - 0.8)) + 0.15;
+        m4.compose(new THREE.Vector3(x, h - 0.4, z), q.setFromAxisAngle(eje, r3 * 6.28), new THREE.Vector3(e, e * (0.8 + r4 * 0.5), e)); ESP[sp].push(m4.clone()); };
+      const GC = 60, cerca = new Set(), nG = Math.ceil(R / GC) + 1;   /* rejilla de 60 m con las casillas a menos de R de la ruta: descarta rápido lo lejano */
+      for (let i = 0; i < via.length; i += 3) { const gi = Math.floor(via[i].x / GC), gj = Math.floor(via[i].z / GC); for (let a = -nG; a <= nG; a++) for (let b = -nG; b <= nG; b++) if (a * a + b * b <= nG * nG) cerca.add((gi + a) * 100003 + (gj + b)); }
+      const enFranja = (x, z) => cerca.has(Math.floor(x / GC) * 100003 + Math.floor(z / GC));
+      let nOl = 0; const topeOl = Math.round(14000 * Q.arb);
+      for (const k of celdasB) { const [ci, cj] = k.split(',').map(Number), az = mulberry(((ci * 73856093) ^ (cj * 19349663) ^ 0x5bd1e995) | 0);
+        // olivares: parcelas de 8 m entre árboles, en 1 de cada 3 cuartos de celda en Las Vegas (siempre se gastan los mismos números del azar)
+        for (let sa = 0; sa < 4; sa++) for (let sb = 0; sb < 4; sb++) { const hay = az() < 0.1, la0 = (ci + sa / 4) * DLA, lo0 = (cj + sb / 4) * DLO;
+          if (!hay || !VEGAS(la0, lo0)) continue;
+          const pA = aXZ(la0, lo0), pB = aXZ(la0 + DLA / 4, lo0 + DLO / 4), x0 = Math.min(pA.x, pB.x), x1 = Math.max(pA.x, pB.x), z0 = Math.min(pA.z, pB.z), z1 = Math.max(pA.z, pB.z);
+          const cc = cercana((x0 + x1) / 2, (z0 + z1) / 2); if (cc.d > 230) continue;
+          for (let z = z0 + 5; z < z1; z += 10) for (let x = x0 + 5; x < x1; x += 10) { if (!enFranja(x, z)) continue; const c = cercana(x, z); if (c.d < 12 || c.d > 110) continue; if (HUECOS.length && HUECOS.some(hh => Math.hypot(x - hh.x, z - hh.z) < hh.r)) continue; const am = ambienteEn(x, z) || 'otro'; if (am !== 'campo' && am !== 'descampado' && am !== 'otro') continue;
+            if (hAqui(x, z) > 950) continue; const j = ((Math.round(x * 7) ^ Math.round(z * 13)) & 1023) / 1024; if (j < 0.06) continue;   /* alguna marra */
+            poner('olivo', x + (j - 0.5) * 1.2, z + (j - 0.5) * 0.8, 0.8 + j * 0.35, j, 0.5); nOl++; } }
+        for (let t = 0; t < 2600; t++) { const u = az(), w = az(), r1 = az(), r2 = az(), r3 = az(), r4 = az(), r5 = az();
+          const la = (ci + u) * DLA, lo = (cj + w) * DLO, p = aXZ(la, lo), x = p.x, z = p.z;
+          if (!enFranja(x, z)) continue; const c = cercana(x, z); if (c.d > R || c.d < 12) continue;
+          if (HUECOS.length && HUECOS.some(hh => Math.hypot(x - hh.x, z - hh.z) < hh.r)) continue;
+          const amb = ambienteEn(x, z) || 'otro', h = hAqui(x, z), rio = h < 1500 && amb !== 'agua' && dRio(x, z) < 35;
+          const lejos = c.d < 60 ? 1 : c.d < 200 ? 1 - 0.65 * (c.d - 60) / 140 : 0.35 - 0.2 * (c.d - 200) / 160;   /* más arbolado junto a la carretera, que es lo que se ve */
+          const dens = (rio ? 2000 : (DENS_KM2[amb] ?? 400)) / 5900 * lejos * Math.min(1, TEMA.arboles) * Math.sqrt(Q.arb);   /* árboles por km² junto a la carretera / candidatos por km² */
+          if (r1 > dens) continue;
+          let sp;
+          if (rio) sp = 'chopo';
+          else if (h > 1900) sp = 'arbusto';
+          else if (h > 1300) sp = r2 < 0.92 ? 'pino' : 'roble';
+          else if (h > 1000) sp = amb === 'bosque' ? (r2 < 0.72 ? 'roble' : 'pino') : (r2 < 0.55 ? 'roble' : 'encina');
+          else sp = VEGAS(la, lo) && amb !== 'bosque' ? (r2 < 0.3 ? 'olivo' : 'encina') : (r2 < 0.82 ? 'encina' : 'roble');
+          if (sp === 'roble' && (!hojas && (ESTACION === 'invierno' || (otonoTardio ? r5 < 0.6 : r5 < 0.25)))) sp = 'desnudo';
+          if (sp === 'chopo' && (ESTACION === 'invierno' || (otonoTardio && r5 < 0.5))) sp = 'chopoDesnudo';
+          const e = sp === 'arbusto' ? 0.7 + r3 * 0.6 : sp === 'olivo' ? 0.8 + r3 * 0.35 : sp === 'encina' ? 0.75 + r3 * 0.6 : 0.65 + r3 * 0.8;
+          poner(sp, x, z, e, r4, r3); } }
+      { const v = new THREE.Vector3(); v3.arbolesCel = []; for (const [sp, L] of Object.entries(ESP)) for (const m of L) { v.setFromMatrixPosition(m); const g = aLatLon(v.x, v.z); v3.arbolesCel.push([sp, +g.lat.toFixed(6), +g.lon.toFixed(6)]); } }
+      log('3D: árboles por cuadrados fijos en ' + Math.round(performance.now() - t0Arb) + ' ms (' + celdasB.size + ' cuadrados, estación: ' + ESTACION + '): ' + Object.entries(ESP).map(([k, v]) => k + ' ' + v.length).join(', ') + '.'); }
     // primera pasada: árboles sueltos por todo el paisaje, por debajo de 1.900 m
-    for (let t = 0; t < 20000 && pinos.length + frondosos.length < 5000 * TEMA.arboles * Q.arb; t++) {
+    for (let t = 0; !porCeldas && t < 20000 && pinos.length + frondosos.length < 5000 * TEMA.arboles * Q.arb; t++) {
       const i = Math.floor(Math.random() * (nx - 1)), j = Math.floor(Math.random() * (nz - 1)), k = j * nx + i, h = alt[k];
       if (!arbolAqui(h, k, 0.8)) continue;
       const x = p0.x + i * PASO + Math.random() * PASO, z = p0.z + j * PASO + Math.random() * PASO;
@@ -7129,7 +7188,7 @@ async function construir3D(){
       log('3D: ' + n + ' almendros jóvenes en el cerro.'); }
     // segunda pasada: pinar denso a los lados de la carretera (12-350 m), que es lo que más se ve
     const FACTOR = TEMA.real ? Math.max(1, ruta.total / 25000) * (TEMA.montana ? 4 : 1) : 1;
-    for (let t = 0; t < 27000 * FACTOR * (TEMA.real ? 2.5 : 1) && pinos.length + frondosos.length < (5000 * Q.arb) + 9000 * TEMA.arboles * FACTOR * Q.arb; t++) {
+    for (let t = 0; !porCeldas && t < 27000 * FACTOR * (TEMA.real ? 2.5 : 1) && pinos.length + frondosos.length < (5000 * Q.arb) + 9000 * TEMA.arboles * FACTOR * Q.arb; t++) {
       const v = via[Math.floor(Math.random() * via.length)], ang = Math.random() * Math.PI * 2, r = 12 + Math.pow(Math.random(), 1.6) * 340;
       const x = v.x + Math.cos(ang) * r, z = v.z + Math.sin(ang) * r;
       if (cercana(x, z).d < 12) continue;
@@ -7293,7 +7352,21 @@ async function construir3D(){
       barandillas(esc, via);
       try { await decorarReal(esc, { via, cercana, ambienteEn, hT, aXZ, p0, nx, nz, PASO }); } catch(e) { log('3D: decorado según el mapa incompleto (' + e.message + ')'); v3.resumen = 'Decorado incompleto: ' + e.message; }
       est('Construyendo el paisaje…'); }
-    const otono = [9, 10, 11].includes(new Date().getMonth()), mFrond = montar(frondosos, copaFrondosa, TEMA.montana && otono ? [0x8c6a2c, 0x9f7a33, 0x7a7a30, 0xa86a2a, 0x6f7a34] : [0x4f7a2e, 0x5d8a35, 0x6b8f3a, 0x557d30]);   // robles: en otoño, ocres
+    const otono = ESTACION === 'otoño', mFrond = montar(frondosos, copaFrondosa, otono ? [0x8c6a2c, 0x9f7a33, 0x7a7a30, 0xa86a2a, 0x6f7a34, 0xb5832e] : ESTACION === 'primavera' ? [0x6f9a3e, 0x7aa548, 0x62903a, 0x86ad52] : [0x4f7a2e, 0x5d8a35, 0x6b8f3a, 0x557d30]);   // robles: en otoño, ocres; en primavera, verde claro
+    { // v264: encina, olivo, chopo de ribera, arbustos de alta montaña y árboles sin hojas
+      const copaEncina = juntar([bola(2.7, 0, 3.0, 0, 0.62), bola(1.9, 1.5, 3.3, 0.5, 0.65), bola(1.9, -1.4, 3.2, -0.6, 0.65), bola(1.6, 0.2, 3.6, -1.3, 0.6)]);
+      const copaOlivo = juntar([bola(1.35, 0, 2.0, 0, 0.75), bola(1.0, 0.8, 2.3, 0.3, 0.8), bola(0.95, -0.7, 2.2, -0.4, 0.8)]);
+      const copaChopo = juntar([bola(1.35, 0, 7.2, 0, 3.4), bola(0.9, 0.3, 10.5, 0.2, 2.0)]);
+      const copaArbusto = juntar([bola(0.95, 0, 0.55, 0, 0.6), bola(0.75, 0.7, 0.45, 0.3, 0.6), bola(0.7, -0.6, 0.45, -0.4, 0.6)]);
+      const rama = (l, r, y, ax, az, rx, rz) => { const g = new THREE.CylinderGeometry(r * 0.5, r, l, 5); g.translate(0, l / 2, 0); g.rotateZ(rz); g.rotateX(rx); g.translate(ax, y, az); return g; };
+      const ramas = juntar([rama(2.6, 0.13, 2.1, 0, 0, 0.0, 0.65), rama(2.4, 0.12, 2.3, 0, 0, 0.6, -0.5), rama(2.2, 0.11, 2.5, 0, 0, -0.7, -0.3), rama(2.0, 0.1, 2.0, 0, 0, -0.2, 0.9), rama(2.8, 0.14, 2.4, 0, 0, 0.1, -0.05), rama(1.6, 0.08, 3.6, 0.4, 0, 0.4, 0.7), rama(1.5, 0.08, 3.8, -0.3, 0.2, -0.5, -0.6)]);
+      const ramasChopo = juntar([rama(5.5, 0.12, 2.2, 0, 0, 0.1, 0.12), rama(5.0, 0.1, 2.6, 0, 0, -0.12, -0.1), rama(4.6, 0.1, 3.0, 0, 0, 0.18, -0.04), rama(6.5, 0.14, 2.0, 0, 0, 0, 0)]);
+      montar(ESP.encina, copaEncina, [0x3b5628, 0x435f2d, 0x354f25, 0x4a6431]);
+      montar(ESP.olivo, copaOlivo, [0x7d8f62, 0x8a9a6c, 0x748859, 0x93a174]);
+      montar(ESP.chopo, copaChopo, otono ? [0xd9b23a, 0xc9a23a, 0xe0c048, 0xb79a3a] : ESTACION === 'primavera' ? [0x86b04c, 0x7aa548] : [0x5f8f36, 0x6a9a3c, 0x588632]);
+      montar(ESP.arbusto, copaArbusto, ESTACION === 'primavera' ? [0xc9b23a, 0x5f6e3a, 0xd2bb3e, 0x6a7a40] : [0x5f6e3a, 0x6a7a40, 0x56633a, 0x4f5c34]);
+      montar(ESP.desnudo, ramas, [0x6a5a4a, 0x5e5042, 0x75644f]);
+      montar(ESP.chopoDesnudo, ramasChopo, [0x8a8070, 0x7d7464, 0x948a78]); }
     // vegetación descargada (recursos/vegetacion.js): sustituye a los conos cerca del ciclista y añade rocas, helechos, arbustos y hierba
     v3.cerca = null;
     const veg = await cargarVegetacion();
@@ -7305,7 +7378,7 @@ async function construir3D(){
       const conEscala = (m, k) => m.clone().multiply(new THREE.Matrix4().makeScale(k, k, k));
       const pinosV = ['Pine_1', 'Pine_2', 'Pine_4', 'Pine_5'].filter(n => veg[n]), frondV = ['CommonTree_3', 'CommonTree_5'].filter(n => veg[n]);
       if (mPinos && pinosV.length) pinos.forEach((m, i) => { m.decompose(esc3, new THREE.Quaternion(), new THREE.Vector3()); items.push({ tipo: elige(pinosV), m: conEscala(m, 1.3), x: esc3.x, z: esc3.z, R: 170, cono: [[mPinos.copa[i][0], mPinos.copa[i][1], m], [mPinos.tronco[i][0], mPinos.tronco[i][1], m]] }); });
-      if (mFrond && frondV.length) frondosos.forEach((m, i) => { m.decompose(esc3, new THREE.Quaternion(), new THREE.Vector3()); items.push({ tipo: elige(frondV), m: conEscala(m, 1.15), x: esc3.x, z: esc3.z, R: 170, cono: [[mFrond.copa[i][0], mFrond.copa[i][1], m], [mFrond.tronco[i][0], mFrond.tronco[i][1], m]] }); });
+      if (mFrond && frondV.length && !otono) frondosos.forEach((m, i) => { m.decompose(esc3, new THREE.Quaternion(), new THREE.Vector3()); items.push({ tipo: elige(frondV), m: conEscala(m, 1.15), x: esc3.x, z: esc3.z, R: 170, cono: [[mFrond.copa[i][0], mFrond.copa[i][1], m], [mFrond.tronco[i][0], mFrond.tronco[i][1], m]] }); });
       // adorno a los lados de la carretera
       const q = new THREE.Quaternion(), eje = new THREE.Vector3(0, 1, 0);
       const dTr = (x, z) => { const c = cercana(x, z), i = c.i; let m = c.d; for (const j of [i - 1, i]) { const a = via[Math.max(0, j)], b = via[Math.min(via.length - 1, j + 1)], ux = b.x - a.x, uz = b.z - a.z, L2 = ux * ux + uz * uz || 1;

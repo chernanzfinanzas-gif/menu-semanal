@@ -5176,10 +5176,9 @@
       pasos: [
         "Al levantarte, antes del café y de moverte mucho. <b>Moja bien los electrodos</b> de la banda y póntela.",
         "Siéntate y espera <b>1-2 minutos quieto</b> antes de empezar: con la banda recién puesta, los primeros segundos salen con ruido.",
-        "<b>Sensor Logger</b> sentado, espalda apoyada, sin hablar y respirando normal: marcados solo HR, RR, ECG, ACC y Save data › START › OK › <b>3 minutos y medio</b> quieto › STOP › <b>Gmail</b> › de carlos220271 para chernanzfinanzas › Enviar. De esta grabación salen el pulso, el QRS, el QTc y los latidos adelantados: es el ECG del día. Si arriba de El Plan pone «Hoy toca» una prueba, se hace dentro de esta grabación.",
-        "<b>ECG Analysis ya no hace falta</b> (desde el 11-oct). Si aún te deja grabar y quieres seguir comparando unos días, hazlo antes, mándalo por correo y ciérralo del todo (Ajustes › Aplicaciones › ECG Analysis › <b>Forzar detención</b>) antes de abrir Sensor Logger, o se queda con la banda.",
-        "<b>Desde el 11-nov el ECG se graba con ECG Analysis</b> (Sensor Logger dejó de grabar): mismos 3 minutos sentado y se manda por correo igual. Su cuenta gratuita da <b>8 ECG al mes</b>.",
-        "<b>Cuándo (desde el 26-nov):</b> todos los <b>lunes</b>, y un <b>viernes de cada dos</b> (el primero, el 4-dic). Son 6 o 7 al mes: lo que sobra de los 8 queda para un síntoma o para repetir uno con ruido. Si un día ya no queda cupo, no pasa nada: sale «sin cupo». La prueba ortostática de los miércoles ya no se hace (la última, el 25-nov)."
+        "<b>Simulador</b> en el ordenador › «Conecta tus aparatos» › con el pulsómetro conectado, <b>«❤ Grabar ECG 3 min»</b>. Sentado, espalda apoyada, sin hablar y respirando normal. Mira el monitor: si la línea tiembla, la banda está seca o te has movido; para y repite. Al acabar se sube solo a la app (sin correo) y sale en papel tras la siguiente recogida.",
+        "Antes, cierra <b>ECG Analysis</b> en el móvil si la tienes abierta: la banda solo manda el ECG a una app a la vez. ECG Analysis queda solo para contrastar alguna grabación (8 al mes gratis, por correo como siempre).",
+        "<b>Cuándo (desde el 26-nov):</b> <b>lunes, miércoles y viernes</b>. Y además <b>cuando quieras</b> si crees que algo te ha podido afectar (estar enfermo, un malestar, haber bebido alcohol o comido mal): esos ECG se analizan igual y no cuentan como falta. Apunta el motivo en la nota del día para que la revisión lo tenga en cuenta.",
       ],
       fallos: "Empezar nada más ponerse la banda o moverse durante la toma: salen latidos de forma rara que no son del corazón, y ese ECG queda marcado con ruido. " +
         "Un ECG suelto no dice nada: lo que se mira es la serie. Si notas palpitaciones, mareo o un vuelco, haz uno en ese momento aunque no toque. " +
@@ -6069,6 +6068,11 @@
      un ECG que no toca, se enseña como opcional y no cuenta como falta.
      La MISMA regla está en recoger-ecg.py (toca_ecg_dia). */
   var ECG_CUPO_DESDE = "2026-11-26", ECG_VIERNES_ANCLA = "2026-12-04";
+  /* v694 · 25-nov-2026 (Carlos): el ECG se graba con el SIMULADOR (sin cupo, sin correo), así que vuelve a ser
+     «lunes, miércoles y viernes», y además cuando él quiera («si hay algo que creo que puede haber afectado…
+     enfermedad, malestar, beber alcohol o comer mal puedo hacerlo a discreción para analizar cambios»).
+     Pisa a la regla del cupo de ECG Analysis desde el mismo día; esa se queda escrita por si se vuelve a ella. */
+  var ECG_SIM_DESDE = "2026-11-26";
   var ORTO_HASTA = "2026-11-25";
   function ecgDiasDelMes(iso) {                 // [lunes, viernes quincenales] del mes, en orden
     var y = +iso.slice(0, 4), m = +iso.slice(5, 7), lun = [], vie = [];
@@ -6086,6 +6090,7 @@
   }
   function tocaEcgDia(iso) {
     var dSem = new Date(iso + "T12:00:00").getDay();
+    if (iso >= ECG_SIM_DESDE) return dSem === 1 || dSem === 3 || dSem === 5;   // v694
     if (iso <= ECG_DIARIO_HASTA) return true;
     if (iso < ECG_CUPO_DESDE) return dSem === 1 || dSem === 5;
     if (dSem === 1) return true;
@@ -6113,7 +6118,7 @@
     if (dSem === 2 || dSem === 4) toca.push("Tensión");
     if (dSem === 1 || dSem === 3 || dSem === 5) toca.push("Báscula");
     if (tocaOrto(dia)) toca.push("Prueba ortostática (tumbado + de pie + sentado; el sentado cuenta como el ECG)");
-    if (tocaEcgDia(dia)) toca.push(dia >= ECG_CUPO_DESDE ? "ECG sentado (ECG Analysis)" : "ECG (Sensor Logger sentado)");
+    if (tocaEcgDia(dia)) toca.push(dia >= ECG_SIM_DESDE ? "ECG sentado (simulador)" : dia >= ECG_CUPO_DESDE ? "ECG sentado (ECG Analysis)" : "ECG (Sensor Logger sentado)");
     if (dSem === 1 || dSem === 3 || dSem === 5) toca.push("Músculo, agua y masa ósea");
     if (dSem === 5) toca.push("Medidas del viernes (cintura, cuello, tobillo, muslo, brazo y gemelo)");
     return toca;
@@ -6159,7 +6164,8 @@
       if (dSem === 1 || dSem === 3 || dSem === 5) items.push({ n: "Báscula", ok: false });
       if (tocaOrto(hoy)) items.push({ n: "Prueba ortostática (con el ECG al final)", ok: false });
       if (tocaEcgDia(hoy))
-        if (hoy >= ECG_CUPO_DESDE) items.push({ n: "ECG sentado (ECG Analysis)", ok: false });
+        if (hoy >= ECG_SIM_DESDE) items.push({ n: "ECG sentado (simulador)", ok: false });
+        else if (hoy >= ECG_CUPO_DESDE) items.push({ n: "ECG sentado (ECG Analysis)", ok: false });
         else if (hoy >= ECG_PROPIO_DESDE) items.push({ n: "ECG (Sensor Logger sentado)", ok: false });
         else items.push({ n: "ECG", ok: false }, { n: "Sensor Logger", ok: false });
       if (dSem === 1 || dSem === 3 || dSem === 5) items.push({ n: "Músculo, agua y masa ósea", ok: false });

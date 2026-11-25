@@ -586,7 +586,7 @@
          miércoles sale de esta lista: solo lunes y viernes. */
       { id: "ecg", nombre: "ECG", unidad: "lpm", auto: "ecg", guia: "ecg",
         desde: "2026-09-28", diariaHasta: "2026-10-28", diasDespues: [1, 5],
-        ayuda: "Al levantarte, sentado. Se marca solo cuando llega. Desde el 26-nov: los lunes y un viernes de cada dos (cupo de ECG Analysis: 8 al mes)." },
+        ayuda: "Al levantarte, sentado. Se marca solo cuando llega. Desde el 26-nov, con el simulador: lunes, miércoles y viernes, y cuando quieras si algo te ha podido afectar." },
       { id: "tobillo", nombre: "Tobillo",    unidad: "cm",   paso: 0.5, min: 15, max: 45,
         diariaHasta: "2026-09-28", diasDespues: [5],
         ayuda: "Mide retención de líquidos, no grasa. Justo por encima de los huesos del tobillo, siempre la MISMA pierna y por la mañana. Viernes, con el resto de medidas." },
