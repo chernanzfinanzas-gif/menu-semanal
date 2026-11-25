@@ -363,7 +363,9 @@
   var DENTRO = { rod: true, fue: true };
   function esDeDentro(dep) { return !!DENTRO[dep]; }
   function llevaMapa(x) {
-    if (esDeDentro(x.dep)) return false;
+    /* 25-nov-2026: el SIMULADOR rueda por carreteras de verdad (Morata, la
+       Morcuera…): esas sesiones de dentro sí llevan mapa, marcado «Indoor». */
+    if (esDeDentro(x.dep)) return !!(x.virtual && x.virtual.mapa && x.poli);
     return !!(x.ruta || x.poli);
   }
 
@@ -1039,6 +1041,14 @@
         x.pendMax = s.pend_max != null ? s.pend_max : null;
         x.pendMedia = s.pend_media != null ? s.pend_media : null;
         x.virtual = { app: s.app, sitio: s.ruta || s.mundo || null };
+        /* 25-nov-2026: el simulador trae su recorrido y su perfil (los saca
+           recoger-rodillo.py del .fit). Zwift y MyWhoosh no: sus mundos no
+           están en ningún mapa. */
+        if (s.app === "simulador" && s.poli) {
+          x.poli = s.poli;
+          if (s.perfil) x.perfil = s.perfil;
+          x.virtual.mapa = true;
+        }
         /* 1-oct-2026: el análisis de la sesión y la nota de lo hablado */
         x.analisis = (s.analisis && !s.analisis.nada) ? s.analisis : null;
         x.analisisAnt = (s.analisis && !s.analisis.nada) ? (anteriorAn[s.inicio] || null) : null;
@@ -2084,6 +2094,7 @@
           '<span class="akhb-txt">' +
             '<span class="akhb-nom">' + esc(x.nombre || NOMBRE_DEP[x.dep] || "Actividad") + "</span>" +
             '<span class="akhb-sub">' + esc(NOMBRE_DEP[x.dep] || "") +
+              (x.virtual && x.virtual.app === "simulador" ? " \u00b7 simulador" : "") +
               (datosDe(x) ? " · " + datosDe(x) : "") + "</span>" +
           "</span>" +
           '<span class="akhb-chev" aria-hidden="true"></span>' +
@@ -2308,10 +2319,13 @@
         (!aPie && vel != null && x.km ? dato("Velocidad media", num(vel, 1), " km/h") : "") +
         dato("Desnivel", x.desnivel != null ? num(x.desnivel) : null, " m") +
         /* el mundo virtual y, al lado, lo que midió el reloj (27-sep-2026) */
-        (x.virtual ? dato("Mundo virtual", (x.virtual.app === "zwift" ? "Zwift" : "MyWhoosh") +
+        (x.virtual ? dato(x.virtual.app === "simulador" ? "Ruta (indoor)" : "Mundo virtual",
+          (x.virtual.app === "zwift" ? "Zwift" : x.virtual.app === "simulador" ? "Simulador" : "MyWhoosh") +
           (x.virtual.sitio ? " · " + esc(x.virtual.sitio) : "")) : "") +
-        (x.virtual && x.kmReloj != null ? dato("Distancia del reloj", num(x.kmReloj, 2), " km") : "") +
-        (x.virtual && x.velReloj != null ? dato("Velocidad del reloj", num(x.velReloj, 1), " km/h") : "") +
+        /* 25-nov-2026: en el simulador «el reloj» es el propio simulador (su .fit
+           es el que sube a intervals): las dos filas repetían la misma cifra */
+        (x.virtual && x.virtual.app !== "simulador" && x.kmReloj != null ? dato("Distancia del reloj", num(x.kmReloj, 2), " km") : "") +
+        (x.virtual && x.virtual.app !== "simulador" && x.velReloj != null ? dato("Velocidad del reloj", num(x.velReloj, 1), " km/h") : "") +
         (x.desnivelNeg != null ? dato("Bajada", num(x.desnivelNeg), " m") : "") +
         (x.altMin != null && x.altMax != null
           ? dato("Altura", num(x.altMin) + " – " + num(x.altMax), " m") : "") +
@@ -2804,7 +2818,8 @@
                           (monteAn[x.id].curva && monteAn[x.id].fuente !== "bici") ? o.monte.curva : null,
                           monteAn[x.id].curva_nombre, monteAn[x.id].fuente === "bici") : "") +
           "<figcaption>" +
-            (esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
+            (esDeDentro(x.dep) && llevaMapa(x) ? "Indoor \u00b7 simulador \u2014 " + esc((x.virtual && x.virtual.sitio) || x.nombre || "")
+             : esDeDentro(x.dep) ? NOMBRE_DEP[x.dep] + " \u2014 en casa, sin recorrido"
              : x.ruta ? esc(x.nombre || "")
              : x.poli ? esc(x.nombre || "Trazo de Strava")
              /* Salió a la calle y no tenemos la línea. Decirlo así y no «sin
@@ -2815,9 +2830,57 @@
         '<table class="akhb-kv"><tbody>' + campos + "</tbody></table>" +
         tablaFuerza +
         htmlAnalisis(x) +
+        htmlVecesRuta(x) +
         ((monteAn && x.id && monteAn[x.id]) ? htmlAnalisisMonte(monteAn[x.id])
          : (llanoAn && x.id && llanoAn[x.id]) ? htmlAnalisisLlano(llanoAn[x.id]) : "") +
       "</div>";
+    }
+
+    /* ---------- TUS VECES POR ESTA RUTA (simulador) · 25-nov-2026 ----------
+       Lo que en Strava son «tus esfuerzos anteriores», sin red social: todas
+       las sesiones del simulador por la misma carretera, para ver si con la
+       misma ruta vas más rápido o con menos pulso. La ruta se reconoce aunque
+       cambie la sesión: «S09 Rodillo corto 55' Anillo…» y «S10 Rodillo 1 de 4
+       50' Anillo…» son el mismo Anillo. Los km no son iguales (se para cuando
+       acaba la sesión), por eso se compara velocidad y vatios por pulsación,
+       no el tiempo total. */
+    function claveRutaSim(sitio) {
+      return String(sitio || "").replace(/^S\d+\b.*?\d+'\s*/, "").trim().toLowerCase();
+    }
+    function htmlVecesRuta(x) {
+      if (!x || !x.virtual || x.virtual.app !== "simulador" || !x.virtual.sitio) return "";
+      var k = claveRutaSim(x.virtual.sitio);
+      if (!k) return "";
+      var L = todas.filter(function (y) {
+        return y.virtual && y.virtual.app === "simulador" && claveRutaSim(y.virtual.sitio) === k;
+      }).sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 :
+                                          String(a.hora || "") < String(b.hora || "") ? 1 : -1; });
+      if (L.length < 2) return "";
+      var efi = function (y) { return (y.pot && y.pulso) ? y.pot / y.pulso : null; };
+      var mejorV = null, mejorE = null;
+      L.forEach(function (y) {
+        var v = velDe(y), e = efi(y);
+        if (v != null && (mejorV == null || v > mejorV)) mejorV = v;
+        if (e != null && (mejorE == null || e > mejorE)) mejorE = e;
+      });
+      var filas = L.slice(0, 10).map(function (y) {
+        var d = new Date(y.fecha + "T12:00:00"), v = velDe(y), e = efi(y), yo = y === x;
+        var est = yo ? ' style="background:rgba(27,175,122,.08)"' : "";
+        return "<tr" + est + "><th>" + d.getDate() + " " + MES_CORTO[d.getMonth()] +
+          (yo ? " \u00b7 esta" : "") + "</th>" +
+          "<td>" + (y.km != null ? num(y.km, 1) : "\u2014") + "</td>" +
+          "<td>" + (y.min != null ? y.min : "\u2014") + "</td>" +
+          "<td>" + (v != null ? num(v, 1) + (v === mejorV ? " \u2605" : "") : "\u2014") + "</td>" +
+          "<td>" + (y.pot != null ? y.pot : "\u2014") + "</td>" +
+          "<td>" + (y.pulso != null ? y.pulso : "\u2014") + "</td>" +
+          "<td>" + (e != null ? num(e, 2) + (e === mejorE ? " \u2605" : "") : "\u2014") + "</td></tr>";
+      }).join("");
+      return '<div class="akhb-analisis"><h5>Tus veces por esta ruta \u00b7 ' + L.length + "</h5>" +
+        '<div style="overflow-x:auto"><table class="akhb-tf"><thead><tr><th>Día</th><th>km</th><th>min</th>' +
+        "<th>km/h</th><th>W</th><th>ppm</th><th>W/ppm</th></tr></thead><tbody>" + filas +
+        "</tbody></table></div>" +
+        '<p class="akhb-an-pers">\u2605 la mejor. Los km cambian porque cada sesión dura lo suyo: ' +
+        "lo que se compara es la velocidad y los vatios por pulsación (más es mejor).</p></div>";
     }
 
     /* ---------- la ruta que le toca a una actividad ----------
@@ -3736,6 +3799,9 @@
          que vienen de Strava— se crea ahora. */
       var z = zonaDe((b[0] + b[2]) / 2, (b[1] + b[3]) / 2);
       var r2 = rotuloLugar(chapa ? (chapa.getAttribute("data-pueblo") || null) : null, z);
+      /* 25-nov-2026: si es del simulador, que se vea de un vistazo que no
+         salió a la calle */
+      if (act && act.virtual && act.virtual.mapa) r2 = "\ud83c\udfe0 Indoor" + (r2 ? " \u00b7 " + r2 : "");
       if (r2) {
         if (!chapa) {
           chapa = document.createElement("span");
