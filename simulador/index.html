@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v258 · Grabar el ECG desde la banda (botón junto al pulsómetro), sin el tope de ECG Analysis</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v259 · Grabar el ECG desde la pantalla de aparatos (debajo de las tarjetas, con el pulsómetro conectado)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -853,7 +853,7 @@ const PMD = { SVC:'fb005c80-02e7-f387-1cad-8acd2d8df0c8', CP:'fb005c81-02e7-f387
 const ECG_SEG = 180, ECG_HZ = 130, ACC_HZ = 200;
 const ECGR = { dev: null, activo: false, ultimo: null };
 const pausaMs = ms => new Promise(r => setTimeout(r, ms));
-function ecgEstado(t, ok){ const e = $('eEcg'); if (e) { e.textContent = t; e.className = 'estado' + (ok ? ' si' : ''); } }
+function ecgEstado(t, ok){ const e = $('eEcg'); if (e) { e.textContent = t; e.className = 'estado' + (ok ? ' si' : ''); } if (window.portadaRepintar) window.portadaRepintar(); }
 function isoLocal(ms){ const d = new Date(ms), p = (n, k) => String(n).padStart(k || 2, '0');
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3); }
 function ecgRespuesta(e){ const v = e.target.value; if (v.byteLength < 4 || v.getUint8(0) !== 0xF0) return;
@@ -882,7 +882,7 @@ async function ecgEmpezar(modo){
     if (!dev || !dev.gatt.connected) { ecgEstado('primero conecta el pulsómetro (botón 2)'); return; }
     let svc;
     try { svc = await dev.gatt.getPrimaryService(PMD.SVC); }
-    catch(e) { ecgEstado('pulsa «2 · Pulsómetro» y elige la banda otra vez: Chrome pide permiso para el ECG una sola vez'); log('ECG: sin permiso para el servicio del ECG (' + e.message + ')'); return; }
+    catch(e) { ecgEstado('pulsa «Reconectar» en el pulsómetro y elige la banda: Chrome pide permiso para el ECG una sola vez'); log('ECG: sin permiso para el servicio del ECG (' + e.message + ')'); return; }
     const cp = await svc.getCharacteristic(PMD.CP), dat = await svc.getCharacteristic(PMD.DATA);
     await cp.startNotifications(); cp.addEventListener('characteristicvaluechanged', ecgRespuesta);
     await dat.startNotifications(); dat.addEventListener('characteristicvaluechanged', ecgDatos);
@@ -943,6 +943,7 @@ async function ecgParar(motivo){
   const b2 = document.createElement('button'); b2.className = 'sec'; b2.textContent = '💾 Guardar en el ordenador'; b2.onclick = () => ecgDescargar(fs);
   if (ECGR.modo === '3min') S.appendChild(b1); S.appendChild(b2);
   if (ECGR.modo !== '3min') ecgDescargar(fs);    // la de la sesión se guarda sola: no se manda por correo
+  if (window.portadaRepintar) window.portadaRepintar();
 }
 
 // ===================== botones =====================
@@ -7881,6 +7882,16 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
         + '<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: \'Barlow Condensed\', sans-serif; font-size: 32px; font-weight: 700; text-transform: uppercase">' + n + '</span><span style="font-size: 14px; color: #9aa6b2">' + sub + extra + '</span></div>'
         + '<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: ' + col + '"><span style="width: 10px; height: 10px; border-radius: 50%; background: ' + pto + '"></span>' + esc(s.t || 'Sin conectar') + '</span>'
         + '<span style="margin-top: auto; border: 1px solid #2a323c; background: transparent; color: #c5ccd3; border-radius: 10px; padding: 12px; font: 600 15px Inter, sans-serif; text-align: center">' + (s.si ? 'Reconectar' : 'Conectar') + '<kbd style="font: 800 12px Inter, sans-serif; padding: 2px 7px; border-radius: 5px; background: #2b3540; color: inherit; margin-left: 8px">B</kbd></span></div>'; }).join('') + '</div>'; }
+  // v259 (Carlos, captura de «Conecta tus aparatos»: el botón del ECG de la v258 no salía aquí)
+  function filaEcg(){ if (typeof ECGR === 'undefined') return ''; const pul = est('ePulso').si; if (!pul && !ECGR.activo && !ECGR.ultimo) return '';
+    const e = est('eEcg'), t = e.t && e.t !== '–' ? e.t : 'ECG de reposo: 3 min sentado y quieto, sin hablar. Cierra antes ECG Analysis en el móvil.';
+    const bot = (acc, txt, fuerte) => '<a data-acc="' + acc + '" style="cursor:pointer;white-space:nowrap;border:' + (fuerte ? '2px solid #e5484d' : '1px solid #2a323c') + ';background:#151a20;color:#e9edf1;border-radius:10px;padding:12px 18px;font:600 15px Inter, sans-serif">' + txt + '</a>';
+    const ses = $('ecgSesion') && $('ecgSesion').checked;
+    return '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
+      + bot('ecg', ECGR.activo ? '■ Parar el ECG' : '❤ Grabar ECG 3 min', true)
+      + (ECGR.ultimo && !ECGR.activo ? (ECGR.modo === '3min' ? bot('ecgmandar', '📤 Mandar por correo') : '') + bot('ecgguardar', '💾 Guardar en el ordenador') : '')
+      + bot('ecgsesion', 'ECG en la sesión: ' + (ses ? 'sí' : 'no'))
+      + '<span style="font-size:15px;color:' + (e.si ? '#8be3a0' : '#c5ccd3') + '">' + esc(t) + '</span></div>'; }
   function ficha(h){ const A = typeof actividadesFicha === 'function' ? actividadesFicha() : [], d90 = Date.now() - 90 * 864e5;
     const mej = i => { let m = null; for (const a of A) if (a.b && a.b[i] && new Date(a.fecha) >= d90 && (m == null || a.b[i] > m)) m = a.b[i]; return m == null ? '—' : Math.round(m); };
     const marcas = [0, 3, 4, 5, 6].map(mej); let tipo = '—';
@@ -7897,7 +7908,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     let h = por.paso === 1 ? PL.p1 : por.paso === 2 ? PL.p2 : PL.p3;
     h = h.split('{{accent}}').join(AC).replace('{{chips}}', chips());
     if (por.paso === 1) h = h.replace('{{ftpC}}', ftpDe('carlos')).replace('{{ftpS}}', ftpDe('susana')).replace('{{ultC}}', ultimaDe('carlos')).replace('{{ultS}}', ultimaDe('susana'));
-    if (por.paso === 2) h = cabUsuario(h).replace('{{aparatos}}', aparatos());
+    if (por.paso === 2) h = cabUsuario(h).replace('{{aparatos}}', aparatos() + filaEcg());
     if (por.paso === 3) h = ficha(cabUsuario(h));
     { const vs = ((document.querySelector('h1 .sub') || {}).textContent || '').match(/v\d+/); if (vs) h += '<div style="position:absolute;left:24px;bottom:16px;font-size:13px;color:#6e7681;font-weight:600">Simulador ' + vs[0] + '</div>'; }   // v206: qué versión estás usando
     P.innerHTML = '<div class="lienzo">' + h + '</div>';
@@ -7905,7 +7916,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     escalar(); marcar(); }
   function escalar(){ const L = P.querySelector('.lienzo'); if (!L) return; const s = Math.min(innerWidth / 1440, innerHeight / 900); L.style.transform = 'scale(' + s + ')'; L.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; L.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
   addEventListener('resize', () => { if (por.abierta) escalar(); });
-  const FOCO = { 1: '[data-acc="usuario"]', 2: '[data-acc="conectar"],[data-acc="seguir"],[data-acc="sinbici"]', 3: '[data-acc="zwo"],[data-acc="rodar"],[data-acc="ver"],[data-acc="ficha"]' };
+  const FOCO = { 1: '[data-acc="usuario"]', 2: '[data-acc="conectar"],[data-acc^="ecg"],[data-acc="seguir"],[data-acc="sinbici"]', 3: '[data-acc="zwo"],[data-acc="rodar"],[data-acc="ver"],[data-acc="ficha"]' };
   function opciones(){ return FOCO[por.paso].split(',').flatMap(s => [...P.querySelectorAll(s)]); }   // v172: en el orden en que se ven
   function marcar(){ const O = opciones(); if (!O.length) return; por.foco = Math.max(0, Math.min(O.length - 1, por.foco));
     O.forEach((o, i) => { const si = i === por.foco; if (o.dataset.borde) { o.style.border = si ? o.dataset.borde.replace(/#[0-9a-f]{3,6}|rgba?\([^)]*\)/i, AC).replace('dashed', 'solid') : o.dataset.borde; } o.style.boxShadow = si ? '0 0 0 4px rgba(198,244,50,.18)' : ''; }); }
@@ -7913,7 +7924,12 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   function cerrar(){ P.hidden = true; por.abierta = false; }
   function abrir(p){ P.hidden = false; por.abierta = true; let q = null; try { q = sessionStorage.getItem('portada-paso'); sessionStorage.removeItem('portada-paso'); } catch(e) {} ir(p || (q ? +q : 1)); }
   window.abrirPortada = abrir;
+  window.portadaRepintar = () => { if (por.abierta && por.paso === 2) pintar(); };
   function accion(el){ const a = el.dataset.acc;
+    if (a === 'ecg') { ECGR.activo ? ecgParar() : ecgEmpezar('3min'); setTimeout(pintar, 400); return; }   // v259
+    if (a === 'ecgmandar') { if (ECGR.ultimo) ecgMandar(ECGR.ultimo); return; }
+    if (a === 'ecgguardar') { if (ECGR.ultimo) ecgDescargar(ECGR.ultimo); return; }
+    if (a === 'ecgsesion') { const c = $('ecgSesion'); if (c) c.checked = !c.checked; pintar(); return; }
     if (a === 'clasica') { cerrar(); try { sessionStorage.setItem('portada-off', '1'); } catch(e) {} return; }
     if (a === 'ajustes') { const p = por.paso; cerrar(); abrirAjustes(() => abrir(p)); return; }
     if (a === 'volver') { ir(1); return; }
