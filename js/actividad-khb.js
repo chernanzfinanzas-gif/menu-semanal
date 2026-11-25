@@ -965,6 +965,9 @@
             x.pendMax = null;
           }
         }
+        /* el mapa de calor quiere el trazo SIEMPRE, también donde el dibujo de
+           la ficha lo pone la colección (25-nov-2026) */
+        if (t.p) x.poliCalor = t.p;
         if (x.ruta || x.poli) return;
         x.poli = t.p || null;
         /* El nombre de Strava suele ser mejor que el de intervals: «MTB por el
@@ -3611,10 +3614,279 @@
       return true;
     }
     function cambiaComparar(e) {
+      if (cambiaCalor(e)) return;
       var s = e.target;
       if (!s || !s.hasAttribute || !s.hasAttribute("data-canio")) return;
       cmp.anio = s.value === cHoy().slice(0, 4) ? null : s.value;
       pintar();
+    }
+
+    /* ================= MAPA DE CALOR (25-nov-2026) =================
+       Carlos: «¿podemos hacer un mapa de calor con mis recorridos?» y «como
+       tienes todas mis actividades en la app se puede aplicar a todo mi
+       historial». Todas las líneas encima de un mapa que se arrastra y se
+       acerca: donde más has pasado, más brilla (se suman con «lighter»).
+       Sale de los trazos que la app ya tiene (x.poli): los de Garmin de 2013 a
+       2021 y los de intervals desde entonces. NO se piden las geometrías de la
+       colección: serían decenas de MB en el móvil. Lo que no tiene trazo se
+       cuenta y se dice. El simulador va aparte y apagado: es indoor. */
+    var calor = { abierto: false, fams: { monte: 1, bici: 1, pie: 1 }, desde: null, hasta: null,
+                  z: null, cx: 0, cy: 0, img: {}, pend: false, ptr: {}, pinch: null };
+    var CALOR_FAM = ["monte", "bici", "pie", "rodillo"];
+    function calorFam(x) {
+      if (x.dep === "rod") return (x.virtual && x.virtual.mapa) ? "rodillo" : null;
+      var f = FAMILIA[x.dep];
+      return (f === "monte" || f === "bici" || f === "pie") ? f : null;
+    }
+    /* los puntos, ya en coordenadas de mundo de 0 a 1, una sola vez por salida */
+    function calorPts(x) {
+      if (x.__calor !== undefined) return x.__calor;
+      var p = null;
+      try {
+        var pl = x.poli || x.poliCalor;
+        if (pl) {
+          var ll = decodificarPolilinea(pl);
+          if (ll.length > 1) {
+            p = { v: new Float64Array(ll.length * 2), b: [1, 1, 0, 0] };
+            for (var i = 0; i < ll.length; i++) {
+              var u = (ll[i][1] + 180) / 360, r = ll[i][0] * Math.PI / 180;
+              var w = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2;
+              p.v[2 * i] = u; p.v[2 * i + 1] = w;
+              if (u < p.b[0]) p.b[0] = u; if (w < p.b[1]) p.b[1] = w;
+              if (u > p.b[2]) p.b[2] = u; if (w > p.b[3]) p.b[3] = w;
+            }
+          }
+        }
+      } catch (e) { p = null; }
+      x.__calor = p;
+      return p;
+    }
+    function calorRango() {
+      return [calor.desde || anios[0], calor.hasta || anios[anios.length - 1]];
+    }
+    function calorLista() {
+      var R = calorRango(), con = [], sin = 0;
+      todas.forEach(function (x) {
+        var f = calorFam(x);
+        if (!f || !calor.fams[f]) return;
+        var y = String(x.fecha || "").slice(0, 4);
+        if (y < R[0] || y > R[1]) return;
+        if (calorPts(x)) con.push(x); else sin++;
+      });
+      return { con: con, sin: sin };
+    }
+    function htmlCalor() {
+      var cab = '<button type="button" class="akhb-c-cab" data-kabre="1" aria-expanded="' + calor.abierto + '">' +
+        '<span class="akhb-c-tit">Mapa de calor</span>' +
+        '<span class="akhb-c-sub">todos tus recorridos' + (anios.length ? ", desde " + anios[0] : "") + "</span>" +
+        '<span class="akhb-chev" aria-hidden="true"></span></button>';
+      if (!calor.abierto) return '<section class="akhb-c akhb-c-cerrado" aria-label="Mapa de calor">' + cab + "</section>";
+      var L = calorLista(), R = calorRango();
+      var NOM = { monte: "Monte", bici: "Bici", pie: "A pie", rodillo: "Simulador (indoor)" };
+      var chips = CALOR_FAM.map(function (g) {
+        var si = !!calor.fams[g];
+        return '<button type="button" class="akhb-c-bt akhb-c-fam' + (si ? " sel" : "") + '" data-kfam="' + g +
+          '" aria-pressed="' + si + '"><i style="background:' + colorG(g) + '"></i>' + NOM[g] + "</button>";
+      }).join("");
+      var opt = function (sel) {
+        return anios.map(function (a) { return "<option" + (a === sel ? " selected" : "") + ">" + a + "</option>"; }).join("");
+      };
+      var btn = 'style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.35);' +
+        'background:rgba(13,20,28,.75);color:#fff;font:600 18px/1 system-ui,sans-serif;cursor:pointer"';
+      return '<section class="akhb-c" aria-label="Mapa de calor">' + cab +
+        '<div class="akhb-c-cuerpo">' +
+          '<div class="akhb-c-fila"><span class="akhb-c-rot">Actividad</span><span class="akhb-c-chips">' + chips + "</span></div>" +
+          '<div class="akhb-c-fila"><span class="akhb-c-rot">Años</span><span class="akhb-c-chips">' +
+            '<select data-kdesde="1">' + opt(R[0]) + "</select> a " +
+            '<select data-khasta="1">' + opt(R[1]) + "</select></span></div>" +
+          '<div class="akhb-calor" style="position:relative;height:460px;border-radius:10px;overflow:hidden;' +
+            'background:#16202a;touch-action:none;cursor:grab">' +
+            '<canvas style="display:block"></canvas>' +
+            '<div style="position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px">' +
+              '<button type="button" data-kzoom="1" aria-label="Acercar" ' + btn + ">+</button>" +
+              '<button type="button" data-kzoom="-1" aria-label="Alejar" ' + btn + ">−</button>" +
+              '<button type="button" data-kajusta="1" aria-label="Ver todo" title="Ver todo" ' + btn + ">⤢</button>" +
+            "</div>" +
+            (capaMapa && capaMapa.atrib ? '<div class="akhb-calor-atrib" style="position:absolute;left:6px;bottom:4px;' +
+              'font-size:10px;color:#dfe7ee;opacity:.85">' + capaMapa.atrib + "</div>" : "") +
+          "</div>" +
+          '<p class="akhb-nada-peq" style="margin-top:8px">' + L.con.length + " recorridos" +
+            (L.sin ? " · " + L.sin + " sin trazo guardado (no salen)" : "") +
+            ". Donde más brilla, más veces has pasado. Arrastra para moverte; rueda, pellizco o doble toque para acercar.</p>" +
+        "</div></section>";
+    }
+    /* la vista de partida: el centro de donde más sales (la mediana de los
+       puntos de salida), a una escala de provincia */
+    function calorCentra(L, W, H, todo) {
+      var maxZ = capaMapa ? (capaMapa.maxZ || 17) : 17;
+      if (!L.length) { calor.z = 6; calor.cx = 0.49 * TESELA * 64; calor.cy = 0.38 * TESELA * 64; return; }
+      if (todo) {
+        var b = [1, 1, 0, 0];
+        L.forEach(function (x) { var q = x.__calor.b;
+          b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[1]); b[2] = Math.max(b[2], q[2]); b[3] = Math.max(b[3], q[3]); });
+        var z = maxZ;
+        while (z > 2 && ((b[2] - b[0]) * TESELA * Math.pow(2, z) > W - 30 || (b[3] - b[1]) * TESELA * Math.pow(2, z) > H - 30)) z--;
+        calor.z = z;
+        calor.cx = (b[0] + b[2]) / 2 * TESELA * Math.pow(2, z); calor.cy = (b[1] + b[3]) / 2 * TESELA * Math.pow(2, z);
+        return;
+      }
+      var us = L.map(function (x) { return x.__calor.v[0]; }).sort(),
+          ws = L.map(function (x) { return x.__calor.v[1]; }).sort();
+      calor.z = Math.min(10, maxZ);
+      var S = TESELA * Math.pow(2, calor.z);
+      calor.cx = us[us.length >> 1] * S; calor.cy = ws[ws.length >> 1] * S;
+    }
+    function calorZoom(d, px, py) {
+      var caja = estado.el && estado.el.querySelector(".akhb-calor");
+      if (!caja || calor.z == null) return;
+      var W = caja.clientWidth || 600, H = caja.clientHeight || 460;
+      if (px == null) { px = W / 2; py = H / 2; }
+      var maxZ = capaMapa ? (capaMapa.maxZ || 17) : 17;
+      var nz = Math.max(2, Math.min(maxZ, calor.z + d));
+      if (nz === calor.z) return;
+      var f = Math.pow(2, nz - calor.z);
+      calor.cx = (calor.cx - W / 2 + px) * f - px + W / 2;
+      calor.cy = (calor.cy - H / 2 + py) * f - py + H / 2;
+      calor.z = nz;
+      calorDibuja();
+    }
+    function calorPide() {
+      if (calor.pend) return;
+      calor.pend = true;
+      (window.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(function () {
+        calor.pend = false; calorDibuja();
+      });
+    }
+    function calorDibuja() {
+      var caja = estado.el && estado.el.querySelector(".akhb-calor");
+      if (!caja) return;
+      var cv = caja.querySelector("canvas");
+      var W = caja.clientWidth || 600, H = caja.clientHeight || 460, dpr = window.devicePixelRatio || 1;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        cv.style.width = W + "px"; cv.style.height = H + "px";
+      }
+      var ctx = cv.getContext && cv.getContext("2d");
+      if (!ctx) return;
+      var L = calorLista().con;
+      if (calor.z == null) calorCentra(L, W, H, false);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "#16202a"; ctx.fillRect(0, 0, W, H);
+      var z = calor.z, S = TESELA * Math.pow(2, z), x0 = calor.cx - W / 2, y0 = calor.cy - H / 2;
+      /* el mapa de fondo, apagado para que se lean las líneas */
+      if (capaMapa) {
+        var n = Math.pow(2, z);
+        for (var tx = Math.floor(x0 / TESELA); tx <= Math.floor((x0 + W) / TESELA); tx++) {
+          for (var ty = Math.floor(y0 / TESELA); ty <= Math.floor((y0 + H) / TESELA); ty++) {
+            if (ty < 0 || ty >= n) continue;
+            var u = capaMapa.url.replace("{z}", z).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty);
+            var im = calor.img[u];
+            if (!im) {
+              im = calor.img[u] = new Image();
+              im.onload = calorPide;
+              im.src = u;
+            }
+            if (im.complete && im.naturalWidth) ctx.drawImage(im, tx * TESELA - x0, ty * TESELA - y0, TESELA, TESELA);
+          }
+        }
+      }
+      ctx.fillStyle = "rgba(12,18,26,.62)"; ctx.fillRect(0, 0, W, H);
+      /* las líneas: se SUMAN. Una pasada es un naranja tenue; muchas, amarillo
+         y blanco. Es lo que hace que sea un mapa de calor y no un mapa de rutas. */
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.lineWidth = z >= 14 ? 3 : z >= 11 ? 2.2 : 1.6;
+      ctx.strokeStyle = "rgba(255,96,24,.30)";
+      var vu0 = x0 / S, vw0 = y0 / S, vu1 = (x0 + W) / S, vw1 = (y0 + H) / S;
+      L.forEach(function (x) {
+        var p = x.__calor, b = p.b, v = p.v;
+        if (b[2] < vu0 || b[0] > vu1 || b[3] < vw0 || b[1] > vw1) return;
+        ctx.beginPath();
+        ctx.moveTo(v[0] * S - x0, v[1] * S - y0);
+        for (var i = 2; i < v.length; i += 2) ctx.lineTo(v[i] * S - x0, v[i + 1] * S - y0);
+        ctx.stroke();
+      });
+      ctx.globalCompositeOperation = "source-over";
+      calorEnchufa(caja);
+    }
+    /* arrastrar, rueda, pellizco y doble toque. Se enchufa a cada caja nueva
+       (pintar() rehace el HTML entero). */
+    function calorEnchufa(caja) {
+      if (caja.__calor) return;
+      caja.__calor = true;
+      var cv = caja.querySelector("canvas");
+      cv.addEventListener("pointerdown", function (e) {
+        cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+        calor.ptr[e.pointerId] = { x: e.clientX, y: e.clientY };
+        var ks = Object.keys(calor.ptr);
+        if (ks.length === 2) {
+          var a = calor.ptr[ks[0]], b = calor.ptr[ks[1]];
+          calor.pinch = Math.hypot(a.x - b.x, a.y - b.y);
+        }
+        caja.style.cursor = "grabbing";
+      });
+      cv.addEventListener("pointermove", function (e) {
+        var q = calor.ptr[e.pointerId];
+        if (!q) return;
+        var ks = Object.keys(calor.ptr);
+        if (ks.length === 1) {
+          calor.cx -= e.clientX - q.x; calor.cy -= e.clientY - q.y;
+          q.x = e.clientX; q.y = e.clientY;
+          calorPide();
+        } else if (ks.length === 2) {
+          q.x = e.clientX; q.y = e.clientY;
+          var a = calor.ptr[ks[0]], b = calor.ptr[ks[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+          var r = cv.getBoundingClientRect(), mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+          if (calor.pinch && d / calor.pinch > 1.5) { calor.pinch = d; calorZoom(1, mx, my); }
+          else if (calor.pinch && d / calor.pinch < 0.66) { calor.pinch = d; calorZoom(-1, mx, my); }
+        }
+      });
+      var suelta = function (e) {
+        delete calor.ptr[e.pointerId];
+        if (Object.keys(calor.ptr).length < 2) calor.pinch = null;
+        caja.style.cursor = "grab";
+      };
+      cv.addEventListener("pointerup", suelta);
+      cv.addEventListener("pointercancel", suelta);
+      cv.addEventListener("wheel", function (e) {
+        e.preventDefault();
+        var r = cv.getBoundingClientRect();
+        calorZoom(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+      }, { passive: false });
+      cv.addEventListener("dblclick", function (e) {
+        var r = cv.getBoundingClientRect();
+        calorZoom(1, e.clientX - r.left, e.clientY - r.top);
+      });
+    }
+    /* los mandos: devuelve true si el clic era suyo */
+    function pulsaCalor(e) {
+      var t = e.target.closest ? e.target.closest("[data-kabre],[data-kfam],[data-kzoom],[data-kajusta]") : null;
+      if (!t || !estado.el.contains(t)) return false;
+      if (t.hasAttribute("data-kzoom")) { calorZoom(+t.getAttribute("data-kzoom")); return true; }
+      if (t.hasAttribute("data-kajusta")) {
+        var caja = estado.el.querySelector(".akhb-calor");
+        if (caja) { calorCentra(calorLista().con, caja.clientWidth || 600, caja.clientHeight || 460, true); calorDibuja(); }
+        return true;
+      }
+      if (t.hasAttribute("data-kabre")) calor.abierto = !calor.abierto;
+      if (t.hasAttribute("data-kfam")) {
+        var g = t.getAttribute("data-kfam");
+        if (calor.fams[g]) delete calor.fams[g]; else calor.fams[g] = 1;
+      }
+      pintar();
+      return true;
+    }
+    function cambiaCalor(e) {
+      var s = e.target;
+      if (!s || !s.hasAttribute) return false;
+      if (s.hasAttribute("data-kdesde")) calor.desde = s.value;
+      else if (s.hasAttribute("data-khasta")) calor.hasta = s.value;
+      else return false;
+      var R = calorRango();
+      if (R[0] > R[1]) { if (s.hasAttribute("data-kdesde")) calor.hasta = R[0]; else calor.desde = R[1]; }
+      pintar();
+      return true;
     }
 
     function pintar() {
@@ -3630,6 +3902,7 @@
           /* el volver arriba del todo y, debajo, Comparar (28-sep-2026) */
           (botonVolver ? '<div class="akhb-volver">' + botonVolver + "</div>" : "") +
           htmlComparar() +
+          htmlCalor() +
           htmlResumen() +
           htmlAnios() +
           '<div class="akhb-cab"><h3>' + estado.anio + "</h3>" +
@@ -3640,6 +3913,7 @@
       centraAnio();
       enchufaComparar();
       pintarMapas();
+      calorDibuja();
     }
 
     /* En el móvil caben seis años de catorce: si no se hace esto, al entrar se
@@ -4385,6 +4659,7 @@
     /* ---------- clics ---------- */
     function alPulsar(e) {
       if (pulsaComparar(e)) return;
+      if (pulsaCalor(e)) return;
       var b = e.target.closest
         ? e.target.closest("[data-borra],[data-borra-ver],[data-borra-si],[data-borra-no]") : null;
       if (b && estado.el.contains(b)) { e.stopPropagation(); borrar(b); return; }
