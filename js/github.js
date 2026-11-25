@@ -1046,6 +1046,120 @@
       this.temporizador = setTimeout(function () { self.guardar(); }, 3500);
     },
 
+    /* ===== ESCRIBIR SIN TOPE DE 1 MB  ·  25-nov-2026 =====
+       «No se pudo guardar · GitHub respondió 500». La API de CONTENIDOS (PUT
+       /contents/…) sólo deja escribir ficheros de hasta 1 MiB, y estado.json
+       crece unos 40 KB por semana con los registros de cada día. Quitar la
+       sangría (v692) dio unas semanas; esto lo quita de en medio.
+
+       Se escribe con la API de GIT, que es la que usa GitHub por dentro y
+       admite ficheros de hasta 100 MB:
+         1 · dónde está la rama           GET  git/ref/heads/<rama>
+         2 · su árbol                     GET  git/commits/<commit>
+         3 · el sha ACTUAL del fichero    GET  git/trees/… (carpeta a carpeta)
+         4 · el contenido nuevo           POST git/blobs
+         5 · el árbol con el fichero      POST git/trees   (base_tree: el de 1)
+         6 · el commit                    POST git/commits (padre: el de 1)
+         7 · mover la rama                PATCH git/refs/heads/<rama>, SIN forzar
+
+       LO QUE NO CAMBIA, Y ES LO IMPORTANTE: el choque con otro aparato se
+       detecta igual que antes, por el sha DEL FICHERO. Si el de GitHub no es
+       el último que vio este aparato, se devuelve 409 (o 422 si aquí no había
+       sha) y `guardar()` sigue su camino de siempre: trae, fusiona, reintenta.
+       El sha que se devuelve es el del blob, que es exactamente el que la API
+       de contenidos llama `sha`: lo que se guarda en sync.sha sigue valiendo.
+
+       Lo que SÍ es nuevo: en el repositorio escriben también los procesos
+       automáticos (salud, rodillo, ECG…). Si uno mete un commit entre el paso 1
+       y el 7, mover la rama sin forzar falla (no avanza en línea) y no se pisa
+       nada: se vuelve a empezar desde el commit nuevo, hasta 4 veces.
+
+       Si algo de esto falla por un motivo que no sea un choque, y el fichero
+       cabe en 1 MiB, se guarda por la vía de antes. Mejor guardar que avisar. */
+    gitApi: function (metodo, tramo, cuerpo) {
+      var c = this.cfg();
+      return fetch("https://api.github.com/repos/" + encodeURIComponent(c.usuario) + "/" +
+                   encodeURIComponent(c.repo) + "/git/" + tramo, {
+        method: metodo, cache: "no-store",
+        headers: { "Authorization": "Bearer " + c.token, "Accept": "application/vnd.github+json",
+                   "Content-Type": "application/json" },
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined
+      });
+    },
+    escribirGit: function (ruta, contenido64, shaEsperado, mensaje, vuelta) {
+      var self = this, rama = this.cfg().rama || "main", base, arbol, blob;
+      vuelta = vuelta || 0;
+      function resp(ok, st, j) {
+        return { ok: ok, status: st,
+                 json: function () { return Promise.resolve(j); },
+                 text: function () { return Promise.resolve(JSON.stringify(j)); } };
+      }
+      function pide(m, t, cu) {
+        return self.gitApi(m, t, cu).then(function (r) {
+          if (r.ok) return r.json();
+          return r.text().then(function (x) {
+            var e = new Error("git " + r.status), msg = "";
+            try { msg = (JSON.parse(x) || {}).message || ""; } catch (e2) {}
+            e.status = r.status; e.msg = msg; throw e;
+          });
+        });
+      }
+      /* el sha del fichero dentro de un árbol, bajando carpeta a carpeta: dos
+         peticiones pequeñas en vez de bajarse el fichero entero */
+      function shaEn(arbolSha, trozos) {
+        return pide("GET", "trees/" + arbolSha).then(function (t) {
+          var e = (t.tree || []).filter(function (x) { return x.path === trozos[0]; })[0];
+          if (!e) return null;
+          if (trozos.length === 1) return e.type === "blob" ? e.sha : null;
+          return e.type === "tree" ? shaEn(e.sha, trozos.slice(1)) : null;
+        });
+      }
+      return pide("GET", "ref/heads/" + encodeURIComponent(rama)).then(function (ref) {
+        base = ref.object.sha;
+        return pide("GET", "commits/" + base);
+      }).then(function (cm) {
+        arbol = cm.tree.sha;
+        return shaEn(arbol, ruta.split("/"));
+      }).then(function (actual) {
+        /* los mismos códigos que daba la API de contenidos en un choque */
+        if (actual && !shaEsperado) return { choque: resp(false, 422, { message: "sha wasn't supplied" }) };
+        if (actual && shaEsperado && actual !== shaEsperado) return { choque: resp(false, 409, { message: "el fichero ha cambiado en GitHub" }) };
+        return pide("POST", "blobs", { content: contenido64, encoding: "base64" }).then(function (b) {
+          blob = b.sha;
+          return pide("POST", "trees", { base_tree: arbol,
+            tree: [{ path: ruta, mode: "100644", type: "blob", sha: blob }] });
+        }).then(function (t) {
+          return pide("POST", "commits", { message: mensaje, tree: t.sha, parents: [base] });
+        }).then(function (c) {
+          return pide("PATCH", "refs/heads/" + encodeURIComponent(rama), { sha: c.sha, force: false });
+        }).then(function () { return { hecho: resp(true, 200, { content: { sha: blob, path: ruta } }) }; });
+      }).then(function (x) {
+        return x.choque || x.hecho;
+      }).catch(function (e) {
+        /* la rama se movió por otro commit (un proceso automático): otra vuelta */
+        if (e && e.status === 422 && vuelta < 4 && /fast.?forward|reference/i.test(e.msg || "")) {
+          return new Promise(function (ok) { setTimeout(ok, 500 * (vuelta + 1)); }).then(function () {
+            return self.escribirGit(ruta, contenido64, shaEsperado, mensaje, vuelta + 1);
+          });
+        }
+        throw e;
+      });
+    },
+    /* lo que usan guardar() y la copia diaria: la vía nueva y, si falla por algo
+       que no es un choque y cabe en 1 MiB, la de siempre */
+    escribir: function (ruta, cuerpo) {
+      var self = this;
+      return this.escribirGit(ruta, cuerpo.content, cuerpo.sha || null, cuerpo.message).catch(function (e) {
+        var bytes = Math.floor(String(cuerpo.content || "").length * 3 / 4);
+        if (global.console) global.console.warn("Escribir por git:", e);
+        if (bytes < 1048000) {
+          return ruta === RUTA ? self.api("PUT", cuerpo) : self.apiRuta("PUT", ruta, cuerpo);
+        }
+        var st = (e && e.status) || 0;
+        throw new Error(st ? motivoHttp(st, e.msg) : "sin conexión con GitHub");
+      });
+    },
+
     guardar: function (intento) {
       var self = this;
       intento = intento || 0;
@@ -1070,7 +1184,7 @@
       };
       if (Almacen.estado.sync.sha) cuerpo.sha = Almacen.estado.sync.sha;
 
-      return this.api("PUT", cuerpo).then(function (r) {
+      return this.escribir(RUTA, cuerpo).then(function (r) {
         if (r.status === 409 || r.status === 422) {
           /* Otro aparato escribió mientras tanto. ANTES se releía el sha y se
              reescribía lo de aquí encima, y así se perdieron las medidas del
@@ -1172,7 +1286,7 @@
       var nombre = "estado-" + hoy + ".json";
       return this.listarCopias().then(function (lista) {
         if (lista.some(function (x) { return x.nombre === nombre; })) return lista;     // ya la hizo otro aparato
-        return self.apiRuta("PUT", self.CARPETA_COPIAS + "/" + nombre, {
+        return self.escribir(self.CARPETA_COPIAS + "/" + nombre, {
           message: "Copia diaria " + hoy,
           content: b64(JSON.stringify(self.paquete())),   /* sin sangría: 25-nov-2026 */
           branch: self.cfg().rama || "main"

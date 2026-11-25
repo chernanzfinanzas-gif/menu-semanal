@@ -382,7 +382,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v255 · ayuntamiento, policía local, farmacia, colegio, gasolinera y bar de carretera hechos por código · y todos los monumentos de la v254</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v256 · Segovia con su ciudad alrededor del acueducto (1.189 edificios con su planta real) · edificios públicos por código · monumentos de la v254</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -5745,7 +5745,8 @@ async function decorarReal(esc, D){
       for (let a = Math.floor((x - r) / CO); a <= Math.floor((x + r) / CO); a++) for (let b = Math.floor((z - r) / CO); b <= Math.floor((z + r) / CO); b++) { const k = a + ',' + b; if (ocup.has(k)) return false; ks.push(k); }
       if (marca) ks.forEach(k => ocup.add(k)); return true; };
     const finas = new Set(), huella = (x, z, M, cs, sn) => { const ks = []; for (let u = -M.ancho / 2 + 0.6; u <= M.ancho / 2 - 0.6; u += 1.2) for (let w = -M.fondo / 2 + 0.6; w <= M.fondo / 2 - 0.6; w += 1.2) ks.push(Math.round((x + cs * u + sn * w) / 1.2) + ',' + Math.round((z - sn * u + cs * w) / 1.2)); return ks; };   /* v234: casas en hilera, pegadas sin pisarse */
-    const poner = async (k, x, z, dirx, dirz, despeje, hilera) => {
+    const BARRIOS = (D.aXZ && RECURSOS_SIM.hitos) ? RECURSOS_SIM.hitos.filter(h => h.tipo === 'barrio').map(h => { const p = D.aXZ(h.lat, h.lon); return { x: p.x, z: p.z, r: (h.r || 600) * 0.9 }; }) : [];   /* v256: donde ya están los edificios reales, no se inventan */
+    const poner = async (k, x, z, dirx, dirz, despeje, hilera) => { if (hilera !== 'hito' && BARRIOS.some(b => Math.hypot(x - b.x, z - b.z) < b.r)) return false;
       const M = await modeloEdificio(k), ang = Math.atan2(dirx, dirz);
       const cs = Math.cos(ang), sn = Math.sin(ang), esq = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0], [0, -1], [0, 1], [-1, 0], [1, 0]];
       for (const [sx, sz] of esq) { const px = x + (cs * sx * M.ancho + sn * sz * M.fondo) / 2, pz = z + (-sn * sx * M.ancho + cs * sz * M.fondo) / 2; if (cercana(px, pz).d < despeje) return false; }
@@ -6291,6 +6292,28 @@ function geoPlazaToros(P, drop){ let cx = 0, cz = 0; for (const [x, z] of P) { c
   { const t = 0, A = pt(R + 0.05, t - 0.09, 0), B = pt(R + 0.05, t + 0.09, 0); O.quad([A[0], 0, A[2]], [B[0], 0, B[2]], [B[0], 4.6, B[2]], [A[0], 4.6, A[2]], osc, [cx, 2, cz]);
     O.caja(A[0] - 0.4, A[0] + 0.6, H, H + 2.2, Math.min(A[2], B[2]) - 0.6, Math.max(A[2], B[2]) + 0.6, blanco); }
   return geoFin(O.out); }
+/* v256 (pendiente «Segovia sin ciudad alrededor del acueducto»): barrio con las plantas reales de OpenStreetMap; cada edificio, su altura (o 2–4 plantas),
+   revoco de color, ventanas por planta y tejado de teja. Devuelve un grupo de mallas (una por material) */
+function geoBarrio(edif, hR){ const O = obraEdif(), mats = matsCasa(), C = h => new THREE.Color(h);
+  const PAL = [0xefe6d2, 0xe8d8b6, 0xe2c99c, 0xf3ece0, 0xe6cfae, 0xdcc5a0, 0xeadfcb, 0xd9b98f].map(C), teja = C(0xffffff), carp = [C(0x6b4a2f), C(0xf2f2ee), C(0x3f5c3c), C(0x5a3a2a)];
+  let k = 0;
+  for (const [lv, P0] of edif) { let P = P0; if (P.length < 3) continue; let area = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; area += a[0] * b[1] - b[0] * a[1]; } area /= 2;
+    if (Math.abs(area) < 12) continue; if (area > 0) P = P.slice().reverse();   /* el sentido que deja las caras hacia fuera con «quad» (como los muros de las casas) */
+    const h0 = Math.abs((P[0][0] * 7919 + P[0][1] * 104729) | 0), pl = lv || (Math.abs(area) < 40 ? 1 + (h0 % 2) : 2 + (h0 % 3)), H = pl * 3.0 + 0.4;
+    let yb = -Infinity, ym = Infinity; for (const [x, z] of P) { const y = hR(x, z); yb = Math.max(yb, y); ym = Math.min(ym, y); } yb -= 0.1; if (yb - ym > 8) continue;
+    const col = PAL[h0 % PAL.length], cp = carp[(h0 >> 3) % carp.length];
+    for (let i = 0; i < P.length; i++) { const [x1, z1] = P[i], [x2, z2] = P[(i + 1) % P.length], L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.2) continue;
+      O.quad('revoco', [x1, ym - 1, z1], [x2, ym - 1, z2], [x2, yb + H, z2], [x1, yb + H, z1], col, 1.5, 1.5);
+      if (L > 3) { const nv = Math.floor(L / 3.2), ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz * 0.04, nz = -ux * 0.04;   /* un poco hacia fuera de la fachada */
+        for (let f = 0; f < pl; f++) for (let j = 0; j < nv; j++) { const sc = (j + 0.5) * L / nv, w = 0.55, y0 = yb + f * 3 + (f ? 0.9 : 1.0), cx = x1 + ux * sc, cz = z1 + uz * sc;
+          const hgt = f === 0 && j === Math.floor(nv / 2) ? 2.2 : 1.25, yy = f === 0 && hgt > 2 ? yb + 0.05 : y0;
+          O.quad(hgt > 2 ? 'puerta' : 'ventana', [cx - ux * w + nx, yy, cz - uz * w + nz], [cx + ux * w + nx, yy, cz + uz * w + nz], [cx + ux * w + nx, yy + hgt, cz + uz * w + nz], [cx - ux * w + nx, yy + hgt, cz - uz * w + nz], cp, 1.1, hgt); } } }
+    // tejado: la planta a la altura del alero, con teja (un pelo por encima para no parpadear)
+    const tr = THREE.ShapeUtils.triangulateShape(P.map(([x, z]) => new THREE.Vector2(x, z)), []); const yt = yb + H + 0.05;
+    for (const [a, b, c] of tr) { const ux = P[b][0] - P[a][0], uz = P[b][1] - P[a][1], vx = P[c][0] - P[a][0], vz = P[c][1] - P[a][1], arriba = uz * vx - ux * vz > 0;   /* normal hacia arriba */
+      if (arriba) O.tri('teja', [P[a][0], yt, P[a][1]], [P[b][0], yt, P[b][1]], [P[c][0], yt, P[c][1]], teja, 1); else O.tri('teja', [P[a][0], yt, P[a][1]], [P[c][0], yt, P[c][1]], [P[b][0], yt, P[b][1]], teja, 1); }
+    k++; }
+  const G = new THREE.Group(); for (const pt of O.cerrar(mats)) { const m = new THREE.Mesh(pt.geo, pt.mat); m.castShadow = m.receiveShadow = calidad().sombra; G.add(m); } G.userData.n = k; return G; }
 function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L = []; C.hitos = { lista: L, vivos: new Map(), mat: new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }) };
   if (!v3.aXZ || !(v3.tema && v3.tema.real)) return C.hitos;
   // el acueducto de Segovia
@@ -6314,6 +6337,8 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const L
         me.position.set(g_.x, hi - 0.15, g_.z); me.rotation.y = g_.ang; me.castShadow = me.receiveShadow = calidad().sombra; return me; } }); } }
   // puntos que diga Carlos (recursos/hitos.js): { nombre, lat, lon, tipo } — de momento iglesias con tipo «iglesia»/«ermita»
   for (const h of (window.RECURSOS_SIM && RECURSOS_SIM.hitos) || []) { const q = v3.aXZ(h.lat, h.lon); if (!C.dentro(q.x, q.z)) continue;
+    if (h.tipo === 'barrio' && h.edif) { const ed = h.edif.map(([lv, f]) => { const P = []; for (let i = 0; i < f.length; i += 2) { const p = v3.aXZ(h.lat + f[i] / 1e6, h.lon + f[i + 1] / 1e6); P.push([p.x - q.x, p.z - q.z]); } return [lv, P]; });
+      L.push({ k: 'barrio', x: q.x, z: q.z, r: h.r || 600, nombre: h.nombre, hacer: () => { const base = C.hTile(q.x, q.z), G = geoBarrio(ed, (x, z) => C.hTile(q.x + x, q.z + z) - base); G.position.set(q.x, base, q.z); log('3D: ' + h.nombre + ': ' + G.userData.n + ' edificios.'); return G; } }); continue; }
     if (h.tipo === 'toros' && h.planta) { const P = h.planta.map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; }), r = Math.max(...P.map(([x, z]) => Math.hypot(x, z)));
       L.push({ k: 'toros', x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { let lo_ = Infinity, hi = -Infinity; for (const [x, z] of P.concat([[0, 0]])) { const hh = C.hTile(q.x + x, q.z + z); lo_ = Math.min(lo_, hh); hi = Math.max(hi, hh); }
         const me = new THREE.Mesh(geoPlazaToros(P, hi - lo_ + 1), C.hitos.mat); me.position.set(q.x, hi - 0.2, q.z); me.castShadow = me.receiveShadow = calidad().sombra; log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
@@ -6347,7 +6372,7 @@ function actualizarHitos(cx, cz, presupuestoMs){ const C = v3.trozos; if (!C || 
   for (let i = 0; i < H.lista.length; i++) { const h = H.lista[i], d = Math.hypot(h.x - cx, h.z - cz) - h.r, vivo = H.vivos.get(i);
     if (vivo === undefined && d < R) { if (performance.now() - t0 > presupuestoMs) continue; let m = null; try { m = h.hacer(); } catch(e) { log('sitio fijo ' + h.k + ': ' + e.message); }
       H.vivos.set(i, m); if (m) v3.escena.add(m); }
-    else if (vivo !== undefined && d > R + 800) { if (vivo) { v3.escena.remove(vivo); vivo.geometry.dispose(); } H.vivos.delete(i); } } }
+    else if (vivo !== undefined && d > R + 800) { if (vivo) { v3.escena.remove(vivo); vivo.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } H.vivos.delete(i); } } }
 /* v245 (Carlos: «cuando llego a un cruce no se ve el cruce, solo la pista por la que voy… que siempre estén las carreteras dibujadas»):
    las carreteras de la red (recursos/mundo.js) se dibujan en cada baldosa, sobre su mismo suelo; la de tu ruta no se repite (ya la dibuja la ruta) */
 const VIAS_ANCHO = { 'carril bici': 2.6, carretera: 6.4, paseo: 3.2, puente: 6.4, tierra: 3.4, 'paso inferior': 6 };
@@ -6870,7 +6895,7 @@ async function construir3D(){
     const CX = ruta.tramos && ruta.tramos.ruta.cx;
     const HUECOS = (CX && CX.hitos && typeof aXZ === 'function') ? CX.hitos.map(h => { const p = aXZ(h.lat, h.lon); return { x: p.x, z: p.z, r: h.r || 17 }; }) : [];   /* v234: parcela de la iglesia (y demás hitos) sin árboles */
     /* v254 (cocheras, plaza de toros…): sin árboles dentro de los sitios fijos de recursos/hitos.js (su planta o recinto) */
-    if (TEMA.real && typeof aXZ === 'function' && window.RECURSOS_SIM && RECURSOS_SIM.hitos) for (const h of RECURSOS_SIM.hitos) { if (h.tipo === 'muralla') continue; const P = h.recinto || h.planta; if (!P || !P.length) continue;
+    if (TEMA.real && typeof aXZ === 'function' && window.RECURSOS_SIM && RECURSOS_SIM.hitos) for (const h of RECURSOS_SIM.hitos) { if (h.tipo === 'muralla') continue; if (h.tipo === 'barrio') { const q = aXZ(h.lat, h.lon); HUECOS.push({ x: q.x, z: q.z, r: (h.r || 600) * 0.85 }); continue; } const P = h.recinto || h.planta; if (!P || !P.length) continue;
       const q = aXZ(h.lat, h.lon); let r = 0; for (const [la, lo] of P) { const p = aXZ(la, lo); r = Math.max(r, Math.hypot(p.x - q.x, p.z - q.z)); } if (r > 0 && r < 700) HUECOS.push({ x: q.x, z: q.z, r: r * 1.05 + 4 }); }
     // v234: iglesias y ermitas reales de OpenStreetMap junto a la ruta (no en ciudades grandes, no donde ya hay un hito como la iglesia de Prádena)
     v3.iglesias = [];
