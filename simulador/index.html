@@ -20,6 +20,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 <script src="recursos/rutas.js"></script>
 <script src="recursos/circuitos.js"></script>
 <script src="recursos/segmentos.js"></script>
+<script src="recursos/catalogo.js"></script>
 <script src="recursos/bots.js"></script>
 <script src="recursos/dispositivos.js"></script>
 <script src="recursos/strava-indice.js"></script>
@@ -380,7 +381,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v234g · 🚴 los ciclistas de la carretera, la liebre y el fantasma van pegados al arcén y los coches los pasan sin tocarlos · 🪪 muñeco de la ficha · 🚜 granjas · 🛣️ quitamiedos · ⛪ iglesias</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v242 · elegir ruta: diseñar, libre desde un punto, catálogo, puertos, anillos y mis salidas · v241 · elegir ruta abre el catálogo · v240 · catálogo con 5 columnas de filtros para el Zwift Play · v239 · 🔎 catálogo de rutas por zonas, puertos con lazo en la cima y tu tiempo en cada ruta · v233 · 🧩 3D por trozos en pruebas (Ajustes → Pantalla): terreno a 20 m que se construye mientras ruedas, ríos que corren cuesta abajo · ⛰ relieve real también en rutas largas (antes Ventosilla y Peñalara iban sin él: carretera sobre un terraplén) y terreno fino junto a la carretera · 🏠 casas y granjas bien asentadas y más variadas · 🟫 Ventosilla: el camino del pueblo a Tejadilla es de tierra · 🎬 pantalla de carga con vuestro vídeo y «Generando ruta…» · 🚗 coches en la grupeta · 🦌 animales por toda la ruta · 🚂 trenes también en vías inventadas junto a la ruta · 💨 polvo en las pistas de tierra · 🗑 borrar mis récords (Ajustes) · 📋 la ficha de cada salida se guarda: Ficha → Actividades → B · ⌨ ayuda de teclas al día, se cierra con B · 🪧 carteles, farolas y público ya no se hunden · 🎮 los Play se reconectan solos · ⚙ la marcha en el 3D · 🚴 la grupeta ya no va a tirones y usa más carretera · ↔ botones internos: colocarte en el grupo · ⛰ dificultad y ⌨ K (o B en el mando) siempre el mapa, relevos con Mayús + J · ⚡ vatios fijos en vivo (A o menú Y → Ritmo y dificultad; con vatios fijos la cuesta es la real) · 🏆 si cambias la dificultad, ese tramo no cuenta para récord · v232 · 🎚 ventana «Ritmo» en grupeta y liebres: botón A o menú Y → Actividad → Ritmo; ↑↓ eligen, ←→ cambian, B aplica, Z sale · v231 · 🚴 grupeta: eliges el ritmo (zona) y tu media objetivo en la pantalla nueva · v230 · 🎨 pintadas en los puertos, triángulo rojo del último km, carteles de 500 y 200 m, premio de montaña · 👏 el público salta a tu paso y alguno corre a tu lado · v229 · 🎙 comentarista de entrenamiento en grupeta y ruta libre: resumen cada 10 min, beber, comer, dónde vas, próxima subida y deriva · v228 · 👥 público también en la cima-meta (Fuenfría) y en los últimos 150 m · v227 · 🚂 tren de vapor en la sierra y tranvía en el metro ligero · 👥 público en puertos, cimas y curvas de ciclocrós · v226 · 🚆 vías de tren reales con Cercanías pasando · ⛰️ talud de la pista más suave · v225 · 👀 los corredores ya no desaparecen ni saltan en el dibujo · v224 · 🚵 ciclocrós: los corredores ya no se paran ni retroceden donde la ruta repite camino · salir del 3D pregunta (B sí · Z no) · v223 · ⎋ desde el 3D parado, Esc o B del Play: a elegir sesión · v222 · 🚗 coches por su carril: los de tu sentido por la derecha, te adelantan por la izquierda si no viene nadie y vuelven · v221 · 🎮 el lateral del Play izquierdo funciona aunque llegue por el derecho · 👀 «Seguir a…» con todos los grupos y corredores · K mapa entero / seguirme · v220 · ventanas: el mapa ya no se monta sobre «Próximo km» · v219 · ficha: pestaña «Evolución» (mes a mes y por temporadas) · ciclocrós sin carreteras de raya · v218 · «Venid conmigo» con fuerzas, Crónica (Y) · v190 · 🔔 avisos de cadencia baja y potencia por debajo (pantalla y voz) · mapa de verdad en «Mapa · Etapa» · viento dentro de la tarjeta · v189 · 🏋 sesión en el mundo 3D: esquema de la sesión en grande en vez de tramo, mapa y próximo km; sin «salida real» ni locutores de carrera · v188 · 🏋 la sesión para el mundo 3D se elige en la presentación del plan · v187 · 🏋 sesión .zwo rodando en el mundo 3D: modo «Sesión .zwo» en Rodar 3D/2D, bici en ERG, avanzas según la pendiente · v186 · 🗺 libre (rivales: liebres y tu mejor vuelta) y mapa 2D a pantalla completa con las ventanas del lienzo · v185 · 👀 «Ver una carrera» con el diseño del lienzo · v184 · 🪪 ficha completa nueva: resumen, actividades, curva y reserva · v183 · ☰ menú nuevo (Y), «Seguir a…» (lateral izq.), clasificación con pestañas (lateral dcho.) y órdenes (A) con el diseño del lienzo · v182 · ∎ pausa, círculo de terminar y resumen nuevos · v181 · 🎥 3D a pantalla completa con las ventanas del lienzo (vuelta a la clásica con la tecla de datos) · v180 · ✎ diseñar en el mapa empieza vacío (la anterior, en Opciones) · v179 · ✎ diseñar en el mapa: la mira se mueve más fino (y acelera si insistes) · v178 · 🏋 «Sesión .zwo» nueva: el plan de la semana y la sesión en marcha con el diseño del lienzo · v177 · ⚙ «Ajustes» nuevos (A en inicio) con OBS: el botón de grabar de la bici arranca y para OBS · la tarjeta .zwo ya no se queda marcada · v176 · ✎ «Diseñar ruta en el mapa» con el diseño nuevo: mira, B punto, Z quita, A opciones, Y rodar; guardar en mis rutas · v175 · ‹ volver atrás desde «qué hacer» · v174 · 🗺 mapa en gris para que se vea la ruta · v173 · 🗺 mapa de verdad, perfil más bajo y categorías con ← → · v172 · 🛣 «Rodar en 3D / 2D» y «Ver una carrera» con el diseño nuevo · v171 · 🏠 pantallas de inicio copiadas del diseño, con tus datos · v170 · 🔍 el freno izquierdo del Play aleja (el derecho repetía su valor) · v169 · 🔍 avisos para comprobar los frenos y laterales del Play · v168 · 🏠 pantallas de inicio nuevas (quién rueda, conectar, ficha y qué hacer)</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -913,6 +914,7 @@ function pulsarAccion(accion, pulsado, origen){
   }
   if (!pulsado) return;
   if (accion === 'dif+' || accion === 'dif-') { const s = accion === 'dif+' ? 1 : -1;
+    if (typeof LIBRE !== 'undefined' && LIBRE.activo && LIBRE.cruce && (origen === 'bici' || origen === 'teclado')) { libreMando(s > 0 ? 'der' : 'izq'); return; }   /* v235 (Carlos: «elegimos durante los 450 m el cruce con los botones interiores de las manetas»; teclado: [ ] ) */
     if (ruta.activa && !sesion.zwoRuta) { if (origen === 'bici') { colocarmeEnGrupo(s); return; }   /* v233: interno izq. = a la izquierda, interno dcha. = a la derecha */
       cambiaDif(DIF() + 10 * s); avisar('Dificultad ' + DIF() + ' %'); } else cambiarIntensidad(2 * s); return; }
   if (accion === 'grabar' && OBS.conf() && OBS.conf().host) { obsGrabar(); return; }   // v177: con OBS configurado, graba OBS
@@ -1007,6 +1009,7 @@ function mando(b){ if (RITMO.abierta) return ritmoMando(b);   // v232
   if (window.pAjustes && pAjustes.abierta) return ajustesMando(b);
   if (window.pZwo && pZwo.abierta) return zwoMando(b);
   if (window.pDisenar && pDisenar.abierta) return disenarMando(b);
+  if (typeof CAT !== 'undefined' && CAT.abierta) return catMando(b);   // v239: catálogo de rutas
   if (window.pElegir && pElegir.abierta) return elegirMando(b);   // v172: elegir ruta y modo
   const en3d = !!(v3 && v3.activo), enHud = document.body.classList.contains('hud3dOn');
   if (window.pMenu && pMenu.abierta) return menuMando(b);   // v183: menú nuevo
@@ -1321,18 +1324,20 @@ function curvaDelante(d, hasta){ const L = curvasRuta(); let lo = 0, hi = L.leng
 function curvaDetras(d, hasta){ const L = curvasRuta(); for (let i = L.length - 1; i >= 0; i--) { if (L[i].d <= d - 15) return d - L[i].d <= hasta ? L[i] : null; } return null; }
 // v211 (Carlos: «que el pelotón haga globo cuando va lento y se estire cuando va rápido»): cuántos carriles y qué hueco con el de delante
 // lento (< 30 km/h) → globo, hasta 9 en fondo; 30–36 → 5; 36–45 → 3; más de 45 o bajando rápido → dos filas. Subiendo, como mucho 3. Lo limita el ancho de la vía.
-function formaPeloton(d, v){ const g = pendAplicada(d), an = typeof anchoEn === 'function' ? anchoEn(d) : 3; let n = v < 8.3 ? 4 : v < 10 ? 2 : v < 12.5 ? 1 : 0.5;
-  if (g > 4) n = Math.min(n, 1); if (g < -3 && v > 11) n = 0.5; if (pendReal(d) < -4 && curvaDelante(d, 70)) n = 0;   // v214: bajando, en las curvas en fila de uno
+function formaPeloton(d, v){ const g = pendAplicada(d), an = typeof anchoEn === 'function' ? anchoEn(d) : 3; let n = v < 10 ? 4 : v < 12.5 ? 3 : 2;   /* v235 (Carlos: «aumentar las filas todo lo que permita la carretera»): el ancho manda, no la velocidad */
+  if (g > 4) n = Math.min(n, 2); if (g < -3 && v > 11) n = 0.5; if (pendReal(d) < -4 && curvaDelante(d, 70)) n = 0;   // v214: bajando, en las curvas en fila de uno
   const tope = Math.max(0.5, Math.floor(Math.max(0, an - 0.6) / CARRIL)); n = Math.min(n, tope);
   const carriles = n >= 1 ? Array.from({ length: 2 * n + 1 }, (_, i) => (i - n) * CARRIL) : n > 0 ? [-CARRIL / 2, CARRIL / 2] : [0];
-  return { n, carriles, hueco: n >= 3 ? 1.0 : n >= 2 ? 1.3 : n >= 1 ? 1.7 : n > 0 ? 2.1 : 2.8 }; }
+  return { n, carriles, hueco: (n >= 3 ? 1.0 : n >= 2 ? 1.3 : n >= 1 ? 1.7 : n > 0 ? 2.1 : 2.8) + 0.5 }; }   /* v235: «dar más espacio en las filas» */
 // elegir carril (bots y tú): no meterse donde hay alguien al lado, no ir a chocar con uno más lento, y buscar una buena rueda
 /* v233 (Carlos: «colocarse en el pelotón», con los botones internos de la bici): una fila a la izquierda o a la derecha; te quedas ahí 60 s (cada toque vuelve a contar), o hasta que no haya nadie cerca */
+/* v235 (Carlos: «si voy fuera y quiero ir dentro le doy al botón que me lleva al centro y se cambia cuando encuentra un hueco; si veo un hueco delante igual tengo que apretar para ocuparlo»):
+   el botón marca la fila a la que quieres ir (una más a cada toque); entras en cuanto a tu altura no hay nadie en esa fila; si el hueco está delante, aprietas y al llegar entras */
 function colocarmeEnGrupo(s){ if (!sesion.corriendo || sesion.espect) return;
   if (!rivales.lista.some(r => r.tipo === 'bot')) { aviso3d('↔ Colocarte en el grupo: solo cuando ruedas con bots'); return; }
   const an = anchoEn(ruta.dist), lim = Math.max(0.5, an - 0.6), base = carrera.manual ? carrera.manual.lat : (carrera.yoLatObj ?? carrera.yoLat ?? 0);
-  const lat = Math.max(-lim, Math.min(lim, base + s * CARRIL)); carrera.manual = { lat, hasta: sesion.tTotal + 60 };
-  aviso3d((s > 0 ? '➡ ' : '⬅ ') + 'Te colocas ' + (Math.abs(lat) < 0.3 ? 'en el centro' : (lat > 0 ? 'a la derecha' : 'a la izquierda')) + ' · 60 s, luego vuelves a colocarte solo', 2500); }
+  const lat = Math.max(-lim, Math.min(lim, Math.round((base + s * CARRIL) / CARRIL) * CARRIL)); carrera.manual = { lat, puesto: false, hasta: Infinity, tAviso: sesion.tTotal };
+  aviso3d((s > 0 ? '➡ ' : '⬅ ') + 'Quieres ir ' + (Math.abs(lat) < 0.3 ? 'al centro' : (lat > 0 ? 'más a la derecha' : 'más a la izquierda')) + ': te metes en cuanto haya hueco', 2500); }
 function elegirCarril(s, otros, quedarse){ let mejor = null; const actual = s.laneObj ?? s.lat ?? 0, F = formaPeloton(s.d, s.vGrupo || s.v || 8);
   for (const L of F.carriles) { let p = Math.abs(L - actual) < 0.1 ? (quedarse || 1.5) : 0;
     for (const o of otros) { if (o === s || o.lat == null || o.llego) continue; const gap = o.d - s.d, ol = o.lane != null && !o.grupeta ? o.lane : o.lat; if (Math.abs(o.lat - L) >= 0.55 && Math.abs(ol - L) >= 0.55) continue;   // donde está o adonde va
@@ -1345,11 +1350,11 @@ function elegirCarril(s, otros, quedarse){ let mejor = null; const actual = s.la
   return mejor.L; }
 // grupeta en tres filas con huecos irregulares; cada 25–60 s alguien cambia de fila o sube un par de puestos
 /* v233 (Carlos: «la grupeta va en 3 filas, podría ocupar más carretera»): 5 filas en carretera ancha, 4 en una media, 3 en carril bici o pista */
-function colsGrupeta(an){ return an >= 3.5 ? [0, 1, -1, 2, -2] : an >= 2.5 ? [0.5, -0.5, 1.5, -1.5] : [0, 1, -1]; }
+function colsGrupeta(an){ return an >= 4 ? [0, 1, -1, 2, -2, 3, -3] : an >= 3.5 ? [0, 1, -1, 2, -2] : an >= 2.5 ? [0.5, -0.5, 1.5, -1.5] : [0, 1, -1]; }   /* v235: en carretera, 7 filas (con coche cerca se cierra a su carril) */
 function formarGrupeta(G, bots, dt){ const t = sesion.tTotal || 0, COLS = colsGrupeta(anchoEn(G.d)), CMAX = Math.max(...COLS);
   if (G.orden && G.nCols !== COLS.length) { G.orden.forEach((b, i) => { b.col = COLS[i % COLS.length]; b.cayendo = false; b.colFin = null; }); }   /* cambia el ancho: se reparten otra vez, y se mueven suave */
   G.nCols = COLS.length;
-  if (!G.orden) { G.orden = bots.slice(); const az = mulberry(97); bots.forEach((b, i) => { b.col = COLS[i % COLS.length]; b.hueco = 1.8 + 1.0 * az() + (i % 4 === 3 ? 1.8 : 0); b.fase = az() * 6.28; b.fw = 0.12 + 0.3 * az(); b.amp = 0.04 + 0.1 * az(); b.vLat = 0.18 + 0.2 * az(); b.off = null; b.lat = null; b.lane = null; }); G.tCambio = t + 25; }
+  if (!G.orden) { G.orden = bots.slice(); const az = mulberry(97); bots.forEach((b, i) => { b.col = COLS[i % COLS.length]; b.hueco = 2.3 + 1.2 * az() + (i % 4 === 3 ? 1.8 : 0); b.fase = az() * 6.28; b.fw = 0.12 + 0.3 * az(); b.amp = 0.04 + 0.1 * az(); b.vLat = 0.18 + 0.2 * az(); b.off = null; b.lat = null; b.lane = null; }); G.tCambio = t + 25; }
   // RELEVOS (20-nov): el de cabeza tira 25–60 s (menos en subida), se abre a una fila de fuera, se deja caer y se mete al final
   G.relevo = false; if (G.tRelevo == null) G.tRelevo = t + 30;
   if (G.pausaRelevos) G.tRelevo += dt;
@@ -1362,7 +1367,7 @@ function formarGrupeta(G, bots, dt){ const t = sesion.tTotal || 0, COLS = colsGr
   if (t > G.tCambio) { G.tCambio = t + 60 + 60 * Math.random(); const b = G.orden[Math.floor(Math.random() * G.orden.length)];
     if (Math.random() < 0.5) { const o = COLS.filter(c => c !== b.col); b.col = o[Math.floor(Math.random() * o.length)]; }
     else { const i = G.orden.indexOf(b); if (i > 0) { G.orden.splice(i, 1); G.orden.splice(Math.max(0, i - 2), 0, b); } }
-    b.hueco = 1.8 + 1.0 * Math.random()   /* v233: una bici mide 1,7 m; con 1,4 se pisaban y el antichoque los movía */ + (Math.random() < 0.3 ? 1.8 : 0); }
+    b.hueco = 2.3 + 1.2 * Math.random()   /* v233: una bici mide 1,7 m; v235: más estirado */ + (Math.random() < 0.3 ? 1.8 : 0); }
   const acum = {}; for (const c of COLS) acum[String(c)] = 0.4 * Math.abs(c);   /* en punta de flecha */
   for (const b of G.orden) { const k = String(b.col); if (acum[k] == null) acum[k] = 0.4 * Math.abs(b.col); const offObj = b.offObj = acum[k]; acum[k] += b.hueco;
     b.off = b.off == null ? offObj : b.off + (offObj - b.off) * Math.min(1, dt / 6);
@@ -1616,7 +1621,7 @@ function comentaristaEntreno(){
   const bots = rivales.lista.filter(r => r.tipo === 'bot'); if (bots.length && !bots.some(r => r.grupeta)) return;   // en carrera ya hablan los de siempre
   const t = sesion.tTotal || 0; if (t < 60) { ENTRENO.t = -1; return; }
   if (ENTRENO.t < 0) ENTRENO.t = 0; const ya = k => ENTRENO[k] === true, hecho = k => ENTRENO[k] = true, cada = (seg, k) => { const n = Math.floor(t / seg); if (n >= 1 && ENTRENO[k] !== n) { ENTRENO[k] = n; return n; } return 0; };
-  const M = sesion.mediasVivo || {}, wMed = M.w ? Math.round(M.w) : null, pMed = M.p ? Math.round(M.p) : null, km = (ruta.dist / 1000).toFixed(1).replace('.', ',');
+  const M = sesion.mediasVivo || {}, wMed = M.w ? Math.round(M.w) : null, pMed = M.p ? Math.round(M.p) : null, km = (kmHechos() / 1000).toFixed(1).replace('.', ',');
   const grupeta = bots.some(r => r.grupeta), cc = carreraConf(), obj = grupeta ? (cc.objW || wGrupeta()) : null;   /* v231: la media objetivo que elijas */
   // beber cada 15 min; comer cada 40 (a partir de los 40)
   let n;
@@ -2129,8 +2134,14 @@ function moverRivales(dt){
   // tu carril: lo elige la app (adelantar por donde hay sitio, meterte en un hueco, caer por él si te quedas)
   if (bots.length) { carrera.tCarrilYo = (carrera.tCarrilYo || 0) - dt;
     if (carrera.manual && (sesion.tTotal > carrera.manual.hasta || !bots.some(b => Math.abs(b.d - ruta.dist) < 25))) { carrera.manual = null; aviso3d('↔ Vuelves a colocarte solo'); }
-    if (carrera.manual) carrera.yoLatObj = carrera.manual.lat;   /* v233: te has colocado tú */
-    else if (carrera.tCarrilYo <= 0) { carrera.tCarrilYo = 0.5; const A = viento.kmh && (carrera.nGrupoYo || 0) > 3 ? abanicoEn(ruta.dist) : null, j = A ? Math.round((carrera.fGrupoYo || 0) * (carrera.nGrupoYo - 1)) : 0;
+    if (carrera.manual) { const M = carrera.manual;   /* v235: entras en tu fila cuando a tu altura hay hueco */
+      if (!M.puesto) { const ocupa = bots.some(b => !b.llego && b.lat != null && Math.abs(b.lat - M.lat) < 0.6 && Math.abs(b.d - ruta.dist) < 2.3);
+        if (!ocupa) { M.puesto = true; M.hasta = sesion.tTotal + 90; carrera.yoLatObj = M.lat; aviso3d('✓ Dentro: ya vas en esa fila', 1500); }
+        else if (sesion.tTotal - (M.tAviso || 0) > 5) { M.tAviso = sesion.tTotal; aviso3d('↔ Esperando hueco en esa fila · si lo ves delante, aprieta y entras al llegar', 2200); } }
+      else { const ocupa = bots.some(b => !b.llego && b.lat != null && Math.abs(b.lat - (carrera.yoLat || 0)) < 0.5 && Math.abs(b.d - ruta.dist) < 1.9);
+        M.choque = ocupa ? (M.choque || 0) + dt : 0;
+        if (M.choque > 0.4) { M.puesto = false; M.choque = 0; carrera.tCarrilYo = 0; aviso3d('↔ Te han cerrado el hueco: esperas otro en esa fila', 2000); } else carrera.yoLatObj = M.lat; } }
+    if (!(carrera.manual && carrera.manual.puesto) && carrera.tCarrilYo <= 0) {   /* mientras esperas el hueco, te sigues colocando solo (esquivando) */ carrera.tCarrilYo = 0.5; const A = viento.kmh && (carrera.nGrupoYo || 0) > 3 ? abanicoEn(ruta.dist) : null, j = A ? Math.round((carrera.fGrupoYo || 0) * (carrera.nGrupoYo - 1)) : 0;
       carrera.yoLatObj = A && A.c > 0.5 ? (j < A.K ? A.s * (-A.Lmax + 2 * A.Lmax * j / Math.max(1, A.K - 1)) : A.s * A.Lmax) : elegirCarril({ d: ruta.dist, lat: carrera.yoLat || 0, laneObj: carrera.yoLatObj, v: vYo }, bots.filter(b => Math.abs(b.d - ruta.dist) < 15)); }
     carrera.yoLat = (carrera.yoLat || 0) + ((carrera.yoLatObj || 0) - (carrera.yoLat || 0)) * Math.min(1, dt / 1.2); }
   vivo.rebufo = sesion.corriendo ? rebufoEn(ruta.dist, rivales.lista.filter(r => r.tipo !== 'fantasma' && !r.llego).map(r => r.tipo === 'bot' ? r : r.d), bots.length ? carrera.yoLat || 0 : 0, bots.length && (carrera.nGrupoYo || 0) > 1 ? Math.round((carrera.fGrupoYo || 0) * (carrera.nGrupoYo - 1)) : null) : 0;
@@ -2240,6 +2251,7 @@ function siluetaRival(K){
   const me = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); me.castShadow = true; me.name = 'silueta'; return me; }
 const UMBRAL_DETALLE = () => ({ alta: 60, media: 40, baja: 25 })[$('calidad3d') ? $('calidad3d').value : 'media'] || 40;
 function moverRivales3D(dt, dYo){
+  if (!v3.escena) return;   /* v235: mientras se rehace el 3D (recorrido libre, cambio de escenario) no hay escena donde ponerlos */
   // carteles (20-nov: «aquí molestan los nombres»): sin cartel a menos de 40 m; de cada grupo, solo el que va en cabeza
   const conCartel = new Set(); { let ultimo = null; for (const b of rivales.lista.filter(r => r.tipo === 'bot' && r.dVis != null).sort((a, b) => b.dVis - a.dVis)) {
     if (Math.abs(b.dVis - dYo) < 40) { ultimo = b; continue; } if (!ultimo || ultimo.dVis - b.dVis > 15) conCartel.add(b); ultimo = b; } }
@@ -2692,6 +2704,7 @@ function calcularTramos(pts, T){
   if (T > 25000) for (let a = 0; a + 10000 <= T + 500; a += 10000) lista.push({ id: 'p10-' + (a / 10000), tipo:'parcial', a, b: Math.min(T, a + 10000), nombre: 'Km ' + (a / 1000) + '–' + Math.round(Math.min(T, a + 10000) / 1000), sub: '' });
   if (T <= 25000) { for (let a = 0; a + 1000 <= T + 50; a += 1000) lista.push({ id: 'km-' + (a / 1000 + 1), tipo:'km', a, b: Math.min(T, a + 1000), nombre: 'Km ' + (a / 1000 + 1), sub: '' });
     if (T > 3000) lista.push({ id: 'ult2', tipo:'final', a: T - 2000, b: T, nombre: 'Últimos 2 km', sub: '' }); }
+  if (typeof LIBRE !== 'undefined' && LIBRE.activo) return segmentosEn(pts);   /* v235: en recorrido libre solo los segmentos con nombre (los «Km 1», «Subida 2» son de una ruta fija) */
   const segs = segmentosEn(pts);   // v148: las subidas automáticas que ya cubre un segmento con nombre se cronometran pero no se enseñan
   for (const t of lista) if (t.tipo === 'subida' && segs.some(g => /puerto|subida|repecho/.test(g.segTipo) && Math.min(g.b, t.b) - Math.max(g.a, t.a) > 0.6 * (t.b - t.a))) t.oculto = true;
   return segs.concat(lista);
@@ -3158,7 +3171,8 @@ async function iniciarMundo(){
   if (MUNDO.mapa) { MUNDO.mapa.remove(); MUNDO.mapa = null; MUNDO.linea = null; MUNDO.marcas = []; }
   const c = CAPAS[$('capaMapa').value] || CAPAS[Object.keys(CAPAS)[0]];
   const mp = MUNDO.mapa = L.map(caja, { zoomControl: true }); L.tileLayer(c.url, { maxZoom: c.max, maxNativeZoom: Math.min(c.max, 17), attribution: c.attr }).addTo(mp);
-  const red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#1f6feb', weight: 4, opacity: .55 }).addTo(mp));
+  const red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#0d1117', weight: 9, opacity: .85 }).addTo(mp));   /* v236b: red destacada (borde oscuro + azul vivo) */
+  M.tramos.forEach(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#39b6ff', weight: 5, opacity: 1 }).addTo(mp));
   mp.fitBounds(L.featureGroup(red).getBounds(), { padding: [10, 10] });
   M.cruces.forEach(x => L.circleMarker([x[0], x[1]], { radius: 3, color: '#1f6feb', weight: 1, fillColor: '#fff', fillOpacity: 1 }).addTo(mp));
   MUNDO.puntos = []; MUNDO.cerrar = false;
@@ -3181,6 +3195,118 @@ function rodarMundo(){
   if ($('escenario3d').querySelector('option[value="real"]')) { $('escenario3d').value = 'real'; try { localStorage.setItem('simulador-escenario', 'real'); } catch(e) {} }
   $('vistaRuta').value = vistaElegida(); ponerVista();
   setTimeout(() => $('zonaRuta').scrollIntoView({ behavior:'smooth', block:'start' }), 100); }
+// ===================== v235 · Recorrido libre por todo el mapa =====================
+// Carlos (24-nov): «hacemos todo el mapa en recorrido libre pudiendo elegir los cruces, mezclando pistas de tierra y carretera».
+// La ruta lleva siempre unos 15 km por delante, siguiendo en cada cruce la salida «natural» (la más recta, sin cambiar de firme).
+// Al acercarte a un cruce sale el aviso con sus salidas: ← → (Play o teclado) eligen; a los 1,5 s se aplica. Si cambias, o te
+// acercas al final del horizonte, la ruta se recorta por detrás (800 m) y se rehace por delante: el 3D se reconstruye en marcha
+// (unos segundos con la pantalla de carga) y la sesión sigue: tiempo, vatios y kilómetros suman (LIBRE.base guarda lo recortado).
+const LIBRE = { fac: 1, activo: false, cam: null, cum: null, base: 0, H: 15000, elec: {}, cruces: [], cruce: null, iOp: 0, tElegido: 0, rehaciendo: false, nombre: '' };
+function kmHechos(){ return ruta.dist + (LIBRE.activo ? LIBRE.base : 0); }
+function libreGrado(u){ return MUNDO.red.ady[u].length; }
+function librePaso(prev, cur){ const A = MUNDO.red.ady[cur]; if (A.length !== 2) return null; return A[0][0] === prev ? A[1][0] : A[0][0]; }
+function libreXY(u){ const p = MUNDO.red.nodos[u].p; return [p[1] * 111320 * Math.cos(p[0] * Math.PI / 180), p[0] * 110540]; }
+// un punto ~m metros por la rama que sale de u hacia v (para medir hacia dónde va de verdad, no el primer metro)
+function libreLejos(u, v, m){ let prev = u, cur = v, acc = distM(MUNDO.red.nodos[u].p, MUNDO.red.nodos[v].p);
+  while (acc < m) { const nx = librePaso(prev, cur); if (nx == null) break; acc += distM(MUNDO.red.nodos[cur].p, MUNDO.red.nodos[nx].p); prev = cur; cur = nx; } return cur; }
+function libreRumbo(a, b){ const A = libreXY(a), B = libreXY(b); return Math.atan2(B[0] - A[0], B[1] - A[1]); }
+// salidas de un cruce u llegando desde p: ángulo (negativo izquierda), firme, a dónde lleva
+function libreSalidas(p, u){
+  const { nodos, ady, M } = MUNDO.red, atras = libreLejos(u, p, 40), rIn = libreRumbo(atras, u), supIn = claseEn(p, u)[0];
+  const PU = (window.RECURSOS_SIM && RECURSOS_SIM.lugares && RECURSOS_SIM.lugares.pueblos) || [];
+  return ady[u].filter(e => e[0] !== p).map(([v]) => {
+    let a = libreRumbo(u, libreLejos(u, v, 45)) - rIn; a = Math.atan2(Math.sin(a), Math.cos(a));
+    const sup = claseEn(u, v)[0], fin = libreLejos(u, v, 6000), q = nodos[fin].p; let dest = '', bd = 2500;
+    for (const x of PU) { const d = distM([x[1], x[2]], q); if (d < bd) { bd = d; dest = x[0]; } }
+    return { v, a, sup, firme: RUTAS_SIM.SUP[sup] || '', dest, natural: Math.abs(a) * 180 / Math.PI + (sup !== supIn ? 25 : 0) + (RUTAS_SIM.SUP[sup] === 'tierra' && RUTAS_SIM.SUP[supIn] !== 'tierra' ? 15 : 0) };
+  }).sort((x, y) => x.a - y.a); }
+// alarga el camino siguiendo las elecciones (o la salida natural) hasta tener «metros» por delante del índice k
+function libreAlargar(cam, desde, metros){
+  const { nodos } = MUNDO.red; let acc = 0;
+  for (let k = desde; k < cam.length - 1; k++) acc += distM(nodos[cam[k]].p, nodos[cam[k + 1]].p);
+  let vueltas = 0;
+  while (acc < metros && vueltas++ < 200000) { const n = cam.length, p = cam[n - 2], u = cam[n - 1], g = libreGrado(u); let v;
+    if (g === 1) v = p;   // camino sin salida: se da la vuelta
+    else if (g === 2) v = librePaso(p, u);
+    else { const S = libreSalidas(p, u), el = LIBRE.elec[p + '>' + u]; const x = S.find(s => s.v === el) || S.slice().sort((a, b) => a.natural - b.natural)[0]; v = x.v; }
+    acc += distM(nodos[u].p, nodos[v].p); cam.push(v); }
+  return cam; }
+function libreCumul(cam){ const { nodos } = MUNDO.red, c = [0]; for (let k = 1; k < cam.length; k++) c.push(c[k - 1] + distM(nodos[cam[k - 1]].p, nodos[cam[k]].p)); return c; }
+function libreCruces(){ const { cam, cum } = LIBRE, out = []; for (let k = 1; k < cam.length - 1; k++) if (libreGrado(cam[k]) >= 3) out.push({ k, d: cum[k], p: cam[k - 1], u: cam[k] }); return out; }
+function libreIndice(d){ const c = LIBRE.cum; let lo = 0, hi = c.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (c[m] <= d) lo = m; else hi = m - 1; } return lo; }
+function libreRutaObj(g){ return { ruta: { id: 'mundo-libre', mundo: true, libre: true, nombre: LIBRE.nombre, estilo: g.montana ? 'montaña' : 'ciudad', inverso: 'al revés', tramos: { largo: g.largo, runs: g.runs }, calles: [] }, sentido: 'normal' }; }
+// la primera vez: desde el nodo de salida, hacia el segundo punto si lo hay
+function libreCaminoInicial(a, b){
+  const { ady } = MUNDO.red; let cam;
+  if (b != null && b !== a) { const c = caminoMundo(a, b); cam = c && c.length > 1 ? c.slice(0, 2) : null; }
+  if (!cam) { const v = ady[a].slice().sort((x, y) => y[1] - x[1])[0]; cam = [a, v[0]]; }
+  LIBRE.elec = {}; return libreAlargar(cam, 0, LIBRE.H); }
+// recorta por detrás y rehace por delante sin cortar la sesión
+function libreRehacer(motivo){
+  if (!LIBRE.activo || LIBRE.rehaciendo) return; LIBRE.rehaciendo = true;
+  setTimeout(() => libreRehacerYa(motivo), 0); }   /* fuera del fotograma: el resto del fotograma no se queda sin escena */
+function libreRehacerYa(motivo){
+  try {
+    const fac = LIBRE.fac || 1, dAct = ruta.dist * fac;   // metros de la red ↔ metros de la ruta (se fija al construir cada ruta)
+    const activos = (tramos.lista || []).filter(t => t.activo && !t.hecho).map(t => ({ id: t.id, activo: t.activo, ref: t.ref, rb: t.rb, a: t.a }));
+    const dIni = Math.min(dAct - 800, ...activos.map(t => t.a * fac - 60));   /* v235 (Carlos: «los tramos cronometrados tienen que contar para los récords»): no se recorta por detrás de un segmento empezado */
+    const j = Math.max(0, libreIndice(dIni)), kAct = libreIndice(dAct);
+    let cam = LIBRE.cam.slice(j, kAct + 2); if (cam.length < 2) cam = LIBRE.cam.slice(j, j + 2);
+    cam = libreAlargar(cam, Math.max(0, kAct - j), LIBRE.H);
+    const corte = LIBRE.cum[j], g = gpxMundo(cam), r = leerGpx(g.gpx);
+    LIBRE.base += corte / fac; LIBRE.cam = cam; LIBRE.cum = libreCumul(cam); LIBRE.cruces = libreCruces(); LIBRE.cruce = null;
+    const nuevo = (dAct - corte) * (r.total / (LIBRE.cum[LIBRE.cum.length - 1] || 1)), mover = ruta.dist - nuevo;
+    Object.assign(ruta, { pts: r.pts, total: r.total, dist: nuevo }); ruta.tramos = libreRutaObj(g); LIBRE.fac = LIBRE.cum[LIBRE.cum.length - 1] / r.total || 1;
+    for (const x of rivales.lista) { x.d -= mover; if (x.dVis != null) x.dVis -= mover; }
+    try { prepararTramos(); for (const t of tramos.lista) { t.hecho = false; t.rb = {}; const o = activos.find(x => x.id === t.id);
+        if (o) { t.activo = o.activo; t.ref = o.ref; t.rb = o.rb || {}; t.elegible = true; } else { t.activo = null; t.elegible = ruta.dist <= t.a + 5; } } } catch(e) { log('libre tramos: ' + e.message); }
+    if (v3.construyendo) v3.rehacer = true; else { v3.construido = false; v3.escena = null; v3.camPos = null; if (v3.activo) construir3D(); }
+    try { iniciarMapa(); } catch(e) {} try { dibujar(); } catch(e) {}
+    log('Recorrido libre: ruta rehecha (' + motivo + ') · ' + (r.total / 1000).toFixed(1) + ' km por delante y detrás · llevas ' + (kmHechos() / 1000).toFixed(1) + ' km.');
+  } finally { LIBRE.rehaciendo = false; } }
+window.rodarLibre = async function(a, b, opciones){
+  await cargarMundo(); if (!window.RECURSOS_SIM || !RECURSOS_SIM.lugares) { try { await cargarScript('recursos/lugares.js'); } catch(e) {} }
+  const plan = opciones && opciones.plan, cam = plan ? plan.cam.slice() : libreCaminoInicial(a, b), g = gpxMundo(cam), PU = (window.RECURSOS_SIM && RECURSOS_SIM.lugares && RECURSOS_SIM.lugares.pueblos) || [];
+  let cerca = '', bd = 4000; const q = MUNDO.red.nodos[a].p; for (const x of PU) { const d = distM([x[1], x[2]], q); if (d < bd) { bd = d; cerca = x[0]; } }
+  LIBRE.nombre = plan ? plan.nombre : 'Libre desde ' + (cerca || 'el mapa');
+  $('rutaIncluida').value = ''; copiarSentido(); cerrarPantallaRutas(); cargarRuta(g.gpx.replace('Mi ruta en el mundo', LIBRE.nombre));
+  Object.assign(LIBRE, { activo: true, cam, cum: libreCumul(cam), base: 0, cruce: null, pendiente: false, plan: plan || null, elec: plan ? {} : LIBRE.elec }); LIBRE.cruces = libreCruces();
+  window.CAT_ACTUAL = plan ? { id: plan.id, nombre: plan.nombre } : null; LIBRE.fac = LIBRE.cum[LIBRE.cum.length - 1] / ruta.total || 1;
+  ruta.tramos = libreRutaObj(g);
+  if ($('escenario3d').querySelector('option[value="real"]')) { $('escenario3d').value = 'real'; try { localStorage.setItem('simulador-escenario', 'real'); } catch(e) {} }
+  $('vistaRuta').value = (opciones && opciones.vista) || 'carretera'; ponerVista();
+  if (plan) { const m = catMarca(plan.id); avisar('🔎 Ruta del catálogo: «' + plan.nombre + '»' + (m && m.mejor ? ' · tu mejor tiempo: ' + catHMS(m.mejor) : ' · aún no la has hecho') + '. En los cruces te marco la salida de la ruta; si eliges otra, la abandonas y sigues en libre.'); }
+  else avisar('🧭 Recorrido libre: en cada cruce eliges con los botones interiores de las manetas (teclado: [ ]). La ruta se alarga sola; termina cuando quieras.'); };
+// aviso de cruce: cada fotograma
+function libreTick(){
+  if (!LIBRE.activo || !ruta.activa) { librePanel(null); return; }
+  const d = ruta.dist * (LIBRE.fac || 1);
+  if (!LIBRE.plan && !LIBRE.rehaciendo && ruta.total - ruta.dist < 4000 && !v3.construyendo && Date.now() - (LIBRE.tRehecha || 0) > 8000) { LIBRE.tRehecha = Date.now(); libreRehacer('se acababa el horizonte'); return; }
+  const c = LIBRE.cruces.find(x => x.d > d - 8 && x.d - d < 450);
+  if (!c) { if (LIBRE.cruce && LIBRE.pendiente && LIBRE.cruce.d > d) libreAplicar(); LIBRE.cruce = null; LIBRE.pendiente = false; librePanel(null); return; }   /* pasado el cruce, una elección sin aplicar ya no vale */
+  if (!LIBRE.cruce || LIBRE.cruce.k !== c.k || LIBRE.cruce.u !== c.u) { const S = libreSalidas(c.p, c.u), sig = LIBRE.cam[c.k + 1];
+    LIBRE.cruce = { ...c, S }; LIBRE.iOp = Math.max(0, S.findIndex(s => s.v === sig)); LIBRE.pendiente = false; }
+  if (LIBRE.pendiente && Date.now() - LIBRE.tElegido > 1500) { if (c.d > d) libreAplicar(); else LIBRE.pendiente = false; }
+  libreTexto(c.d - d); }
+function libreAplicar(){ const c = LIBRE.cruce; LIBRE.pendiente = false; if (!c) return; const s = c.S[LIBRE.iOp]; if (!s) return;
+  if (LIBRE.cam[c.k + 1] === s.v) return;   // ya iba por ahí
+  if (LIBRE.plan) { aviso3d('⚠ Has dejado la ruta «' + LIBRE.plan.nombre + '»: ahora ruedas libre', 4000); avisar('Has abandonado la ruta fijada «' + LIBRE.plan.nombre + '». Sigues en recorrido libre; este intento no cuenta para su tiempo.'); LIBRE.nombre = 'Libre (dejaste ' + LIBRE.plan.nombre + ')'; LIBRE.plan = null; window.CAT_ACTUAL = null; }   /* v239 */
+  LIBRE.elec[c.p + '>' + c.u] = s.v; LIBRE.cam = LIBRE.cam.slice(0, c.k + 1).concat([s.v]); LIBRE.cum = libreCumul(LIBRE.cam);
+  aviso3d('🧭 ' + libreNombre(s) + ': rehaciendo la ruta…', 2500); libreRehacer('has elegido otra salida'); }
+function libreProximo(){ const d = ruta.dist * (LIBRE.fac || 1), c = LIBRE.cruces.find(x => x.d > d); return c ? '🧭 Próximo cruce a ' + (c.d - d < 1000 ? Math.round((c.d - d) / 10) * 10 + ' m' : libreN1((c.d - d) / 1000) + ' km') : '🧭 Sin cruces a la vista'; }
+function libreN1(x){ return (Math.round(x * 10) / 10).toFixed(1).replace('.', ','); }
+function libreNombre(s){ const g = Math.round(s.a * 180 / Math.PI); return (Math.abs(g) < 25 ? '↑ Recto' : g < 0 ? (g < -120 ? '↰ Atrás a la izquierda' : '← Izquierda') : (g > 120 ? '↱ Atrás a la derecha' : '→ Derecha')) + (s.dest ? ' · ' + s.dest : ''); }
+function libreMando(b){ if (!LIBRE.activo || !LIBRE.cruce) return false; if (b !== 'izq' && b !== 'der') return false;
+  const n = LIBRE.cruce.S.length; LIBRE.iOp = Math.max(0, Math.min(n - 1, LIBRE.iOp + (b === 'der' ? 1 : -1))); LIBRE.pendiente = true; LIBRE.tElegido = Date.now(); libreTexto(); return true; }
+function librePanel(html){ let P = $('librePanel');
+  if (!html) { if (P) P.hidden = true; return; }
+  if (!P) { P = document.createElement('div'); P.id = 'librePanel'; P.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9000;background:rgba(13,16,20,.9);color:#e9edf1;border:1px solid #2a323c;border-radius:14px;padding:10px 14px;font:600 15px Inter,system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.5);text-align:center;pointer-events:auto'; document.body.appendChild(P); }
+  P.hidden = false; if (P.dataset.h !== html) { P.dataset.h = html; P.innerHTML = html; P.querySelectorAll('[data-o]').forEach(o => o.onclick = () => { LIBRE.iOp = +o.dataset.o; LIBRE.pendiente = true; LIBRE.tElegido = Date.now() - 1400; libreTexto(); }); } }
+function libreTexto(falta){ const c = LIBRE.cruce; if (!c) return; if (falta != null) LIBRE.falta = falta;
+  const ico = { 'carretera': '🛣️', 'tierra': '🟫', 'carril bici': '🚲', 'paseo': '🚶', 'puente': '🌉', 'paso inferior': '🚇' };
+  const iR = LIBRE.plan ? c.S.findIndex(s => s.v === LIBRE.cam[c.k + 1]) : -1;   /* v239: la salida de la ruta fija */
+  const ops = c.S.map((s, i) => '<span data-o="' + i + '" style="display:inline-block;margin:4px;padding:7px 12px;border-radius:10px;cursor:pointer;border:2px solid ' + (i === LIBRE.iOp ? '#c6f432' : '#2a323c') + ';background:' + (i === LIBRE.iOp ? '#1f2a12' : '#151a20') + '">' + libreNombre(s) + ' <span style="color:#9aa6b2;font-weight:500">' + (ico[s.firme] || '') + ' ' + s.firme + '</span>' + (i === iR ? ' <b style="color:#c6f432">· ruta</b>' : '') + '</span>').join('');
+  librePanel('<div style="font-size:13px;color:#9aa6b2;margin-bottom:2px">🧭 Cruce en ' + Math.max(0, Math.round((LIBRE.falta || 0) / 10) * 10) + ' m · elige con ← →' + (LIBRE.pendiente ? ' · <b style="color:#c6f432">se aplica en un momento</b>' : '') + '</div>' + ops + (iR >= 0 && LIBRE.iOp !== iR ? '<div style="margin-top:6px;color:#ff7b72;font-size:14px">⚠ Por aquí abandonas la ruta fijada «' + LIBRE.plan.nombre + '» y sigues en libre</div>' : '')); }
 function cerrarPantallaRutas(){ $('pantallaRutas').hidden = true; document.body.style.overflow = ''; }
 function vistaElegida(){ const b = document.querySelector('#pantallaRutas .vistaElegir button.activo'); const v = b ? b.dataset.v : (window.LIGERO ? 'dos' : 'carretera'); if (window.LIGERO && v === 'carretera') { setTimeout(mostrarDemo, 300); return 'dos'; } return v; }
 function elegirRuta(id, sentido){
@@ -3544,6 +3670,8 @@ function cambiarPlatoAMano(){
   marcha.plato = otro; marcha.idx = mejor; marcha.fijadoAMano = Date.now(); log('Plato corregido a mano: ' + otro + '×' + PINONES[mejor]); pintarBloque();
 }
 function cargarRuta(texto){
+  window.CAT_ACTUAL = null;   /* v239: cualquier ruta nueva deja de ser la del catálogo (la del catálogo se marca después) */
+  if (typeof LIBRE !== 'undefined') { LIBRE.activo = false; LIBRE.cruce = null; try { librePanel(null); } catch(e) {} }
   const r = leerGpx(texto); ruta.tramos = null; ruta.recorteIni = r.recorteIni || 0;
   Object.assign(ruta, { activa:true, nombre:r.nombre, pts:r.pts, total:r.total, dist:0, subido:0, ultimaAlt:null, ultimaPend:null });
   if (typeof v3 !== 'undefined') { v3.construido = false; v3.escena = null; v3.camPos = null; }
@@ -3720,7 +3848,7 @@ async function grabarLienzo3d(){ if (grab.rec) { grab.rec.stop(); return; }
 function componerGrabacion(){
   if (!grab.rec || grab.pestana) return; const c = grab.ctx, W = grab.lienzo.width, H = grab.lienzo.height;
   c.drawImage(v3.r.domElement, 0, 0, W, H);
-  const k = W / 1280, cajas = [['km/h', $('tVel').textContent], ['tiempo', mmss(sesion.tTotal || 0)], ['km', (ruta.dist / 1000).toFixed(1).replace('.', ',')], ['%', ruta.activa ? (puntoEn(ruta.dist).pend).toFixed(1).replace('.', ',') : '–']];
+  const k = W / 1280, cajas = [['km/h', $('tVel').textContent], ['tiempo', mmss(sesion.tTotal || 0)], ['km', (kmHechos() / 1000).toFixed(1).replace('.', ',')], ['%', ruta.activa ? (puntoEn(ruta.dist).pend).toFixed(1).replace('.', ',') : '–']];
   c.fillStyle = 'rgba(13,17,23,0.72)'; c.fillRect(16 * k, H - 86 * k, 520 * k, 70 * k);
   cajas.forEach(([u, v], i) => { const x = (30 + i * 128) * k; c.fillStyle = '#ffffff'; c.font = 'bold ' + Math.round(30 * k) + 'px system-ui, sans-serif'; c.fillText(v, x, H - 46 * k);
     c.fillStyle = '#9aa4ad'; c.font = Math.round(15 * k) + 'px system-ui, sans-serif'; c.fillText(u, x, H - 26 * k); });
@@ -3739,7 +3867,7 @@ const TECLAS = [
   ['3D', [['Q', 'Calidad del 3D'], ['E', 'Escenario'], ['N', 'Ciclista'], ['R', 'Recorrer la ruta sin bici'], ['W', 'Webcam']]],
   ['Grabar y sonido', [['G', 'Grabar la pantalla entera (con micrófono)'], ['T', 'Grabar solo el 3D (con micrófono)']]],
   ['Pedaleo simulado (⌨ en el menú)', [['↑ ↓  + −', '±10 W (con Mayús ±50 W)'], ['Z X C V B', '55 · 70 · 88 · 100 · 120 % de tu FTP'], ['Espacio', 'A tope mientras lo mantienes'], ['<', 'Frenar mientras la mantienes (en ruta; en la bici, los frenos)'], ['0', 'Dejar de pedalear']]],
-  ['Bici (manetas)', [['Arriba izq.', 'Empezar / pausa · 2 s: terminar y guardar'], ['Arriba dcha.', 'Grabar / parar'], ['Abajo izq.', 'Pasar el relevo · 2 s: relevos sí / no'], ['Abajo dcha.', 'Cámara siguiente · 2 s: cámara normal'], ['Internos', 'Colocarte una fila a la izquierda / derecha'], ['Levas  frenos', 'Marchas · frenar']]],
+  ['Bici (manetas)', [['Arriba izq.', 'Empezar / pausa · 2 s: terminar y guardar'], ['Arriba dcha.', 'Grabar / parar'], ['Abajo izq.', 'Pasar el relevo · 2 s: relevos sí / no'], ['Abajo dcha.', 'Cámara siguiente · 2 s: cámara normal'], ['Internos', 'En los 450 m antes de un cruce del recorrido libre: elegir salida (teclado [ ]) · fuera de los cruces: pedir fila a la izquierda / derecha (entras cuando hay hueco)'], ['Levas  frenos', 'Marchas · frenar']]],
   ['Ayuda', [['H  F1  ?', 'Esta ventana · se cierra con H, B, Z o Esc (y con B o Z del mando)']]]];   /* v233: al día con los botones de hoy */
 function alternarAyudaTeclas(){ const A = $('ayudaTeclas'); if (A.parentNode !== document.body) document.body.appendChild(A);
   if (A.hidden) $('ayudaCuerpo').innerHTML = TECLAS.map(([g, L]) => '<h3>' + g + '</h3>' + L.map(([k, t]) => '<div class="t"><kbd>' + k + '</kbd><span>' + t + '</span></div>').join('')).join('');
@@ -5120,6 +5248,64 @@ const prefClip = (clips, lista) => { const buenos = clips.filter(a => !CLIP_MALO
   for (const r of lista) { const c = buenos.find(a => r.test(a.name.split('|').pop())); if (c) return c; } return buenos.find(a => /idle|stand|basic|walk/i.test(a.name)) || buenos[0]; };
 const COLOR_AMB = { roca:0x8a857c, parque:0x5f8f3a, bosque:0x3e6a2b, barrio:0x8f8c80, poligono:0x8e8e88, campo:0xb5a46a, descampado:0xab9c6c, agua:0x4f86ad, deporte:0x6fa24c, otro:0x8d9668 };
 const ARBOLES_AMB = { roca:0.05, bosque:1, parque:0.75, deporte:0.3, otro:0.3, campo:0.1, descampado:0.14, barrio:0.12, poligono:0.04, agua:0 };
+// v237 (Carlos: «haz un modelo del acueducto de Segovia»): hecho por código sobre el trazado real de OpenStreetMap (acequia elevada, del arranque en
+// Díaz Sanz hasta la muralla). El canal baja ~1 % hasta el Azoguejo, donde mide 28,5 m; por encima de 17 m van dos pisos de arcos con imposta entre ellos.
+const ACUEDUCTO = [[40.9444307,-4.1104147],[40.9454186,-4.111396],[40.9454647,-4.1114746],[40.9457961,-4.1120673],[40.9462723,-4.113529],[40.9464721,-4.1166551],[40.9479988,-4.1179118],[40.9485251,-4.1183079],[40.9488486,-4.1185871]];
+const ACU_AZOGUEJO = 6;   /* vértice más alto (plaza del Azoguejo) */
+function geoAcueducto(pts, hS, enCarretera){
+  const P = [], N = [], C = [];
+  const col = (h, v) => { const c = new THREE.Color(h); c.offsetHSL(0, 0, v || 0); return [c.r, c.g, c.b]; };
+  const caja = (cx, cz, ux, uz, a0, a1, w, y0, y1, k) => {   /* caja orientada: a lo largo de (ux,uz) de a0 a a1, ancho w, de y0 a y1 */
+    const vx = -uz, vz = ux, Q = (a, b, y) => [cx + ux * a + vx * b, y, cz + uz * a + vz * b], h = w / 2;
+    const v = [Q(a0, -h, y0), Q(a1, -h, y0), Q(a1, h, y0), Q(a0, h, y0), Q(a0, -h, y1), Q(a1, -h, y1), Q(a1, h, y1), Q(a0, h, y1)];
+    const F = [[0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7], [4, 5, 6, 7], [3, 2, 1, 0]];
+    for (const f of F) { const a = v[f[0]], b = v[f[1]], c = v[f[2]], d = v[f[3]];
+      let nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      const L = Math.hypot(nx, ny, nz) || 1; nx /= L; ny /= L; nz /= L;
+      P.push(...a, ...b, ...c, ...a, ...c, ...d); for (let i = 0; i < 6; i++) { N.push(nx, ny, nz); C.push(...k); } } };
+  // recorrido continuo en metros
+  const S = [0]; for (let i = 1; i < pts.length; i++) S.push(S[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+  const Lt = S[S.length - 1], en = d => { let i = 1; while (i < pts.length - 1 && S[i] < d) i++; const a = pts[i - 1], b = pts[i], l = S[i] - S[i - 1] || 1, t = Math.max(0, Math.min(1, (d - S[i - 1]) / l));
+    return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, ux: (b.x - a.x) / l, uz: (b.z - a.z) / l }; };
+  const dA = S[ACU_AZOGUEJO], g0 = hS(pts[0].x, pts[0].z), yA = hS(pts[ACU_AZOGUEJO].x, pts[ACU_AZOGUEJO].z) + 28.5, y0c = Math.max(g0 + 0.8, yA + dA * 0.0095);
+  const canal = d => d <= dA ? y0c + (yA - y0c) * d / dA : yA - (d - dA) * 0.004;   /* cota de la coronación */
+  const PASO = 6.4, piedra = 0x9a9080, n = Math.floor(Lt / PASO);
+  const pilas = [];
+  let fase = 0; { let bd = Infinity, bD = 0; for (let d = 0; d < Lt; d += 1) { const q = en(d), e = enCarretera(q.x, q.z, true); if (e < bd) { bd = e; bD = d; } } if (bd < 6) fase = ((bD - PASO / 2) % PASO + PASO) % PASO; }   /* v237: la carretera cruza por el centro de un arco */
+  for (let k = 0; fase + k * PASO <= Lt; k++) { const d = fase + k * PASO, q = en(d), g = hS(q.x, q.z), H = canal(d) - g; pilas.push({ d, ...q, g, H, fuera: enCarretera(q.x, q.z) }); }
+  let ok = 0;
+  for (let k = 0; k < pilas.length; k++) { const p = pilas[k], top = canal(p.d), sh = ((k * 7919) % 13) / 13 * 0.08 - 0.04, kP = col(piedra, sh), kO = col(piedra, sh - 0.07);
+    // coronación: canal (specus) de piedra a todo lo largo, también sobre los huecos
+    caja(p.x, p.z, p.ux, p.uz, -PASO / 2, PASO / 2, 2.5, top - 1.9, top, kP); caja(p.x, p.z, p.ux, p.uz, -PASO / 2, PASO / 2, 2.75, top - 2.35, top - 1.9, kO);
+    if (p.H < 2.6) { caja(p.x, p.z, p.ux, p.uz, -PASO / 2, PASO / 2, 2.4, p.g - 0.6, top - 1.9, kP); continue; }   /* arranque: muro bajo macizo */
+    const dos = p.H > 17, y1 = dos ? top - 2.35 - 8.2 : null;   /* piso alto de ~8 m */
+    if (!p.fuera) {
+      if (dos) { caja(p.x, p.z, p.ux, p.uz, -1.2, 1.2, 3.0, p.g - 0.6, y1, kP); caja(p.x, p.z, p.ux, p.uz, -1.4, 1.4, 3.3, y1, y1 + 0.55, kO);   /* imposta */
+        caja(p.x, p.z, p.ux, p.uz, -0.9, 0.9, 2.4, y1 + 0.55, top - 2.35, kP); }
+      else caja(p.x, p.z, p.ux, p.uz, -1.15, 1.15, 2.6, p.g - 0.6, top - 2.35, kP);
+      ok++; }
+    // arcos: el hueco hasta la pila siguiente (o más allá si hay que saltar la carretera)
+    let j = k + 1; while (j < pilas.length && pilas[j].fuera) j++;
+    if (p.fuera || j >= pilas.length) continue;
+    const q2 = pilas[j], tramo = (aI, aF, yTope, yMin, wd) => {   /* v237: enjuta con intradós semicircular liso (caras delantera y trasera + intradós) */
+      const ab = aF - aI, r = ab / 2, ys = Math.max(yMin, yTope - r - 0.9), nR = 14, vx = -p.uz, vz = p.ux, Q = (u, y, sg) => [p.x + p.ux * u + vx * sg * wd / 2, y, p.z + p.uz * u + vz * sg * wd / 2];
+      const arc = u => Math.min(yTope - 0.05, ys + Math.sqrt(Math.max(0, r * r - (u - aI - r) * (u - aI - r))));
+      const cara = (A, B, Cc, Dd, n) => { P.push(...A, ...B, ...Cc, ...A, ...Cc, ...Dd); for (let i = 0; i < 6; i++) { N.push(...n); C.push(...kP); } };
+      for (let s = 0; s < nR; s++) { const u0 = aI + ab * s / nR, u1 = aI + ab * (s + 1) / nR, y0 = arc(u0), y1 = arc(u1);
+        for (const sg of [-1, 1]) { const n = [vx * sg, 0, vz * sg]; if (sg > 0) cara(Q(u0, y0, sg), Q(u1, y1, sg), Q(u1, yTope, sg), Q(u0, yTope, sg), n); else cara(Q(u1, y1, sg), Q(u0, y0, sg), Q(u0, yTope, sg), Q(u1, yTope, sg), n); }
+        const tx = u1 - u0, ty = y1 - y0, tl = Math.hypot(tx, ty) || 1, nyy = -tx / tl, nu = ty / tl;   /* normal hacia abajo/dentro del arco */
+        cara(Q(u1, y1, -1), Q(u1, y1, 1), Q(u0, y0, 1), Q(u0, y0, -1), [p.ux * nu, nyy, p.uz * nu]); }
+      if (ys > yMin + 0.05) { caja(p.x, p.z, p.ux, p.uz, aI, aI + 0.01, wd, yMin, ys, kP); } };
+    const span = (j - k) * PASO;
+    if (dos) { tramo(0.9, span - 0.9, top - 2.35, y1 + 0.55, 2.4); tramo(1.2, span - 1.2, y1, p.g + 2.5, 3.0); }
+    else tramo(1.15, span - 1.15, top - 2.35, p.g + 2.5, 2.6);
+  }
+  // hornacina del Azoguejo, en las dos caras del piso alto
+  { const q = en(dA), y = canal(dA) - 2.35 - 8.2 + 0.55, kN = col(0x6f675b), kH = col(0x2a2622);
+    for (const sg of [-1, 1]) { const ox = -q.uz * sg * 1.35, oz = q.ux * sg * 1.35; caja(q.x + ox, q.z + oz, q.ux, q.uz, -1.1, 1.1, 0.5, y + 0.3, y + 4.4, kN); caja(q.x + ox * 1.2, q.z + oz * 1.2, q.ux, q.uz, -0.7, 0.7, 0.2, y + 0.8, y + 3.6, kH); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  return { g, pilas: ok, largo: Lt, alto: yA - hS(pts[ACU_AZOGUEJO].x, pts[ACU_AZOGUEJO].z) };
+}
 // v234 (Carlos: «iglesias diferentes… para que no sea aburrido»): iglesias y ermitas hechas por código al estilo de los pueblos de Segovia, cada una con el tamaño
 // y la orientación de su planta en OpenStreetMap (recursos/iglesias.js). La semilla de cada una decide torre o espadaña, ábside, pórtico y color de la piedra.
 function geoIglesia(o){
@@ -5256,6 +5442,14 @@ async function decorarReal(esc, D){
         me.position.set(ig.x, hi - 0.15, ig.z); me.rotation.y = ig.ang; me.castShadow = me.receiveShadow = calidad().sombra; esc.add(me); n++;
         libre(ig.x, ig.z, ig.L, ig.W, ig.ang, true); huella(ig.x, ig.z, { ancho: ig.L + 2, fondo: ig.W + 2 }, cs, sn).forEach(q => finas.add(q)); }
       if (lista.length) log('3D: ' + n + ' iglesias y ermitas en su sitio (OpenStreetMap).'); v3.nIglesias = n; }
+    // v237: acueducto de Segovia, si la ruta pasa a menos de 1,5 km
+    if (D.aXZ) { const pts = ACUEDUCTO.map(([la, lo]) => D.aXZ(la, lo)), hS = v3.suelo || hT;
+      if (pts.some(p => cercana(p.x, p.z).d < 1500) && pts.every(p => D.p0 && p.x > D.p0.x + 20 && p.z > D.p0.z + 20 && p.x < D.p0.x + (D.nx - 1) * D.PASO - 20 && p.z < D.p0.z + (D.nz - 1) * D.PASO - 20)) {
+        try { const A = geoAcueducto(pts, hS, (x, z, dist) => dist ? cercana(x, z).d : cercana(x, z).d < 3.2), me = new THREE.Mesh(A.g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+          me.castShadow = me.receiveShadow = calidad().sombra; esc.add(me); v3.acueducto = A; A.pts = pts;
+          for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], L = Math.hypot(b.x - a.x, b.z - a.z); for (let d = 0; d < L; d += 6) libre(a.x + (b.x - a.x) * d / L, a.z + (b.z - a.z) * d / L, 7, 7, 0, true); }
+          log('3D: acueducto de Segovia, ' + Math.round(A.largo) + ' m y ' + A.pilas + ' pilares (' + A.alto.toFixed(1) + ' m en el Azoguejo).'); }
+        catch(e) { log('3D: acueducto no montado (' + e.message + ')'); } } }
     // v234 (Carlos, Prádena: «es un pueblo, con casas bajas pegadas, me interesa casas en la parte naranja»): hileras de casas bajas pegadas en los tramos que marque el circuito
     { const CX = ruta.tramos && ruta.tramos.ruta.cx, filas = CX && CX.casas, lista = porTipo['chalé'];
       if (filas && filas.length && lista && lista.length) { const T = ruta.tramos, L = T.ruta.tramos.largo, rev = T.sentido === T.ruta.inverso, V = CX.vuelta || L, cur = { '-1': -1, '1': -1 }, rec = []; let n = 0;
@@ -5963,6 +6157,7 @@ async function construir3D(){
     const HUECOS = (CX && CX.hitos && typeof aXZ === 'function') ? CX.hitos.map(h => { const p = aXZ(h.lat, h.lon); return { x: p.x, z: p.z, r: h.r || 17 }; }) : [];   /* v234: parcela de la iglesia (y demás hitos) sin árboles */
     // v234: iglesias y ermitas reales de OpenStreetMap junto a la ruta (no en ciudades grandes, no donde ya hay un hito como la iglesia de Prádena)
     v3.iglesias = [];
+    if (TEMA.real && typeof aXZ === 'function') { const A = ACUEDUCTO.map(([la, lo]) => aXZ(la, lo)); for (let i = 1; i < A.length; i++) { const L = Math.hypot(A[i].x - A[i - 1].x, A[i].z - A[i - 1].z); for (let d = 0; d < L; d += 8) HUECOS.push({ x: A[i - 1].x + (A[i].x - A[i - 1].x) * d / L, z: A[i - 1].z + (A[i].z - A[i - 1].z) * d / L, r: 7 }); } }   /* v237: sin árboles bajo el acueducto */
     if (TEMA.real && window.RECURSOS_SIM && RECURSOS_SIM.iglesias && typeof aXZ === 'function') {
       const GRi = (RECURSOS_SIM.nucleosGrandes || []).map(([n, la, lo, pop]) => { const q = aXZ(la, lo); return { x: q.x, z: q.z, R: pop > 1000000 ? 12000 : pop > 40000 ? 3000 : 2000 }; });
       const hs = HUECOS.slice(), xM = p0.x + (nx - 1) * PASO, zM = p0.z + (nz - 1) * PASO;
@@ -6306,8 +6501,11 @@ function bucle3D(t){
   const aqui = puntoVia(d), delante = puntoVia(d + 6);
   { // ir por la derecha de la vía (en carretera, cerca del borde); el cambio entre tramos es suave
     // con bots el grupo va centrado en la vía y, si es estrecha (carril bici), las tres filas se juntan para no pisar la hierba (20-nov)
-    const hayBots = rivales.lista.some(r => r.tipo === 'bot'), grupetaC = hayBots && rivales.lista.some(r => r.grupeta) && supEn(d) === 'carretera', latObj = grupetaC ? anchoEn(d) / 2 : hayBots ? 0 : Math.max(0.4, anchoEn(d) - 1.0);   /* v233: en grupeta, por su carril (los coches pasan por el otro) */
-    const kObj = hayBots ? Math.min(1, Math.max(0.45, (0.7 * anchoEn(d) - 0.3) / (CARRIL + 0.15))) : 1;
+    const hayBots = rivales.lista.some(r => r.tipo === 'bot'), grupetaC = hayBots && rivales.lista.some(r => r.grupeta) && supEn(d) === 'carretera';
+    /* v235 (Carlos: «aumentar las filas todo lo que permita la carretera»): la grupeta ocupa toda la carretera; si se acerca un coche (220 m), se cierra a su carril para dejarle pasar */
+    const anG = anchoEn(d), cocheCerca = grupetaC && (v3.coches || []).some(c => c.vivo && Math.abs(c.d - d) < 220), CM = Math.max(...colsGrupeta(anG)) * CARRIL || 1;
+    const latObj = grupetaC ? (cocheCerca ? anG / 2 : 0.3) : hayBots ? 0 : Math.max(0.4, anG - 1.0);
+    const kObj = grupetaC ? Math.min(1, (cocheCerca ? anG / 2 - 0.45 : anG - 0.6) / CM) : hayBots ? Math.min(1, Math.max(0.45, (0.7 * anG - 0.3) / (CARRIL + 0.15))) : 1;
     if (v3.latBase == null) { v3.latBase = latObj; v3.kFilas = kObj; } v3.latBase += (latObj - v3.latBase) * Math.min(1, dt * 1.5); v3.kFilas += (kObj - v3.kFilas) * Math.min(1, dt * 1.5);
     v3.latYo = v3.latBase + (hayBots ? (carrera.yoLat || 0) * v3.kFilas : 0);
     const fx = delante.x - aqui.x, fz = delante.z - aqui.z, L = Math.hypot(fx, fz) || 1, ox = -fz / L * v3.latYo, oz = fx / L * v3.latYo;
@@ -6323,7 +6521,7 @@ function bucle3D(t){
     if (v3.foco && v3.foco.visible) { v3.ciclista.updateMatrixWorld(); v3.foco.position.set(0, 1.0, 0.65).applyMatrix4(v3.ciclista.matrixWorld);
       v3.foco.target.position.set(0, -1.0, 30).applyMatrix4(v3.ciclista.matrixWorld); v3.foco.target.updateMatrixWorld(); }
     if (v3.cerca && (!v3.cerca.ultimo || v3.cerca.ultimo.distanceTo(aqui) > 25)) actualizarCerca(aqui);
-    moverFauna(dt, aqui); moverTrafico(dt, d); try { moverPolvo(dt); } catch(e) {} if (v3.trozos && v3.cam) try { actualizarTrozos(v3.cam.position.x, v3.cam.position.z, 6, false); } catch(e) { log('Trozos: ' + e.message); v3.trozos = null; } try { moverTren(dt, aqui, d); } catch(e) {} try { animarPublico(dt, v3.dVis != null ? v3.dVis : d); } catch(e) {}
+    moverFauna(dt, aqui); moverTrafico(dt, d); try { moverPolvo(dt); } catch(e) {} try { libreTick(); } catch(e) { log('libre: ' + e.message); } if (v3.trozos && v3.cam) try { actualizarTrozos(v3.cam.position.x, v3.cam.position.z, 6, false); } catch(e) { log('Trozos: ' + e.message); v3.trozos = null; } try { moverTren(dt, aqui, d); } catch(e) {} try { animarPublico(dt, v3.dVis != null ? v3.dVis : d); } catch(e) {}
     if (v3.noriaRueda) { v3.noriaRueda.rotation.z += dt * 0.07; for (const c of v3.noriaCabinas) c.rotation.z = -v3.noriaRueda.rotation.z; }   // v144: la noria gira con las cabinas derechas
     if (v3.moviles && v3.moviles.length) { v3.tMov = (v3.tMov || 0) + dt; for (const m of v3.moviles) { if (Math.abs(m.d - d) > 450) continue;   // v144: paseantes y corredores se mueven
         m.d += m.v * dt * m.sentido; if (Math.abs(m.d - m.d0) > (m.corre ? 160 : 40) || m.d < 5 || m.d > ruta.total - 5) { m.sentido *= -1; m.d = Math.max(5, Math.min(ruta.total - 5, m.d)); }
@@ -6500,14 +6698,15 @@ function paso(){
       let resto = Math.min(dt, 120);
       while (resto > 1e-6 && ruta.dist < ruta.total) { const h = Math.min(1, resto); resto -= h; datosDemo(); avanzar(h);
         if (Math.floor(sesion.tTotal) !== Math.floor(sesion.tTotal - h)) { const pr = puntoEn(ruta.dist);
-          sesion.registro.push({ ts: Math.floor(Date.now() / 1000), dist: ruta.dist, lat: pr.lat, lon: pr.lon, alt: pr.ele, w: vivo.w, c: vivo.c, p: vivo.p, v: vivo.v, obj: null, pausa: false }); } }
+          sesion.registro.push({ ts: Math.floor(Date.now() / 1000), dist: kmHechos(), lat: pr.lat, lon: pr.lon, alt: pr.ele, w: vivo.w, c: vivo.c, p: vivo.p, v: vivo.v, obj: null, pausa: false }); } }
       actualizarMedias();
     } else avanzar(dt);
     if (sesion.zwoRuta) pasoZwoRuta(dt); else { pasoTecho(); enviarPendiente(false); }   // v187: sesión .zwo en ruta: ERG con los vatios de la sesión
     moverMapa(); pintarTramo(); if (!v3.activo && Math.floor(sesion.tTotal) !== Math.floor(sesion.tTotal - dt)) pintarCerca();
     if (Math.floor(sesion.tTotal / 30) !== Math.floor((sesion.tTotal - dt) / 30) && Date.now() - vivo.tW < 3000)
       log('Comparación · pendiente ' + pendAplicada(ruta.dist).toFixed(1) + ' % · ' + vivo.w + ' W · bici ' + vivo.v.toFixed(1) + ' km/h · física con ' + PESO_TOTAL().toFixed(0) + ' kg ' + (velocidadFisica(vivo.w, pendAplicada(ruta.dist)) * 3.6).toFixed(1) + ' km/h');
-    if (ruta.dist >= ruta.total && !sesion.espect) { if (sesion.zwoRuta) { if (!sesion.avisoFinRuta) { sesion.avisoFinRuta = true; avisar('Fin de la ruta: la sesión sigue hasta su final.'); } } else { avisar('¡Arriba! Ruta completada.'); terminar(true); } }
+    if (LIBRE.activo && !LIBRE.plan && ruta.dist >= ruta.total - 30) { ruta.dist = ruta.total - 30; if (!LIBRE.rehaciendo) libreRehacer('llegabas al final'); }   /* v235: en recorrido libre la ruta no se acaba */
+    else if (ruta.dist >= ruta.total && !sesion.espect) { catFin(); if (sesion.zwoRuta) { if (!sesion.avisoFinRuta) { sesion.avisoFinRuta = true; avisar('Fin de la ruta: la sesión sigue hasta su final.'); } } else { avisar('¡Arriba! Ruta completada.'); terminar(true); } }
   } else if (sesion.corriendo && !sesion.pausa) {
     sesion.tBloque += dt; sesion.tTotal += dt;
     const b = sesion.bloques[sesion.idx];
@@ -6520,7 +6719,7 @@ function paso(){
   if (sesion.inicio && sesion.corriendo && (!sesion.demo || (demo.manual && !ruta.activa)) && sesion.ultimoSeg !== seg) {
     sesion.ultimoSeg = seg;
     const pr = ruta.activa ? puntoEn(ruta.dist) : null;
-    sesion.registro.push({ ts: seg, dist: ruta.activa ? ruta.dist : null, lat: pr ? pr.lat : null, lon: pr ? pr.lon : null, alt: pr ? pr.ele : null, w: Date.now() - vivo.tW < 4000 ? vivo.w : null, c: Date.now() - vivo.tW < 4000 ? vivo.c : null, p: Date.now() - vivo.tP < 5000 ? vivo.p : null, v: vivo.v, obj: Math.round(objetivoAhora()), pausa: sesion.pausa });
+    sesion.registro.push({ ts: seg, dist: ruta.activa ? kmHechos() : null, lat: pr ? pr.lat : null, lon: pr ? pr.lon : null, alt: pr ? pr.ele : null, w: Date.now() - vivo.tW < 4000 ? vivo.w : null, c: Date.now() - vivo.tW < 4000 ? vivo.c : null, p: Date.now() - vivo.tP < 5000 ? vivo.p : null, v: vivo.v, obj: Math.round(objetivoAhora()), pausa: sesion.pausa });
     actualizarMedias();
   }
   pintarBloque();
@@ -6864,7 +7063,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (a === 'conectar') { window.SIN_BICI = false; const b = $(el.dataset.b); if (b) b.click(); return; }
     if (a === 'seguir' || a === 'sinbici') { window.SIN_BICI = a === 'sinbici'; ir(3); return; }   // v195: sin bici = pedaleo con teclado al empezar, sin guardar
     if (a === 'zwo') { const p = por.paso; cerrar(); abrirZwo(() => abrir(p)); return; }
-    if (a === 'rodar') { cerrar(); { const c = carreraConf(); if (c.espectador) { c.espectador = false; guardarCarrera(c); } } abrirElegir(false); return; }
+    if (a === 'rodar') { cerrar(); { const c = carreraConf(); if (c.espectador) { c.espectador = false; guardarCarrera(c); } } abrirCatalogo(); return; }   /* v241: elegir ruta = catálogo */
     if (a === 'ver') { cerrar(); abrirElegir(true); return; }
     if (a === 'ficha') { const p = por.paso; cerrar(); abrirFichaNueva(() => abrir(p)); return; } }
   window.portadaMando = function(b){ if (!por.abierta) return false; const O = opciones(), n = O.length || 1;
@@ -6920,9 +7119,9 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
 <script>
 (function(){
   const R = $('elegirR'), Z = R.querySelector('.lz'), AC = '#c6f432';
-  const el = { chip: 1, abierta: false, espect: false, cat: 'puertos', iRuta: 0, col: 0, f: [0, 0, 0], modo: 'libre', sentido: null, vista: 'carretera', cache: {} };
+  const el = { chip: 3, abierta: false, espect: false, cat: 'puertos', iRuta: 0, col: 0, f: [0, 0, 0], modo: 'libre', sentido: null, vista: 'carretera', cache: {} };
   window.pElegir = el;
-  const CATS = [['disenar', '✎ Diseñar en el mapa'], ['puertos', 'Puertos'], ['rutas', 'Rutas'], ['anillos', 'Anillos'], ['cx', 'Ciclocrós'], ['salidas', 'Mis salidas']];
+  const CATS = [['disenar', '✎ Diseñar en el mapa'], ['libre', '🧭 Libre desde un punto'], ['catalogo', '🔎 Catálogo'], ['puertos', 'Puertos'], ['anillos', 'Anillos'], ['salidas', 'Mis salidas']];   /* v242: fuera «Rutas» (pasan al catálogo como clásicas) y «Ciclocrós» (ya en el catálogo) */
   const PUERTOS = ['fuenfria', 'morcuera', 'morcuera-norte', 'canencia', 'canencia-sur'];
   const esc = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
   const n1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
@@ -6931,7 +7130,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     if (el.cat === 'anillos') return RS.filter(r => /^anillo/.test(r.id)).map(r => ({ tipo: 'r', r }));
     if (el.cat === 'cx') return RS.filter(r => /^cx-/.test(r.id)).map(r => ({ tipo: 'r', r }));
     if (el.cat === 'rutas') return RS.filter(r => !/^anillo|^cx-/.test(r.id) && !PUERTOS.includes(r.id)).map(r => ({ tipo: 'r', r }));
-    if (el.cat === 'mimapa') return el.mapaItem ? [{ tipo: 'm', x: el.mapaItem }] : [];
+    if (el.cat === 'mimapa') return el.mapaItem ? [{ tipo: 'm', x: el.mapaItem }] : el.mapaR ? [{ tipo: 'r', r: el.mapaR }] : [];
     if (el.cat === 'salidas') return (window.misRutas ? misRutas() : []).map(x => ({ tipo: 'm', x })).concat((window.RUTAS_STRAVA || []).slice().sort((a, b) => fechaStrava(b.fecha) - fechaStrava(a.fecha)).slice(0, 40).map(s => ({ tipo: 's', s })));
     return []; }
   function datos(it){ if (!it) return null;
@@ -6981,7 +7180,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
       + '<span style="font-size:14px;color:#9aa6b2">' + esc(U.nombre) + ' · FTP ' + FTP() + ' W</span></header>';
     h += '<div style="flex:1;display:grid;grid-template-columns:430px minmax(0,1fr) 330px;gap:22px;padding:22px 40px 14px;min-height:0">';
     // columna 1: rutas
-    h += '<section class="col" data-col="0"><span class="h">1 · RUTA</span><div class="chips">' + CATS.map(([k, t]) => '<span data-cat="' + k + '"' + (k === el.cat || (k === 'disenar' && el.cat === 'mimapa') ? ' class="on"' : '') + (el.col === 0 && el.f[0] === 0 && CATS[el.chip][0] === k ? ' data-fc="1"' : '') + (k === 'disenar' ? ' style="border:1px dashed #4a5563;color:#e9edf1;margin-right:6px"' : '') + '>' + t + '</span>').join('') + '</div>';
+    h += '<section class="col" data-col="0"><span class="h">1 · RUTA</span><div class="chips">' + CATS.map(([k, t]) => '<span data-cat="' + k + '"' + (k === el.cat || (el.cat === 'mimapa' && k === (el.mapaR || (el.mapaItem && el.mapaItem.plan) ? 'catalogo' : el.mapaItem && el.mapaItem.libre ? 'libre' : 'disenar')) ? ' class="on"' : '') + (el.col === 0 && el.f[0] === 0 && CATS[el.chip][0] === k ? ' data-fc="1"' : '') + (k === 'disenar' ? ' style="border:1px dashed #4a5563;color:#e9edf1;margin-right:6px"' : '') + '>' + t + '</span>').join('') + '</div>';
     if (!L.length) h += '<div style="color:#8b96a1;font-size:14px;padding:10px">' + (el.cat === 'salidas' ? 'No encuentro tus salidas de Strava.' : 'Nada en esta categoría.') + '</div>';
     L.forEach((it, i) => { const x = it.tipo === 'r' ? datos(it) : it.tipo === 'm' ? { nombre: '✎ ' + it.x.nombre.replace(/\s*·.*$/, ''), km: it.x.km, sube: it.x.sube } : { nombre: it.s.nombre, km: it.s.km, sube: it.s.sube }; const on = i === el.iRuta;
       h += '<div class="fila' + fc(0, i + 1) + '" data-ruta="' + i + '" style="' + (on ? 'background:#1a2128;' : '') + '"><span style="font-weight:' + (on ? 700 : 600) + '">' + esc(it.tipo === 's' ? x.nombre : x.nombre) + '</span><span style="text-align:right;color:#c5ccd3">' + n1(x.km) + ' km</span><span style="text-align:right;color:#c5ccd3">' + n1(x.km ? x.sube / (x.km * 10) : 0) + ' %</span></div>'; });
@@ -7048,11 +7247,12 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
       x.fillStyle = '#c5ccd3'; x.font = '22px Inter, sans-serif'; x.textAlign = 'right'; x.fillText(Math.round(hi) + ' m', W - 10, 34); } }
   function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
   addEventListener('resize', () => { if (el.abierta) escalar(); });
-  function cambiarCat(k){ if (k === 'disenar') { cerrar(); abrirDisenar(); return; }
+  const ESPECIALES = ['disenar', 'libre', 'catalogo'];
+  function cambiarCat(k){ window.ELEGIR_ESPECT = el.espect; if (k === 'disenar') { cerrar(); abrirDisenar(); return; } if (k === 'libre') { cerrar(); abrirDisenar('libre'); return; } if (k === 'catalogo') { cerrar(); abrirCatalogo(); return; }
     el.cat = k; el.chip = Math.max(0, CATS.findIndex(c => c[0] === k)); el.iRuta = 0; el.sentido = null; pintar(); }
   function ciclarSel(id){ const s = $(id); if (!s) return; s.selectedIndex = (s.selectedIndex + 1) % s.options.length; if (s.onchange) s.onchange(); else s.dispatchEvent(new Event('change')); }
   function pulsarB(){
-    if (el.col === 0) { if (el.f[0] === 0) { if (CATS[el.chip][0] === 'disenar') { cambiarCat('disenar'); return; } if (lista().length) { el.f[0] = 1; el.iRuta = 0; } pintar(); return; }
+    if (el.col === 0) { if (el.f[0] === 0) { if (ESPECIALES.includes(CATS[el.chip][0])) { cambiarCat(CATS[el.chip][0]); return; } if (lista().length) { el.f[0] = 1; el.iRuta = 0; } pintar(); return; }
       el.iRuta = el.f[0] - 1; el.sentido = null; el.col = 2; el.f[2] = itemsCol(2) - 1; pintar(); return; }   // elegida la ruta: salta a «Empezar»
     if (el.col !== 2) return;
     const nodo = Z.querySelector('[data-col="2"] [data-k="' + el.f[2] + '"]'); if (!nodo) return;
@@ -7089,6 +7289,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     document.querySelectorAll('#pantallaRutas .vistaElegir button').forEach(b => b.classList.toggle('activo', b.dataset.v === el.vista));
     cerrar();
     if (it.tipo === 's') { await elegirStrava(it.s.id, false); $('vistaRuta').value = el.vista; ponerVista(); }
+    else if (it.tipo === 'm' && it.x.plan) { await rodarLibre(it.x.plan.cam[0], it.x.plan.cam[1], { vista: el.vista, plan: it.x.plan }); }   /* v239: ruta fija del catálogo */
+    else if (it.tipo === 'm' && it.x.libre) { await rodarLibre(it.x.libre.a, it.x.libre.b, { vista: el.vista }); }   /* v235: recorrido libre */
     else if (it.tipo === 'm') { const g = it.x.g, nombre = it.x.nombre;
       $('rutaIncluida').value = ''; copiarSentido(); cerrarPantallaRutas(); cargarRuta(g.gpx.replace('Mi ruta en el mundo', nombre));
       ruta.tramos = { ruta: { id: 'mundo', mundo: true, nombre, estilo: g.montana ? 'montaña' : 'ciudad', inverso: 'al revés', tramos: { largo: g.largo, runs: g.runs }, calles: [] }, sentido: 'normal' };
@@ -7107,12 +7309,14 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     el.espect = !!espect; el.modo = modoInicial(); try { el.vista = localStorage.getItem('simulador-vista-elegida') || 'carretera'; } catch(e) {} if (el.vista !== 'carretera') el.vista = 'dos';
     if (window.LIGERO) el.vista = 'dos';
     el.col = 0; el.f = [1, 0, 0]; el.chip = Math.max(0, CATS.findIndex(c => c[0] === el.cat)); el.iRuta = 0; el.sentido = null; R.hidden = false; el.abierta = true; pintar(); };
-  window.abrirElegirMapa = function(x){ abrirElegir(false); el.mapaItem = x; el.cat = 'mimapa'; el.chip = 0; el.iRuta = 0; el.cache = {}; el.col = 2; el.f[2] = 0; pintar(); };
+  window.abrirElegirRef = function(id){ const r = (window.RUTAS_SIM ? RUTAS_SIM.rutas : []).find(x => x.id === id); if (!r) { avisar('No encuentro la ruta ' + id, true); return; }   /* v242: circuitos y clásicas del catálogo */
+    abrirElegir(!!window.ELEGIR_ESPECT); window.ELEGIR_ESPECT = false; el.mapaItem = null; el.mapaR = r; el.cat = 'mimapa'; el.chip = 0; el.iRuta = 0; el.cache = {}; el.col = 2; el.f[2] = 0; pintar(); };
+  window.abrirElegirMapa = function(x){ abrirElegir(!!window.ELEGIR_ESPECT); window.ELEGIR_ESPECT = false; el.mapaR = null; el.mapaItem = x; el.cat = 'mimapa'; el.chip = 0; el.iRuta = 0; el.cache = {}; el.col = 2; el.f[2] = 0; pintar(); };
   window.elegirMando = function(b){ if (!el.abierta) return false; const n = itemsCol(el.col);
     if (el.col === 0 && el.f[0] === 0 && (b === 'izq' || b === 'der')) {
       if (b === 'der' && el.chip === CATS.length - 1) { el.col = 2; if (el.f[2] >= itemsCol(2)) el.f[2] = 0; pintar(); return true; }
       el.chip = Math.max(0, Math.min(CATS.length - 1, el.chip + (b === 'der' ? 1 : -1)));
-      if (CATS[el.chip][0] !== 'disenar') { el.cat = CATS[el.chip][0]; el.iRuta = 0; el.sentido = null; }
+      if (!ESPECIALES.includes(CATS[el.chip][0])) { el.cat = CATS[el.chip][0]; el.iRuta = 0; el.sentido = null; }
       pintar(); return true; }
     { const nf = el.col === 2 && Z.querySelector('[data-col="2"] [data-k="' + el.f[2] + '"]'); if (nf && (nf.dataset.aj === 'wkgG' || nf.dataset.aj === 'objW') && (b === 'izq' || b === 'der')) { el.dirAj = b === 'der' ? 1 : -1; pulsarB(); el.dirAj = 1; return true; } }   /* v231 */
     if (b === 'izq') { el.col = 0; } else if (b === 'der') { el.col = 2; if (el.f[2] >= itemsCol(2)) el.f[2] = 0; }
@@ -7154,7 +7358,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
   const ds = { abierta: false, opc: false, iOp: 0, mapa: null, red: null, linea: null, marcas: [], g: null, m: null };
   window.pDisenar = ds;
   const n1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
-  const OPS = [['cerrar', 'Volver a la salida'], ['reves', 'Al revés'], ['borrar', 'Empezar de nuevo'], ['guardar', 'Guardar en mis rutas'], ['anterior', 'Recuperar la anterior']];
+  const OPS = [['libre', '🧭 Rodar libre desde el primer punto'], ['cerrar', 'Volver a la salida'], ['reves', 'Al revés'], ['borrar', 'Empezar de nuevo'], ['guardar', 'Guardar en mis rutas'], ['anterior', 'Recuperar la anterior']];
   function esqueleto(){
     Z.innerHTML = '<header style="display:flex;align-items:center;gap:20px;padding:18px 40px;border-bottom:1px solid #1f252d"><span data-d="volver" style="color:#c5ccd3;font-size:15px;font-weight:600;cursor:pointer">‹ Volver <kbd>Z</kbd></span>'
       + '<span class="bc" style="font-weight:800;font-size:30px;text-transform:uppercase">Diseñar ruta en el mapa</span><div style="flex:1"></div><span style="font-size:14px;color:#9aa6b2">Pon puntos: la ruta va por carreteras y caminos</span></header>'
@@ -7198,8 +7402,9 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
       .bindTooltip(i ? 'Paso ' + i : 'Salida', { permanent: i === 0, direction: 'top' }).addTo(mp)));
     if (MUNDO.puntos.length) try { localStorage.setItem('simulador-mundo-ruta', JSON.stringify({ p: MUNDO.puntos.map(u => nodos[u].p.slice(0, 2)), c: MUNDO.cerrar })); } catch(e) {}   // vacía no pisa la anterior
     const cam = rutaMundo(); MUNDO.camino = cam; ds.g = null; ds.m = null; ds.tierra = 0;
+    if (ds.red) ds.red.forEach(l => l.setStyle({ opacity: cam ? .7 : (l.options.color === '#0d1117' ? .85 : 1) }));   /* v236b: con recorrido trazado la red baja un poco, sin desaparecer */
     if (cam) { const ll = cam.map(u => [nodos[u].p[0], nodos[u].p[1]]);
-      ds.linea = [L.polyline(ll, { color: '#0d1014', weight: 10, opacity: .9 }).addTo(mp), L.polyline(ll, { color: AC, weight: 5, opacity: 1 }).addTo(mp)];
+      ds.linea = [L.polyline(ll, { color: '#0d1014', weight: 13, opacity: .95 }).addTo(mp), L.polyline(ll, { color: AC, weight: 7, opacity: 1 }).addTo(mp)];   /* v236 (Carlos: «que sea más visible el recorrido que esa línea azul») */
       ds.g = gpxMundo(cam); ds.m = desnivelGpx(ds.g.gpx);
       ds.tierra = ds.g.runs.reduce((a, r, i) => a + (RUTAS_SIM.SUP[r[1]] === 'tierra' ? ((ds.g.runs[i + 1] ? ds.g.runs[i + 1][0] : ds.g.largo) - r[0]) : 0), 0); }
     derecha(); perfil(); }
@@ -7211,6 +7416,9 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     puntoEnLatLng(c.lat, c.lng); }
   function quitar(){ if (!MUNDO.puntos.length) { salir(); return; } MUNDO.puntos.pop(); repintar(); }
   function opcion(k){
+    if (k === 'libre') { if (!MUNDO.puntos.length) { avisar('Pon primero el punto de salida (y, si quieres, otro hacia donde empezar).'); return; }
+      const a = MUNDO.puntos[0], b = MUNDO.puntos[1], cam = libreCaminoInicial(a, b), g = gpxMundo(cam), m = desnivelGpx(g.gpx);
+      cerrar(); abrirElegirMapa({ nombre: '🧭 Recorrido libre', km: m.km, sube: m.sube, g, libre: { a, b } }); return; }
     if (k === 'cerrar') MUNDO.cerrar = !MUNDO.cerrar;
     else if (k === 'reves') { if (MUNDO.cerrar && MUNDO.puntos.length > 1) MUNDO.puntos = [MUNDO.puntos[0], ...MUNDO.puntos.slice(1).reverse()]; else MUNDO.puntos.reverse(); }
     else if (k === 'borrar') { MUNDO.puntos = []; MUNDO.cerrar = false; }
@@ -7222,14 +7430,16 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     try { localStorage.setItem(CLAVE('simulador-mis-rutas'), JSON.stringify(L0.slice(0, 30))); avisar('💾 Guardada como «' + n + '»: la tienes en «Mis salidas».'); }
     catch(e) { avisar('No he podido guardarla: no queda sitio en el navegador.'); } }
   window.misRutas = function(){ try { return JSON.parse(localStorage.getItem(CLAVE('simulador-mis-rutas')) || '[]'); } catch(e) { return []; } };
-  function rodar(){ if (!ds.g) { avisar('Pon al menos dos puntos para tener ruta.'); return; }
+  function rodar(){ if (ds.libre) { opcion('libre'); return; }   /* v242: «Libre desde un punto» */
+    if (!ds.g) { avisar('Pon al menos dos puntos para tener ruta.'); return; }
     const nombre = 'Mi ruta en el mapa · ' + n1(ds.m.km) + ' km';
     cerrar(); abrirElegirMapa({ nombre, km: ds.m.km, sube: ds.m.sube, g: ds.g }); }
   function salir(){ cerrar(); if (window.abrirElegir) abrirElegir(false); }
   function cerrar(){ R.hidden = true; ds.abierta = false; ds.opc = false; }
   function escalar(){ const s = Math.min(innerWidth / 1440, innerHeight / 900); Z.style.transform = 'scale(' + s + ')'; Z.style.left = Math.max(0, (innerWidth - 1440 * s) / 2) + 'px'; Z.style.top = Math.max(0, (innerHeight - 900 * s) / 2) + 'px'; }
   addEventListener('resize', () => { if (ds.abierta) { escalar(); ds.mapa && ds.mapa.invalidateSize(); } });
-  window.abrirDisenar = async function(){
+  window.abrirDisenar = async function(modo){
+    ds.libre = modo === 'libre'; if (ds.libre) avisar('🧭 Libre desde un punto: pon la salida con B (y, si quieres, otro punto hacia donde arrancar) y pulsa Y para rodar.');
     R.hidden = false; ds.abierta = true; ds.opc = false; escalar(); esqueleto(); derecha();
     try { await cargarMundo(); } catch(e) { avisar('No encuentro recursos/mundo.js.'); return; }
     const { M, nodos } = MUNDO.red;
@@ -7237,7 +7447,8 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     const c = CAPAS[$('capaMapa').value] || CAPAS[Object.keys(CAPAS)[0]];
     const mp = ds.mapa = L.map($('dsMapa'), { zoomControl: false, keyboard: false, zoomSnap: 0.25, attributionControl: true });
     L.tileLayer(c.url, { maxZoom: c.max, maxNativeZoom: Math.min(c.max, 17), attribution: c.attr }).addTo(mp);
-    ds.red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#58a6ff', weight: 3, opacity: .6, interactive: false }).addTo(mp));
+    ds.red = M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#0d1117', weight: 9, opacity: .85, interactive: false }).addTo(mp))
+      .concat(M.tramos.map(t => L.polyline(t.p.map(p => [p[0], p[1]]), { color: '#39b6ff', weight: 5, opacity: 1, interactive: false }).addTo(mp)));   /* v236b: red destacada */
     MUNDO.puntos = []; MUNDO.cerrar = false;
     // v180: se abre vacía; la última queda en Opciones → «Recuperar la anterior»
     ds.prev = null; try { ds.prev = JSON.parse(localStorage.getItem('simulador-mundo-ruta') || 'null'); } catch(e) {}
@@ -7688,9 +7899,9 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     const modo = (document.body.classList.contains('hud2d') ? 'MAPA 2D · ' : '') + (sesion.zwoRuta ? 'SESIÓN .ZWO · ERG' : sesion.espect ? '👀 ESPECTADOR · ' + bots.length + ' CORREDORES' : bots.length ? (bots[0].grupeta ? 'GRUPETA' : 'CARRERA') + ' · ' + (bots.length + 1) + ' CORREDORES' : 'LIBRE' + (lie && fan ? ' · CON LIEBRES Y TU FANTASMA' : lie ? ' · CON LIEBRES' : fan ? ' · CON TU FANTASMA' : ''));
     const cima = (carrera.metas || []).filter(m => m.tipo === 'puerto' && m.d > ruta.dist + 50).sort((a, b) => a.d - b.d)[0], fin = cima ? cima.d : ruta.total;
     $('hInfo').innerHTML = '<div class="et">' + modo + '</div><div class="bc" style="font-weight:800;font-size:30px;line-height:.95;text-transform:uppercase;margin:6px 0 8px">' + esc(ruta.nombre.replace(/\s*\([^)]*\)/g, '').replace(/\s*·\s*\d.*$/, '')) + '</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center"><span><b class="bc" style="font-size:32px;font-weight:700">' + n1(ruta.dist / 1000) + '</b> <span style="color:#9aa6b2;font-size:16px">/ ' + n1(ruta.total / 1000) + ' km</span></span>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center"><span><b class="bc" style="font-size:32px;font-weight:700">' + n1(kmHechos() / 1000) + '</b> <span style="color:#9aa6b2;font-size:16px">' + (LIBRE.activo ? 'km · 🧭 libre' : '/ ' + n1(ruta.total / 1000) + ' km') + '</span></span>'
       + '<span class="bc" style="font-size:24px;font-weight:700;padding:2px 10px;border-radius:8px;background:' + colPend(p.pend) + ';color:#11160a">' + n1(p.pend) + ' %</span></div>'
-      + '<div style="font-size:14px;color:#9aa6b2;margin-top:6px">' + (cima ? 'Cima' : 'Meta') + ' a ' + n1((fin - ruta.dist) / 1000) + ' km · +' + Math.round(subeHasta(fin)) + ' m por subir</div>'
+      + '<div style="font-size:14px;color:#9aa6b2;margin-top:6px">' + (LIBRE.activo && !cima ? libreProximo() : (cima ? 'Cima' : 'Meta') + ' a ' + n1((fin - ruta.dist) / 1000) + ' km · +' + Math.round(subeHasta(fin)) + ' m por subir') + '</div>'
       + (($('viento3d') || {}).hidden === false && $('viento3d').textContent.trim() ? '<div style="font-size:13px;color:#9aa6b2;margin-top:3px">🌬 ' + esc($('viento3d').textContent.trim().replace(/^[^a-záéíóú]*/i, '')) + '</div>' : ''); }
   function datos(){ if (sesion.espect) { const X = [1, 2, 5, 10], x = demo.x || 1;
       $('hDatos').style.width = '656px'; $('hDatos').dataset.x = '392'; anclar();
@@ -7902,7 +8113,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     ZP.innerHTML = '<div style="position:absolute;left:368px;top:268px;width:704px;padding:28px 40px 30px;border-radius:20px;background:rgba(17,22,29,.95);border:1px solid #2a323c;text-align:center">'
       + '<div class="bc" style="font-weight:800;font-size:68px;letter-spacing:.04em">∎ EN PAUSA</div>'
       + '<div style="font-size:15px;color:#c5ccd3;margin:6px 0 20px">' + (sesion.pausaAuto ? 'Se ha puesto sola: dejaste de pedalear' : 'La has puesto tú') + ' · ' + hms(Math.round((Date.now() - tPausa) / 1000)) + ' parado · si dejas de pedalear se pone sola y sigue al volver a pedalear</div>'
-      + '<div style="display:flex;justify-content:center;gap:44px;margin-bottom:24px">' + [['TIEMPO', hms(Math.round(sesion.tTotal)), ''], ['RECORRIDO', n1(ruta.dist / 1000), '/ ' + n1(ruta.total / 1000) + ' km'], ['POTENCIA MEDIA', wm == null ? '—' : wm, 'W'], ['PULSO AHORA', pul == null ? '—' : pul, 'ppm']]
+      + '<div style="display:flex;justify-content:center;gap:44px;margin-bottom:24px">' + [['TIEMPO', hms(Math.round(sesion.tTotal)), ''], ['RECORRIDO', n1(kmHechos() / 1000), LIBRE.activo ? 'km · libre' : '/ ' + n1(ruta.total / 1000) + ' km'], ['POTENCIA MEDIA', wm == null ? '—' : wm, 'W'], ['PULSO AHORA', pul == null ? '—' : pul, 'ppm']]
         .map(([e, v, u]) => '<div><div class="et">' + e + '</div><div><b class="bc" style="font-size:38px;font-weight:700">' + v + '</b> <span style="color:#9aa6b2;font-size:15px">' + u + '</span></div></div>').join('') + '</div>'
       + '<div style="display:flex;justify-content:center;gap:16px"><div class="bt" data-p="seguir" style="background:#c6f432;color:#11160a;border-color:#c6f432">▶ Seguir<span style="color:#2c3a10">arriba izq. · corto</span></div>'
       + '<div class="bt" data-p="terminar">■ Terminar y guardar<span>mantener 2 s · el mismo botón</span></div><div class="bt" data-p="menu">☰ Menú<span><kbd>Y</kbd> otra ruta, ajustes…</span></div></div></div>';
@@ -8058,7 +8269,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     ['act', 'Actividad', 'pausa, terminar, otra ruta', [
       ['', 'Pausa / seguir', () => sesion.pausa ? 'en pausa' : null, () => { alternarPausa(); }],
       ['', () => sesion.espect ? 'Salir de la carrera' : sesion.demo ? 'Terminar (prueba, no se guarda)' : 'Terminar y guardar', null, () => { cerrar(); if (sesion.espect) salirCarrera(); else terminar(false); }],
-      ['', 'Otra ruta', null, () => { cerrar(); if (window.abrirElegir) abrirElegir(false); }],
+      ['', 'Otra ruta', null, () => { cerrar(); abrirCatalogo(); }],
       ['', 'Recorrer sin bici', () => v3.tester ? 'en marcha' : 'parado', () => $('b3Tester').click()],
       ['', 'Ir al kilómetro', () => n1(ruta.dist / 1000) + ' km', d => { if (sesion.corriendo) { avisar('Solo con la sesión parada.'); return; } const k = $('kmTester'); k.value = Math.max(0, Math.min(100, +k.value + (d || 1) * 1000 / Math.max(1, ruta.total) * 100)); k.oninput && k.oninput(); }],
       ['', 'Pedalear con teclado', null, () => { cerrar(); empezarTeclado(); }],
@@ -8368,5 +8579,121 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
 })();
 </script>
 
+<script>
+// ===== v239 (Carlos, 25-nov): CATÁLOGO DE RUTAS por zonas, con buscador, hechas/pendientes y tiempo de cada ruta =====
+// «pongo lo que quiero y me salen rutas de ese tipo» · «y si las he hecho o no» · «una ruta tiene su tiempo que se controla»
+const CAT = { abierta: false, q: '', zona: '', tipo: '', dur: 0, est: 0, estado: '', sel: 0 };
+const catDatos = () => (window.RECURSOS_SIM && RECURSOS_SIM.catalogo) || { rutas: [], zonas: [] };
+function catHMS(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); }
+function catHM(min){ min = Math.round(min); return min >= 60 ? Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + String(min % 60).padStart(2, '0') : '') : min + ' min'; }
+function catMarcas(){ try { return JSON.parse(localStorage.getItem(CLAVE('simulador-catalogo')) || '{}'); } catch(e) { return {}; } }
+function catMarca(id){ return catMarcas()[id] || null; }
+// tiempo estimado para quien rueda: el llano va con la raíz cúbica de los vatios; la subida, con los W/kg
+function catTiempo(r){ const ref = catDatos().ref || { w: 124, kg: 109 }, P = Math.max(40, 0.68 * FTP()), kg = PESO_TOTAL();
+  return (r.t[0] * Math.cbrt(ref.w / P) + r.t[1] * (ref.w / ref.kg) / (P / kg)) / 60; }
+function catFin(){ let c = window.CAT_ACTUAL;
+  if (!c) { const id = $('rutaIncluida') && $('rutaIncluida').value, r = id && catDatos().rutas.find(x => x.ref === id); if (r) c = window.CAT_ACTUAL = { id: r.id, nombre: r.nombre }; }   /* circuitos y clásicas: se reconocen por la ruta cargada */
+  if (!c || c.hecho || sesion.demo || !sesion.corriendo) return; c.hecho = true;
+  const t = sesion.tTotal, M = catMarcas(), m = M[c.id] || { n: 0, mejor: null, hist: [] }, antes = m.mejor;
+  m.n++; m.ult = new Date().toISOString().slice(0, 10); m.hist = (m.hist || []).concat([[m.ult, Math.round(t)]]).slice(-30); if (!m.mejor || t < m.mejor) m.mejor = Math.round(t);
+  M[c.id] = m; try { localStorage.setItem(CLAVE('simulador-catalogo'), JSON.stringify(M)); } catch(e) {}
+  const txt = '🏁 «' + c.nombre + '» en ' + catHMS(t) + (antes ? (t < antes ? ' · ¡nuevo récord! (antes ' + catHMS(antes) + ')' : ' · tu mejor sigue en ' + catHMS(antes)) : ' · primera vez: queda como tu tiempo');
+  avisar(txt); try { aviso3d(txt, 6000); } catch(e) {} log('Catálogo: ' + txt); }
+// el buscador entiende frases: «1 hora llana Las Vegas», «puerto de 45 min», «pendientes de 3 estrellas», «Navacerrada»…
+function catNorm(x){ return (x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function catLeer(q){ let t = ' ' + catNorm(q) + ' '; const f = {};
+  const hm = t.match(/(\d+)\s*h(?:oras?)?\s*(?:y\s*)?(media|cuarto|\d+)?/) || t.match(/(\d+):(\d\d)/);
+  if (/hora y media/.test(t)) { f.dur = 90; t = t.replace(/(una )?hora y media/, ' '); }
+  else if (/media hora/.test(t)) { f.dur = 30; t = t.replace('media hora', ' '); }
+  else if (/\buna hora\b/.test(t)) { f.dur = 60; t = t.replace('una hora', ' '); }
+  else if (hm) { f.dur = +hm[1] * 60 + (hm[2] === 'media' ? 30 : hm[2] === 'cuarto' ? 15 : +(hm[2] || 0)); t = t.replace(hm[0], ' '); }
+  else { const mm = t.match(/(\d+)\s*(?:min|minutos|')?\b/); if (mm && +mm[1] >= 15 && +mm[1] <= 300) { f.dur = +mm[1]; t = t.replace(mm[0], ' '); } }
+  const es = t.match(/(\d)\s*estrellas?/); if (es) { f.est = +es[1]; t = t.replace(es[0], ' '); }
+  const P = [[/\bllan[oa]s?\b/, 'clase', 'llana'], [/\bondulad[oa]s?\b|rompepiernas/, 'clase', 'ondulada'], [/\bmonta[nñ]a\b|\bdur[oa]s?\b|\bsubidas\b/, 'clase', 'montaña'],
+    [/\bpuertos?\b|\bsubida\b|\bmonopuerto\b/, 'tipo', 'subida'], [/\bbucles?\b|\bvueltas?\b/, 'tipo', 'bucle'], [/\bcircuitos?\b|\bcx\b|ciclocros+|criterium/, 'tipo', 'circuito'], [/\bespecial(es)?\b/, 'tipo', 'especial'],
+    [/\bida y vuelta\b/, 'tipo', 'ida y vuelta'], [/\bpendientes?\b|\bsin hacer\b|\bnuevas?\b/, 'estado', 'pend'], [/\bhechas?\b/, 'estado', 'hecha'], [/\bfacil(es)?\b|\bsuaves?\b/, 'facil', 1]];
+  for (const [re, k, v] of P) if (re.test(t)) { f[k] = v; t = t.replace(re, ' '); }
+  f.txt = t.replace(/\b(de|del|la|las|el|los|y|por|en|con|una?|ruta|rutas|quiero|algo|que|sea|me)\b/g, ' ').trim().split(/\s+/).filter(x => x.length > 2);
+  return f; }
+function catFiltrar(){ const D = catDatos(), f = catLeer(CAT.q), M = catMarcas();
+  const zona = CAT.zona || f.zona, tipo = CAT.tipo || f.tipo, dur = CAT.dur || f.dur, est = CAT.est || f.est, estado = CAT.estado || f.estado;
+  let L = D.rutas.map(r => ({ r, t: catTiempo(r), m: M[r.id] }));
+  L = L.filter(({ r, t, m }) => (!zona || r.zona === zona) && (!tipo || r.tipo === tipo || (tipo === 'bucle' && r.tipo === 'especial' && r.forma === 'bucle')) && (!f.clase || r.clase === f.clase)
+    && (!est || r.est === est) && (!f.facil || r.est <= 2) && (!estado || (estado === 'hecha' ? m && m.n : !(m && m.n)))
+    && (!dur || (dur >= 240 ? t >= 200 : Math.abs(t - dur) <= Math.max(8, dur * (CAT.relajo ? 0.35 : 0.2)))) && f.txt.every(w => catNorm(r.nombre + ' ' + r.zona + ' ' + (r.puerto || '')).includes(w)));
+  const pn = r => f.txt.filter(w => catNorm(r.nombre).includes(w)).length;   /* lo que escribes, primero en el nombre */
+  L.sort((a, b) => (pn(b.r) - pn(a.r)) || (dur ? Math.abs(a.t - dur) - Math.abs(b.t - dur) : (a.r.zona.localeCompare(b.r.zona) || a.t - b.t)));
+  let parecidas = false;
+  if (!L.length && !CAT.relajo && (dur || f.clase || est)) { const q0 = CAT.q, z0 = { ...CAT };   /* nada exacto: las más parecidas (duración más ancha, luego sin el tipo de terreno, luego sin estrellas) */
+    for (const quita of [/\b(llan[oa]s?|ondulad[oa]s?|monta[nñ]a|dur[oa]s?)\b/gi, /\d\s*estrellas?/gi]) { CAT.relajo = true; CAT.q = CAT.q.replace(quita, ' '); const x = catFiltrar(); CAT.relajo = false; if (x.L.length) { CAT.q = q0; return { ...x, parecidas: true }; } }
+    CAT.q = q0; }
+  return { L, f: { zona, tipo, dur, est, estado, clase: f.clase }, parecidas }; }
+function catTarjeta({ r, t, m }, i){
+  const forma = r.tipo === 'subida' ? '⛰ subida y lazo en la cima' : r.tipo === 'ida y vuelta' ? '↔ ida y vuelta' : r.tipo === 'circuito' ? '🔁 ' + (r.vueltas || 1) + ' vueltas' : r.tipo === 'clasica' ? '🏔 clásica' : r.tipo === 'especial' ? '⭐ especial · ' + (r.forma || 'bucle') : '⟳ bucle';
+  const hecha = m && m.n ? '<span style="color:#3fb950;font-weight:700">✓ hecha ' + (m.n > 1 ? m.n + ' veces' : '') + ' · mejor ' + catHMS(m.mejor) + '</span>' : '<span style="color:#9aa6b2">pendiente</span>';
+  return '<div class="catT' + (i === CAT.sel ? ' on' : '') + '" data-i="' + i + '"><div style="display:flex;gap:10px;align-items:baseline"><b style="font-size:19px;flex:1">' + r.nombre + '</b><span style="color:#ffd33d;letter-spacing:1px">' + '★'.repeat(r.est) + '<span style="color:#39424d">' + '★'.repeat(5 - r.est) + '</span></span></div>'
+    + '<div style="color:#9aa6b2;margin:3px 0 6px">' + r.zona + ' · ' + forma + ' · ' + r.clase + (r.tierra >= 20 && r.tipo !== 'circuito' ? ' · ' + r.tierra + ' % tierra' : '') + '</div>'
+    + '<div style="display:flex;gap:18px;font-size:16px"><span>⏱ <b>' + catHM(t) + '</b></span><span>' + String(r.km).replace('.', ',') + ' km</span><span>+' + r.up + ' m</span>' + (r.rmax ? '<span>peor km ' + String(r.rmax).replace('.', ',') + ' %</span>' : '') + (r.subida ? '<span>subida ' + String(r.subida.km).replace('.', ',') + ' km al ' + String(r.subida.pend).replace('.', ',') + ' %</span>' : '') + '<span style="flex:1"></span>' + hecha + '</div></div>'; }
+// v240 (Carlos: «el buscador no es necesario… cinco selectores en 5 columnas… con los teclados Zwift Play»)
+const CAT_COLS = () => [
+  { k: 'zona', t: 'Zona', o: [['', 'Todas']].concat(catDatos().zonas.map(z => [z, z])) },
+  { k: 'dur', t: 'Tiempo', o: [[0, 'Cualquiera'], [30, '30 min'], [45, '45 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [150, '2 h 30'], [180, '3 h'], [240, '4 h o más']] },
+  { k: 'tipo', t: 'Tipo', o: [['', 'Todas'], ['bucle', '⟳ Bucles'], ['subida', '⛰ Puertos'], ['circuito', '🔁 Circuitos'], ['especial', '⭐ Especiales'], ['clasica', '🏔 Clásicas'], ['ida y vuelta', '↔ Ida y vuelta']] },
+  { k: 'est', t: 'Dificultad', o: [[0, 'Todas'], [1, '★'], [2, '★★'], [3, '★★★'], [4, '★★★★'], [5, '★★★★★']] },
+  { k: 'estado', t: 'Estado', o: [['', 'Hechas y pendientes'], ['pend', 'Pendientes'], ['hecha', 'Hechas']] }];
+CAT.col = 0;   /* 0-4 filtros · 5 lista de rutas */
+function catPintar(){ const P = $('catPantalla'); if (!P) return; const D = catDatos(); CAT.q = '';
+  const { L } = catFiltrar(); CAT.lista = L; CAT.sel = Math.min(CAT.sel, Math.max(0, L.length - 1));
+  const M = catMarcas(), hechas = D.rutas.filter(r => M[r.id] && M[r.id].n).length, cols = CAT_COLS();
+  P.querySelector('#catFiltros').innerHTML = cols.map((c, ci) => '<div class="catCol' + (CAT.col === ci ? ' foco' : '') + '"><div class="catTit">' + c.t + '</div>'
+    + c.o.map(([v, t], oi) => '<div class="catO' + ((CAT[c.k] || (typeof v === 'number' ? 0 : '')) === v ? ' on' : '') + '" data-c="' + ci + '" data-o="' + oi + '">' + t + '</div>').join('') + '</div>').join('');
+  P.querySelector('#catInfo').textContent = L.length + ' rutas · llevas ' + hechas + ' de ' + D.rutas.length + ' hechas · tiempos a tu ritmo (' + Math.round(0.68 * FTP()) + ' W)';
+  const LI = P.querySelector('#catLista'); LI.classList.toggle('foco', CAT.col === 5);
+  LI.innerHTML = L.length ? L.slice(0, 80).map(catTarjeta).join('') : '<div style="color:#9aa6b2;padding:30px;font-size:18px">No hay rutas así. Prueba con otro filtro.</div>';
+  P.querySelectorAll('.catO').forEach(o => o.onclick = () => { const c = cols[+o.dataset.c], v = c.o[+o.dataset.o][0]; CAT.col = +o.dataset.c; CAT[c.k] = v; CAT.sel = 0; catPintar(); });
+  P.querySelectorAll('.catT').forEach(c => { c.onclick = () => { CAT.col = 5; CAT.sel = +c.dataset.i; catPintar(); }; c.ondblclick = () => { CAT.sel = +c.dataset.i; catRodar(); }; });
+  if (CAT.col === 5) { const t = P.querySelector('.catT.on'); if (t) t.scrollIntoView({ block: 'nearest' }); } else LI.scrollTop = 0;
+  P.querySelectorAll('.catT').forEach(t => t.classList.toggle('on', CAT.col === 5 && +t.dataset.i === CAT.sel));
+  const r = L[CAT.sel], B = P.querySelector('#catRodar'); B.disabled = !r; B.textContent = r ? '▶ Rodar «' + r.r.nombre + '»' : '▶ Rodar'; }
+async function catRodar(){ const it = (CAT.lista || [])[CAT.sel]; if (!it) return; const r = it.r;
+  if (r.ref) { catCerrar(); abrirElegirRef(r.ref); const m = catMarca(r.id); if (m && m.mejor) avisar('🔎 «' + r.nombre + '» · tu mejor: ' + catHMS(m.mejor)); return; }
+  const B = $('catRodar'); B.textContent = 'Preparando la ruta…'; B.disabled = true;
+  try { await cargarMundo(); const N = r.wp.map(([la, lo]) => nodoCercano(la, lo).i); let cam = [N[0]];
+    for (let i = 1; i < N.length; i++) { if (N[i] === N[i - 1]) continue; const c = caminoMundo(N[i - 1], N[i]); if (!c) throw new Error('sin camino en el paso ' + i); cam = cam.concat(c.slice(1)); }
+    const g = gpxMundo(cam); catCerrar();
+    abrirElegirMapa({ nombre: r.nombre, km: g.largo / 1000, sube: r.up, g, plan: { id: r.id, nombre: r.nombre, cam } }); }
+  catch(e) { avisar('No he podido montar la ruta: ' + e.message, true); B.disabled = false; } }
+function catCerrar(){ const P = $('catPantalla'); if (P) P.hidden = true; CAT.abierta = false; }
+window.abrirCatalogo = function(){ let P = $('catPantalla');
+  if (!P) { P = document.createElement('div'); P.id = 'catPantalla';
+    P.innerHTML = '<style>#catPantalla[hidden]{display:none!important}#catPantalla{position:fixed;inset:0;z-index:8500;background:#0d1014;color:#e9edf1;font:15px Inter,system-ui,sans-serif;display:flex;flex-direction:column;padding:16px 26px;gap:10px}'
+      + '#catFiltros{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;gap:10px}'
+      + '#catPantalla .catCol{background:#12161b;border:2px solid #1f262e;border-radius:12px;padding:8px}#catPantalla .catCol.foco{border-color:#c6f432}'
+      + '#catPantalla .catTit{font-weight:800;text-transform:uppercase;font-size:13px;color:#9aa6b2;letter-spacing:.05em;margin:2px 4px 6px}'
+      + '#catPantalla .catO{padding:5px 9px;border-radius:7px;cursor:pointer;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#catPantalla .catO.on{background:#1f2a12;color:#c6f432;font-weight:700}#catPantalla .catCol.foco .catO.on{background:#c6f432;color:#0d1014}'
+      + '#catLista{flex:1;overflow:auto;padding:4px 6px 4px 4px;border:2px solid transparent;border-radius:12px}#catLista.foco{border-color:#2f3a20}'
+      + '#catPantalla .catT{background:#151a20;border:2px solid #222a33;border-radius:12px;padding:10px 14px;margin-bottom:8px;cursor:pointer}#catPantalla .catT.on{border-color:#c6f432;background:#1a2210}'
+      + '#catPantalla button{font:700 16px Inter,sans-serif;padding:11px 18px;border-radius:10px;border:0;cursor:pointer}</style>'
+      + '<header style="display:flex;align-items:center;gap:14px"><button id="catVolver" style="background:#1c2128;color:#e9edf1">‹ Diseñar, libre y rutas de siempre</button><span style="font-weight:800;font-size:28px;text-transform:uppercase">Catálogo de rutas</span><span style="flex:1"></span><span style="color:#9aa6b2">← → columna · ↑ ↓ elegir · B rutas / rodar · Z diseñar, libre y rutas de siempre</span></header>'
+      + '<div id="catFiltros"></div><div id="catInfo" style="color:#9aa6b2"></div><div id="catLista"></div>'
+      + '<div style="display:flex;gap:10px"><span style="flex:1"></span><button id="catRodar" style="background:#c6f432;color:#0d1014">▶ Rodar</button></div>';
+    document.body.appendChild(P);
+    $('catVolver').onclick = () => { catCerrar(); if (window.abrirElegir) abrirElegir(!!window.ELEGIR_ESPECT); };
+    $('catRodar').onclick = catRodar;
+    document.addEventListener('keydown', e => { if (!CAT.abierta) return; const T = { ArrowLeft: 'izq', ArrowRight: 'der', ArrowUp: 'arr', ArrowDown: 'ab', Enter: 'B', Escape: 'Z' }[e.key];
+      if (T) { e.preventDefault(); e.stopImmediatePropagation(); catMando(T); } }, true); }
+  P.hidden = false; CAT.abierta = true; catPintar();
+  if (!catDatos().rutas.length) $('catLista').innerHTML = '<div style="padding:30px;color:#ff7b72">No encuentro recursos/catalogo.js.</div>'; };
+// mandos (Zwift Play y teclado): ← → columna, ↑ ↓ dentro de la columna (el filtro se aplica al momento), B baja a las rutas / rueda, Z vuelve
+window.catMando = function(b){ if (!CAT.abierta) return false; const cols = CAT_COLS();
+  if (b === 'izq') { CAT.col = Math.max(0, CAT.col - 1); catPintar(); }
+  else if (b === 'der') { CAT.col = Math.min(5, CAT.col + 1); catPintar(); }
+  else if (b === 'arr' || b === 'ab') { const d = b === 'ab' ? 1 : -1;
+    if (CAT.col === 5) { CAT.sel = Math.max(0, Math.min((CAT.lista || []).length - 1, CAT.sel + d)); catPintar(); }
+    else { const c = cols[CAT.col], cur = CAT[c.k] || (typeof c.o[0][0] === 'number' ? 0 : ''), i = Math.max(0, c.o.findIndex(o => o[0] === cur)); CAT[c.k] = c.o[(i + d + c.o.length) % c.o.length][0]; CAT.sel = 0; catPintar(); } }
+  else if (b === 'B' || b === 'A' || b === 'Y') { if (CAT.col === 5) catRodar(); else { CAT.col = 5; CAT.sel = 0; catPintar(); } }
+  else if (b === 'Z') { if (CAT.col === 5) { CAT.col = 0; catPintar(); } else $('catVolver').onclick(); }
+  return true; };
+</script>
 </body>
 </html>
