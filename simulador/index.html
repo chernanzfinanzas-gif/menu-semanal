@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v259 · Grabar el ECG desde la pantalla de aparatos (debajo de las tarjetas, con el pulsómetro conectado)</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v260 · El ECG de 3 min se sube solo a tu app (sin correo) y dura 3 minutos de datos de verdad</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -897,12 +897,13 @@ async function ecgEmpezar(modo){
 }
 function ecgTic(){
   if (!ECGR.activo) return;
-  const s = Math.round((Date.now() - ECGR.t0) / 1000), mm = x => Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0');
+  const s = Math.round((Date.now() - ECGR.t0) / 1000), sd = Math.floor(ECGR.nEcg / ECG_HZ), mm = x => Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0');
   if (ECGR.fallo) { ecgParar(ECGR.fallo); return; }
   if (s >= 8 && ECGR.nEcg === 0) { ecgParar('la banda no manda el ECG (¿está abierta ECG Analysis u otra app con la banda?)'); return; }
   const pct = s > 5 ? Math.round(100 * ECGR.nEcg / (ECG_HZ * s)) : 100;
-  ecgEstado((ECGR.modo === '3min' ? 'grabando ' + mm(s) + ' de ' + mm(ECG_SEG) + ' · quieto, sin hablar' : 'grabando el ECG de la sesión ' + mm(s) + ' · ' + (ECGR.nEcg * 45 / 1e6).toFixed(1) + ' MB') + (pct < 90 ? ' · llegan solo el ' + pct + ' % de los datos' : ''), true);
-  if (ECGR.fin && Date.now() >= ECGR.fin) ecgParar();
+  ecgEstado((ECGR.modo === '3min' ? 'grabando ' + mm(sd) + ' de ' + mm(ECG_SEG) + ' · quieto, sin hablar' : 'grabando el ECG de la sesión ' + mm(s) + ' · ' + (ECGR.nEcg * 45 / 1e6).toFixed(1) + ' MB') + (pct < 90 ? ' · llegan solo el ' + pct + ' % de los datos' : ''), true);
+  // v260: 3 min de DATOS (la banda tarda unos segundos en arrancar: el 25-nov llegaron 175 s), con un tope de reloj por si se corta
+  if (ECGR.fin && (ECGR.nEcg >= ECG_SEG * ECG_HZ || Date.now() >= ECGR.fin + 30000)) ecgParar();
 }
 function ecgFicheros(){
   const t0 = new Date(ECGR.t0), p = n => String(n).padStart(2, '0');
@@ -923,6 +924,17 @@ function ecgFicheros(){
   }
   return out;
 }
+// v260 (Carlos: «los puedes guardar en una carpeta de la app de ecg y así evitamos un correo»): el ECG de 3 min
+// se sube, comprimido, al repositorio privado de la app (salud/ecg/simulador/), con la misma clave que la ficha.
+// La recogida de la mañana (recoger-ecg.py v27) lo analiza en su siguiente pasada, como un Sensor Logger.
+async function gzU8(f){ return new Uint8Array(await new Response(f.stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()); }
+async function ecgSubir(fs){
+  const c = syncCfg(); if (!c) throw new Error('este aparato no tiene la clave de GitHub de la app');
+  for (const f of fs) {
+    const r = await apiSim(c, 'PUT', 'salud/ecg/simulador/' + f.name + '.gz', { message: 'ecg: grabación del simulador ' + f.name, content: b64(await gzU8(f)), branch: c.rama || 'main' });
+    if (!r.ok && r.status !== 422) throw new Error('GitHub ' + r.status);   // 422: ya estaba subido
+  }
+}
 function ecgDescargar(fs){ for (const f of fs) { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); } }
 async function ecgMandar(fs){
   try { if (navigator.canShare && navigator.canShare({ files: fs })) { await navigator.share({ files: fs, title: 'ECG ' + fs[0].name.slice(19, 34) }); return; } } catch(e) { if (e.name === 'AbortError') return; }
@@ -941,6 +953,12 @@ async function ecgParar(motivo){
   const S = $('ecgSalida'); S.innerHTML = '';
   const b1 = document.createElement('button'); b1.className = 'sec'; b1.textContent = '📤 Mandar por correo'; b1.onclick = () => ecgMandar(fs);
   const b2 = document.createElement('button'); b2.className = 'sec'; b2.textContent = '💾 Guardar en el ordenador'; b2.onclick = () => ecgDescargar(fs);
+  ECGR.subida = null;
+  if (ECGR.modo === '3min' && seg >= 30) {
+    ECGR.subida = 'subiendo';
+    ecgSubir(fs).then(() => { ECGR.subida = 'ok'; ecgEstado('✔ ' + Math.floor(seg / 60) + ':' + String(seg % 60).padStart(2, '0') + ' de ECG subidos a tu app: salen en la siguiente recogida', true); log('ECG: subido a la app'); })
+      .catch(e => { ECGR.subida = 'fallo'; ecgEstado('no se pudo subir (' + e.message + '): usa «Mandar por correo» o «Guardar»'); log('ECG: no se pudo subir · ' + e.message); });
+  }
   if (ECGR.modo === '3min') S.appendChild(b1); S.appendChild(b2);
   if (ECGR.modo !== '3min') ecgDescargar(fs);    // la de la sesión se guarda sola: no se manda por correo
   if (window.portadaRepintar) window.portadaRepintar();
@@ -7889,7 +7907,7 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     const ses = $('ecgSesion') && $('ecgSesion').checked;
     return '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
       + bot('ecg', ECGR.activo ? '■ Parar el ECG' : '❤ Grabar ECG 3 min', true)
-      + (ECGR.ultimo && !ECGR.activo ? (ECGR.modo === '3min' ? bot('ecgmandar', '📤 Mandar por correo') : '') + bot('ecgguardar', '💾 Guardar en el ordenador') : '')
+      + (ECGR.ultimo && !ECGR.activo ? (ECGR.modo === '3min' && ECGR.subida !== 'ok' && ECGR.subida !== 'subiendo' ? bot('ecgmandar', '📤 Mandar por correo') : '') + bot('ecgguardar', '💾 Guardar en el ordenador') : '')
       + bot('ecgsesion', 'ECG en la sesión: ' + (ses ? 'sí' : 'no'))
       + '<span style="font-size:15px;color:' + (e.si ? '#8be3a0' : '#c5ccd3') + '">' + esc(t) + '</span></div>'; }
   function ficha(h){ const A = typeof actividadesFicha === 'function' ? actividadesFicha() : [], d90 = Date.now() - 90 * 864e5;
