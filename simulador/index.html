@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v260 · El ECG de 3 min se sube solo a tu app (sin correo) y dura 3 minutos de datos de verdad</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v261 · El ECG se dibuja en directo mientras se graba (como un monitor), con el pulso al lado</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -431,6 +431,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
   <button id="bEcg" class="sec">❤ Grabar ECG 3 min</button>
   <label><input type="checkbox" id="ecgSesion"> grabarlo también durante la sesión (ficheros grandes: solo para vigilar algo)</label>
   <span class="estado" id="eEcg">–</span><span id="ecgSalida"></span>
+  <canvas data-ecgvivo id="ecgVivoClasico" width="1100" height="150" style="flex-basis:100%;width:100%;max-width:1100px;height:150px;border:1px solid #30363d;border-radius:10px;display:none"></canvas>
 </div></div>
   <div class="bloque" id="bloqueCarga"><div class="tituloBloque">Entrenar o rodar</div>
     <div class="carga">
@@ -852,8 +853,10 @@ async function conectarPulso(previo){
 const PMD = { SVC:'fb005c80-02e7-f387-1cad-8acd2d8df0c8', CP:'fb005c81-02e7-f387-1cad-8acd2d8df0c8', DATA:'fb005c82-02e7-f387-1cad-8acd2d8df0c8' };
 const ECG_SEG = 180, ECG_HZ = 130, ACC_HZ = 200;
 const ECGR = { dev: null, activo: false, ultimo: null };
+// v261 (Carlos: «podemos dibujar el latido mientras se toma la medida?»): los últimos segundos en un anillo, para el monitor
+const ECG_VIVO_S = 5, VIVO = { buf: new Float32Array(ECG_HZ * ECG_VIVO_S), n: 0, raf: 0 };
 const pausaMs = ms => new Promise(r => setTimeout(r, ms));
-function ecgEstado(t, ok){ const e = $('eEcg'); if (e) { e.textContent = t; e.className = 'estado' + (ok ? ' si' : ''); } if (window.portadaRepintar) window.portadaRepintar(); }
+function ecgEstado(t, ok){ const cv = $('ecgVivoClasico'); if (cv) cv.style.display = ECGR.activo ? '' : 'none'; const e = $('eEcg'); if (e) { e.textContent = t; e.className = 'estado' + (ok ? ' si' : ''); } if (window.portadaRepintar) window.portadaRepintar(); }
 function isoLocal(ms){ const d = new Date(ms), p = (n, k) => String(n).padStart(k || 2, '0');
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3); }
 function ecgRespuesta(e){ const v = e.target.value; if (v.byteLength < 4 || v.getUint8(0) !== 0xF0) return;
@@ -867,6 +870,7 @@ function ecgDatos(e){
     const n = Math.floor((v.byteLength - 10) / 3), x = new Int32Array(n);
     for (let i = 0; i < n; i++) { const o = 10 + 3 * i; let s = v.getUint8(o) | (v.getUint8(o + 1) << 8) | (v.getUint8(o + 2) << 16); if (s & 0x800000) s -= 0x1000000; x[i] = s; }
     ECGR.ecg.push({ ts, llega, x }); ECGR.nEcg += n;
+    for (let i = 0; i < n; i++) { VIVO.buf[VIVO.n % VIVO.buf.length] = x[i]; VIVO.n++; }   // v261
   } else if (tipo === 2 && ECGR.conAcc) {
     const b = ft === 0 ? 1 : ft === 1 ? 2 : ft === 2 ? 3 : 0; if (!b) return;
     const n = Math.floor((v.byteLength - 10) / (3 * b)), a = new Int32Array(3 * n);
@@ -891,6 +895,7 @@ async function ecgEmpezar(modo){
     await cp.writeValueWithResponse(new Uint8Array([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00]));   // ECG 130 Hz, 14 bits
     if (ECGR.conAcc) { await pausaMs(400); try { await cp.writeValueWithResponse(new Uint8Array([0x02, 0x02, 0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])); } catch(e) { log('ECG: sin acelerómetro (' + e.message + ')'); ECGR.conAcc = false; } }   // 200 Hz, 16 bits, ±8 g
     $('bEcg').textContent = '■ Parar el ECG';
+    VIVO.n = 0; ecgMonitor();   // v261
     log('ECG: grabando ' + (modo === '3min' ? '3 minutos' : 'la sesión'));
     ECGR.reloj = setInterval(ecgTic, 1000);
   } catch(e) { ECGR.activo = false; ecgEstado('no se pudo empezar: ' + e.message); log('ECG: ' + e.message); }
@@ -904,6 +909,42 @@ function ecgTic(){
   ecgEstado((ECGR.modo === '3min' ? 'grabando ' + mm(sd) + ' de ' + mm(ECG_SEG) + ' · quieto, sin hablar' : 'grabando el ECG de la sesión ' + mm(s) + ' · ' + (ECGR.nEcg * 45 / 1e6).toFixed(1) + ' MB') + (pct < 90 ? ' · llegan solo el ' + pct + ' % de los datos' : ''), true);
   // v260: 3 min de DATOS (la banda tarda unos segundos en arrancar: el 25-nov llegaron 175 s), con un tope de reloj por si se corta
   if (ECGR.fin && (ECGR.nEcg >= ECG_SEG * ECG_HZ || Date.now() >= ECGR.fin + 30000)) ecgParar();
+}
+// v261: el monitor. Dibuja los últimos 5 s en cualquier lienzo con data-ecgvivo que haya en pantalla
+// (la portada se repinta cada segundo: como el dibujo sale entero del anillo en cada fotograma, da igual).
+function ecgMonitor(){
+  cancelAnimationFrame(VIVO.raf);
+  const paso = () => {
+    for (const cv of document.querySelectorAll('canvas[data-ecgvivo]')) ecgPintar(cv);
+    if (ECGR.activo) VIVO.raf = requestAnimationFrame(paso);
+  };
+  VIVO.raf = requestAnimationFrame(paso);
+}
+function ecgPintar(cv){
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height, L = VIVO.buf.length, n = Math.min(VIVO.n, L);
+  g.fillStyle = '#0b0f13'; g.fillRect(0, 0, W, H);
+  // cuadrícula de papel: cada 0,2 s y cada 0,5 mV (fina cada 0,04 s / 0,1 mV)
+  const pxs = W / ECG_VIVO_S;
+  g.lineWidth = 1;
+  for (let k = 0; k <= ECG_VIVO_S * 25; k++) { const x = Math.round(k * pxs / 25) + 0.5; g.strokeStyle = k % 5 ? '#141b22' : '#1f2a35'; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+  if (n < ECG_HZ) { g.fillStyle = '#8b96a1'; g.font = '600 16px Inter, sans-serif'; g.fillText('esperando la señal de la banda…', 16, H / 2); return; }
+  // los últimos n puntos, sin la línea de base (media de 0,6 s) y con la polaridad del QRS hacia arriba
+  const y = new Float32Array(n), ini = VIVO.n - n;
+  for (let i = 0; i < n; i++) y[i] = VIVO.buf[(ini + i) % L];
+  const w = Math.round(0.6 * ECG_HZ), z = new Float32Array(n); let s = 0;
+  for (let i = 0; i < n; i++) { s += y[i]; if (i >= w) s -= y[i - w]; z[i] = y[i] - s / Math.min(i + 1, w); }
+  const ord = Array.from(z).sort((a, b) => a - b), lo = ord[Math.floor(n * 0.01)], hi = ord[Math.floor(n * 0.995)];
+  const inv = Math.abs(lo) > Math.abs(hi) * 1.3 ? -1 : 1, top = inv > 0 ? hi : -lo, bot = inv > 0 ? lo : -hi;
+  const esc = (H * 0.8) / Math.max(200, top - bot), y0 = H * 0.1 + top * esc;
+  for (let k = 0; k <= 20; k++) { const v = k * 100 - 1000, yy = Math.round(y0 - v * esc) + 0.5; if (yy < 0 || yy > H) continue; g.strokeStyle = (v % 500) ? '#141b22' : '#1f2a35'; g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke(); }
+  g.strokeStyle = '#3ddc6b'; g.lineWidth = 2; g.beginPath();
+  const x0 = W - (n / ECG_HZ) * pxs;
+  for (let i = 0; i < n; i++) { const X = x0 + i * pxs / ECG_HZ, Y = y0 - inv * z[i] * esc; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }
+  g.stroke();
+  g.fillStyle = '#e9edf1'; g.font = '700 20px Inter, sans-serif';
+  const p = (typeof vivo !== 'undefined' && vivo.p) ? vivo.p + ' ppm' : '';
+  g.fillText(p, W - g.measureText(p).width - 14, 26);
+  g.fillStyle = '#6e7681'; g.font = '600 12px Inter, sans-serif'; g.fillText('5 s · cuadros de 0,2 s', 12, 16);
 }
 function ecgFicheros(){
   const t0 = new Date(ECGR.t0), p = n => String(n).padStart(2, '0');
@@ -7905,11 +7946,13 @@ window.addEventListener('beforeunload', e => { if (sesion.corriendo) { e.prevent
     const e = est('eEcg'), t = e.t && e.t !== '–' ? e.t : 'ECG de reposo: 3 min sentado y quieto, sin hablar. Cierra antes ECG Analysis en el móvil.';
     const bot = (acc, txt, fuerte) => '<a data-acc="' + acc + '" style="cursor:pointer;white-space:nowrap;border:' + (fuerte ? '2px solid #e5484d' : '1px solid #2a323c') + ';background:#151a20;color:#e9edf1;border-radius:10px;padding:12px 18px;font:600 15px Inter, sans-serif">' + txt + '</a>';
     const ses = $('ecgSesion') && $('ecgSesion').checked;
-    return '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
+    return '<div style="display:flex;align-items:center;gap:12px;margin-top:' + (ECGR.activo ? 8 : 16) + 'px;flex-wrap:wrap">'
       + bot('ecg', ECGR.activo ? '■ Parar el ECG' : '❤ Grabar ECG 3 min', true)
       + (ECGR.ultimo && !ECGR.activo ? (ECGR.modo === '3min' && ECGR.subida !== 'ok' && ECGR.subida !== 'subiendo' ? bot('ecgmandar', '📤 Mandar por correo') : '') + bot('ecgguardar', '💾 Guardar en el ordenador') : '')
       + bot('ecgsesion', 'ECG en la sesión: ' + (ses ? 'sí' : 'no'))
-      + '<span style="font-size:15px;color:' + (e.si ? '#8be3a0' : '#c5ccd3') + '">' + esc(t) + '</span></div>'; }
+      + '<span style="font-size:15px;color:' + (e.si ? '#8be3a0' : '#c5ccd3') + '">' + esc(t) + '</span>'
+      + (ECGR.activo ? '<canvas data-ecgvivo width="1360" height="110" style="flex-basis:100%;width:100%;height:110px;border:1px solid #232a33;border-radius:10px"></canvas>' : '')
+      + '</div>'; }
   function ficha(h){ const A = typeof actividadesFicha === 'function' ? actividadesFicha() : [], d90 = Date.now() - 90 * 864e5;
     const mej = i => { let m = null; for (const a of A) if (a.b && a.b[i] && new Date(a.fecha) >= d90 && (m == null || a.b[i] > m)) m = a.b[i]; return m == null ? '—' : Math.round(m); };
     const marcas = [0, 3, 4, 5, 6].map(mej); let tipo = '—';
