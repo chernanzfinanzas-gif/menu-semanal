@@ -130,6 +130,9 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
   #filaInicio .usuarios { display:flex; gap:10px; }
   #filaInicio .bUsu { font-size:22px; font-weight:700; padding:12px 26px; border-radius:12px; background:#0d1117; color:#e8eaed; border:2px solid #30363d; cursor:pointer; display:flex; align-items:center; gap:10px; }
   #filaInicio .dispositivos { display:flex; gap:10px; flex-wrap:wrap; }
+  .ecgFila { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; }
+  .ecgFila label { color:#8b949e; font-size:13px; }
+  .ecgFila #ecgSalida button { margin-left:6px; }
   #filaInicio .disp { display:flex; flex-direction:column; align-items:center; gap:6px; background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:8px 10px; min-width:130px; }
   #filaInicio .disp img { height:64px; max-width:150px; object-fit:contain; border-radius:6px; background:#fff; }
   #filaInicio .disp img:not([src]) { display:none; }
@@ -383,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v257 · 117 pueblos de la red con sus edificios reales (32.228), montados por manzanas al acercarte · Segovia con ventanas</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v258 · Grabar el ECG desde la banda (botón junto al pulsómetro), sin el tope de ECG Analysis</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -423,6 +426,11 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
   <div class="disp"><img data-foto="pulso" alt=""><button id="bPulso" class="sec">2 · Pulsómetro</button><span class="estado" id="ePulso">sin conectar</span></div>
   <div class="disp"><img data-foto="playI" alt=""><button id="bPlayI" class="sec">Play izq.</button><span class="estado" id="ePlayI">–</span></div>
   <div class="disp"><img data-foto="playD" alt=""><button id="bPlayD" class="sec">Play der.</button><span class="estado" id="ePlayD">–</span></div>
+</div>
+<div class="ecgFila" id="ecgFila" title="ECG de la banda Polar H10, guardado como el de Sensor Logger: la recogida y el análisis propio lo leen igual">
+  <button id="bEcg" class="sec">❤ Grabar ECG 3 min</button>
+  <label><input type="checkbox" id="ecgSesion"> grabarlo también durante la sesión (ficheros grandes: solo para vigilar algo)</label>
+  <span class="estado" id="eEcg">–</span><span id="ecgSalida"></span>
 </div></div>
   <div class="bloque" id="bloqueCarga"><div class="tituloBloque">Entrenar o rodar</div>
     <div class="carga">
@@ -824,14 +832,117 @@ function enviarObjetivo(forzar){
 async function conectarPulso(previo){
   try {
     estado('ePulso', previo ? 'reconectando…' : 'buscando…');
-    const dev = previo || await navigator.bluetooth.requestDevice({ filters:[{ services:[S.HR] }], optionalServices:['battery_service'] });
-    recordarAparato('pulso', dev);
-    dev.addEventListener('gattserverdisconnected', () => { estado('ePulso', 'se desconectó'); log('Pulsómetro desconectado.'); });
+    const dev = previo || await navigator.bluetooth.requestDevice({ filters:[{ services:[S.HR] }], optionalServices:['battery_service', PMD.SVC] });   // v258: y el ECG
+    recordarAparato('pulso', dev); ECGR.dev = dev;
+    dev.addEventListener('gattserverdisconnected', () => { estado('ePulso', 'se desconectó'); log('Pulsómetro desconectado.'); if (ECGR.activo) ecgParar('se desconectó la banda'); });
     const srvP = await dev.gatt.connect(), hr = await (await srvP.getPrimaryService(S.HR)).getCharacteristic(C.HR_MEAS);
     await hr.startNotifications();
     hr.addEventListener('characteristicvaluechanged', e => { const dv = e.target.value, f = dv.getUint8(0); vivo.p = (f & 1) ? dv.getUint16(1, true) : dv.getUint8(1); vivo.tP = Date.now(); });
     estado('ePulso', dev.name || 'pulso', true); leerBateria(srvP, 'ePulso', 'Pulsómetro');
   } catch(e) { if (previo) throw e; estado('ePulso', e.name === 'NotFoundError' ? 'cancelado' : 'error'); log('Pulsómetro: ' + e.message); }
+}
+
+// ===================== ECG de la banda (v258, 25-nov-2026) =====================
+// Carlos: «podemos hacer los ecg nosotros para saltar la limitación de ecg analysis?» y «se pueden hacer
+// incluso desde el simulador, donde ya conecta con la banda». La H10 manda el ECG a 130 Hz y el
+// acelerómetro por su servicio de medidas (PMD, protocolo público de Polar). Se guarda con el MISMO
+// formato y nombre que Polar Sensor Logger (…_ECG.txt y …_ACC.txt), así que la recogida del correo y
+// el análisis propio lo leen sin cambiar nada. El de la sesión, solo ECG (sin acelerómetro) y solo
+// a disco: una hora son ~20 MB y no cabe bien en un correo.
+const PMD = { SVC:'fb005c80-02e7-f387-1cad-8acd2d8df0c8', CP:'fb005c81-02e7-f387-1cad-8acd2d8df0c8', DATA:'fb005c82-02e7-f387-1cad-8acd2d8df0c8' };
+const ECG_SEG = 180, ECG_HZ = 130, ACC_HZ = 200;
+const ECGR = { dev: null, activo: false, ultimo: null };
+const pausaMs = ms => new Promise(r => setTimeout(r, ms));
+function ecgEstado(t, ok){ const e = $('eEcg'); if (e) { e.textContent = t; e.className = 'estado' + (ok ? ' si' : ''); } }
+function isoLocal(ms){ const d = new Date(ms), p = (n, k) => String(n).padStart(k || 2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3); }
+function ecgRespuesta(e){ const v = e.target.value; if (v.byteLength < 4 || v.getUint8(0) !== 0xF0) return;
+  const tipo = v.getUint8(2), st = v.getUint8(3), q = tipo === 0 ? 'ECG' : tipo === 2 ? 'acelerómetro' : 'medida ' + tipo;
+  if (v.getUint8(1) === 0x02) { if (st === 0) log('Banda: ' + q + ' en marcha'); else { log('Banda: no arranca el ' + q + ' (código ' + st + ')'); if (tipo === 0) ECGR.fallo = 'la banda no arranca el ECG (código ' + st + ')'; } } }
+function ecgDatos(e){
+  if (!ECGR.activo) return;
+  const v = e.target.value, tipo = v.getUint8(0), ts = v.getBigUint64(1, true), ft = v.getUint8(9), llega = Date.now();
+  if (ft & 0x80) { if (!ECGR.avisoComprimido) { ECGR.avisoComprimido = true; log('Banda: formato comprimido no previsto en la ' + (tipo === 0 ? 'ECG' : 'medida ' + tipo) + '; se ignora'); } return; }
+  if (tipo === 0) {
+    const n = Math.floor((v.byteLength - 10) / 3), x = new Int32Array(n);
+    for (let i = 0; i < n; i++) { const o = 10 + 3 * i; let s = v.getUint8(o) | (v.getUint8(o + 1) << 8) | (v.getUint8(o + 2) << 16); if (s & 0x800000) s -= 0x1000000; x[i] = s; }
+    ECGR.ecg.push({ ts, llega, x }); ECGR.nEcg += n;
+  } else if (tipo === 2 && ECGR.conAcc) {
+    const b = ft === 0 ? 1 : ft === 1 ? 2 : ft === 2 ? 3 : 0; if (!b) return;
+    const n = Math.floor((v.byteLength - 10) / (3 * b)), a = new Int32Array(3 * n);
+    for (let i = 0; i < 3 * n; i++) { const o = 10 + b * i; a[i] = b === 1 ? v.getInt8(o) : b === 2 ? v.getInt16(o, true) : ((v.getUint8(o) | (v.getUint8(o + 1) << 8) | (v.getUint8(o + 2) << 16)) << 8 >> 8); }
+    ECGR.acc.push({ ts, llega, a, n }); ECGR.nAcc += n;
+  }
+}
+async function ecgEmpezar(modo){
+  if (ECGR.activo) return;
+  $('ecgSalida').innerHTML = '';
+  try {
+    const dev = ECGR.dev;
+    if (!dev || !dev.gatt.connected) { ecgEstado('primero conecta el pulsómetro (botón 2)'); return; }
+    let svc;
+    try { svc = await dev.gatt.getPrimaryService(PMD.SVC); }
+    catch(e) { ecgEstado('pulsa «2 · Pulsómetro» y elige la banda otra vez: Chrome pide permiso para el ECG una sola vez'); log('ECG: sin permiso para el servicio del ECG (' + e.message + ')'); return; }
+    const cp = await svc.getCharacteristic(PMD.CP), dat = await svc.getCharacteristic(PMD.DATA);
+    await cp.startNotifications(); cp.addEventListener('characteristicvaluechanged', ecgRespuesta);
+    await dat.startNotifications(); dat.addEventListener('characteristicvaluechanged', ecgDatos);
+    Object.assign(ECGR, { activo: true, modo, cp, dat, ecg: [], acc: [], nEcg: 0, nAcc: 0, conAcc: modo === '3min', fallo: null, avisoComprimido: false,
+      t0: Date.now(), id: ((dev.name || '').trim().split(/\s+/).pop() || 'H10').replace(/[^\w]/g, ''), fin: modo === '3min' ? Date.now() + ECG_SEG * 1000 : null });
+    await cp.writeValueWithResponse(new Uint8Array([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00]));   // ECG 130 Hz, 14 bits
+    if (ECGR.conAcc) { await pausaMs(400); try { await cp.writeValueWithResponse(new Uint8Array([0x02, 0x02, 0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])); } catch(e) { log('ECG: sin acelerómetro (' + e.message + ')'); ECGR.conAcc = false; } }   // 200 Hz, 16 bits, ±8 g
+    $('bEcg').textContent = '■ Parar el ECG';
+    log('ECG: grabando ' + (modo === '3min' ? '3 minutos' : 'la sesión'));
+    ECGR.reloj = setInterval(ecgTic, 1000);
+  } catch(e) { ECGR.activo = false; ecgEstado('no se pudo empezar: ' + e.message); log('ECG: ' + e.message); }
+}
+function ecgTic(){
+  if (!ECGR.activo) return;
+  const s = Math.round((Date.now() - ECGR.t0) / 1000), mm = x => Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0');
+  if (ECGR.fallo) { ecgParar(ECGR.fallo); return; }
+  if (s >= 8 && ECGR.nEcg === 0) { ecgParar('la banda no manda el ECG (¿está abierta ECG Analysis u otra app con la banda?)'); return; }
+  const pct = s > 5 ? Math.round(100 * ECGR.nEcg / (ECG_HZ * s)) : 100;
+  ecgEstado((ECGR.modo === '3min' ? 'grabando ' + mm(s) + ' de ' + mm(ECG_SEG) + ' · quieto, sin hablar' : 'grabando el ECG de la sesión ' + mm(s) + ' · ' + (ECGR.nEcg * 45 / 1e6).toFixed(1) + ' MB') + (pct < 90 ? ' · llegan solo el ' + pct + ' % de los datos' : ''), true);
+  if (ECGR.fin && Date.now() >= ECGR.fin) ecgParar();
+}
+function ecgFicheros(){
+  const t0 = new Date(ECGR.t0), p = n => String(n).padStart(2, '0');
+  const sello = t0.getFullYear() + p(t0.getMonth() + 1) + p(t0.getDate()) + '_' + p(t0.getHours()) + p(t0.getMinutes()) + p(t0.getSeconds());
+  const base = 'Polar_H10_' + ECGR.id + '_' + sello, out = [];
+  const paso = BigInt(Math.round(1e9 / ECG_HZ));
+  const fe = ['Phone timestamp;sensor timestamp [ns];timestamp [ms];ecg [uV]'];
+  let ts0 = null;
+  for (const f of ECGR.ecg) { const n = f.x.length;
+    for (let i = 0; i < n; i++) { const ts = f.ts - BigInt(n - 1 - i) * paso; if (ts0 === null) ts0 = ts;
+      fe.push(isoLocal(f.llega - (n - 1 - i) * 1000 / ECG_HZ) + ';' + ts + ';' + (Number(ts - ts0) / 1e6) + ';' + f.x[i]); } }
+  out.push(new File([fe.join('\n') + '\n'], base + '_ECG.txt', { type: 'text/plain' }));
+  if (ECGR.acc.length) {
+    const pa = BigInt(Math.round(1e9 / ACC_HZ)), fa = ['Phone timestamp;sensor timestamp [ns];X [mg];Y [mg];Z [mg]'];
+    for (const f of ECGR.acc) for (let i = 0; i < f.n; i++) { const ts = f.ts - BigInt(f.n - 1 - i) * pa;
+      fa.push(isoLocal(f.llega - (f.n - 1 - i) * 1000 / ACC_HZ) + ';' + ts + ';' + f.a[3 * i] + ';' + f.a[3 * i + 1] + ';' + f.a[3 * i + 2]); }
+    out.push(new File([fa.join('\n') + '\n'], base + '_ACC.txt', { type: 'text/plain' }));
+  }
+  return out;
+}
+function ecgDescargar(fs){ for (const f of fs) { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); } }
+async function ecgMandar(fs){
+  try { if (navigator.canShare && navigator.canShare({ files: fs })) { await navigator.share({ files: fs, title: 'ECG ' + fs[0].name.slice(19, 34) }); return; } } catch(e) { if (e.name === 'AbortError') return; }
+  ecgDescargar(fs); avisar('Este navegador no deja compartir: los ficheros se han descargado; mándalos por Gmail como los de Sensor Logger');
+}
+async function ecgParar(motivo){
+  if (!ECGR.activo) return;
+  ECGR.activo = false; clearInterval(ECGR.reloj); $('bEcg').textContent = '❤ Grabar ECG 3 min';
+  try { if (ECGR.dev && ECGR.dev.gatt.connected) { await ECGR.cp.writeValueWithResponse(new Uint8Array([0x03, 0x00])); if (ECGR.conAcc) await ECGR.cp.writeValueWithResponse(new Uint8Array([0x03, 0x02])); await ECGR.dat.stopNotifications(); } } catch(e) {}
+  const seg = Math.round(ECGR.nEcg / ECG_HZ);
+  if (!ECGR.nEcg) { ecgEstado(motivo || 'no llegó nada'); log('ECG: sin datos' + (motivo ? ' · ' + motivo : '')); return; }
+  const fs = ecgFicheros(); ECGR.ultimo = fs;
+  const corta = ECGR.modo === '3min' && seg < ECG_SEG - 5;
+  ecgEstado((corta ? 'cortado a los ' + seg + ' s' : 'hecho: ' + Math.floor(seg / 60) + ':' + String(seg % 60).padStart(2, '0') + ' de ECG') + (motivo ? ' · ' + motivo : '') + (ECGR.acc.length ? ' · con acelerómetro' : ''), !corta);
+  log('ECG: ' + seg + ' s, ' + ECGR.nEcg + ' muestras' + (ECGR.nAcc ? ', acelerómetro ' + ECGR.nAcc : '') + (motivo ? ' · ' + motivo : ''));
+  const S = $('ecgSalida'); S.innerHTML = '';
+  const b1 = document.createElement('button'); b1.className = 'sec'; b1.textContent = '📤 Mandar por correo'; b1.onclick = () => ecgMandar(fs);
+  const b2 = document.createElement('button'); b2.className = 'sec'; b2.textContent = '💾 Guardar en el ordenador'; b2.onclick = () => ecgDescargar(fs);
+  if (ECGR.modo === '3min') S.appendChild(b1); S.appendChild(b2);
+  if (ECGR.modo !== '3min') ecgDescargar(fs);    // la de la sesión se guarda sola: no se manda por correo
 }
 
 // ===================== botones =====================
@@ -7422,6 +7533,7 @@ function empezar(){
   if (ruta.activa && !sesion.tTotal && !sesion.corriendo && !cuenta.hecha) { iniciarCuenta(); return; }
   cuenta.hecha = false;
   sesion.corriendo = true; sesion.pausa = false; sesion.inicio = sesion.inicio || new Date();
+  if ($('ecgSesion') && $('ecgSesion').checked && !ECGR.activo) ecgEmpezar('sesion');   // v258
   ['bPausa','bMenos','bMas','bSaltar','bTerminar'].forEach(i => $(i).disabled = false); $('bEmpezar').disabled = true;
   enviarBici([0x07], 'empezar'); ultimoEnviado = null;
   if (ruta.activa) { if (!sesion.tTotal) { arrancarMiReserva(); arrancarRivales(); arrancarTramos(); techo.recorte = 0; techo.tCambio = -1e9; techo.bajoDesde = null; } mandarPeso(); if (sesion.zwoRuta) { ultimoEnviado = null; enviarObjetivo(true); avisarMensajesDelBloque(true); } else enviarPendiente(true); if (mapa.m && !mapa.seguir) alternarSeguir(); } else enviarObjetivo(true);
@@ -7605,7 +7717,7 @@ function dibujar(){
 // ===================== terminar y guardar (.fit) =====================
 // v217 (Carlos: «esta pantalla debe dar la opción de volver atrás sin usar terminar y guardar; descartar un test o entreno»)
 function descartarSesion(){ if (sesion.corriendo && !confirm('¿Descartar esta sesión? No se guarda nada: ni el .fit, ni Intervals, ni tu ficha.')) return;
-  if (sesion.corriendo) { setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300); clearInterval(tick); sesion.corriendo = false; enviarBici([0x05, 50, 0], 'descartada: 50 W para soltar piernas'); log('Sesión descartada: no se guarda nada'); }
+  if (sesion.corriendo) { setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300); clearInterval(tick); sesion.corriendo = false; if (ECGR.activo && ECGR.modo === 'sesion') ecgParar('sesión descartada'); enviarBici([0x05, 50, 0], 'descartada: 50 W para soltar piernas'); log('Sesión descartada: no se guarda nada'); }
   if (window.zwoCerrar) zwoCerrar(); try { pararDemo(); } catch(e) {} try { reiniciarTrasDemo(); } catch(e) {}
   avisar('Sesión descartada · no se ha guardado nada'); if (window.abrirPortada) abrirPortada(3); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && window.zwoAbierta && zwoAbierta() && !sesion.espect) { e.preventDefault(); descartarSesion(); } });
@@ -7614,6 +7726,7 @@ function terminar(fin){
   setTimeout(() => { if (grab.rec && grab.rec.state !== 'inactive') grab.rec.stop(); setTimeout(cerrarCaptura, 1500); }, 300);   // la grabación se guarda y se cierra la captura
   if (!fin && !sesion.demo && !confirm('¿Terminar la sesión y guardar lo hecho?')) return;
   clearInterval(tick); sesion.corriendo = false; if (window.zwoCerrar) zwoCerrar();
+  if (ECGR.activo && ECGR.modo === 'sesion') ecgParar();   // v258
 
   ergRuta.w = 0; ergRuta.enviado = null;   /* v233: los vatios fijos son de esta salida */
   enviarBici([0x05, 50, 0], 'fin: 50 W para soltar piernas');
@@ -7711,7 +7824,7 @@ aplicarPerfil();
 $('perfilSel').onchange = () => { perfilActivo = +$('perfilSel').value; guardarPerfiles(); aplicarPerfil(); $('perfilAviso').textContent = 'Perfil activo: ' + perfiles[perfilActivo].nombre; };
 $('bPerfilGuardar').onclick = () => { const p = leerFormulario(); if (!p) return; perfiles[perfilActivo] = p; guardarPerfiles(); aplicarPerfil(); $('perfilAviso').textContent = 'Guardado.'; };
 $('bPerfilNuevo').onclick = () => { const p = leerFormulario(); if (!p) return; if (perfiles.some(q => q.nombre === p.nombre)) p.nombre += ' (2)'; perfiles.push(p); perfilActivo = perfiles.length - 1; guardarPerfiles(); aplicarPerfil(); $('perfilAviso').textContent = 'Perfil nuevo guardado y activo: ' + p.nombre; };
-$('bBici').onclick = () => conectarBici(); $('cajaMarcha').onclick = cambiarPlatoAMano; $('bPulso').onclick = () => conectarPulso();
+$('bBici').onclick = () => conectarBici(); $('cajaMarcha').onclick = cambiarPlatoAMano; $('bPulso').onclick = () => conectarPulso(); $('bEcg').onclick = () => ECGR.activo ? ecgParar() : ecgEmpezar('3min');
 $('bPlayI').onclick = () => conectarPlay('I'); $('bPlayD').onclick = () => conectarPlay('D');
 $('bEmpezar').onclick = empezar; $('bPausa').onclick = alternarPausa;
 $('bMas').onclick = () => ruta.activa && !sesion.zwoRuta ? (cambiaDif(DIF() + 10), avisar('Dificultad ' + DIF() + ' %')) : cambiarIntensidad(+2);
