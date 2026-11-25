@@ -1059,7 +1059,13 @@
 
       var cuerpo = {
         message: "Menú: actualización " + new Date().toLocaleString("es-ES"),
-        content: b64(JSON.stringify(this.paquete(), null, 1)),
+        /* 25-nov-2026: SIN SANGRÍA. «No se pudo guardar · GitHub respondió 500»:
+           estado.json medía 1.047.824 bytes, a 750 del tope de 1 MiB que deja
+           escribir la API, y 225 KB de eso eran solo los espacios de la sangría.
+           Compacto pesa 823 KB. Leer no cambia: JSON.parse no mira los espacios.
+           Ojo: los registros diarios (fotos, plan, gastado, entreno, real,
+           comido) crecen unos 40 KB por semana; esto da margen, no lo resuelve. */
+        content: b64(JSON.stringify(this.paquete())),
         branch: this.cfg().rama || "main"
       };
       if (Almacen.estado.sync.sha) cuerpo.sha = Almacen.estado.sync.sha;
@@ -1168,7 +1174,7 @@
         if (lista.some(function (x) { return x.nombre === nombre; })) return lista;     // ya la hizo otro aparato
         return self.apiRuta("PUT", self.CARPETA_COPIAS + "/" + nombre, {
           message: "Copia diaria " + hoy,
-          content: b64(JSON.stringify(self.paquete(), null, 1)),
+          content: b64(JSON.stringify(self.paquete())),   /* sin sangría: 25-nov-2026 */
           branch: self.cfg().rama || "main"
         }).then(function (r) {
           if (!r.ok && r.status !== 422) throw new Error("copia " + r.status);   // 422: la acaba de hacer otro
