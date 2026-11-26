@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v279 · gente de pie mirando la carretera, sin paseantes; animales quietos (zorro y lobo, cortos paseos); en el critérium solo se carga lo cercano (1,2 km; árboles 1,5 km); v278: árboles con sombra propia, más ramilletes y ramas; critérium de Madrid: curvas redondeadas, acera hasta las fachadas, escaparates distintos y portales, más gente, verjas sin huecos, copas redondas; trazado suave y rampas hasta el 8 %, pasos de cebra, parques con césped y verjas, Palacio Real, Plaza de España y Sol pavimentadas, bulevar del Prado y Recoletos, árboles de las calles, lagos hundidos, casetas de Moyano de colores, árboles menos «de bolas»</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v280 · capas del paisaje con la tecla K; aligerado: árboles y azoteas como antes, ritmo de imágenes como antes; v279: gente de pie mirando la carretera, sin paseantes; animales quietos (zorro y lobo, cortos paseos); en el critérium solo se carga lo cercano (1,2 km; árboles 1,5 km); v278: árboles con sombra propia, más ramilletes y ramas; critérium de Madrid: curvas redondeadas, acera hasta las fachadas, escaparates distintos y portales, más gente, verjas sin huecos, copas redondas; trazado suave y rampas hasta el 8 %, pasos de cebra, parques con césped y verjas, Palacio Real, Plaza de España y Sol pavimentadas, bulevar del Prado y Recoletos, árboles de las calles, lagos hundidos, casetas de Moyano de colores, árboles menos «de bolas»</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -4105,6 +4105,7 @@ document.addEventListener('keydown', e => {
   else if ((k === ',' || k === '.' || k === '>') && en3d) girarCam(k === '.' || k === '>' ? 15 : -15);
   else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
   else if (k === 'Enter' && $('confSalir')) responderSalir(true);   // v277: Intro = sí
+  else if ((k === 'k' || k === 'K') && !(e.ctrlKey || e.metaKey || e.altKey)) { panelCapas(); return; }
   else if (k === 'Escape' && $('confSalir')) responderSalir(false);   // v224: Esc otra vez = no
   else if (k === 'Escape') { let cerro = false; for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; cerro = true; break; } } if (!cerro && quietoEn3d() && !(window.pFicha && pFicha.abierta)) salirASesiones(); else if (!cerro && v3 && v3.activo && sesion.corriendo && !sesion.espect && !$('cronica3d') && !(window.pFicha && pFicha.abierta)) salirASesiones(); }   // v222
   else if (k === 'Enter') { if (!sesion.corriendo) { const b = en3d ? $('b3Empezar') : $('bEmpezar'); if (b && !b.disabled) b.click(); } else hecho = false; }
@@ -7190,17 +7191,7 @@ function geoEdificios(ed, hR, base){ const O = obraEdif(), mats = matsCasa(), C 
       k++; continue; }
     if (E.techo) { const tr = THREE.ShapeUtils.triangulateShape(P.map(([x, z]) => new THREE.Vector2(x, z)), []), yt = yb + H + 0.05, tc = E.techo === 'horm' ? C(0xb9b6ae) : E.techo === 'chapa' ? C(0xcfd3d6) : blanco, ts = TEX_M[E.techo] || 1;
       for (const [a, b, c] of tr) { const ux = P[b][0] - P[a][0], uz = P[b][1] - P[a][1], vx = P[c][0] - P[a][0], vz = P[c][1] - P[a][1], arriba = uz * vx - ux * vz > 0;
-        if (arriba) O.tri(E.techo, [P[a][0], yt, P[a][1]], [P[b][0], yt, P[b][1]], [P[c][0], yt, P[c][1]], tc, ts); else O.tri(E.techo, [P[a][0], yt, P[a][1]], [P[c][0], yt, P[c][1]], [P[b][0], yt, P[b][1]], tc, ts); }
-      /* v277 (Carlos: «todas las azoteas deberían tener un acabado similar a este»): azotea de bloque de ciudad con peto, casetón de escalera y antenas */
-      if (E.techo !== 'chapa' && pl >= 3 && area > 80 && P.length <= 40) { const yp = yt + 0.95, pt = C(0xd8d2c4);
-        for (let i = 0; i < P.length; i++) { const [x1, z1] = P[i], [x2, z2] = P[(i + 1) % P.length], L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.3) continue; const ix = -(z2 - z1) / L * 0.22, iz = (x2 - x1) / L * 0.22, s0 = dentroP((x1 + x2) / 2 + ix, (z1 + z2) / 2 + iz, P) ? 1 : -1;
-          O.quad(mat, [x2 + ix * s0, yt - 0.05, z2 + iz * s0], [x1 + ix * s0, yt - 0.05, z1 + iz * s0], [x1 + ix * s0, yp, z1 + iz * s0], [x2 + ix * s0, yp, z2 + iz * s0], col, su, su);
-          O.quad(mat, [x1, yp, z1], [x2, yp, z2], [x2 + ix * s0, yp, z2 + iz * s0], [x1 + ix * s0, yp, z1 + iz * s0], pt, su, su); }
-        let mx = 0, mz = 0; for (const [x, z] of P) { mx += x; mz += z; } mx /= P.length; mz /= P.length; const hs = Math.abs(Math.sin(mx * 3.7 + mz * 9.1) * 1e4) % 1;
-        if (dentroP(mx, mz, P) && dentroP(mx + 2.2, mz + 2.2, P) && dentroP(mx - 2.2, mz - 2.2, P) && dentroP(mx + 2.2, mz - 2.2, P) && dentroP(mx - 2.2, mz + 2.2, P)) {
-          O.caja(mat, mx - 1.8, yt, mz - 1.6, mx + 1.8, yt + 2.6, mz + 1.6, col, su, su); O.caja(mat, mx - 1.95, yt + 2.6, mz - 1.75, mx + 1.95, yt + 2.75, mz + 1.75, pt, su, su);
-          for (let k2 = 0; k2 < 2 + Math.floor(hs * 3); k2++) { const ax = mx + Math.cos(k2 * 2.1 + hs * 6) * (3 + k2 * 1.3), az = mz + Math.sin(k2 * 2.1 + hs * 6) * (3 + k2 * 1.3); if (!dentroP(ax, az, P)) continue; const ah = 2.2 + ((hs * 7 + k2) % 1) * 1.8, gc = C(0x8a8a8a);
-            O.caja(mat, ax - 0.025, yt, az - 0.025, ax + 0.025, yt + ah, az + 0.025, gc, su, su); O.caja(mat, ax - 0.55, yt + ah - 0.3, az - 0.012, ax + 0.55, yt + ah - 0.27, az + 0.012, gc, su, su); } } } }
+        if (arriba) O.tri(E.techo, [P[a][0], yt, P[a][1]], [P[b][0], yt, P[b][1]], [P[c][0], yt, P[c][1]], tc, ts); else O.tri(E.techo, [P[a][0], yt, P[a][1]], [P[c][0], yt, P[c][1]], [P[b][0], yt, P[b][1]], tc, ts); } }
     k++; }
   const G = new THREE.Group(); for (const pt of O.cerrar(mats)) { const m = new THREE.Mesh(pt.geo, pt.mat); m.castShadow = m.receiveShadow = calidad().sombra; G.add(m); }
   for (const A of acum.por.values()) { const m = new THREE.Mesh(juntarGeos(A.g), A.mat); m.castShadow = m.receiveShadow = calidad().sombra; G.add(m); }   /* v272: los vestidos, juntos por material */
@@ -7319,11 +7310,20 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const h
   log('3D: sitios fijos en esta zona: ' + L.length + ' (' + L.filter(x => x.k === 'iglesia').length + ' iglesias' + (L.some(x => x.k === 'acueducto') ? ', el acueducto' : '') + L.filter(x => x.nombre).map(x => ', ' + x.nombre).join('') + ').');
   return C.hitos; }
 /* v279 (prueba con Carlos: en el critérium se cargaba todo porque el circuito cabe entero en el radio de 4,5 km): en circuitos de ciudad, sitios fijos hasta 1,2 km y árboles hasta 1,5 km */
+/* v280 (Carlos: «corro con las carreteras solo, sin decoración, a ver qué hace; añadimos algo, a ver qué hace»): capas que se pueden quitar y poner (tecla K) */
+const CAPAS_SIM = [['arboles', '🌳 Árboles'], ['edificios', '🏠 Edificios y pueblos'], ['monumentos', '🏛️ Monumentos y sitios fijos'], ['senales', '🪧 Señales, bancos y farolas'], ['gente', '🧍 Gente y animales']];
+function capaOn(k){ try { const c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); return c[k] !== false; } catch(e) { return true; } }
+function panelCapas(){ let P = document.getElementById('panelCapas'); if (P) { P.remove(); return; } P = document.createElement('div'); P.id = 'panelCapas';
+  P.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7000;background:rgba(10,14,20,.94);color:#e8edf2;padding:18px 22px;border-radius:14px;font:15px system-ui;min-width:320px';
+  P.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:10px">Capas del paisaje</div>' + CAPAS_SIM.map(([k, t]) => '<label style="display:block;margin:8px 0;cursor:pointer"><input type="checkbox" data-k="' + k + '"' + (capaOn(k) ? ' checked' : '') + ' style="transform:scale(1.3);margin-right:10px">' + t + '</label>').join('') +
+    '<div style="margin-top:12px;font-size:12px;color:#9aa6b2">La carretera y el terreno siempre están. Al cambiar algo, el paisaje se vuelve a montar. K para cerrar.</div>';
+  P.querySelectorAll('input').forEach(i => i.onchange = () => { let c = {}; try { c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); } catch(e) {} c[i.dataset.k] = i.checked; localStorage.setItem('sim-capas', JSON.stringify(c)); if (window.v3 && v3.activo) v3.rehacer = true; });
+  document.body.appendChild(P); }
 function radiosCiudad(){ const r = typeof ruta !== 'undefined' && ruta.tramos && ruta.tramos.ruta; return r && r.crit ? { sitios: 1200, arboles: 1500 } : null; }
-function actualizarHitos(cx, cz, presupuestoMs){ const C = v3.trozos; if (!C || !v3.escena) return; const RC = radiosCiudad(), H = listaHitos(), R = RC ? Math.min(C.radio, RC.sitios) : C.radio, t0 = performance.now();
+function actualizarHitos(cx, cz, presupuestoMs){ const C = v3.trozos; if (!C || !v3.escena) return; const RC = radiosCiudad(), H = listaHitos(), R = RC ? Math.min(C.radio, RC.sitios) : C.radio, t0 = performance.now(), capaDe = k => k === 'edificios' || k === 'barrio' ? 'edificios' : k === 'senales' ? 'senales' : k === 'acera' ? null : 'monumentos';
   if (RC && v3.zonasArb) for (const z of v3.zonasArb) z.im.visible = Math.hypot(z.x - cx, z.z - cz) < RC.arboles + 500;
   for (let i = 0; i < H.lista.length; i++) { const h = H.lista[i], d = Math.hypot(h.x - cx, h.z - cz) - h.r, vivo = H.vivos.get(i);
-    if (vivo === undefined && d < R) { if (performance.now() - t0 > presupuestoMs) continue; let m = null; try { m = h.hacer(); } catch(e) { log('sitio fijo ' + h.k + ': ' + e.message); }
+    if (vivo === undefined && d < R) { { const cp = capaDe(h.k); if (cp && !capaOn(cp)) continue; } if (performance.now() - t0 > presupuestoMs) continue; let m = null; try { m = h.hacer(); } catch(e) { log('sitio fijo ' + h.k + ': ' + e.message); }
       H.vivos.set(i, m); if (m) v3.escena.add(m); }
     else if (vivo !== undefined && d > R + (RC ? 300 : 800)) { if (vivo) { v3.escena.remove(vivo); vivo.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } H.vivos.delete(i); } } }
 /* v245 (Carlos: «cuando llego a un cruce no se ve el cruce, solo la pista por la que voy… que siempre estén las carreteras dibujadas»):
@@ -7375,6 +7375,7 @@ function actualizarTrozos(cx, cz, presupuestoMs, todo){ const C = v3.trozos; if 
 function moverFauna(dt, aqui){
   if (!v3.fauna) return;
   for (const a of v3.fauna) {
+    if (!capaOn('gente')) { a.g.visible = false; continue; }
     const dx = a.g.position.x - aqui.x, dz = a.g.position.z - aqui.z, cerca = dx * dx + dz * dz < 450 * 450;
     a.g.visible = cerca; if (!cerca) continue;
     if (a.vuela || dx * dx + dz * dz < 130 * 130) a.mez.update(dt);   /* v279: la animación (cabeza, patas) solo se calcula a menos de 130 m */
@@ -7900,11 +7901,11 @@ async function construir3D(){
         const f = 1 + 0.13 * n - (u.y < -0.3 ? 0.12 * (-u.y - 0.3) : 0); P.setXYZ(i, v.x * f, v.y * f, v.z * f); N.setXYZ(i, u.x, u.y / sy, u.z); }
       /* v276b (Carlos: «¿podemos redondear más la copa?»): bollos más suaves y la luz se reparte como en una bola (normales hacia fuera del centro), sin aristas de cristal */
       g.scale(1, sy, 1); g.translate(x, y, z); g.getAttribute('normal').needsUpdate = true; g.normalizeNormals(); return g; };
-    const copaFrondosa = juntar([bola(2.2, 0, 4.3, 0, 0.85), bola(1.6, 1.4, 4.9, 0.6, 0.9), bola(1.5, -1.3, 4.8, -0.5, 0.9), bola(1.3, 0.3, 5.7, -1.2, 0.9), bola(1.2, -0.4, 3.6, 1.4, 0.8)]);   /* v278: cinco ramilletes, la silueta menos de bola */
+    const copaFrondosa = juntar([bola(2.4, 0, 4.2, 0, 0.85), bola(1.7, 1.2, 5.0, 0.5, 0.9), bola(1.5, -1.1, 4.8, -0.4, 0.9)]);   /* v280: vuelve a 3 ramilletes (la v278 pesaba demasiado) */
     const limbo = (l, r, y, rx, rz) => { const g = new THREE.CylinderGeometry(r * 0.45, r, l, 5); g.translate(0, l / 2, 0); g.rotateZ(rz); g.rotateX(rx); g.translate(0, y, 0); return g; };
     /* v278: el tronco se abre en tres ramas gruesas que se meten en la copa (antes era un palo recto) */
-    const troncoG = juntar([(() => { const g = new THREE.CylinderGeometry(0.17, 0.32, 2.6, 7); g.translate(0, 1.3, 0); return g; })(), limbo(1.7, 0.13, 2.1, 0.05, 0.6), limbo(1.6, 0.12, 2.2, 0.55, -0.45), limbo(1.5, 0.11, 2.3, -0.6, -0.2)]);
-    const troncoAlto = juntar([(() => { const g = new THREE.CylinderGeometry(0.2, 0.36, 3.6, 7); g.translate(0, 1.8, 0); return g; })(), limbo(2.0, 0.15, 3.0, 0.05, 0.55), limbo(1.9, 0.14, 3.1, 0.6, -0.4), limbo(1.8, 0.13, 3.2, -0.55, -0.25)]);   /* v276 (Carlos: «en algunos la copa está separada del tronco»): haya y chopo tienen la copa más alta; el tronco llega dentro de ella */
+    const troncoG = new THREE.CylinderGeometry(0.18, 0.3, 2.4, 6); troncoG.translate(0, 1.2, 0);   /* v280: tronco sencillo otra vez */
+    const troncoAlto = new THREE.CylinderGeometry(0.2, 0.34, 3.4, 6); troncoAlto.translate(0, 1.7, 0);
     const pinos = [], frondosos = [], m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eje = new THREE.Vector3(0, 1, 0);
     const CX = ruta.tramos && ruta.tramos.ruta.cx;
     const HUECOS = (CX && CX.hitos && typeof aXZ === 'function') ? CX.hitos.map(h => { const p = aXZ(h.lat, h.lon); return { x: p.x, z: p.z, r: h.r || 17 }; }) : [];   /* v234: parcela de la iglesia (y demás hitos) sin árboles */
@@ -8145,7 +8146,7 @@ async function construir3D(){
       const am2 = aceptaArbol(x, z); if (!am2) continue;
       plantar(x, h, z, 0.6 + Math.random() * 0.8, am2);
     }
-    const montar = (lista, copaGeo, tonos, tg) => { if (!lista.length) return;
+    const montar = (lista, copaGeo, tonos, tg) => { if (!lista.length || !capaOn('arboles')) return;
       const az = m => { if (!DECO) return [Math.random(), Math.random()]; const g = aLatLon(m.elements[12], m.elements[14]), h = mulberry(((Math.round(g.lat * 1e5) * 73856093) ^ (Math.round(g.lon * 1e5) * 19349663)) | 0); return [h(), h()]; };   /* v266: con decoración guardada, el tono sale del sitio */
       const cols = lista.map(m => { const [r1, r2] = az(m); return new THREE.Color().setHex(tonos[Math.floor(r1 * tonos.length)]).multiplyScalar(0.85 + r2 * 0.3); });
       const copa = instanciarPorZonas(esc, copaGeo, new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: !!copaGeo.getAttribute('color') }), lista, Q.sombra, cols);
@@ -8242,7 +8243,7 @@ async function construir3D(){
         const ROPA = [0x2f4b7c, 0xc0392b, 0x27ae60, 0xd4ac0d, 0x8e44ad, 0x34495e, 0xe67e22, 0xecf0f1, 0x16a085, 0x7f8c8d], PIEL = [0xf1c9a5, 0xe0ac69, 0xc68642, 0x8d5524];
         const tang = i => { const a = via[Math.max(0, i - 2)], b = via[Math.min(via.length - 1, i + 2)], L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [(b.x - a.x) / L, (b.z - a.z) / L]; };
         const anchoV = i => { const su = (tramoEn(via[i].d) || {}).sup || 'carretera'; return su === 'carretera' || su === 'puente' ? 3.6 : 2.2; };
-        const vestir = async (k, x, y, z, giro) => { const Pz = await pieza(k); if (!Pz) return false; const alto = RA[k].medida, grp = new THREE.Group();
+        const vestir = async (k, x, y, z, giro) => { if (!capaOn('gente')) return false; const Pz = await pieza(k); if (!Pz) return false; const alto = RA[k].medida, grp = new THREE.Group();
           const pa = new THREE.Color(azar(ROPA)), ca = new THREE.Color(azar(ROPA)), pi = new THREE.Color(azar(PIEL)), zap = new THREE.Color(0x222222);
           for (const { g } of Pz) { const gg = g.clone(), po = gg.getAttribute('position'), col = new Float32Array(po.count * 3);
             for (let q = 0; q < po.count; q++) { const f = po.getY(q) / alto, c = f < 0.06 ? zap : f < 0.47 ? pa : f < 0.83 ? ca : pi; col[q * 3] = c.r; col[q * 3 + 1] = c.g; col[q * 3 + 2] = c.b; }
@@ -8316,7 +8317,7 @@ async function construir3D(){
       montar(ESP.olivo, copaOlivo, [0x7d8f62, 0x8a9a6c, 0x748859, 0x93a174]);
       montar(ESP.chopo, copaChopo, otono ? [0xd9b23a, 0xc9a23a, 0xe0c048, 0xb79a3a] : ESTACION === 'primavera' ? [0x86b04c, 0x7aa548] : [0x5f8f36, 0x6a9a3c, 0x588632], troncoAlto);
       montar(ESP.arbusto, copaArbusto, ESTACION === 'primavera' ? [0xc9b23a, 0x5f6e3a, 0xd2bb3e, 0x6a7a40] : [0x5f6e3a, 0x6a7a40, 0x56633a, 0x4f5c34]);
-      const copaHaya = juntar([bola(2.6, 0, 5.5, 0, 1.0), bola(2.1, 1.8, 6.2, 0.7, 0.9), bola(2.0, -1.7, 6.0, -0.8, 0.9), bola(1.8, 0.3, 7.5, -1.3, 0.85), bola(1.6, -0.6, 4.6, 1.7, 0.8), bola(1.5, 1.2, 7.2, 1.0, 0.85)]);   /* v266 (Carlos: «de Riaza a La Pedrosa, abajo robledal y arriba hayedo») */
+      const copaHaya = juntar([bola(2.9, 0, 5.4, 0, 1.0), bola(2.2, 1.6, 6.3, 0.6, 0.9), bola(2.1, -1.5, 6.1, -0.7, 0.9), bola(1.9, 0.3, 7.4, -1.2, 0.85)]);   /* v266 (Carlos: «de Riaza a La Pedrosa, abajo robledal y arriba hayedo») */
       montar(ESP.haya, copaHaya, otono ? [0xc8781e, 0xd48a24, 0xb8621c, 0xe0a030, 0x9c4e1a, 0xd9a43a, 0xa85a1e]   /* las fotos de Carlos del hayedo de la Pedrosa (4-nov) */ : ESTACION === 'primavera' ? [0x8fc04a, 0x9acb55, 0x84b543] : [0x4f8a2e, 0x5a9636, 0x467f29], troncoAlto);
       montar(ESP.desnudo, ramas, [0x6a5a4a, 0x5e5042, 0x75644f]);
       montar(ESP.chopoDesnudo, ramasChopo, [0x8a8070, 0x7d7464, 0x948a78]); }
@@ -8435,14 +8436,7 @@ function bucle3D(t){
   colocarMapa3D();
   if (!v3.activo || !v3.construido) return;
   { const fps = (!document.hasFocus() && !sesion.corriendo) ? 5 : calidad().fps;
-    /* v277 (Carlos: «la grupeta tiembla»; el vídeo iba a unos 28 imágenes por segundo pero desiguales: unas a 17 ms y otras a 50-70 ms, y eso se ve como temblor).
-       Ahora se pinta una de cada k vueltas de la pantalla, siempre la misma cadencia; si el equipo no llega, k sube (60 → 30 → 20 por segundo) en vez de ir a saltos */
-    const P = v3.ritmo || (v3.ritmo = { tPrev: t, dRaf: 16.7, n: 0, k: 1, lento: 0, rapido: 0 });
-    const dr = t - P.tPrev; P.tPrev = t; if (dr > 0 && dr < 100) P.dRaf += (dr - P.dRaf) * 0.05;
-    const kMin = Math.max(1, Math.round(1000 / fps / P.dRaf)); if (P.k < kMin) P.k = kMin;
-    P.n++; if (P.n % P.k) return;
-    if (v3.tRender) { const real = t - v3.tRender, quiere = P.k * P.dRaf; if (real > quiere * 1.35) { if (++P.lento > 20 && P.k < 3) { P.k++; P.lento = 0; } } else { P.lento = Math.max(0, P.lento - 1); if (real < quiere * 1.1 && ++P.rapido > 600 && P.k > kMin) { P.k--; P.rapido = 0; } } }
-    v3.tRender = t; }
+    if (t - (v3.tRender || 0) < 1000 / fps - 3) return; v3.tRender = t; }   /* v279b: vuelve el control de imágenes de antes (el de la v277c daba tirones a los bots) */
   const dt = Math.min(0.1, (t - (v3.tUlt || t)) / 1000); v3.tUlt = t;
   if (v3.tester && !sesion.corriendo) { ruta.dist += v3.tester / 3.6 * dt; if (ruta.dist > ruta.total - 40) { ruta.dist = 10; v3.dVis = 10; }
     vivo.c = 85; vivo.tW = Date.now();
