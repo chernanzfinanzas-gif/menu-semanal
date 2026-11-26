@@ -4094,7 +4094,7 @@ document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || !v3.r || e.t
    capas del paisaje que se eligen ANTES de montar el 3D (la primera vez de cada visita) y se cambian luego con la tecla K */
 window.CAPAS_SIM = [['arboles', '🌳 Árboles'], ['edificios', '🏠 Edificios y pueblos'], ['monumentos', '🏛️ Monumentos y sitios fijos'], ['senales', '🪧 Señales, bancos y farolas'], ['gente', '🧍 Gente y animales']];
 window.capaOn = function(k){ try { const c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); return c[k] !== false; } catch(e) { return true; } };
-window.panelCapas = function(alEmpezar){ let P = document.getElementById('panelCapas'); if (P) { P.remove(); if (!alEmpezar) return Promise.resolve(); } P = document.createElement('div'); P.id = 'panelCapas';
+window.panelCapas = function(alEmpezar){ let P = document.getElementById('panelCapas'); if (P) { if (P._cerrar) P._cerrar(); else P.remove(); if (!alEmpezar) return Promise.resolve(); }   /* v280d (Carlos: «quito todo, K, vuelvo a poner K y está todo seleccionado otra vez»): cerrar con K también guarda y aplica */ P = document.createElement('div'); P.id = 'panelCapas';
   P.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9000;background:rgba(10,14,20,.96);color:#e8edf2;padding:20px 24px;border-radius:14px;font:16px system-ui;min-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.6)';
   const guardar = (k, v) => { let c = {}; try { c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); } catch(e) {} c[k] = v; localStorage.setItem('sim-capas', JSON.stringify(c)); };
   P.innerHTML = '<div style="font-size:19px;font-weight:700;margin-bottom:6px">Capas del paisaje</div><div style="font-size:13px;color:#9aa6b2;margin-bottom:10px">La carretera y el terreno siempre están.</div>' + CAPAS_SIM.map(([k, t]) => '<label style="display:block;margin:9px 0;cursor:pointer"><input type="checkbox" data-k="' + k + '"' + (capaOn(k) ? ' checked' : '') + ' style="transform:scale(1.35);margin-right:12px">' + t + '</label>').join('') +
@@ -4102,8 +4102,8 @@ window.panelCapas = function(alEmpezar){ let P = document.getElementById('panelC
     '<button data-a="ok" style="width:100%;margin-top:10px;padding:10px;border-radius:8px;border:0;background:#2ea043;color:#fff;font-weight:700;font-size:16px">' + (alEmpezar ? 'Empezar' : 'Aplicar (se vuelve a montar el paisaje)') + '</button>' + (alEmpezar ? '' : '<div style="margin-top:8px;font-size:12px;color:#9aa6b2">Tecla K para abrir y cerrar.</div>');
   document.body.appendChild(P);
   P.querySelectorAll('button[data-a="nada"],button[data-a="todo"]').forEach(b => b.onclick = () => P.querySelectorAll('input').forEach(i => i.checked = b.dataset.a === 'todo'));
-  return new Promise(res => { P.querySelector('button[data-a="ok"]').onclick = () => { const antes = CAPAS_SIM.map(([k]) => capaOn(k)).join(); P.querySelectorAll('input').forEach(i => guardar(i.dataset.k, i.checked)); P.remove();
-    if (!alEmpezar && antes !== CAPAS_SIM.map(([k]) => capaOn(k)).join() && typeof v3 !== 'undefined' && v3 && v3.activo) { v3.rehacer = true; v3.construido = false; } res(); }; }); };
+  return new Promise(res => { const cerrar = () => { const antes = CAPAS_SIM.map(([k]) => capaOn(k)).join(); P.querySelectorAll('input').forEach(i => guardar(i.dataset.k, i.checked)); P.remove();
+    if (!alEmpezar && antes !== CAPAS_SIM.map(([k]) => capaOn(k)).join() && typeof v3 !== 'undefined' && v3 && v3.activo) { v3.rehacer = true; v3.construido = false; } res(); }; P._cerrar = cerrar; P.querySelector('button[data-a="ok"]').onclick = cerrar; }); };
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
@@ -8299,7 +8299,8 @@ async function construir3D(){
           if (nV) log('3D: ' + nV + ' vallas con el logo.'); }
         log('3D: ' + nG + ' personas en la ciudad, ' + nC + ' corredores, ' + (v3.campos || []).length + ' campos.'); }
       if (DECO) for (const t in DECO) if (t.startsWith('pieza:')) colocadas[t.slice(6)] = colocadas[t.slice(6)] || [];
-      for (const k in colocadas) grabar('pieza:' + k, colocadas[k]); let total = 0; for (const k in colocadas) { const P = await pieza(k); if (!P) continue; for (const { g, m } of P) instanciarPorZonas(esc, g, m, colocadas[k], Q.sombra && !k.startsWith('trigo')); total += colocadas[k].length; }
+      for (const k in colocadas) grabar('pieza:' + k, colocadas[k]); let total = 0; for (const k in colocadas) { if (!capaOn(/arbol|pino|abeto|platano|pl.tano|olmo|chopo|encina|roble|palmera|seto|arbusto|ciprés|cipres|haya|olivo/i.test(k) ? 'arboles' : 'senales')) continue;   /* v280d: las piezas sueltas (árboles de modelo, bancos, fuentes…) también obedecen a las capas */
+        const P = await pieza(k); if (!P) continue; for (const { g, m } of P) instanciarPorZonas(esc, g, m, colocadas[k], Q.sombra && !k.startsWith('trigo')); total += colocadas[k].length; }
       log('3D: piezas por ambiente: ' + total + ' (' + Object.keys(colocadas).map(k => k + ' ' + colocadas[k].length).join(', ') + ').');
     } catch(e) { log('3D: piezas por ambiente: ' + e.message); } }
 
