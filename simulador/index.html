@@ -4103,7 +4103,7 @@ window.panelCapas = function(alEmpezar){ let P = document.getElementById('panelC
   document.body.appendChild(P);
   P.querySelectorAll('button[data-a="nada"],button[data-a="todo"]').forEach(b => b.onclick = () => P.querySelectorAll('input').forEach(i => i.checked = b.dataset.a === 'todo'));
   return new Promise(res => { P.querySelector('button[data-a="ok"]').onclick = () => { const antes = CAPAS_SIM.map(([k]) => capaOn(k)).join(); P.querySelectorAll('input').forEach(i => guardar(i.dataset.k, i.checked)); P.remove();
-    if (!alEmpezar && antes !== CAPAS_SIM.map(([k]) => capaOn(k)).join() && window.v3 && v3.activo) v3.rehacer = true; res(); }; }); };
+    if (!alEmpezar && antes !== CAPAS_SIM.map(([k]) => capaOn(k)).join() && typeof v3 !== 'undefined' && v3 && v3.activo) { v3.rehacer = true; v3.construido = false; } res(); }; }); };
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
