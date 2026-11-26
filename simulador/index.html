@@ -4089,6 +4089,21 @@ function zoomDron(){ return camVis.zoom.dron || zoomCam('dron'); }
 function cambiarZoomDron(f){ zoomDronV = Math.max(0.25, Math.min(2.5, zoomDron() * f)); try { localStorage.setItem('simulador-zoom-dron', zoomDronV); } catch(e) {}
   aviso3d('🔍 Dron ' + (zoomDronV < 0.95 ? 'más cerca' : zoomDronV > 1.05 ? 'más lejos' : 'normal') + ' · ×' + zoomDronV.toFixed(1).replace('.', ',')); }
 document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || !v3.r || e.target !== v3.r.domElement) return; e.preventDefault(); cambiarZoomCam(e.deltaY > 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+
+/* v280 (Carlos: «corro con las carreteras solo, sin decoración, a ver qué hace; añadimos algo, a ver qué hace»; «me lo tendrías que preguntar antes de elegir ver la carrera, no con todo cargado; y una vez allí, cargo primero una cosa, luego otra»):
+   capas del paisaje que se eligen ANTES de montar el 3D (la primera vez de cada visita) y se cambian luego con la tecla K */
+window.CAPAS_SIM = [['arboles', '🌳 Árboles'], ['edificios', '🏠 Edificios y pueblos'], ['monumentos', '🏛️ Monumentos y sitios fijos'], ['senales', '🪧 Señales, bancos y farolas'], ['gente', '🧍 Gente y animales']];
+window.capaOn = function(k){ try { const c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); return c[k] !== false; } catch(e) { return true; } };
+window.panelCapas = function(alEmpezar){ let P = document.getElementById('panelCapas'); if (P) { P.remove(); if (!alEmpezar) return Promise.resolve(); } P = document.createElement('div'); P.id = 'panelCapas';
+  P.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9000;background:rgba(10,14,20,.96);color:#e8edf2;padding:20px 24px;border-radius:14px;font:16px system-ui;min-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.6)';
+  const guardar = (k, v) => { let c = {}; try { c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); } catch(e) {} c[k] = v; localStorage.setItem('sim-capas', JSON.stringify(c)); };
+  P.innerHTML = '<div style="font-size:19px;font-weight:700;margin-bottom:6px">Capas del paisaje</div><div style="font-size:13px;color:#9aa6b2;margin-bottom:10px">La carretera y el terreno siempre están.</div>' + CAPAS_SIM.map(([k, t]) => '<label style="display:block;margin:9px 0;cursor:pointer"><input type="checkbox" data-k="' + k + '"' + (capaOn(k) ? ' checked' : '') + ' style="transform:scale(1.35);margin-right:12px">' + t + '</label>').join('') +
+    '<div style="display:flex;gap:10px;margin-top:14px"><button data-a="nada" style="flex:1;padding:8px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e8edf2">Quitar todo</button><button data-a="todo" style="flex:1;padding:8px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e8edf2">Poner todo</button></div>' +
+    '<button data-a="ok" style="width:100%;margin-top:10px;padding:10px;border-radius:8px;border:0;background:#2ea043;color:#fff;font-weight:700;font-size:16px">' + (alEmpezar ? 'Empezar' : 'Aplicar (se vuelve a montar el paisaje)') + '</button>' + (alEmpezar ? '' : '<div style="margin-top:8px;font-size:12px;color:#9aa6b2">Tecla K para abrir y cerrar.</div>');
+  document.body.appendChild(P);
+  P.querySelectorAll('button[data-a="nada"],button[data-a="todo"]').forEach(b => b.onclick = () => P.querySelectorAll('input').forEach(i => i.checked = b.dataset.a === 'todo'));
+  return new Promise(res => { P.querySelector('button[data-a="ok"]').onclick = () => { const antes = CAPAS_SIM.map(([k]) => capaOn(k)).join(); P.querySelectorAll('input').forEach(i => guardar(i.dataset.k, i.checked)); P.remove();
+    if (!alEmpezar && antes !== CAPAS_SIM.map(([k]) => capaOn(k)).join() && window.v3 && v3.activo) v3.rehacer = true; res(); }; }); };
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
@@ -4105,7 +4120,7 @@ document.addEventListener('keydown', e => {
   else if ((k === ',' || k === '.' || k === '>') && en3d) girarCam(k === '.' || k === '>' ? 15 : -15);
   else if (kl === 'h' || k === 'F1' || k === '?') alternarAyudaTeclas();
   else if (k === 'Enter' && $('confSalir')) responderSalir(true);   // v277: Intro = sí
-  else if ((k === 'k' || k === 'K') && !(e.ctrlKey || e.metaKey || e.altKey)) { panelCapas(); return; }
+  else if (k === 'k' || k === 'K') { window.panelCapas(false); return; }
   else if (k === 'Escape' && $('confSalir')) responderSalir(false);   // v224: Esc otra vez = no
   else if (k === 'Escape') { let cerro = false; for (const id of ['ayudaTeclas', 'pantallaFicha', 'pantallaResumen', 'pantallaTramos', 'pantallaDemo']) { const el = $(id); if (el && !el.hidden) { el.hidden = true; cerro = true; break; } } if (!cerro && quietoEn3d() && !(window.pFicha && pFicha.abierta)) salirASesiones(); else if (!cerro && v3 && v3.activo && sesion.corriendo && !sesion.espect && !$('cronica3d') && !(window.pFicha && pFicha.abierta)) salirASesiones(); }   // v222
   else if (k === 'Enter') { if (!sesion.corriendo) { const b = en3d ? $('b3Empezar') : $('bEmpezar'); if (b && !b.disabled) b.click(); } else hecho = false; }
@@ -7310,15 +7325,6 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const h
   log('3D: sitios fijos en esta zona: ' + L.length + ' (' + L.filter(x => x.k === 'iglesia').length + ' iglesias' + (L.some(x => x.k === 'acueducto') ? ', el acueducto' : '') + L.filter(x => x.nombre).map(x => ', ' + x.nombre).join('') + ').');
   return C.hitos; }
 /* v279 (prueba con Carlos: en el critérium se cargaba todo porque el circuito cabe entero en el radio de 4,5 km): en circuitos de ciudad, sitios fijos hasta 1,2 km y árboles hasta 1,5 km */
-/* v280 (Carlos: «corro con las carreteras solo, sin decoración, a ver qué hace; añadimos algo, a ver qué hace»): capas que se pueden quitar y poner (tecla K) */
-const CAPAS_SIM = [['arboles', '🌳 Árboles'], ['edificios', '🏠 Edificios y pueblos'], ['monumentos', '🏛️ Monumentos y sitios fijos'], ['senales', '🪧 Señales, bancos y farolas'], ['gente', '🧍 Gente y animales']];
-function capaOn(k){ try { const c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); return c[k] !== false; } catch(e) { return true; } }
-function panelCapas(){ let P = document.getElementById('panelCapas'); if (P) { P.remove(); return; } P = document.createElement('div'); P.id = 'panelCapas';
-  P.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7000;background:rgba(10,14,20,.94);color:#e8edf2;padding:18px 22px;border-radius:14px;font:15px system-ui;min-width:320px';
-  P.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:10px">Capas del paisaje</div>' + CAPAS_SIM.map(([k, t]) => '<label style="display:block;margin:8px 0;cursor:pointer"><input type="checkbox" data-k="' + k + '"' + (capaOn(k) ? ' checked' : '') + ' style="transform:scale(1.3);margin-right:10px">' + t + '</label>').join('') +
-    '<div style="margin-top:12px;font-size:12px;color:#9aa6b2">La carretera y el terreno siempre están. Al cambiar algo, el paisaje se vuelve a montar. K para cerrar.</div>';
-  P.querySelectorAll('input').forEach(i => i.onchange = () => { let c = {}; try { c = JSON.parse(localStorage.getItem('sim-capas') || '{}'); } catch(e) {} c[i.dataset.k] = i.checked; localStorage.setItem('sim-capas', JSON.stringify(c)); if (window.v3 && v3.activo) v3.rehacer = true; });
-  document.body.appendChild(P); }
 function radiosCiudad(){ const r = typeof ruta !== 'undefined' && ruta.tramos && ruta.tramos.ruta; return r && r.crit ? { sitios: 1200, arboles: 1500 } : null; }
 function actualizarHitos(cx, cz, presupuestoMs){ const C = v3.trozos; if (!C || !v3.escena) return; const RC = radiosCiudad(), H = listaHitos(), R = RC ? Math.min(C.radio, RC.sitios) : C.radio, t0 = performance.now(), capaDe = k => k === 'edificios' || k === 'barrio' ? 'edificios' : k === 'senales' ? 'senales' : k === 'acera' ? null : 'monumentos';
   if (RC && v3.zonasArb) for (const z of v3.zonasArb) z.im.visible = Math.hypot(z.x - cx, z.z - cz) < RC.arboles + 500;
@@ -7457,6 +7463,7 @@ function pantallaCarga(on, txt){ let P = document.getElementById('cargando3d');
   { const nom = (ruta && (ruta.nombre || (ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.nombre))) || 'Tu ruta', T = P.querySelector('.tit'); if (T) T.textContent = nom; }
   P.style.display = 'flex'; P.style.opacity = '1'; { const V = P.querySelector('#cargando3dVid'); if (V && V.paused) { try { V.currentTime = 0; V.play().catch(() => {}); } catch(e) {} } } if (txt) { const e = document.getElementById('cargando3dEst'); if (e) e.textContent = txt; const p2 = document.getElementById('cargando3dPaso'); if (p2) p2.textContent = txt; } }
 async function construir3D(){
+  if (!window._capasPreguntado) { window._capasPreguntado = true; try { await window.panelCapas(true); } catch(e) {} }
   if (v3.construido || v3.construyendo || !ruta.activa) return;
   const est = t => { $('estado3d').textContent = t; if (t && !/^(No se pudo|Sin conexión)/.test(t)) pantallaCarga(true, t); else if (t) pantallaCarga(false); else { pantallaCarga(true, 'Preparando la primera imagen…'); v3.cargaFotos = 0; setTimeout(() => { if (v3.cargaFotos != null) { v3.cargaFotos = null; pantallaCarga(false); } }, 20000); } };
   if (typeof THREE === 'undefined') { est('Sin conexión: no se ha podido cargar la librería 3D.'); return; }
