@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v277 · critérium de Madrid: curvas redondeadas, acera hasta las fachadas, escaparates distintos y portales, más gente, verjas sin huecos, copas redondas; trazado suave y rampas hasta el 8 %, pasos de cebra, parques con césped y verjas, Palacio Real, Plaza de España y Sol pavimentadas, bulevar del Prado y Recoletos, árboles de las calles, lagos hundidos, casetas de Moyano de colores, árboles menos «de bolas»</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v278 · árboles con sombra propia, más ramilletes y ramas; critérium de Madrid: curvas redondeadas, acera hasta las fachadas, escaparates distintos y portales, más gente, verjas sin huecos, copas redondas; trazado suave y rampas hasta el 8 %, pasos de cebra, parques con césped y verjas, Palacio Real, Plaza de España y Sol pavimentadas, bulevar del Prado y Recoletos, árboles de las calles, lagos hundidos, casetas de Moyano de colores, árboles menos «de bolas»</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -1126,7 +1126,7 @@ function pintarCapaOrdenes(){ let P = $('capaOrdenes'); if (!capa.ordenes) { if 
   if (!P) { P = document.createElement('div'); P.id = 'capaOrdenes'; document.body.appendChild(P); }
   P.innerHTML = '<div class="tt">📣 Órdenes · ↑ ↓ elegir · A dar la orden · Z salir</div>' + ORDENES_LISTA.map((o, i) => '<div class="op' + (i === capa.iOrden ? ' foco' : '') + '">' + ORDEN_TXT[o] + (carrera.orden === o ? ' <b>· ahora</b>' : '') + '</div>').join(''); }
 function abrirOrdenes(){ if (!hayEquipo()) { aviso3d('Órdenes: solo en carrera, con tu equipo'); return; } capa.ordenes = !capa.ordenes; capa.iOrden = Math.max(0, ORDENES_LISTA.indexOf(carrera.orden)); pintarCapaOrdenes(); }
-function pantallaLimpia(){ capa.limpia = !capa.limpia; document.body.classList.toggle('limpia', capa.limpia); aviso3d(capa.limpia ? 'Pantalla limpia · Z para volver' : 'Ventanas de vuelta'); }
+function pantallaLimpia(){ capa.limpia = !capa.limpia; document.body.classList.toggle('limpia', capa.limpia); aviso3d(capa.limpia ? 'Pantalla limpia · Z o Tab para volver' : 'Ventanas de vuelta'); }
 function camaraNormal(){ giroCamV = 0; inclCamV = 0; const c = $('camara3d'), Z = zoomesCam(); Z[c.value] = 1; try { localStorage.setItem('simulador-zoom-cam', JSON.stringify(Z)); } catch(e) {}
   c.selectedIndex = 0; if (c.onchange) c.onchange(); aviso3d('🎥 Cámara normal'); }
 // v222 (Carlos: «desde la pantalla 3D, Esc o un botón del Play debería salir a la selección de qué sesión hacer»): sin rodar ni mirar una carrera, B del Play o Esc
@@ -4092,6 +4092,7 @@ document.addEventListener('wheel', e => { if (!(v3 && v3.activo) || !v3.r || e.t
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
   const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k, pedaleo = demo.manual && sesion.demo;
+  if (k === 'Tab' && v3 && v3.activo && !panelAbierto()) { e.preventDefault(); pantallaLimpia(); return; }   /* v277 (Carlos: «la Z no quita las ventanas al hacer un recorrido por libre»): con el pedaleo simulado la Z es del 55 % FTP; el tabulador limpia la pantalla siempre */
   if (pedaleo && !panelAbierto() && (/^[zxcvb0+\- ]$/.test(kl) || k === 'ArrowUp' || k === 'ArrowDown')) return;   // son del pedaleo simulado
   if (kl === 'r' || kl === 'g' || kl === 'm') return;   // ya tienen su propio manejo
   const en3d = !!(v3 && v3.activo); let hecho = true;
@@ -6829,8 +6830,9 @@ function geoCasetas(P, hR, sem){ const M = obraMadrid(), E = ejeP(P), ca = Math.
     M.caja(cx, cz, E.a, hu + 0.15, W + 0.35, y0 + H, y0 + H + 0.14, tono(0x4a3a2e)); M.caja(cx, cz, E.a, hu + 0.05, W - 0.2, y0 + H + 0.14, y0 + H + 0.42, osc); }
   return geoFin(M.out); }
 /* v276: lago o estanque de OpenStreetMap: agua a ras de la orilla más baja (el vaso lo excava el terreno) y un bordillo bajo */
-function geoLago(P, hR){ const M = obraMadrid(); let hMin = Infinity; for (const [x, z] of P) hMin = Math.min(hMin, hR(x, z));
-  M.pretil(P, hMin - 1.2, hMin + 0.12, 0.35, tono(0x9a9282)); M.lamina(P, hMin - 0.08, MAD.agua()); return geoFin(M.out); }
+function geoLago(P, hR){ const M = obraMadrid(), hs = P.map(([x, z]) => hR(x, z)).filter(Number.isFinite).sort((a, b) => a - b); if (hs.length < 3) return null; const hMin = hs[0], hMax = hs[hs.length - 1], nv = hs[Math.floor(hs.length / 4)];
+  let ar = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; ar += a[0] * b[1] - b[0] * a[1]; } if (hMax - hMin > 4 && Math.abs(ar) / 2 < 3000) return null;
+  M.pretil(P, hMin - 1.2, nv + 0.12, 0.35, tono(0x9a9282)); M.lamina(P, nv - 0.08, MAD.agua()); return geoFin(M.out); }
 function dentroP(x, z, P){ let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if (((a[1] > z) !== (b[1] > z)) && (x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0])) c = !c; } return c; }
 function fachadas(M, P, yb, H, pared, ventana, alto, opc){ opc = opc || {}; const [cx, cz] = centroP(P), piso = opc.piso || 3.6, paso = opc.paso || 3.3;
   for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.05) continue; const ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L; let nx = uz, nz = -ux;
@@ -6914,15 +6916,16 @@ function geoSingular(tipo, P, hR, foco){ const M = obraMadrid(); let hMin = Infi
 /* v276 (Carlos: «faltan los jardines del Palacio Real, hay un descampado»; «hay que pavimentar la Plaza de España»): césped de los parques y pavimento de las plazas, en baldosas de 6 m que siguen el suelo; nunca encima de la calzada de la ruta */
 /* v277 (Carlos: «el pavimento es muy irregular», «el pavimentado de Cibeles no queda muy bien»): el suelo ya no se hace a cuadros de 6 m con el borde en escalera;
    se triangula la planta de verdad (con sus huecos), se parte en triángulos de menos de 7 m para seguir el terreno y el tono apenas varía */
-function geoSuelo(P, hR, sub, libre, huecos){ const M = obraMadrid(), off = sub === 'pavimento' ? 0.09 : sub === 'asfalto' ? 0.08 : 0.07;
+function geoSuelo(P, hR, sub, libre, huecos){ const M = obraMadrid(), off = sub === 'pavimento' ? 0.09 : (sub === 'asfalto' || sub === 'glorieta') ? 0.08 : 0.07;
   const densa = R => { const o = []; for (let i = 0; i < R.length; i++) { const a = R[i], b = R[(i + 1) % R.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / 6)); for (let k = 0; k < n; k++) o.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); } return o; };
   const C0 = densa(P), HO = (huecos || []).filter(h => h.length > 2).map(densa), V = C0.concat(...HO);
   let tr; try { tr = THREE.ShapeUtils.triangulateShape(C0.map(([x, z]) => new THREE.Vector2(x, z)), HO.map(h => h.map(([x, z]) => new THREE.Vector2(x, z)))); } catch (e) { return null; }
-  const base = sub === 'pavimento' ? [0.80, 0.78, 0.72] : sub === 'asfalto' ? [0.33, 0.335, 0.345] : [0.36, 0.54, 0.23];
+  const base = sub === 'pavimento' ? [0.80, 0.78, 0.72] : (sub === 'asfalto' || sub === 'glorieta') ? [0.2, 0.205, 0.215] : [0.36, 0.54, 0.23];
   const hp = new Map(), H = (x, z) => { const k = Math.round(x * 4) + ',' + Math.round(z * 4); if (!hp.has(k)) hp.set(k, hR(x, z) + off); return hp.get(k); };
   const pon = (a, b, c, n) => { const L = Math.max(Math.hypot(a[0] - b[0], a[1] - b[1]), Math.hypot(b[0] - c[0], b[1] - c[1]), Math.hypot(c[0] - a[0], c[1] - a[1]));
     if (L > 7 && n < 7) { const ab = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], bc = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2], ca = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2]; pon(a, ab, ca, n + 1); pon(ab, b, bc, n + 1); pon(ca, bc, c, n + 1); pon(ab, bc, ca, n + 1); return; }
     const cx = (a[0] + b[0] + c[0]) / 3, cz = (a[1] + b[1] + c[1]) / 3; if (libre && !libre(cx, cz)) return;
+    if (sub === 'asfalto') { const ya = H(a[0], a[1]), yb = H(b[0], b[1]), yc = H(c[0], c[1]), ux = b[0] - a[0], uy = yb - ya, uz = b[1] - a[1], vx = c[0] - a[0], vy = yc - ya, vz = c[1] - a[1], nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (Math.abs(ny) < 0.985 * Math.hypot(nx, ny, nz)) return; }   /* v277 (Carlos: «¿podemos igualar el suelo de esta zona?»): el asfalto no se estira por los taludes */
     const j = (Math.abs(Math.sin(cx * 0.173 + cz * 0.311) * 4375.85) % 1 - 0.5) * (sub === 'cesped' ? 0.08 : 0.04), col = new THREE.Color(base[0] * (1 + j), base[1] * (1 + j), base[2] * (1 + j));
     M.tri([a[0], H(a[0], a[1]), a[1]], [b[0], H(b[0], b[1]), b[1]], [c[0], H(c[0], c[1]), c[1]], col, [cx, -1e4, cz]); };
   for (const [a, b, c] of tr) pon(V[a], V[b], V[c], 0);
@@ -7142,7 +7145,9 @@ function vestirEdificio(tipo, lv, P, hR, acum, prof = 0){
       bx.setAttribute('color', new THREE.BufferAttribute(cc, 3)); bx.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(px, (y0 + yMin) / 2 - 0.25, pz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(fx, fz)), new THREE.Vector3(1, 1, 1)));
       let A = acum.por.get(mp.uuid); if (!A) acum.por.set(mp.uuid, A = { mat: mp, g: [] }); A.g.push(bx); }
     const mm = new THREE.Matrix4().compose(new THREE.Vector3(px, y0 - 0.08, pz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(fx, fz) + (atras ? Math.PI : 0)), new THREE.Vector3(sx, sy, sz));
-    for (const pt of M.partes) { const g = pt.geo.clone().applyMatrix4(mm), id = pt.mat.uuid; let A = acum.por.get(id); if (!A) acum.por.set(id, A = { mat: pt.mat, g: [] }); A.g.push(g); } }
+    /* v277 (Carlos: «los escaparates siguen teniendo todos la misma imagen»): en los edificios del catálogo el escaparate sale con una de las cuatro imágenes según el sitio del edificio */
+    const MC = matsCasa(), hs = Math.abs(Math.sin(px * 12.9898 + pz * 78.233) * 43758.5453) % 1, escV = [MC.escaparate, MC.escaparate2, MC.escaparate3, MC.escaparate4][Math.floor(hs * 4) % 4];
+    for (const pt of M.partes) { const mt = (pt.mat === MC.escaparate && escV) ? escV : pt.mat, g = pt.geo.clone().applyMatrix4(mm), id = mt.uuid; let A = acum.por.get(id); if (!A) acum.por.set(id, A = { mat: mt, g: [] }); A.g.push(g); } }
   return true; }
 function juntarGeos(L){ const nombres = Object.keys(L[0].attributes).filter(n => L.every(g => g.getAttribute(n))), out = new THREE.BufferGeometry();
   for (const n of nombres) { const sz = L[0].getAttribute(n).itemSize; let t = 0; for (const g of L) t += g.getAttribute(n).array.length; const A = new Float32Array(t); let o = 0; for (const g of L) { A.set(g.getAttribute(n).array, o); o += g.getAttribute(n).array.length; } out.setAttribute(n, new THREE.BufferAttribute(A, sz)); }
@@ -7244,7 +7249,7 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const h
   /* v267: edificios de OSM por cuadrados (cargados al montar la ruta); sustituyen a los cascos antiguos de pueblos.js y de hitos «barrio» */
   const CONED = !!(v3.edifCel && v3.edifCel.size);
   if (CONED) for (const [ck, c] of v3.edifCel) { if (!C.dentro(c.x, c.z)) continue; const ed = c.l.filter(e => e[0] !== 'iglesia').map(([t, lv, P]) => [t, lv, P.map(([x, z]) => [x - c.x, z - c.z])]); if (!ed.length) continue;
-    L.push({ k: 'edificios', x: c.x, z: c.z, r: 470, nombre: null, hacer: () => { const base = hVis(c.x, c.z), G = geoEdificios(ed, (x, z) => hVis(c.x + x, c.z + z) - base, { x: c.x, z: c.z }); G.position.set(c.x, base, c.z); return G; } }); }
+    L.push({ k: 'edificios', x: c.x, z: c.z, r: 470, nombre: null, hacer: () => { const base = hVis(c.x, c.z), hEd = (X, Z) => { const h = hVis(X, Z); return v3.sobreAcera ? v3.sobreAcera(X, Z, h) : h; }, G = geoEdificios(ed, (x, z) => hEd(c.x + x, c.z + z) - base,   /* v277 (Carlos: «en esta zona las ventanas se hunden en el terreno»): junto a la acera del critérium el edificio arranca a la altura de la acera */ { x: c.x, z: c.z }); G.position.set(c.x, base, c.z); return G; } }); }
   if (v3.senCel) for (const [ck, c] of v3.senCel) { if (!C.dentro(c.x, c.z)) continue; const sl = c.l.map(o => Object.assign({}, o, { x: o.x - c.x, z: o.z - c.z, cx: c.x, cz: c.z }));
     L.push({ k: 'senales', x: c.x, z: c.z, r: 470, nombre: null, hacer: () => { const base = hVis(c.x, c.z), G = geoSenales(sl, (x, z) => hVis(c.x + x, c.z + z) - base, (x, z) => { const X = c.x + x, Z = c.z + z, cc = v3.cercana && v3.via ? v3.cercana(X, Z) : null; if (!(cc && cc.d < 4.5)) return hVis(X, Z) + 0.09 - base;
         const V = v3.via; let best = 1e9, yy = V[cc.i].y; for (const j of [cc.i - 1, cc.i]) { if (j < 0 || j + 1 >= V.length) continue; const a = V[j], b = V[j + 1], ex = b.x - a.x, ez = b.z - a.z, L2 = ex * ex + ez * ez || 1, u = Math.max(0, Math.min(1, ((X - a.x) * ex + (Z - a.z) * ez) / L2)), d = Math.hypot(a.x + ex * u - X, a.z + ez * u - Z); if (d < best) { best = d; yy = a.y + (b.y - a.y) * u; } }
@@ -7283,7 +7288,7 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const h
     if (['alcala', 'estanque', 'cristal', 'angel', 'cibeles', 'neptuno', 'verja', 'singular', 'suelo', 'lago', 'casetas'].includes(h.tipo)) { const loc = arr => (arr || []).map(([la, lo]) => { const p = v3.aXZ(la, lo); return [p.x - q.x, p.z - q.z]; });   /* v274: monumentos del critérium de Madrid */
       const P = loc(h.planta), A = loc(h.agua), Mo = loc(h.monumento), Ls = (h.lineas || []).map(loc), todos = [].concat(P, A, Mo, ...Ls), r = Math.max(20, ...todos.map(([x, z]) => Math.hypot(x, z)));
       L.push({ k: h.tipo, x: q.x, z: q.z, r, nombre: h.nombre, hacer: () => { const base = hVis(q.x, q.z), hR = (x, z) => hVis(q.x + x, q.z + z) - base;
-        const g = h.tipo === 'suelo' ? geoSuelo(P, hR, h.sub, (x, z) => !v3.cercana || v3.cercana(q.x + x, q.z + z).d > (h.sub === 'asfalto' ? 5 : 6), h.huecos ? h.huecos.map(hh => loc(hh)) : null) : h.tipo === 'singular' ? geoSingular(h.sub, P, hR, loc([h.foco])[0]) : h.tipo === 'alcala' ? geoAlcala(P) : h.tipo === 'casetas' ? geoCasetas(P, hR, Math.round(Math.abs(h.lat * 1e6))) : h.tipo === 'lago' ? geoLago(P, hR) : h.tipo === 'estanque' ? geoEstanque(A, Mo, hR) : h.tipo === 'cristal' ? geoCristal(P, A, hR) : h.tipo === 'verja' ? geoVerja(Ls, hR, (x, z) => !v3.cercana || v3.cercana(q.x + x, q.z + z).d < 380) : geoFuente(P, h.tipo, hR);
+        const g = h.tipo === 'suelo' ? geoSuelo(P, hR, h.sub, (x, z) => !v3.cercana || v3.cercana(q.x + x, q.z + z).d > (h.sub === 'asfalto' ? 36 : h.sub === 'glorieta' ? 4.4 : h.sub === 'cesped' && /Isleta/.test(h.nombre || '') ? 1e-9 : 6), h.huecos ? h.huecos.map(hh => loc(hh)) : null) : h.tipo === 'singular' ? geoSingular(h.sub, P, hR, loc([h.foco])[0]) : h.tipo === 'alcala' ? geoAlcala(P) : h.tipo === 'casetas' ? geoCasetas(P, hR, Math.round(Math.abs(h.lat * 1e6))) : h.tipo === 'lago' ? geoLago(P, hR) : h.tipo === 'estanque' ? geoEstanque(A, Mo, hR) : h.tipo === 'cristal' ? geoCristal(P, A, hR) : h.tipo === 'verja' ? geoVerja(Ls, hR, (x, z) => !v3.cercana || v3.cercana(q.x + x, q.z + z).d < 380) : geoFuente(P, h.tipo, hR);
         if (!g) return new THREE.Group(); const mt = h.tipo === 'suelo' ? (C.matSuelo = C.matSuelo || new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 })) : C.hitos.mat;
         const me = new THREE.Mesh(g, mt); me.position.set(q.x, base, q.z); me.castShadow = h.tipo !== 'suelo' && calidad().sombra; me.receiveShadow = calidad().sombra; if (h.tipo !== 'suelo') log('3D: ' + h.nombre + ' en su sitio.'); return me; } }); continue; }
     if (h.tipo === 'iglesia' || h.tipo === 'ermita') { const tp = h.tipo === 'ermita' ? 1 : 0, Lg = h.largo || (tp ? 14 : 24), Wg = h.ancho || (tp ? 8 : 13), b = (h.rumbo == null ? 90 : h.rumbo) * Math.PI / 180;
@@ -7295,7 +7300,7 @@ function listaHitos(){ const C = v3.trozos; if (C.hitos) return C.hitos; const h
       const a0 = i0, a1 = i1, m = via[Math.floor((a0 + a1) / 2)]; i0 = i1;
       L.push({ k: 'acera', x: m.x, z: m.z, r: 110, hacer: () => { const P = [], B = [];
         /* v277 (Carlos: «el pavimentado de Cibeles no queda muy bien»): la acera no pisa las fuentes ni se monta sobre otro trozo de la ruta (curvas cerradas, glorietas) */
-        const NOAC = v3.noAcera || (v3.noAcera = ((window.RECURSOS_SIM && RECURSOS_SIM.hitos) || []).filter(h => ['cibeles', 'neptuno', 'angel', 'estanque', 'cristal', 'lago'].includes(h.tipo) && h.planta).map(h => { const c = v3.aXZ(h.lat, h.lon); let r = 0; for (const [la, lo] of h.planta) { const q = v3.aXZ(la, lo); r = Math.max(r, Math.hypot(q.x - c.x, q.z - c.z)); } return { x: c.x, z: c.z, r: r + 1.5 }; }));
+        const NOAC = v3.noAcera || (v3.noAcera = ((window.RECURSOS_SIM && RECURSOS_SIM.hitos) || []).filter(h => (['cibeles', 'neptuno', 'angel', 'estanque', 'cristal', 'lago'].includes(h.tipo) || (h.tipo === 'suelo' && h.sub === 'glorieta')) && h.planta).map(h => { const c = v3.aXZ(h.lat, h.lon); let r = 0; for (const [la, lo] of h.planta) { const q = v3.aXZ(la, lo); r = Math.max(r, Math.hypot(q.x - c.x, q.z - c.z)); } return { x: c.x, z: c.z, r: r + 1.5 }; }));
         const ajena = (x, z, d0, o) => { for (const f of NOAC) if (Math.hypot(x - f.x, z - f.z) < f.r) return true; const c = v3.cercana(x, z); if (c.d > o - 1.5) return false; let dd = Math.abs(via[c.i].d - d0) % vuelta; dd = Math.min(dd, vuelta - dd); return dd > 25; };
         for (let i = a0; i < a1; i++) { const v = via[i], w = via[i + 1], t = tramoEn(v.d) || {}, t2 = tramoEn(w.d) || {}; if (t.sup !== 'carretera' && t.sup !== 'paseo') continue;
           const Lv = Math.hypot(w.x - v.x, w.z - v.z); if (Lv < 0.05) continue; const tx = (w.x - v.x) / Lv, tz = (w.z - v.z) / Lv, an = t.sup === 'paseo' ? 2.0 : 4.35;   /* v277 (Carlos: «la unión pavimento/carretera podría resolverse mejor»): el bordillo tapa la orilla sucia del asfalto */
@@ -7519,7 +7524,8 @@ async function construir3D(){
     via.forEach((v, i) => { const k = clave(v.x, v.z); if (!celdas.has(k)) celdas.set(k, []); celdas.get(k).push(i); });
     const GR = 400, gruesa = new Map();
     /* v277 (Carlos: «muñecos del público hundidos en el asfalto»): en las calles del critérium la acera va a la altura de la calle; la gente se pone encima */
-    v3.sobreAcera = (x, z, y) => { if (!(ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.crit)) return y; const c = v3.cercana(x, z); if (c.d > 30) return y; const t = tramoEn(via[c.i].d) || {}; if (t.sup !== 'carretera' && t.sup !== 'paseo') return y; return Math.max(y, via[c.i].y + 0.36); };
+    v3.sobreAcera = (x, z, y) => { if (!(ruta.tramos && ruta.tramos.ruta && ruta.tramos.ruta.crit)) return y; const c = v3.cercana(x, z); if (c.d > 40) return y; const t = tramoEn(via[c.i].d) || {}; if (t.sup !== 'carretera' && t.sup !== 'paseo') return y;
+      const o = c.d - (t.sup === 'paseo' ? 2.0 : 4.35), ya = via[c.i].y + 0.34; if (o <= 13) return Math.max(y, ya); const f = Math.min(1, (o - 13) / 19); return Math.max(y, ya * (1 - f) + (y + 0.12) * f); };   /* el mismo perfil que la acera */
     const cercana = v3.cercana = (x, z) => { let best = Infinity, bi = 0; const cx = Math.floor(x / CEL), cz = Math.floor(z / CEL);
       for (let r = 1; r <= 6 && best === Infinity; r++) { for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) { if (r > 1 && Math.abs(a) < r && Math.abs(b) < r) continue;
         for (const i of (celdas.get((cx + a) + ',' + (cz + b)) || [])) { const dx = via[i].x - x, dz = via[i].z - z, d = dx * dx + dz * dz; if (d < best) { best = d; bi = i; } } }
@@ -7599,7 +7605,12 @@ async function construir3D(){
        hasta 1 m por debajo de su orilla más baja; el agua se pone a ras de esa orilla */
     const LAGOS = []; if (TEMA.real && dem && window.RECURSOS_SIM && RECURSOS_SIM.hitos) for (const h of RECURSOS_SIM.hitos) { const pl = h.agua || (h.tipo === 'lago' ? h.planta : null); if (!pl || pl.length < 3) continue;
       const P = pl.map(([la, lo]) => { const p = aXZ(la, lo); return [p.x, p.z]; }); let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, nv = Infinity;
-      for (let i = 0; i < pl.length; i++) { const [x, z] = P[i]; x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); nv = Math.min(nv, dem(pl[i][0], pl[i][1])); }
+      let nx = -Infinity; for (let i = 0; i < pl.length; i++) { const [x, z] = P[i]; x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); const hd = dem(pl[i][0], pl[i][1]); nv = Math.min(nv, hd); nx = Math.max(nx, hd); }
+      /* v277 (Carlos: «esa mancha negra», primera curva desde la salida): con el agua a ras de la orilla MÁS BAJA, un estanque en cuesta dejaba un foso hondo y en sombra.
+         Ahora el agua va a la altura de la cuarta parte más baja de la orilla, y los estanques pequeños y muy en cuesta (canales, cascadas) no se excavan ni se dibujan */
+      let ar = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; ar += a[0] * b[1] - b[0] * a[1]; } ar = Math.abs(ar) / 2;
+      if (h.tipo === 'lago' && nx - nv > 4 && ar < 3000) continue;
+      if (h.tipo === 'lago') { const hs = pl.map(q => dem(q[0], q[1])).sort((a, b) => a - b); nv = hs[Math.floor(hs.length / 4)]; }
       LAGOS.push({ P, x0, x1, z0, z1, nv }); }
     const conLago = (x, z, h) => { for (const L of LAGOS) { if (x < L.x0 || x > L.x1 || z < L.z0 || z > L.z1) continue; const P = L.P; let c = false, dm = 1e9;
         for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if (((a[1] > z) !== (b[1] > z)) && (x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0])) c = !c;
@@ -7869,24 +7880,31 @@ async function construir3D(){
       const arcen = new THREE.Mesh(ga, new THREE.MeshLambertMaterial({ color: (ruta.tramos && ruta.tramos.ruta.cx) ? 0x8c7a58 : TEMA.montana ? 0x6f6a4c : 0x7e7c72, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })); arcen.receiveShadow = true; esc.add(arcen); }
     // árboles (instancias), fuera de la carretera y por debajo de 1.900 m
     const juntar = gs => { const po = [], no = []; for (const g0 of gs) { const g = g0.index ? g0.toNonIndexed() : g0; po.push(...g.getAttribute('position').array); no.push(...g.getAttribute('normal').array); }
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(po, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(no, 3)); return g; };
+      /* v278 (Carlos: «¿podemos hacer los árboles algo más reales?»): sombra propia en la copa — más oscura por debajo y por dentro, más clara arriba y en lo que mira al sol — como color de vértice, que se multiplica por el tono de cada árbol */
+      let y0 = Infinity, y1 = -Infinity, cx = 0, cz = 0; const nv = po.length / 3; for (let i = 0; i < nv; i++) { y0 = Math.min(y0, po[i * 3 + 1]); y1 = Math.max(y1, po[i * 3 + 1]); cx += po[i * 3]; cz += po[i * 3 + 2]; } cx /= nv; cz /= nv;
+      let rM = 0.01; for (let i = 0; i < nv; i++) rM = Math.max(rM, Math.hypot(po[i * 3] - cx, po[i * 3 + 2] - cz)); const co = new Float32Array(nv * 3);
+      for (let i = 0; i < nv; i++) { const t = (po[i * 3 + 1] - y0) / Math.max(0.01, y1 - y0), fuera = Math.hypot(po[i * 3] - cx, po[i * 3 + 2] - cz) / rM, ny = no[i * 3 + 1], sol = Math.max(0, no[i * 3] * 0.5 + ny * 0.7 + no[i * 3 + 2] * 0.3);
+        const v = Math.max(0.42, Math.min(1.12, 0.5 + 0.38 * t + 0.16 * fuera + 0.14 * sol + (ny < -0.2 ? -0.12 : 0))); co[i * 3] = v; co[i * 3 + 1] = v * 1.01; co[i * 3 + 2] = v * 0.97; }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(po, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(no, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(co, 3)); return g; };
     const piso = (r, h, y) => { const c = new THREE.ConeGeometry(r, h, 8); c.translate(0, y + h / 2, 0); return c; };
     const copaPino = juntar([piso(2.4, 4.2, 1.6), piso(1.9, 3.6, 3.6), piso(1.3, 3.0, 5.6)]);
     /* v276 (Carlos: «los árboles del Retiro son una acumulación de esferas»): cada bola de la copa sale abollada (ramilletes), no lisa; la forma depende del sitio del vértice, así que no se abren grietas */
     const bola = (r, x, y, z, sy) => { const g = new THREE.IcosahedronGeometry(r, 1), P = g.getAttribute('position'), N = g.getAttribute('normal'), v = new THREE.Vector3();
       for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i); const u = v.clone().normalize(), s0 = x * 3.1 + z * 1.7 + r;
         const n = Math.sin(u.x * 4.3 + s0) * Math.sin(u.z * 3.7 - s0 * 0.7) * 0.6 + Math.sin(u.y * 5.1 + u.x * 2.2 + s0 * 1.3) * 0.4;
-        const f = 1 + 0.1 * n - (u.y < -0.3 ? 0.1 * (-u.y - 0.3) : 0); P.setXYZ(i, v.x * f, v.y * f, v.z * f); N.setXYZ(i, u.x, u.y / sy, u.z); }
+        const f = 1 + 0.13 * n - (u.y < -0.3 ? 0.12 * (-u.y - 0.3) : 0); P.setXYZ(i, v.x * f, v.y * f, v.z * f); N.setXYZ(i, u.x, u.y / sy, u.z); }
       /* v276b (Carlos: «¿podemos redondear más la copa?»): bollos más suaves y la luz se reparte como en una bola (normales hacia fuera del centro), sin aristas de cristal */
       g.scale(1, sy, 1); g.translate(x, y, z); g.getAttribute('normal').needsUpdate = true; g.normalizeNormals(); return g; };
-    const copaFrondosa = juntar([bola(2.4, 0, 4.2, 0, 0.85), bola(1.7, 1.2, 5.0, 0.5, 0.9), bola(1.5, -1.1, 4.8, -0.4, 0.9)]);
-    const troncoG = new THREE.CylinderGeometry(0.18, 0.3, 2.4, 6); troncoG.translate(0, 1.2, 0);
-    const troncoAlto = new THREE.CylinderGeometry(0.2, 0.34, 3.4, 6); troncoAlto.translate(0, 1.7, 0);   /* v276 (Carlos: «en algunos la copa está separada del tronco»): haya y chopo tienen la copa más alta; el tronco llega dentro de ella */
+    const copaFrondosa = juntar([bola(2.2, 0, 4.3, 0, 0.85), bola(1.6, 1.4, 4.9, 0.6, 0.9), bola(1.5, -1.3, 4.8, -0.5, 0.9), bola(1.3, 0.3, 5.7, -1.2, 0.9), bola(1.2, -0.4, 3.6, 1.4, 0.8)]);   /* v278: cinco ramilletes, la silueta menos de bola */
+    const limbo = (l, r, y, rx, rz) => { const g = new THREE.CylinderGeometry(r * 0.45, r, l, 5); g.translate(0, l / 2, 0); g.rotateZ(rz); g.rotateX(rx); g.translate(0, y, 0); return g; };
+    /* v278: el tronco se abre en tres ramas gruesas que se meten en la copa (antes era un palo recto) */
+    const troncoG = juntar([(() => { const g = new THREE.CylinderGeometry(0.17, 0.32, 2.6, 7); g.translate(0, 1.3, 0); return g; })(), limbo(1.7, 0.13, 2.1, 0.05, 0.6), limbo(1.6, 0.12, 2.2, 0.55, -0.45), limbo(1.5, 0.11, 2.3, -0.6, -0.2)]);
+    const troncoAlto = juntar([(() => { const g = new THREE.CylinderGeometry(0.2, 0.36, 3.6, 7); g.translate(0, 1.8, 0); return g; })(), limbo(2.0, 0.15, 3.0, 0.05, 0.55), limbo(1.9, 0.14, 3.1, 0.6, -0.4), limbo(1.8, 0.13, 3.2, -0.55, -0.25)]);   /* v276 (Carlos: «en algunos la copa está separada del tronco»): haya y chopo tienen la copa más alta; el tronco llega dentro de ella */
     const pinos = [], frondosos = [], m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eje = new THREE.Vector3(0, 1, 0);
     const CX = ruta.tramos && ruta.tramos.ruta.cx;
     const HUECOS = (CX && CX.hitos && typeof aXZ === 'function') ? CX.hitos.map(h => { const p = aXZ(h.lat, h.lon); return { x: p.x, z: p.z, r: h.r || 17 }; }) : [];   /* v234: parcela de la iglesia (y demás hitos) sin árboles */
     /* v254 (cocheras, plaza de toros…): sin árboles dentro de los sitios fijos de recursos/hitos.js (su planta o recinto) */
-    if (TEMA.real && typeof aXZ === 'function' && window.RECURSOS_SIM && RECURSOS_SIM.hitos) for (const h of RECURSOS_SIM.hitos.concat((RECURSOS_SIM.pueblosReales || []).map(p => ({ tipo: 'barrio', lat: p.lat, lon: p.lon, r: p.r })))) { if (h.tipo === 'muralla' || (h.tipo === 'suelo' && h.sub === 'asfalto')) continue; if (h.tipo === 'barrio') { const q = aXZ(h.lat, h.lon); HUECOS.push({ x: q.x, z: q.z, r: (h.r || 600) * 0.85 }); continue; } const P = h.recinto || h.planta; if (!P || !P.length) continue;
+    if (TEMA.real && typeof aXZ === 'function' && window.RECURSOS_SIM && RECURSOS_SIM.hitos) for (const h of RECURSOS_SIM.hitos.concat((RECURSOS_SIM.pueblosReales || []).map(p => ({ tipo: 'barrio', lat: p.lat, lon: p.lon, r: p.r })))) { if (h.tipo === 'muralla' || (h.tipo === 'suelo' && (h.sub === 'asfalto' || h.sub === 'glorieta'))) continue; if (h.tipo === 'barrio') { const q = aXZ(h.lat, h.lon); HUECOS.push({ x: q.x, z: q.z, r: (h.r || 600) * 0.85 }); continue; } const P = h.recinto || h.planta; if (!P || !P.length) continue;
       const q = aXZ(h.lat, h.lon); let r = 0; for (const [la, lo] of P) { const p = aXZ(la, lo); r = Math.max(r, Math.hypot(p.x - q.x, p.z - q.z)); } if (r > 0 && r < 700) HUECOS.push({ x: q.x, z: q.z, r: r * 1.05 + 4 }); }
     // v234: iglesias y ermitas reales de OpenStreetMap junto a la ruta (no en ciudades grandes, no donde ya hay un hito como la iglesia de Prádena)
     v3.iglesias = [];
@@ -8125,7 +8143,7 @@ async function construir3D(){
     const montar = (lista, copaGeo, tonos, tg) => { if (!lista.length) return;
       const az = m => { if (!DECO) return [Math.random(), Math.random()]; const g = aLatLon(m.elements[12], m.elements[14]), h = mulberry(((Math.round(g.lat * 1e5) * 73856093) ^ (Math.round(g.lon * 1e5) * 19349663)) | 0); return [h(), h()]; };   /* v266: con decoración guardada, el tono sale del sitio */
       const cols = lista.map(m => { const [r1, r2] = az(m); return new THREE.Color().setHex(tonos[Math.floor(r1 * tonos.length)]).multiplyScalar(0.85 + r2 * 0.3); });
-      const copa = instanciarPorZonas(esc, copaGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), lista, Q.sombra, cols);
+      const copa = instanciarPorZonas(esc, copaGeo, new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: !!copaGeo.getAttribute('color') }), lista, Q.sombra, cols);
       const tronco = instanciarPorZonas(esc, tg || troncoG, new THREE.MeshLambertMaterial({ color: 0x5a3d27 }), lista, Q.sombra);
       return { copa, tronco }; };
     grabar('pino', pinos); const mPinos = montar(pinos, copaPino, TEMA.nieve ? [0xe4ecf0, 0xd5dfe4, 0xc8d4da, 0x2a4a22, 0xdfe8ec] : [0x2a4a22, 0x24401f, 0x31552a, 0x1f3a1c, 0x2f4f2a]);
@@ -8292,7 +8310,7 @@ async function construir3D(){
       montar(ESP.olivo, copaOlivo, [0x7d8f62, 0x8a9a6c, 0x748859, 0x93a174]);
       montar(ESP.chopo, copaChopo, otono ? [0xd9b23a, 0xc9a23a, 0xe0c048, 0xb79a3a] : ESTACION === 'primavera' ? [0x86b04c, 0x7aa548] : [0x5f8f36, 0x6a9a3c, 0x588632], troncoAlto);
       montar(ESP.arbusto, copaArbusto, ESTACION === 'primavera' ? [0xc9b23a, 0x5f6e3a, 0xd2bb3e, 0x6a7a40] : [0x5f6e3a, 0x6a7a40, 0x56633a, 0x4f5c34]);
-      const copaHaya = juntar([bola(2.9, 0, 5.4, 0, 1.0), bola(2.2, 1.6, 6.3, 0.6, 0.9), bola(2.1, -1.5, 6.1, -0.7, 0.9), bola(1.9, 0.3, 7.4, -1.2, 0.85)]);   /* v266 (Carlos: «de Riaza a La Pedrosa, abajo robledal y arriba hayedo») */
+      const copaHaya = juntar([bola(2.6, 0, 5.5, 0, 1.0), bola(2.1, 1.8, 6.2, 0.7, 0.9), bola(2.0, -1.7, 6.0, -0.8, 0.9), bola(1.8, 0.3, 7.5, -1.3, 0.85), bola(1.6, -0.6, 4.6, 1.7, 0.8), bola(1.5, 1.2, 7.2, 1.0, 0.85)]);   /* v266 (Carlos: «de Riaza a La Pedrosa, abajo robledal y arriba hayedo») */
       montar(ESP.haya, copaHaya, otono ? [0xc8781e, 0xd48a24, 0xb8621c, 0xe0a030, 0x9c4e1a, 0xd9a43a, 0xa85a1e]   /* las fotos de Carlos del hayedo de la Pedrosa (4-nov) */ : ESTACION === 'primavera' ? [0x8fc04a, 0x9acb55, 0x84b543] : [0x4f8a2e, 0x5a9636, 0x467f29], troncoAlto);
       montar(ESP.desnudo, ramas, [0x6a5a4a, 0x5e5042, 0x75644f]);
       montar(ESP.chopoDesnudo, ramasChopo, [0x8a8070, 0x7d7464, 0x948a78]); }
@@ -8410,7 +8428,15 @@ function bucle3D(t){
     if (v3.rehacer && !v3.construyendo) { v3.rehacer = false; v3.construido = false; v3.escena = null; v3.camPos = null; construir3D(); } }
   colocarMapa3D();
   if (!v3.activo || !v3.construido) return;
-  { const fps = (!document.hasFocus() && !sesion.corriendo) ? 5 : calidad().fps; if (t - (v3.tRender || 0) < 1000 / fps - 3) return; v3.tRender = t; }
+  { const fps = (!document.hasFocus() && !sesion.corriendo) ? 5 : calidad().fps;
+    /* v277 (Carlos: «la grupeta tiembla»; el vídeo iba a unos 28 imágenes por segundo pero desiguales: unas a 17 ms y otras a 50-70 ms, y eso se ve como temblor).
+       Ahora se pinta una de cada k vueltas de la pantalla, siempre la misma cadencia; si el equipo no llega, k sube (60 → 30 → 20 por segundo) en vez de ir a saltos */
+    const P = v3.ritmo || (v3.ritmo = { tPrev: t, dRaf: 16.7, n: 0, k: 1, lento: 0, rapido: 0 });
+    const dr = t - P.tPrev; P.tPrev = t; if (dr > 0 && dr < 100) P.dRaf += (dr - P.dRaf) * 0.05;
+    const kMin = Math.max(1, Math.round(1000 / fps / P.dRaf)); if (P.k < kMin) P.k = kMin;
+    P.n++; if (P.n % P.k) return;
+    if (v3.tRender) { const real = t - v3.tRender, quiere = P.k * P.dRaf; if (real > quiere * 1.35) { if (++P.lento > 20 && P.k < 3) { P.k++; P.lento = 0; } } else { P.lento = Math.max(0, P.lento - 1); if (real < quiere * 1.1 && ++P.rapido > 600 && P.k > kMin) { P.k--; P.rapido = 0; } } }
+    v3.tRender = t; }
   const dt = Math.min(0.1, (t - (v3.tUlt || t)) / 1000); v3.tUlt = t;
   if (v3.tester && !sesion.corriendo) { ruta.dist += v3.tester / 3.6 * dt; if (ruta.dist > ruta.total - 40) { ruta.dist = 10; v3.dVis = 10; }
     vivo.c = 85; vivo.tW = Date.now();
