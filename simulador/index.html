@@ -15,7 +15,7 @@ if (window.THREE) { (()=>{var be=Object.create;var pe=Object.defineProperty;var 
    Mapa 2D, perfil, datos, rivales y tramos funcionan igual; el 3D enseña un vídeo de demostración.
    Para probar: ?ligero=1 fuerza el modo ligero y ?3d=1 lo quita. */
 window.LIGERO = /[?&]ligero=1/.test(location.search) || (!/[?&]3d=1/.test(location.search) && !matchMedia('(any-pointer: fine)').matches);
-if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edificios-extra','iglesias','animales','huevos','coches','rios','riberas','vias','modelos-extra','bici','ambientes','lugares'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
+if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edificios-extra','iglesias','animales','huevos','coches','rios','riberas','vias','modelos-extra','bici','ambientes','lugares','sitios'].map(f => '<script src="recursos/' + f + '.js"><\/script>').join(''));
 </script>
 <script src="recursos/rutas.js"></script>
 <script src="recursos/circuitos.js"></script>
@@ -386,7 +386,7 @@ if (!LIGERO) document.write(['modelos','vegetacion','texturas','edificios','edif
 </style>
 </head>
 <body>
-<h1>Simulador · Reproductor de sesiones <span class="sub">v287 · cuestas sin rampas falsas: la altura se promedia en ±300 m (salvo ciclocrós y critérium); v286: al volver de ×10 a ×1 ya no se para; fuera el quiosco de la curva de Recoletos y los edificios que se metían en la calzada (salida de Riaza); el catálogo abre directamente la ficha de la ruta; Cámara 6 cenital (tecla 6); bicis inclinadas con la cuesta (sin ruedas hundidas); Cibeles y Neptuno más grandes y detalladas; v285: los locutores cuentan por dónde pasa la carrera en Madrid y en qué vuelta vais; v284: puertas en las vallas donde pasa la ruta (salida del Retiro); v283: suelo llano bajo plazas y aceras de Madrid; Palacio de Cristal fuera de la pista; v282: aceras de Madrid con baldosa de cuatro tacos y sin losas montadas, plazas de granito; v281: cámara del espectador sin vaivén; corredores sin temblor cuando son muchos; v280: capas del paisaje con la tecla K; aligerado: árboles y azoteas como antes, ritmo de imágenes como antes; v279: gente de pie mirando la carretera, sin paseantes; animales quietos (zorro y lobo, cortos paseos); en el critérium solo se carga lo cercano (1,2 km; árboles 1,5 km); v278: árboles con sombra propia, más ramilletes y ramas; critérium de Madrid: curvas redondeadas, acera hasta las fachadas, escaparates distintos y portales, más gente, verjas sin huecos, copas redondas; trazado suave y rampas hasta el 8 %, pasos de cebra, parques con césped y verjas, Palacio Real, Plaza de España y Sol pavimentadas, bulevar del Prado y Recoletos, árboles de las calles, lagos hundidos, casetas de Moyano de colores, árboles menos «de bolas»</span></h1>
+<h1>Simulador · Reproductor de sesiones <span class="sub">v292 · sitios del IGN junto a la carretera (cuevas, fuentes, ermitas, castillos, miradores); v291: las Cuevas de Olmedillas en su barranco, y los locutores las nombran; v290: arbustos y rocas en laderas y barrancos casi vacíos; v289: pueblos con poco mapa rellenos de casas (Alboreca) y trenes por Sigüenza; v288: con un .zwo en marcha el mando vuelve a abrir el menú; v287: cuestas sin rampas falsas: la altura se promedia en ±300 m (salvo ciclocrós y critérium); v286: al volver de ×10 a ×1 ya no se para; fuera el quiosco de la curva de Recoletos y los edificios que se metían en la calzada (salida de Riaza); el catálogo abre directamente la ficha de la ruta; Cámara 6 cenital (tecla 6); bicis inclinadas con la cuesta (sin ruedas hundidas); Cibeles y Neptuno más grandes y detalladas; v285: los locutores cuentan por dónde pasa la carrera en Madrid y en qué vuelta vais; v284: puertas en las vallas donde pasa la ruta (salida del Retiro); v283: suelo llano bajo plazas y aceras de Madrid; Palacio de Cristal fuera de la pista; v282: aceras de Madrid con baldosa de cuatro tacos y sin losas montadas, plazas de granito; v281: cámara del espectador sin vaivén; corredores sin temblor cuando son muchos; v280: capas del paisaje con la tecla K; aligerado: árboles y azoteas como antes, ritmo de imágenes como antes; v279: gente de pie mirando la carretera, sin paseantes; animales quietos (zorro y lobo, cortos paseos); en el critérium solo se carga lo cercano (1,2 km; árboles 1,5 km); v278: árboles con sombra propia, más ramilletes y ramas; critérium de Madrid: curvas redondeadas, acera hasta las fachadas, escaparates distintos y portales, más gente, verjas sin huecos, copas redondas; trazado suave y rampas hasta el 8 %, pasos de cebra, parques con césped y verjas, Palacio Real, Plaza de España y Sol pavimentadas, bulevar del Prado y Recoletos, árboles de las calles, lagos hundidos, casetas de Moyano de colores, árboles menos «de bolas»</span></h1>
 <details class="sub" style="margin:-4px 0 8px"><summary style="cursor:pointer">▸ novedades anteriores</summary>v167 · 🎮 botones nuevos: Play (← → girar, ↑ ↓ inclinar, frenos zoom, A órdenes, Z pantalla limpia, Y menú, lateral dcho. clasificación) y bici (abajo izq. relevo, abajo dcha. cámara, arriba dcha. grabar, 2 s terminar); el teclado igual · v166 · 🎚 el nivel de las carreras sigue a tu FTP y tu peso (salvo que lo pongas a mano) · v165 · ☰ menú por grupos: App, TV, Actividad, Carrera, Mundo (M y luego 1–5) · 🎥 cinco cámaras; acercar/alejar en todas (rueda, RePág/AvPág, I/U), mirar arriba/abajo (; :) y cambios suaves · v164 · 🎽 cada equipo con su franja de color en el maillot · v163 · 👀 selector «Corro yo | Solo miro», velocidades ×1–×10 sin pausas, 📜 crónica al acabar, sin «Tú» ni resumen de demostración · v162 · 🏁 la sigla del equipo entre paréntesis en las clasificaciones · 👀 «Solo miro» en la configuración de carrera; velocidad ×1 ×2 ×5 · ⛰ el pelotón sube a un ritmo que aguanta (cuenta el viento) y persigue de verdad · Australia de dorado · v161: 🗣 los locutores dicen el país, no la sigla · v160: 📱 tablet: columna de datos más estrecha y paneles más pequeños · v159: 🎙 Andrés con voz de hombre · 👀 el espectador entra solo al 3D · v158: 👀 modo espectador · Susana es el 21 en tus carreras (y tú el 22 en las suyas) · v157: ☁ tu ficha y la de Susana, en todos los aparatos (repositorio privado) · v156: 🎙 dos locutores: Andrés narra y Marga comenta, con voz y texto · v155: 🔧 incidentes: pinchazos, cadena, averías y coche de equipo · v154: 🇪🇸 órdenes a tu equipo: 7 Venid conmigo · 8 Tirad · 9 Esperadme · B Tren · X Libres · v153: 🏁 finales: trenes, ataques en la subida final, farol, repecho · v152: 🚵 10 circuitos de ciclocrós por tus caminos (Cerro Almodóvar con las zetas, Vicálvaro) · v151: 🏃 fugas, metas volantes y premios de montaña, te vigilan, grupeta de cortados · v150: 🚴 60 corredores con ficha, dorsal y selección; grupos que aguantan · v149: 🛣 las vueltas por el mismo sitio se dibujan como una sola carretera · v148: ⏱ 630 segmentos cronometrados (puertos, subidas, repechos, sprints, llanos, bajadas y recorridos) · v147: 🔄 «,» y «.» giran la vista en cualquier cámara · 🙂 cuello más corto y barbilla menos saliente · (v145: muñeco nuevo, bici verde, barba; bots con dos niveles de detalle)</details>
 <div class="sub">Cierra Zwift antes de empezar. La bici pone los vatios de la sesión; tú solo pedaleas.</div>
 
@@ -1182,7 +1182,7 @@ function mando(b){ if (RITMO.abierta) return ritmoMando(b);   // v232
   if (window.pFicha && pFicha.abierta) return fichaMando(b);   // v184: ficha nueva
   if (window.resumenMando && resumenMando(b)) return true;
   if (window.pAjustes && pAjustes.abierta) return ajustesMando(b);
-  if (window.pZwo && pZwo.abierta) return zwoMando(b);
+  if (window.pZwo && pZwo.abierta && zwoMando(b)) return true;   /* v288 (Carlos: «haciendo un recorrido con un zwo… el Zwift Play no abre los ajustes»): con el entreno rodando, la pantalla del zwo devolvía «no usado» y cortaba aquí todos los botones; ahora siguen hacia el menú */
   if (window.pDisenar && pDisenar.abierta) return disenarMando(b);
   if (typeof CAT !== 'undefined' && CAT.abierta) return catMando(b);   // v239: catálogo de rutas
   if (window.pElegir && pElegir.abierta) return elegirMando(b);   // v172: elegir ruta y modo
@@ -1844,6 +1844,52 @@ function guiaMadrid(){ if (!sesion.corriendo || sesion.zwoRuta || !ruta.pts || !
       if (ea != null && eb != null) { const pc = (eb - ea) / g[4] * 100; if (Math.abs(pc) >= 1) extra = (pc > 0 ? 'Son ' : 'Bajada de ') + g[4] + ' metros al ' + (pc > 0 ? '' : '−') + Math.abs(pc).toFixed(1).replace('.', ',') + ' % de media' + (extra ? '. ' + extra : ''); } }
     if (extra && p.d < guiaV.vueltas[1]) comentar('alta', extra, 'guiaC' + p.d, 1000); } }   /* los datos de Marga, solo en la primera vuelta: después cansan */
 setInterval(() => { try { guiaMadrid(); } catch(e) {} }, 1000);
+/* v291 (Carlos: «hay una cueva grande entre Alboreca y Olmedillas donde se guardaban las ovejas y se puede visitar»; posición leída de su captura del mapa del IGN, «Cuevas de Olmedilla»):
+   sitios sueltos que se dibujan en cualquier ruta que pase cerca (boca en la roca y letrero mirando a la carretera) y que los locutores nombran al pasar */
+/* v292 (Carlos: «algo que quede junto a la carretera y para decorar, tampoco hay que llenar el simulador»): los sitios salen de recursos/sitios.js (Nomenclátor del IGN, a menos de 150 m de alguna ruta, uno cada 3 km como mucho) */
+const SITIO_DATO = { 'Cuevas de Olmedilla': 'Ahí se guardaban las ovejas, y hoy se pueden visitar' };
+const SITIOS_EXTRA = (() => { const L = []; for (const x of ((window.RECURSOS_SIM && RECURSOS_SIM.sitios) || [])) { const art = /^(Castillo|Mirador)\b/.test(x.n) ? 'el ' : 'la ';
+    L.push({ nombre: x.n, lat: x.lat, lon: x.lon, tipo: x.t, dice: '{S} pasa junto a ' + art + x.n, dato: SITIO_DATO[x.n] || null }); } return L; })();
+function ponerSitiosExtra(){ if (typeof v3 === 'undefined' || !v3 || !v3.construido || !v3.escena || !v3.via || !v3.cercana || !v3.aXZ || !v3.suelo) return; if (v3._sitiosEsc === v3.escena) return; v3._sitiosEsc = v3.escena;
+  for (const S of SITIOS_EXTRA) { const q = v3.aXZ(S.lat, S.lon); if (!isFinite(q.x)) continue; const c = v3.cercana(q.x, q.z); if (!c || c.d > 200) continue; const v = v3.via[c.i];
+    let dx = q.x - v.x, dz = q.z - v.z; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L; const lejos = Math.max(16, Math.min(S.tipo === 'cueva' ? 45 : 150, L)), x = v.x + dx * lejos, z = v.z + dz * lejos, y = v3.suelo(x, z);   /* en su sitio real, pero nunca a menos de 16 m de la carretera (la cueva, a 45 m como mucho para que se vea) */
+    const G = new THREE.Group(), roca = new THREE.MeshLambertMaterial({ color: 0x9a8b74, flatShading: true }), roca2 = new THREE.MeshLambertMaterial({ color: 0x857862, flatShading: true }), negro = new THREE.MeshBasicMaterial({ color: 0x0b0907, side: THREE.DoubleSide });
+    const caja = (w, h, d, m, px, py, pz) => { const g = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); g.position.set(px, py, pz); G.add(g); return g; }, piedra = new THREE.MeshLambertMaterial({ color: 0xb8ab94 }), cal = new THREE.MeshLambertMaterial({ color: 0xf1ece2 }), teja = new THREE.MeshLambertMaterial({ color: 0xa4502f }), madera = new THREE.MeshLambertMaterial({ color: 0x6b4a2f });
+    const tapada = v3.edifTapado && v3.edifTapado(x, z);   /* si ya hay un edificio de OSM en ese punto (ermita dentro del pueblo), no se dibuja otro: solo el letrero y la narración */
+    if (S.tipo === 'cueva') {
+    const piedras = [[0, 3.5, -3, 7, 1.3, 0.8, roca], [-6, 2.5, -2, 4.5, 1.1, 0.9, roca2], [6, 2.8, -2.5, 5, 1.2, 0.8, roca2], [0, 8.5, -5, 7.5, 0.8, 0.9, roca2], [-9, 1.5, 0, 3, 0.9, 1, roca], [9, 1.6, 0.5, 3.2, 0.9, 1, roca]];
+    for (const [px, py, pz, r, sy, sz, m] of piedras) { const g = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 1), m); g.position.set(px, py, pz); g.scale.set(1, sy, sz); g.rotation.y = px * 0.3; G.add(g); }
+    const boca = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24, 0, Math.PI), negro); boca.scale.set(1.3, 1.25, 1); boca.position.set(0, 0.05, 2.2); G.add(boca);   /* la boca: medio arco oscuro */
+    const suelo = new THREE.Mesh(new THREE.CircleGeometry(3.4, 18, 0, Math.PI), negro); suelo.rotation.x = -Math.PI / 2; suelo.position.set(0, 0.04, 2.2); suelo.scale.set(1, 0.6, 1); G.add(suelo);
+    } else if (tapada) {
+    } else if (S.tipo === 'fuente') {   /* fuente de campo: muro de piedra con caño y pilón */
+      caja(2.4, 1.5, 0.5, piedra, 0, 0.75, -0.6); caja(2.6, 0.12, 0.6, piedra, 0, 1.56, -0.6); caja(2.6, 0.5, 1.2, piedra, 0, 0.25, 0.3); const ag = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.05, 0.95), MAD.aguaClara()); ag.position.set(0, 0.46, 0.3); G.add(ag);
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6), MAD.bronce()); c.rotation.x = Math.PI / 2; c.position.set(0, 1.0, -0.2); G.add(c);
+    } else if (S.tipo === 'ermita') {   /* ermita: nave encalada, tejado a dos aguas, espadaña con campana y puerta */
+      caja(6, 4, 9, cal, 0, 2, -2); const gt = new THREE.CylinderGeometry(3.5, 3.5, 9.4, 3, 1, false); gt.rotateX(-Math.PI / 2); const tj = new THREE.Mesh(gt, teja); tj.scale.set(1, 0.55, 1); tj.position.set(0, 4 + 1.75 * 0.55, -2); G.add(tj);   /* tejado a dos aguas: prisma tumbado a lo largo de la nave */
+      caja(2.4, 3.2, 0.6, cal, 0, 5.6, 2.4); const cp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, 0.5, 8), MAD.bronce()); cp.position.set(0, 6.0, 2.75); G.add(cp); caja(1.4, 2.4, 0.1, madera, 0, 1.2, 2.55);
+    } else if (S.tipo === 'castillo') {   /* torre de piedra con almenas */
+      caja(6, 11, 6, piedra, 0, 5.5, -2); for (let k = 0; k < 4; k++) for (const sg of [-1, 1]) { caja(1, 1, 0.6, piedra, -2.5 + k * 1.66, 11.5, -2 + sg * 2.7); caja(0.6, 1, 1, piedra, sg * 2.7, 11.5, -4.5 + k * 1.66); }
+      caja(1.2, 2.2, 0.1, negro, 0, 1.1, 1.02);
+    } else if (S.tipo === 'mirador') {   /* mirador: tarima de madera con barandilla */
+      caja(4, 0.2, 3, madera, 0, 0.5, 0); for (const sx of [-1.9, 1.9]) caja(0.12, 1.1, 0.12, madera, sx, 1.1, 1.4); caja(4, 0.1, 0.1, madera, 0, 1.6, 1.4);
+    }
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const t = cv.getContext('2d'); t.fillStyle = '#6b3f1f'; t.fillRect(0, 0, 512, 128); t.strokeStyle = '#f3e6c8'; t.lineWidth = 8; t.strokeRect(8, 8, 496, 112);
+    t.fillStyle = '#f3e6c8'; let fs = 50; t.font = 'bold 50px sans-serif'; while (fs > 22 && t.measureText(S.nombre).width > 430) { fs -= 2; t.font = 'bold ' + fs + 'px sans-serif'; } t.textAlign = 'center'; t.textBaseline = 'middle'; t.fillText(S.nombre, 256, 66);
+    const tx = new THREE.CanvasTexture(cv); if ('colorSpace' in tx) tx.colorSpace = THREE.SRGBColorSpace; const mad = new THREE.MeshLambertMaterial({ color: 0x5a3a20 });
+    const cartel = new THREE.Group(), tabla = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.8), new THREE.MeshBasicMaterial({ map: tx, side: THREE.DoubleSide })); tabla.position.y = 2.0; cartel.add(tabla);
+    for (const sx of [-1.4, 1.4]) { const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.4, 6), mad); poste.position.set(sx, 1.2, -0.03); cartel.add(poste); }
+    const cdx = v.x + dx * 9, cdz = v.z + dz * 9; cartel.position.set(cdx, v3.suelo(cdx, cdz), cdz); cartel.rotation.y = Math.atan2(-dx, -dz); v3.escena.add(cartel);   /* letrero en la cuneta, mirando a quien pasa */
+    G.position.set(x, y, z); G.rotation.y = Math.atan2(-dx, -dz); v3.escena.add(G); log('3D: ' + S.nombre + ' a ' + Math.round(lejos) + ' m de la carretera (en el mapa, a ' + Math.round(L) + ' m).'); } }
+const guiaS = { clave: null, P: [], hecho: new Set(), dAnt: null };
+function guiaSitios(){ if (!sesion.corriendo || !ruta.pts || !ruta.total) return; if (sesion.demo && (demo.x || 1) > 1) return; const clave = ruta.total + ':' + ruta.pts.length;
+  if (guiaS.clave !== clave) { guiaS.clave = clave; guiaS.hecho = new Set(); guiaS.dAnt = null; guiaS.P = []; const P = ruta.pts;
+    SITIOS_EXTRA.forEach((S, j) => { const kx = 111320 * Math.cos(S.lat * Math.PI / 180); let mejor = null; for (let i = 0; i < P.length; i++) { const e = Math.hypot((P[i].lat - S.lat) * 111320, (P[i].lon - S.lon) * kx);
+        if (e < 200) { if (!mejor || e < mejor.e) mejor = { e, d: P[i].d }; } else if (mejor && e > 400) { guiaS.P.push({ d: Math.max(0, mejor.d - 60), j }); mejor = null; } } if (mejor) guiaS.P.push({ d: Math.max(0, mejor.d - 60), j }); }); }
+  const d = ruta.dist, d0 = guiaS.dAnt; guiaS.dAnt = d; if (d0 == null || d < d0 || d - d0 > 200) return;
+  for (const p of guiaS.P) { if (p.d <= d0 || p.d > d || guiaS.hecho.has(p.d)) continue; guiaS.hecho.add(p.d); const S = SITIOS_EXTRA[p.j];
+    narrar('media', '📍 ' + S.dice.replace('{S}', guiaSujeto()), 'sitio' + p.d); if (S.dato) comentar('alta', S.dato, 'sitioC' + p.d, 1000); } }
+setInterval(() => { try { ponerSitiosExtra(); guiaSitios(); } catch(e) {} }, 1000);
 // v229 (Carlos: «¿hay narrador en las grupetas? con consejos de comer, beber, resúmenes de dónde voy y cómo voy de datos»): comentarista de entrenamiento en grupeta y en ruta libre (no en carrera ni en .zwo)
 const ENTRENO = { t: -1 };
 function minutosHablados(s){ const m = Math.round(s / 60), h = Math.floor(m / 60), r = m % 60; return (h ? (h === 1 ? 'una hora' : h + ' horas') + (r ? ' y ' : '') : '') + (r || !h ? (r === 1 ? 'un minuto' : r + ' minutos') : ''); }
@@ -8145,6 +8191,22 @@ async function construir3D(){
             let col = null; if (tc) { col = B[o] | (B[o + 1] << 8) | (B[o + 2] << 16); o += 3; }
             const pp = aXZ((ci + fx) * IX.DLA, (cj + fz) * IX.DLO), y = (v3.suelo ? v3.suelo(pp.x, pp.z) : 0) + dy;
             (DECO[tipo] = DECO[tipo] || { m: [], c: [], ll: [] }).m.push(new THREE.Matrix4().compose(p3.set(pp.x, y, pp.z), q4, e3)); DECO[tipo].c.push(col == null ? null : new THREE.Color(col)); DECO[tipo].ll.push([(ci + fx) * IX.DLA, (cj + fz) * IX.DLO]); n++; } }
+        /* v290 (Carlos, de Alboreca a Olmedillas: «hay un barranco que tiene bastante arbusto, no se ve tan vacío, y hay zonas de rocas»): en los cuadrados casi vacíos del mapa (menos de 120 objetos),
+           las laderas con cuesta (más del 22 %) se cubren de arbustos, matas y alguna encina, y las más empinadas (más del 35 %) llevan rocas. Se calcula una vez al montar */
+        try { if (DECO && v3.suelo) { const cuenta = {}; for (const k of cel) { const b64 = RECURSOS_SIM.deco && RECURSOS_SIM.deco[k]; cuenta[k] = b64 ? Math.round(b64.length * 0.75 / 16) : 0; }
+            const escala = t => { const L = DECO[t] && DECO[t].m; if (!L || !L.length) return 1; const v = []; for (let i = 0; i < L.length; i += Math.max(1, Math.floor(L.length / 40))) { const e = L[i].elements; v.push(Math.hypot(e[0], e[1], e[2])); } v.sort((x, y) => x - y); return v[v.length >> 1] || 1; };
+            const ESC = { arbusto: escala('arbusto'), mata: escala('mata'), encina: escala('encina'), roca: escala('roca') }, VG = new Map(), VC = 40;
+            for (let i = 0; i < via.length; i++) { const kk = Math.floor(via[i].x / VC) + ',' + Math.floor(via[i].z / VC); if (!VG.has(kk)) VG.set(kk, []); VG.get(kk).push(via[i]); }
+            const cerca = (x, z, r) => { const a = Math.floor(x / VC), b = Math.floor(z / VC); for (let i = a - 1; i <= a + 1; i++) for (let j = b - 1; j <= b + 1; j++) for (const v of (VG.get(i + ',' + j) || [])) if (Math.hypot(v.x - x, v.z - z) < r) return true; return false; };
+            let puestos = 0, celdas = 0; const qq = new THREE.Quaternion(), ee = new THREE.Vector3(), pp3 = new THREE.Vector3(), eje = new THREE.Vector3(0, 1, 0);
+            for (const k of cel) { if (cuenta[k] >= 120) continue; const [ci, cj] = k.split('_').map(Number); let sem = (ci * 73856093) ^ (cj * 19349663); const rnd = () => { sem = (sem * 1103515245 + 12345) & 0x7fffffff; return sem / 0x7fffffff; }; let aqui = 0;
+              for (let t = 0; t < 260 && aqui < 90; t++) { const la = (ci + rnd()) * IX.DLA, lo = (cj + rnd()) * IX.DLO, q = aXZ(la, lo); if (cerca(q.x, q.z, 14)) continue;
+                const h0 = v3.suelo(q.x, q.z), gx = (v3.suelo(q.x + 6, q.z) - v3.suelo(q.x - 6, q.z)) / 12, gz = (v3.suelo(q.x, q.z + 6) - v3.suelo(q.x, q.z - 6)) / 12, pend = Math.hypot(gx, gz); if (pend < 0.22) continue;
+                const r = rnd(), tipo = pend > 0.35 && r < 0.3 ? 'roca' : r < 0.62 ? 'arbusto' : r < 0.9 ? 'mata' : 'encina', s0 = (ESC[tipo] || 1) * (0.7 + rnd() * 0.6);
+                qq.setFromAxisAngle(eje, rnd() * Math.PI * 2); ee.set(s0, s0 * (tipo === 'roca' ? 0.6 + rnd() * 0.5 : 1), s0);
+                (DECO[tipo] = DECO[tipo] || { m: [], c: [], ll: [] }).m.push(new THREE.Matrix4().compose(pp3.set(q.x, h0 - (tipo === 'roca' ? 0.3 : 0.05), q.z), qq, ee)); DECO[tipo].c.push(null); DECO[tipo].ll.push([la, lo]); aqui++; puestos++; }
+              if (aqui) celdas++; }
+            if (puestos) log('3D: ' + puestos + ' arbustos, matas y rocas en las laderas de ' + celdas + ' cuadrados casi vacíos.'); } } catch(e) { log('3D: laderas: ' + e.message); }
         if (!nc) DECO = null; else log('3D: decoración guardada: ' + n + ' objetos de ' + nc + ' cuadrados (' + Object.keys(DECO).length + ' tipos).'); }
     } catch(e) { DECO = null; log('3D: sin decoración guardada (' + e.message + ')'); }
     v3.deco = DECO;
@@ -8165,6 +8227,28 @@ async function construir3D(){
             for (let j = 0; j < np; j++, o += 4) { const q = aXZ(la0 + dv.getInt16(o, true) / 1e6, lo0 + dv.getInt16(o + 2, true) / 1e6); P.push([q.x, q.z]); }
             l.push([t, lv, P]); todos.push(P); n++; }
           v3.edifCel.set(k, { x: cc.x, z: cc.z, l }); }
+        /* v289 (Carlos: «he llegado a Alboreca y no hay casas donde está el pueblo; hay unas naves a la derecha, pero el pueblo está a la izquierda»): en OSM solo hay 6 edificios de Alboreca.
+           Los pueblos de la lista (recursos/lugares.js) a menos de 700 m de la ruta con pocas casas dibujadas se rellenan con casas en su sitio, sin pisar la carretera ni otros edificios */
+        try { const PU = (window.RECURSOS_SIM && RECURSOS_SIM.lugares && RECURSOS_SIM.lugares.pueblos) || [], VG = new Map(), VC = 40; let gen = 0, pueb = 0;
+          for (let i = 0; i < via.length; i++) { const kk = Math.floor(via[i].x / VC) + ',' + Math.floor(via[i].z / VC); if (!VG.has(kk)) VG.set(kk, []); VG.get(kk).push(via[i]); }
+          const dRuta = (x, z) => { let d = Infinity; const a = Math.floor(x / VC), b = Math.floor(z / VC); for (let i = a - 1; i <= a + 1; i++) for (let j = b - 1; j <= b + 1; j++) for (const v of (VG.get(i + ',' + j) || [])) d = Math.min(d, Math.hypot(v.x - x, v.z - z)); return d; };
+          const cen = todos.map(P => { let x = 0, z = 0; for (const q of P) { x += q[0]; z += q[1]; } return [x / P.length, z / P.length]; });
+          for (const [nom, la, lo, , hab] of PU) { if (!(hab > 0) || hab > 3000) continue; const c0 = aXZ(la, lo); if (!isFinite(c0.x)) continue;
+            let dmin = Infinity; for (let i = 0; i < via.length; i += 5) dmin = Math.min(dmin, Math.hypot(via[i].x - c0.x, via[i].z - c0.z)); if (dmin > 700) continue;
+            const R = Math.max(70, Math.min(200, 55 + 4 * Math.sqrt(hab))), quiero = Math.max(12, Math.min(60, Math.round(6 + Math.pow(hab, 0.6))));
+            const ya = cen.filter(([x, z]) => Math.hypot(x - c0.x, z - c0.z) < R).length; if (ya >= quiero * 0.6) continue;
+            let sem = 0; for (const ch of nom) sem = (sem * 31 + ch.charCodeAt(0)) % 2147483647; const rnd = () => { sem = (sem * 16807 + 7) % 2147483647; return sem / 2147483647; };
+            const a0 = rnd() * Math.PI, puestos = cen.filter(([x, z]) => Math.hypot(x - c0.x, z - c0.z) < R + 30).slice(); let hechas = 0;
+            for (let t = 0; t < 400 && hechas < quiero - ya; t++) { const r = R * Math.sqrt(rnd()) * 0.95, ang = rnd() * Math.PI * 2, x = c0.x + Math.cos(ang) * r, z = c0.z + Math.sin(ang) * r;
+              if (dRuta(x, z) < 13) continue; if (puestos.some(([px, pz]) => Math.hypot(px - x, pz - z) < 13)) continue;
+              const w = 7 + rnd() * 5, h = 6 + rnd() * 4, aa = a0 + Math.floor(rnd() * 4) * Math.PI / 2 + (rnd() - 0.5) * 0.2, cs = Math.cos(aa), sn = Math.sin(aa);
+              const P = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(([u, v]) => [x + u * cs - v * sn, z + u * sn + v * cs]);
+              if (P.some(([px, pz]) => dRuta(px, pz) < 10)) continue;
+              const g = aLatLon(x, z), k = Math.floor(g.lat / IE.DLA) + '_' + Math.floor(g.lon / IE.DLO);
+              if (!v3.edifCel.has(k)) { const [ci, cj] = k.split('_').map(Number), cc = aXZ(ci * IE.DLA + IE.DLA / 2, cj * IE.DLO + IE.DLO / 2); v3.edifCel.set(k, { x: cc.x, z: cc.z, l: [] }); }
+              v3.edifCel.get(k).l.push(['casa', rnd() < 0.6 ? 2 : 1, P]); todos.push(P); puestos.push([x, z]); hechas++; gen++; n++; }
+            if (hechas) pueb++; }
+          if (gen) log('3D: ' + gen + ' casas añadidas en ' + pueb + ' pueblos con poco mapa (OSM).'); } catch(e) { log('3D: relleno de pueblos: ' + e.message); }
         // rejilla de 12 m con los edificios, para quitar los árboles y matas que caían dentro (1,5 m de margen)
         todos.forEach((P, i) => { let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity; for (const [x, z] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
           for (let a = Math.floor((x0 - 2) / RC); a <= Math.floor((x1 + 2) / RC); a++) for (let b = Math.floor((z0 - 2) / RC); b <= Math.floor((z1 + 2) / RC); b++) { const kk = a + ',' + b; if (!RG.has(kk)) RG.set(kk, []); RG.get(kk).push(i); } });
@@ -9906,7 +9990,7 @@ async function obsGrabar(){ try { const r = await obsPedir('ToggleRecord'); avis
     if (b === 'arr' || b === 'izq') ze.i = (ze.i - 1 + n) % n; else if (b === 'ab' || b === 'der') ze.i = (ze.i + 1) % n;
     else if (b === 'B' || b === 'Y') { accionE('empezar'); return true; } else if (b === 'Z') { accionE('volver'); return true; } else return true;
     pintarE(); return true; };
-  document.addEventListener('keydown', e => { if (!ze.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+  document.addEventListener('keydown', e => { if (!ze.abierta || zr.abierta || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
     const T = { ArrowLeft:'izq', ArrowRight:'der', ArrowUp:'arr', ArrowDown:'ab', Enter:'B', b:'B', B:'B', z:'Z', Z:'Z', Escape:'Z' }[e.key];
     if (T) { e.preventDefault(); e.stopImmediatePropagation(); zwoMando(T); } }, true);
   // un .zwo cargado a mano desde esta pantalla: también se ve con el diseño nuevo
