@@ -13,6 +13,10 @@
   --granate:#8f1d2b}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* 27-nov-2026 · Pixel 11: algo más ancho que la pantalla ensanchaba la página entera
+   (barra azul sin llegar al borde, vídeo de entrada más grande que la pantalla).
+   «clip» y no «hidden» para no romper las barras pegajosas (sticky). */
+html,body{overflow-x:clip}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   color:var(--tinta); background:var(--gris-claro); font-size:16px; line-height:1.45;

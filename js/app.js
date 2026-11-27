@@ -13147,6 +13147,24 @@ function pintarTodo() {
         var campo = $("#cat-token");
         campo.type = campo.type === "password" ? "text" : "password";
       });
+      $("#cat-copiar").addEventListener("click", function () {
+        var campo = $("#cat-token");
+        var valor = campo.value;
+        if (!valor) { Util.toast("No hay ninguna clave guardada aquí"); return; }
+        var tipo = campo.type;
+        campo.type = "text";
+        campo.select();
+        campo.setSelectionRange(0, valor.length);
+        var hecho = false;
+        try { hecho = document.execCommand("copy"); } catch (e) {}
+        if (!hecho && navigator.clipboard) {
+          navigator.clipboard.writeText(valor).then(function () { Util.toast("Clave copiada"); },
+            function () { Util.toast("No he podido copiarla: está a la vista para que la copies a mano"); });
+        } else {
+          Util.toast(hecho ? "Clave copiada" : "No he podido copiarla: está a la vista para que la copies a mano");
+        }
+        if (hecho) campo.type = tipo;
+      });
       $("#cat-probar").addEventListener("click", function () { if (global.Catalogo) Catalogo.probar(); });
       $("#cat-subir").addEventListener("click", function () { if (global.Catalogo) Catalogo.subir(true); });
     }
